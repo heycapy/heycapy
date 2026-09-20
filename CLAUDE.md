@@ -108,6 +108,15 @@ Two jobs: (1) NL input → parse bucket + item, (2) bucket setup assistant. Unif
 - `import type { ... }` for type-only imports always
 - No `any` types
 - No non-null assertions (`!`)
+- Never use the `React.` namespace — always import named exports directly from `"react"`
+- Constants and enums always in a dedicated `constants.ts` file — never inline in component or logic files
+
+### Zod
+- Use Zod v4 APIs — no deprecated string refinements
+- `z.email()` not `z.string().email()`
+- `z.url()` not `z.string().url()`
+- `z.iso.datetime()` not `z.string().datetime()`
+- `z.iso.date()` not `z.string().date()`
 
 ### React / Next.js
 - Functional components only
