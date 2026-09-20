@@ -175,3 +175,4 @@ Conventional Commits enforced via commitlint:
 - No `any` types
 - No non-null assertions (`!`)
 - Never bypass auth middleware
+- **Never use decorative separator comments** like `// ────`, `/* ── Section ── */`, or any comment that is just a visual divider — ever

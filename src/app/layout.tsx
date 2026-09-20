@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono, Silkscreen } from "next/font/google";
 import "./globals.css";
 import { APP_NAME } from "@/constants";
+import { ThemeProvider } from "@/components/providers/ThemeProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -13,6 +14,12 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const silkscreen = Silkscreen({
+  weight: ["400", "700"],
+  subsets: ["latin"],
+  variable: "--font-pixel",
+});
+
 export const metadata: Metadata = {
   title: APP_NAME,
   description: "A capy to help you with your day.",
@@ -22,10 +29,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} ${silkscreen.variable} h-full antialiased`}
       suppressHydrationWarning
     >
-      <body className="bg-background text-foreground h-full">{children}</body>
+      <body className="bg-background text-foreground h-full">
+        <ThemeProvider>{children}</ThemeProvider>
+      </body>
     </html>
   );
 }
