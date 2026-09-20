@@ -39,8 +39,8 @@ export default function LoginPage() {
     countdownRef.current = id;
   }
 
-  // eslint-disable-next-line no-console
   function logDevOtp(devCode?: string) {
+    // eslint-disable-next-line no-console
     if (devCode) console.log(`[dev] OTP: ${devCode}`);
   }
 
