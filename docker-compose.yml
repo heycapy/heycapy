@@ -1,0 +1,39 @@
+services:
+  heycapy:
+    build: .
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - DATABASE_PATH=/data/heycapy.db
+      - RESEND_API_KEY=${RESEND_API_KEY}
+      - EMAIL=${EMAIL}
+      - JWT_SECRET=${JWT_SECRET}
+      - NTFY_URL=${NTFY_URL}
+      - NTFY_TOPIC=${NTFY_TOPIC}
+      - AI_PROVIDER=${AI_PROVIDER:-ollama}
+      - AI_API_KEY=${AI_API_KEY}
+      - AI_MODEL=${AI_MODEL}
+      - OLLAMA_URL=${OLLAMA_URL:-http://host.docker.internal:11434}
+    volumes:
+      - heycapy_data:/data
+    expose:
+      - "3000"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  heycapy_data:
+  caddy_data:
+  caddy_config:

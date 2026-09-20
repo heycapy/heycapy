@@ -1,0 +1,4 @@
+# Replace heycapy.xyz with your  (or use :80 for local HTTP-only)
+heycapy.xyz {
+    reverse_proxy heycapy:3000
+}
