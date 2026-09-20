@@ -3,8 +3,11 @@
 import { Sprite } from "@/components/capy/Sprite";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
+import { useUIStore } from "@/store/ui";
 
 export function BucketsEmptyState() {
+  const { openCreateBucket } = useUIStore();
+
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-5 p-8">
       <Sprite id="capy-idle-blink" size={96} />
@@ -14,7 +17,7 @@ export function BucketsEmptyState() {
           Create your first bucket to get started.
         </p>
       </div>
-      <Button className="w-auto gap-2 px-4 py-2 text-xs">
+      <Button className="w-auto gap-2 px-4 py-2 text-xs" onClick={openCreateBucket}>
         <Plus size={12} />
         New bucket
       </Button>
