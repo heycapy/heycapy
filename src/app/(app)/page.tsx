@@ -14,10 +14,10 @@ export default function Home() {
   }
 
   return (
-    <main className="flex min-h-full flex-col items-center justify-center gap-6 p-8">
+    <main className="flex flex-1 flex-col items-center justify-center gap-6 p-8">
       <Sprite id="capy-mascot" size={96} />
       <h1 className="font-pixel text-xl">{APP_NAME}</h1>
-      <p className="text-muted-foreground text-sm">You&apos;re in. App coming soon.</p>
+      <p className="text-muted-foreground text-sm">You&apos;re in. Buckets coming soon.</p>
       <Button variant="ghost" className="w-auto px-6" onClick={handleLogout}>
         Log out
       </Button>

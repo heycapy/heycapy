@@ -3,17 +3,15 @@ import type { NextRequest } from "next/server";
 import { getSessionFromToken } from "@/lib/auth/session";
 import { SESSION_COOKIE_NAME } from "@/lib/auth/constants";
 
-const PUBLIC_PATHS = ["/login", "/api/auth/send-otp", "/api/auth/verify-otp"];
-
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
-
-  if (PUBLIC_PATHS.some((p) => pathname.startsWith(p))) {
-    return NextResponse.next();
-  }
-
   const token = request.cookies.get(SESSION_COOKIE_NAME)?.value;
   const session = token ? await getSessionFromToken(token) : null;
+
+  if (pathname.startsWith("/login")) {
+    if (session) return NextResponse.redirect(new URL("/", request.url));
+    return NextResponse.next();
+  }
 
   if (!session) {
     return NextResponse.redirect(new URL("/login", request.url));
