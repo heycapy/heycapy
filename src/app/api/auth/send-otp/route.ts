@@ -21,7 +21,6 @@ export async function POST(request: Request) {
   const configuredEmail = process.env.EMAIL;
 
   if (!configuredEmail || email !== configuredEmail) {
-    // Don't reveal whether the email is wrong — same response either way
     return NextResponse.json({ ok: true });
   }
 
