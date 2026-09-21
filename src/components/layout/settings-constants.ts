@@ -1,3 +1,7 @@
+export const LABEL = "text-muted-foreground font-mono text-[10px]";
+export const INPUT =
+  "border-b border-border w-full bg-transparent py-1.5 font-mono text-xs outline-none placeholder:text-muted-foreground/50 focus:border-foreground disabled:opacity-50";
+
 export const THEMES = [
   { id: "capy", label: "capy", bg: "#fdf6e3", fg: "#7c4b2a" },
   { id: "gruvbox", label: "gruvbox", bg: "#282828", fg: "#d79921" },

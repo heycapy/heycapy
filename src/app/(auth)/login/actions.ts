@@ -33,9 +33,10 @@ export async function sendOtpAction(email: string): Promise<SendOtpResult> {
       return { ok: true, devCode: code };
     }
 
+    const from = process.env.EMAIL_FROM ?? APP_EMAIL_FROM;
     const resend = new Resend(process.env.RESEND_API_KEY);
     await resend.emails.send({
-      from: APP_EMAIL_FROM,
+      from,
       to: email,
       subject: `Your ${APP_NAME} login code: ${code}`,
       text: `Your login code is: ${code}\n\nIt expires in ${OTP_TTL_MINUTES} minutes.`,
