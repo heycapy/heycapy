@@ -36,11 +36,13 @@ function DraggableItem({
   orderedItemsRef,
   isEditing,
   onEditStart,
+  onStatusChange,
 }: {
   item: Item;
   orderedItemsRef: React.RefObject<Item[]>;
   isEditing?: boolean;
   onEditStart?: () => void;
+  onStatusChange?: (status: string) => void;
   dragControls?: DragControls;
 }) {
   const controls = useDragControls();
@@ -63,6 +65,7 @@ function DraggableItem({
         dragControls={controls}
         isEditing={isEditing}
         onEditStart={onEditStart}
+        onStatusChange={onStatusChange}
       />
     </Reorder.Item>
   );
@@ -125,6 +128,16 @@ export function BucketContent({ bucket, accentColor }: BucketContentProps) {
   async function refetchItems() {
     const result = await getItemsForBucketAction(bucket.id);
     if (result.ok) setFetchedItems(result.items);
+  }
+
+  async function handleStatusChange(item: Item, status: string) {
+    await updateItemAction(
+      item.id,
+      item.title,
+      item.deadline ? toDateInput(item.deadline) : null,
+      status
+    );
+    await refetchItems();
   }
 
   function startEditing(item: Item) {
@@ -253,6 +266,7 @@ export function BucketContent({ bucket, accentColor }: BucketContentProps) {
                 orderedItemsRef={orderedItemsRef}
                 isEditing={editingItemId === item.id}
                 onEditStart={isReadonly ? undefined : () => startEditing(item)}
+                onStatusChange={isReadonly ? undefined : (s) => handleStatusChange(item, s)}
               />
             ))}
           </Reorder.Group>
@@ -264,6 +278,7 @@ export function BucketContent({ bucket, accentColor }: BucketContentProps) {
                 item={item}
                 isEditing={editingItemId === item.id}
                 onEditStart={isReadonly ? undefined : () => startEditing(item)}
+                onStatusChange={isReadonly ? undefined : (s) => handleStatusChange(item, s)}
               />
             ))}
           </div>
