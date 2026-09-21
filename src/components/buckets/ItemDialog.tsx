@@ -140,7 +140,7 @@ export function ItemDialog({
                         className={cn(
                           "flex items-center gap-1.5 border px-2 py-1 font-mono text-[10px] transition-colors disabled:opacity-40",
                           status === s.value
-                            ? "border-foreground text-foreground"
+                            ? "bg-foreground text-background border-foreground"
                             : "border-border/50 text-muted-foreground hover:border-border hover:text-foreground"
                         )}
                       >

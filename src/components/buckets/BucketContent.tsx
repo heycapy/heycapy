@@ -2,10 +2,11 @@
 
 import { useEffect, useRef, useState, useTransition } from "react";
 import { Reorder, useDragControls } from "framer-motion";
-import { Plus, Settings } from "lucide-react";
+import { Settings } from "lucide-react";
 import { ItemRow } from "./ItemRow";
 import { ItemDialog } from "./ItemDialog";
-import type { ItemStatus } from "./constants";
+import { BucketSettings } from "./BucketSettings";
+import type { ItemStatus, ItemsRulesConfig } from "./constants";
 import {
   addItemAction,
   updateItemAction,
@@ -17,13 +18,6 @@ import type { DragControls } from "framer-motion";
 
 type BucketRow = typeof buckets.$inferSelect;
 type Item = typeof itemsTable.$inferSelect;
-
-interface ItemsRules {
-  sort_by?: "deadline" | "created_at" | "manual";
-  drag?: boolean;
-  readonly?: boolean;
-  show_completed?: boolean;
-}
 
 interface BucketContentProps {
   bucket: BucketRow;
@@ -73,9 +67,9 @@ function DraggableItem({
 }
 
 export function BucketContent({ bucket, items, accentColor }: BucketContentProps) {
-  const rules: ItemsRules = (() => {
+  const rules: ItemsRulesConfig = (() => {
     try {
-      return JSON.parse(bucket.itemsRules) as ItemsRules;
+      return JSON.parse(bucket.itemsRules) as ItemsRulesConfig;
     } catch {
       return {};
     }
@@ -88,6 +82,7 @@ export function BucketContent({ bucket, items, accentColor }: BucketContentProps
   const [orderedItems, setOrderedItems] = useState(visibleItems);
   const orderedItemsRef = useRef(visibleItems);
 
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [addingItem, setAddingItem] = useState(false);
   const [addTitle, setAddTitle] = useState("");
   const [addDeadline, setAddDeadline] = useState("");
@@ -108,7 +103,7 @@ export function BucketContent({ bucket, items, accentColor }: BucketContentProps
       orderedItemsRef.current = next;
     }, 0);
     return () => clearTimeout(id);
-  }, [items]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [items, showCompleted]);
 
   function startEditing(item: Item) {
     setAddingItem(false);
@@ -174,6 +169,9 @@ export function BucketContent({ bucket, items, accentColor }: BucketContentProps
 
   const isDialogOpen = addingItem || editingItemId !== null;
 
+  const isReadonly = rules.readonly === true;
+  const BTN = "font-mono text-[11px] text-muted-foreground transition-colors hover:text-foreground";
+
   return (
     <div className="flex flex-col">
       <div className="flex items-center justify-between px-4 py-3">
@@ -184,18 +182,22 @@ export function BucketContent({ bucket, items, accentColor }: BucketContentProps
           />
           <span className="font-pixel text-sm leading-snug">{bucket.name}</span>
         </div>
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => {
-              cancelEditing();
-              setAddingItem(true);
-            }}
-            className="text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <Plus size={13} />
-          </button>
-          <button className="text-muted-foreground hover:text-foreground transition-colors">
-            <Settings size={12} />
+        <div className="flex items-center gap-2">
+          {!isReadonly && (
+            <button
+              onClick={() => {
+                cancelEditing();
+                setAddingItem(true);
+              }}
+              className={BTN}
+            >
+              <span className="opacity-40">[</span>+<span className="opacity-40">]</span>
+            </button>
+          )}
+          <button onClick={() => setSettingsOpen(true)} className={BTN}>
+            <span className="opacity-40">[</span>
+            <Settings size={10} className="inline-block" />
+            <span className="opacity-40">]</span>
           </button>
         </div>
       </div>
@@ -221,7 +223,7 @@ export function BucketContent({ bucket, items, accentColor }: BucketContentProps
                 item={item}
                 orderedItemsRef={orderedItemsRef}
                 isEditing={editingItemId === item.id}
-                onEditStart={() => startEditing(item)}
+                onEditStart={isReadonly ? undefined : () => startEditing(item)}
               />
             ))}
           </Reorder.Group>
@@ -232,7 +234,7 @@ export function BucketContent({ bucket, items, accentColor }: BucketContentProps
                 key={item.id}
                 item={item}
                 isEditing={editingItemId === item.id}
-                onEditStart={() => startEditing(item)}
+                onEditStart={isReadonly ? undefined : () => startEditing(item)}
               />
             ))}
           </div>
@@ -254,6 +256,8 @@ export function BucketContent({ bucket, items, accentColor }: BucketContentProps
         onCancel={addingItem ? cancelAdding : cancelEditing}
         onDelete={editingItemId !== null ? handleDelete : undefined}
       />
+
+      <BucketSettings open={settingsOpen} bucket={bucket} onClose={() => setSettingsOpen(false)} />
     </div>
   );
 }

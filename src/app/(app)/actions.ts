@@ -7,6 +7,45 @@ import { getSession } from "@/lib/auth/session";
 import { deleteSession } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { buckets, items } from "@/lib/db/schema";
+import type {
+  ItemsRulesConfig,
+  NotificationsRulesConfig,
+  PersonalityRulesConfig,
+} from "@/components/buckets/constants";
+
+export async function updateBucketSettingsAction(
+  bucketId: number,
+  name: string,
+  itemsRules: ItemsRulesConfig,
+  notificationsRules: NotificationsRulesConfig,
+  personalityRules: PersonalityRulesConfig
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const session = await getSession();
+  if (!session) redirect("/login");
+
+  const trimmed = name.trim();
+  if (!trimmed) return { ok: false, error: "Name is required" };
+  if (trimmed.length > 100) return { ok: false, error: "Name too long" };
+
+  const bucket = await db.query.buckets.findFirst({
+    where: (b, { eq: qeq, and: qand }) => qand(qeq(b.id, bucketId), qeq(b.userId, session.userId)),
+  });
+  if (!bucket) return { ok: false, error: "Bucket not found" };
+
+  await db
+    .update(buckets)
+    .set({
+      name: trimmed,
+      itemsRules: JSON.stringify(itemsRules),
+      notificationsRules: JSON.stringify(notificationsRules),
+      personalityRules: JSON.stringify(personalityRules),
+      updatedAt: new Date(),
+    })
+    .where(and(eq(buckets.id, bucketId), eq(buckets.userId, session.userId)));
+
+  revalidatePath("/");
+  return { ok: true };
+}
 
 export async function logoutAction() {
   await deleteSession();
