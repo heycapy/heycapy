@@ -67,8 +67,26 @@ function StatusPicker({
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
+function getRecurringFrequency(raw: string | null): string | null {
+  if (!raw) return null;
+  try {
+    const obj = JSON.parse(raw) as { enabled?: boolean; frequency?: string };
+    return obj.enabled ? (obj.frequency ?? "monthly") : null;
+  } catch {
+    return null;
+  }
+}
+
 function formatDeadline(d: Date): string {
-  return `${MONTHS[d.getMonth()]} ${d.getDate()}`;
+  const date = `${MONTHS[d.getMonth()]} ${d.getDate()}`;
+  const hasTime = d.getHours() !== 0 || d.getMinutes() !== 0;
+  if (!hasTime) return date;
+  const h = d.getHours();
+  const m = d.getMinutes();
+  const ampm = h >= 12 ? "pm" : "am";
+  const hour = h % 12 === 0 ? 12 : h % 12;
+  const min = m > 0 ? `:${String(m).padStart(2, "0")}` : "";
+  return `${date} ${hour}${min}${ampm}`;
 }
 
 function relativeTime(deadline: Date): string {
@@ -92,6 +110,7 @@ export function ItemRow({
   const dotRef = useRef<HTMLButtonElement>(null);
   const rel = item.deadline ? relativeTime(item.deadline) : null;
   const isCompleted = item.status === "completed";
+  const recurringFreq = getRecurringFrequency(item.recurring);
   const dotColor = STATUS_DOT[item.status] ?? "bg-muted-foreground/40";
 
   function openPicker() {
@@ -161,6 +180,8 @@ export function ItemRow({
                   : "text-muted-foreground/60"
             )}
           >
+            {recurringFreq && <span className="mr-1">↺ {recurringFreq} ·</span>}
+            {recurringFreq ? "next " : ""}
             {formatDeadline(item.deadline)}
             {rel === "overdue" || rel === "today" ? ` · ${rel}` : ""}
           </span>

@@ -30,8 +30,14 @@ interface BucketContentProps {
   accentColor: string;
 }
 
-function toDateInput(d: Date): string {
-  return d.toISOString().split("T")[0];
+function toLocalDatetimeStr(d: Date): string {
+  const y = d.getFullYear();
+  const mo = String(d.getMonth() + 1).padStart(2, "0");
+  const dy = String(d.getDate()).padStart(2, "0");
+  const h = d.getHours();
+  const m = d.getMinutes();
+  if (h === 0 && m === 0) return `${y}-${mo}-${dy}`;
+  return `${y}-${mo}-${dy}T${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
 }
 
 function parseRecurring(raw: string | null): RecurringConfig | null {
@@ -150,7 +156,7 @@ export function BucketContent({ bucket, accentColor }: BucketContentProps) {
     await updateItemAction(
       item.id,
       item.title,
-      item.deadline ? toDateInput(item.deadline) : null,
+      item.deadline ? toLocalDatetimeStr(item.deadline) : null,
       status
     );
     await refetchItems();
@@ -160,7 +166,7 @@ export function BucketContent({ bucket, accentColor }: BucketContentProps) {
     setAddingItem(false);
     setEditingItemId(item.id);
     setEditTitle(item.title);
-    setEditDeadline(item.deadline ? toDateInput(item.deadline) : "");
+    setEditDeadline(item.deadline ? toLocalDatetimeStr(item.deadline) : "");
     setEditStatus((item.status as ItemStatus) ?? "active");
     setEditRecurring(parseRecurring(item.recurring));
   }

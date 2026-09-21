@@ -224,7 +224,9 @@ export async function addItemAction(
     bucketId,
     userId: session.userId,
     title: trimmed,
-    deadline: deadline ? new Date(deadline + "T12:00:00") : null,
+    deadline: deadline
+      ? new Date(deadline.includes("T") ? deadline : deadline + "T12:00:00")
+      : null,
     status: status ?? "active",
     sortOrder: maxRow.max + 1,
     recurring: recurring?.enabled ? JSON.stringify(recurring) : null,
@@ -257,7 +259,9 @@ export async function updateItemAction(
     .update(items)
     .set({
       title: trimmed,
-      deadline: deadline ? new Date(deadline + "T12:00:00") : null,
+      deadline: deadline
+        ? new Date(deadline.includes("T") ? deadline : deadline + "T12:00:00")
+        : null,
       ...(status !== undefined && { status }),
       ...(recurring !== undefined && {
         recurring: recurring?.enabled ? JSON.stringify(recurring) : null,

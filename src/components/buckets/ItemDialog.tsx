@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Trash2 } from "lucide-react";
 import { DatePicker } from "@/components/ui/DatePicker";
@@ -16,8 +16,19 @@ function describeRecurring(config: RecurringConfig): string {
   const unit = freq?.label ?? config.frequency;
   const n = config.interval;
   const unitStr = n === 1 ? unit : `${unit}s`;
-  const base = n === 1 ? `every ${unitStr}` : `every ${n} ${unitStr}`;
-  return config.endDate ? `${base} · ends ${config.endDate}` : base;
+  return n === 1 ? `every ${unitStr}` : `every ${n} ${unitStr}`;
+}
+
+function toH24(h12: number, ampm: "am" | "pm"): number {
+  if (ampm === "am") return h12 === 12 ? 0 : h12;
+  return h12 === 12 ? 12 : h12 + 12;
+}
+
+function buildDeadline(date: string, hour: string, min: string, ampm: "am" | "pm"): string {
+  if (!date) return "";
+  const h = parseInt(hour, 10);
+  if (!hour.trim() || !Number.isFinite(h)) return date;
+  return `${date}T${String(toH24(h, ampm)).padStart(2, "0")}:${min.padStart(2, "0")}`;
 }
 
 interface ItemDialogProps {
@@ -56,23 +67,70 @@ export function ItemDialog({
   onDelete,
 }: ItemDialogProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const [timeHour, setTimeHour] = useState("9");
+  const [timeMin, setTimeMin] = useState("00");
+  const [timeAmpm, setTimeAmpm] = useState<"am" | "pm">("am");
+  const [showEndDate, setShowEndDate] = useState(false);
+
+  const wasOpenRef = useRef(false);
+
+  const datePart = deadline.includes("T") ? (deadline.split("T")[0] ?? "") : deadline;
+  const hasDate = datePart.length > 0;
 
   useEffect(() => {
-    if (!open) return;
+    const didJustOpen = open && !wasOpenRef.current;
+    wasOpenRef.current = open;
+    if (!didJustOpen) return;
     const id = setTimeout(() => {
       const el = textareaRef.current;
-      if (!el) return;
-      el.style.height = "auto";
-      el.style.height = `${el.scrollHeight}px`;
-      el.focus();
+      if (el) {
+        el.style.height = "auto";
+        el.style.height = `${el.scrollHeight}px`;
+        el.focus();
+      }
+      if (deadline.includes("T")) {
+        const t = deadline.split("T")[1] ?? "";
+        const [hStr, mStr] = t.split(":");
+        const h24 = parseInt(hStr ?? "9", 10);
+        setTimeHour(String(h24 === 0 ? 12 : h24 > 12 ? h24 - 12 : h24));
+        setTimeMin((mStr ?? "00").padStart(2, "0"));
+        setTimeAmpm(h24 >= 12 ? "pm" : "am");
+      } else {
+        setTimeHour("9");
+        setTimeMin("00");
+        setTimeAmpm("am");
+      }
+      setShowEndDate(!!recurring?.endDate);
     }, 60);
     return () => clearTimeout(id);
-  }, [open]);
+  }, [open, deadline, recurring?.endDate]);
 
   function handleTitleChange(e: React.ChangeEvent<HTMLTextAreaElement>) {
     onTitleChange(e.target.value);
     e.target.style.height = "auto";
     e.target.style.height = `${e.target.scrollHeight}px`;
+  }
+
+  function handleDateChange(newDate: string) {
+    onDeadlineChange(buildDeadline(newDate, timeHour, timeMin, timeAmpm));
+    if (!newDate) onRecurringChange?.(null);
+  }
+
+  function handleHourChange(val: string) {
+    const h = val.replace(/\D/g, "").slice(0, 2);
+    setTimeHour(h);
+    if (datePart) onDeadlineChange(buildDeadline(datePart, h, timeMin, timeAmpm));
+  }
+
+  function handleMinChange(val: string) {
+    const m = val.replace(/\D/g, "").slice(0, 2);
+    setTimeMin(m);
+    if (datePart) onDeadlineChange(buildDeadline(datePart, timeHour, m, timeAmpm));
+  }
+
+  function handleAmpmChange(ampm: "am" | "pm") {
+    setTimeAmpm(ampm);
+    if (datePart) onDeadlineChange(buildDeadline(datePart, timeHour, timeMin, ampm));
   }
 
   function toggleRecurring() {
@@ -130,7 +188,7 @@ export function ItemDialog({
                       }
                       if (e.key === "Escape") onCancel();
                     }}
-                    placeholder={error || "What needs doing?"}
+                    placeholder={error || "what needs doing?"}
                     disabled={pending}
                     rows={1}
                     className={cn(
@@ -141,33 +199,50 @@ export function ItemDialog({
                 </div>
 
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-muted-foreground font-mono text-[10px]">deadline</label>
-                  <DatePicker value={deadline} onChange={onDeadlineChange} disabled={pending} />
-                </div>
-
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-muted-foreground font-mono text-[10px]">status</label>
-                  <div className="flex flex-wrap gap-1.5">
-                    {ITEM_STATUSES.map((s) => (
-                      <OptionButton
-                        key={s.value}
-                        active={status === s.value}
-                        onClick={() => onStatusChange(s.value)}
+                  <label className="text-muted-foreground font-mono text-[10px]">when</label>
+                  <DatePicker value={datePart} onChange={handleDateChange} disabled={pending} />
+                  {hasDate && (
+                    <div className="flex items-center gap-1.5">
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        value={timeHour}
+                        onChange={(e) => handleHourChange(e.target.value)}
+                        placeholder="9"
                         disabled={pending}
-                        className="flex items-center gap-1.5"
-                      >
-                        <span className={cn("h-1.5 w-1.5 rounded-full", s.color)} />
-                        {s.value}
-                      </OptionButton>
-                    ))}
-                  </div>
+                        className="border-border w-7 border-b bg-transparent py-0.5 text-center font-mono text-xs outline-none placeholder:opacity-40 disabled:opacity-50"
+                      />
+                      <span className="text-muted-foreground font-mono text-xs">:</span>
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        value={timeMin}
+                        onChange={(e) => handleMinChange(e.target.value)}
+                        placeholder="00"
+                        disabled={pending}
+                        className="border-border w-7 border-b bg-transparent py-0.5 text-center font-mono text-xs outline-none placeholder:opacity-40 disabled:opacity-50"
+                      />
+                      <div className="flex gap-1">
+                        {(["am", "pm"] as const).map((v) => (
+                          <OptionButton
+                            key={v}
+                            active={timeAmpm === v}
+                            onClick={() => handleAmpmChange(v)}
+                            disabled={pending}
+                          >
+                            {v}
+                          </OptionButton>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
-                {onRecurringChange && (
+                {hasDate && onRecurringChange && (
                   <div className="flex flex-col gap-2">
                     <div className="flex items-center justify-between">
                       <label className="text-muted-foreground font-mono text-[10px]">
-                        recurring
+                        ↺ repeats
                       </label>
                       <OptionButton
                         active={!!recurring?.enabled}
@@ -212,20 +287,60 @@ export function ItemDialog({
                           </div>
                         </div>
                         <p className="text-muted-foreground font-mono text-[10px]">
-                          ↺ repeats {describeRecurring(recurring)}
+                          ↺ {describeRecurring(recurring)}
                         </p>
-                        <div className="flex items-center gap-2">
-                          <span className="text-muted-foreground font-mono text-[10px]">ends</span>
-                          <DatePicker
-                            value={recurring.endDate ?? ""}
-                            onChange={(v) =>
-                              onRecurringChange({ ...recurring, endDate: v || null })
-                            }
-                            disabled={pending}
-                          />
-                        </div>
+                        {showEndDate ? (
+                          <div className="flex items-center gap-2">
+                            <span className="text-muted-foreground font-mono text-[10px]">
+                              ends
+                            </span>
+                            <DatePicker
+                              value={recurring.endDate ?? ""}
+                              onChange={(v) =>
+                                onRecurringChange({ ...recurring, endDate: v || null })
+                              }
+                              disabled={pending}
+                            />
+                            <button
+                              onClick={() => {
+                                setShowEndDate(false);
+                                onRecurringChange({ ...recurring, endDate: null });
+                              }}
+                              className="text-muted-foreground hover:text-foreground font-mono text-[10px] transition-colors"
+                            >
+                              ×
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => setShowEndDate(true)}
+                            className="text-muted-foreground hover:text-foreground w-fit font-mono text-[10px] transition-colors"
+                          >
+                            + set end date
+                          </button>
+                        )}
                       </div>
                     )}
+                  </div>
+                )}
+
+                {mode === "edit" && (
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-muted-foreground font-mono text-[10px]">status</label>
+                    <div className="flex flex-wrap gap-1.5">
+                      {ITEM_STATUSES.map((s) => (
+                        <OptionButton
+                          key={s.value}
+                          active={status === s.value}
+                          onClick={() => onStatusChange(s.value)}
+                          disabled={pending}
+                          className="flex items-center gap-1.5"
+                        >
+                          <span className={cn("h-1.5 w-1.5 rounded-full", s.color)} />
+                          {s.value}
+                        </OptionButton>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>

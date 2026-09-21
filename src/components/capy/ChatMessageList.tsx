@@ -7,6 +7,7 @@ import type { ChatMessage } from "./chatTypes";
 type Props = {
   messages: ChatMessage[];
   streaming: boolean;
+  fullscreen?: boolean;
 };
 
 function BouncingDots() {
@@ -28,7 +29,7 @@ function BouncingDots() {
   );
 }
 
-export function ChatMessageList({ messages, streaming }: Props) {
+export function ChatMessageList({ messages, streaming, fullscreen }: Props) {
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -58,7 +59,8 @@ export function ChatMessageList({ messages, streaming }: Props) {
           >
             <div
               className={cn(
-                "max-w-[220px] px-2.5 py-2 font-mono text-xs leading-relaxed",
+                "px-2.5 py-2 font-mono text-xs leading-relaxed",
+                fullscreen ? "max-w-[65ch]" : "max-w-[220px]",
                 msg.role === "user"
                   ? "bg-foreground text-background"
                   : "border-border bg-card text-card-foreground border"

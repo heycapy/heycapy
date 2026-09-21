@@ -82,7 +82,7 @@ export function CapyChat() {
 
   const body = (
     <>
-      <ChatMessageList messages={messages} streaming={streaming} />
+      <ChatMessageList messages={messages} streaming={streaming} fullscreen={fullscreen} />
       <ChatInputBar
         input={input}
         setInput={setInput}

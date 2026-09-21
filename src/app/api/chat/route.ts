@@ -5,7 +5,7 @@ import { db } from "@/lib/db";
 import { buckets, userSettings, users } from "@/lib/db/schema";
 import { getAIProvider } from "@/lib/ai";
 import { buildSystemPrompt } from "@/lib/ai/systemPrompt";
-import { CAPY_TOOLS, executeToolCall } from "@/lib/ai/capyTools";
+import { CAPY_TOOLS, executeToolCall, getUpcomingItems } from "@/lib/ai/capyTools";
 import type { AgentMessage } from "@/lib/ai/types";
 
 const bodySchema = z.object({
@@ -43,16 +43,29 @@ export async function POST(req: Request) {
       ),
   ]);
 
-  const provider = getAIProvider({
-    provider: settings?.aiProvider,
-    model: settings?.aiModel,
-    apiKey: settings?.aiApiKey,
-    ollamaUrl: settings?.aiOllamaUrl,
-  });
+  const timezone = settings?.timezone ?? "UTC";
+
+  const [upcomingItems, provider] = await Promise.all([
+    getUpcomingItems(session.userId, timezone),
+    Promise.resolve(
+      getAIProvider({
+        provider: settings?.aiProvider,
+        model: settings?.aiModel,
+        apiKey: settings?.aiApiKey,
+        ollamaUrl: settings?.aiOllamaUrl,
+      })
+    ),
+  ]);
 
   const systemMsg: AgentMessage = {
     role: "system",
-    content: buildSystemPrompt(settings ?? null, userBuckets, user?.email ?? "", new Date()),
+    content: buildSystemPrompt(
+      settings ?? null,
+      userBuckets,
+      user?.email ?? "",
+      new Date(),
+      upcomingItems
+    ),
   };
 
   const agentMessages: AgentMessage[] = [
@@ -75,7 +88,7 @@ export async function POST(req: Request) {
     agentMessages.push({ role: "assistant", content: result.content, toolCalls: result.toolCalls });
 
     for (const call of result.toolCalls) {
-      const toolResult = await executeToolCall(call, session.userId, settings?.timezone ?? "UTC");
+      const toolResult = await executeToolCall(call, session.userId, timezone);
       agentMessages.push({
         role: "tool",
         toolCallId: call.id,
