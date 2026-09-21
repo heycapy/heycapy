@@ -43,6 +43,11 @@
   --border: #c4a882;
   --input: #ede0c8;
   --ring: #7c4b2a;
+  --p1: #c0735a;
+  --p2: #5a8a6a;
+  --p3: #5a6a94;
+  --p4: #8a5a78;
+  --p5: #b89a5a;
 }
 
 [data-theme="gruvbox"] {
@@ -63,6 +68,11 @@
   --border: #504945;
   --input: #504945;
   --ring: #d79921;
+  --p1: #d79921;
+  --p2: #98971a;
+  --p3: #458588;
+  --p4: #b16286;
+  --p5: #d65d0e;
 }
 
 [data-theme="terminal"] {
@@ -83,6 +93,11 @@
   --border: #00aa2b;
   --input: #111111;
   --ring: #00ff41;
+  --p1: #00ff41;
+  --p2: #00ffff;
+  --p3: #ffff00;
+  --p4: #ff9900;
+  --p5: #ff3333;
 }
 
 [data-theme="terminal"] * {

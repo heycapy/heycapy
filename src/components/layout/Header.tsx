@@ -58,18 +58,19 @@ export function Header({ onCommandOpen }: HeaderProps) {
 
       <button
         onClick={onCommandOpen}
-        className="group flex items-center gap-1"
+        className="group flex items-center gap-1.5"
         aria-label="Open command palette"
       >
-        <kbd
-          suppressHydrationWarning
-          className="border-border bg-muted text-muted-foreground group-hover:text-foreground rounded border px-1.5 py-0.5 font-mono text-[10px] transition-colors"
-        >
-          {isMac ? "⌘" : "Ctrl"}
-        </kbd>
-        <kbd className="border-border bg-muted text-muted-foreground group-hover:text-foreground rounded border px-1.5 py-0.5 font-mono text-[10px] transition-colors">
-          K
-        </kbd>
+        <span className="text-muted-foreground group-hover:text-foreground inline-flex items-center gap-[3px] font-mono text-xs transition-colors">
+          <span className="opacity-50">[</span>
+          <span suppressHydrationWarning>{isMac ? "⌘" : "Ctrl"}</span>
+          <span className="opacity-50">]</span>
+        </span>
+        <span className="text-muted-foreground group-hover:text-foreground inline-flex items-center gap-[3px] font-mono text-xs transition-colors">
+          <span className="opacity-50">[</span>
+          <span>K</span>
+          <span className="opacity-50">]</span>
+        </span>
       </button>
     </header>
   );

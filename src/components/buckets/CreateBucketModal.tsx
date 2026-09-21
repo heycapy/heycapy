@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useTransition } from "react";
 import { motion, AnimatePresence, type Transition } from "framer-motion";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, X } from "lucide-react";
 import { useUIStore } from "@/store/ui";
 import { Button } from "@/components/ui/button";
 import { createBucketAction } from "@/app/(app)/actions";
@@ -93,11 +93,21 @@ export function CreateBucketModal({ templates }: CreateBucketModalProps) {
                   exit={{ opacity: 0, x: -16 }}
                   transition={transition}
                 >
-                  <div className="border-b px-4 py-3">
-                    <p className="font-pixel text-sm">New bucket</p>
-                    <p className="text-muted-foreground mt-0.5 text-xs">
-                      Pick a template to get started.
-                    </p>
+                  <div className="flex items-start justify-between border-b px-4 py-3">
+                    <div>
+                      <p className="font-pixel text-sm">New bucket</p>
+                      <p className="text-muted-foreground mt-0.5 text-xs">
+                        Pick a template to get started.
+                      </p>
+                    </div>
+                    <button
+                      onClick={closeCreateBucket}
+                      className="text-muted-foreground hover:text-foreground inline-flex items-center gap-[3px] font-mono text-xs transition-colors"
+                    >
+                      <span className="opacity-50">[</span>
+                      <X size={12} />
+                      <span className="opacity-50">]</span>
+                    </button>
                   </div>
                   <div className="grid grid-cols-2 gap-2 p-3">
                     {templates.map((t) => (
@@ -128,14 +138,24 @@ export function CreateBucketModal({ templates }: CreateBucketModalProps) {
                   exit={{ opacity: 0, x: 16 }}
                   transition={transition}
                 >
-                  <div className="flex items-center gap-2 border-b px-4 py-3">
+                  <div className="flex items-center justify-between border-b px-4 py-3">
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => setStep("pick")}
+                        className="text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                        <ArrowLeft size={14} />
+                      </button>
+                      <p className="font-pixel text-sm">Name it</p>
+                    </div>
                     <button
-                      onClick={() => setStep("pick")}
-                      className="text-muted-foreground hover:text-foreground transition-colors"
+                      onClick={closeCreateBucket}
+                      className="text-muted-foreground hover:text-foreground inline-flex items-center gap-[3px] font-mono text-xs transition-colors"
                     >
-                      <ArrowLeft size={14} />
+                      <span className="opacity-50">[</span>
+                      <X size={12} />
+                      <span className="opacity-50">]</span>
                     </button>
-                    <p className="font-pixel text-sm">Name it</p>
                   </div>
                   <div className="flex flex-col gap-3 p-4">
                     <input

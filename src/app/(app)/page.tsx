@@ -4,8 +4,7 @@ import { getSession } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { buckets, items as itemsTable } from "@/lib/db/schema";
 import { BucketsEmptyState } from "@/components/buckets/BucketsEmptyState";
-import { BucketCard } from "@/components/buckets/BucketCard";
-import { NewBucketButton } from "@/components/buckets/NewBucketButton";
+import { BucketsShell } from "@/components/buckets/BucketsShell";
 
 export default async function Home() {
   const session = await getSession();
@@ -41,19 +40,5 @@ export default async function Home() {
     itemsByBucket[item.bucketId].push(item);
   }
 
-  return (
-    <div className="mx-auto w-full max-w-md p-4">
-      <div className="mb-4 flex items-center justify-between">
-        <span className="text-muted-foreground font-mono text-xs">
-          {userBuckets.length} {userBuckets.length === 1 ? "bucket" : "buckets"}
-        </span>
-        <NewBucketButton />
-      </div>
-      <div className="flex flex-col gap-2.5">
-        {userBuckets.map((b) => (
-          <BucketCard key={b.id} bucket={b} items={itemsByBucket[b.id] ?? []} />
-        ))}
-      </div>
-    </div>
-  );
+  return <BucketsShell buckets={userBuckets} itemsByBucket={itemsByBucket} />;
 }
