@@ -140,6 +140,10 @@ export const notificationLog = sqliteTable("notification_log", {
     .references(() => users.id, { onDelete: "cascade" }),
   medium: text("medium", { enum: ["email", "ntfy"] }).notNull(),
   message: text("message").notNull(),
+  status: text("status", { enum: ["sent", "failed"] })
+    .notNull()
+    .default("sent"),
+  error: text("error"),
   sentAt: integer("sent_at", { mode: "timestamp" })
     .notNull()
     .default(sql`(unixepoch())`),

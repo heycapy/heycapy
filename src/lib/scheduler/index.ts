@@ -20,6 +20,10 @@ function isInQuietHours(quietHours: { from: string; to: string }): boolean {
     : nowMins >= fromMins && nowMins < toMins;
 }
 
+function errorMessage(err: unknown): string {
+  return err instanceof Error ? err.message : String(err);
+}
+
 async function runNotifications(): Promise<void> {
   const now = new Date();
 
@@ -97,8 +101,15 @@ async function runNotifications(): Promise<void> {
         try {
           await sendEmail(row.userEmail, subject, message);
           sent.push("email");
-        } catch {
-          /* catch send failure — skip this medium */
+        } catch (err) {
+          await db.insert(notificationLog).values({
+            itemId: row.item.id,
+            userId: row.item.userId,
+            medium: "email",
+            message,
+            status: "failed",
+            error: errorMessage(err),
+          });
         }
       }
 
@@ -106,8 +117,15 @@ async function runNotifications(): Promise<void> {
         try {
           await sendNtfy(row.ntfyUrl, row.ntfyTopic, subject, message);
           sent.push("ntfy");
-        } catch {
-          /* catch send failure — skip this medium */
+        } catch (err) {
+          await db.insert(notificationLog).values({
+            itemId: row.item.id,
+            userId: row.item.userId,
+            medium: "ntfy",
+            message,
+            status: "failed",
+            error: errorMessage(err),
+          });
         }
       }
 
@@ -121,10 +139,18 @@ async function runNotifications(): Promise<void> {
           userId: row.item.userId,
           medium,
           message,
+          status: "sent",
         });
       }
-    } catch {
-      /* catch this item, will retry next minute */
+    } catch (err) {
+      await db.insert(notificationLog).values({
+        itemId: row.item.id,
+        userId: row.item.userId,
+        medium: "email",
+        message: "",
+        status: "failed",
+        error: `scheduler error: ${errorMessage(err)}`,
+      });
     }
   }
 }
