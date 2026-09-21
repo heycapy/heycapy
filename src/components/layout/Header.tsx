@@ -1,9 +1,10 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
+import { Settings } from "lucide-react";
 
 interface HeaderProps {
-  onCommandOpen: () => void;
+  onSettingsOpen: () => void;
 }
 
 const GREETINGS = {
@@ -42,12 +43,9 @@ function getDate() {
   });
 }
 
-export function Header({ onCommandOpen }: HeaderProps) {
+export function Header({ onSettingsOpen }: HeaderProps) {
   const greeting = useMemo(() => getGreeting(), []);
   const date = useMemo(() => getDate(), []);
-  const [isMac] = useState(
-    () => typeof navigator !== "undefined" && navigator.userAgent.includes("Mac")
-  );
 
   return (
     <header className="flex items-center justify-between px-5 pt-6 pb-2">
@@ -56,22 +54,15 @@ export function Header({ onCommandOpen }: HeaderProps) {
         <p className="text-muted-foreground mt-0.5 text-xs">{date}</p>
       </div>
 
-      <button
-        onClick={onCommandOpen}
-        className="group flex items-center gap-1.5"
-        aria-label="Open command palette"
-      >
-        <span className="text-muted-foreground group-hover:text-foreground inline-flex items-center gap-[3px] font-mono text-xs transition-colors">
-          <span className="opacity-50">[</span>
-          <span suppressHydrationWarning>{isMac ? "⌘" : "Ctrl"}</span>
-          <span className="opacity-50">]</span>
-        </span>
-        <span className="text-muted-foreground group-hover:text-foreground inline-flex items-center gap-[3px] font-mono text-xs transition-colors">
-          <span className="opacity-50">[</span>
-          <span>K</span>
-          <span className="opacity-50">]</span>
-        </span>
-      </button>
+      <div className="flex items-center gap-3">
+        <button
+          onClick={onSettingsOpen}
+          className="text-muted-foreground hover:text-foreground transition-colors"
+          aria-label="Open settings"
+        >
+          <Settings size={14} />
+        </button>
+      </div>
     </header>
   );
 }

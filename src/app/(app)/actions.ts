@@ -6,12 +6,71 @@ import { and, asc, eq, isNull, ne, sql } from "drizzle-orm";
 import { getSession } from "@/lib/auth/session";
 import { deleteSession } from "@/lib/auth/session";
 import { db } from "@/lib/db";
-import { buckets, items } from "@/lib/db/schema";
+import { buckets, items, userSettings } from "@/lib/db/schema";
 import type {
   ItemsRulesConfig,
   NotificationsRulesConfig,
   PersonalityRulesConfig,
 } from "@/components/buckets/constants";
+
+export async function getUserSettingsAction(): Promise<
+  { ok: true; settings: typeof userSettings.$inferSelect } | { ok: false; error: string }
+> {
+  const session = await getSession();
+  if (!session) return { ok: false, error: "Unauthorized" };
+
+  const settings = await db.query.userSettings.findFirst({
+    where: (s, { eq: qeq }) => qeq(s.userId, session.userId),
+  });
+  if (!settings) return { ok: false, error: "Settings not found" };
+
+  return { ok: true, settings };
+}
+
+type UserSettingsUpdate = {
+  personalityName: string;
+  personalityTone: "chill" | "professional" | "motivational" | "custom";
+  personalityEmoji: boolean;
+  personalityCustomPrompt: string | null;
+  aiProvider: "ollama" | "openai" | "anthropic" | null;
+  aiApiKey: string | null;
+  aiModel: string | null;
+  notificationsEmail: boolean;
+  notificationsPush: boolean;
+  ntfyUrl: string | null;
+  ntfyTopic: string | null;
+};
+
+export async function updateUserSettingsAction(
+  data: UserSettingsUpdate
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const session = await getSession();
+  if (!session) return { ok: false, error: "Unauthorized" };
+
+  const trimmedName = data.personalityName.trim();
+  if (!trimmedName) return { ok: false, error: "Name is required" };
+  if (trimmedName.length > 50) return { ok: false, error: "Name too long" };
+
+  await db
+    .update(userSettings)
+    .set({
+      personalityName: trimmedName,
+      personalityTone: data.personalityTone,
+      personalityEmoji: data.personalityEmoji,
+      personalityCustomPrompt: data.personalityCustomPrompt || null,
+      aiProvider: data.aiProvider,
+      aiApiKey: data.aiApiKey || null,
+      aiModel: data.aiModel || null,
+      notificationsEmail: data.notificationsEmail,
+      notificationsPush: data.notificationsPush,
+      ntfyUrl: data.ntfyUrl || null,
+      ntfyTopic: data.ntfyTopic || null,
+      updatedAt: new Date(),
+    })
+    .where(eq(userSettings.userId, session.userId));
+
+  return { ok: true };
+}
 
 export async function getItemsForBucketAction(
   bucketId: number

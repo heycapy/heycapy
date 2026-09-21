@@ -45,3 +45,27 @@ export const ITEM_STATUSES = [
 export type ItemStatus = (typeof ITEM_STATUSES)[number]["value"];
 
 export const BUCKET_PALETTE = ["var(--p1)", "var(--p2)", "var(--p3)", "var(--p4)", "var(--p5)"];
+
+export const SORT_OPTIONS: { value: SortBy; label: string }[] = [
+  { value: "deadline", label: "deadline" },
+  { value: "created_at", label: "created" },
+  { value: "manual", label: "manual" },
+];
+
+export const MEDIUM_OPTIONS: { value: NotificationMedium; label: string }[] = [
+  { value: "ntfy", label: "ntfy" },
+  { value: "email", label: "email" },
+];
+
+export const REPEAT_OPTIONS: { value: RepeatMode; label: string }[] = [
+  { value: "once", label: "once" },
+  { value: "daily", label: "daily" },
+];
+
+export const BUCKET_TONE_OPTIONS: { value: PersonalityTone | "inherit"; label: string }[] = [
+  { value: "inherit", label: "inherit" },
+  { value: "chill", label: "chill" },
+  { value: "professional", label: "professional" },
+  { value: "motivational", label: "motivational" },
+  { value: "custom", label: "custom" },
+];
