@@ -35,6 +35,8 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
   const [aiModel, setAiModel] = useState("");
   const [aiOllamaUrl, setAiOllamaUrl] = useState("");
 
+  const [timezone, setTimezone] = useState(() => Intl.DateTimeFormat().resolvedOptions().timeZone);
+
   const [notificationsEmail, setNotificationsEmail] = useState(true);
   const [notificationsPush, setNotificationsPush] = useState(true);
   const [ntfyUrl, setNtfyUrl] = useState("");
@@ -49,6 +51,9 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
     setAiApiKey(s.aiApiKey ?? "");
     setAiModel(s.aiModel ?? "");
     setAiOllamaUrl(s.aiOllamaUrl ?? "");
+    setTimezone(
+      s.timezone !== "UTC" ? s.timezone : Intl.DateTimeFormat().resolvedOptions().timeZone
+    );
     setNotificationsEmail(s.notificationsEmail);
     setNotificationsPush(s.notificationsPush);
     setNtfyUrl(s.ntfyUrl ?? "");
@@ -78,6 +83,7 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
         personalityTone,
         personalityEmoji,
         personalityCustomPrompt: personalityCustomPrompt || null,
+        timezone: timezone || Intl.DateTimeFormat().resolvedOptions().timeZone,
         aiProvider,
         aiApiKey: aiApiKey || null,
         aiModel: aiModel || null,
@@ -140,7 +146,15 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
                 <p className="text-muted-foreground font-mono text-xs">loading...</p>
               ) : (
                 <>
-                  {tab === "appearance" && <AppearanceTab theme={theme} setTheme={setTheme} />}
+                  {tab === "appearance" && (
+                    <AppearanceTab
+                      theme={theme}
+                      setTheme={setTheme}
+                      timezone={timezone}
+                      setTimezone={setTimezone}
+                      pending={pending}
+                    />
+                  )}
                   {tab === "notifications" && (
                     <NotificationsTab
                       notificationsEmail={notificationsEmail}

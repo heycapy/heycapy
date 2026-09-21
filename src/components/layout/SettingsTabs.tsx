@@ -9,39 +9,61 @@ import type { UserTone, AIProvider } from "./settings-constants";
 interface AppearanceTabProps {
   theme: string | undefined;
   setTheme: (t: string) => void;
+  timezone: string;
+  setTimezone: (v: string) => void;
+  pending: boolean;
 }
 
-export function AppearanceTab({ theme, setTheme }: AppearanceTabProps) {
+export function AppearanceTab({
+  theme,
+  setTheme,
+  timezone,
+  setTimezone,
+  pending,
+}: AppearanceTabProps) {
   return (
-    <div className="flex flex-col gap-1.5">
-      <label className={LABEL}>theme</label>
-      <div className="flex gap-2">
-        {THEMES.map((t) => (
-          <button
-            key={t.id}
-            onClick={() => setTheme(t.id)}
-            className="flex flex-1 flex-col items-center gap-1.5"
-          >
-            <span
-              className="border-border h-10 w-full border-2 transition-all"
-              style={{
-                background: t.bg,
-                borderColor: theme === t.id ? t.fg : undefined,
-                boxShadow: theme === t.id ? `2px 2px 0 ${t.fg}` : undefined,
-              }}
-            />
-            <span
-              className={cn(
-                "font-mono text-[10px]",
-                theme === t.id ? "text-foreground" : "text-muted-foreground"
-              )}
+    <>
+      <div className="flex flex-col gap-1.5">
+        <label className={LABEL}>theme</label>
+        <div className="flex gap-2">
+          {THEMES.map((t) => (
+            <button
+              key={t.id}
+              onClick={() => setTheme(t.id)}
+              className="flex flex-1 flex-col items-center gap-1.5"
             >
-              {t.label}
-            </span>
-          </button>
-        ))}
+              <span
+                className="border-border h-10 w-full border-2 transition-all"
+                style={{
+                  background: t.bg,
+                  borderColor: theme === t.id ? t.fg : undefined,
+                  boxShadow: theme === t.id ? `2px 2px 0 ${t.fg}` : undefined,
+                }}
+              />
+              <span
+                className={cn(
+                  "font-mono text-[10px]",
+                  theme === t.id ? "text-foreground" : "text-muted-foreground"
+                )}
+              >
+                {t.label}
+              </span>
+            </button>
+          ))}
+        </div>
       </div>
-    </div>
+      <div className="flex flex-col gap-1.5">
+        <label className={LABEL}>timezone</label>
+        <input
+          type="text"
+          value={timezone}
+          onChange={(e) => setTimezone(e.target.value)}
+          placeholder="America/New_York"
+          disabled={pending}
+          className={INPUT}
+        />
+      </div>
+    </>
   );
 }
 

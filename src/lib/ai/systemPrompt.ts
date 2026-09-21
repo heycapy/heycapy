@@ -40,12 +40,13 @@ export function buildSystemPrompt(
       ? buckets.map((b) => `- "${b.name}" (id: ${b.id})`).join("\n")
       : "No buckets yet.";
 
-  const isoDate = new Intl.DateTimeFormat("en-CA", {
+  const dateParts = new Intl.DateTimeFormat("en-US", {
     timeZone: timezone,
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
-  }).format(now);
+  }).formatToParts(now);
+  const isoDate = `${dateParts.find((p) => p.type === "year")?.value}-${dateParts.find((p) => p.type === "month")?.value}-${dateParts.find((p) => p.type === "day")?.value}`;
 
   const timeStr = new Intl.DateTimeFormat("en-US", {
     timeZone: timezone,

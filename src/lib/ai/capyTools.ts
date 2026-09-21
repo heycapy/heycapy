@@ -4,6 +4,36 @@ import { db } from "@/lib/db";
 import { buckets, items } from "@/lib/db/schema";
 import type { Tool, ToolCall } from "./types";
 
+function toDateStr(d: Date, tz: string): string {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: tz,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(d);
+  const y = parts.find((p) => p.type === "year")?.value ?? "";
+  const mo = parts.find((p) => p.type === "month")?.value ?? "";
+  const dy = parts.find((p) => p.type === "day")?.value ?? "";
+  return `${y}-${mo}-${dy}`;
+}
+
+function deadlineRelative(deadline: Date, timezone: string): string {
+  const now = new Date();
+  const todayStr = toDateStr(now, timezone);
+  const deadlineStr = toDateStr(deadline, timezone);
+
+  if (deadlineStr < todayStr) return "overdue";
+  if (deadlineStr === todayStr) return "today";
+
+  const tomorrowStr = toDateStr(new Date(now.getTime() + 86_400_000), timezone);
+  if (deadlineStr === tomorrowStr) return "tomorrow";
+
+  const diffDays = Math.round((deadline.getTime() - now.getTime()) / 86_400_000);
+  if (diffDays <= 7) return `in ${diffDays} days`;
+  if (diffDays <= 30) return `in ${Math.round(diffDays / 7)} weeks`;
+  return `in ${Math.round(diffDays / 30)} months`;
+}
+
 export const CAPY_TOOLS: Tool[] = [
   {
     name: "list_buckets",
@@ -90,7 +120,11 @@ export const CAPY_TOOLS: Tool[] = [
   },
 ];
 
-export async function executeToolCall(call: ToolCall, userId: number): Promise<string> {
+export async function executeToolCall(
+  call: ToolCall,
+  userId: number,
+  timezone = "UTC"
+): Promise<string> {
   const args = call.arguments;
 
   switch (call.name) {
@@ -242,7 +276,11 @@ export async function executeToolCall(call: ToolCall, userId: number): Promise<s
               )
         );
 
-      return JSON.stringify(result);
+      const enriched = result.map((row) => ({
+        ...row,
+        deadlineRelative: row.deadline ? deadlineRelative(row.deadline, timezone) : null,
+      }));
+      return JSON.stringify(enriched);
     }
 
     default:

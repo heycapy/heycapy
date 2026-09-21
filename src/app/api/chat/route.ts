@@ -75,7 +75,7 @@ export async function POST(req: Request) {
     agentMessages.push({ role: "assistant", content: result.content, toolCalls: result.toolCalls });
 
     for (const call of result.toolCalls) {
-      const toolResult = await executeToolCall(call, session.userId);
+      const toolResult = await executeToolCall(call, session.userId, settings?.timezone ?? "UTC");
       agentMessages.push({
         role: "tool",
         toolCallId: call.id,

@@ -33,6 +33,7 @@ type UserSettingsUpdate = {
   personalityTone: "chill" | "professional" | "motivational" | "custom";
   personalityEmoji: boolean;
   personalityCustomPrompt: string | null;
+  timezone: string;
   aiProvider: "ollama" | "openai" | "anthropic" | null;
   aiApiKey: string | null;
   aiModel: string | null;
@@ -60,6 +61,7 @@ export async function updateUserSettingsAction(
       personalityTone: data.personalityTone,
       personalityEmoji: data.personalityEmoji,
       personalityCustomPrompt: data.personalityCustomPrompt || null,
+      timezone: data.timezone || "UTC",
       aiProvider: data.aiProvider,
       aiApiKey: data.aiApiKey || null,
       aiModel: data.aiModel || null,
