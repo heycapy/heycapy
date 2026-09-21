@@ -33,6 +33,7 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
   const [aiProvider, setAiProvider] = useState<AIProvider>("ollama");
   const [aiApiKey, setAiApiKey] = useState("");
   const [aiModel, setAiModel] = useState("");
+  const [aiOllamaUrl, setAiOllamaUrl] = useState("");
 
   const [notificationsEmail, setNotificationsEmail] = useState(true);
   const [notificationsPush, setNotificationsPush] = useState(true);
@@ -47,6 +48,7 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
     setAiProvider((s.aiProvider ?? "ollama") as AIProvider);
     setAiApiKey(s.aiApiKey ?? "");
     setAiModel(s.aiModel ?? "");
+    setAiOllamaUrl(s.aiOllamaUrl ?? "");
     setNotificationsEmail(s.notificationsEmail);
     setNotificationsPush(s.notificationsPush);
     setNtfyUrl(s.ntfyUrl ?? "");
@@ -79,6 +81,7 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
         aiProvider,
         aiApiKey: aiApiKey || null,
         aiModel: aiModel || null,
+        aiOllamaUrl: aiOllamaUrl || null,
         notificationsEmail,
         notificationsPush,
         ntfyUrl: ntfyUrl || null,
@@ -159,6 +162,8 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
                       setAiApiKey={setAiApiKey}
                       aiModel={aiModel}
                       setAiModel={setAiModel}
+                      aiOllamaUrl={aiOllamaUrl}
+                      setAiOllamaUrl={setAiOllamaUrl}
                       pending={pending}
                     />
                   )}

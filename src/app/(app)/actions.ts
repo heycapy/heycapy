@@ -35,6 +35,7 @@ type UserSettingsUpdate = {
   aiProvider: "ollama" | "openai" | "anthropic" | null;
   aiApiKey: string | null;
   aiModel: string | null;
+  aiOllamaUrl: string | null;
   notificationsEmail: boolean;
   notificationsPush: boolean;
   ntfyUrl: string | null;
@@ -61,6 +62,7 @@ export async function updateUserSettingsAction(
       aiProvider: data.aiProvider,
       aiApiKey: data.aiApiKey || null,
       aiModel: data.aiModel || null,
+      aiOllamaUrl: data.aiOllamaUrl || null,
       notificationsEmail: data.notificationsEmail,
       notificationsPush: data.notificationsPush,
       ntfyUrl: data.ntfyUrl || null,

@@ -35,6 +35,7 @@ export const userSettings = sqliteTable("user_settings", {
   aiProvider: text("ai_provider", { enum: ["ollama", "openai", "anthropic"] }),
   aiApiKey: text("ai_api_key"),
   aiModel: text("ai_model"),
+  aiOllamaUrl: text("ai_ollama_url"),
   notificationsEmail: integer("notifications_email", { mode: "boolean" }).notNull().default(true),
   notificationsPush: integer("notifications_push", { mode: "boolean" }).notNull().default(true),
   ntfyUrl: text("ntfy_url"),

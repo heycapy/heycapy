@@ -15,6 +15,13 @@
       "when": 1789988123384,
       "tag": "0001_heavy_chat",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1789995798488,
+      "tag": "0002_glorious_iron_monger",
+      "breakpoints": true
     }
   ]
 }

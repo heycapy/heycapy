@@ -111,6 +111,8 @@ interface AITabProps {
   setAiApiKey: (v: string) => void;
   aiModel: string;
   setAiModel: (v: string) => void;
+  aiOllamaUrl: string;
+  setAiOllamaUrl: (v: string) => void;
   pending: boolean;
 }
 
@@ -121,6 +123,8 @@ export function AITab({
   setAiApiKey,
   aiModel,
   setAiModel,
+  aiOllamaUrl,
+  setAiOllamaUrl,
   pending,
 }: AITabProps) {
   return (
@@ -134,6 +138,19 @@ export function AITab({
           disabled={pending}
         />
       </div>
+      {aiProvider === "ollama" && (
+        <div className="flex flex-col gap-1.5">
+          <label className={LABEL}>ollama url</label>
+          <input
+            type="text"
+            value={aiOllamaUrl}
+            onChange={(e) => setAiOllamaUrl(e.target.value)}
+            placeholder="http://localhost:11434"
+            disabled={pending}
+            className={INPUT}
+          />
+        </div>
+      )}
       {aiProvider !== "ollama" && (
         <div className="flex flex-col gap-1.5">
           <label className={LABEL}>api key</label>
@@ -164,11 +181,6 @@ export function AITab({
           className={INPUT}
         />
       </div>
-      {aiProvider === "ollama" && (
-        <p className="text-muted-foreground font-mono text-[10px]">
-          ollama url is configured via the OLLAMA_URL env var
-        </p>
-      )}
     </>
   );
 }
