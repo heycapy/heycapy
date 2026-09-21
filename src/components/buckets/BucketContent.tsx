@@ -7,6 +7,7 @@ import { ItemRow } from "./ItemRow";
 import { ItemDialog } from "./ItemDialog";
 import { BucketSettings } from "./BucketSettings";
 import { BracketButton } from "@/components/ui/BracketButton";
+import { parseDurationToDate } from "@/lib/duration";
 import type { ItemStatus, ItemsRulesConfig } from "./constants";
 import {
   addItemAction,
@@ -187,6 +188,7 @@ export function BucketContent({ bucket, items, accentColor }: BucketContentProps
             <BracketButton
               onClick={() => {
                 cancelEditing();
+                setAddDeadline(parseDurationToDate(rules.default_deadline_offset) ?? "");
                 setAddingItem(true);
               }}
               className="text-[11px]"

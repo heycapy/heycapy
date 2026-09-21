@@ -16,6 +16,7 @@ import {
   type RepeatMode,
 } from "./constants";
 import { updateBucketSettingsAction } from "@/app/(app)/actions";
+import { DurationInput } from "@/components/ui/DurationInput";
 import type { buckets } from "@/lib/db/schema";
 
 type BucketRow = typeof buckets.$inferSelect;
@@ -284,25 +285,21 @@ export function BucketSettings({ open, bucket, onClose }: BucketSettingsProps) {
 
                     <div className="flex flex-col gap-1.5">
                       <label className={LABEL}>default deadline offset</label>
-                      <input
-                        type="text"
+                      <DurationInput
                         value={defaultDeadlineOffset}
-                        onChange={(e) => setDefaultDeadlineOffset(e.target.value)}
-                        placeholder="e.g. 7 days, 30 days"
+                        onChange={setDefaultDeadlineOffset}
+                        placeholder="e.g. 7 days, 2 weeks"
                         disabled={pending}
-                        className={INPUT}
                       />
                     </div>
 
                     <div className="flex flex-col gap-1.5">
                       <label className={LABEL}>auto archive after</label>
-                      <input
-                        type="text"
+                      <DurationInput
                         value={autoArchiveAfter}
-                        onChange={(e) => setAutoArchiveAfter(e.target.value)}
+                        onChange={setAutoArchiveAfter}
                         placeholder="e.g. 1 day, 7 days"
                         disabled={pending}
-                        className={INPUT}
                       />
                     </div>
                   </>
@@ -327,13 +324,11 @@ export function BucketSettings({ open, bucket, onClose }: BucketSettingsProps) {
 
                     <div className="flex flex-col gap-1.5">
                       <label className={LABEL}>offset before deadline</label>
-                      <input
-                        type="text"
+                      <DurationInput
                         value={defaultOffset}
-                        onChange={(e) => setDefaultOffset(e.target.value)}
+                        onChange={setDefaultOffset}
                         placeholder="e.g. 3 days, 1 hour"
                         disabled={pending}
-                        className={INPUT}
                       />
                     </div>
 
