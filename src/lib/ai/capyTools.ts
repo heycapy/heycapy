@@ -1,7 +1,7 @@
 import { revalidatePath } from "next/cache";
 import { and, eq, isNull, or, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { buckets, items } from "@/lib/db/schema";
+import { buckets, items, itemStatuses } from "@/lib/db/schema";
 import { RecurringConfig } from "@/types/rules";
 import type { ToolCall } from "./types";
 
@@ -206,6 +206,7 @@ export async function executeToolCall(
         deadline?: Date | null;
         notificationOffsetMins?: number | null;
         recurring?: string | null;
+        status?: string;
       } = { updatedAt: new Date() };
 
       if (args.title !== undefined) {
@@ -228,6 +229,11 @@ export async function executeToolCall(
         if (parsed !== undefined) updates.recurring = parsed;
       } catch {
         return JSON.stringify({ ok: false, error: "Invalid recurring configuration" });
+      }
+
+      if (args.status !== undefined) {
+        const statusName = String(args.status).trim();
+        if (statusName) updates.status = statusName;
       }
 
       await db
@@ -425,6 +431,35 @@ export async function executeToolCall(
         });
 
       return JSON.stringify(enriched);
+    }
+
+    case "list_statuses": {
+      const result = await db.select().from(itemStatuses).where(eq(itemStatuses.userId, userId));
+      return JSON.stringify(result.sort((a, b) => a.sortOrder - b.sortOrder));
+    }
+
+    case "create_status": {
+      const name = String(args.name ?? "").trim();
+      const color = String(args.color ?? "#6b7280");
+      if (!name) return JSON.stringify({ ok: false, error: "Name is required" });
+      if (name.length > 30) return JSON.stringify({ ok: false, error: "Name too long (max 30)" });
+
+      const existing = await db.query.itemStatuses.findFirst({
+        where: (s, { eq: qeq, and: qand }) => qand(qeq(s.userId, userId), qeq(s.name, name)),
+      });
+      if (existing) return JSON.stringify({ ok: false, error: "Status already exists" });
+
+      const [maxRow] = await db
+        .select({ max: sql<number>`COALESCE(MAX(${itemStatuses.sortOrder}), 2)` })
+        .from(itemStatuses)
+        .where(eq(itemStatuses.userId, userId));
+
+      const [inserted] = await db
+        .insert(itemStatuses)
+        .values({ userId, name, color, sortOrder: (maxRow?.max ?? 2) + 1, isSystem: false })
+        .returning({ id: itemStatuses.id });
+
+      return JSON.stringify({ ok: true, statusId: inserted?.id });
     }
 
     default:

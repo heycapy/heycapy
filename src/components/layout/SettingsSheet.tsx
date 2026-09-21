@@ -7,11 +7,12 @@ import { cn } from "@/lib/utils";
 import { BracketButton } from "@/components/ui/BracketButton";
 import { getUserSettingsAction, updateUserSettingsAction, logoutAction } from "@/app/(app)/actions";
 import { AppearanceTab, NotificationsTab, AITab, PersonalityTab } from "./SettingsTabs";
+import { StatusesTab } from "./StatusesTab";
 import type { UserTone, AIProvider } from "./settings-constants";
 import type { userSettings } from "@/lib/db/schema";
 
 type Settings = typeof userSettings.$inferSelect;
-type Tab = "appearance" | "notifications" | "ai" | "personality";
+type Tab = "appearance" | "notifications" | "ai" | "personality" | "statuses";
 
 interface SettingsSheetProps {
   open: boolean;
@@ -100,7 +101,7 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
 
   const tabBtn = (t: Tab) =>
     cn(
-      "font-mono text-[10px] px-2 py-1 transition-colors",
+      "font-mono text-[10px] px-1.5 py-1 whitespace-nowrap transition-colors shrink-0",
       tab === t ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"
     );
 
@@ -114,7 +115,7 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
             animate={{ opacity: 0.45 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.15 }}
-            className="fixed inset-0 z-40 bg-black"
+            className="fixed inset-0 z-[55] bg-black"
             onClick={onClose}
           />
           <motion.aside
@@ -123,7 +124,7 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
             transition={{ duration: 0.2, ease: "easeInOut" }}
-            className="bg-background border-border fixed top-0 right-0 z-50 flex h-full w-80 flex-col border-l-2"
+            className="bg-background border-border fixed top-0 right-0 z-[60] flex h-full w-80 flex-col border-l-2"
             style={{ boxShadow: "-4px 0 0 var(--border)" }}
           >
             <div className="bg-foreground text-background flex items-center justify-between px-3 py-1.5">
@@ -133,15 +134,17 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
               </BracketButton>
             </div>
 
-            <div className="border-border flex border-b-2">
-              {(["appearance", "notifications", "ai", "personality"] as Tab[]).map((t) => (
-                <button key={t} onClick={() => setTab(t)} className={tabBtn(t)}>
-                  {t}
-                </button>
-              ))}
+            <div className="border-border scrollbar-hide flex overflow-x-auto border-b-2">
+              {(["appearance", "notifications", "ai", "personality", "statuses"] as Tab[]).map(
+                (t) => (
+                  <button key={t} onClick={() => setTab(t)} className={tabBtn(t)}>
+                    {t}
+                  </button>
+                )
+              )}
             </div>
 
-            <div className="flex flex-1 flex-col gap-4 overflow-y-auto px-4 py-4">
+            <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-4 py-4">
               {!loaded ? (
                 <p className="text-muted-foreground font-mono text-xs">loading...</p>
               ) : (
@@ -194,7 +197,10 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
                       pending={pending}
                     />
                   )}
-                  {error && <span className="text-destructive font-mono text-[10px]">{error}</span>}
+                  {tab === "statuses" && <StatusesTab />}
+                  {error && tab !== "statuses" && (
+                    <span className="text-destructive font-mono text-[10px]">{error}</span>
+                  )}
                 </>
               )}
             </div>
@@ -203,9 +209,11 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
               <BracketButton variant="destructive" onClick={() => void logoutAction()}>
                 logout
               </BracketButton>
-              <BracketButton onClick={handleSave} disabled={pending || !loaded}>
-                save
-              </BracketButton>
+              {tab !== "statuses" && (
+                <BracketButton onClick={handleSave} disabled={pending || !loaded}>
+                  save
+                </BracketButton>
+              )}
             </div>
           </motion.aside>
         </>

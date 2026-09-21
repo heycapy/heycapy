@@ -68,7 +68,9 @@ export function BucketsShell({ buckets }: BucketsShellProps) {
               style={{ borderTopColor: accentColor }}
             >
               <span className="font-pixel text-foreground block truncate text-xs">
-                {activeBucket.name}
+                {activeBucket.icon
+                  ? `${activeBucket.icon} ${activeBucket.name}`
+                  : activeBucket.name}
               </span>
             </div>
             <select
@@ -111,7 +113,9 @@ export function BucketsShell({ buckets }: BucketsShellProps) {
                     : "text-muted-foreground hover:text-foreground border-t-transparent"
                 )}
               >
-                <span className="font-pixel text-xs">{bucket.name}</span>
+                <span className="font-pixel text-xs">
+                  {bucket.icon ? `${bucket.icon} ${bucket.name}` : bucket.name}
+                </span>
               </button>
             );
           })}

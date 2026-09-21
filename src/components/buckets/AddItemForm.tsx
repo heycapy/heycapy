@@ -45,6 +45,7 @@ export function AddItemForm({ bucketId, onClose }: AddItemFormProps) {
             if (e.key === "Escape") onClose();
           }}
           placeholder="What needs doing?"
+          maxLength={500}
           disabled={pending}
           className="placeholder:text-muted-foreground flex-1 bg-transparent text-sm outline-none disabled:opacity-50"
         />

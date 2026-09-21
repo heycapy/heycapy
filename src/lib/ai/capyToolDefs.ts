@@ -40,7 +40,9 @@ export const CAPY_TOOLS: Tool[] = [
     description:
       "Rename a bucket or change its icon. " +
       "Use this when the user asks to rename, edit, or update a bucket. " +
-      "Only include the fields you want to change.",
+      "Only include the fields you want to change. " +
+      "IMPORTANT: never put an emoji inside the name field — use the icon field for that. " +
+      "The icon is displayed separately next to the bucket name in the UI.",
     parameters: {
       type: "object",
       properties: {
@@ -50,11 +52,13 @@ export const CAPY_TOOLS: Tool[] = [
         },
         name: {
           type: "string",
-          description: "New name for the bucket.",
+          description:
+            "New plain-text name for the bucket. Do NOT include emoji here — use the icon field instead.",
         },
         icon: {
           type: ["string", "null"],
-          description: "New emoji icon, or null to remove the icon.",
+          description:
+            "A single emoji to display next to the bucket name, e.g. '🛒', '💼', '📦'. Pass null to remove the icon.",
         },
       },
       required: ["bucket_id"],
@@ -175,6 +179,12 @@ export const CAPY_TOOLS: Tool[] = [
           description:
             "Set to true to completely remove the recurring configuration from this item.",
         },
+        status: {
+          type: "string",
+          description:
+            "Set the item's status by name (e.g. 'active', 'completed', 'snoozed', or any custom status). " +
+            "Use list_statuses first if you're unsure what statuses are available.",
+        },
       },
       required: ["item_id"],
     },
@@ -281,6 +291,39 @@ export const CAPY_TOOLS: Tool[] = [
         },
       },
       required: ["bucket_id"],
+    },
+  },
+  {
+    name: "list_statuses",
+    description:
+      "List all item statuses available to the user — system statuses (active, completed, snoozed) plus any custom ones they've created. " +
+      "Call this when the user asks about statuses, wants to see what statuses exist, or before using a status name in update_item.",
+    parameters: {
+      type: "object",
+      properties: {},
+    },
+  },
+  {
+    name: "create_status",
+    description:
+      "Create a new custom item status for the user. " +
+      "Use this when the user asks to add or create a new status. " +
+      "Pick a fitting hex color based on the status meaning (e.g. '#ef4444' for blocked, '#22c55e' for done, '#f97316' for in-progress).",
+    parameters: {
+      type: "object",
+      properties: {
+        name: {
+          type: "string",
+          description:
+            "The name of the new status (max 30 chars). Keep it short: 'blocked', 'in-progress', 'waiting', etc.",
+        },
+        color: {
+          type: "string",
+          description:
+            "Hex color for the status dot, e.g. '#ef4444'. Pick a color that fits the status meaning.",
+        },
+      },
+      required: ["name", "color"],
     },
   },
   {

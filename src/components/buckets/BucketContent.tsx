@@ -249,7 +249,9 @@ export function BucketContent({ bucket, accentColor }: BucketContentProps) {
             className="h-3.5 w-0.5 shrink-0 rounded-full"
             style={{ backgroundColor: accentColor }}
           />
-          <span className="font-pixel text-sm leading-snug">{bucket.name}</span>
+          <span className="font-pixel text-sm leading-snug">
+            {bucket.icon ? `${bucket.icon} ${bucket.name}` : bucket.name}
+          </span>
         </div>
         <div className="flex items-center gap-2">
           <BracketButton onClick={() => setSettingsOpen(true)} className="px-1 py-1.5">

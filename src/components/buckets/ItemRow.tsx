@@ -6,7 +6,7 @@ import { GripVertical } from "lucide-react";
 import type { DragControls } from "framer-motion";
 import { cn } from "@/lib/utils";
 import type { items } from "@/lib/db/schema";
-import { ITEM_STATUSES } from "./constants";
+import { useUIStore } from "@/store/ui";
 
 type ItemRow = typeof items.$inferSelect;
 
@@ -17,10 +17,6 @@ interface ItemRowProps {
   onEditStart?: () => void;
   onStatusChange?: (status: string) => void;
 }
-
-const STATUS_DOT: Record<string, string> = Object.fromEntries(
-  ITEM_STATUSES.map((s) => [s.value, s.color])
-);
 
 function StatusPicker({
   current,
@@ -33,6 +29,8 @@ function StatusPicker({
   onSelect: (s: string) => void;
   onClose: () => void;
 }) {
+  const statuses = useUIStore((s) => s.statuses);
+
   return createPortal(
     <>
       <div className="fixed inset-0 z-30" onClick={onClose} />
@@ -44,19 +42,19 @@ function StatusPicker({
           boxShadow: "2px 2px 0 var(--border)",
         }}
       >
-        {ITEM_STATUSES.map((s) => (
+        {statuses.map((s) => (
           <button
-            key={s.value}
-            onClick={() => onSelect(s.value)}
+            key={s.name}
+            onClick={() => onSelect(s.name)}
             className={cn(
               "flex w-full items-center gap-2 px-3 py-1.5 font-mono text-xs transition-colors",
-              s.value === current
+              s.name === current
                 ? "bg-foreground text-background"
                 : "text-foreground hover:bg-muted"
             )}
           >
-            <span className={cn("h-2 w-2 shrink-0 rounded-full", s.color)} />
-            {s.value}
+            <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: s.color }} />
+            {s.name}
           </button>
         ))}
       </div>
@@ -108,10 +106,11 @@ export function ItemRow({
 }: ItemRowProps) {
   const [pickerPos, setPickerPos] = useState<{ top: number; left: number } | null>(null);
   const dotRef = useRef<HTMLButtonElement>(null);
+  const statuses = useUIStore((s) => s.statuses);
   const rel = item.deadline ? relativeTime(item.deadline) : null;
   const isCompleted = item.status === "completed";
   const recurringFreq = getRecurringFrequency(item.recurring);
-  const dotColor = STATUS_DOT[item.status] ?? "bg-muted-foreground/40";
+  const dotColor = statuses.find((s) => s.name === item.status)?.color ?? "var(--muted-foreground)";
 
   function openPicker() {
     if (!dotRef.current) return;
@@ -147,9 +146,9 @@ export function ItemRow({
         <span
           className={cn(
             "h-2 w-2 rounded-full transition-opacity",
-            onStatusChange && "hover:opacity-60",
-            dotColor
+            onStatusChange && "hover:opacity-60"
           )}
+          style={{ backgroundColor: dotColor }}
         />
       </button>
 

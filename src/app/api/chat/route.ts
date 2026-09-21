@@ -32,7 +32,13 @@ export async function POST(req: Request) {
     db.query.userSettings.findFirst({ where: eq(userSettings.userId, session.userId) }),
     db.query.users.findFirst({ where: eq(users.id, session.userId) }),
     db
-      .select({ id: buckets.id, name: buckets.name, icon: buckets.icon })
+      .select({
+        id: buckets.id,
+        name: buckets.name,
+        icon: buckets.icon,
+        itemsRules: buckets.itemsRules,
+        notificationsRules: buckets.notificationsRules,
+      })
       .from(buckets)
       .where(
         and(

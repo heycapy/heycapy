@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import type { UserStatus } from "@/types/status";
 
 type UIStore = {
   createBucketOpen: boolean;
@@ -12,6 +13,9 @@ type UIStore = {
 
   aiRefreshTick: number;
   tickAiRefresh: () => void;
+
+  statuses: UserStatus[];
+  setStatuses: (s: UserStatus[]) => void;
 };
 
 export const useUIStore = create<UIStore>((set) => ({
@@ -26,4 +30,7 @@ export const useUIStore = create<UIStore>((set) => ({
 
   aiRefreshTick: 0,
   tickAiRefresh: () => set((s) => ({ aiRefreshTick: s.aiRefreshTick + 1 })),
+
+  statuses: [],
+  setStatuses: (s) => set({ statuses: s }),
 }));

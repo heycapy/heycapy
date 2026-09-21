@@ -73,7 +73,7 @@ export function CreateBucketModal({ templates }: CreateBucketModalProps) {
             animate={{ opacity: 0.5 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.12 }}
-            className="fixed inset-0 z-50 bg-black"
+            className="fixed inset-0 z-[55] bg-black"
             onClick={closeCreateBucket}
           />
 
@@ -83,7 +83,7 @@ export function CreateBucketModal({ templates }: CreateBucketModalProps) {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -6, scale: 0.97 }}
             transition={transition}
-            className="bg-background border-border fixed top-[18%] left-1/2 z-50 w-full max-w-sm -translate-x-1/2 overflow-hidden rounded-md border shadow-2xl"
+            className="bg-background border-border fixed top-[18%] left-1/2 z-[60] w-full max-w-sm -translate-x-1/2 overflow-hidden rounded-md border shadow-2xl"
           >
             <AnimatePresence mode="wait" initial={false}>
               {step === "pick" ? (
@@ -157,6 +157,7 @@ export function CreateBucketModal({ templates }: CreateBucketModalProps) {
                         if (e.key === "Enter" && name.trim()) handleCreate();
                       }}
                       placeholder="Bucket name…"
+                      maxLength={100}
                       disabled={pending}
                       className="border-border bg-input placeholder:text-muted-foreground focus:ring-ring rounded border px-3 py-2 text-sm outline-none focus:ring-1 disabled:opacity-50"
                     />

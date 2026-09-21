@@ -200,7 +200,7 @@ export function BucketSettings({ open, bucket, onClose }: BucketSettingsProps) {
             animate={{ opacity: 0.45 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.12 }}
-            className="fixed inset-0 z-50 bg-black"
+            className="fixed inset-0 z-[55] bg-black"
             onClick={onClose}
           />
           <motion.div
@@ -209,7 +209,7 @@ export function BucketSettings({ open, bucket, onClose }: BucketSettingsProps) {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.96, y: -10 }}
             transition={{ duration: 0.15, ease: "easeOut" }}
-            className="fixed top-[12%] left-1/2 z-50 w-full max-w-sm -translate-x-1/2"
+            className="fixed top-[12%] left-1/2 z-[60] w-full max-w-sm -translate-x-1/2"
             style={{ boxShadow: "5px 5px 0 var(--border)" }}
           >
             <div className="border-border bg-background overflow-hidden border-2">
@@ -227,6 +227,7 @@ export function BucketSettings({ open, bucket, onClose }: BucketSettingsProps) {
                     type="text"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
+                    maxLength={100}
                     disabled={pending}
                     className={INPUT}
                   />

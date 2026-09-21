@@ -1,16 +1,25 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Header } from "./Header";
 import { SettingsSheet } from "./SettingsSheet";
 import { ArchivedBucketsSheet } from "@/components/buckets/ArchivedBucketsSheet";
 import { TrashSheet } from "@/components/buckets/TrashSheet";
 import { CapyChat } from "@/components/capy/CapyChat";
+import { getItemStatusesAction } from "@/app/(app)/actions";
+import { useUIStore } from "@/store/ui";
 
 export function AppShell({ children }: { children: ReactNode }) {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [archivedOpen, setArchivedOpen] = useState(false);
   const [trashOpen, setTrashOpen] = useState(false);
+  const setStatuses = useUIStore((s) => s.setStatuses);
+
+  useEffect(() => {
+    void getItemStatusesAction().then((r) => {
+      if (r.ok) setStatuses(r.statuses);
+    });
+  }, [setStatuses]);
 
   return (
     <>

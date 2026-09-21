@@ -6,10 +6,10 @@ import { Trash2 } from "lucide-react";
 import { DatePicker } from "@/components/ui/DatePicker";
 import { BracketButton } from "@/components/ui/BracketButton";
 import { OptionButton } from "@/components/ui/OptionButton";
-import { ITEM_STATUSES, RECURRING_FREQUENCIES } from "./constants";
-import type { ItemStatus } from "./constants";
+import { RECURRING_FREQUENCIES } from "./constants";
 import type { RecurringConfig } from "@/types/rules";
 import { cn } from "@/lib/utils";
+import { useUIStore } from "@/store/ui";
 
 function describeRecurring(config: RecurringConfig): string {
   const freq = RECURRING_FREQUENCIES.find((f) => f.value === config.frequency);
@@ -36,13 +36,13 @@ interface ItemDialogProps {
   mode: "add" | "edit";
   title: string;
   deadline: string;
-  status: ItemStatus;
+  status: string;
   recurring?: RecurringConfig | null;
   error?: string;
   pending?: boolean;
   onTitleChange: (v: string) => void;
   onDeadlineChange: (v: string) => void;
-  onStatusChange: (v: ItemStatus) => void;
+  onStatusChange: (v: string) => void;
   onRecurringChange?: (v: RecurringConfig | null) => void;
   onConfirm: () => void;
   onCancel: () => void;
@@ -67,6 +67,7 @@ export function ItemDialog({
   onDelete,
 }: ItemDialogProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const statuses = useUIStore((s) => s.statuses);
   const [timeHour, setTimeHour] = useState("9");
   const [timeMin, setTimeMin] = useState("00");
   const [timeAmpm, setTimeAmpm] = useState<"am" | "pm">("am");
@@ -151,7 +152,7 @@ export function ItemDialog({
             animate={{ opacity: 0.45 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.12 }}
-            className="fixed inset-0 z-50 bg-black"
+            className="fixed inset-0 z-[55] bg-black"
             onClick={onCancel}
           />
 
@@ -161,7 +162,7 @@ export function ItemDialog({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.96, y: -10 }}
             transition={{ duration: 0.15, ease: "easeOut" }}
-            className="fixed top-[22%] left-1/2 z-50 w-full max-w-xs -translate-x-1/2"
+            className="fixed top-[22%] left-1/2 z-[60] w-full max-w-xs -translate-x-1/2"
             style={{ boxShadow: "5px 5px 0 var(--border)" }}
           >
             <div className="border-border bg-background overflow-hidden border-2">
@@ -189,6 +190,7 @@ export function ItemDialog({
                       if (e.key === "Escape") onCancel();
                     }}
                     placeholder={error || "what needs doing?"}
+                    maxLength={500}
                     disabled={pending}
                     rows={1}
                     className={cn(
@@ -328,16 +330,19 @@ export function ItemDialog({
                   <div className="flex flex-col gap-1.5">
                     <label className="text-muted-foreground font-mono text-[10px]">status</label>
                     <div className="flex flex-wrap gap-1.5">
-                      {ITEM_STATUSES.map((s) => (
+                      {statuses.map((s) => (
                         <OptionButton
-                          key={s.value}
-                          active={status === s.value}
-                          onClick={() => onStatusChange(s.value)}
+                          key={s.name}
+                          active={status === s.name}
+                          onClick={() => onStatusChange(s.name)}
                           disabled={pending}
                           className="flex items-center gap-1.5"
                         >
-                          <span className={cn("h-1.5 w-1.5 rounded-full", s.color)} />
-                          {s.value}
+                          <span
+                            className="h-1.5 w-1.5 rounded-full"
+                            style={{ backgroundColor: s.color }}
+                          />
+                          {s.name}
                         </OptionButton>
                       ))}
                     </div>

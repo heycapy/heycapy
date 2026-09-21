@@ -41,7 +41,18 @@ export const ITEM_STATUSES = [
   { value: "snoozed", color: "bg-[var(--status-snoozed)]" },
 ] as const;
 
-export type ItemStatus = (typeof ITEM_STATUSES)[number]["value"];
+export type ItemStatus = string;
+
+export const STATUS_COLORS = [
+  "#ef4444",
+  "#f97316",
+  "#eab308",
+  "#22c55e",
+  "#3b82f6",
+  "#8b5cf6",
+  "#ec4899",
+  "#6b7280",
+] as const;
 
 export const BUCKET_PALETTE = ["var(--p1)", "var(--p2)", "var(--p3)", "var(--p4)", "var(--p5)"];
 

@@ -12,6 +12,8 @@ type BucketSummary = {
   id: number;
   name: string;
   icon: string | null;
+  itemsRules?: string | null;
+  notificationsRules?: string | null;
 };
 
 const TONE: Record<PersonalitySettings["personalityTone"], string> = {
@@ -39,7 +41,39 @@ export function buildSystemPrompt(
 
   const bucketLines =
     buckets.length > 0
-      ? buckets.map((b) => `- "${b.name}" (id: ${b.id})`).join("\n")
+      ? buckets
+          .map((b) => {
+            const tags: string[] = [];
+            if (b.itemsRules) {
+              try {
+                const ir = JSON.parse(b.itemsRules) as {
+                  readonly?: boolean;
+                  defaultDeadlineOffsetDays?: number | null;
+                };
+                if (ir.readonly) tags.push("readonly");
+                if (ir.defaultDeadlineOffsetDays !== null && ir.defaultDeadlineOffsetDays > 0) {
+                  tags.push(`default deadline: ${ir.defaultDeadlineOffsetDays}d from today`);
+                }
+              } catch {
+                // ignore malformed rules
+              }
+            }
+            if (b.notificationsRules) {
+              try {
+                const nr = JSON.parse(b.notificationsRules) as {
+                  medium?: string[];
+                };
+                if (nr.medium && nr.medium.length > 0) {
+                  tags.push(`notifications: ${nr.medium.join("+")}`);
+                }
+              } catch {
+                // ignore malformed rules
+              }
+            }
+            const suffix = tags.length > 0 ? ` [${tags.join(", ")}]` : "";
+            return `- "${b.name}" (id: ${b.id})${suffix}`;
+          })
+          .join("\n")
       : "No buckets yet.";
 
   const dateParts = new Intl.DateTimeFormat("en-US", {
@@ -68,7 +102,7 @@ export function buildSystemPrompt(
 
 ${toneText} ${emojiLine}
 
-Buckets:
+Buckets (tags show their configured rules — you can see these but cannot change bucket settings, only the user can do that in the tweaks panel):
 ${bucketLines}
 
 Today: ${isoDate} (${timeStr}, ${timezone})
@@ -76,6 +110,8 @@ ${upcomingSection}
 
 Rules:
 - Only use bucket IDs from the list above — never guess or invent a bucket ID
+- Never call add_item, update_item, delete_item, or move_item on buckets marked [readonly] — tell the user the bucket is read-only instead
+- For buckets with a "default deadline" tag, use that offset when the user adds an item without specifying a deadline (confirm with the user before applying)
 - If the user refers to an item by name or description and you don't already have its ID from the upcoming list above, you MUST call search_items first to find it — never guess an item ID
 - When searching, use short individual keywords (e.g. "netflix" not "netflix subscription") — the search matches any word appearing in the title
 - The upcoming list above is only a deadline preview — it is NOT the full contents of any bucket. To count or list all items in a bucket, always call list_items

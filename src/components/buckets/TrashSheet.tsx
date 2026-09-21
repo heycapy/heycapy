@@ -65,7 +65,7 @@ export function TrashSheet({ open, onClose }: TrashSheetProps) {
             animate={{ opacity: 0.45 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.15 }}
-            className="fixed inset-0 z-40 bg-black"
+            className="fixed inset-0 z-[55] bg-black"
             onClick={onClose}
           />
           <motion.aside
@@ -74,7 +74,7 @@ export function TrashSheet({ open, onClose }: TrashSheetProps) {
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
             transition={{ duration: 0.2, ease: "easeInOut" }}
-            className="bg-background border-border fixed top-0 right-0 z-50 flex h-full w-80 flex-col border-l-2"
+            className="bg-background border-border fixed top-0 right-0 z-[60] flex h-full w-80 flex-col border-l-2"
             style={{ boxShadow: "-4px 0 0 var(--border)" }}
           >
             <div className="bg-foreground text-background flex items-center justify-between px-3 py-1.5">

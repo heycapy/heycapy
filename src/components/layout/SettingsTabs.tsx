@@ -59,6 +59,7 @@ export function AppearanceTab({
           value={timezone}
           onChange={(e) => setTimezone(e.target.value)}
           placeholder="America/New_York"
+          maxLength={50}
           disabled={pending}
           className={INPUT}
         />
@@ -107,6 +108,7 @@ export function NotificationsTab({
           value={ntfyUrl}
           onChange={(e) => setNtfyUrl(e.target.value)}
           placeholder="https://ntfy.sh"
+          maxLength={200}
           disabled={pending}
           className={INPUT}
         />
@@ -118,6 +120,7 @@ export function NotificationsTab({
           value={ntfyTopic}
           onChange={(e) => setNtfyTopic(e.target.value)}
           placeholder="my-topic"
+          maxLength={100}
           disabled={pending}
           className={INPUT}
         />
@@ -168,6 +171,7 @@ export function AITab({
             value={aiOllamaUrl}
             onChange={(e) => setAiOllamaUrl(e.target.value)}
             placeholder="http://localhost:11434"
+            maxLength={200}
             disabled={pending}
             className={INPUT}
           />
@@ -181,6 +185,7 @@ export function AITab({
             value={aiApiKey}
             onChange={(e) => setAiApiKey(e.target.value)}
             placeholder="sk-..."
+            maxLength={200}
             disabled={pending}
             className={INPUT}
           />
@@ -199,6 +204,7 @@ export function AITab({
                 ? "gpt-4o"
                 : "claude-sonnet-4-6"
           }
+          maxLength={100}
           disabled={pending}
           className={INPUT}
         />
@@ -239,6 +245,7 @@ export function PersonalityTab({
           value={personalityName}
           onChange={(e) => setPersonalityName(e.target.value)}
           placeholder="Capy"
+          maxLength={50}
           disabled={pending}
           className={INPUT}
         />
@@ -259,6 +266,7 @@ export function PersonalityTab({
             value={personalityCustomPrompt}
             onChange={(e) => setPersonalityCustomPrompt(e.target.value)}
             placeholder="Describe the tone and style..."
+            maxLength={1000}
             disabled={pending}
             rows={4}
             className="border-border placeholder:text-muted-foreground/50 focus:border-foreground w-full resize-none border-b bg-transparent py-1.5 font-mono text-xs outline-none disabled:opacity-50"
