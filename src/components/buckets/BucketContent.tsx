@@ -244,12 +244,12 @@ export function BucketContent({ bucket, accentColor }: BucketContentProps) {
   return (
     <div className="flex flex-col">
       <div className="flex items-center justify-between px-4 py-3">
-        <div className="flex items-center gap-2">
+        <div className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden">
           <span
             className="h-3.5 w-0.5 shrink-0 rounded-full"
             style={{ backgroundColor: accentColor }}
           />
-          <span className="font-pixel text-sm leading-snug">
+          <span className="font-pixel min-w-0 truncate overflow-hidden text-sm leading-snug">
             {bucket.icon ? `${bucket.icon} ${bucket.name}` : bucket.name}
           </span>
         </div>

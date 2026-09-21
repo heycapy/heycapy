@@ -107,13 +107,13 @@ export function BucketsShell({ buckets }: BucketsShellProps) {
                 onClick={() => setActiveId(bucket.id)}
                 style={isActive ? { borderTopColor: color } : undefined}
                 className={cn(
-                  "-mt-0.5 shrink-0 border-t-2 px-3 py-2.5 text-left whitespace-nowrap transition-colors",
+                  "-mt-0.5 max-w-[140px] shrink-0 border-t-2 px-3 py-2.5 text-left transition-colors",
                   isActive
                     ? "bg-card text-foreground"
                     : "text-muted-foreground hover:text-foreground border-t-transparent"
                 )}
               >
-                <span className="font-pixel text-xs">
+                <span className="font-pixel block truncate text-xs">
                   {bucket.icon ? `${bucket.icon} ${bucket.name}` : bucket.name}
                 </span>
               </button>

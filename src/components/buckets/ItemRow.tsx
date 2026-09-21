@@ -164,8 +164,16 @@ export function ItemRow({
         />
       )}
 
-      <button onClick={() => onEditStart?.()} className="min-w-0 flex-1 py-2.5 text-left">
-        <span className={cn("block text-sm", isCompleted && "text-muted-foreground line-through")}>
+      <button
+        onClick={() => onEditStart?.()}
+        className="min-w-0 flex-1 overflow-hidden py-2.5 text-left"
+      >
+        <span
+          className={cn(
+            "block truncate text-sm",
+            isCompleted && "text-muted-foreground line-through"
+          )}
+        >
           {item.title}
         </span>
         {item.deadline && (
