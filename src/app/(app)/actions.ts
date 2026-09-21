@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { and, asc, eq, isNull, ne, sql } from "drizzle-orm";
+import { and, asc, desc, eq, isNotNull, isNull, sql } from "drizzle-orm";
 import { getSession } from "@/lib/auth/session";
 import { deleteSession } from "@/lib/auth/session";
 import { db } from "@/lib/db";
@@ -94,8 +94,7 @@ export async function getItemsForBucketAction(
   const condition = and(
     eq(items.bucketId, bucketId),
     eq(items.userId, session.userId),
-    isNull(items.deletedAt),
-    ne(items.status, "archived")
+    isNull(items.deletedAt)
   );
 
   const result =
@@ -324,4 +323,112 @@ export async function deleteItemAction(
 
   revalidatePath("/");
   return { ok: true };
+}
+
+export async function archiveBucketAction(
+  bucketId: number
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const session = await getSession();
+  if (!session) redirect("/login");
+
+  await db
+    .update(buckets)
+    .set({ archivedAt: new Date() })
+    .where(and(eq(buckets.id, bucketId), eq(buckets.userId, session.userId)));
+
+  revalidatePath("/");
+  return { ok: true };
+}
+
+export async function restoreBucketAction(
+  bucketId: number
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const session = await getSession();
+  if (!session) redirect("/login");
+
+  await db
+    .update(buckets)
+    .set({ archivedAt: null })
+    .where(and(eq(buckets.id, bucketId), eq(buckets.userId, session.userId)));
+
+  revalidatePath("/");
+  return { ok: true };
+}
+
+export async function deleteBucketAction(
+  bucketId: number
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const session = await getSession();
+  if (!session) redirect("/login");
+
+  await db
+    .update(buckets)
+    .set({ deletedAt: new Date() })
+    .where(and(eq(buckets.id, bucketId), eq(buckets.userId, session.userId)));
+
+  revalidatePath("/");
+  return { ok: true };
+}
+
+export async function restoreDeletedBucketAction(
+  bucketId: number
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const session = await getSession();
+  if (!session) redirect("/login");
+
+  await db
+    .update(buckets)
+    .set({ deletedAt: null })
+    .where(and(eq(buckets.id, bucketId), eq(buckets.userId, session.userId)));
+
+  revalidatePath("/");
+  return { ok: true };
+}
+
+export async function permanentlyDeleteBucketAction(
+  bucketId: number
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const session = await getSession();
+  if (!session) redirect("/login");
+
+  await db.delete(buckets).where(and(eq(buckets.id, bucketId), eq(buckets.userId, session.userId)));
+
+  revalidatePath("/");
+  return { ok: true };
+}
+
+export async function getDeletedBucketsAction(): Promise<
+  { ok: true; buckets: (typeof buckets.$inferSelect)[] } | { ok: false; error: string }
+> {
+  const session = await getSession();
+  if (!session) return { ok: false, error: "Unauthorized" };
+
+  const result = await db
+    .select()
+    .from(buckets)
+    .where(and(eq(buckets.userId, session.userId), isNotNull(buckets.deletedAt)))
+    .orderBy(desc(buckets.deletedAt));
+
+  return { ok: true, buckets: result };
+}
+
+export async function getArchivedBucketsAction(): Promise<
+  { ok: true; buckets: (typeof buckets.$inferSelect)[] } | { ok: false; error: string }
+> {
+  const session = await getSession();
+  if (!session) return { ok: false, error: "Unauthorized" };
+
+  const result = await db
+    .select()
+    .from(buckets)
+    .where(
+      and(
+        eq(buckets.userId, session.userId),
+        isNotNull(buckets.archivedAt),
+        isNull(buckets.deletedAt)
+      )
+    )
+    .orderBy(desc(buckets.archivedAt));
+
+  return { ok: true, buckets: result };
 }

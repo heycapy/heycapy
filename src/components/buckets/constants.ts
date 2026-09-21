@@ -12,7 +12,6 @@ export type ItemsRulesConfig = {
   readonly?: boolean;
   showCompleted?: boolean;
   defaultDeadlineOffsetDays?: number | null;
-  autoArchiveAfterDays?: number | null;
 };
 
 export type NotificationsRulesConfig = {
@@ -40,7 +39,6 @@ export const ITEM_STATUSES = [
   { value: "active", color: "bg-[var(--status-active)]" },
   { value: "completed", color: "bg-[var(--status-completed)]" },
   { value: "snoozed", color: "bg-[var(--status-snoozed)]" },
-  { value: "archived", color: "bg-[var(--status-archived)]" },
 ] as const;
 
 export type ItemStatus = (typeof ITEM_STATUSES)[number]["value"];

@@ -13,7 +13,6 @@ export const ItemsRules = z.object({
   sortBy: z.enum(["deadline", "created_at", "manual"]).default("deadline"),
   drag: z.boolean().default(false),
   readonly: z.boolean().default(false),
-  autoArchiveAfterDays: z.number().int().nonnegative().nullable().default(null),
   showCompleted: z.boolean().default(true),
   defaultDeadlineOffsetDays: z.number().int().nonnegative().nullable().default(null),
 });

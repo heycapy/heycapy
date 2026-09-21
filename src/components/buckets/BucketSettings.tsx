@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { BracketButton } from "@/components/ui/BracketButton";
 import { Toggle } from "@/components/ui/Toggle";
@@ -23,7 +24,11 @@ import {
   parseDurationToDays,
   daysToDisplayStr,
 } from "@/lib/duration";
-import { updateBucketSettingsAction } from "@/app/(app)/actions";
+import {
+  updateBucketSettingsAction,
+  archiveBucketAction,
+  deleteBucketAction,
+} from "@/app/(app)/actions";
 import type { buckets } from "@/lib/db/schema";
 
 type BucketRow = typeof buckets.$inferSelect;
@@ -45,8 +50,6 @@ type RawItemsRules = {
   show_completed?: boolean;
   defaultDeadlineOffsetDays?: number | null;
   default_deadline_offset?: string | null;
-  autoArchiveAfterDays?: number | null;
-  auto_archive_after?: string | null;
 };
 
 type RawNotifRules = {
@@ -82,9 +85,11 @@ const tabCn = (active: boolean) =>
   `font-mono text-[10px] px-2 py-1 transition-colors ${active ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"}`;
 
 export function BucketSettings({ open, bucket, onClose }: BucketSettingsProps) {
+  const router = useRouter();
   const [tab, setTab] = useState<Tab>("items");
   const [name, setName] = useState(bucket.name);
   const [error, setError] = useState("");
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const [pending, startTransition] = useTransition();
 
   const [sortBy, setSortBy] = useState<SortBy>("created_at");
@@ -92,7 +97,6 @@ export function BucketSettings({ open, bucket, onClose }: BucketSettingsProps) {
   const [showCompleted, setShowCompleted] = useState(true);
   const [readonly, setReadonly] = useState(false);
   const [defaultDeadlineOffset, setDefaultDeadlineOffset] = useState("");
-  const [autoArchiveAfter, setAutoArchiveAfter] = useState("");
 
   const [mediums, setMediums] = useState<NotificationMedium[]>([]);
   const [notifyAt, setNotifyAt] = useState("");
@@ -104,6 +108,7 @@ export function BucketSettings({ open, bucket, onClose }: BucketSettingsProps) {
   useEffect(() => {
     if (!open) return;
     const id = setTimeout(() => {
+      setConfirmDelete(false);
       setName(bucket.name);
       setError("");
       setTab("items");
@@ -118,12 +123,6 @@ export function BucketSettings({ open, bucket, onClose }: BucketSettingsProps) {
           ? daysToDisplayStr(ir.defaultDeadlineOffsetDays)
           : (ir.default_deadline_offset ?? "")
       );
-      setAutoArchiveAfter(
-        ir.autoArchiveAfterDays !== null && ir.autoArchiveAfterDays !== undefined
-          ? daysToDisplayStr(ir.autoArchiveAfterDays)
-          : (ir.auto_archive_after ?? "")
-      );
-
       const nr = parseJson<RawNotifRules>(bucket.notificationsRules, {});
       setMediums(nr.medium ?? []);
       setNotifyAt(nr.notifyAt ?? nr.notify_at ?? "");
@@ -159,7 +158,6 @@ export function BucketSettings({ open, bucket, onClose }: BucketSettingsProps) {
           readonly,
           showCompleted,
           defaultDeadlineOffsetDays: parseDurationToDays(defaultDeadlineOffset),
-          autoArchiveAfterDays: parseDurationToDays(autoArchiveAfter),
         },
         {
           medium: mediums,
@@ -171,6 +169,24 @@ export function BucketSettings({ open, bucket, onClose }: BucketSettingsProps) {
       );
       if (result.ok) onClose();
       else setError(result.error);
+    });
+  }
+
+  function handleArchive() {
+    if (pending) return;
+    startTransition(async () => {
+      await archiveBucketAction(bucket.id);
+      router.refresh();
+      onClose();
+    });
+  }
+
+  function handleDelete() {
+    if (pending) return;
+    startTransition(async () => {
+      await deleteBucketAction(bucket.id);
+      router.refresh();
+      onClose();
     });
   }
 
@@ -264,18 +280,6 @@ export function BucketSettings({ open, bucket, onClose }: BucketSettingsProps) {
                         disabled={pending}
                       />
                     </div>
-                    <div className="flex flex-col gap-1.5">
-                      <label className={LABEL}>auto archive after</label>
-                      <span className={HINT}>
-                        automatically move completed items to archive after this long
-                      </span>
-                      <DurationInput
-                        value={autoArchiveAfter}
-                        onChange={setAutoArchiveAfter}
-                        placeholder="e.g. 1 day, 7 days"
-                        disabled={pending}
-                      />
-                    </div>
                   </>
                 )}
                 {tab === "notifications" && (
@@ -336,7 +340,35 @@ export function BucketSettings({ open, bucket, onClose }: BucketSettingsProps) {
                 )}
               </div>
 
-              <div className="border-border flex items-center justify-end border-t px-3 py-2.5">
+              <div className="border-border flex items-center justify-between border-t px-3 py-2.5">
+                <div className="flex items-center gap-2">
+                  <BracketButton variant="destructive" onClick={handleArchive} disabled={pending}>
+                    archive
+                  </BracketButton>
+                  {confirmDelete ? (
+                    <>
+                      <span className="text-destructive font-mono text-[10px]">sure?</span>
+                      <BracketButton
+                        variant="destructive"
+                        onClick={handleDelete}
+                        disabled={pending}
+                      >
+                        confirm
+                      </BracketButton>
+                      <BracketButton onClick={() => setConfirmDelete(false)} disabled={pending}>
+                        cancel
+                      </BracketButton>
+                    </>
+                  ) : (
+                    <BracketButton
+                      variant="destructive"
+                      onClick={() => setConfirmDelete(true)}
+                      disabled={pending}
+                    >
+                      delete
+                    </BracketButton>
+                  )}
+                </div>
                 <BracketButton onClick={handleSave} disabled={!name.trim() || pending}>
                   save
                 </BracketButton>
