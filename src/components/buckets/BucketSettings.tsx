@@ -3,6 +3,9 @@
 import { useEffect, useState, useTransition } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { BracketButton } from "@/components/ui/BracketButton";
+import { OptionButton } from "@/components/ui/OptionButton";
+import { TimePicker } from "@/components/ui/TimePicker";
 import {
   type ItemsRulesConfig,
   type NotificationsRulesConfig,
@@ -13,11 +16,9 @@ import {
   type RepeatMode,
 } from "./constants";
 import { updateBucketSettingsAction } from "@/app/(app)/actions";
-import { TimePicker } from "@/components/ui/TimePicker";
 import type { buckets } from "@/lib/db/schema";
 
 type BucketRow = typeof buckets.$inferSelect;
-
 type Tab = "items" | "notifications" | "personality";
 
 interface BucketSettingsProps {
@@ -33,7 +34,6 @@ function parseItemsRules(json: string): ItemsRulesConfig {
     return {};
   }
 }
-
 function parseNotificationsRules(json: string): NotificationsRulesConfig {
   try {
     return JSON.parse(json) as NotificationsRulesConfig;
@@ -41,7 +41,6 @@ function parseNotificationsRules(json: string): NotificationsRulesConfig {
     return {};
   }
 }
-
 function parsePersonalityRules(json: string): PersonalityRulesConfig {
   try {
     return JSON.parse(json) as PersonalityRulesConfig;
@@ -52,25 +51,17 @@ function parsePersonalityRules(json: string): PersonalityRulesConfig {
 
 const LABEL = "text-muted-foreground font-mono text-[10px]";
 const INPUT =
-  "border-border w-full border bg-transparent px-2 py-1.5 font-mono text-xs outline-none placeholder:text-muted-foreground/50 focus:border-foreground/40";
-
-const OPTION_BTN = (active: boolean) =>
-  cn(
-    "border px-2 py-1 font-mono text-[10px] transition-colors",
-    active
-      ? "bg-foreground text-background border-foreground"
-      : "border-border/50 text-muted-foreground hover:border-border hover:text-foreground"
-  );
+  "border-b border-border w-full bg-transparent py-1.5 font-mono text-xs outline-none placeholder:text-muted-foreground/50 focus:border-foreground disabled:opacity-50";
 
 function Toggle({ value, onChange }: { value: boolean; onChange: (v: boolean) => void }) {
   return (
     <div className="flex gap-1">
-      <button type="button" onClick={() => onChange(true)} className={OPTION_BTN(value)}>
+      <OptionButton active={value} onClick={() => onChange(true)}>
         on
-      </button>
-      <button type="button" onClick={() => onChange(false)} className={OPTION_BTN(!value)}>
+      </OptionButton>
+      <OptionButton active={!value} onClick={() => onChange(false)}>
         off
-      </button>
+      </OptionButton>
     </div>
   );
 }
@@ -91,14 +82,9 @@ function OptionGroup<T extends string>({
       {options.map((opt) => {
         const active = multi ? (value as T[]).includes(opt.value) : (value as T) === opt.value;
         return (
-          <button
-            key={opt.value}
-            type="button"
-            onClick={() => onChange(opt.value)}
-            className={OPTION_BTN(active)}
-          >
+          <OptionButton key={opt.value} active={active} onClick={() => onChange(opt.value)}>
             {opt.label}
-          </button>
+          </OptionButton>
         );
       })}
     </div>
@@ -110,12 +96,10 @@ const SORT_OPTIONS: { value: SortBy; label: string }[] = [
   { value: "created_at", label: "created" },
   { value: "manual", label: "manual" },
 ];
-
 const REPEAT_OPTIONS: { value: RepeatMode; label: string }[] = [
   { value: "once", label: "once" },
   { value: "daily", label: "daily" },
 ];
-
 const TONE_OPTIONS: { value: PersonalityTone | "inherit"; label: string }[] = [
   { value: "inherit", label: "inherit" },
   { value: "chill", label: "chill" },
@@ -123,7 +107,6 @@ const TONE_OPTIONS: { value: PersonalityTone | "inherit"; label: string }[] = [
   { value: "motivational", label: "motivational" },
   { value: "custom", label: "custom" },
 ];
-
 const MEDIUM_OPTIONS: { value: NotificationMedium; label: string }[] = [
   { value: "ntfy", label: "ntfy" },
   { value: "email", label: "email" },
@@ -151,7 +134,6 @@ export function BucketSettings({ open, bucket, onClose }: BucketSettingsProps) {
 
   useEffect(() => {
     if (!open) return;
-
     const id = setTimeout(() => {
       setName(bucket.name);
       setError("");
@@ -174,7 +156,6 @@ export function BucketSettings({ open, bucket, onClose }: BucketSettingsProps) {
       const pr = parsePersonalityRules(bucket.personalityRules);
       setToneOverride(pr.tone_override ?? "inherit");
     }, 0);
-
     return () => clearTimeout(id);
   }, [open, bucket.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -185,27 +166,23 @@ export function BucketSettings({ open, bucket, onClose }: BucketSettingsProps) {
   function handleSave() {
     if (pending) return;
     setError("");
-
     const itemsRules: ItemsRulesConfig = {
       sort_by: sortBy,
-      drag: drag,
-      readonly: readonly,
+      drag,
+      readonly,
       show_completed: showCompleted,
       default_deadline_offset: defaultDeadlineOffset || null,
       auto_archive_after: autoArchiveAfter || null,
     };
-
     const notificationsRules: NotificationsRulesConfig = {
       medium: mediums,
       notify_at: notifyAt || undefined,
       default_offset: defaultOffset || undefined,
-      repeat: repeat,
+      repeat,
     };
-
     const personalityRules: PersonalityRulesConfig = {
       tone_override: toneOverride === "inherit" ? null : toneOverride,
     };
-
     startTransition(async () => {
       const result = await updateBucketSettingsAction(
         bucket.id,
@@ -241,7 +218,6 @@ export function BucketSettings({ open, bucket, onClose }: BucketSettingsProps) {
             className="fixed inset-0 z-50 bg-black"
             onClick={onClose}
           />
-
           <motion.div
             key="dialog"
             initial={{ opacity: 0, scale: 0.96, y: -10 }}
@@ -254,12 +230,9 @@ export function BucketSettings({ open, bucket, onClose }: BucketSettingsProps) {
             <div className="border-border bg-background overflow-hidden border-2">
               <div className="bg-foreground text-background flex items-center justify-between px-3 py-1.5">
                 <span className="font-pixel text-xs">bucket settings</span>
-                <button
-                  onClick={onClose}
-                  className="font-mono text-xs opacity-60 transition-opacity hover:opacity-100"
-                >
-                  <span className="opacity-50">[</span>x<span className="opacity-50">]</span>
-                </button>
+                <BracketButton variant="inverted" onClick={onClose}>
+                  x
+                </BracketButton>
               </div>
 
               <div className="flex flex-col gap-4 px-4 pt-4 pb-0">
@@ -270,7 +243,7 @@ export function BucketSettings({ open, bucket, onClose }: BucketSettingsProps) {
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     disabled={pending}
-                    className={cn(INPUT, "disabled:opacity-50")}
+                    className={INPUT}
                   />
                   {error && <span className="text-destructive font-mono text-[10px]">{error}</span>}
                 </div>
@@ -317,7 +290,7 @@ export function BucketSettings({ open, bucket, onClose }: BucketSettingsProps) {
                         onChange={(e) => setDefaultDeadlineOffset(e.target.value)}
                         placeholder="e.g. 7 days, 30 days"
                         disabled={pending}
-                        className={cn(INPUT, "disabled:opacity-50")}
+                        className={INPUT}
                       />
                     </div>
 
@@ -329,7 +302,7 @@ export function BucketSettings({ open, bucket, onClose }: BucketSettingsProps) {
                         onChange={(e) => setAutoArchiveAfter(e.target.value)}
                         placeholder="e.g. 1 day, 7 days"
                         disabled={pending}
-                        className={cn(INPUT, "disabled:opacity-50")}
+                        className={INPUT}
                       />
                     </div>
                   </>
@@ -360,7 +333,7 @@ export function BucketSettings({ open, bucket, onClose }: BucketSettingsProps) {
                         onChange={(e) => setDefaultOffset(e.target.value)}
                         placeholder="e.g. 3 days, 1 hour"
                         disabled={pending}
-                        className={cn(INPUT, "disabled:opacity-50")}
+                        className={INPUT}
                       />
                     </div>
 
@@ -384,13 +357,9 @@ export function BucketSettings({ open, bucket, onClose }: BucketSettingsProps) {
               </div>
 
               <div className="border-border flex items-center justify-end border-t px-3 py-2.5">
-                <button
-                  onClick={handleSave}
-                  disabled={!name.trim() || pending}
-                  className="text-muted-foreground hover:text-foreground font-mono text-xs transition-colors disabled:opacity-30"
-                >
-                  <span className="opacity-50">[</span>save<span className="opacity-50">]</span>
-                </button>
+                <BracketButton onClick={handleSave} disabled={!name.trim() || pending}>
+                  save
+                </BracketButton>
               </div>
             </div>
           </motion.div>

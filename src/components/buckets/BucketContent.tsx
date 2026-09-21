@@ -6,6 +6,7 @@ import { Settings } from "lucide-react";
 import { ItemRow } from "./ItemRow";
 import { ItemDialog } from "./ItemDialog";
 import { BucketSettings } from "./BucketSettings";
+import { BracketButton } from "@/components/ui/BracketButton";
 import type { ItemStatus, ItemsRulesConfig } from "./constants";
 import {
   addItemAction,
@@ -170,7 +171,6 @@ export function BucketContent({ bucket, items, accentColor }: BucketContentProps
   const isDialogOpen = addingItem || editingItemId !== null;
 
   const isReadonly = rules.readonly === true;
-  const BTN = "font-mono text-[11px] text-muted-foreground transition-colors hover:text-foreground";
 
   return (
     <div className="flex flex-col">
@@ -184,21 +184,19 @@ export function BucketContent({ bucket, items, accentColor }: BucketContentProps
         </div>
         <div className="flex items-center gap-2">
           {!isReadonly && (
-            <button
+            <BracketButton
               onClick={() => {
                 cancelEditing();
                 setAddingItem(true);
               }}
-              className={BTN}
+              className="text-[11px]"
             >
-              <span className="opacity-40">[</span>+<span className="opacity-40">]</span>
-            </button>
+              +
+            </BracketButton>
           )}
-          <button onClick={() => setSettingsOpen(true)} className={BTN}>
-            <span className="opacity-40">[</span>
-            <Settings size={10} className="inline-block" />
-            <span className="opacity-40">]</span>
-          </button>
+          <BracketButton onClick={() => setSettingsOpen(true)} className="text-[11px]">
+            <Settings size={10} />
+          </BracketButton>
         </div>
       </div>
 

@@ -5,6 +5,7 @@ import { motion, AnimatePresence, type Transition } from "framer-motion";
 import { ArrowLeft, X } from "lucide-react";
 import { useUIStore } from "@/store/ui";
 import { Button } from "@/components/ui/button";
+import { BracketButton } from "@/components/ui/BracketButton";
 import { createBucketAction } from "@/app/(app)/actions";
 import { Package } from "lucide-react";
 import { TEMPLATE_ICONS } from "./constants";
@@ -100,14 +101,9 @@ export function CreateBucketModal({ templates }: CreateBucketModalProps) {
                         Pick a template to get started.
                       </p>
                     </div>
-                    <button
-                      onClick={closeCreateBucket}
-                      className="text-muted-foreground hover:text-foreground inline-flex items-center gap-[3px] font-mono text-xs transition-colors"
-                    >
-                      <span className="opacity-50">[</span>
+                    <BracketButton onClick={closeCreateBucket}>
                       <X size={12} />
-                      <span className="opacity-50">]</span>
-                    </button>
+                    </BracketButton>
                   </div>
                   <div className="grid grid-cols-2 gap-2 p-3">
                     {templates.map((t) => (
@@ -148,14 +144,9 @@ export function CreateBucketModal({ templates }: CreateBucketModalProps) {
                       </button>
                       <p className="font-pixel text-sm">Name it</p>
                     </div>
-                    <button
-                      onClick={closeCreateBucket}
-                      className="text-muted-foreground hover:text-foreground inline-flex items-center gap-[3px] font-mono text-xs transition-colors"
-                    >
-                      <span className="opacity-50">[</span>
+                    <BracketButton onClick={closeCreateBucket}>
                       <X size={12} />
-                      <span className="opacity-50">]</span>
-                    </button>
+                    </BracketButton>
                   </div>
                   <div className="flex flex-col gap-3 p-4">
                     <input

@@ -181,24 +181,23 @@ export function TimePicker({ value, onChange, disabled }: TimePickerProps) {
   );
 
   return (
-    <span className="inline-flex items-center">
+    <div className="w-full">
       <button
         ref={triggerRef}
         type="button"
         onClick={openPicker}
         disabled={disabled}
         className={cn(
-          "inline-flex items-center gap-[3px] font-mono text-xs transition-colors disabled:opacity-50",
+          "flex w-full items-center justify-between border-b py-1 font-mono text-xs transition-all active:translate-y-[1px] disabled:opacity-50",
           value
-            ? "text-foreground hover:text-muted-foreground"
-            : "text-muted-foreground hover:text-foreground"
+            ? "border-foreground text-foreground"
+            : "border-border text-muted-foreground hover:border-foreground/50 hover:text-foreground"
         )}
       >
-        <span className="opacity-50">[</span>
-        {value ? <span>{formatDisplay(value)}</span> : <Clock size={12} />}
-        <span className="opacity-50">]</span>
+        <span>{value ? formatDisplay(value) : "pick time"}</span>
+        <Clock size={11} className="opacity-50" />
       </button>
       {mounted && createPortal(popover, document.body)}
-    </span>
+    </div>
   );
 }
