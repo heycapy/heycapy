@@ -1,9 +1,14 @@
 import { useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import type { Message } from "@/lib/ai/types";
+import { useUIStore } from "@/store/ui";
 import { GREETING } from "./chatTypes";
 import type { ChatMessage } from "./chatTypes";
 
 export function useChatStream() {
+  const router = useRouter();
+  const tickAiRefresh = useUIStore((s) => s.tickAiRefresh);
+
   const [messages, setMessages] = useState<ChatMessage[]>([GREETING]);
   const [input, setInput] = useState("");
   const [streaming, setStreaming] = useState(false);
@@ -27,6 +32,8 @@ export function useChatStream() {
 
     const abort = new AbortController();
     abortRef.current = abort;
+
+    let aborted = false;
 
     try {
       const res = await fetch("/api/chat", {
@@ -53,6 +60,7 @@ export function useChatStream() {
       }
     } catch (err) {
       if (err instanceof Error && err.name === "AbortError") {
+        aborted = true;
         setMessages((prev) => {
           const last = prev.at(-1);
           if (!last) return prev;
@@ -68,6 +76,10 @@ export function useChatStream() {
     } finally {
       setStreaming(false);
       abortRef.current = null;
+      if (!aborted) {
+        tickAiRefresh();
+        router.refresh();
+      }
     }
   }
 

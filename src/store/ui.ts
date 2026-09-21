@@ -9,6 +9,9 @@ type UIStore = {
   openChat: () => void;
   closeChat: () => void;
   toggleChat: () => void;
+
+  aiRefreshTick: number;
+  tickAiRefresh: () => void;
 };
 
 export const useUIStore = create<UIStore>((set) => ({
@@ -20,4 +23,7 @@ export const useUIStore = create<UIStore>((set) => ({
   openChat: () => set({ chatOpen: true }),
   closeChat: () => set({ chatOpen: false }),
   toggleChat: () => set((s) => ({ chatOpen: !s.chatOpen })),
+
+  aiRefreshTick: 0,
+  tickAiRefresh: () => set((s) => ({ aiRefreshTick: s.aiRefreshTick + 1 })),
 }));

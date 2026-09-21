@@ -12,6 +12,7 @@ import type {
   NotificationsRulesConfig,
   PersonalityRulesConfig,
 } from "@/components/buckets/constants";
+import type { RecurringConfig } from "@/types/rules";
 
 export async function getUserSettingsAction(): Promise<
   { ok: true; settings: typeof userSettings.$inferSelect } | { ok: false; error: string }
@@ -197,7 +198,8 @@ export async function addItemAction(
   bucketId: number,
   title: string,
   deadline: string | null,
-  status?: string
+  status?: string,
+  recurring?: RecurringConfig | null
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   const session = await getSession();
   if (!session) redirect("/login");
@@ -223,6 +225,7 @@ export async function addItemAction(
     deadline: deadline ? new Date(deadline + "T12:00:00") : null,
     status: status ?? "active",
     sortOrder: maxRow.max + 1,
+    recurring: recurring?.enabled ? JSON.stringify(recurring) : null,
   });
 
   revalidatePath("/");
@@ -233,7 +236,8 @@ export async function updateItemAction(
   itemId: number,
   title: string,
   deadline: string | null,
-  status?: string
+  status?: string,
+  recurring?: RecurringConfig | null
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   const session = await getSession();
   if (!session) redirect("/login");
@@ -253,6 +257,9 @@ export async function updateItemAction(
       title: trimmed,
       deadline: deadline ? new Date(deadline + "T12:00:00") : null,
       ...(status !== undefined && { status }),
+      ...(recurring !== undefined && {
+        recurring: recurring?.enabled ? JSON.stringify(recurring) : null,
+      }),
       updatedAt: new Date(),
     })
     .where(and(eq(items.id, itemId), eq(items.userId, session.userId)));

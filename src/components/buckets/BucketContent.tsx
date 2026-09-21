@@ -18,6 +18,9 @@ import {
 } from "@/app/(app)/actions";
 import type { buckets, items as itemsTable } from "@/lib/db/schema";
 import type { DragControls } from "framer-motion";
+import { RecurringConfig as RecurringConfigSchema } from "@/types/rules";
+import type { RecurringConfig } from "@/types/rules";
+import { useUIStore } from "@/store/ui";
 
 type BucketRow = typeof buckets.$inferSelect;
 type Item = typeof itemsTable.$inferSelect;
@@ -29,6 +32,15 @@ interface BucketContentProps {
 
 function toDateInput(d: Date): string {
   return d.toISOString().split("T")[0];
+}
+
+function parseRecurring(raw: string | null): RecurringConfig | null {
+  if (!raw) return null;
+  try {
+    return RecurringConfigSchema.parse(JSON.parse(raw));
+  } catch {
+    return null;
+  }
 }
 
 function DraggableItem({
@@ -72,6 +84,8 @@ function DraggableItem({
 }
 
 export function BucketContent({ bucket, accentColor }: BucketContentProps) {
+  const aiRefreshTick = useUIStore((s) => s.aiRefreshTick);
+
   const rules: ItemsRulesConfig = (() => {
     try {
       return JSON.parse(bucket.itemsRules) as ItemsRulesConfig;
@@ -93,6 +107,7 @@ export function BucketContent({ bucket, accentColor }: BucketContentProps) {
   const [addTitle, setAddTitle] = useState("");
   const [addDeadline, setAddDeadline] = useState("");
   const [addStatus, setAddStatus] = useState<ItemStatus>("active");
+  const [addRecurring, setAddRecurring] = useState<RecurringConfig | null>(null);
   const [addError, setAddError] = useState("");
   const [addPending, startAddTransition] = useTransition();
 
@@ -100,6 +115,7 @@ export function BucketContent({ bucket, accentColor }: BucketContentProps) {
   const [editTitle, setEditTitle] = useState("");
   const [editDeadline, setEditDeadline] = useState("");
   const [editStatus, setEditStatus] = useState<ItemStatus>("active");
+  const [editRecurring, setEditRecurring] = useState<RecurringConfig | null>(null);
   const [editPending, startEditTransition] = useTransition();
 
   useEffect(() => {
@@ -112,7 +128,7 @@ export function BucketContent({ bucket, accentColor }: BucketContentProps) {
     return () => {
       cancelled = true;
     };
-  }, [bucket.id, bucket.itemsRules]);
+  }, [bucket.id, bucket.itemsRules, aiRefreshTick]);
 
   useEffect(() => {
     const next = showCompleted
@@ -146,6 +162,7 @@ export function BucketContent({ bucket, accentColor }: BucketContentProps) {
     setEditTitle(item.title);
     setEditDeadline(item.deadline ? toDateInput(item.deadline) : "");
     setEditStatus((item.status as ItemStatus) ?? "active");
+    setEditRecurring(parseRecurring(item.recurring));
   }
 
   function cancelEditing() {
@@ -153,6 +170,7 @@ export function BucketContent({ bucket, accentColor }: BucketContentProps) {
     setEditTitle("");
     setEditDeadline("");
     setEditStatus("active");
+    setEditRecurring(null);
   }
 
   function cancelAdding() {
@@ -160,6 +178,7 @@ export function BucketContent({ bucket, accentColor }: BucketContentProps) {
     setAddTitle("");
     setAddDeadline("");
     setAddStatus("active");
+    setAddRecurring(null);
     setAddError("");
   }
 
@@ -167,7 +186,13 @@ export function BucketContent({ bucket, accentColor }: BucketContentProps) {
     if (!addTitle.trim() || addPending) return;
     setAddError("");
     startAddTransition(async () => {
-      const result = await addItemAction(bucket.id, addTitle, addDeadline || null, addStatus);
+      const result = await addItemAction(
+        bucket.id,
+        addTitle,
+        addDeadline || null,
+        addStatus,
+        addRecurring
+      );
       if (result.ok) {
         cancelAdding();
         await refetchItems();
@@ -184,7 +209,8 @@ export function BucketContent({ bucket, accentColor }: BucketContentProps) {
         editingItemId,
         editTitle,
         editDeadline || null,
-        editStatus
+        editStatus,
+        editRecurring
       );
       if (result.ok) {
         cancelEditing();
@@ -208,7 +234,6 @@ export function BucketContent({ bucket, accentColor }: BucketContentProps) {
   }
 
   const isDialogOpen = addingItem || editingItemId !== null;
-
   const isReadonly = rules.readonly === true;
 
   return (
@@ -296,11 +321,13 @@ export function BucketContent({ bucket, accentColor }: BucketContentProps) {
         title={addingItem ? addTitle : editTitle}
         deadline={addingItem ? addDeadline : editDeadline}
         status={addingItem ? addStatus : editStatus}
+        recurring={addingItem ? addRecurring : editRecurring}
         error={addingItem ? addError : undefined}
         pending={addingItem ? addPending : editPending}
         onTitleChange={addingItem ? setAddTitle : setEditTitle}
         onDeadlineChange={addingItem ? setAddDeadline : setEditDeadline}
         onStatusChange={addingItem ? setAddStatus : setEditStatus}
+        onRecurringChange={addingItem ? setAddRecurring : setEditRecurring}
         onConfirm={addingItem ? handleAdd : handleUpdate}
         onCancel={addingItem ? cancelAdding : cancelEditing}
         onDelete={editingItemId !== null ? handleDelete : undefined}

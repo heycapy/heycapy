@@ -45,6 +45,13 @@ export type ItemStatus = (typeof ITEM_STATUSES)[number]["value"];
 
 export const BUCKET_PALETTE = ["var(--p1)", "var(--p2)", "var(--p3)", "var(--p4)", "var(--p5)"];
 
+export const RECURRING_FREQUENCIES = [
+  { value: "daily" as const, label: "day" },
+  { value: "weekly" as const, label: "week" },
+  { value: "monthly" as const, label: "month" },
+  { value: "yearly" as const, label: "year" },
+];
+
 export const SORT_OPTIONS: { value: SortBy; label: string }[] = [
   { value: "deadline", label: "deadline" },
   { value: "created_at", label: "created" },

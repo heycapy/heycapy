@@ -101,6 +101,10 @@ export function DatePicker({ value, onChange, disabled }: DatePickerProps) {
 
   function openPicker() {
     if (disabled) return;
+    if (open) {
+      setOpen(false);
+      return;
+    }
     const rect = triggerRef.current?.getBoundingClientRect();
     if (!rect) return;
 

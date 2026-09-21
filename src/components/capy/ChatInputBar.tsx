@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import { ArrowUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -12,6 +12,14 @@ type Props = {
 
 export function ChatInputBar({ input, setInput, streaming, onSend, onStop }: Props) {
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const prevStreamingRef = useRef(streaming);
+
+  useEffect(() => {
+    if (prevStreamingRef.current && !streaming) {
+      inputRef.current?.focus();
+    }
+    prevStreamingRef.current = streaming;
+  }, [streaming]);
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
     if (e.key === "Enter" && !e.shiftKey) {

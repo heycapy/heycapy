@@ -6,9 +6,19 @@ import { Trash2 } from "lucide-react";
 import { DatePicker } from "@/components/ui/DatePicker";
 import { BracketButton } from "@/components/ui/BracketButton";
 import { OptionButton } from "@/components/ui/OptionButton";
-import { ITEM_STATUSES } from "./constants";
+import { ITEM_STATUSES, RECURRING_FREQUENCIES } from "./constants";
 import type { ItemStatus } from "./constants";
+import type { RecurringConfig } from "@/types/rules";
 import { cn } from "@/lib/utils";
+
+function describeRecurring(config: RecurringConfig): string {
+  const freq = RECURRING_FREQUENCIES.find((f) => f.value === config.frequency);
+  const unit = freq?.label ?? config.frequency;
+  const n = config.interval;
+  const unitStr = n === 1 ? unit : `${unit}s`;
+  const base = n === 1 ? `every ${unitStr}` : `every ${n} ${unitStr}`;
+  return config.endDate ? `${base} · ends ${config.endDate}` : base;
+}
 
 interface ItemDialogProps {
   open: boolean;
@@ -16,11 +26,13 @@ interface ItemDialogProps {
   title: string;
   deadline: string;
   status: ItemStatus;
+  recurring?: RecurringConfig | null;
   error?: string;
   pending?: boolean;
   onTitleChange: (v: string) => void;
   onDeadlineChange: (v: string) => void;
   onStatusChange: (v: ItemStatus) => void;
+  onRecurringChange?: (v: RecurringConfig | null) => void;
   onConfirm: () => void;
   onCancel: () => void;
   onDelete?: () => void;
@@ -32,11 +44,13 @@ export function ItemDialog({
   title,
   deadline,
   status,
+  recurring,
   error,
   pending,
   onTitleChange,
   onDeadlineChange,
   onStatusChange,
+  onRecurringChange,
   onConfirm,
   onCancel,
   onDelete,
@@ -59,6 +73,14 @@ export function ItemDialog({
     onTitleChange(e.target.value);
     e.target.style.height = "auto";
     e.target.style.height = `${e.target.scrollHeight}px`;
+  }
+
+  function toggleRecurring() {
+    if (recurring?.enabled) {
+      onRecurringChange?.(null);
+    } else {
+      onRecurringChange?.({ enabled: true, frequency: "monthly", interval: 1, endDate: null });
+    }
   }
 
   return (
@@ -140,6 +162,72 @@ export function ItemDialog({
                     ))}
                   </div>
                 </div>
+
+                {onRecurringChange && (
+                  <div className="flex flex-col gap-2">
+                    <div className="flex items-center justify-between">
+                      <label className="text-muted-foreground font-mono text-[10px]">
+                        recurring
+                      </label>
+                      <OptionButton
+                        active={!!recurring?.enabled}
+                        onClick={toggleRecurring}
+                        disabled={pending}
+                      >
+                        {recurring?.enabled ? "on" : "off"}
+                      </OptionButton>
+                    </div>
+
+                    {recurring?.enabled && (
+                      <div className="flex flex-col gap-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-muted-foreground font-mono text-[10px]">every</span>
+                          <input
+                            type="number"
+                            min={1}
+                            value={recurring.interval}
+                            onChange={(e) => {
+                              const val = parseInt(e.target.value, 10);
+                              onRecurringChange({
+                                ...recurring,
+                                interval: Number.isFinite(val) && val > 0 ? val : 1,
+                              });
+                            }}
+                            disabled={pending}
+                            className="border-border w-10 border-b bg-transparent py-0.5 text-center font-mono text-xs outline-none disabled:opacity-50"
+                          />
+                          <div className="flex flex-wrap gap-1">
+                            {RECURRING_FREQUENCIES.map((f) => (
+                              <OptionButton
+                                key={f.value}
+                                active={recurring.frequency === f.value}
+                                onClick={() =>
+                                  onRecurringChange({ ...recurring, frequency: f.value })
+                                }
+                                disabled={pending}
+                              >
+                                {f.label}
+                              </OptionButton>
+                            ))}
+                          </div>
+                        </div>
+                        <p className="text-muted-foreground font-mono text-[10px]">
+                          ↺ repeats {describeRecurring(recurring)}
+                        </p>
+                        <div className="flex items-center gap-2">
+                          <span className="text-muted-foreground font-mono text-[10px]">ends</span>
+                          <DatePicker
+                            value={recurring.endDate ?? ""}
+                            onChange={(v) =>
+                              onRecurringChange({ ...recurring, endDate: v || null })
+                            }
+                            disabled={pending}
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               <div className="border-border flex items-center justify-between border-t px-3 py-2.5">

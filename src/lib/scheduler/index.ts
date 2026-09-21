@@ -2,7 +2,7 @@ import { schedule } from "node-cron";
 import { and, eq, isNotNull, isNull, lt, ne, or } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { items, buckets, users, userSettings, notificationLog } from "@/lib/db/schema";
-import { NotificationRules } from "@/types/rules";
+import { NotificationRules, RecurringConfig } from "@/types/rules";
 import { sendEmail } from "@/lib/notifications/email";
 import { sendNtfy } from "@/lib/notifications/ntfy";
 import { APP_NAME } from "@/constants";
@@ -22,6 +22,26 @@ function isInQuietHours(quietHours: { from: string; to: string }): boolean {
 
 function errorMessage(err: unknown): string {
   return err instanceof Error ? err.message : String(err);
+}
+
+function getNextDeadline(deadline: Date, config: RecurringConfig): Date {
+  const next = new Date(deadline);
+  const n = config.interval;
+  switch (config.frequency) {
+    case "daily":
+      next.setDate(next.getDate() + n);
+      break;
+    case "weekly":
+      next.setDate(next.getDate() + n * 7);
+      break;
+    case "monthly":
+      next.setMonth(next.getMonth() + n);
+      break;
+    case "yearly":
+      next.setFullYear(next.getFullYear() + n);
+      break;
+  }
+  return next;
 }
 
 async function runNotifications(): Promise<void> {
@@ -130,7 +150,31 @@ async function runNotifications(): Promise<void> {
 
       if (sent.length === 0) continue;
 
-      await db.update(items).set({ notifiedAt: now }).where(eq(items.id, row.item.id));
+      // Advance recurring items to their next deadline instead of marking notifiedAt
+      let advancedRecurring = false;
+      if (row.item.recurring) {
+        try {
+          const recurringConfig = RecurringConfig.parse(JSON.parse(row.item.recurring));
+          if (recurringConfig.enabled) {
+            const nextDeadline = getNextDeadline(deadline, recurringConfig);
+            const withinEndDate =
+              !recurringConfig.endDate || nextDeadline <= new Date(recurringConfig.endDate);
+            if (withinEndDate) {
+              await db
+                .update(items)
+                .set({ deadline: nextDeadline, notifiedAt: null, snoozedUntil: null })
+                .where(eq(items.id, row.item.id));
+              advancedRecurring = true;
+            }
+          }
+        } catch {
+          // invalid recurring config — fall through to normal notifiedAt update
+        }
+      }
+
+      if (!advancedRecurring) {
+        await db.update(items).set({ notifiedAt: now }).where(eq(items.id, row.item.id));
+      }
 
       for (const medium of sent) {
         await db.insert(notificationLog).values({

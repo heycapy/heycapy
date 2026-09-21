@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import ReactMarkdown from "react-markdown";
 import { cn } from "@/lib/utils";
 import { Sprite } from "./Sprite";
 import type { ChatMessage } from "./chatTypes";
@@ -7,6 +8,25 @@ type Props = {
   messages: ChatMessage[];
   streaming: boolean;
 };
+
+function BouncingDots() {
+  return (
+    <span className="flex items-end gap-0.5 py-0.5">
+      <span
+        className="bg-muted-foreground/60 h-1 w-1 animate-bounce rounded-full"
+        style={{ animationDelay: "0ms" }}
+      />
+      <span
+        className="bg-muted-foreground/60 h-1 w-1 animate-bounce rounded-full"
+        style={{ animationDelay: "150ms" }}
+      />
+      <span
+        className="bg-muted-foreground/60 h-1 w-1 animate-bounce rounded-full"
+        style={{ animationDelay: "300ms" }}
+      />
+    </span>
+  );
+}
 
 export function ChatMessageList({ messages, streaming }: Props) {
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -44,7 +64,36 @@ export function ChatMessageList({ messages, streaming }: Props) {
                   : "border-border bg-card text-card-foreground border"
               )}
             >
-              {msg.content || <span className="text-muted-foreground animate-pulse">...</span>}
+              {!msg.content && isLastStreaming(msg) ? (
+                <BouncingDots />
+              ) : msg.role === "assistant" ? (
+                <ReactMarkdown
+                  components={{
+                    p: ({ children }) => <p className="mb-1.5 last:mb-0">{children}</p>,
+                    ul: ({ children }) => (
+                      <ul className="mb-1.5 list-disc pl-3 last:mb-0">{children}</ul>
+                    ),
+                    ol: ({ children }) => (
+                      <ol className="mb-1.5 list-decimal pl-3 last:mb-0">{children}</ol>
+                    ),
+                    li: ({ children }) => <li className="mb-0.5">{children}</li>,
+                    pre: ({ children }) => (
+                      <pre className="bg-muted my-1.5 overflow-x-auto rounded p-1.5 text-[10px]">
+                        {children}
+                      </pre>
+                    ),
+                    code: ({ children }) => (
+                      <code className="bg-muted rounded px-0.5">{children}</code>
+                    ),
+                    strong: ({ children }) => <strong className="font-bold">{children}</strong>,
+                    em: ({ children }) => <em className="italic">{children}</em>,
+                  }}
+                >
+                  {msg.content}
+                </ReactMarkdown>
+              ) : (
+                msg.content
+              )}
             </div>
             {msg.stopped && (
               <span className="text-muted-foreground font-mono text-[9px]">— stopped</span>
