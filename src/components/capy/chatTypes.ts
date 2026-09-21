@@ -14,5 +14,3 @@ export const GREETING: ChatMessage = {
   role: "assistant",
   content: "Hi there, am capy... how can I help you today?",
 };
-
-export type Pos = { x: number; y: number };

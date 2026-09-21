@@ -127,7 +127,7 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
             style={{ boxShadow: "-4px 0 0 var(--border)" }}
           >
             <div className="bg-foreground text-background flex items-center justify-between px-3 py-1.5">
-              <span className="font-pixel text-xs">settings</span>
+              <span className="font-pixel text-xs">tweaks</span>
               <BracketButton variant="inverted" onClick={onClose}>
                 x
               </BracketButton>

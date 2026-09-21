@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { GripVertical, Zap, Cpu } from "lucide-react";
+import { GripVertical } from "lucide-react";
 import type { DragControls } from "framer-motion";
 import { cn } from "@/lib/utils";
 import type { items } from "@/lib/db/schema";
@@ -170,34 +170,28 @@ export function ItemRow({
           {item.title}
         </span>
         {item.deadline && (
-          <span
-            className={cn(
-              "mt-0.5 block font-mono text-[10px]",
-              rel === "overdue"
-                ? "text-destructive"
-                : rel === "today"
-                  ? "text-primary"
-                  : "text-muted-foreground/60"
-            )}
-          >
-            {recurringFreq && <span className="mr-1">↺ {recurringFreq} ·</span>}
-            {recurringFreq ? "next " : ""}
-            {formatDeadline(item.deadline)}
-            {rel === "overdue" || rel === "today" ? ` · ${rel}` : ""}
+          <span className="mt-0.5 flex items-center gap-1 font-mono text-[10px]">
+            {recurringFreq && <span className="text-muted-foreground">↺ {recurringFreq} ·</span>}
+            <span
+              className={cn(
+                rel === "overdue"
+                  ? "bg-destructive/15 text-destructive px-1"
+                  : rel === "today"
+                    ? "font-medium text-(--status-snoozed)"
+                    : "text-muted-foreground"
+              )}
+            >
+              {recurringFreq ? "next " : ""}
+              {formatDeadline(item.deadline)}
+              {rel === "today" ? " · today" : rel === "overdue" ? " · overdue" : ""}
+            </span>
           </span>
         )}
       </button>
 
-      <div className="flex shrink-0 items-center gap-1.5 pl-2">
-        {item.source !== "manual" && (
-          <span className="text-muted-foreground/40">
-            {item.source === "ai" ? <Zap size={10} /> : <Cpu size={10} />}
-          </span>
-        )}
-        {rel && rel !== "overdue" && rel !== "today" && (
-          <span className="text-muted-foreground/50 font-mono text-[10px]">{rel}</span>
-        )}
-      </div>
+      {rel && rel !== "overdue" && rel !== "today" && (
+        <span className="text-muted-foreground/50 shrink-0 pl-2 font-mono text-[10px]">{rel}</span>
+      )}
     </div>
   );
 }

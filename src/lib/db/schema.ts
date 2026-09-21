@@ -20,7 +20,28 @@ export const userSettings = sqliteTable("user_settings", {
     .notNull()
     .unique()
     .references(() => users.id, { onDelete: "cascade" }),
-  theme: text("theme", { enum: ["gruvbox", "terminal", "capy"] })
+  theme: text("theme", {
+    enum: [
+      "capy",
+      "light",
+      "dark",
+      "gruvbox",
+      "gruvbox-light",
+      "gruvbox-dark-2",
+      "terminal",
+      "everforest-dark",
+      "tokyonight",
+      "rosepine",
+      "rosepine-dark",
+      "nord",
+      "dracula",
+      "solarized-dark",
+      "catppuccin-mocha",
+      "one-dark",
+      "nightowl",
+      "midnight",
+    ],
+  })
     .notNull()
     .default("capy"),
   timezone: text("timezone").notNull().default("UTC"),

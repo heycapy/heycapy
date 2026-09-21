@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useTheme } from "next-themes";
 import { LogOut, Check } from "lucide-react";
 import { logoutAction } from "@/app/(app)/actions";
+import { THEMES } from "./settings-constants";
 
 interface Command {
   id: string;
@@ -23,12 +24,6 @@ interface CommandPaletteProps {
   open: boolean;
   onClose: () => void;
 }
-
-const THEMES = [
-  { id: "capy", label: "Capy", color: "#7c4b2a" },
-  { id: "gruvbox", label: "Gruvbox", color: "#d79921" },
-  { id: "terminal", label: "Terminal", color: "#00ff41" },
-] as const;
 
 export function CommandPalette({ open, onClose }: CommandPaletteProps) {
   const { theme, setTheme } = useTheme();

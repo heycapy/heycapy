@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState, useTransition } from "react";
 import { Reorder, useDragControls } from "framer-motion";
-import { Settings } from "lucide-react";
 import { ItemRow } from "./ItemRow";
 import { ItemDialog } from "./ItemDialog";
 import { BucketSettings } from "./BucketSettings";
@@ -253,6 +252,9 @@ export function BucketContent({ bucket, accentColor }: BucketContentProps) {
           <span className="font-pixel text-sm leading-snug">{bucket.name}</span>
         </div>
         <div className="flex items-center gap-2">
+          <BracketButton onClick={() => setSettingsOpen(true)} className="px-1 py-1.5">
+            settings
+          </BracketButton>
           {!isReadonly && (
             <BracketButton
               onClick={() => {
@@ -265,14 +267,11 @@ export function BucketContent({ bucket, accentColor }: BucketContentProps) {
                 );
                 setAddingItem(true);
               }}
-              className="text-[11px]"
+              className="px-1 py-1.5"
             >
-              +
+              add +
             </BracketButton>
           )}
-          <BracketButton onClick={() => setSettingsOpen(true)} className="text-[11px]">
-            <Settings size={10} />
-          </BracketButton>
         </div>
       </div>
 

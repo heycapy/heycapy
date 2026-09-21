@@ -1,39 +1,28 @@
-import { GripVertical, Maximize2, Minimize, Minimize2 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { Maximize2, Minimize2, Minus, X } from "lucide-react";
 import { Sprite } from "./Sprite";
 import { HEADER_H } from "./chatTypes";
 
 type Props = {
   fullscreen: boolean;
   minimized: boolean;
-  onDragStart: (e: React.PointerEvent) => void;
+  onClose: () => void;
   onMinimize: () => void;
   onFullscreen: () => void;
-  onClose: () => void;
 };
 
 export function CapyChatHeader({
   fullscreen,
   minimized,
-  onDragStart,
+  onClose,
   onMinimize,
   onFullscreen,
-  onClose,
 }: Props) {
   return (
     <div
       style={{ height: HEADER_H }}
       className="border-border bg-card flex items-center gap-1 border-b-2 px-2 select-none"
     >
-      <div
-        onPointerDown={onDragStart}
-        className={cn(
-          "flex items-center gap-1 pr-1",
-          fullscreen ? "cursor-default" : "cursor-grab active:cursor-grabbing"
-        )}
-        title={fullscreen ? undefined : "drag to move"}
-      >
-        <GripVertical size={12} className="text-muted-foreground shrink-0" />
+      <div className="flex items-center gap-1 pr-1">
         <Sprite id="capy-idle-blink" size={24} />
       </div>
 
@@ -42,25 +31,25 @@ export function CapyChatHeader({
       {!fullscreen && (
         <button
           onClick={onMinimize}
-          className="text-muted-foreground hover:text-foreground p-1 transition-colors"
-          aria-label={minimized ? "Expand" : "Minimize"}
+          className="text-muted-foreground hover:text-foreground flex h-6 w-6 items-center justify-center transition-colors"
+          aria-label={minimized ? "Expand" : "Collapse"}
         >
-          <Minimize size={12} />
+          <Minus size={13} />
         </button>
       )}
       <button
         onClick={onFullscreen}
-        className="text-muted-foreground hover:text-foreground p-1 transition-colors"
+        className="text-muted-foreground hover:text-foreground flex h-6 w-6 items-center justify-center transition-colors"
         aria-label={fullscreen ? "Exit fullscreen" : "Fullscreen"}
       >
-        {fullscreen ? <Minimize2 size={12} /> : <Maximize2 size={12} />}
+        {fullscreen ? <Minimize2 size={13} /> : <Maximize2 size={13} />}
       </button>
       <button
         onClick={onClose}
-        className="text-muted-foreground hover:text-foreground p-1 transition-colors"
+        className="text-muted-foreground hover:text-foreground flex h-6 w-6 items-center justify-center transition-colors"
         aria-label="Close"
       >
-        ×
+        <X size={13} />
       </button>
     </div>
   );

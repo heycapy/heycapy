@@ -59,8 +59,8 @@ export function ChatMessageList({ messages, streaming, fullscreen }: Props) {
           >
             <div
               className={cn(
-                "px-2.5 py-2 font-mono text-xs leading-relaxed",
-                fullscreen ? "max-w-[65ch]" : "max-w-[220px]",
+                "w-fit px-3 py-2 font-mono text-xs leading-relaxed break-words",
+                fullscreen ? "max-w-[65ch]" : "max-w-[200px]",
                 msg.role === "user"
                   ? "bg-foreground text-background"
                   : "border-border bg-card text-card-foreground border"

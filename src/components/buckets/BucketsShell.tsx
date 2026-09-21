@@ -2,11 +2,9 @@
 
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Archive, Plus, Trash2 } from "lucide-react";
+import { Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { BucketContent } from "./BucketContent";
-import { ArchivedBucketsSheet } from "./ArchivedBucketsSheet";
-import { TrashSheet } from "./TrashSheet";
 import { BUCKET_PALETTE } from "./constants";
 import { useUIStore } from "@/store/ui";
 import type { buckets } from "@/lib/db/schema";
@@ -19,8 +17,6 @@ interface BucketsShellProps {
 
 export function BucketsShell({ buckets }: BucketsShellProps) {
   const [activeId, setActiveId] = useState<number>(buckets[0]?.id ?? -1);
-  const [archivedOpen, setArchivedOpen] = useState(false);
-  const [trashOpen, setTrashOpen] = useState(false);
   const openCreateBucket = useUIStore((s) => s.openCreateBucket);
   const prevBucketsRef = useRef<BucketRow[]>(buckets);
 
@@ -57,7 +53,48 @@ export function BucketsShell({ buckets }: BucketsShellProps) {
       </div>
 
       <div className="border-border bg-background sticky bottom-0 border-t-2">
-        <div className="scrollbar-hide flex overflow-x-auto">
+        {/* Mobile: styled tab look with native select interaction */}
+        <div className="flex items-center md:hidden">
+          <button
+            onClick={openCreateBucket}
+            className="text-muted-foreground hover:text-foreground -mt-0.5 shrink-0 border-t-2 border-t-transparent px-3 py-2.5 transition-colors"
+            aria-label="New bucket"
+          >
+            <Plus size={13} />
+          </button>
+          <div className="relative -mt-0.5 min-w-0 flex-1">
+            <div
+              className="bg-card pointer-events-none border-t-2 px-3 py-2.5"
+              style={{ borderTopColor: accentColor }}
+            >
+              <span className="font-pixel text-foreground block truncate text-xs">
+                {activeBucket.name}
+              </span>
+            </div>
+            <select
+              value={activeId}
+              onChange={(e) => setActiveId(Number(e.target.value))}
+              className="absolute inset-0 w-full cursor-pointer opacity-0"
+              aria-label="Select bucket"
+            >
+              {buckets.map((bucket) => (
+                <option key={bucket.id} value={bucket.id}>
+                  {bucket.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {/* Desktop: tab bar */}
+        <div className="scrollbar-hide hidden overflow-x-auto md:flex">
+          <button
+            onClick={openCreateBucket}
+            className="text-muted-foreground hover:text-foreground -mt-0.5 shrink-0 border-t-2 border-t-transparent px-3 py-2.5 transition-colors"
+            aria-label="New bucket"
+          >
+            <Plus size={12} />
+          </button>
           {buckets.map((bucket, i) => {
             const isActive = bucket.id === activeId;
             const color = BUCKET_PALETTE[i % BUCKET_PALETTE.length];
@@ -78,30 +115,8 @@ export function BucketsShell({ buckets }: BucketsShellProps) {
               </button>
             );
           })}
-
-          <button
-            onClick={openCreateBucket}
-            className="text-muted-foreground hover:text-foreground -mt-0.5 shrink-0 border-t-2 border-t-transparent px-3 py-2.5 transition-colors"
-          >
-            <Plus size={12} />
-          </button>
-          <button
-            onClick={() => setArchivedOpen(true)}
-            className="text-muted-foreground hover:text-foreground -mt-0.5 shrink-0 border-t-2 border-t-transparent px-3 py-2.5 transition-colors"
-          >
-            <Archive size={12} />
-          </button>
-          <button
-            onClick={() => setTrashOpen(true)}
-            className="text-muted-foreground hover:text-foreground -mt-0.5 shrink-0 border-t-2 border-t-transparent px-3 py-2.5 transition-colors"
-          >
-            <Trash2 size={12} />
-          </button>
         </div>
       </div>
-
-      <ArchivedBucketsSheet open={archivedOpen} onClose={() => setArchivedOpen(false)} />
-      <TrashSheet open={trashOpen} onClose={() => setTrashOpen(false)} />
     </div>
   );
 }

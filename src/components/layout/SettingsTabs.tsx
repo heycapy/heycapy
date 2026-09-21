@@ -25,15 +25,15 @@ export function AppearanceTab({
     <>
       <div className="flex flex-col gap-1.5">
         <label className={LABEL}>theme</label>
-        <div className="flex gap-2">
+        <div className="grid grid-cols-3 gap-2">
           {THEMES.map((t) => (
             <button
               key={t.id}
               onClick={() => setTheme(t.id)}
-              className="flex flex-1 flex-col items-center gap-1.5"
+              className="flex flex-col items-center gap-1.5"
             >
               <span
-                className="border-border h-10 w-full border-2 transition-all"
+                className="border-border h-8 w-full border-2 transition-all"
                 style={{
                   background: t.bg,
                   borderColor: theme === t.id ? t.fg : undefined,
@@ -42,7 +42,7 @@ export function AppearanceTab({
               />
               <span
                 className={cn(
-                  "font-mono text-[10px]",
+                  "text-center font-mono text-[10px] leading-tight",
                   theme === t.id ? "text-foreground" : "text-muted-foreground"
                 )}
               >
