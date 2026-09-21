@@ -7,24 +7,25 @@ export type PersonalityTone = "chill" | "professional" | "motivational" | "custo
 export type RepeatMode = "once" | "daily";
 
 export type ItemsRulesConfig = {
-  sort_by?: SortBy;
+  sortBy?: SortBy;
   drag?: boolean;
   readonly?: boolean;
-  show_completed?: boolean;
-  default_deadline_offset?: string | null;
-  auto_archive_after?: string | null;
+  showCompleted?: boolean;
+  defaultDeadlineOffsetDays?: number | null;
+  autoArchiveAfterDays?: number | null;
 };
 
 export type NotificationsRulesConfig = {
   medium?: NotificationMedium[];
-  notify_at?: string;
-  default_offset?: string;
+  notifyAt?: string;
+  defaultOffsetMins?: number;
   repeat?: RepeatMode;
-  quiet_hours?: { from: string; to: string } | null;
+  quietHours?: { from: string; to: string } | null;
+  snoozeUntil?: string | null;
 };
 
 export type PersonalityRulesConfig = {
-  tone_override?: PersonalityTone | null;
+  toneOverride?: PersonalityTone | null;
 };
 
 export const TEMPLATE_ICONS: Record<string, LucideIcon> = {

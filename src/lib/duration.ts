@@ -39,6 +39,49 @@ export function parseDurationToDate(str: string | null | undefined): string | nu
   return toDateStr(apply(parsed.value, parsed.unit, new Date()));
 }
 
+/** Returns the number of minutes represented by a duration string, or null if unparseable. */
+export function parseDurationToMins(str: string | null | undefined): number | null {
+  if (!str?.trim()) return null;
+  const parsed = parse(str);
+  if (!parsed) return null;
+  if (parsed.unit === "hours") return parsed.value * 60;
+  if (parsed.unit === "days") return parsed.value * 24 * 60;
+  if (parsed.unit === "weeks") return parsed.value * 7 * 24 * 60;
+  if (parsed.unit === "months") return parsed.value * 30 * 24 * 60;
+  return null;
+}
+
+/** Returns a display string for a number of minutes, e.g. 4320 → "3 days". */
+export function minsToDisplayStr(mins: number): string {
+  const MONTH = 30 * 24 * 60;
+  const WEEK = 7 * 24 * 60;
+  const DAY = 24 * 60;
+  if (mins % MONTH === 0) return `${mins / MONTH} months`;
+  if (mins % WEEK === 0) return `${mins / WEEK} weeks`;
+  if (mins % DAY === 0) return `${mins / DAY} days`;
+  if (mins % 60 === 0) return `${mins / 60} hours`;
+  return `${mins} minutes`;
+}
+
+/** Returns the number of days represented by a duration string, or null if unparseable. */
+export function parseDurationToDays(str: string | null | undefined): number | null {
+  if (!str?.trim()) return null;
+  const parsed = parse(str);
+  if (!parsed) return null;
+  if (parsed.unit === "hours") return null;
+  if (parsed.unit === "days") return parsed.value;
+  if (parsed.unit === "weeks") return parsed.value * 7;
+  if (parsed.unit === "months") return parsed.value * 30;
+  return null;
+}
+
+/** Returns a display string for a number of days, e.g. 14 → "2 weeks". */
+export function daysToDisplayStr(days: number): string {
+  if (days % 30 === 0) return `${days / 30} months`;
+  if (days % 7 === 0) return `${days / 7} weeks`;
+  return `${days} days`;
+}
+
 /**
  * Returns a short preview string for display below the input.
  * e.g. "→ Oct 3"  or  "unrecognized format"

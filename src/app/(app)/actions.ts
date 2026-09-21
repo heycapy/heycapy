@@ -85,8 +85,8 @@ export async function getItemsForBucketAction(
 
   let sortBy = "manual";
   try {
-    const parsed = JSON.parse(bucket.itemsRules) as { sort_by?: string };
-    sortBy = parsed.sort_by ?? "manual";
+    const parsed = JSON.parse(bucket.itemsRules) as { sortBy?: string; sort_by?: string };
+    sortBy = parsed.sortBy ?? parsed.sort_by ?? "manual";
   } catch {
     /* keep default */
   }

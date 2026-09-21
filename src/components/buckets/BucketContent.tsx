@@ -7,7 +7,7 @@ import { ItemRow } from "./ItemRow";
 import { ItemDialog } from "./ItemDialog";
 import { BucketSettings } from "./BucketSettings";
 import { BracketButton } from "@/components/ui/BracketButton";
-import { parseDurationToDate } from "@/lib/duration";
+import { daysToDisplayStr, parseDurationToDate } from "@/lib/duration";
 import type { ItemStatus, ItemsRulesConfig } from "./constants";
 import {
   addItemAction,
@@ -80,8 +80,8 @@ export function BucketContent({ bucket, accentColor }: BucketContentProps) {
     }
   })();
 
-  const isDraggable = rules.drag === true && rules.sort_by === "manual";
-  const showCompleted = rules.show_completed !== false;
+  const isDraggable = rules.drag === true && rules.sortBy === "manual";
+  const showCompleted = rules.showCompleted !== false;
 
   const [fetchedItems, setFetchedItems] = useState<Item[]>([]);
   const [loadingItems, setLoadingItems] = useState(true);
@@ -226,7 +226,12 @@ export function BucketContent({ bucket, accentColor }: BucketContentProps) {
             <BracketButton
               onClick={() => {
                 cancelEditing();
-                setAddDeadline(parseDurationToDate(rules.default_deadline_offset) ?? "");
+                setAddDeadline(
+                  rules.defaultDeadlineOffsetDays !== null &&
+                    rules.defaultDeadlineOffsetDays !== undefined
+                    ? (parseDurationToDate(daysToDisplayStr(rules.defaultDeadlineOffsetDays)) ?? "")
+                    : ""
+                );
                 setAddingItem(true);
               }}
               className="text-[11px]"

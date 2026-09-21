@@ -72,10 +72,13 @@ function formatDeadline(d: Date): string {
 }
 
 function relativeTime(deadline: Date): string {
-  const days = Math.floor((deadline.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
-  if (days < 0) return "overdue";
-  if (days === 0) return "today";
-  return `${days}d`;
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const deadlineDay = new Date(deadline.getFullYear(), deadline.getMonth(), deadline.getDate());
+  const diffDays = Math.round((deadlineDay.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+  if (diffDays < 0) return "overdue";
+  if (diffDays === 0) return "today";
+  return `${diffDays}d`;
 }
 
 export function ItemRow({

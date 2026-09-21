@@ -8,9 +8,6 @@ import { OptionGroup } from "@/components/ui/OptionGroup";
 import { TimePicker } from "@/components/ui/TimePicker";
 import { DurationInput } from "@/components/ui/DurationInput";
 import {
-  type ItemsRulesConfig,
-  type NotificationsRulesConfig,
-  type PersonalityRulesConfig,
   type SortBy,
   type NotificationMedium,
   type PersonalityTone,
@@ -20,6 +17,12 @@ import {
   REPEAT_OPTIONS,
   BUCKET_TONE_OPTIONS,
 } from "./constants";
+import {
+  parseDurationToMins,
+  minsToDisplayStr,
+  parseDurationToDays,
+  daysToDisplayStr,
+} from "@/lib/duration";
 import { updateBucketSettingsAction } from "@/app/(app)/actions";
 import type { buckets } from "@/lib/db/schema";
 
@@ -32,7 +35,37 @@ interface BucketSettingsProps {
   onClose: () => void;
 }
 
-function parse<T>(json: string, fallback: T): T {
+// Covers both old snake_case and new camelCase formats in DB
+type RawItemsRules = {
+  sortBy?: string;
+  sort_by?: string;
+  drag?: boolean;
+  readonly?: boolean;
+  showCompleted?: boolean;
+  show_completed?: boolean;
+  defaultDeadlineOffsetDays?: number | null;
+  default_deadline_offset?: string | null;
+  autoArchiveAfterDays?: number | null;
+  auto_archive_after?: string | null;
+};
+
+type RawNotifRules = {
+  medium?: NotificationMedium[];
+  notifyAt?: string;
+  notify_at?: string;
+  defaultOffsetMins?: number;
+  default_offset?: string;
+  repeat?: RepeatMode;
+  quietHours?: { from: string; to: string } | null;
+  quiet_hours?: { from: string; to: string } | null;
+};
+
+type RawPersonalityRules = {
+  toneOverride?: PersonalityTone | null;
+  tone_override?: PersonalityTone | null;
+};
+
+function parseJson<T>(json: string, fallback: T): T {
   try {
     return JSON.parse(json) as T;
   } catch {
@@ -41,6 +74,7 @@ function parse<T>(json: string, fallback: T): T {
 }
 
 const LABEL = "text-muted-foreground font-mono text-[10px]";
+const HINT = "text-muted-foreground/50 font-mono text-[9px] leading-tight";
 const INPUT =
   "border-b border-border w-full bg-transparent py-1.5 font-mono text-xs outline-none placeholder:text-muted-foreground/50 focus:border-foreground disabled:opacity-50";
 
@@ -74,22 +108,36 @@ export function BucketSettings({ open, bucket, onClose }: BucketSettingsProps) {
       setError("");
       setTab("items");
 
-      const ir = parse<ItemsRulesConfig>(bucket.itemsRules, {});
-      setSortBy(ir.sort_by ?? "created_at");
+      const ir = parseJson<RawItemsRules>(bucket.itemsRules, {});
+      setSortBy(((ir.sortBy ?? ir.sort_by) as SortBy | undefined) ?? "created_at");
       setDrag(ir.drag ?? false);
-      setShowCompleted(ir.show_completed !== false);
+      setShowCompleted((ir.showCompleted ?? ir.show_completed) !== false);
       setReadonly(ir.readonly ?? false);
-      setDefaultDeadlineOffset(ir.default_deadline_offset ?? "");
-      setAutoArchiveAfter(ir.auto_archive_after ?? "");
+      setDefaultDeadlineOffset(
+        ir.defaultDeadlineOffsetDays !== null && ir.defaultDeadlineOffsetDays !== undefined
+          ? daysToDisplayStr(ir.defaultDeadlineOffsetDays)
+          : (ir.default_deadline_offset ?? "")
+      );
+      setAutoArchiveAfter(
+        ir.autoArchiveAfterDays !== null && ir.autoArchiveAfterDays !== undefined
+          ? daysToDisplayStr(ir.autoArchiveAfterDays)
+          : (ir.auto_archive_after ?? "")
+      );
 
-      const nr = parse<NotificationsRulesConfig>(bucket.notificationsRules, {});
+      const nr = parseJson<RawNotifRules>(bucket.notificationsRules, {});
       setMediums(nr.medium ?? []);
-      setNotifyAt(nr.notify_at ?? "");
-      setDefaultOffset(nr.default_offset ?? "");
+      setNotifyAt(nr.notifyAt ?? nr.notify_at ?? "");
+      setDefaultOffset(
+        nr.defaultOffsetMins !== undefined && nr.defaultOffsetMins !== null
+          ? minsToDisplayStr(nr.defaultOffsetMins)
+          : (nr.default_offset ?? "")
+      );
       setRepeat(nr.repeat ?? "once");
 
-      const pr = parse<PersonalityRulesConfig>(bucket.personalityRules, {});
-      setToneOverride(pr.tone_override ?? "inherit");
+      const pr = parseJson<RawPersonalityRules>(bucket.personalityRules, {});
+      setToneOverride(
+        (pr.toneOverride ?? pr.tone_override ?? "inherit") as PersonalityTone | "inherit"
+      );
     }, 0);
     return () => clearTimeout(id);
   }, [open, bucket.id]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -106,20 +154,20 @@ export function BucketSettings({ open, bucket, onClose }: BucketSettingsProps) {
         bucket.id,
         name,
         {
-          sort_by: sortBy,
+          sortBy,
           drag,
           readonly,
-          show_completed: showCompleted,
-          default_deadline_offset: defaultDeadlineOffset || null,
-          auto_archive_after: autoArchiveAfter || null,
+          showCompleted,
+          defaultDeadlineOffsetDays: parseDurationToDays(defaultDeadlineOffset),
+          autoArchiveAfterDays: parseDurationToDays(autoArchiveAfter),
         },
         {
           medium: mediums,
-          notify_at: notifyAt || undefined,
-          default_offset: defaultOffset || undefined,
+          notifyAt: notifyAt || undefined,
+          defaultOffsetMins: parseDurationToMins(defaultOffset) ?? undefined,
           repeat,
         },
-        { tone_override: toneOverride === "inherit" ? null : toneOverride }
+        { toneOverride: toneOverride === "inherit" ? null : toneOverride }
       );
       if (result.ok) onClose();
       else setError(result.error);
@@ -182,24 +230,33 @@ export function BucketSettings({ open, bucket, onClose }: BucketSettingsProps) {
                   <>
                     <div className="flex flex-col gap-1.5">
                       <label className={LABEL}>sort by</label>
+                      <span className={HINT}>how items are ordered in this bucket</span>
                       <OptionGroup options={SORT_OPTIONS} value={sortBy} onChange={setSortBy} />
                     </div>
                     {sortBy === "manual" && (
                       <div className="flex flex-col gap-1.5">
                         <label className={LABEL}>allow drag</label>
+                        <span className={HINT}>let you drag items to reorder them manually</span>
                         <Toggle value={drag} onChange={setDrag} />
                       </div>
                     )}
                     <div className="flex flex-col gap-1.5">
                       <label className={LABEL}>show completed</label>
+                      <span className={HINT}>keep completed items visible in the list</span>
                       <Toggle value={showCompleted} onChange={setShowCompleted} />
                     </div>
                     <div className="flex flex-col gap-1.5">
                       <label className={LABEL}>read only</label>
+                      <span className={HINT}>
+                        prevent adding or editing items (useful for synced buckets)
+                      </span>
                       <Toggle value={readonly} onChange={setReadonly} />
                     </div>
                     <div className="flex flex-col gap-1.5">
                       <label className={LABEL}>default deadline offset</label>
+                      <span className={HINT}>
+                        when adding an item, pre-fill the deadline this far from today
+                      </span>
                       <DurationInput
                         value={defaultDeadlineOffset}
                         onChange={setDefaultDeadlineOffset}
@@ -209,6 +266,9 @@ export function BucketSettings({ open, bucket, onClose }: BucketSettingsProps) {
                     </div>
                     <div className="flex flex-col gap-1.5">
                       <label className={LABEL}>auto archive after</label>
+                      <span className={HINT}>
+                        automatically move completed items to archive after this long
+                      </span>
                       <DurationInput
                         value={autoArchiveAfter}
                         onChange={setAutoArchiveAfter}
@@ -222,6 +282,9 @@ export function BucketSettings({ open, bucket, onClose }: BucketSettingsProps) {
                   <>
                     <div className="flex flex-col gap-1.5">
                       <label className={LABEL}>medium</label>
+                      <span className={HINT}>
+                        where to send notifications — ntfy is push, email is inbox
+                      </span>
                       <OptionGroup
                         options={MEDIUM_OPTIONS}
                         value={mediums}
@@ -231,19 +294,28 @@ export function BucketSettings({ open, bucket, onClose }: BucketSettingsProps) {
                     </div>
                     <div className="flex flex-col gap-1.5">
                       <label className={LABEL}>notify at</label>
+                      <span className={HINT}>
+                        time of day to deliver the notification (e.g. 9 am, 6 pm)
+                      </span>
                       <TimePicker value={notifyAt} onChange={setNotifyAt} disabled={pending} />
                     </div>
                     <div className="flex flex-col gap-1.5">
                       <label className={LABEL}>offset before deadline</label>
+                      <span className={HINT}>
+                        how far in advance to notify — leave empty to notify at the deadline
+                      </span>
                       <DurationInput
                         value={defaultOffset}
                         onChange={setDefaultOffset}
-                        placeholder="e.g. 3 days, 1 hour"
+                        placeholder="e.g. 3 days, 1 hour — empty = at deadline"
                         disabled={pending}
                       />
                     </div>
                     <div className="flex flex-col gap-1.5">
                       <label className={LABEL}>repeat</label>
+                      <span className={HINT}>
+                        once = notify one time only · daily = re-notify every day until done
+                      </span>
                       <OptionGroup options={REPEAT_OPTIONS} value={repeat} onChange={setRepeat} />
                     </div>
                   </>
@@ -251,6 +323,10 @@ export function BucketSettings({ open, bucket, onClose }: BucketSettingsProps) {
                 {tab === "personality" && (
                   <div className="flex flex-col gap-1.5">
                     <label className={LABEL}>tone override</label>
+                    <span className={HINT}>
+                      use a different AI tone for items in this bucket — inherit uses your global
+                      setting
+                    </span>
                     <OptionGroup
                       options={BUCKET_TONE_OPTIONS}
                       value={toneOverride}
