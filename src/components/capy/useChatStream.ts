@@ -1,0 +1,79 @@
+import { useRef, useState } from "react";
+import type { Message } from "@/lib/ai/types";
+import { GREETING } from "./chatTypes";
+import type { ChatMessage } from "./chatTypes";
+
+export function useChatStream() {
+  const [messages, setMessages] = useState<ChatMessage[]>([GREETING]);
+  const [input, setInput] = useState("");
+  const [streaming, setStreaming] = useState(false);
+  const abortRef = useRef<AbortController | null>(null);
+
+  async function sendMessage() {
+    const text = input.trim();
+    if (!text || streaming) return;
+
+    const userMsg: ChatMessage = { id: crypto.randomUUID(), role: "user", content: text };
+    const assistantMsg: ChatMessage = { id: crypto.randomUUID(), role: "assistant", content: "" };
+
+    setMessages((prev) => [...prev, userMsg, assistantMsg]);
+    setInput("");
+    setStreaming(true);
+
+    const apiMessages: Message[] = [...messages, userMsg].map((m) => ({
+      role: m.role,
+      content: m.content,
+    }));
+
+    const abort = new AbortController();
+    abortRef.current = abort;
+
+    try {
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ messages: apiMessages }),
+        signal: abort.signal,
+      });
+
+      if (!res.ok || !res.body) throw new Error(`Chat error: ${res.status}`);
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        const chunk = decoder.decode(value, { stream: true });
+        setMessages((prev) => {
+          const last = prev.at(-1);
+          if (!last) return prev;
+          return [...prev.slice(0, -1), { ...last, content: last.content + chunk }];
+        });
+      }
+    } catch (err) {
+      if (err instanceof Error && err.name === "AbortError") {
+        setMessages((prev) => {
+          const last = prev.at(-1);
+          if (!last) return prev;
+          return [...prev.slice(0, -1), { ...last, stopped: true }];
+        });
+        return;
+      }
+      setMessages((prev) => {
+        const last = prev.at(-1);
+        if (!last) return prev;
+        return [...prev.slice(0, -1), { ...last, content: "Something went wrong. Try again." }];
+      });
+    } finally {
+      setStreaming(false);
+      abortRef.current = null;
+    }
+  }
+
+  function stopStreaming() {
+    abortRef.current?.abort();
+  }
+
+  return { messages, input, setInput, streaming, sendMessage, stopStreaming };
+}
