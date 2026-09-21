@@ -14,6 +14,7 @@ import {
   updateItemAction,
   deleteItemAction,
   reorderItemsAction,
+  getItemsForBucketAction,
 } from "@/app/(app)/actions";
 import type { buckets, items as itemsTable } from "@/lib/db/schema";
 import type { DragControls } from "framer-motion";
@@ -23,7 +24,6 @@ type Item = typeof itemsTable.$inferSelect;
 
 interface BucketContentProps {
   bucket: BucketRow;
-  items: Item[];
   accentColor: string;
 }
 
@@ -68,7 +68,7 @@ function DraggableItem({
   );
 }
 
-export function BucketContent({ bucket, items, accentColor }: BucketContentProps) {
+export function BucketContent({ bucket, accentColor }: BucketContentProps) {
   const rules: ItemsRulesConfig = (() => {
     try {
       return JSON.parse(bucket.itemsRules) as ItemsRulesConfig;
@@ -79,10 +79,11 @@ export function BucketContent({ bucket, items, accentColor }: BucketContentProps
 
   const isDraggable = rules.drag === true && rules.sort_by === "manual";
   const showCompleted = rules.show_completed !== false;
-  const visibleItems = showCompleted ? items : items.filter((i) => i.status !== "completed");
 
-  const [orderedItems, setOrderedItems] = useState(visibleItems);
-  const orderedItemsRef = useRef(visibleItems);
+  const [fetchedItems, setFetchedItems] = useState<Item[]>([]);
+  const [loadingItems, setLoadingItems] = useState(true);
+  const [orderedItems, setOrderedItems] = useState<Item[]>([]);
+  const orderedItemsRef = useRef<Item[]>([]);
 
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [addingItem, setAddingItem] = useState(false);
@@ -99,13 +100,32 @@ export function BucketContent({ bucket, items, accentColor }: BucketContentProps
   const [editPending, startEditTransition] = useTransition();
 
   useEffect(() => {
-    const next = showCompleted ? items : items.filter((i) => i.status !== "completed");
+    let cancelled = false;
+    void getItemsForBucketAction(bucket.id).then((result) => {
+      if (cancelled) return;
+      if (result.ok) setFetchedItems(result.items);
+      setLoadingItems(false);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [bucket.id, bucket.itemsRules]);
+
+  useEffect(() => {
+    const next = showCompleted
+      ? fetchedItems
+      : fetchedItems.filter((i) => i.status !== "completed");
     const id = setTimeout(() => {
       setOrderedItems(next);
       orderedItemsRef.current = next;
     }, 0);
     return () => clearTimeout(id);
-  }, [items, showCompleted]);
+  }, [fetchedItems, showCompleted]);
+
+  async function refetchItems() {
+    const result = await getItemsForBucketAction(bucket.id);
+    if (result.ok) setFetchedItems(result.items);
+  }
 
   function startEditing(item: Item) {
     setAddingItem(false);
@@ -137,6 +157,7 @@ export function BucketContent({ bucket, items, accentColor }: BucketContentProps
       const result = await addItemAction(bucket.id, addTitle, addDeadline || null, addStatus);
       if (result.ok) {
         cancelAdding();
+        await refetchItems();
       } else {
         setAddError(result.error);
       }
@@ -152,7 +173,10 @@ export function BucketContent({ bucket, items, accentColor }: BucketContentProps
         editDeadline || null,
         editStatus
       );
-      if (result.ok) cancelEditing();
+      if (result.ok) {
+        cancelEditing();
+        await refetchItems();
+      }
     });
   }
 
@@ -161,6 +185,7 @@ export function BucketContent({ bucket, items, accentColor }: BucketContentProps
     startEditTransition(async () => {
       await deleteItemAction(editingItemId);
       cancelEditing();
+      await refetchItems();
     });
   }
 
@@ -206,7 +231,11 @@ export function BucketContent({ bucket, items, accentColor }: BucketContentProps
         className="border-border mx-4 overflow-hidden border-2"
         style={{ boxShadow: "2px 2px 0 var(--border)" }}
       >
-        {orderedItems.length === 0 ? (
+        {loadingItems ? (
+          <p className="text-muted-foreground px-4 py-6 text-center font-mono text-xs">
+            loading...
+          </p>
+        ) : orderedItems.length === 0 ? (
           <p className="text-muted-foreground px-4 py-6 text-center font-mono text-xs">
             no items yet · press + to add one
           </p>

@@ -7,17 +7,15 @@ import { cn } from "@/lib/utils";
 import { BucketContent } from "./BucketContent";
 import { BUCKET_PALETTE } from "./constants";
 import { useUIStore } from "@/store/ui";
-import type { buckets, items as itemsTable } from "@/lib/db/schema";
+import type { buckets } from "@/lib/db/schema";
 
 type BucketRow = typeof buckets.$inferSelect;
-type Item = typeof itemsTable.$inferSelect;
 
 interface BucketsShellProps {
   buckets: BucketRow[];
-  itemsByBucket: Record<number, Item[]>;
 }
 
-export function BucketsShell({ buckets, itemsByBucket }: BucketsShellProps) {
+export function BucketsShell({ buckets }: BucketsShellProps) {
   const [activeId, setActiveId] = useState<number>(buckets[0]?.id ?? -1);
   const openCreateBucket = useUIStore((s) => s.openCreateBucket);
 
@@ -38,11 +36,7 @@ export function BucketsShell({ buckets, itemsByBucket }: BucketsShellProps) {
             exit={{ opacity: 0, y: -6 }}
             transition={{ duration: 0.15 }}
           >
-            <BucketContent
-              bucket={activeBucket}
-              items={itemsByBucket[activeBucket.id] ?? []}
-              accentColor={accentColor}
-            />
+            <BucketContent bucket={activeBucket} accentColor={accentColor} />
           </motion.div>
         </AnimatePresence>
       </div>
@@ -52,9 +46,6 @@ export function BucketsShell({ buckets, itemsByBucket }: BucketsShellProps) {
           {buckets.map((bucket, i) => {
             const isActive = bucket.id === activeId;
             const color = BUCKET_PALETTE[i % BUCKET_PALETTE.length];
-            const activeItems = (itemsByBucket[bucket.id] ?? []).filter(
-              (item) => item.status === "active"
-            );
 
             return (
               <button
@@ -69,16 +60,6 @@ export function BucketsShell({ buckets, itemsByBucket }: BucketsShellProps) {
                 )}
               >
                 <span className="font-pixel text-xs">{bucket.name}</span>
-                {activeItems.length > 0 && (
-                  <span
-                    className={cn(
-                      "ml-1.5 font-mono text-[10px]",
-                      isActive ? "text-muted-foreground" : "opacity-40"
-                    )}
-                  >
-                    {activeItems.length}
-                  </span>
-                )}
               </button>
             );
           })}

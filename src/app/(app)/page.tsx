@@ -1,8 +1,8 @@
 import { redirect } from "next/navigation";
-import { and, asc, eq, isNull, ne } from "drizzle-orm";
+import { and, asc, eq, isNull } from "drizzle-orm";
 import { getSession } from "@/lib/auth/session";
 import { db } from "@/lib/db";
-import { buckets, items as itemsTable } from "@/lib/db/schema";
+import { buckets } from "@/lib/db/schema";
 import { BucketsEmptyState } from "@/components/buckets/BucketsEmptyState";
 import { BucketsShell } from "@/components/buckets/BucketsShell";
 
@@ -22,23 +22,5 @@ export default async function Home() {
     return <BucketsEmptyState />;
   }
 
-  const allItems = await db
-    .select()
-    .from(itemsTable)
-    .where(
-      and(
-        eq(itemsTable.userId, session.userId),
-        isNull(itemsTable.deletedAt),
-        ne(itemsTable.status, "archived")
-      )
-    )
-    .orderBy(asc(itemsTable.sortOrder), asc(itemsTable.createdAt));
-
-  const itemsByBucket: Record<number, typeof allItems> = {};
-  for (const item of allItems) {
-    if (!itemsByBucket[item.bucketId]) itemsByBucket[item.bucketId] = [];
-    itemsByBucket[item.bucketId].push(item);
-  }
-
-  return <BucketsShell buckets={userBuckets} itemsByBucket={itemsByBucket} />;
+  return <BucketsShell buckets={userBuckets} />;
 }

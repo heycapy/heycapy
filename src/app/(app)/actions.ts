@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { and, eq, sql } from "drizzle-orm";
+import { and, asc, eq, isNull, ne, sql } from "drizzle-orm";
 import { getSession } from "@/lib/auth/session";
 import { deleteSession } from "@/lib/auth/session";
 import { db } from "@/lib/db";
@@ -12,6 +12,50 @@ import type {
   NotificationsRulesConfig,
   PersonalityRulesConfig,
 } from "@/components/buckets/constants";
+
+export async function getItemsForBucketAction(
+  bucketId: number
+): Promise<{ ok: true; items: (typeof items.$inferSelect)[] } | { ok: false; error: string }> {
+  const session = await getSession();
+  if (!session) return { ok: false, error: "Unauthorized" };
+
+  const bucket = await db.query.buckets.findFirst({
+    where: (b, { eq: qeq, and: qand }) => qand(qeq(b.id, bucketId), qeq(b.userId, session.userId)),
+  });
+  if (!bucket) return { ok: false, error: "Bucket not found" };
+
+  let sortBy = "manual";
+  try {
+    const parsed = JSON.parse(bucket.itemsRules) as { sort_by?: string };
+    sortBy = parsed.sort_by ?? "manual";
+  } catch {
+    /* keep default */
+  }
+
+  const condition = and(
+    eq(items.bucketId, bucketId),
+    eq(items.userId, session.userId),
+    isNull(items.deletedAt),
+    ne(items.status, "archived")
+  );
+
+  const result =
+    sortBy === "deadline"
+      ? await db
+          .select()
+          .from(items)
+          .where(condition)
+          .orderBy(sql`${items.deadline} IS NULL`, asc(items.deadline), asc(items.createdAt))
+      : sortBy === "created_at"
+        ? await db.select().from(items).where(condition).orderBy(asc(items.createdAt))
+        : await db
+            .select()
+            .from(items)
+            .where(condition)
+            .orderBy(asc(items.sortOrder), asc(items.createdAt));
+
+  return { ok: true, items: result };
+}
 
 export async function updateBucketSettingsAction(
   bucketId: number,
