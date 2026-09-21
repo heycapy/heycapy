@@ -56,7 +56,7 @@ export function ItemRow({ item, dragControls, isEditing, onEditStart }: ItemRowP
 
       <span className={cn("mt-1 h-2 w-2 shrink-0 rounded-full", dotColor)} />
 
-      <button onClick={() => !isCompleted && onEditStart?.()} className="min-w-0 flex-1 text-left">
+      <button onClick={() => onEditStart?.()} className="min-w-0 flex-1 text-left">
         <span className={cn("block text-sm", isCompleted && "text-muted-foreground line-through")}>
           {item.title}
         </span>
