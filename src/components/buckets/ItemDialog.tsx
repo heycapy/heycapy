@@ -87,7 +87,7 @@ export function ItemDialog({
             className="fixed top-[22%] left-1/2 z-50 w-full max-w-xs -translate-x-1/2"
             style={{ boxShadow: "5px 5px 0 var(--border)" }}
           >
-            <div className="border-border overflow-hidden border-2">
+            <div className="border-border bg-background overflow-hidden border-2">
               <div className="bg-foreground text-background flex items-center justify-between px-3 py-1.5">
                 <span className="font-pixel text-xs">
                   {mode === "add" ? "new item" : "edit item"}
@@ -129,29 +129,27 @@ export function ItemDialog({
                   <DatePicker value={deadline} onChange={onDeadlineChange} disabled={pending} />
                 </div>
 
-                {mode === "edit" && (
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-muted-foreground font-mono text-[10px]">status</label>
-                    <div className="flex flex-wrap gap-1.5">
-                      {ITEM_STATUSES.map((s) => (
-                        <button
-                          key={s.value}
-                          onClick={() => onStatusChange(s.value)}
-                          disabled={pending}
-                          className={cn(
-                            "flex items-center gap-1.5 border px-2 py-1 font-mono text-[10px] transition-colors disabled:opacity-40",
-                            status === s.value
-                              ? "border-foreground text-foreground"
-                              : "border-border/50 text-muted-foreground hover:border-border hover:text-foreground"
-                          )}
-                        >
-                          <span className={cn("h-1.5 w-1.5 rounded-full", s.color)} />
-                          {s.value}
-                        </button>
-                      ))}
-                    </div>
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-muted-foreground font-mono text-[10px]">status</label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {ITEM_STATUSES.map((s) => (
+                      <button
+                        key={s.value}
+                        onClick={() => onStatusChange(s.value)}
+                        disabled={pending}
+                        className={cn(
+                          "flex items-center gap-1.5 border px-2 py-1 font-mono text-[10px] transition-colors disabled:opacity-40",
+                          status === s.value
+                            ? "border-foreground text-foreground"
+                            : "border-border/50 text-muted-foreground hover:border-border hover:text-foreground"
+                        )}
+                      >
+                        <span className={cn("h-1.5 w-1.5 rounded-full", s.color)} />
+                        {s.value}
+                      </button>
+                    ))}
                   </div>
-                )}
+                </div>
               </div>
 
               <div className="border-border flex items-center justify-between border-t px-3 py-2.5">

@@ -10,10 +10,10 @@ export const TEMPLATE_ICONS: Record<string, LucideIcon> = {
 };
 
 export const ITEM_STATUSES = [
-  { value: "active", color: "bg-muted-foreground/40" },
-  { value: "completed", color: "bg-accent" },
-  { value: "snoozed", color: "bg-primary/60" },
-  { value: "archived", color: "bg-muted-foreground/20" },
+  { value: "active", color: "bg-[var(--status-active)]" },
+  { value: "completed", color: "bg-[var(--status-completed)]" },
+  { value: "snoozed", color: "bg-[var(--status-snoozed)]" },
+  { value: "archived", color: "bg-[var(--status-archived)]" },
 ] as const;
 
 export type ItemStatus = (typeof ITEM_STATUSES)[number]["value"];

@@ -53,7 +53,8 @@ export async function createBucketAction(
 export async function addItemAction(
   bucketId: number,
   title: string,
-  deadline: string | null
+  deadline: string | null,
+  status?: string
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   const session = await getSession();
   if (!session) redirect("/login");
@@ -77,6 +78,7 @@ export async function addItemAction(
     userId: session.userId,
     title: trimmed,
     deadline: deadline ? new Date(deadline + "T12:00:00") : null,
+    status: status ?? "active",
     sortOrder: maxRow.max + 1,
   });
 

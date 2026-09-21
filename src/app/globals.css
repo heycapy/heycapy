@@ -48,6 +48,10 @@
   --p3: #5a6a94;
   --p4: #8a5a78;
   --p5: #b89a5a;
+  --status-active: #a89070;
+  --status-completed: #5a7a3a;
+  --status-snoozed: #c47a35;
+  --status-archived: #c4a882;
 }
 
 [data-theme="gruvbox"] {
@@ -73,6 +77,10 @@
   --p3: #458588;
   --p4: #b16286;
   --p5: #d65d0e;
+  --status-active: #928374;
+  --status-completed: #b8bb26;
+  --status-snoozed: #d79921;
+  --status-archived: #504945;
 }
 
 [data-theme="terminal"] {
@@ -98,6 +106,10 @@
   --p3: #ffff00;
   --p4: #ff9900;
   --p5: #ff3333;
+  --status-active: #00aa2b;
+  --status-completed: #00ff41;
+  --status-snoozed: #ffff00;
+  --status-archived: #1a3320;
 }
 
 [data-theme="terminal"] * {

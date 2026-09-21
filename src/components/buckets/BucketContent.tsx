@@ -91,6 +91,7 @@ export function BucketContent({ bucket, items, accentColor }: BucketContentProps
   const [addingItem, setAddingItem] = useState(false);
   const [addTitle, setAddTitle] = useState("");
   const [addDeadline, setAddDeadline] = useState("");
+  const [addStatus, setAddStatus] = useState<ItemStatus>("active");
   const [addError, setAddError] = useState("");
   const [addPending, startAddTransition] = useTransition();
 
@@ -128,6 +129,7 @@ export function BucketContent({ bucket, items, accentColor }: BucketContentProps
     setAddingItem(false);
     setAddTitle("");
     setAddDeadline("");
+    setAddStatus("active");
     setAddError("");
   }
 
@@ -135,7 +137,7 @@ export function BucketContent({ bucket, items, accentColor }: BucketContentProps
     if (!addTitle.trim() || addPending) return;
     setAddError("");
     startAddTransition(async () => {
-      const result = await addItemAction(bucket.id, addTitle, addDeadline || null);
+      const result = await addItemAction(bucket.id, addTitle, addDeadline || null, addStatus);
       if (result.ok) {
         cancelAdding();
       } else {
@@ -242,12 +244,12 @@ export function BucketContent({ bucket, items, accentColor }: BucketContentProps
         mode={addingItem ? "add" : "edit"}
         title={addingItem ? addTitle : editTitle}
         deadline={addingItem ? addDeadline : editDeadline}
-        status={editStatus}
+        status={addingItem ? addStatus : editStatus}
         error={addingItem ? addError : undefined}
         pending={addingItem ? addPending : editPending}
         onTitleChange={addingItem ? setAddTitle : setEditTitle}
         onDeadlineChange={addingItem ? setAddDeadline : setEditDeadline}
-        onStatusChange={setEditStatus}
+        onStatusChange={addingItem ? setAddStatus : setEditStatus}
         onConfirm={addingItem ? handleAdd : handleUpdate}
         onCancel={addingItem ? cancelAdding : cancelEditing}
         onDelete={editingItemId !== null ? handleDelete : undefined}
