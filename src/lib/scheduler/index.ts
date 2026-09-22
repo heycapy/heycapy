@@ -8,6 +8,9 @@ import { sendNtfy } from "@/lib/notifications/ntfy";
 import { sendTelegram } from "@/lib/notifications/telegram";
 import { APP_NAME } from "@/constants";
 import { errorMessage } from "@/lib/errors";
+import { decryptValue } from "@/lib/crypto";
+import { getAIProvider } from "@/lib/ai";
+import type { AgentMessage } from "@/lib/ai/types";
 
 function isInQuietHours(quietHours: { from: string; to: string }, timezone: string): boolean {
   const now = new Date();
@@ -51,6 +54,65 @@ function getNextDeadline(deadline: Date, config: RecurringConfig): Date {
   return next;
 }
 
+type PersonalityRow = {
+  aiProvider: string | null;
+  aiApiKey: string | null;
+  aiModel: string | null;
+  aiOllamaUrl: string | null;
+  personalityName: string;
+  personalityTone: string;
+  personalityEmoji: boolean;
+  personalityCustomPrompt: string | null;
+};
+
+async function generateNotificationText(
+  title: string,
+  deadlineStr: string,
+  row: PersonalityRow
+): Promise<string> {
+  const fallback = `Reminder: "${title}" is due ${deadlineStr}`;
+  if (!row.aiProvider) return fallback;
+
+  try {
+    const decryptedKey = row.aiApiKey ? decryptValue(row.aiApiKey) : null;
+    const ai = getAIProvider({
+      provider: row.aiProvider,
+      apiKey: decryptedKey,
+      model: row.aiModel,
+      ollamaUrl: row.aiOllamaUrl,
+    });
+
+    const toneGuide =
+      row.personalityTone === "custom" && row.personalityCustomPrompt
+        ? row.personalityCustomPrompt
+        : ({
+            chill: "casual and friendly",
+            professional: "professional and concise",
+            motivational: "energetic and motivating",
+          }[row.personalityTone] ?? "friendly");
+
+    const emojiNote = row.personalityEmoji
+      ? "You may use 1-2 relevant emojis."
+      : "Do not use emojis.";
+
+    const messages: AgentMessage[] = [
+      {
+        role: "system",
+        content: `You are ${row.personalityName}, a helpful assistant. Write a single short push notification sentence reminding the user about an upcoming deadline. Tone: ${toneGuide}. ${emojiNote} Output only the notification text — no quotes, no labels, nothing else.`,
+      },
+      {
+        role: "user",
+        content: `Item: "${title}" is due ${deadlineStr}.`,
+      },
+    ];
+
+    const result = await ai.complete(messages, []);
+    return result.content?.trim() || fallback;
+  } catch {
+    return fallback;
+  }
+}
+
 async function runNotifications(): Promise<void> {
   const now = new Date();
   const todayMidnight = new Date(now);
@@ -69,6 +131,14 @@ async function runNotifications(): Promise<void> {
       telegramBotToken: userSettings.telegramBotToken,
       telegramChatId: userSettings.telegramChatId,
       notificationsTelegram: userSettings.notificationsTelegram,
+      aiProvider: userSettings.aiProvider,
+      aiApiKey: userSettings.aiApiKey,
+      aiModel: userSettings.aiModel,
+      aiOllamaUrl: userSettings.aiOllamaUrl,
+      personalityName: userSettings.personalityName,
+      personalityTone: userSettings.personalityTone,
+      personalityEmoji: userSettings.personalityEmoji,
+      personalityCustomPrompt: userSettings.personalityCustomPrompt,
     })
     .from(items)
     .innerJoin(buckets, eq(items.bucketId, buckets.id))
@@ -120,7 +190,7 @@ async function runNotifications(): Promise<void> {
         year: "numeric",
       });
       const subject = `[${APP_NAME}] ${row.item.title}`;
-      const message = `Reminder: "${row.item.title}" is due ${deadlineStr}`;
+      const message = await generateNotificationText(row.item.title, deadlineStr, row);
 
       const sent: ("email" | "ntfy" | "telegram")[] = [];
       const failures: { medium: "email" | "ntfy" | "telegram"; error: string }[] = [];
