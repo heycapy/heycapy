@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { useChatStream } from "./useChatStream";
 import { ChatMessageList } from "./ChatMessageList";
-import { ChatInputBar } from "./ChatInputBar";
+import { ChatInputBar, type ChatInputBarHandle } from "./ChatInputBar";
 import { CapyChatHeader } from "./CapyChatHeader";
+import { ChatHistorySheet } from "./ChatHistorySheet";
 import { Sprite } from "./Sprite";
 import { DEFAULT_W, DEFAULT_H, HEADER_H } from "./chatTypes";
 
@@ -13,16 +14,37 @@ type ChatState = "closed" | "open" | "minimized" | "fullscreen";
 
 export function CapyChat() {
   const [chatState, setChatState] = useState<ChatState>("open");
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const inputBarRef = useRef<ChatInputBarHandle>(null);
+  const prevChatStateRef = useRef<ChatState>(chatState);
 
-  const { messages, input, setInput, streaming, sendMessage, stopStreaming } = useChatStream();
+  const {
+    messages,
+    input,
+    setInput,
+    streaming,
+    sendMessage,
+    stopStreaming,
+    clearChat,
+    loadSession,
+  } = useChatStream();
+
+  useEffect(() => {
+    const prev = prevChatStateRef.current;
+    prevChatStateRef.current = chatState;
+    if (chatState === "open" && (prev === "closed" || prev === "minimized")) {
+      const delay = prev === "minimized" ? 210 : 0;
+      const timer = setTimeout(() => inputBarRef.current?.focus(), delay);
+      return () => clearTimeout(timer);
+    }
+  }, [chatState]);
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if ((e.ctrlKey || e.metaKey) && e.key === "\\") {
         e.preventDefault();
         setChatState((s) => {
-          if (s === "closed") return "open";
-          if (s === "minimized") return "open";
+          if (s === "closed" || s === "minimized") return "open";
           return "minimized";
         });
       }
@@ -65,6 +87,7 @@ export function CapyChat() {
         fullscreen={chatState === "fullscreen"}
       />
       <ChatInputBar
+        ref={inputBarRef}
         input={input}
         setInput={setInput}
         streaming={streaming}
@@ -75,27 +98,38 @@ export function CapyChat() {
   );
 
   return (
-    <motion.div style={panelStyle} className="border-border bg-background flex flex-col border-2">
-      <CapyChatHeader
-        fullscreen={chatState === "fullscreen"}
-        minimized={chatState === "minimized"}
-        onClose={() => setChatState("closed")}
-        onMinimize={() => setChatState((s) => (s === "minimized" ? "open" : "minimized"))}
-        onFullscreen={() => setChatState((s) => (s === "fullscreen" ? "open" : "fullscreen"))}
-      />
+    <>
+      <motion.div style={panelStyle} className="border-border bg-background flex flex-col border-2">
+        <CapyChatHeader
+          fullscreen={chatState === "fullscreen"}
+          minimized={chatState === "minimized"}
+          onClose={() => setChatState("closed")}
+          onMinimize={() => setChatState((s) => (s === "minimized" ? "open" : "minimized"))}
+          onFullscreen={() => setChatState((s) => (s === "fullscreen" ? "open" : "fullscreen"))}
+          onHistoryOpen={() => setHistoryOpen(true)}
+          onNewChat={clearChat}
+        />
 
-      {chatState === "fullscreen" ? (
-        <div className="flex min-h-0 flex-1 flex-col overflow-hidden">{body}</div>
-      ) : (
-        <motion.div
-          initial={false}
-          animate={{ height: chatState === "minimized" ? 0 : bodyH }}
-          transition={{ duration: 0.2, ease: "easeInOut" }}
-          className="flex flex-col overflow-hidden"
-        >
-          {body}
-        </motion.div>
-      )}
-    </motion.div>
+        {chatState === "fullscreen" ? (
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden">{body}</div>
+        ) : (
+          <motion.div
+            initial={false}
+            animate={{ height: chatState === "minimized" ? 0 : bodyH }}
+            transition={{ duration: 0.2, ease: "easeInOut" }}
+            className="flex flex-col overflow-hidden"
+          >
+            {body}
+          </motion.div>
+        )}
+      </motion.div>
+
+      <ChatHistorySheet
+        open={historyOpen}
+        onClose={() => setHistoryOpen(false)}
+        onLoadSession={loadSession}
+        onNewChat={clearChat}
+      />
+    </>
   );
 }

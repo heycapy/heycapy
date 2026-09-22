@@ -1,4 +1,4 @@
-import { Maximize2, Minimize2, Minus, X } from "lucide-react";
+import { History, Maximize2, Minimize2, Minus, SquarePen, X } from "lucide-react";
 import { Sprite } from "./Sprite";
 import { HEADER_H } from "./chatTypes";
 
@@ -8,6 +8,8 @@ type Props = {
   onClose: () => void;
   onMinimize: () => void;
   onFullscreen: () => void;
+  onHistoryOpen: () => void;
+  onNewChat: () => void;
 };
 
 export function CapyChatHeader({
@@ -16,6 +18,8 @@ export function CapyChatHeader({
   onClose,
   onMinimize,
   onFullscreen,
+  onHistoryOpen,
+  onNewChat,
 }: Props) {
   return (
     <div
@@ -27,6 +31,22 @@ export function CapyChatHeader({
       </div>
 
       <span className="font-pixel flex-1 text-[11px]">capy</span>
+
+      <button
+        onClick={onHistoryOpen}
+        className="text-muted-foreground hover:text-foreground flex h-6 w-6 items-center justify-center transition-colors"
+        aria-label="Chat history"
+      >
+        <History size={13} />
+      </button>
+
+      <button
+        onClick={onNewChat}
+        className="text-muted-foreground hover:text-foreground flex h-6 w-6 items-center justify-center transition-colors"
+        aria-label="New chat"
+      >
+        <SquarePen size={13} />
+      </button>
 
       {!fullscreen && (
         <button

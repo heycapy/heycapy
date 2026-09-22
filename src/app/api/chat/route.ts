@@ -2,7 +2,7 @@ import { z } from "zod";
 import { and, eq, isNull } from "drizzle-orm";
 import { getSession } from "@/lib/auth/session";
 import { db } from "@/lib/db";
-import { buckets, userSettings, users } from "@/lib/db/schema";
+import { buckets, chatMessages, chatSessions, userSettings, users } from "@/lib/db/schema";
 import { getAIProvider } from "@/lib/ai";
 import { buildSystemPrompt } from "@/lib/ai/systemPrompt";
 import { CAPY_TOOLS, executeToolCall, getUpcomingItems } from "@/lib/ai/capyTools";
@@ -15,6 +15,7 @@ const bodySchema = z.object({
       content: z.string(),
     })
   ),
+  sessionId: z.number().nullish(),
 });
 
 export async function POST(req: Request) {
@@ -26,7 +27,7 @@ export async function POST(req: Request) {
     return new Response("Bad request", { status: 400 });
   }
 
-  const { messages } = parsed.data;
+  const { messages, sessionId } = parsed.data;
 
   const [settings, user, userBuckets] = await Promise.all([
     db.query.userSettings.findFirst({ where: eq(userSettings.userId, session.userId) }),
@@ -104,6 +105,64 @@ export async function POST(req: Request) {
     }
   }
 
+  const lastUserMsg = [...messages].reverse().find((m) => m.role === "user");
+  let resolvedSessionId = sessionId ?? null;
+
+  if (lastUserMsg && finalText) {
+    if (resolvedSessionId) {
+      const owned = await db.query.chatSessions.findFirst({
+        where: (s, { eq: qeq, and: qand }) =>
+          qand(qeq(s.id, resolvedSessionId as number), qeq(s.userId, session.userId)),
+      });
+      if (owned) {
+        await db.insert(chatMessages).values([
+          {
+            sessionId: resolvedSessionId as number,
+            userId: session.userId,
+            role: "user",
+            content: lastUserMsg.content,
+          },
+          {
+            sessionId: resolvedSessionId as number,
+            userId: session.userId,
+            role: "assistant",
+            content: finalText,
+          },
+        ]);
+        await db
+          .update(chatSessions)
+          .set({ updatedAt: new Date() })
+          .where(
+            and(
+              eq(chatSessions.id, resolvedSessionId as number),
+              eq(chatSessions.userId, session.userId)
+            )
+          );
+      }
+    } else {
+      const title = lastUserMsg.content.replace(/\n/g, " ").slice(0, 60);
+      const [newSession] = await db
+        .insert(chatSessions)
+        .values({ userId: session.userId, title })
+        .returning({ id: chatSessions.id });
+      resolvedSessionId = newSession.id;
+      await db.insert(chatMessages).values([
+        {
+          sessionId: resolvedSessionId,
+          userId: session.userId,
+          role: "user",
+          content: lastUserMsg.content,
+        },
+        {
+          sessionId: resolvedSessionId,
+          userId: session.userId,
+          role: "assistant",
+          content: finalText,
+        },
+      ]);
+    }
+  }
+
   const encoder = new TextEncoder();
   const stream = new ReadableStream({
     start(controller) {
@@ -112,10 +171,13 @@ export async function POST(req: Request) {
     },
   });
 
-  return new Response(stream, {
-    headers: {
-      "Content-Type": "text/plain; charset=utf-8",
-      "X-Content-Type-Options": "nosniff",
-    },
-  });
+  const responseHeaders: Record<string, string> = {
+    "Content-Type": "text/plain; charset=utf-8",
+    "X-Content-Type-Options": "nosniff",
+  };
+  if (resolvedSessionId) {
+    responseHeaders["X-Session-Id"] = String(resolvedSessionId);
+  }
+
+  return new Response(stream, { headers: responseHeaders });
 }

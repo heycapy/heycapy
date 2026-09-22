@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { forwardRef, useEffect, useImperativeHandle, useRef } from "react";
 import { ArrowUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -10,8 +10,15 @@ type Props = {
   onStop: () => void;
 };
 
-export function ChatInputBar({ input, setInput, streaming, onSend, onStop }: Props) {
+export type ChatInputBarHandle = { focus: () => void };
+
+export const ChatInputBar = forwardRef<ChatInputBarHandle, Props>(function ChatInputBar(
+  { input, setInput, streaming, onSend, onStop }: Props,
+  ref
+) {
   const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  useImperativeHandle(ref, () => ({ focus: () => inputRef.current?.focus() }));
   const prevStreamingRef = useRef(streaming);
 
   useEffect(() => {
@@ -20,6 +27,12 @@ export function ChatInputBar({ input, setInput, streaming, onSend, onStop }: Pro
     }
     prevStreamingRef.current = streaming;
   }, [streaming]);
+
+  useEffect(() => {
+    if (!input && inputRef.current) {
+      inputRef.current.style.height = "auto";
+    }
+  }, [input]);
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -71,4 +84,4 @@ export function ChatInputBar({ input, setInput, streaming, onSend, onStop }: Pro
       )}
     </div>
   );
-}
+});

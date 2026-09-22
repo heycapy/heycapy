@@ -12,6 +12,7 @@ export function useChatStream() {
   const [messages, setMessages] = useState<ChatMessage[]>([GREETING]);
   const [input, setInput] = useState("");
   const [streaming, setStreaming] = useState(false);
+  const [sessionId, setSessionId] = useState<number | null>(null);
   const abortRef = useRef<AbortController | null>(null);
 
   async function sendMessage() {
@@ -39,11 +40,16 @@ export function useChatStream() {
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: apiMessages }),
+        body: JSON.stringify({ messages: apiMessages, sessionId }),
         signal: abort.signal,
       });
 
       if (!res.ok || !res.body) throw new Error(`Chat error: ${res.status}`);
+
+      const rawSessionId = res.headers.get("X-Session-Id");
+      if (rawSessionId) {
+        setSessionId(parseInt(rawSessionId, 10));
+      }
 
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
@@ -87,5 +93,25 @@ export function useChatStream() {
     abortRef.current?.abort();
   }
 
-  return { messages, input, setInput, streaming, sendMessage, stopStreaming };
+  function clearChat() {
+    setMessages([GREETING]);
+    setSessionId(null);
+  }
+
+  function loadSession(id: number, msgs: ChatMessage[]) {
+    setMessages(msgs);
+    setSessionId(id);
+  }
+
+  return {
+    messages,
+    input,
+    setInput,
+    streaming,
+    sendMessage,
+    stopStreaming,
+    sessionId,
+    clearChat,
+    loadSession,
+  };
 }
