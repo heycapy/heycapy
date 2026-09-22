@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { and, asc, desc, eq, isNotNull, isNull, sql } from "drizzle-orm";
 import { getSession, deleteSession } from "@/lib/auth/session";
+import type { SessionPayload } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import {
   buckets,
@@ -16,6 +17,12 @@ import {
 import { encryptValue, decryptValue } from "@/lib/crypto";
 import type { ItemsRulesConfig, NotificationsRulesConfig } from "@/components/buckets/constants";
 import type { RecurringConfig } from "@/types/rules";
+
+async function requireSession(): Promise<SessionPayload> {
+  const session = await getSession();
+  if (!session) redirect("/login");
+  return session;
+}
 
 export async function getUserSettingsAction(): Promise<
   { ok: true; settings: typeof userSettings.$inferSelect } | { ok: false; error: string }
@@ -137,8 +144,7 @@ export async function updateBucketSettingsAction(
   itemsRules: ItemsRulesConfig,
   notificationsRules: NotificationsRulesConfig
 ): Promise<{ ok: true } | { ok: false; error: string }> {
-  const session = await getSession();
-  if (!session) redirect("/login");
+  const session = await requireSession();
 
   const trimmed = name.trim();
   if (!trimmed) return { ok: false, error: "Name is required" };
@@ -172,8 +178,7 @@ export async function createBucketAction(
   templateId: number,
   name: string
 ): Promise<{ ok: true } | { ok: false; error: string }> {
-  const session = await getSession();
-  if (!session) redirect("/login");
+  const session = await requireSession();
 
   const trimmed = name.trim();
   if (!trimmed) return { ok: false, error: "Name is required" };
@@ -217,8 +222,7 @@ export async function addItemAction(
   status?: string,
   recurring?: RecurringConfig | null
 ): Promise<{ ok: true } | { ok: false; error: string }> {
-  const session = await getSession();
-  if (!session) redirect("/login");
+  const session = await requireSession();
 
   const trimmed = title.trim();
   if (!trimmed) return { ok: false, error: "Title is required" };
@@ -257,8 +261,7 @@ export async function updateItemAction(
   status?: string,
   recurring?: RecurringConfig | null
 ): Promise<{ ok: true } | { ok: false; error: string }> {
-  const session = await getSession();
-  if (!session) redirect("/login");
+  const session = await requireSession();
 
   const trimmed = title.trim();
   if (!trimmed) return { ok: false, error: "Title is required" };
@@ -291,8 +294,7 @@ export async function updateItemAction(
 export async function completeItemAction(
   itemId: number
 ): Promise<{ ok: true } | { ok: false; error: string }> {
-  const session = await getSession();
-  if (!session) redirect("/login");
+  const session = await requireSession();
 
   const item = await db.query.items.findFirst({
     where: (i, { eq: qeq, and: qand }) => qand(qeq(i.id, itemId), qeq(i.userId, session.userId)),
@@ -315,8 +317,7 @@ export async function reorderItemsAction(
   bucketId: number,
   orderedIds: number[]
 ): Promise<{ ok: true } | { ok: false; error: string }> {
-  const session = await getSession();
-  if (!session) redirect("/login");
+  const session = await requireSession();
 
   const bucket = await db.query.buckets.findFirst({
     where: (b, { eq: qeq, and: qand }) => qand(qeq(b.id, bucketId), qeq(b.userId, session.userId)),
@@ -339,8 +340,7 @@ export async function reorderItemsAction(
 export async function deleteItemAction(
   itemId: number
 ): Promise<{ ok: true } | { ok: false; error: string }> {
-  const session = await getSession();
-  if (!session) redirect("/login");
+  const session = await requireSession();
 
   const item = await db.query.items.findFirst({
     where: (i, { eq: qeq, and: qand }) => qand(qeq(i.id, itemId), qeq(i.userId, session.userId)),
@@ -359,8 +359,7 @@ export async function deleteItemAction(
 export async function archiveBucketAction(
   bucketId: number
 ): Promise<{ ok: true } | { ok: false; error: string }> {
-  const session = await getSession();
-  if (!session) redirect("/login");
+  const session = await requireSession();
 
   await db
     .update(buckets)
@@ -374,8 +373,7 @@ export async function archiveBucketAction(
 export async function restoreBucketAction(
   bucketId: number
 ): Promise<{ ok: true } | { ok: false; error: string }> {
-  const session = await getSession();
-  if (!session) redirect("/login");
+  const session = await requireSession();
 
   await db
     .update(buckets)
@@ -389,8 +387,7 @@ export async function restoreBucketAction(
 export async function deleteBucketAction(
   bucketId: number
 ): Promise<{ ok: true } | { ok: false; error: string }> {
-  const session = await getSession();
-  if (!session) redirect("/login");
+  const session = await requireSession();
 
   await db
     .update(buckets)
@@ -404,8 +401,7 @@ export async function deleteBucketAction(
 export async function restoreDeletedBucketAction(
   bucketId: number
 ): Promise<{ ok: true } | { ok: false; error: string }> {
-  const session = await getSession();
-  if (!session) redirect("/login");
+  const session = await requireSession();
 
   await db
     .update(buckets)
@@ -419,8 +415,7 @@ export async function restoreDeletedBucketAction(
 export async function permanentlyDeleteBucketAction(
   bucketId: number
 ): Promise<{ ok: true } | { ok: false; error: string }> {
-  const session = await getSession();
-  if (!session) redirect("/login");
+  const session = await requireSession();
 
   await db.delete(buckets).where(and(eq(buckets.id, bucketId), eq(buckets.userId, session.userId)));
 
@@ -478,8 +473,7 @@ export async function createItemStatusAction(
   name: string,
   color: string
 ): Promise<{ ok: true } | { ok: false; error: string }> {
-  const session = await getSession();
-  if (!session) redirect("/login");
+  const session = await requireSession();
 
   const trimmed = name.trim();
   if (!trimmed) return { ok: false, error: "Name is required" };
@@ -518,8 +512,7 @@ export async function updateItemStatusAction(
   color: string,
   name?: string
 ): Promise<{ ok: true } | { ok: false; error: string }> {
-  const session = await getSession();
-  if (!session) redirect("/login");
+  const session = await requireSession();
 
   const status = await db.query.itemStatuses.findFirst({
     where: (s, { eq: qeq, and: qand }) => qand(qeq(s.id, id), qeq(s.userId, session.userId)),
@@ -552,8 +545,7 @@ export async function updateItemStatusAction(
 export async function deleteItemStatusAction(
   id: number
 ): Promise<{ ok: true } | { ok: false; error: string }> {
-  const session = await getSession();
-  if (!session) redirect("/login");
+  const session = await requireSession();
 
   const status = await db.query.itemStatuses.findFirst({
     where: (s, { eq: qeq, and: qand }) => qand(qeq(s.id, id), qeq(s.userId, session.userId)),

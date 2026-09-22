@@ -462,9 +462,13 @@ async function executeToolCallInner(
       if (!name) return JSON.stringify({ ok: false, error: "Name is required" });
       if (name.length > 30) return JSON.stringify({ ok: false, error: "Name too long (max 30)" });
 
-      const existing = await db.query.itemStatuses.findFirst({
-        where: (s, { eq: qeq, and: qand }) => qand(qeq(s.userId, userId), qeq(s.name, name)),
-      });
+      const [existing] = await db
+        .select({ id: itemStatuses.id })
+        .from(itemStatuses)
+        .where(
+          and(eq(itemStatuses.userId, userId), sql`lower(${itemStatuses.name}) = lower(${name})`)
+        )
+        .limit(1);
       if (existing) return JSON.stringify({ ok: false, error: "Status already exists" });
 
       const [maxRow] = await db

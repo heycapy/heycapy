@@ -10,12 +10,14 @@ import { CAPY_TOOLS, executeToolCall, getUpcomingItems } from "@/lib/ai/capyTool
 import type { AgentMessage } from "@/lib/ai/types";
 
 const bodySchema = z.object({
-  messages: z.array(
-    z.object({
-      role: z.enum(["user", "assistant", "system"]),
-      content: z.string(),
-    })
-  ),
+  messages: z
+    .array(
+      z.object({
+        role: z.enum(["user", "assistant", "system"]),
+        content: z.string().max(10_000),
+      })
+    )
+    .max(100),
   sessionId: z.number().nullish(),
 });
 

@@ -82,7 +82,8 @@ async function runNotifications(): Promise<void> {
         or(isNull(items.notifiedAt), lt(items.notifiedAt, todayMidnight)),
         or(isNull(items.snoozedUntil), lt(items.snoozedUntil, now))
       )
-    );
+    )
+    .limit(500);
 
   for (const row of candidates) {
     try {
