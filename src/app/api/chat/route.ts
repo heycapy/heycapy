@@ -85,30 +85,45 @@ export async function POST(req: Request) {
   let finalText = "";
   let lastAssistantContent = "";
 
-  for (let round = 0; round < 8; round++) {
-    const result = await provider.complete(agentMessages, CAPY_TOOLS);
+  try {
+    for (let round = 0; round < 8; round++) {
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      const result = await Promise.race([
+        provider.complete(agentMessages, CAPY_TOOLS),
+        new Promise<never>((_, reject) => {
+          timer = setTimeout(() => reject(new Error("AI provider timeout")), 30_000);
+        }),
+      ]).finally(() => clearTimeout(timer));
 
-    if (result.content) lastAssistantContent = result.content;
+      if (result.content) lastAssistantContent = result.content;
 
-    if (result.toolCalls.length === 0) {
-      finalText = result.content ?? "";
-      break;
-    }
+      if (result.toolCalls.length === 0) {
+        finalText = result.content ?? "";
+        break;
+      }
 
-    agentMessages.push({ role: "assistant", content: result.content, toolCalls: result.toolCalls });
-
-    for (const call of result.toolCalls) {
-      const toolResult = await executeToolCall(call, session.userId, timezone);
       agentMessages.push({
-        role: "tool",
-        toolCallId: call.id,
-        toolName: call.name,
-        content: toolResult,
+        role: "assistant",
+        content: result.content,
+        toolCalls: result.toolCalls,
       });
-    }
-  }
 
-  if (!finalText) finalText = lastAssistantContent;
+      for (const call of result.toolCalls) {
+        const toolResult = await executeToolCall(call, session.userId, timezone);
+        agentMessages.push({
+          role: "tool",
+          toolCallId: call.id,
+          toolName: call.name,
+          content: toolResult,
+        });
+      }
+    }
+
+    if (!finalText) finalText = lastAssistantContent;
+  } catch (err) {
+    process.stderr.write(`[chat] AI error: ${err instanceof Error ? err.message : String(err)}\n`);
+    return new Response("AI provider error. Please try again.", { status: 502 });
+  }
 
   const lastUserMsg = [...messages].reverse().find((m) => m.role === "user");
   let resolvedSessionId = sessionId ?? null;

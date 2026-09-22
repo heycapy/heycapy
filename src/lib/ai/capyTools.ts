@@ -1,5 +1,5 @@
 import { revalidatePath } from "next/cache";
-import { and, eq, isNull, or, sql } from "drizzle-orm";
+import { and, eq, isNull, lte, or, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { buckets, items, itemStatuses } from "@/lib/db/schema";
 import { RecurringConfig } from "@/types/rules";
@@ -470,30 +470,35 @@ export async function executeToolCall(
 }
 
 export async function getUpcomingItems(userId: number, timezone: string): Promise<UpcomingItem[]> {
-  const rows = await db
-    .select({
-      id: items.id,
-      title: items.title,
-      deadline: items.deadline,
-      bucketId: items.bucketId,
-    })
-    .from(items)
-    .where(and(eq(items.userId, userId), isNull(items.deletedAt), activeOnly));
+  const weekFromNow = new Date(Date.now() + 7 * 86_400_000);
 
-  const bucketRows = await db
-    .select({ id: buckets.id, name: buckets.name })
-    .from(buckets)
-    .where(and(eq(buckets.userId, userId), isNull(buckets.deletedAt)));
+  const [rows, bucketRows] = await Promise.all([
+    db
+      .select({
+        id: items.id,
+        title: items.title,
+        deadline: items.deadline,
+        bucketId: items.bucketId,
+      })
+      .from(items)
+      .where(
+        and(
+          eq(items.userId, userId),
+          isNull(items.deletedAt),
+          activeOnly,
+          lte(items.deadline, weekFromNow)
+        )
+      ),
+    db
+      .select({ id: buckets.id, name: buckets.name })
+      .from(buckets)
+      .where(and(eq(buckets.userId, userId), isNull(buckets.deletedAt))),
+  ]);
+
   const bucketMap = new Map(bucketRows.map((b) => [b.id, b.name]));
 
-  const now = new Date();
-  const weekFromNow = new Date(now.getTime() + 7 * 86_400_000);
-
   return rows
-    .filter((row): row is typeof row & { deadline: Date } => {
-      if (!row.deadline) return false;
-      return row.deadline <= weekFromNow;
-    })
+    .filter((row): row is typeof row & { deadline: Date } => row.deadline !== null)
     .map((row) => ({
       id: row.id,
       title: row.title,

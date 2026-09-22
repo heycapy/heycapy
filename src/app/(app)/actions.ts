@@ -94,8 +94,10 @@ export async function getItemsForBucketAction(
   try {
     const parsed = JSON.parse(bucket.itemsRules) as { sortBy?: string; sort_by?: string };
     sortBy = parsed.sortBy ?? parsed.sort_by ?? "manual";
-  } catch {
-    sortBy = "manual";
+  } catch (err) {
+    process.stderr.write(
+      `[actions] bucket ${bucketId} has malformed itemsRules: ${err instanceof Error ? err.message : String(err)}\n`
+    );
   }
 
   const condition = and(
