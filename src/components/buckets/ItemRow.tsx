@@ -176,27 +176,30 @@ export function ItemRow({
         >
           {item.title}
         </span>
-        {(item.deadline ?? item.notifiedAt) && (
-          <span className="mt-0.5 flex items-center gap-1 font-mono text-[10px]">
-            {recurringFreq && <span className="text-muted-foreground">↺ {recurringFreq} ·</span>}
-            {item.deadline && (
-              <span
-                className={cn(
-                  rel === "overdue"
-                    ? "bg-destructive/15 text-destructive px-1"
-                    : rel === "today"
-                      ? "font-medium text-(--status-snoozed)"
-                      : "text-muted-foreground"
-                )}
-              >
-                {recurringFreq ? "next " : ""}
-                {formatDeadline(item.deadline)}
-                {rel === "today" ? " · today" : rel === "overdue" ? " · overdue" : ""}
-              </span>
-            )}
-            {item.notifiedAt && <span className="text-muted-foreground">· notified</span>}
-          </span>
-        )}
+        <span className="mt-0.5 flex items-center gap-1 font-mono text-[10px]">
+          <span className="text-muted-foreground/30">#{item.id}</span>
+          {(item.deadline ?? item.notifiedAt) && (
+            <>
+              {recurringFreq && <span className="text-muted-foreground">· ↺ {recurringFreq}</span>}
+              {item.deadline && (
+                <span
+                  className={cn(
+                    rel === "overdue"
+                      ? "bg-destructive/15 text-destructive px-1"
+                      : rel === "today"
+                        ? "font-medium text-(--status-snoozed)"
+                        : "text-muted-foreground"
+                  )}
+                >
+                  {recurringFreq ? "next " : ""}
+                  {formatDeadline(item.deadline)}
+                  {rel === "today" ? " · today" : rel === "overdue" ? " · overdue" : ""}
+                </span>
+              )}
+              {item.notifiedAt && <span className="text-muted-foreground">· notified</span>}
+            </>
+          )}
+        </span>
       </button>
 
       {rel && rel !== "overdue" && rel !== "today" && (

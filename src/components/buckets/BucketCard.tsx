@@ -45,7 +45,10 @@ export function BucketCard({ bucket, items }: BucketCardProps) {
         onClick={() => setExpanded((v) => !v)}
       >
         <div className="flex min-w-0 flex-col gap-1">
-          <span className="font-pixel text-sm leading-snug">{bucket.name}</span>
+          <span className="flex items-baseline gap-1.5">
+            <span className="font-pixel text-sm leading-snug">{bucket.name}</span>
+            <span className="text-muted-foreground/40 font-mono text-[10px]">#{bucket.id}</span>
+          </span>
           {!expanded && nextItem && (
             <p
               className={cn(
