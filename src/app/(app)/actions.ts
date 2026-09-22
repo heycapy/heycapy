@@ -3,8 +3,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { and, asc, desc, eq, isNotNull, isNull, sql } from "drizzle-orm";
-import { getSession } from "@/lib/auth/session";
-import { deleteSession } from "@/lib/auth/session";
+import { getSession, deleteSession } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import {
   buckets,
@@ -96,7 +95,7 @@ export async function getItemsForBucketAction(
     const parsed = JSON.parse(bucket.itemsRules) as { sortBy?: string; sort_by?: string };
     sortBy = parsed.sortBy ?? parsed.sort_by ?? "manual";
   } catch {
-    /* keep default */
+    sortBy = "manual";
   }
 
   const condition = and(
@@ -176,7 +175,12 @@ export async function createBucketAction(
   });
   if (!template) return { ok: false, error: "Template not found" };
 
-  const rules = JSON.parse(template.rulesJson) as Record<string, unknown>;
+  let rules: Record<string, unknown>;
+  try {
+    rules = JSON.parse(template.rulesJson) as Record<string, unknown>;
+  } catch {
+    return { ok: false, error: "Template data is corrupted." };
+  }
 
   const [maxRow] = await db
     .select({ max: sql<number>`COALESCE(MAX(${buckets.sortOrder}), -1)` })
@@ -310,12 +314,14 @@ export async function reorderItemsAction(
   });
   if (!bucket) return { ok: false, error: "Bucket not found" };
 
-  for (let i = 0; i < orderedIds.length; i++) {
-    await db
-      .update(items)
-      .set({ sortOrder: i })
-      .where(and(eq(items.id, orderedIds[i]), eq(items.userId, session.userId)));
-  }
+  await db.transaction(async (tx) => {
+    for (let i = 0; i < orderedIds.length; i++) {
+      await tx
+        .update(items)
+        .set({ sortOrder: i })
+        .where(and(eq(items.id, orderedIds[i]), eq(items.userId, session.userId)));
+    }
+  });
 
   revalidatePath("/");
   return { ok: true };

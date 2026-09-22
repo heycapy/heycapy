@@ -7,14 +7,23 @@ import { sendEmail } from "@/lib/notifications/email";
 import { sendNtfy } from "@/lib/notifications/ntfy";
 import { APP_NAME } from "@/constants";
 
-function isInQuietHours(quietHours: { from: string; to: string }): boolean {
+function isInQuietHours(quietHours: { from: string; to: string }, timezone: string): boolean {
   const now = new Date();
-  const nowMins = now.getHours() * 60 + now.getMinutes();
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: timezone,
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).formatToParts(now);
+  const hour = parseInt(parts.find((p) => p.type === "hour")?.value ?? "0", 10);
+  const minute = parseInt(parts.find((p) => p.type === "minute")?.value ?? "0", 10);
+  const nowMins = hour * 60 + minute;
+
   const [fh, fm] = quietHours.from.split(":").map(Number);
   const [th, tm] = quietHours.to.split(":").map(Number);
   const fromMins = (fh ?? 0) * 60 + (fm ?? 0);
   const toMins = (th ?? 0) * 60 + (tm ?? 0);
-  // Crosses midnight when from > to (e.g. 22:00–08:00)
+
   return fromMins > toMins
     ? nowMins >= fromMins || nowMins < toMins
     : nowMins >= fromMins && nowMins < toMins;
@@ -46,8 +55,6 @@ function getNextDeadline(deadline: Date, config: RecurringConfig): Date {
 
 async function runNotifications(): Promise<void> {
   const now = new Date();
-
-  // For daily repeat: re-notify if last notification was before today (UTC midnight)
   const todayMidnight = new Date(now);
   todayMidnight.setUTCHours(0, 0, 0, 0);
 
@@ -56,6 +63,7 @@ async function runNotifications(): Promise<void> {
       item: items,
       bucketNotifRules: buckets.notificationsRules,
       userEmail: users.email,
+      userTimezone: userSettings.timezone,
       notificationsEmail: userSettings.notificationsEmail,
       notificationsPush: userSettings.notificationsPush,
       ntfyUrl: userSettings.ntfyUrl,
@@ -85,16 +93,13 @@ async function runNotifications(): Promise<void> {
       const deadline = row.item.deadline;
       if (!deadline) continue;
 
-      // Skip if already notified today for once-only buckets
       if (row.item.notifiedAt && rules.repeat !== "daily") continue;
 
       const offsetMins = row.item.notificationOffsetMins ?? rules.defaultOffsetMins;
       const triggerTime = new Date(deadline.getTime() - offsetMins * 60 * 1000);
 
-      // Don't notify until the trigger window has opened (deadline - offset <= now)
       if (triggerTime > now) continue;
 
-      // Compute the actual send time: today at notifyAt clock time, or immediately
       let sendTime: Date;
       if (rules.notifyAt) {
         const [h, m] = rules.notifyAt.split(":").map(Number);
@@ -105,7 +110,7 @@ async function runNotifications(): Promise<void> {
       }
       if (sendTime > now) continue;
 
-      if (rules.quietHours && isInQuietHours(rules.quietHours)) continue;
+      if (rules.quietHours && isInQuietHours(rules.quietHours, row.userTimezone)) continue;
 
       const deadlineStr = deadline.toLocaleDateString("en-US", {
         month: "short",
@@ -116,20 +121,14 @@ async function runNotifications(): Promise<void> {
       const message = `Reminder: "${row.item.title}" is due ${deadlineStr}`;
 
       const sent: ("email" | "ntfy")[] = [];
+      const failures: { medium: "email" | "ntfy"; error: string }[] = [];
 
       if (rules.medium.includes("email") && row.notificationsEmail) {
         try {
           await sendEmail(row.userEmail, subject, message);
           sent.push("email");
         } catch (err) {
-          await db.insert(notificationLog).values({
-            itemId: row.item.id,
-            userId: row.item.userId,
-            medium: "email",
-            message,
-            status: "failed",
-            error: errorMessage(err),
-          });
+          failures.push({ medium: "email", error: errorMessage(err) });
         }
       }
 
@@ -138,22 +137,35 @@ async function runNotifications(): Promise<void> {
           await sendNtfy(row.ntfyUrl, row.ntfyTopic, subject, message);
           sent.push("ntfy");
         } catch (err) {
-          await db.insert(notificationLog).values({
-            itemId: row.item.id,
-            userId: row.item.userId,
-            medium: "ntfy",
-            message,
-            status: "failed",
-            error: errorMessage(err),
-          });
+          failures.push({ medium: "ntfy", error: errorMessage(err) });
         }
+      }
+
+      for (const f of failures) {
+        await db.insert(notificationLog).values({
+          itemId: row.item.id,
+          userId: row.item.userId,
+          medium: f.medium,
+          message,
+          status: "failed",
+          error: f.error,
+        });
       }
 
       if (sent.length === 0) continue;
 
-      // Stamp notifiedAt and (for recurring) spawn the next occurrence atomically
       await db.transaction(async (tx) => {
         await tx.update(items).set({ notifiedAt: now }).where(eq(items.id, row.item.id));
+
+        for (const medium of sent) {
+          await tx.insert(notificationLog).values({
+            itemId: row.item.id,
+            userId: row.item.userId,
+            medium,
+            message,
+            status: "sent",
+          });
+        }
 
         if (row.item.recurring) {
           const recurringConfig = RecurringConfig.parse(JSON.parse(row.item.recurring));
@@ -176,17 +188,9 @@ async function runNotifications(): Promise<void> {
           }
         }
       });
-
-      for (const medium of sent) {
-        await db.insert(notificationLog).values({
-          itemId: row.item.id,
-          userId: row.item.userId,
-          medium,
-          message,
-          status: "sent",
-        });
-      }
-    } catch {}
+    } catch (err) {
+      process.stderr.write(`[scheduler] item ${row.item.id} failed: ${errorMessage(err)}\n`);
+    }
   }
 }
 
