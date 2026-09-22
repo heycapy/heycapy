@@ -394,25 +394,26 @@ async function executeToolCallInner(
         ...(bucketId !== null ? [eq(items.bucketId, bucketId)] : []),
       ];
 
-      const rows = await db
-        .select({
-          id: items.id,
-          title: items.title,
-          deadline: items.deadline,
-          status: items.status,
-          bucketId: items.bucketId,
-          notificationOffsetMins: items.notificationOffsetMins,
-          snoozedUntil: items.snoozedUntil,
-        })
-        .from(items)
-        .where(and(...conditions));
+      const [rows, bucketRows] = await Promise.all([
+        db
+          .select({
+            id: items.id,
+            title: items.title,
+            deadline: items.deadline,
+            status: items.status,
+            bucketId: items.bucketId,
+            notificationOffsetMins: items.notificationOffsetMins,
+            snoozedUntil: items.snoozedUntil,
+          })
+          .from(items)
+          .where(and(...conditions)),
+        db
+          .select({ id: buckets.id, name: buckets.name })
+          .from(buckets)
+          .where(and(eq(buckets.userId, userId), isNull(buckets.deletedAt))),
+      ]);
 
       const keywordWords = keyword ? keyword.toLowerCase().split(/\s+/).filter(Boolean) : null;
-
-      const bucketRows = await db
-        .select({ id: buckets.id, name: buckets.name })
-        .from(buckets)
-        .where(and(eq(buckets.userId, userId), isNull(buckets.deletedAt)));
       const bucketMap = new Map(bucketRows.map((b) => [b.id, b.name]));
 
       const enriched = rows

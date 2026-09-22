@@ -66,8 +66,7 @@ export async function sendOtpAction(email: string): Promise<SendOtpResult> {
   const code = await createOtp(email);
 
   if (isDev) {
-    // eslint-disable-next-line no-console
-    console.log(`[heycapy] OTP for ${email}: ${code}`);
+    process.stderr.write(`[heycapy] OTP for ${email}: ${code}\n`);
     return { ok: true, devCode: code };
   }
 
