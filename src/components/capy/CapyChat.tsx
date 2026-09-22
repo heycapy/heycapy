@@ -2,13 +2,14 @@
 
 import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
+import { cn } from "@/lib/utils";
 import { useChatStream } from "./useChatStream";
 import { ChatMessageList } from "./ChatMessageList";
 import { ChatInputBar, type ChatInputBarHandle } from "./ChatInputBar";
 import { CapyChatHeader } from "./CapyChatHeader";
 import { ChatHistorySheet } from "./ChatHistorySheet";
 import { Sprite } from "./Sprite";
-import { DEFAULT_W, DEFAULT_H, HEADER_H } from "./chatTypes";
+import { DEFAULT_H, HEADER_H } from "./chatTypes";
 
 type ChatState = "closed" | "open" | "minimized" | "fullscreen";
 
@@ -67,17 +68,12 @@ export function CapyChat() {
 
   const bodyH = DEFAULT_H - HEADER_H;
 
-  const panelStyle =
+  const panelClassName = cn(
+    "border-border bg-background flex flex-col border-2 fixed z-50",
     chatState === "fullscreen"
-      ? { position: "fixed" as const, inset: 8, zIndex: 50, boxShadow: "5px 5px 0 var(--border)" }
-      : {
-          position: "fixed" as const,
-          bottom: 0,
-          right: 24,
-          width: DEFAULT_W,
-          zIndex: 50,
-          boxShadow: "5px 5px 0 var(--border)",
-        };
+      ? "inset-2"
+      : "bottom-0 inset-x-0 md:inset-x-auto md:right-6 md:w-[308px]"
+  );
 
   const body = (
     <>
@@ -99,7 +95,7 @@ export function CapyChat() {
 
   return (
     <>
-      <motion.div style={panelStyle} className="border-border bg-background flex flex-col border-2">
+      <motion.div style={{ boxShadow: "5px 5px 0 var(--border)" }} className={panelClassName}>
         <CapyChatHeader
           fullscreen={chatState === "fullscreen"}
           minimized={chatState === "minimized"}

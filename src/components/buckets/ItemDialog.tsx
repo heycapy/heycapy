@@ -167,11 +167,11 @@ export function ItemDialog({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.96, y: -10 }}
             transition={{ duration: 0.15, ease: "easeOut" }}
-            className="fixed top-[22%] left-1/2 z-[60] w-full max-w-xs -translate-x-1/2"
+            className="fixed top-[10%] left-1/2 z-[60] w-[calc(100%-2rem)] max-w-xs -translate-x-1/2 sm:top-[22%]"
             style={{ boxShadow: "5px 5px 0 var(--border)" }}
           >
-            <div className="border-border bg-background overflow-hidden border-2">
-              <div className="bg-foreground text-background flex items-center justify-between px-3 py-1.5">
+            <div className="border-border bg-background flex max-h-[80vh] flex-col overflow-hidden border-2">
+              <div className="bg-foreground text-background flex shrink-0 items-center justify-between px-3 py-1.5">
                 <span className="font-pixel text-xs">
                   {mode === "add" ? "new item" : "edit item"}
                 </span>
@@ -180,7 +180,7 @@ export function ItemDialog({
                 </BracketButton>
               </div>
 
-              <div className="flex flex-col gap-4 px-4 py-4">
+              <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-4 py-4">
                 <div className="flex flex-col gap-1.5">
                   <label className="text-muted-foreground font-mono text-[10px]">title</label>
                   <textarea
@@ -334,7 +334,7 @@ export function ItemDialog({
                 </div>
               </div>
 
-              <div className="border-border flex items-center justify-between border-t px-3 py-2.5">
+              <div className="border-border flex shrink-0 items-center justify-between border-t px-3 py-2.5">
                 {onDelete ? (
                   <button
                     onClick={onDelete}

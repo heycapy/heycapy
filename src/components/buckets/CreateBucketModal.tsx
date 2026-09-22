@@ -83,7 +83,7 @@ export function CreateBucketModal({ templates }: CreateBucketModalProps) {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -6, scale: 0.97 }}
             transition={transition}
-            className="bg-background border-border fixed top-[18%] left-1/2 z-[60] w-full max-w-sm -translate-x-1/2 overflow-hidden rounded-md border shadow-2xl"
+            className="bg-background border-border fixed top-[18%] left-1/2 z-[60] w-[calc(100%-2rem)] max-w-sm -translate-x-1/2 overflow-hidden rounded-md border shadow-2xl"
           >
             <AnimatePresence mode="wait" initial={false}>
               {step === "pick" ? (

@@ -194,11 +194,11 @@ export function BucketSettings({ open, bucket, onClose }: BucketSettingsProps) {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.96, y: -10 }}
             transition={{ duration: 0.15, ease: "easeOut" }}
-            className="fixed top-[12%] left-1/2 z-[60] w-full max-w-sm -translate-x-1/2"
+            className="fixed top-[8%] left-1/2 z-[60] w-[calc(100%-2rem)] max-w-sm -translate-x-1/2 sm:top-[12%]"
             style={{ boxShadow: "5px 5px 0 var(--border)" }}
           >
-            <div className="border-border bg-background overflow-hidden border-2">
-              <div className="bg-foreground text-background flex items-center justify-between gap-2 px-3 py-1.5">
+            <div className="border-border bg-background flex max-h-[85vh] flex-col overflow-hidden border-2">
+              <div className="bg-foreground text-background flex shrink-0 items-center justify-between gap-2 px-3 py-1.5">
                 <span className="font-pixel min-w-0 truncate text-xs">
                   bucket settings [{bucket.name}]
                 </span>
@@ -207,7 +207,7 @@ export function BucketSettings({ open, bucket, onClose }: BucketSettingsProps) {
                 </BracketButton>
               </div>
 
-              <div className="flex flex-col gap-4 px-4 pt-4 pb-0">
+              <div className="flex shrink-0 flex-col gap-4 px-4 pt-4 pb-0">
                 <div className="flex flex-col gap-1.5">
                   <label className={LABEL}>name</label>
                   <input
@@ -229,7 +229,7 @@ export function BucketSettings({ open, bucket, onClose }: BucketSettingsProps) {
                 </div>
               </div>
 
-              <div className="flex flex-col gap-4 px-4 py-4">
+              <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-4 py-4">
                 {tab === "items" && (
                   <>
                     <div className="flex flex-col gap-1.5">
@@ -314,8 +314,8 @@ export function BucketSettings({ open, bucket, onClose }: BucketSettingsProps) {
                 )}
               </div>
 
-              <div className="border-border flex items-center justify-between border-t px-3 py-2.5">
-                <div className="flex items-center gap-2">
+              <div className="border-border flex shrink-0 flex-wrap items-center justify-between gap-y-2 border-t px-3 py-2.5">
+                <div className="flex flex-wrap items-center gap-2">
                   <BracketButton variant="destructive" onClick={handleArchive} disabled={pending}>
                     archive
                   </BracketButton>
