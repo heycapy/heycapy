@@ -8,6 +8,7 @@ import { ArchivedBucketsSheet } from "@/components/buckets/ArchivedBucketsSheet"
 import { TrashSheet } from "@/components/buckets/TrashSheet";
 import { getItemStatusesAction } from "@/app/(app)/actions";
 import { useUIStore } from "@/store/ui";
+import { useServerEvents } from "@/hooks/useServerEvents";
 
 const CapyChat = dynamic(() => import("@/components/capy/CapyChat").then((m) => m.CapyChat), {
   ssr: false,
@@ -18,6 +19,8 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [archivedOpen, setArchivedOpen] = useState(false);
   const [trashOpen, setTrashOpen] = useState(false);
   const setStatuses = useUIStore((s) => s.setStatuses);
+
+  useServerEvents();
 
   useEffect(() => {
     void getItemStatusesAction().then((r) => {

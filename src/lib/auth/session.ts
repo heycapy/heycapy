@@ -43,6 +43,12 @@ export async function getSession(): Promise<SessionPayload | null> {
   }
 }
 
+export async function requireApiSession(): Promise<[SessionPayload, null] | [null, Response]> {
+  const session = await getSession();
+  if (!session) return [null, new Response("Unauthorized", { status: 401 })];
+  return [session, null];
+}
+
 export async function deleteSession() {
   const cookieStore = await cookies();
   cookieStore.delete(SESSION_COOKIE_NAME);

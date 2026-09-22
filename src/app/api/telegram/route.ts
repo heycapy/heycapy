@@ -7,6 +7,7 @@ import { buildSystemPrompt } from "@/lib/ai/systemPrompt";
 import { CAPY_TOOLS, executeToolCall, getUpcomingItems } from "@/lib/ai/capyTools";
 import { sendTelegram } from "@/lib/notifications/telegram";
 import { compactSessionIfNeeded } from "@/lib/ai/compact";
+import { dataEvents } from "@/lib/events";
 import type { AgentMessage } from "@/lib/ai/types";
 
 type TelegramUpdate = {
@@ -188,6 +189,8 @@ export async function POST(req: Request) {
     .where(eq(chatSessions.id, session.id));
 
   void compactSessionIfNeeded(session.id, provider, row.aiCompactThreshold ?? 40);
+
+  dataEvents.emit("refresh", userId);
 
   return new Response("OK");
 }

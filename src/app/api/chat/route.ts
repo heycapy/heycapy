@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { and, eq, isNull } from "drizzle-orm";
-import { getSession } from "@/lib/auth/session";
+import { requireApiSession } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { buckets, chatMessages, chatSessions, userSettings, users } from "@/lib/db/schema";
 import { getAIProvider } from "@/lib/ai";
@@ -23,8 +23,8 @@ const bodySchema = z.object({
 });
 
 export async function POST(req: Request) {
-  const session = await getSession();
-  if (!session) return new Response("Unauthorized", { status: 401 });
+  const [session, authErr] = await requireApiSession();
+  if (authErr) return authErr;
 
   const parsed = bodySchema.safeParse(await req.json());
   if (!parsed.success) {
