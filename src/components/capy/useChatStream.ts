@@ -2,27 +2,35 @@ import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { Message } from "@/lib/ai/types";
 import { useUIStore } from "@/store/ui";
+import { useChatStore } from "@/store/chat";
 import { GREETING } from "./chatTypes";
-import type { ChatMessage } from "./chatTypes";
 
 export function useChatStream() {
   const router = useRouter();
   const tickAiRefresh = useUIStore((s) => s.tickAiRefresh);
 
-  const [messages, setMessages] = useState<ChatMessage[]>([GREETING]);
+  const messages = useChatStore((s) => s.messages);
+  const sessionId = useChatStore((s) => s.sessionId);
+  const setSessionId = useChatStore((s) => s.setSessionId);
+  const setMessages = useChatStore((s) => s.setMessages);
+  const appendChunkToLast = useChatStore((s) => s.appendChunkToLast);
+  const markLastStopped = useChatStore((s) => s.markLastStopped);
+  const markLastError = useChatStore((s) => s.markLastError);
+  const clearChat = useChatStore((s) => s.clearChat);
+  const loadSession = useChatStore((s) => s.loadSession);
+
   const [input, setInput] = useState("");
   const [streaming, setStreaming] = useState(false);
-  const [sessionId, setSessionId] = useState<number | null>(null);
   const abortRef = useRef<AbortController | null>(null);
 
   async function sendMessage() {
     const text = input.trim();
     if (!text || streaming) return;
 
-    const userMsg: ChatMessage = { id: crypto.randomUUID(), role: "user", content: text };
-    const assistantMsg: ChatMessage = { id: crypto.randomUUID(), role: "assistant", content: "" };
+    const userMsg = { id: crypto.randomUUID(), role: "user" as const, content: text };
+    const assistantMsg = { id: crypto.randomUUID(), role: "assistant" as const, content: "" };
 
-    setMessages((prev) => [...prev, userMsg, assistantMsg]);
+    setMessages([...messages, userMsg, assistantMsg]);
     setInput("");
     setStreaming(true);
 
@@ -56,28 +64,15 @@ export function useChatStream() {
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
-        const chunk = decoder.decode(value, { stream: true });
-        setMessages((prev) => {
-          const last = prev.at(-1);
-          if (!last) return prev;
-          return [...prev.slice(0, -1), { ...last, content: last.content + chunk }];
-        });
+        appendChunkToLast(decoder.decode(value, { stream: true }));
       }
     } catch (err) {
       if (err instanceof Error && err.name === "AbortError") {
         aborted = true;
-        setMessages((prev) => {
-          const last = prev.at(-1);
-          if (!last) return prev;
-          return [...prev.slice(0, -1), { ...last, stopped: true }];
-        });
+        markLastStopped();
         return;
       }
-      setMessages((prev) => {
-        const last = prev.at(-1);
-        if (!last) return prev;
-        return [...prev.slice(0, -1), { ...last, content: "Something went wrong. Try again." }];
-      });
+      markLastError();
     } finally {
       setStreaming(false);
       abortRef.current = null;
@@ -90,16 +85,6 @@ export function useChatStream() {
 
   function stopStreaming() {
     abortRef.current?.abort();
-  }
-
-  function clearChat() {
-    setMessages([GREETING]);
-    setSessionId(null);
-  }
-
-  function loadSession(id: number, msgs: ChatMessage[]) {
-    setMessages(msgs);
-    setSessionId(id);
   }
 
   return {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -16,19 +16,26 @@ interface BucketsShellProps {
 }
 
 export function BucketsShell({ buckets }: BucketsShellProps) {
-  const [activeId, setActiveId] = useState<number>(buckets[0]?.id ?? -1);
   const openCreateBucket = useUIStore((s) => s.openCreateBucket);
+  const activeBucketId = useUIStore((s) => s.activeBucketId);
+  const setActiveBucketId = useUIStore((s) => s.setActiveBucketId);
   const prevBucketsRef = useRef<BucketRow[]>(buckets);
 
+  const activeId =
+    activeBucketId !== null && buckets.some((b) => b.id === activeBucketId)
+      ? activeBucketId
+      : (buckets[0]?.id ?? -1);
+
   useEffect(() => {
-    const stillExists = buckets.some((b) => b.id === activeId);
+    if (activeBucketId === null) return;
+    const stillExists = buckets.some((b) => b.id === activeBucketId);
     if (!stillExists && buckets.length > 0) {
-      const prevIndex = prevBucketsRef.current.findIndex((b) => b.id === activeId);
+      const prevIndex = prevBucketsRef.current.findIndex((b) => b.id === activeBucketId);
       const nextIndex = Math.min(prevIndex, buckets.length - 1);
-      setActiveId(buckets[Math.max(nextIndex, 0)].id);
+      setActiveBucketId(buckets[Math.max(nextIndex, 0)].id);
     }
     prevBucketsRef.current = buckets;
-  }, [buckets, activeId]);
+  }, [buckets, activeBucketId, setActiveBucketId]);
 
   const activeBucket = buckets.find((b) => b.id === activeId) ?? buckets[0];
   const activeIndex = buckets.findIndex((b) => b.id === activeId);
@@ -75,7 +82,7 @@ export function BucketsShell({ buckets }: BucketsShellProps) {
             </div>
             <select
               value={activeId}
-              onChange={(e) => setActiveId(Number(e.target.value))}
+              onChange={(e) => setActiveBucketId(Number(e.target.value))}
               className="absolute inset-0 w-full cursor-pointer opacity-0"
               aria-label="Select bucket"
             >
@@ -104,7 +111,7 @@ export function BucketsShell({ buckets }: BucketsShellProps) {
             return (
               <button
                 key={bucket.id}
-                onClick={() => setActiveId(bucket.id)}
+                onClick={() => setActiveBucketId(bucket.id)}
                 style={isActive ? { borderTopColor: color } : undefined}
                 className={cn(
                   "-mt-0.5 max-w-[140px] shrink-0 border-t-2 px-3 py-2.5 text-left transition-colors",
