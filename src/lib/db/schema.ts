@@ -66,6 +66,20 @@ export const userSettings = sqliteTable("user_settings", {
     .default(sql`(unixepoch())`),
 });
 
+// auth_rate_limits
+
+export const authRateLimits = sqliteTable("auth_rate_limits", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  email: text("email").notNull().unique(),
+  otpSendCount: integer("otp_send_count").notNull().default(0),
+  otpSendWindowStart: integer("otp_send_window_start", { mode: "timestamp" }),
+  verifyFailCount: integer("verify_fail_count").notNull().default(0),
+  lockedUntil: integer("locked_until", { mode: "timestamp" }),
+  updatedAt: integer("updated_at", { mode: "timestamp" })
+    .notNull()
+    .default(sql`(unixepoch())`),
+});
+
 // otps
 
 export const otps = sqliteTable("otps", {

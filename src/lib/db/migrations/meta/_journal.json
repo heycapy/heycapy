@@ -29,6 +29,13 @@
       "when": 1790058956692,
       "tag": "0003_shallow_sentry",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1790075554757,
+      "tag": "0004_hot_betty_ross",
+      "breakpoints": true
     }
   ]
 }
