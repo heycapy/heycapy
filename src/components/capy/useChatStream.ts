@@ -26,10 +26,9 @@ export function useChatStream() {
     setInput("");
     setStreaming(true);
 
-    const apiMessages: Message[] = [...messages, userMsg].map((m) => ({
-      role: m.role,
-      content: m.content,
-    }));
+    const apiMessages: Message[] = [...messages, userMsg]
+      .filter((m) => m.id !== GREETING.id)
+      .map((m) => ({ role: m.role, content: m.content }));
 
     const abort = new AbortController();
     abortRef.current = abort;

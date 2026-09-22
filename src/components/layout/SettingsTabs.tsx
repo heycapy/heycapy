@@ -6,6 +6,7 @@ import { Toggle } from "@/components/ui/Toggle";
 import { OptionGroup } from "@/components/ui/OptionGroup";
 import { LABEL, INPUT, THEMES, TONE_OPTIONS, PROVIDER_OPTIONS } from "./settings-constants";
 import type { UserTone, AIProvider } from "./settings-constants";
+import { OLLAMA_DEFAULT_URL, NTFY_DEFAULT_URL } from "@/constants";
 
 interface AppearanceTabProps {
   theme: string | undefined;
@@ -78,6 +79,12 @@ interface NotificationsTabProps {
   setNtfyUrl: (v: string) => void;
   ntfyTopic: string;
   setNtfyTopic: (v: string) => void;
+  notificationsTelegram: boolean;
+  setNotificationsTelegram: (v: boolean) => void;
+  telegramBotToken: string;
+  setTelegramBotToken: (v: string) => void;
+  telegramChatId: string;
+  setTelegramChatId: (v: string) => void;
   pending: boolean;
 }
 
@@ -90,6 +97,12 @@ export function NotificationsTab({
   setNtfyUrl,
   ntfyTopic,
   setNtfyTopic,
+  notificationsTelegram,
+  setNotificationsTelegram,
+  telegramBotToken,
+  setTelegramBotToken,
+  telegramChatId,
+  setTelegramChatId,
   pending,
 }: NotificationsTabProps) {
   const [copied, setCopied] = useState(false);
@@ -128,7 +141,7 @@ export function NotificationsTab({
             type="text"
             value={ntfyUrl}
             onChange={(e) => setNtfyUrl(e.target.value)}
-            placeholder="https://ntfy.sh"
+            placeholder={NTFY_DEFAULT_URL}
             maxLength={200}
             disabled={pending}
             className={INPUT}
@@ -172,6 +185,47 @@ export function NotificationsTab({
           />
         </div>
       </div>
+
+      <div className="border-border flex flex-col gap-3 border-t pt-3">
+        <span className="text-muted-foreground font-mono text-[10px] font-semibold tracking-widest uppercase">
+          telegram
+        </span>
+        <div className="flex items-center justify-between">
+          <label className={LABEL}>enabled</label>
+          <Toggle
+            value={notificationsTelegram}
+            onChange={setNotificationsTelegram}
+            disabled={pending}
+          />
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <label className={LABEL}>bot token</label>
+          <input
+            type="password"
+            value={telegramBotToken}
+            onChange={(e) => setTelegramBotToken(e.target.value)}
+            placeholder="1234567890:ABC..."
+            maxLength={200}
+            disabled={pending}
+            className={INPUT}
+          />
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <label className={LABEL}>chat id</label>
+          <input
+            type="text"
+            value={telegramChatId}
+            onChange={(e) => setTelegramChatId(e.target.value)}
+            placeholder="123456789"
+            maxLength={50}
+            disabled={pending}
+            className={INPUT}
+          />
+        </div>
+        <p className="text-muted-foreground font-mono text-[9px]">
+          Get a bot token from @BotFather · Get your chat ID from @userinfobot
+        </p>
+      </div>
     </>
   );
 }
@@ -185,6 +239,8 @@ interface AITabProps {
   setAiModel: (v: string) => void;
   aiOllamaUrl: string;
   setAiOllamaUrl: (v: string) => void;
+  aiCompactThreshold: number;
+  setAiCompactThreshold: (v: number) => void;
   pending: boolean;
 }
 
@@ -197,6 +253,8 @@ export function AITab({
   setAiModel,
   aiOllamaUrl,
   setAiOllamaUrl,
+  aiCompactThreshold,
+  setAiCompactThreshold,
   pending,
 }: AITabProps) {
   return (
@@ -217,7 +275,7 @@ export function AITab({
             type="text"
             value={aiOllamaUrl}
             onChange={(e) => setAiOllamaUrl(e.target.value)}
-            placeholder="http://localhost:11434"
+            placeholder={OLLAMA_DEFAULT_URL}
             maxLength={200}
             disabled={pending}
             className={INPUT}
@@ -249,12 +307,32 @@ export function AITab({
               ? "llama3.2"
               : aiProvider === "openai"
                 ? "gpt-4o"
-                : "claude-sonnet-4-6"
+                : aiProvider === "groq"
+                  ? "llama-3.3-70b-versatile"
+                  : aiProvider === "gemini"
+                    ? "gemini-2.0-flash"
+                    : "claude-sonnet-4-6"
           }
           maxLength={100}
           disabled={pending}
           className={INPUT}
         />
+      </div>
+      <div className="flex flex-col gap-1.5">
+        <label className={LABEL}>autocompact after</label>
+        <input
+          type="number"
+          value={aiCompactThreshold}
+          onChange={(e) => setAiCompactThreshold(Math.max(10, parseInt(e.target.value) || 40))}
+          placeholder="40"
+          min={10}
+          max={500}
+          disabled={pending}
+          className={INPUT}
+        />
+        <span className="text-muted-foreground/50 font-mono text-[9px]">
+          messages before compacting chat history — increase for more powerful models
+        </span>
       </div>
     </>
   );

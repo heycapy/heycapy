@@ -5,6 +5,7 @@ import { items, buckets, users, userSettings, notificationLog } from "@/lib/db/s
 import { NotificationRules, RecurringConfig } from "@/types/rules";
 import { sendEmail } from "@/lib/notifications/email";
 import { sendNtfy } from "@/lib/notifications/ntfy";
+import { sendTelegram } from "@/lib/notifications/telegram";
 import { APP_NAME } from "@/constants";
 
 function isInQuietHours(quietHours: { from: string; to: string }, timezone: string): boolean {
@@ -68,6 +69,9 @@ async function runNotifications(): Promise<void> {
       notificationsPush: userSettings.notificationsPush,
       ntfyUrl: userSettings.ntfyUrl,
       ntfyTopic: userSettings.ntfyTopic,
+      telegramBotToken: userSettings.telegramBotToken,
+      telegramChatId: userSettings.telegramChatId,
+      notificationsTelegram: userSettings.notificationsTelegram,
     })
     .from(items)
     .innerJoin(buckets, eq(items.bucketId, buckets.id))
@@ -121,8 +125,8 @@ async function runNotifications(): Promise<void> {
       const subject = `[${APP_NAME}] ${row.item.title}`;
       const message = `Reminder: "${row.item.title}" is due ${deadlineStr}`;
 
-      const sent: ("email" | "ntfy")[] = [];
-      const failures: { medium: "email" | "ntfy"; error: string }[] = [];
+      const sent: ("email" | "ntfy" | "telegram")[] = [];
+      const failures: { medium: "email" | "ntfy" | "telegram"; error: string }[] = [];
 
       if (rules.medium.includes("email") && row.notificationsEmail) {
         try {
@@ -142,6 +146,20 @@ async function runNotifications(): Promise<void> {
         }
       }
 
+      if (
+        rules.medium.includes("telegram") &&
+        row.notificationsTelegram &&
+        row.telegramBotToken &&
+        row.telegramChatId
+      ) {
+        try {
+          await sendTelegram(row.telegramBotToken, row.telegramChatId, message);
+          sent.push("telegram");
+        } catch (err) {
+          failures.push({ medium: "telegram", error: errorMessage(err) });
+        }
+      }
+
       for (const f of failures) {
         await db.insert(notificationLog).values({
           itemId: row.item.id,
@@ -155,17 +173,19 @@ async function runNotifications(): Promise<void> {
 
       if (sent.length === 0) continue;
 
-      await db.transaction(async (tx) => {
-        await tx.update(items).set({ notifiedAt: now }).where(eq(items.id, row.item.id));
+      db.transaction((tx) => {
+        tx.update(items).set({ notifiedAt: now }).where(eq(items.id, row.item.id)).run();
 
         for (const medium of sent) {
-          await tx.insert(notificationLog).values({
-            itemId: row.item.id,
-            userId: row.item.userId,
-            medium,
-            message,
-            status: "sent",
-          });
+          tx.insert(notificationLog)
+            .values({
+              itemId: row.item.id,
+              userId: row.item.userId,
+              medium,
+              message,
+              status: "sent",
+            })
+            .run();
         }
 
         if (row.item.recurring) {
@@ -178,16 +198,18 @@ async function runNotifications(): Promise<void> {
             const withinEndDate =
               !recurringConfig.endDate || nextDeadline <= new Date(recurringConfig.endDate);
             if (withinEndDate) {
-              await tx.insert(items).values({
-                bucketId: row.item.bucketId,
-                userId: row.item.userId,
-                title: row.item.title,
-                deadline: nextDeadline,
-                status: "active",
-                notificationOffsetMins: row.item.notificationOffsetMins,
-                recurring: row.item.recurring,
-                source: row.item.source,
-              });
+              tx.insert(items)
+                .values({
+                  bucketId: row.item.bucketId,
+                  userId: row.item.userId,
+                  title: row.item.title,
+                  deadline: nextDeadline,
+                  status: "active",
+                  notificationOffsetMins: row.item.notificationOffsetMins,
+                  recurring: row.item.recurring,
+                  source: row.item.source,
+                })
+                .run();
             }
           }
         }

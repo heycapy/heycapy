@@ -53,14 +53,20 @@ export const userSettings = sqliteTable("user_settings", {
     .default("chill"),
   personalityEmoji: integer("personality_emoji", { mode: "boolean" }).notNull().default(true),
   personalityCustomPrompt: text("personality_custom_prompt"),
-  aiProvider: text("ai_provider", { enum: ["ollama", "openai", "anthropic"] }),
+  aiProvider: text("ai_provider", { enum: ["ollama", "openai", "anthropic", "groq", "gemini"] }),
   aiApiKey: text("ai_api_key"),
   aiModel: text("ai_model"),
   aiOllamaUrl: text("ai_ollama_url"),
+  aiCompactThreshold: integer("ai_compact_threshold").notNull().default(40),
   notificationsEmail: integer("notifications_email", { mode: "boolean" }).notNull().default(true),
   notificationsPush: integer("notifications_push", { mode: "boolean" }).notNull().default(true),
   ntfyUrl: text("ntfy_url"),
   ntfyTopic: text("ntfy_topic"),
+  telegramBotToken: text("telegram_bot_token"),
+  telegramChatId: text("telegram_chat_id"),
+  notificationsTelegram: integer("notifications_telegram", { mode: "boolean" })
+    .notNull()
+    .default(false),
   updatedAt: integer("updated_at", { mode: "timestamp" })
     .notNull()
     .default(sql`(unixepoch())`),
@@ -175,7 +181,7 @@ export const notificationLog = sqliteTable("notification_log", {
   userId: integer("user_id")
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
-  medium: text("medium", { enum: ["email", "ntfy"] }).notNull(),
+  medium: text("medium", { enum: ["email", "ntfy", "telegram"] }).notNull(),
   message: text("message").notNull(),
   status: text("status", { enum: ["sent", "failed"] })
     .notNull()
@@ -194,6 +200,10 @@ export const chatSessions = sqliteTable("chat_sessions", {
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
   title: text("title").notNull(),
+  source: text("source", { enum: ["web", "telegram"] })
+    .notNull()
+    .default("web"),
+  summary: text("summary"),
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
     .default(sql`(unixepoch())`),

@@ -24,7 +24,7 @@ export const THEMES = [
 ] as const;
 
 export type UserTone = "chill" | "professional" | "motivational" | "custom";
-export type AIProvider = "ollama" | "openai" | "anthropic";
+export type AIProvider = "ollama" | "openai" | "anthropic" | "groq" | "gemini";
 
 export const TONE_OPTIONS: { value: UserTone; label: string }[] = [
   { value: "chill", label: "chill" },
@@ -37,4 +37,6 @@ export const PROVIDER_OPTIONS: { value: AIProvider; label: string }[] = [
   { value: "ollama", label: "ollama" },
   { value: "openai", label: "openai" },
   { value: "anthropic", label: "anthropic" },
+  { value: "groq", label: "groq" },
+  { value: "gemini", label: "gemini" },
 ];

@@ -2,7 +2,7 @@ import type { LucideIcon } from "lucide-react";
 import { Bell, Briefcase, CreditCard, GitBranch, ListTodo } from "lucide-react";
 
 export type SortBy = "deadline" | "created_at" | "manual";
-export type NotificationMedium = "ntfy" | "email";
+export type NotificationMedium = "ntfy" | "email" | "telegram";
 export type RepeatMode = "once" | "daily";
 
 export type ItemsRulesConfig = {
@@ -67,6 +67,7 @@ export const SORT_OPTIONS: { value: SortBy; label: string }[] = [
 export const MEDIUM_OPTIONS: { value: NotificationMedium; label: string }[] = [
   { value: "ntfy", label: "ntfy" },
   { value: "email", label: "email" },
+  { value: "telegram", label: "telegram" },
 ];
 
 export const REPEAT_OPTIONS: { value: RepeatMode; label: string }[] = [

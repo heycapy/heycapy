@@ -7,6 +7,7 @@ import { getAIProvider } from "@/lib/ai";
 import { decryptValue } from "@/lib/crypto";
 import { buildSystemPrompt } from "@/lib/ai/systemPrompt";
 import { CAPY_TOOLS, executeToolCall, getUpcomingItems } from "@/lib/ai/capyTools";
+import { compactSessionIfNeeded } from "@/lib/ai/compact";
 import type { AgentMessage } from "@/lib/ai/types";
 
 const bodySchema = z.object({
@@ -78,11 +79,34 @@ export async function POST(req: Request) {
     ),
   };
 
+  const threshold = settings?.aiCompactThreshold ?? 40;
+  const keepRecent = Math.max(10, Math.floor(threshold / 4));
+
+  let sessionSummary: string | null = null;
+  if (sessionId) {
+    const sess = await db.query.chatSessions.findFirst({
+      where: (s, { eq: qeq, and: qand }) =>
+        qand(qeq(s.id, sessionId), qeq(s.userId, session.userId)),
+    });
+    sessionSummary = sess?.summary ?? null;
+  }
+
+  const filtered = messages.filter(
+    (m): m is { role: "user" | "assistant"; content: string } => m.role !== "system"
+  );
+  const contextMessages = filtered.length > threshold ? filtered.slice(-keepRecent) : filtered;
+
   const agentMessages: AgentMessage[] = [
     systemMsg,
-    ...messages
-      .filter((m): m is { role: "user" | "assistant"; content: string } => m.role !== "system")
-      .map((m) => ({ role: m.role, content: m.content })),
+    ...(sessionSummary
+      ? [
+          {
+            role: "system" as const,
+            content: `Summary of earlier conversation:\n${sessionSummary}`,
+          },
+        ]
+      : []),
+    ...contextMessages.map((m) => ({ role: m.role, content: m.content })),
   ];
 
   let finalText = "";
@@ -193,6 +217,10 @@ export async function POST(req: Request) {
       controller.close();
     },
   });
+
+  if (resolvedSessionId) {
+    void compactSessionIfNeeded(resolvedSessionId, provider, settings?.aiCompactThreshold ?? 40);
+  }
 
   const responseHeaders: Record<string, string> = {
     "Content-Type": "text/plain; charset=utf-8",

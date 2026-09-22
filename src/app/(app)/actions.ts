@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
 import { and, asc, desc, eq, isNotNull, isNull, sql } from "drizzle-orm";
 import { getSession, deleteSession } from "@/lib/auth/session";
 import type { SessionPayload } from "@/lib/auth/session";
@@ -15,6 +16,7 @@ import {
   userSettings,
 } from "@/lib/db/schema";
 import { encryptValue, decryptValue } from "@/lib/crypto";
+import { TELEGRAM_API_BASE } from "@/constants";
 import type { ItemsRulesConfig, NotificationsRulesConfig } from "@/components/buckets/constants";
 import type { RecurringConfig } from "@/types/rules";
 
@@ -50,14 +52,18 @@ type UserSettingsUpdate = {
   personalityEmoji: boolean;
   personalityCustomPrompt: string | null;
   timezone: string;
-  aiProvider: "ollama" | "openai" | "anthropic" | null;
+  aiProvider: "ollama" | "openai" | "anthropic" | "groq" | "gemini" | null;
   aiApiKey: string | null;
   aiModel: string | null;
   aiOllamaUrl: string | null;
+  aiCompactThreshold: number;
   notificationsEmail: boolean;
   notificationsPush: boolean;
   ntfyUrl: string | null;
   ntfyTopic: string | null;
+  telegramBotToken: string | null;
+  telegramChatId: string | null;
+  notificationsTelegram: boolean;
 };
 
 export async function updateUserSettingsAction(
@@ -82,13 +88,35 @@ export async function updateUserSettingsAction(
       aiApiKey: data.aiApiKey ? encryptValue(data.aiApiKey) : null,
       aiModel: data.aiModel || null,
       aiOllamaUrl: data.aiOllamaUrl || null,
+      aiCompactThreshold: data.aiCompactThreshold,
       notificationsEmail: data.notificationsEmail,
       notificationsPush: data.notificationsPush,
       ntfyUrl: data.ntfyUrl || null,
       ntfyTopic: data.ntfyTopic || null,
+      telegramBotToken: data.telegramBotToken || null,
+      telegramChatId: data.telegramChatId || null,
+      notificationsTelegram: data.notificationsTelegram,
       updatedAt: new Date(),
     })
     .where(eq(userSettings.userId, session.userId));
+
+  const newToken = data.telegramBotToken || null;
+  if (newToken) {
+    const h = await headers();
+    const proto = h.get("x-forwarded-proto") ?? "http";
+    const host = h.get("host") ?? "localhost:3000";
+    const appUrl = process.env.APP_URL ?? `${proto}://${host}`;
+    const webhookUrl = `${appUrl}/api/telegram?secret=${encodeURIComponent(newToken)}`;
+    try {
+      await fetch(`${TELEGRAM_API_BASE}/bot${newToken}/setWebhook`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: webhookUrl }),
+      });
+    } catch {
+      // non-fatal — webhook registration failure doesn't block saving settings
+    }
+  }
 
   return { ok: true };
 }
@@ -645,4 +673,32 @@ export async function deleteChatSessionAction(sessionId: number): Promise<{ ok: 
   await db.delete(chatSessions).where(eq(chatSessions.id, sessionId));
 
   return { ok: true };
+}
+
+export async function registerTelegramWebhookAction(
+  botToken: string
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const session = await getSession();
+  if (!session) return { ok: false, error: "Unauthorized" };
+
+  if (!botToken.trim()) return { ok: false, error: "Bot token is required" };
+
+  const h = await headers();
+  const proto = h.get("x-forwarded-proto") ?? "http";
+  const host = h.get("host") ?? "localhost:3000";
+  const appUrl = process.env.APP_URL ?? `${proto}://${host}`;
+  const webhookUrl = `${appUrl}/api/telegram?secret=${encodeURIComponent(botToken)}`;
+
+  try {
+    const res = await fetch(`${TELEGRAM_API_BASE}/bot${botToken}/setWebhook`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ url: webhookUrl }),
+    });
+    const data = (await res.json()) as { ok: boolean; description?: string };
+    if (!data.ok) return { ok: false, error: data.description ?? "Telegram rejected the request" };
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : "Unknown error" };
+  }
 }

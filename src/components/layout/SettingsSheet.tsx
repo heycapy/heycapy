@@ -35,6 +35,7 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
   const [aiApiKey, setAiApiKey] = useState("");
   const [aiModel, setAiModel] = useState("");
   const [aiOllamaUrl, setAiOllamaUrl] = useState("");
+  const [aiCompactThreshold, setAiCompactThreshold] = useState(40);
 
   const [timezone, setTimezone] = useState(() => Intl.DateTimeFormat().resolvedOptions().timeZone);
 
@@ -42,6 +43,9 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
   const [notificationsPush, setNotificationsPush] = useState(true);
   const [ntfyUrl, setNtfyUrl] = useState("");
   const [ntfyTopic, setNtfyTopic] = useState("");
+  const [notificationsTelegram, setNotificationsTelegram] = useState(false);
+  const [telegramBotToken, setTelegramBotToken] = useState("");
+  const [telegramChatId, setTelegramChatId] = useState("");
 
   function populate(s: Settings) {
     setPersonalityName(s.personalityName);
@@ -52,6 +56,7 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
     setAiApiKey(s.aiApiKey ?? "");
     setAiModel(s.aiModel ?? "");
     setAiOllamaUrl(s.aiOllamaUrl ?? "");
+    setAiCompactThreshold(s.aiCompactThreshold ?? 40);
     setTimezone(
       s.timezone !== "UTC" ? s.timezone : Intl.DateTimeFormat().resolvedOptions().timeZone
     );
@@ -59,6 +64,9 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
     setNotificationsPush(s.notificationsPush);
     setNtfyUrl(s.ntfyUrl ?? "");
     setNtfyTopic(s.ntfyTopic ?? "");
+    setNotificationsTelegram(s.notificationsTelegram);
+    setTelegramBotToken(s.telegramBotToken ?? "");
+    setTelegramChatId(s.telegramChatId ?? "");
   }
 
   useEffect(() => {
@@ -89,10 +97,14 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
         aiApiKey: aiApiKey || null,
         aiModel: aiModel || null,
         aiOllamaUrl: aiOllamaUrl || null,
+        aiCompactThreshold,
         notificationsEmail,
         notificationsPush,
         ntfyUrl: ntfyUrl || null,
         ntfyTopic: ntfyTopic || null,
+        notificationsTelegram,
+        telegramBotToken: telegramBotToken || null,
+        telegramChatId: telegramChatId || null,
       });
       if (result.ok) onClose();
       else setError(result.error);
@@ -168,6 +180,12 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
                       setNtfyUrl={setNtfyUrl}
                       ntfyTopic={ntfyTopic}
                       setNtfyTopic={setNtfyTopic}
+                      notificationsTelegram={notificationsTelegram}
+                      setNotificationsTelegram={setNotificationsTelegram}
+                      telegramBotToken={telegramBotToken}
+                      setTelegramBotToken={setTelegramBotToken}
+                      telegramChatId={telegramChatId}
+                      setTelegramChatId={setTelegramChatId}
                       pending={pending}
                     />
                   )}
@@ -181,6 +199,8 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
                       setAiModel={setAiModel}
                       aiOllamaUrl={aiOllamaUrl}
                       setAiOllamaUrl={setAiOllamaUrl}
+                      aiCompactThreshold={aiCompactThreshold}
+                      setAiCompactThreshold={setAiCompactThreshold}
                       pending={pending}
                     />
                   )}

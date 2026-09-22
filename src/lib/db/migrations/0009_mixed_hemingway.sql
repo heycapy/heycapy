@@ -1,0 +1,1 @@
+ALTER TABLE `user_settings` ADD `ai_compact_threshold` integer DEFAULT 40 NOT NULL;

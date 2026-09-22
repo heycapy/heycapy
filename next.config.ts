@@ -2,7 +2,11 @@ import type { NextConfig } from "next";
 
 const isProd = process.env.NODE_ENV === "production";
 
+const appUrl = process.env.APP_URL;
+const devOrigins = appUrl ? [new URL(appUrl).host] : [];
+
 const nextConfig: NextConfig = {
+  allowedDevOrigins: devOrigins,
   output: "standalone",
   logging: {
     serverFunctions: false,
