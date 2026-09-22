@@ -50,8 +50,12 @@ export function buildSystemPrompt(
                   readonly?: boolean;
                   defaultDeadlineOffsetDays?: number | null;
                 };
-                if (ir.readonly) tags.push("readonly");
-                if (ir.defaultDeadlineOffsetDays !== null && ir.defaultDeadlineOffsetDays > 0) {
+                if (
+                  ir.defaultDeadlineOffsetDays !== null &&
+                  ir.defaultDeadlineOffsetDays !== undefined &&
+                  ir.defaultDeadlineOffsetDays > 0
+                ) {
+                  if (ir.readonly) tags.push("readonly");
                   tags.push(`default deadline: ${ir.defaultDeadlineOffsetDays}d from today`);
                 }
               } catch {

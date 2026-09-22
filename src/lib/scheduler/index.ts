@@ -185,15 +185,8 @@ async function runNotifications(): Promise<void> {
           status: "sent",
         });
       }
-    } catch (err) {
-      await db.insert(notificationLog).values({
-        itemId: row.item.id,
-        userId: row.item.userId,
-        medium: "email",
-        message: "",
-        status: "failed",
-        error: `scheduler error: ${errorMessage(err)}`,
-      });
+    } catch {
+      // item-level scheduler error — skip silently to avoid polluting the log with wrong medium
     }
   }
 }

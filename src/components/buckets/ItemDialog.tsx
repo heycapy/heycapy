@@ -28,7 +28,9 @@ function buildDeadline(date: string, hour: string, min: string, ampm: "am" | "pm
   if (!date) return "";
   const h = parseInt(hour, 10);
   if (!hour.trim() || !Number.isFinite(h)) return date;
-  return `${date}T${String(toH24(h, ampm)).padStart(2, "0")}:${min.padStart(2, "0")}`;
+  const local = `${date}T${String(toH24(h, ampm)).padStart(2, "0")}:${min.padStart(2, "0")}:00`;
+  const d = new Date(local);
+  return isNaN(d.getTime()) ? date : d.toISOString();
 }
 
 interface ItemDialogProps {
@@ -75,7 +77,12 @@ export function ItemDialog({
 
   const wasOpenRef = useRef(false);
 
-  const datePart = deadline.includes("T") ? (deadline.split("T")[0] ?? "") : deadline;
+  const datePart = deadline.includes("T")
+    ? (() => {
+        const d = new Date(deadline);
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+      })()
+    : deadline;
   const hasDate = datePart.length > 0;
 
   useEffect(() => {
@@ -90,11 +97,10 @@ export function ItemDialog({
         el.focus();
       }
       if (deadline.includes("T")) {
-        const t = deadline.split("T")[1] ?? "";
-        const [hStr, mStr] = t.split(":");
-        const h24 = parseInt(hStr ?? "9", 10);
+        const d = new Date(deadline);
+        const h24 = d.getHours();
         setTimeHour(String(h24 === 0 ? 12 : h24 > 12 ? h24 - 12 : h24));
-        setTimeMin((mStr ?? "00").padStart(2, "0"));
+        setTimeMin(String(d.getMinutes()).padStart(2, "0"));
         setTimeAmpm(h24 >= 12 ? "pm" : "am");
       } else {
         setTimeHour("9");

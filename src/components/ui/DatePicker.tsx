@@ -160,7 +160,7 @@ export function DatePicker({ value, onChange, disabled }: DatePickerProps) {
             left: pos.left,
             boxShadow: "3px 3px 0 var(--border)",
           }}
-          className="border-border bg-card fixed z-50 w-[236px] border-2 p-3 select-none"
+          className="border-border bg-card fixed z-[65] w-[236px] border-2 p-3 select-none"
         >
           <div className="mb-3 flex items-center justify-between">
             <button
