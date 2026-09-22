@@ -2,8 +2,9 @@
 
 import { useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Archive, SlidersHorizontal, Trash2 } from "lucide-react";
+import { Archive, LogOut, SlidersHorizontal, Trash2 } from "lucide-react";
 import { BracketButton } from "@/components/ui/BracketButton";
+import { logoutAction } from "@/app/(app)/actions";
 
 interface HeaderProps {
   onSettingsOpen: () => void;
@@ -93,6 +94,14 @@ function GlobalMenu({
               >
                 <Trash2 size={11} />
                 trash
+              </button>
+              <div className="border-border my-1 border-t" />
+              <button
+                onClick={() => pick(() => void logoutAction())}
+                className="text-destructive hover:bg-muted flex w-full items-center gap-2.5 px-3 py-1.5 font-mono text-xs transition-colors"
+              >
+                <LogOut size={11} />
+                logout
               </button>
             </div>
           </>,

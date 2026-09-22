@@ -5,7 +5,7 @@ import { useTheme } from "next-themes";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { BracketButton } from "@/components/ui/BracketButton";
-import { getUserSettingsAction, updateUserSettingsAction, logoutAction } from "@/app/(app)/actions";
+import { getUserSettingsAction, updateUserSettingsAction } from "@/app/(app)/actions";
 import { AppearanceTab, NotificationsTab, AITab, PersonalityTab } from "./SettingsTabs";
 import { StatusesTab } from "./StatusesTab";
 import type { UserTone, AIProvider } from "./settings-constants";
@@ -225,16 +225,13 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
               )}
             </div>
 
-            <div className="border-border flex items-center justify-between border-t-2 px-3 py-2.5">
-              <BracketButton variant="destructive" onClick={() => void logoutAction()}>
-                logout
-              </BracketButton>
-              {tab !== "statuses" && (
+            {tab !== "statuses" && (
+              <div className="border-border flex items-center justify-end border-t-2 px-3 py-2.5">
                 <BracketButton onClick={handleSave} disabled={pending || !loaded}>
                   save
                 </BracketButton>
-              )}
-            </div>
+              </div>
+            )}
           </motion.aside>
         </>
       )}

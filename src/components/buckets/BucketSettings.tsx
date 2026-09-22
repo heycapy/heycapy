@@ -198,8 +198,10 @@ export function BucketSettings({ open, bucket, onClose }: BucketSettingsProps) {
             style={{ boxShadow: "5px 5px 0 var(--border)" }}
           >
             <div className="border-border bg-background overflow-hidden border-2">
-              <div className="bg-foreground text-background flex items-center justify-between px-3 py-1.5">
-                <span className="font-pixel text-xs">bucket settings</span>
+              <div className="bg-foreground text-background flex items-center justify-between gap-2 px-3 py-1.5">
+                <span className="font-pixel min-w-0 truncate text-xs">
+                  bucket settings [{bucket.name}]
+                </span>
                 <BracketButton variant="inverted" onClick={onClose}>
                   x
                 </BracketButton>
