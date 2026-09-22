@@ -6,6 +6,7 @@ import { Trash2 } from "lucide-react";
 import { DatePicker } from "@/components/ui/DatePicker";
 import { BracketButton } from "@/components/ui/BracketButton";
 import { OptionButton } from "@/components/ui/OptionButton";
+import { TimeScrollPicker, type Ampm } from "@/components/ui/TimeScrollPicker";
 import { RECURRING_FREQUENCIES } from "./constants";
 import type { RecurringConfig } from "@/types/rules";
 import { cn } from "@/lib/utils";
@@ -72,7 +73,7 @@ export function ItemDialog({
   const statuses = useUIStore((s) => s.statuses);
   const [timeHour, setTimeHour] = useState("9");
   const [timeMin, setTimeMin] = useState("00");
-  const [timeAmpm, setTimeAmpm] = useState<"am" | "pm">("am");
+  const [timeAmpm, setTimeAmpm] = useState<Ampm>("am");
   const [showEndDate, setShowEndDate] = useState(false);
 
   const wasOpenRef = useRef(false);
@@ -123,21 +124,19 @@ export function ItemDialog({
     if (!newDate) onRecurringChange?.(null);
   }
 
-  function handleHourChange(val: string) {
-    const h = val.replace(/\D/g, "").slice(0, 2);
+  function handleHourChange(h: string) {
     setTimeHour(h);
     if (datePart) onDeadlineChange(buildDeadline(datePart, h, timeMin, timeAmpm));
   }
 
-  function handleMinChange(val: string) {
-    const m = val.replace(/\D/g, "").slice(0, 2);
+  function handleMinChange(m: string) {
     setTimeMin(m);
     if (datePart) onDeadlineChange(buildDeadline(datePart, timeHour, m, timeAmpm));
   }
 
-  function handleAmpmChange(ampm: "am" | "pm") {
-    setTimeAmpm(ampm);
-    if (datePart) onDeadlineChange(buildDeadline(datePart, timeHour, timeMin, ampm));
+  function handleAmpmChange(a: Ampm) {
+    setTimeAmpm(a);
+    if (datePart) onDeadlineChange(buildDeadline(datePart, timeHour, timeMin, a));
   }
 
   function toggleRecurring() {
@@ -210,39 +209,15 @@ export function ItemDialog({
                   <label className="text-muted-foreground font-mono text-[10px]">when</label>
                   <DatePicker value={datePart} onChange={handleDateChange} disabled={pending} />
                   {hasDate && (
-                    <div className="flex items-center gap-1.5">
-                      <input
-                        type="text"
-                        inputMode="numeric"
-                        value={timeHour}
-                        onChange={(e) => handleHourChange(e.target.value)}
-                        placeholder="9"
-                        disabled={pending}
-                        className="border-border w-7 border-b bg-transparent py-0.5 text-center font-mono text-xs outline-none placeholder:opacity-40 disabled:opacity-50"
-                      />
-                      <span className="text-muted-foreground font-mono text-xs">:</span>
-                      <input
-                        type="text"
-                        inputMode="numeric"
-                        value={timeMin}
-                        onChange={(e) => handleMinChange(e.target.value)}
-                        placeholder="00"
-                        disabled={pending}
-                        className="border-border w-7 border-b bg-transparent py-0.5 text-center font-mono text-xs outline-none placeholder:opacity-40 disabled:opacity-50"
-                      />
-                      <div className="flex gap-1">
-                        {(["am", "pm"] as const).map((v) => (
-                          <OptionButton
-                            key={v}
-                            active={timeAmpm === v}
-                            onClick={() => handleAmpmChange(v)}
-                            disabled={pending}
-                          >
-                            {v}
-                          </OptionButton>
-                        ))}
-                      </div>
-                    </div>
+                    <TimeScrollPicker
+                      hour={timeHour}
+                      min={timeMin}
+                      ampm={timeAmpm}
+                      onHourChange={handleHourChange}
+                      onMinChange={handleMinChange}
+                      onAmpmChange={handleAmpmChange}
+                      disabled={pending}
+                    />
                   )}
                 </div>
 
