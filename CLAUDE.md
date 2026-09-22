@@ -100,6 +100,7 @@ Two jobs: (1) NL input → parse bucket + item, (2) bucket setup assistant. Unif
 - Validate input at boundaries — zod preferred
 - Always handle async errors — never swallow exceptions
 - Environment variables via `.env` — never hardcode secrets
+- **Hard limit: no component file may exceed 350 lines.** If a component grows beyond this, split it into focused sub-components before continuing.
 
 ### TypeScript
 - Strict mode always on

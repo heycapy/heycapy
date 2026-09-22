@@ -20,7 +20,28 @@ export const userSettings = sqliteTable("user_settings", {
     .notNull()
     .unique()
     .references(() => users.id, { onDelete: "cascade" }),
-  theme: text("theme", { enum: ["gruvbox", "terminal", "capy"] })
+  theme: text("theme", {
+    enum: [
+      "capy",
+      "light",
+      "dark",
+      "gruvbox",
+      "gruvbox-light",
+      "gruvbox-dark-2",
+      "terminal",
+      "everforest-dark",
+      "tokyonight",
+      "rosepine",
+      "rosepine-dark",
+      "nord",
+      "dracula",
+      "solarized-dark",
+      "catppuccin-mocha",
+      "one-dark",
+      "nightowl",
+      "midnight",
+    ],
+  })
     .notNull()
     .default("capy"),
   timezone: text("timezone").notNull().default("UTC"),
@@ -35,10 +56,25 @@ export const userSettings = sqliteTable("user_settings", {
   aiProvider: text("ai_provider", { enum: ["ollama", "openai", "anthropic"] }),
   aiApiKey: text("ai_api_key"),
   aiModel: text("ai_model"),
+  aiOllamaUrl: text("ai_ollama_url"),
   notificationsEmail: integer("notifications_email", { mode: "boolean" }).notNull().default(true),
   notificationsPush: integer("notifications_push", { mode: "boolean" }).notNull().default(true),
   ntfyUrl: text("ntfy_url"),
   ntfyTopic: text("ntfy_topic"),
+  updatedAt: integer("updated_at", { mode: "timestamp" })
+    .notNull()
+    .default(sql`(unixepoch())`),
+});
+
+// auth_rate_limits
+
+export const authRateLimits = sqliteTable("auth_rate_limits", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  email: text("email").notNull().unique(),
+  otpSendCount: integer("otp_send_count").notNull().default(0),
+  otpSendWindowStart: integer("otp_send_window_start", { mode: "timestamp" }),
+  verifyFailCount: integer("verify_fail_count").notNull().default(0),
+  lockedUntil: integer("locked_until", { mode: "timestamp" }),
   updatedAt: integer("updated_at", { mode: "timestamp" })
     .notNull()
     .default(sql`(unixepoch())`),
@@ -140,7 +176,44 @@ export const notificationLog = sqliteTable("notification_log", {
     .references(() => users.id, { onDelete: "cascade" }),
   medium: text("medium", { enum: ["email", "ntfy"] }).notNull(),
   message: text("message").notNull(),
+  status: text("status", { enum: ["sent", "failed"] })
+    .notNull()
+    .default("sent"),
+  error: text("error"),
   sentAt: integer("sent_at", { mode: "timestamp" })
+    .notNull()
+    .default(sql`(unixepoch())`),
+});
+
+// chat_sessions
+
+export const chatSessions = sqliteTable("chat_sessions", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  userId: integer("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  title: text("title").notNull(),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .default(sql`(unixepoch())`),
+  updatedAt: integer("updated_at", { mode: "timestamp" })
+    .notNull()
+    .default(sql`(unixepoch())`),
+});
+
+// chat_messages
+
+export const chatMessages = sqliteTable("chat_messages", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  sessionId: integer("session_id")
+    .notNull()
+    .references(() => chatSessions.id, { onDelete: "cascade" }),
+  userId: integer("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  role: text("role", { enum: ["user", "assistant"] }).notNull(),
+  content: text("content").notNull(),
+  createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
     .default(sql`(unixepoch())`),
 });

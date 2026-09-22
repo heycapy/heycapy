@@ -4,8 +4,7 @@ import { itemStatuses, templates } from "./schema";
 const SYSTEM_STATUSES = [
   { name: "active", color: "#22c55e", sortOrder: 0, isSystem: true },
   { name: "completed", color: "#3b82f6", sortOrder: 1, isSystem: true },
-  { name: "archived", color: "#737373", sortOrder: 2, isSystem: true },
-  { name: "snoozed", color: "#f59e0b", sortOrder: 3, isSystem: true },
+  { name: "snoozed", color: "#f59e0b", sortOrder: 2, isSystem: true },
 ];
 
 const BUILTIN_TEMPLATES = [
@@ -25,7 +24,6 @@ const BUILTIN_TEMPLATES = [
         sortBy: "deadline",
         drag: false,
         readonly: false,
-        autoArchiveAfterDays: 1,
         showCompleted: true,
         defaultDeadlineOffsetDays: 30,
       },
@@ -49,7 +47,6 @@ const BUILTIN_TEMPLATES = [
         sortBy: "deadline",
         drag: false,
         readonly: false,
-        autoArchiveAfterDays: null,
         showCompleted: true,
         defaultDeadlineOffsetDays: null,
       },
@@ -73,7 +70,6 @@ const BUILTIN_TEMPLATES = [
         sortBy: "manual",
         drag: true,
         readonly: false,
-        autoArchiveAfterDays: null,
         showCompleted: false,
         defaultDeadlineOffsetDays: null,
       },
@@ -97,7 +93,6 @@ const BUILTIN_TEMPLATES = [
         sortBy: "deadline",
         drag: false,
         readonly: false,
-        autoArchiveAfterDays: null,
         showCompleted: true,
         defaultDeadlineOffsetDays: null,
       },
@@ -121,7 +116,6 @@ const BUILTIN_TEMPLATES = [
         sortBy: "deadline",
         drag: false,
         readonly: true,
-        autoArchiveAfterDays: null,
         showCompleted: false,
         defaultDeadlineOffsetDays: null,
       },
