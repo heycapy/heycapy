@@ -131,6 +131,13 @@ export const CAPY_TOOLS: Tool[] = [
             "Optional end date for the recurring series in ISO 8601 date format, e.g. '2027-01-01'. " +
             "After this date, the item stops rescheduling.",
         },
+        status: {
+          type: "string",
+          description:
+            "Initial status for the item. Defaults to 'active'. " +
+            "System statuses ('active', 'completed', 'snoozed') can be used directly. " +
+            "For custom statuses, call list_statuses first to confirm the exact name.",
+        },
       },
       required: ["bucket_id", "title"],
     },

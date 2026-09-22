@@ -70,6 +70,7 @@ async function runNotifications(): Promise<void> {
         isNotNull(items.deadline),
         isNull(items.deletedAt),
         ne(items.status, "completed"),
+        ne(items.status, "snoozed"),
         or(isNull(items.notifiedAt), lt(items.notifiedAt, todayMidnight)),
         or(isNull(items.snoozedUntil), lt(items.snoozedUntil, now))
       )

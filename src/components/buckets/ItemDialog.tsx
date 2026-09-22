@@ -332,28 +332,31 @@ export function ItemDialog({
                   </div>
                 )}
 
-                {mode === "edit" && (
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-muted-foreground font-mono text-[10px]">status</label>
-                    <div className="flex flex-wrap gap-1.5">
-                      {statuses.map((s) => (
-                        <OptionButton
-                          key={s.name}
-                          active={status === s.name}
-                          onClick={() => onStatusChange(s.name)}
-                          disabled={pending}
-                          className="flex items-center gap-1.5"
-                        >
-                          <span
-                            className="h-1.5 w-1.5 rounded-full"
-                            style={{ backgroundColor: s.color }}
-                          />
-                          {s.name}
-                        </OptionButton>
-                      ))}
-                    </div>
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-muted-foreground font-mono text-[10px]">status</label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {statuses.map((s) => (
+                      <OptionButton
+                        key={s.name}
+                        active={status === s.name}
+                        onClick={() => onStatusChange(s.name)}
+                        disabled={pending}
+                        className="flex items-center gap-1.5"
+                      >
+                        <span
+                          className="h-1.5 w-1.5 rounded-full"
+                          style={{ backgroundColor: s.color }}
+                        />
+                        {s.name}
+                      </OptionButton>
+                    ))}
                   </div>
-                )}
+                  {status && !statuses.find((s) => s.name === status) && (
+                    <p className="text-destructive font-mono text-[10px]">
+                      &quot;{status}&quot; is not a valid status — pick one above to fix it
+                    </p>
+                  )}
+                </div>
               </div>
 
               <div className="border-border flex items-center justify-between border-t px-3 py-2.5">

@@ -174,13 +174,15 @@ export async function executeToolCall(
         return JSON.stringify({ ok: false, error: "Invalid recurring configuration" });
       }
 
+      const statusArg = args.status ? String(args.status).trim() : "active";
+
       const [inserted] = await db
         .insert(items)
         .values({
           bucketId,
           userId,
           title,
-          status: "active",
+          status: statusArg || "active",
           deadline,
           notificationOffsetMins,
           recurring: recurringJson,

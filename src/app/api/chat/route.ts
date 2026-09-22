@@ -83,9 +83,12 @@ export async function POST(req: Request) {
   ];
 
   let finalText = "";
+  let lastAssistantContent = "";
 
-  for (let round = 0; round < 5; round++) {
+  for (let round = 0; round < 8; round++) {
     const result = await provider.complete(agentMessages, CAPY_TOOLS);
+
+    if (result.content) lastAssistantContent = result.content;
 
     if (result.toolCalls.length === 0) {
       finalText = result.content ?? "";
@@ -104,6 +107,8 @@ export async function POST(req: Request) {
       });
     }
   }
+
+  if (!finalText) finalText = lastAssistantContent;
 
   const lastUserMsg = [...messages].reverse().find((m) => m.role === "user");
   let resolvedSessionId = sessionId ?? null;
