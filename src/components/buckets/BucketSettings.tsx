@@ -11,12 +11,10 @@ import { DurationInput } from "@/components/ui/DurationInput";
 import {
   type SortBy,
   type NotificationMedium,
-  type PersonalityTone,
   type RepeatMode,
   SORT_OPTIONS,
   MEDIUM_OPTIONS,
   REPEAT_OPTIONS,
-  BUCKET_TONE_OPTIONS,
 } from "./constants";
 import {
   parseDurationToMins,
@@ -32,7 +30,7 @@ import {
 import type { buckets } from "@/lib/db/schema";
 
 type BucketRow = typeof buckets.$inferSelect;
-type Tab = "items" | "notifications" | "personality";
+type Tab = "items" | "notifications";
 
 interface BucketSettingsProps {
   open: boolean;
@@ -61,11 +59,6 @@ type RawNotifRules = {
   repeat?: RepeatMode;
   quietHours?: { from: string; to: string } | null;
   quiet_hours?: { from: string; to: string } | null;
-};
-
-type RawPersonalityRules = {
-  toneOverride?: PersonalityTone | null;
-  tone_override?: PersonalityTone | null;
 };
 
 function parseJson<T>(json: string, fallback: T): T {
@@ -103,8 +96,6 @@ export function BucketSettings({ open, bucket, onClose }: BucketSettingsProps) {
   const [defaultOffset, setDefaultOffset] = useState("");
   const [repeat, setRepeat] = useState<RepeatMode>("once");
 
-  const [toneOverride, setToneOverride] = useState<PersonalityTone | "inherit">("inherit");
-
   useEffect(() => {
     if (!open) return;
     const id = setTimeout(() => {
@@ -132,11 +123,6 @@ export function BucketSettings({ open, bucket, onClose }: BucketSettingsProps) {
           : (nr.default_offset ?? "")
       );
       setRepeat(nr.repeat ?? "once");
-
-      const pr = parseJson<RawPersonalityRules>(bucket.personalityRules, {});
-      setToneOverride(
-        (pr.toneOverride ?? pr.tone_override ?? "inherit") as PersonalityTone | "inherit"
-      );
     }, 0);
     return () => clearTimeout(id);
   }, [open, bucket.id]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -164,8 +150,7 @@ export function BucketSettings({ open, bucket, onClose }: BucketSettingsProps) {
           notifyAt: notifyAt || undefined,
           defaultOffsetMins: parseDurationToMins(defaultOffset) ?? undefined,
           repeat,
-        },
-        { toneOverride: toneOverride === "inherit" ? null : toneOverride }
+        }
       );
       if (result.ok) onClose();
       else setError(result.error);
@@ -234,7 +219,7 @@ export function BucketSettings({ open, bucket, onClose }: BucketSettingsProps) {
                   {error && <span className="text-destructive font-mono text-[10px]">{error}</span>}
                 </div>
                 <div className="border-border flex border-b">
-                  {(["items", "notifications", "personality"] as Tab[]).map((t) => (
+                  {(["items", "notifications"] as Tab[]).map((t) => (
                     <button key={t} onClick={() => setTab(t)} className={tabCn(tab === t)}>
                       {t}
                     </button>
@@ -324,20 +309,6 @@ export function BucketSettings({ open, bucket, onClose }: BucketSettingsProps) {
                       <OptionGroup options={REPEAT_OPTIONS} value={repeat} onChange={setRepeat} />
                     </div>
                   </>
-                )}
-                {tab === "personality" && (
-                  <div className="flex flex-col gap-1.5">
-                    <label className={LABEL}>tone override</label>
-                    <span className={HINT}>
-                      use a different AI tone for items in this bucket — inherit uses your global
-                      setting
-                    </span>
-                    <OptionGroup
-                      options={BUCKET_TONE_OPTIONS}
-                      value={toneOverride}
-                      onChange={setToneOverride}
-                    />
-                  </div>
                 )}
               </div>
 

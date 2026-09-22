@@ -3,7 +3,6 @@ import { Bell, Briefcase, CreditCard, GitBranch, ListTodo } from "lucide-react";
 
 export type SortBy = "deadline" | "created_at" | "manual";
 export type NotificationMedium = "ntfy" | "email";
-export type PersonalityTone = "chill" | "professional" | "motivational" | "custom";
 export type RepeatMode = "once" | "daily";
 
 export type ItemsRulesConfig = {
@@ -21,10 +20,6 @@ export type NotificationsRulesConfig = {
   repeat?: RepeatMode;
   quietHours?: { from: string; to: string } | null;
   snoozeUntil?: string | null;
-};
-
-export type PersonalityRulesConfig = {
-  toneOverride?: PersonalityTone | null;
 };
 
 export const TEMPLATE_ICONS: Record<string, LucideIcon> = {
@@ -77,12 +72,4 @@ export const MEDIUM_OPTIONS: { value: NotificationMedium; label: string }[] = [
 export const REPEAT_OPTIONS: { value: RepeatMode; label: string }[] = [
   { value: "once", label: "once" },
   { value: "daily", label: "daily" },
-];
-
-export const BUCKET_TONE_OPTIONS: { value: PersonalityTone | "inherit"; label: string }[] = [
-  { value: "inherit", label: "inherit" },
-  { value: "chill", label: "chill" },
-  { value: "professional", label: "professional" },
-  { value: "motivational", label: "motivational" },
-  { value: "custom", label: "custom" },
 ];

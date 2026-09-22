@@ -14,11 +14,7 @@ import {
   itemStatuses,
   userSettings,
 } from "@/lib/db/schema";
-import type {
-  ItemsRulesConfig,
-  NotificationsRulesConfig,
-  PersonalityRulesConfig,
-} from "@/components/buckets/constants";
+import type { ItemsRulesConfig, NotificationsRulesConfig } from "@/components/buckets/constants";
 import type { RecurringConfig } from "@/types/rules";
 
 export async function getUserSettingsAction(): Promise<
@@ -131,8 +127,7 @@ export async function updateBucketSettingsAction(
   bucketId: number,
   name: string,
   itemsRules: ItemsRulesConfig,
-  notificationsRules: NotificationsRulesConfig,
-  personalityRules: PersonalityRulesConfig
+  notificationsRules: NotificationsRulesConfig
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   const session = await getSession();
   if (!session) redirect("/login");
@@ -152,7 +147,6 @@ export async function updateBucketSettingsAction(
       name: trimmed,
       itemsRules: JSON.stringify(itemsRules),
       notificationsRules: JSON.stringify(notificationsRules),
-      personalityRules: JSON.stringify(personalityRules),
       updatedAt: new Date(),
     })
     .where(and(eq(buckets.id, bucketId), eq(buckets.userId, session.userId)));
