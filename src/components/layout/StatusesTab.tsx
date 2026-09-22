@@ -111,6 +111,7 @@ function StatusRow({
 export function StatusesTab() {
   const statuses = useUIStore((s) => s.statuses);
   const setStatuses = useUIStore((s) => s.setStatuses);
+  const tickAiRefresh = useUIStore((s) => s.tickAiRefresh);
   const [newName, setNewName] = useState("");
   const [newColor, setNewColor] = useState<string>(STATUS_COLORS[4] ?? "#3b82f6");
   const [newColorOpen, setNewColorOpen] = useState(false);
@@ -130,11 +131,13 @@ export function StatusesTab() {
     if (!status) return;
     await updateItemStatusAction(id, status.color, name);
     setStatuses(statuses.map((s) => (s.id === id ? { ...s, name } : s)));
+    tickAiRefresh();
   }
 
   async function handleDelete(id: number) {
     await deleteItemStatusAction(id);
     setStatuses(statuses.filter((s) => s.id !== id));
+    tickAiRefresh();
   }
 
   function handleAdd() {

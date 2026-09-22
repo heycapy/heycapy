@@ -476,10 +476,17 @@ export async function createItemStatusAction(
   if (!trimmed) return { ok: false, error: "Name is required" };
   if (trimmed.length > 30) return { ok: false, error: "Name too long" };
 
-  const existing = await db.query.itemStatuses.findFirst({
-    where: (s, { eq: qeq, and: qand }) => qand(qeq(s.userId, session.userId), qeq(s.name, trimmed)),
-  });
-  if (existing) return { ok: false, error: "Status already exists" };
+  const existing = await db
+    .select({ id: itemStatuses.id })
+    .from(itemStatuses)
+    .where(
+      and(
+        eq(itemStatuses.userId, session.userId),
+        sql`lower(${itemStatuses.name}) = lower(${trimmed})`
+      )
+    )
+    .limit(1);
+  if (existing.length > 0) return { ok: false, error: "Status already exists" };
 
   const [maxRow] = await db
     .select({ max: sql<number>`COALESCE(MAX(${itemStatuses.sortOrder}), 2)` })
