@@ -40,3 +40,11 @@ export const PROVIDER_OPTIONS: { value: AIProvider; label: string }[] = [
   { value: "groq", label: "groq" },
   { value: "gemini", label: "gemini" },
 ];
+
+export const PROVIDER_DEFAULT_MODELS: Record<AIProvider, string> = {
+  ollama: "llama3.2",
+  openai: "gpt-4o",
+  anthropic: "claude-sonnet-4-6",
+  groq: "openai/gpt-oss-120b",
+  gemini: "gemini-2.5-flash",
+};

@@ -4,7 +4,14 @@ import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { Toggle } from "@/components/ui/Toggle";
 import { OptionGroup } from "@/components/ui/OptionGroup";
-import { LABEL, INPUT, THEMES, TONE_OPTIONS, PROVIDER_OPTIONS } from "./settings-constants";
+import {
+  LABEL,
+  INPUT,
+  THEMES,
+  TONE_OPTIONS,
+  PROVIDER_OPTIONS,
+  PROVIDER_DEFAULT_MODELS,
+} from "./settings-constants";
 import type { UserTone, AIProvider } from "./settings-constants";
 import { OLLAMA_DEFAULT_URL, NTFY_DEFAULT_URL } from "@/constants";
 
@@ -302,17 +309,7 @@ export function AITab({
           type="text"
           value={aiModel}
           onChange={(e) => setAiModel(e.target.value)}
-          placeholder={
-            aiProvider === "ollama"
-              ? "llama3.2"
-              : aiProvider === "openai"
-                ? "gpt-4o"
-                : aiProvider === "groq"
-                  ? "llama-3.3-70b-versatile"
-                  : aiProvider === "gemini"
-                    ? "gemini-2.0-flash"
-                    : "claude-sonnet-4-6"
-          }
+          placeholder={PROVIDER_DEFAULT_MODELS[aiProvider]}
           maxLength={100}
           disabled={pending}
           className={INPUT}

@@ -596,3 +596,20 @@ body {
     transform: translateY(-10px);
   }
 }
+
+[data-sonner-toast] [data-close-button] {
+  position: absolute !important;
+  top: 6px !important;
+  right: 6px !important;
+  left: auto !important;
+  transform: none !important;
+}
+[data-sonner-toast] [data-close-button] svg {
+  display: none;
+}
+[data-sonner-toast] [data-close-button]::before {
+  content: "[x]";
+  font-family: var(--font-geist-mono);
+  font-size: 10px;
+  line-height: 1;
+}

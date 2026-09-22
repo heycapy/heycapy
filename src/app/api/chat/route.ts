@@ -8,6 +8,7 @@ import { decryptValue } from "@/lib/crypto";
 import { buildSystemPrompt } from "@/lib/ai/systemPrompt";
 import { CAPY_TOOLS, executeToolCall, getUpcomingItems } from "@/lib/ai/capyTools";
 import { compactSessionIfNeeded } from "@/lib/ai/compact";
+import { aiErrorResponse } from "@/lib/errors";
 import type { AgentMessage } from "@/lib/ai/types";
 
 const bodySchema = z.object({
@@ -148,8 +149,7 @@ export async function POST(req: Request) {
 
     if (!finalText) finalText = lastAssistantContent;
   } catch (err) {
-    process.stderr.write(`[chat] AI error: ${err instanceof Error ? err.message : String(err)}\n`);
-    return new Response("AI provider error. Please try again.", { status: 502 });
+    return aiErrorResponse(err, "chat");
   }
 
   const lastUserMsg = [...messages].reverse().find((m) => m.role === "user");

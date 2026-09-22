@@ -7,6 +7,7 @@ import { sendEmail } from "@/lib/notifications/email";
 import { sendNtfy } from "@/lib/notifications/ntfy";
 import { sendTelegram } from "@/lib/notifications/telegram";
 import { APP_NAME } from "@/constants";
+import { errorMessage } from "@/lib/errors";
 
 function isInQuietHours(quietHours: { from: string; to: string }, timezone: string): boolean {
   const now = new Date();
@@ -28,10 +29,6 @@ function isInQuietHours(quietHours: { from: string; to: string }, timezone: stri
   return fromMins > toMins
     ? nowMins >= fromMins || nowMins < toMins
     : nowMins >= fromMins && nowMins < toMins;
-}
-
-function errorMessage(err: unknown): string {
-  return err instanceof Error ? err.message : String(err);
 }
 
 function getNextDeadline(deadline: Date, config: RecurringConfig): Date {

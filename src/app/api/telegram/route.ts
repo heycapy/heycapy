@@ -8,6 +8,7 @@ import { CAPY_TOOLS, executeToolCall, getUpcomingItems } from "@/lib/ai/capyTool
 import { sendTelegram, sendChatAction } from "@/lib/notifications/telegram";
 import { compactSessionIfNeeded } from "@/lib/ai/compact";
 import { dataEvents } from "@/lib/events";
+import { errorMessage } from "@/lib/errors";
 import type { AgentMessage } from "@/lib/ai/types";
 
 type TelegramUpdate = {
@@ -169,9 +170,7 @@ export async function POST(req: Request) {
     if (!finalText) finalText = lastAssistantContent;
   } catch (err) {
     clearInterval(typingInterval);
-    process.stderr.write(
-      `[telegram] AI error: ${err instanceof Error ? err.message : String(err)}\n`
-    );
+    process.stderr.write(`[telegram] AI error: ${errorMessage(err)}\n`);
     return new Response("OK");
   }
 
@@ -182,9 +181,7 @@ export async function POST(req: Request) {
   try {
     await sendTelegram(secret, chatIdStr, finalText);
   } catch (err) {
-    process.stderr.write(
-      `[telegram] send error: ${err instanceof Error ? err.message : String(err)}\n`
-    );
+    process.stderr.write(`[telegram] send error: ${errorMessage(err)}\n`);
   }
 
   try {
@@ -200,9 +197,7 @@ export async function POST(req: Request) {
 
     void compactSessionIfNeeded(session.id, provider, row.aiCompactThreshold ?? 40);
   } catch (err) {
-    process.stderr.write(
-      `[telegram] DB error: ${err instanceof Error ? err.message : String(err)}\n`
-    );
+    process.stderr.write(`[telegram] DB error: ${errorMessage(err)}\n`);
   }
 
   dataEvents.emit("refresh", userId);

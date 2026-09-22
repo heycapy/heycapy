@@ -40,13 +40,13 @@ export function getAIProvider(config?: AIConfig): AIProvider {
       if (!key) throw new Error("API key is required for groq provider");
       return createGroqProvider(
         key,
-        config?.model ?? process.env.AI_MODEL ?? "llama-3.3-70b-versatile"
+        config?.model ?? process.env.AI_MODEL ?? "openai/gpt-oss-120b"
       );
     }
     case "gemini": {
       const key = config?.apiKey ?? process.env.AI_API_KEY;
       if (!key) throw new Error("API key is required for gemini provider");
-      return createGeminiProvider(key, config?.model ?? process.env.AI_MODEL ?? "gemini-2.0-flash");
+      return createGeminiProvider(key, config?.model ?? process.env.AI_MODEL ?? "gemini-2.5-flash");
     }
     default:
       throw new Error(`Unknown AI provider: ${provider}`);

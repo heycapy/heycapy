@@ -1,5 +1,7 @@
-import { useRef, useState } from "react";
+import { useRef, useState, createElement } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import { Sprite } from "./Sprite";
 import type { Message } from "@/lib/ai/types";
 import { useUIStore } from "@/store/ui";
 import { useChatStore } from "@/store/chat";
@@ -51,7 +53,14 @@ export function useChatStream() {
         signal: abort.signal,
       });
 
-      if (!res.ok || !res.body) throw new Error(`Chat error: ${res.status}`);
+      if (!res.ok) {
+        const body = (await res
+          .json()
+          .catch(() => ({ error: "AI provider error. Please try again." }))) as { error: string };
+        throw new Error(body.error);
+      }
+
+      if (!res.body) throw new Error("No response body from server.");
 
       const rawSessionId = res.headers.get("X-Session-Id");
       if (rawSessionId) {
@@ -72,6 +81,11 @@ export function useChatStream() {
         markLastStopped();
         return;
       }
+      const errMsg = err instanceof Error ? err.message : "Something went wrong.";
+      toast.error("oops, ran into a problem", {
+        description: errMsg,
+        icon: createElement(Sprite, { id: "capy-error", size: 28 }),
+      });
       markLastError();
     } finally {
       setStreaming(false);
