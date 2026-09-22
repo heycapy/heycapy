@@ -316,7 +316,7 @@ export function BucketSettings({ open, bucket, onClose }: BucketSettingsProps) {
 
               <div className="border-border flex shrink-0 flex-wrap items-center justify-between gap-y-2 border-t px-3 py-2.5">
                 <div className="flex flex-wrap items-center gap-2">
-                  <BracketButton variant="destructive" onClick={handleArchive} disabled={pending}>
+                  <BracketButton variant="warning" onClick={handleArchive} disabled={pending}>
                     archive
                   </BracketButton>
                   {confirmDelete ? (
