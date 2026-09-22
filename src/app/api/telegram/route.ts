@@ -5,7 +5,7 @@ import { getAIProvider } from "@/lib/ai";
 import { decryptValue } from "@/lib/crypto";
 import { buildSystemPrompt } from "@/lib/ai/systemPrompt";
 import { CAPY_TOOLS, executeToolCall, getUpcomingItems } from "@/lib/ai/capyTools";
-import { sendTelegram } from "@/lib/notifications/telegram";
+import { sendTelegram, sendChatAction } from "@/lib/notifications/telegram";
 import { compactSessionIfNeeded } from "@/lib/ai/compact";
 import { dataEvents } from "@/lib/events";
 import type { AgentMessage } from "@/lib/ai/types";
@@ -123,6 +123,12 @@ export async function POST(req: Request) {
     { role: "user", content: text },
   ];
 
+  // Show typing indicator immediately, then every 4s while AI thinks
+  void sendChatAction(secret, chatIdStr, "typing");
+  const typingInterval = setInterval(() => {
+    void sendChatAction(secret, chatIdStr, "typing");
+  }, 4_000);
+
   let finalText = "";
   let lastAssistantContent = "";
 
@@ -162,11 +168,14 @@ export async function POST(req: Request) {
 
     if (!finalText) finalText = lastAssistantContent;
   } catch (err) {
+    clearInterval(typingInterval);
     process.stderr.write(
       `[telegram] AI error: ${err instanceof Error ? err.message : String(err)}\n`
     );
     return new Response("OK");
   }
+
+  clearInterval(typingInterval);
 
   if (!finalText) return new Response("OK");
 
@@ -178,17 +187,23 @@ export async function POST(req: Request) {
     );
   }
 
-  await db.insert(chatMessages).values([
-    { sessionId: session.id, userId, role: "user", content: text },
-    { sessionId: session.id, userId, role: "assistant", content: finalText },
-  ]);
+  try {
+    await db.insert(chatMessages).values([
+      { sessionId: session.id, userId, role: "user", content: text },
+      { sessionId: session.id, userId, role: "assistant", content: finalText },
+    ]);
 
-  await db
-    .update(chatSessions)
-    .set({ updatedAt: new Date() })
-    .where(eq(chatSessions.id, session.id));
+    await db
+      .update(chatSessions)
+      .set({ updatedAt: new Date() })
+      .where(eq(chatSessions.id, session.id));
 
-  void compactSessionIfNeeded(session.id, provider, row.aiCompactThreshold ?? 40);
+    void compactSessionIfNeeded(session.id, provider, row.aiCompactThreshold ?? 40);
+  } catch (err) {
+    process.stderr.write(
+      `[telegram] DB error: ${err instanceof Error ? err.message : String(err)}\n`
+    );
+  }
 
   dataEvents.emit("refresh", userId);
 
