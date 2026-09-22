@@ -15,6 +15,50 @@ export type UpcomingItem = {
   deadline: Date;
 };
 
+/**
+ * Parse a deadline string from the AI in the context of the user's timezone.
+ * - If the string already carries an offset (e.g. +05:30) or Z, parse as-is.
+ * - If it's a naive datetime (no offset), interpret it as the user's local time
+ *   and convert to the correct UTC instant.
+ * - If it's a date-only string (YYYY-MM-DD), treat it as midnight in the user's TZ.
+ */
+function parseDeadlineInTimezone(str: string, timezone: string): Date {
+  const s = str.trim();
+
+  // Already has an offset or Z — parse directly
+  if (/Z$|[+-]\d{2}:\d{2}$/.test(s)) return new Date(s);
+
+  // Date-only: YYYY-MM-DD — treat as midnight in user's TZ by appending T00:00:00 and falling through
+  const normalized = /^\d{4}-\d{2}-\d{2}$/.test(s) ? `${s}T00:00:00` : s;
+
+  // Parse as if UTC to extract the numeric components
+  const naiveUtc = new Date(`${normalized}Z`);
+  if (isNaN(naiveUtc.getTime())) return new Date(s); // fallback for unparseable strings
+
+  // Get what the user's local time looks like at that UTC instant
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: timezone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  }).formatToParts(naiveUtc);
+  const localMs = Date.UTC(
+    Number(parts.find((p) => p.type === "year")?.value ?? 0),
+    Number(parts.find((p) => p.type === "month")?.value ?? 1) - 1,
+    Number(parts.find((p) => p.type === "day")?.value ?? 1),
+    Number(parts.find((p) => p.type === "hour")?.value ?? 0),
+    Number(parts.find((p) => p.type === "minute")?.value ?? 0),
+    Number(parts.find((p) => p.type === "second")?.value ?? 0)
+  );
+  // offsetMs = UTC - local (positive for timezones east of UTC like IST)
+  const offsetMs = naiveUtc.getTime() - localMs;
+  return new Date(naiveUtc.getTime() + offsetMs);
+}
+
 function toDateStr(d: Date, tz: string): string {
   const parts = new Intl.DateTimeFormat("en-US", {
     timeZone: tz,
@@ -98,6 +142,23 @@ async function executeToolCallInner(
       const name = String(args.name ?? "").trim();
       if (!name) return JSON.stringify({ ok: false, error: "Name is required" });
 
+      const [duplicate] = await db
+        .select({ id: buckets.id })
+        .from(buckets)
+        .where(
+          and(
+            eq(buckets.userId, userId),
+            isNull(buckets.deletedAt),
+            sql`lower(${buckets.name}) = lower(${name})`
+          )
+        )
+        .limit(1);
+      if (duplicate)
+        return JSON.stringify({
+          ok: false,
+          error: `A bucket named "${name}" already exists (id: ${duplicate.id}). Use that bucket instead of creating a new one.`,
+        });
+
       const [maxRow] = await db
         .select({ max: sql<number>`COALESCE(MAX(${buckets.sortOrder}), -1)` })
         .from(buckets)
@@ -176,7 +237,9 @@ async function executeToolCallInner(
         .from(items)
         .where(eq(items.bucketId, bucketId));
 
-      const deadline = args.deadline ? new Date(String(args.deadline)) : null;
+      const deadline = args.deadline
+        ? parseDeadlineInTimezone(String(args.deadline), timezone)
+        : null;
       const notificationOffsetMins =
         args.notification_offset_mins !== null && args.notification_offset_mins !== undefined
           ? Number(args.notification_offset_mins)
@@ -236,7 +299,9 @@ async function executeToolCallInner(
         updates.title = title;
       }
       if ("deadline" in args) {
-        updates.deadline = args.deadline ? new Date(String(args.deadline)) : null;
+        updates.deadline = args.deadline
+          ? parseDeadlineInTimezone(String(args.deadline), timezone)
+          : null;
       }
       if ("notification_offset_mins" in args) {
         updates.notificationOffsetMins =
@@ -347,7 +412,9 @@ async function executeToolCallInner(
       });
       if (!item) return JSON.stringify({ ok: false, error: "Item not found" });
 
-      const snoozedUntil = args.snooze_until ? new Date(String(args.snooze_until)) : null;
+      const snoozedUntil = args.snooze_until
+        ? parseDeadlineInTimezone(String(args.snooze_until), timezone)
+        : null;
       await db
         .update(items)
         .set({ snoozedUntil, updatedAt: new Date() })

@@ -8,6 +8,7 @@ import { sendNtfy } from "@/lib/notifications/ntfy";
 import { sendTelegram } from "@/lib/notifications/telegram";
 import { APP_NAME } from "@/constants";
 import { errorMessage } from "@/lib/errors";
+import { dataEvents } from "@/lib/events";
 import { decryptValue } from "@/lib/crypto";
 import { getAIProvider } from "@/lib/ai";
 import type { AgentMessage } from "@/lib/ai/types";
@@ -32,6 +33,19 @@ function isInQuietHours(quietHours: { from: string; to: string }, timezone: stri
   return fromMins > toMins
     ? nowMins >= fromMins || nowMins < toMins
     : nowMins >= fromMins && nowMins < toMins;
+}
+
+function hasNotifyAtPassed(notifyAt: string, timezone: string, now: Date): boolean {
+  const [h = 0, m = 0] = notifyAt.split(":").map(Number);
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: timezone,
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).formatToParts(now);
+  const currentH = parseInt(parts.find((p) => p.type === "hour")?.value ?? "0", 10);
+  const currentM = parseInt(parts.find((p) => p.type === "minute")?.value ?? "0", 10);
+  return currentH * 60 + currentM >= h * 60 + m;
 }
 
 function getNextDeadline(deadline: Date, config: RecurringConfig): Date {
@@ -106,7 +120,10 @@ async function generateNotificationText(
       },
     ];
 
-    const result = await ai.complete(messages, []);
+    const result = await Promise.race([
+      ai.complete(messages, []),
+      new Promise<never>((_, reject) => setTimeout(() => reject(new Error("AI timeout")), 8000)),
+    ]);
     return result.content?.trim() || fallback;
   } catch {
     return fallback;
@@ -117,6 +134,7 @@ async function runNotifications(): Promise<void> {
   const now = new Date();
   const todayMidnight = new Date(now);
   todayMidnight.setUTCHours(0, 0, 0, 0);
+  process.stderr.write(`[scheduler] run at ${now.toISOString()}\n`);
 
   const candidates = await db
     .select({
@@ -156,33 +174,52 @@ async function runNotifications(): Promise<void> {
     )
     .limit(500);
 
+  process.stderr.write(`[scheduler] ${candidates.length} candidate(s)\n`);
+
   for (const row of candidates) {
+    const tag = `[scheduler] item ${row.item.id} "${row.item.title}"`;
     try {
       const rules = NotificationRules.parse(JSON.parse(row.bucketNotifRules));
 
-      if (rules.medium.length === 0) continue;
+      if (rules.medium.length === 0) {
+        process.stderr.write(`${tag} skip: no medium\n`);
+        continue;
+      }
 
       const deadline = row.item.deadline;
-      if (!deadline) continue;
+      if (!deadline) {
+        process.stderr.write(`${tag} skip: no deadline\n`);
+        continue;
+      }
 
-      if (row.item.notifiedAt && rules.repeat !== "daily") continue;
+      if (row.item.notifiedAt && rules.repeat !== "daily") {
+        process.stderr.write(
+          `${tag} skip: already notified at ${row.item.notifiedAt.toISOString()}\n`
+        );
+        continue;
+      }
 
       const offsetMins = row.item.notificationOffsetMins ?? rules.defaultOffsetMins;
       const triggerTime = new Date(deadline.getTime() - offsetMins * 60 * 1000);
 
-      if (triggerTime > now) continue;
-
-      let sendTime: Date;
-      if (rules.notifyAt) {
-        const [h, m] = rules.notifyAt.split(":").map(Number);
-        sendTime = new Date(now);
-        sendTime.setHours(h ?? 9, m ?? 0, 0, 0);
-      } else {
-        sendTime = triggerTime;
+      if (triggerTime > now) {
+        process.stderr.write(
+          `${tag} skip: triggerTime ${triggerTime.toISOString()} > now ${now.toISOString()}\n`
+        );
+        continue;
       }
-      if (sendTime > now) continue;
 
-      if (rules.quietHours && isInQuietHours(rules.quietHours, row.userTimezone)) continue;
+      if (rules.notifyAt && !hasNotifyAtPassed(rules.notifyAt, row.userTimezone, now)) {
+        process.stderr.write(
+          `${tag} skip: notifyAt=${rules.notifyAt} not yet reached in tz=${row.userTimezone}\n`
+        );
+        continue;
+      }
+
+      if (rules.quietHours && isInQuietHours(rules.quietHours, row.userTimezone)) {
+        process.stderr.write(`${tag} skip: quiet hours\n`);
+        continue;
+      }
 
       const deadlineStr = deadline.toLocaleDateString("en-US", {
         month: "short",
@@ -239,6 +276,8 @@ async function runNotifications(): Promise<void> {
       }
 
       if (sent.length === 0) continue;
+
+      dataEvents.emit("refresh");
 
       db.transaction((tx) => {
         tx.update(items).set({ notifiedAt: now }).where(eq(items.id, row.item.id)).run();

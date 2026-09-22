@@ -1,3 +1,4 @@
+import { eq } from "drizzle-orm";
 import { db } from "./index";
 import { itemStatuses, templates } from "./schema";
 
@@ -37,7 +38,7 @@ const BUILTIN_TEMPLATES = [
     rulesJson: JSON.stringify({
       notifications: {
         medium: ["ntfy", "email"],
-        notifyAt: "09:00",
+        notifyAt: "",
         quietHours: null,
         defaultOffsetMins: 0,
         repeat: "once",
@@ -60,7 +61,7 @@ const BUILTIN_TEMPLATES = [
     rulesJson: JSON.stringify({
       notifications: {
         medium: [],
-        notifyAt: "09:00",
+        notifyAt: "",
         quietHours: null,
         defaultOffsetMins: 0,
         repeat: "once",
@@ -138,11 +139,19 @@ export async function seed(userId: number) {
     .values(SYSTEM_STATUSES.map((s) => ({ ...s, userId })))
     .onConflictDoNothing();
 
-  const existing = await db.query.templates.findMany({
-    where: (t, { eq }) => eq(t.isBuiltin, true),
-  });
+  for (const t of BUILTIN_TEMPLATES) {
+    const existing = await db.query.templates.findFirst({
+      where: (tmpl, { and, eq, isNull }) =>
+        and(eq(tmpl.name, t.name), eq(tmpl.isBuiltin, true), isNull(tmpl.userId)),
+    });
 
-  if (existing.length === 0) {
-    await db.insert(templates).values(BUILTIN_TEMPLATES.map((t) => ({ ...t, userId: null })));
+    if (existing) {
+      await db
+        .update(templates)
+        .set({ description: t.description, rulesJson: t.rulesJson })
+        .where(eq(templates.id, existing.id));
+    } else {
+      await db.insert(templates).values({ ...t, userId: null });
+    }
   }
 }

@@ -2,7 +2,7 @@ import { z } from "zod";
 
 export const NotificationRules = z.object({
   medium: z.array(z.enum(["ntfy", "email", "telegram"])).default(["ntfy"]),
-  notifyAt: z.string().default("09:00"),
+  notifyAt: z.string().default(""),
   quietHours: z.object({ from: z.string(), to: z.string() }).nullable().default(null),
   defaultOffsetMins: z.number().int().nonnegative().default(0),
   repeat: z.enum(["once", "daily"]).default("once"),
