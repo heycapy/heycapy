@@ -170,7 +170,10 @@ async function runNotifications(): Promise<void> {
         if (row.item.recurring) {
           const recurringConfig = RecurringConfig.parse(JSON.parse(row.item.recurring));
           if (recurringConfig.enabled) {
-            const nextDeadline = getNextDeadline(deadline, recurringConfig);
+            let nextDeadline = getNextDeadline(deadline, recurringConfig);
+            while (nextDeadline <= now) {
+              nextDeadline = getNextDeadline(nextDeadline, recurringConfig);
+            }
             const withinEndDate =
               !recurringConfig.endDate || nextDeadline <= new Date(recurringConfig.endDate);
             if (withinEndDate) {

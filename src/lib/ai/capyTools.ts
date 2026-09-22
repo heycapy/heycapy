@@ -65,6 +65,21 @@ export async function executeToolCall(
   userId: number,
   timezone = "UTC"
 ): Promise<string> {
+  try {
+    return await executeToolCallInner(call, userId, timezone);
+  } catch (err) {
+    process.stderr.write(
+      `[ai-tools] tool ${call.name} failed: ${err instanceof Error ? err.message : String(err)}\n`
+    );
+    return JSON.stringify({ ok: false, error: "Tool execution failed" });
+  }
+}
+
+async function executeToolCallInner(
+  call: ToolCall,
+  userId: number,
+  timezone = "UTC"
+): Promise<string> {
   const args = call.arguments;
 
   switch (call.name) {

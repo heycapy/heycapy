@@ -13,6 +13,7 @@ import {
   itemStatuses,
   userSettings,
 } from "@/lib/db/schema";
+import { encryptValue, decryptValue } from "@/lib/crypto";
 import type { ItemsRulesConfig, NotificationsRulesConfig } from "@/components/buckets/constants";
 import type { RecurringConfig } from "@/types/rules";
 
@@ -27,7 +28,13 @@ export async function getUserSettingsAction(): Promise<
   });
   if (!settings) return { ok: false, error: "Settings not found" };
 
-  return { ok: true, settings };
+  return {
+    ok: true,
+    settings: {
+      ...settings,
+      aiApiKey: settings.aiApiKey ? decryptValue(settings.aiApiKey) : null,
+    },
+  };
 }
 
 type UserSettingsUpdate = {
@@ -65,7 +72,7 @@ export async function updateUserSettingsAction(
       personalityCustomPrompt: data.personalityCustomPrompt || null,
       timezone: data.timezone || "UTC",
       aiProvider: data.aiProvider,
-      aiApiKey: data.aiApiKey || null,
+      aiApiKey: data.aiApiKey ? encryptValue(data.aiApiKey) : null,
       aiModel: data.aiModel || null,
       aiOllamaUrl: data.aiOllamaUrl || null,
       notificationsEmail: data.notificationsEmail,

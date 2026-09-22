@@ -4,6 +4,7 @@ import { getSession } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { buckets, chatMessages, chatSessions, userSettings, users } from "@/lib/db/schema";
 import { getAIProvider } from "@/lib/ai";
+import { decryptValue } from "@/lib/crypto";
 import { buildSystemPrompt } from "@/lib/ai/systemPrompt";
 import { CAPY_TOOLS, executeToolCall, getUpcomingItems } from "@/lib/ai/capyTools";
 import type { AgentMessage } from "@/lib/ai/types";
@@ -58,7 +59,7 @@ export async function POST(req: Request) {
       getAIProvider({
         provider: settings?.aiProvider,
         model: settings?.aiModel,
-        apiKey: settings?.aiApiKey,
+        apiKey: settings?.aiApiKey ? decryptValue(settings.aiApiKey) : null,
         ollamaUrl: settings?.aiOllamaUrl,
       })
     ),
