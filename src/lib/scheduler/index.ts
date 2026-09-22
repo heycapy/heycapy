@@ -151,31 +151,31 @@ async function runNotifications(): Promise<void> {
 
       if (sent.length === 0) continue;
 
-      // Advance recurring items to their next deadline instead of marking notifiedAt
-      let advancedRecurring = false;
-      if (row.item.recurring) {
-        try {
+      // Stamp notifiedAt and (for recurring) spawn the next occurrence atomically
+      await db.transaction(async (tx) => {
+        await tx.update(items).set({ notifiedAt: now }).where(eq(items.id, row.item.id));
+
+        if (row.item.recurring) {
           const recurringConfig = RecurringConfig.parse(JSON.parse(row.item.recurring));
           if (recurringConfig.enabled) {
             const nextDeadline = getNextDeadline(deadline, recurringConfig);
             const withinEndDate =
               !recurringConfig.endDate || nextDeadline <= new Date(recurringConfig.endDate);
             if (withinEndDate) {
-              await db
-                .update(items)
-                .set({ deadline: nextDeadline, notifiedAt: null, snoozedUntil: null })
-                .where(eq(items.id, row.item.id));
-              advancedRecurring = true;
+              await tx.insert(items).values({
+                bucketId: row.item.bucketId,
+                userId: row.item.userId,
+                title: row.item.title,
+                deadline: nextDeadline,
+                status: "active",
+                notificationOffsetMins: row.item.notificationOffsetMins,
+                recurring: row.item.recurring,
+                source: row.item.source,
+              });
             }
           }
-        } catch {
-          // invalid recurring config — fall through to normal notifiedAt update
         }
-      }
-
-      if (!advancedRecurring) {
-        await db.update(items).set({ notifiedAt: now }).where(eq(items.id, row.item.id));
-      }
+      });
 
       for (const medium of sent) {
         await db.insert(notificationLog).values({
@@ -186,9 +186,7 @@ async function runNotifications(): Promise<void> {
           status: "sent",
         });
       }
-    } catch {
-      // item-level scheduler error — skip silently to avoid polluting the log with wrong medium
-    }
+    } catch {}
   }
 }
 
