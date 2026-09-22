@@ -48,3 +48,15 @@ export const PROVIDER_DEFAULT_MODELS: Record<AIProvider, string> = {
   groq: "openai/gpt-oss-120b",
   gemini: "gemini-2.5-flash",
 };
+
+export type TranscriptionProvider = "groq" | "openai";
+
+export const TRANSCRIPTION_PROVIDER_OPTIONS: { value: TranscriptionProvider; label: string }[] = [
+  { value: "groq", label: "groq" },
+  { value: "openai", label: "openai" },
+];
+
+export const TRANSCRIPTION_DEFAULT_MODELS: Record<TranscriptionProvider, string> = {
+  groq: "whisper-large-v3-turbo",
+  openai: "whisper-1",
+};

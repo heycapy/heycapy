@@ -8,7 +8,7 @@ import { BracketButton } from "@/components/ui/BracketButton";
 import { getUserSettingsAction, updateUserSettingsAction } from "@/app/(app)/actions";
 import { AppearanceTab, NotificationsTab, AITab, PersonalityTab } from "./SettingsTabs";
 import { StatusesTab } from "./StatusesTab";
-import type { UserTone, AIProvider } from "./settings-constants";
+import type { UserTone, AIProvider, TranscriptionProvider } from "./settings-constants";
 import type { userSettings } from "@/lib/db/schema";
 
 type Settings = typeof userSettings.$inferSelect;
@@ -36,6 +36,11 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
   const [aiModel, setAiModel] = useState("");
   const [aiOllamaUrl, setAiOllamaUrl] = useState("");
   const [aiCompactThreshold, setAiCompactThreshold] = useState(40);
+  const [transcriptionProvider, setTranscriptionProvider] = useState<TranscriptionProvider | null>(
+    null
+  );
+  const [transcriptionApiKey, setTranscriptionApiKey] = useState("");
+  const [transcriptionModel, setTranscriptionModel] = useState("");
 
   const [timezone, setTimezone] = useState(() => Intl.DateTimeFormat().resolvedOptions().timeZone);
 
@@ -67,6 +72,9 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
     setNotificationsTelegram(s.notificationsTelegram);
     setTelegramBotToken(s.telegramBotToken ?? "");
     setTelegramChatId(s.telegramChatId ?? "");
+    setTranscriptionProvider((s.transcriptionProvider as TranscriptionProvider | null) ?? null);
+    setTranscriptionApiKey(s.transcriptionApiKey ?? "");
+    setTranscriptionModel(s.transcriptionModel ?? "");
   }
 
   useEffect(() => {
@@ -105,6 +113,9 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
         notificationsTelegram,
         telegramBotToken: telegramBotToken || null,
         telegramChatId: telegramChatId || null,
+        transcriptionProvider: transcriptionProvider || null,
+        transcriptionApiKey: transcriptionApiKey || null,
+        transcriptionModel: transcriptionModel || null,
       });
       if (result.ok) onClose();
       else setError(result.error);
@@ -201,6 +212,12 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
                       setAiOllamaUrl={setAiOllamaUrl}
                       aiCompactThreshold={aiCompactThreshold}
                       setAiCompactThreshold={setAiCompactThreshold}
+                      transcriptionProvider={transcriptionProvider}
+                      setTranscriptionProvider={setTranscriptionProvider}
+                      transcriptionApiKey={transcriptionApiKey}
+                      setTranscriptionApiKey={setTranscriptionApiKey}
+                      transcriptionModel={transcriptionModel}
+                      setTranscriptionModel={setTranscriptionModel}
                       pending={pending}
                     />
                   )}

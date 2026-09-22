@@ -67,6 +67,9 @@ export const userSettings = sqliteTable("user_settings", {
   notificationsTelegram: integer("notifications_telegram", { mode: "boolean" })
     .notNull()
     .default(false),
+  transcriptionProvider: text("transcription_provider"),
+  transcriptionApiKey: text("transcription_api_key"),
+  transcriptionModel: text("transcription_model"),
   updatedAt: integer("updated_at", { mode: "timestamp" })
     .notNull()
     .default(sql`(unixepoch())`),

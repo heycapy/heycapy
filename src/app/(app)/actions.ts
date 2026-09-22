@@ -42,6 +42,9 @@ export async function getUserSettingsAction(): Promise<
     settings: {
       ...settings,
       aiApiKey: settings.aiApiKey ? decryptValue(settings.aiApiKey) : null,
+      transcriptionApiKey: settings.transcriptionApiKey
+        ? decryptValue(settings.transcriptionApiKey)
+        : null,
     },
   };
 }
@@ -64,6 +67,9 @@ type UserSettingsUpdate = {
   telegramBotToken: string | null;
   telegramChatId: string | null;
   notificationsTelegram: boolean;
+  transcriptionProvider: string | null;
+  transcriptionApiKey: string | null;
+  transcriptionModel: string | null;
 };
 
 export async function updateUserSettingsAction(
@@ -96,6 +102,9 @@ export async function updateUserSettingsAction(
       telegramBotToken: data.telegramBotToken || null,
       telegramChatId: data.telegramChatId || null,
       notificationsTelegram: data.notificationsTelegram,
+      transcriptionProvider: data.transcriptionProvider || null,
+      transcriptionApiKey: data.transcriptionApiKey ? encryptValue(data.transcriptionApiKey) : null,
+      transcriptionModel: data.transcriptionModel || null,
       updatedAt: new Date(),
     })
     .where(eq(userSettings.userId, session.userId));

@@ -11,8 +11,10 @@ import {
   TONE_OPTIONS,
   PROVIDER_OPTIONS,
   PROVIDER_DEFAULT_MODELS,
+  TRANSCRIPTION_PROVIDER_OPTIONS,
+  TRANSCRIPTION_DEFAULT_MODELS,
 } from "./settings-constants";
-import type { UserTone, AIProvider } from "./settings-constants";
+import type { UserTone, AIProvider, TranscriptionProvider } from "./settings-constants";
 import { OLLAMA_DEFAULT_URL, NTFY_DEFAULT_URL } from "@/constants";
 
 interface AppearanceTabProps {
@@ -248,6 +250,12 @@ interface AITabProps {
   setAiOllamaUrl: (v: string) => void;
   aiCompactThreshold: number;
   setAiCompactThreshold: (v: number) => void;
+  transcriptionProvider: TranscriptionProvider | null;
+  setTranscriptionProvider: (v: TranscriptionProvider | null) => void;
+  transcriptionApiKey: string;
+  setTranscriptionApiKey: (v: string) => void;
+  transcriptionModel: string;
+  setTranscriptionModel: (v: string) => void;
   pending: boolean;
 }
 
@@ -262,75 +270,155 @@ export function AITab({
   setAiOllamaUrl,
   aiCompactThreshold,
   setAiCompactThreshold,
+  transcriptionProvider,
+  setTranscriptionProvider,
+  transcriptionApiKey,
+  setTranscriptionApiKey,
+  transcriptionModel,
+  setTranscriptionModel,
   pending,
 }: AITabProps) {
+  const [aiSubTab, setAiSubTab] = useState<"chat" | "voice">("chat");
+
+  const subTabBtn = (t: "chat" | "voice") =>
+    cn(
+      "font-mono text-[10px] px-2 py-0.5 transition-colors",
+      aiSubTab === t
+        ? "bg-foreground text-background"
+        : "text-muted-foreground hover:text-foreground"
+    );
+
   return (
     <>
-      <div className="flex flex-col gap-1.5">
-        <label className={LABEL}>provider</label>
-        <OptionGroup
-          options={PROVIDER_OPTIONS}
-          value={aiProvider}
-          onChange={setAiProvider}
-          disabled={pending}
-        />
+      <div className="flex gap-0">
+        <button className={subTabBtn("chat")} onClick={() => setAiSubTab("chat")}>
+          chat
+        </button>
+        <button className={subTabBtn("voice")} onClick={() => setAiSubTab("voice")}>
+          voice
+        </button>
       </div>
-      {aiProvider === "ollama" && (
-        <div className="flex flex-col gap-1.5">
-          <label className={LABEL}>ollama url</label>
-          <input
-            type="text"
-            value={aiOllamaUrl}
-            onChange={(e) => setAiOllamaUrl(e.target.value)}
-            placeholder={OLLAMA_DEFAULT_URL}
-            maxLength={200}
-            disabled={pending}
-            className={INPUT}
-          />
-        </div>
+
+      {aiSubTab === "chat" && (
+        <>
+          <div className="flex flex-col gap-1.5">
+            <label className={LABEL}>provider</label>
+            <OptionGroup
+              options={PROVIDER_OPTIONS}
+              value={aiProvider}
+              onChange={setAiProvider}
+              disabled={pending}
+            />
+          </div>
+          {aiProvider === "ollama" && (
+            <div className="flex flex-col gap-1.5">
+              <label className={LABEL}>ollama url</label>
+              <input
+                type="text"
+                value={aiOllamaUrl}
+                onChange={(e) => setAiOllamaUrl(e.target.value)}
+                placeholder={OLLAMA_DEFAULT_URL}
+                maxLength={200}
+                disabled={pending}
+                className={INPUT}
+              />
+            </div>
+          )}
+          {aiProvider !== "ollama" && (
+            <div className="flex flex-col gap-1.5">
+              <label className={LABEL}>api key</label>
+              <input
+                type="password"
+                value={aiApiKey}
+                onChange={(e) => setAiApiKey(e.target.value)}
+                placeholder="sk-..."
+                maxLength={200}
+                disabled={pending}
+                className={INPUT}
+              />
+            </div>
+          )}
+          <div className="flex flex-col gap-1.5">
+            <label className={LABEL}>model</label>
+            <input
+              type="text"
+              value={aiModel}
+              onChange={(e) => setAiModel(e.target.value)}
+              placeholder={PROVIDER_DEFAULT_MODELS[aiProvider]}
+              maxLength={100}
+              disabled={pending}
+              className={INPUT}
+            />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <label className={LABEL}>autocompact after</label>
+            <input
+              type="number"
+              value={aiCompactThreshold}
+              onChange={(e) => setAiCompactThreshold(Math.max(10, parseInt(e.target.value) || 40))}
+              placeholder="40"
+              min={10}
+              max={500}
+              disabled={pending}
+              className={INPUT}
+            />
+            <span className="text-muted-foreground/50 font-mono text-[9px]">
+              messages before compacting chat history — increase for more powerful models
+            </span>
+          </div>
+        </>
       )}
-      {aiProvider !== "ollama" && (
-        <div className="flex flex-col gap-1.5">
-          <label className={LABEL}>api key</label>
-          <input
-            type="password"
-            value={aiApiKey}
-            onChange={(e) => setAiApiKey(e.target.value)}
-            placeholder="sk-..."
-            maxLength={200}
-            disabled={pending}
-            className={INPUT}
-          />
-        </div>
+
+      {aiSubTab === "voice" && (
+        <>
+          <div className="flex flex-col gap-1.5">
+            <label className={LABEL}>provider</label>
+            <OptionGroup
+              options={[{ value: "none", label: "off" }, ...TRANSCRIPTION_PROVIDER_OPTIONS]}
+              value={transcriptionProvider ?? "none"}
+              onChange={(v) =>
+                setTranscriptionProvider(v === "none" ? null : (v as TranscriptionProvider))
+              }
+              disabled={pending}
+            />
+          </div>
+          {transcriptionProvider && (
+            <>
+              <div className="flex flex-col gap-1.5">
+                <label className={LABEL}>
+                  api key
+                  {transcriptionProvider === aiProvider && (
+                    <span className="text-muted-foreground/50 ml-1">
+                      (leave blank to reuse chat key)
+                    </span>
+                  )}
+                </label>
+                <input
+                  type="password"
+                  value={transcriptionApiKey}
+                  onChange={(e) => setTranscriptionApiKey(e.target.value)}
+                  placeholder="sk-..."
+                  maxLength={200}
+                  disabled={pending}
+                  className={INPUT}
+                />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <label className={LABEL}>model</label>
+                <input
+                  type="text"
+                  value={transcriptionModel}
+                  onChange={(e) => setTranscriptionModel(e.target.value)}
+                  placeholder={TRANSCRIPTION_DEFAULT_MODELS[transcriptionProvider]}
+                  maxLength={100}
+                  disabled={pending}
+                  className={INPUT}
+                />
+              </div>
+            </>
+          )}
+        </>
       )}
-      <div className="flex flex-col gap-1.5">
-        <label className={LABEL}>model</label>
-        <input
-          type="text"
-          value={aiModel}
-          onChange={(e) => setAiModel(e.target.value)}
-          placeholder={PROVIDER_DEFAULT_MODELS[aiProvider]}
-          maxLength={100}
-          disabled={pending}
-          className={INPUT}
-        />
-      </div>
-      <div className="flex flex-col gap-1.5">
-        <label className={LABEL}>autocompact after</label>
-        <input
-          type="number"
-          value={aiCompactThreshold}
-          onChange={(e) => setAiCompactThreshold(Math.max(10, parseInt(e.target.value) || 40))}
-          placeholder="40"
-          min={10}
-          max={500}
-          disabled={pending}
-          className={INPUT}
-        />
-        <span className="text-muted-foreground/50 font-mono text-[9px]">
-          messages before compacting chat history — increase for more powerful models
-        </span>
-      </div>
     </>
   );
 }
