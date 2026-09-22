@@ -42,7 +42,10 @@ export const ChatInputBar = forwardRef<ChatInputBarHandle, Props>(function ChatI
   }, [streaming]);
 
   useEffect(() => {
-    if (!input && inputRef.current) inputRef.current.style.height = "auto";
+    const el = inputRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    if (input) el.style.height = `${Math.min(el.scrollHeight, 80)}px`;
   }, [input]);
 
   useEffect(() => {
@@ -117,7 +120,12 @@ export const ChatInputBar = forwardRef<ChatInputBarHandle, Props>(function ChatI
           });
         } else {
           setInput(body.text);
-          setTimeout(() => inputRef.current?.focus(), 0);
+          setTimeout(() => {
+            const el = inputRef.current;
+            if (!el) return;
+            el.focus();
+            el.selectionStart = el.selectionEnd = el.value.length;
+          }, 0);
         }
       } catch {
         toast.error("transcription failed", {

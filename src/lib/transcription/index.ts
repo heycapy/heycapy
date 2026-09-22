@@ -10,6 +10,6 @@ export async function transcribeAudio(
   const client =
     provider === "groq" ? new OpenAI({ apiKey, baseURL: GROQ_API_BASE }) : new OpenAI({ apiKey });
 
-  const response = await client.audio.transcriptions.create({ file: audio, model });
+  const response = await client.audio.transcriptions.create({ file: audio, model, language: "en" });
   return response.text;
 }
