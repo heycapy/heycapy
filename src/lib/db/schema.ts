@@ -157,6 +157,7 @@ export const items = sqliteTable("items", {
     .notNull()
     .default("manual"),
   externalId: text("external_id"),
+  completedAt: integer("completed_at", { mode: "timestamp" }),
   deletedAt: integer("deleted_at", { mode: "timestamp" }),
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()

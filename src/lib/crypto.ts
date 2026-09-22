@@ -3,9 +3,9 @@ import { createCipheriv, createDecipheriv, randomBytes } from "crypto";
 const ALGORITHM = "aes-256-gcm";
 const ENC_PREFIX = "enc:";
 
-function getKey(): Buffer {
+function getKey(): Buffer | null {
   const raw = process.env.ENCRYPTION_KEY;
-  if (!raw) throw new Error("ENCRYPTION_KEY is not set");
+  if (!raw) return null;
   const buf = Buffer.from(raw, "hex");
   if (buf.length !== 32)
     throw new Error("ENCRYPTION_KEY must be exactly 64 hex characters (32 bytes)");
@@ -14,6 +14,7 @@ function getKey(): Buffer {
 
 export function encryptValue(plain: string): string {
   const key = getKey();
+  if (!key) return plain;
   const iv = randomBytes(12);
   const cipher = createCipheriv(ALGORITHM, key, iv);
   const encrypted = Buffer.concat([cipher.update(plain, "utf8"), cipher.final()]);
@@ -24,6 +25,10 @@ export function encryptValue(plain: string): string {
 export function decryptValue(stored: string): string {
   if (!stored.startsWith(ENC_PREFIX)) return stored;
   const key = getKey();
+  if (!key)
+    throw new Error(
+      "ENCRYPTION_KEY is not set but an encrypted value was found in the database. Set ENCRYPTION_KEY in your .env file."
+    );
   const buf = Buffer.from(stored.slice(ENC_PREFIX.length), "base64");
   const iv = buf.subarray(0, 12);
   const tag = buf.subarray(12, 28);

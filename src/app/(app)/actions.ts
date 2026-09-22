@@ -280,6 +280,10 @@ export async function updateItemAction(
         ? new Date(deadline.includes("T") ? deadline : deadline + "T12:00:00")
         : null,
       ...(status !== undefined && { status }),
+      ...(status === "completed" && item.status !== "completed" && { completedAt: new Date() }),
+      ...(status !== undefined &&
+        status !== "completed" &&
+        item.status === "completed" && { completedAt: null }),
       ...(recurring !== undefined && {
         recurring: recurring?.enabled ? JSON.stringify(recurring) : null,
       }),
@@ -301,10 +305,12 @@ export async function completeItemAction(
   });
   if (!item) return { ok: false, error: "Item not found" };
 
+  const newStatus = item.status === "completed" ? "active" : "completed";
   await db
     .update(items)
     .set({
-      status: item.status === "completed" ? "active" : "completed",
+      status: newStatus,
+      completedAt: newStatus === "completed" ? new Date() : null,
       updatedAt: new Date(),
     })
     .where(and(eq(items.id, itemId), eq(items.userId, session.userId)));

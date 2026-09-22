@@ -152,7 +152,7 @@ function ScrollColumn<T extends string>({
               className={cn(
                 "flex items-center justify-center font-mono text-xs transition-opacity",
                 isSelected ? "text-foreground opacity-100" : "text-muted-foreground opacity-40",
-                normalize && isSelected && !editing ? "cursor-text" : "cursor-pointer select-none"
+                "cursor-pointer select-none"
               )}
               style={{ height: ITEM_H, scrollSnapAlign: "center" }}
             >

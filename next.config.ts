@@ -1,14 +1,5 @@
 import type { NextConfig } from "next";
 
-const required = ["JWT_SECRET", "ENCRYPTION_KEY"];
-for (const key of required) {
-  if (!process.env[key]) {
-    throw new Error(
-      `Missing required environment variable: ${key}. See .env.example for instructions.`
-    );
-  }
-}
-
 const isProd = process.env.NODE_ENV === "production";
 
 const nextConfig: NextConfig = {

@@ -1,5 +1,5 @@
 import { revalidatePath } from "next/cache";
-import { and, eq, isNull, lte, or, sql } from "drizzle-orm";
+import { and, eq, gte, isNull, lte, ne, or, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { buckets, items, itemStatuses } from "@/lib/db/schema";
 import { RecurringConfig } from "@/types/rules";
@@ -59,6 +59,7 @@ function parseRecurringArgs(args: Record<string, unknown>): string | null | unde
 }
 
 const activeOnly = or(eq(items.status, "active"), isNull(items.status));
+const notCompleted = ne(items.status, "completed");
 
 export async function executeToolCall(
   call: ToolCall,
@@ -190,6 +191,7 @@ async function executeToolCallInner(
       }
 
       const statusArg = args.status ? String(args.status).trim() : "active";
+      const finalStatus = statusArg || "active";
 
       const [inserted] = await db
         .insert(items)
@@ -197,7 +199,8 @@ async function executeToolCallInner(
           bucketId,
           userId,
           title,
-          status: statusArg || "active",
+          status: finalStatus,
+          completedAt: finalStatus === "completed" ? new Date() : null,
           deadline,
           notificationOffsetMins,
           recurring: recurringJson,
@@ -224,6 +227,7 @@ async function executeToolCallInner(
         notificationOffsetMins?: number | null;
         recurring?: string | null;
         status?: string;
+        completedAt?: Date | null;
       } = { updatedAt: new Date() };
 
       if (args.title !== undefined) {
@@ -250,7 +254,14 @@ async function executeToolCallInner(
 
       if (args.status !== undefined) {
         const statusName = String(args.status).trim();
-        if (statusName) updates.status = statusName;
+        if (statusName) {
+          updates.status = statusName;
+          if (statusName === "completed" && item.status !== "completed") {
+            updates.completedAt = new Date();
+          } else if (statusName !== "completed" && item.status === "completed") {
+            updates.completedAt = null;
+          }
+        }
       }
 
       await db
@@ -272,7 +283,11 @@ async function executeToolCallInner(
       const newStatus = item.status === "completed" ? "active" : "completed";
       await db
         .update(items)
-        .set({ status: newStatus, updatedAt: new Date() })
+        .set({
+          status: newStatus,
+          completedAt: newStatus === "completed" ? new Date() : null,
+          updatedAt: new Date(),
+        })
         .where(and(eq(items.id, itemId), eq(items.userId, userId)));
 
       revalidatePath("/");
@@ -369,7 +384,7 @@ async function executeToolCallInner(
                 eq(items.bucketId, bucketId),
                 eq(items.userId, userId),
                 isNull(items.deletedAt),
-                activeOnly
+                notCompleted
               )
         );
 
@@ -386,12 +401,25 @@ async function executeToolCallInner(
       const deadlineFilter = (args.deadline_filter as string | undefined) ?? "all";
       const bucketId = args.bucket_id !== undefined ? Number(args.bucket_id) : null;
       const includeCompleted = Boolean(args.include_completed ?? false);
+      const completedWithinDays =
+        args.completed_within_days !== undefined ? Number(args.completed_within_days) : null;
+      const dueWithinDays =
+        args.due_within_days !== undefined ? Number(args.due_within_days) : null;
+
+      const now = new Date();
+      const wantsCompleted = includeCompleted || completedWithinDays !== null;
 
       const conditions = [
         eq(items.userId, userId),
         isNull(items.deletedAt),
-        ...(includeCompleted ? [] : [activeOnly]),
+        ...(wantsCompleted ? [] : [notCompleted]),
         ...(bucketId !== null ? [eq(items.bucketId, bucketId)] : []),
+        ...(completedWithinDays !== null
+          ? [gte(items.completedAt, new Date(now.getTime() - completedWithinDays * 86_400_000))]
+          : []),
+        ...(dueWithinDays !== null
+          ? [lte(items.deadline, new Date(now.getTime() + dueWithinDays * 86_400_000))]
+          : []),
       ];
 
       const [rows, bucketRows] = await Promise.all([
@@ -404,6 +432,7 @@ async function executeToolCallInner(
             bucketId: items.bucketId,
             notificationOffsetMins: items.notificationOffsetMins,
             snoozedUntil: items.snoozedUntil,
+            completedAt: items.completedAt,
           })
           .from(items)
           .where(and(...conditions)),
@@ -431,6 +460,7 @@ async function executeToolCallInner(
           deadline: row.deadline,
           deadlineRelative: row.deadline ? deadlineRelative(row.deadline, timezone) : null,
           snoozedUntil: row.snoozedUntil,
+          completedAt: row.completedAt,
         }))
         .filter((row) => {
           if (deadlineFilter === "all") return true;

@@ -338,7 +338,8 @@ export const CAPY_TOOLS: Tool[] = [
     description:
       "Search for items across all buckets (or within one bucket) using a keyword and/or deadline filter. " +
       "Use this to answer questions like 'what's due today?', 'what's overdue?', " +
-      "'show me everything due this week', or 'find my Netflix reminder'. " +
+      "'show me everything due this week', 'find my Netflix reminder', " +
+      "'what did I complete in the last 2 days?', or 'what's coming up in the next 3 days?'. " +
       "Prefer this over calling list_items multiple times when you don't know which bucket contains the item.",
     parameters: {
       type: "object",
@@ -367,6 +368,20 @@ export const CAPY_TOOLS: Tool[] = [
         include_completed: {
           type: "boolean",
           description: "Whether to include completed items. Defaults to false.",
+        },
+        completed_within_days: {
+          type: "number",
+          description:
+            "Return only items completed within the last N days (based on completedAt). " +
+            "Automatically includes completed items — no need to also set include_completed. " +
+            "E.g. 2 = completed in the last 2 days, 7 = last week.",
+        },
+        due_within_days: {
+          type: "number",
+          description:
+            "Return only items whose deadline falls within the next N days from now. " +
+            "E.g. 3 = due in the next 3 days, 7 = due in the next week. " +
+            "Use this instead of deadline_filter when the user asks about a specific number of days ahead.",
         },
       },
     },
