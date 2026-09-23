@@ -55,7 +55,10 @@ export function ChatMessageList({ messages, streaming, fullscreen }: Props) {
             </div>
           )}
           <div
-            className={cn("flex flex-col gap-1", msg.role === "user" ? "items-end" : "items-start")}
+            className={cn(
+              "flex w-full flex-col gap-1",
+              msg.role === "user" ? "items-end" : "items-start"
+            )}
           >
             <div
               className={cn(

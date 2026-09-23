@@ -56,7 +56,7 @@ function MobileBucketPicker({
             [close]
           </button>
         </div>
-        <div className="border-border border-t">
+        <div className="border-border max-h-[60vh] overflow-y-auto border-t">
           {buckets.map((bucket, i) => {
             const isActive = bucket.id === activeId;
             const color = BUCKET_PALETTE[i % BUCKET_PALETTE.length];
