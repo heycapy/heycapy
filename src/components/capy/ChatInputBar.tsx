@@ -209,7 +209,7 @@ export const ChatInputBar = forwardRef<ChatInputBarHandle, Props>(function ChatI
           {streaming ? (
             <button
               onClick={onStop}
-              className="text-destructive border-destructive font-pixel mb-0.5 shrink-0 border px-2.5 py-1.5 text-[11px] transition-opacity hover:opacity-70 md:px-1.5 md:py-0.5 md:text-[9px]"
+              className="text-destructive border-destructive font-pixel mb-0.5 shrink-0 border px-2.5 py-2.5 text-[11px] transition-opacity hover:opacity-70 md:px-1.5 md:py-0.5 md:text-[9px]"
               aria-label="Stop"
             >
               stop

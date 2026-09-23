@@ -143,7 +143,6 @@ Two jobs: (1) NL input → parse bucket + item, (2) bucket setup assistant. Unif
 
 ```
 RESEND_API_KEY=
-EMAIL=                    # OTP delivery target + notification email
 JWT_SECRET=               # Random 32-byte secret
 NTFY_URL=                 # e.g. https://ntfy.sh or self-hosted
 NTFY_TOPIC=               # ntfy topic name

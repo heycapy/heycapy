@@ -41,17 +41,6 @@ export async function sendOtpAction(email: string): Promise<SendOtpResult> {
 
   const isDev = !process.env.RESEND_API_KEY;
 
-  if (!isDev) {
-    const configuredEmail = process.env.EMAIL;
-    const allowedEmails = (configuredEmail ?? "")
-      .split(",")
-      .map((e) => e.trim())
-      .filter(Boolean);
-    if (allowedEmails.length === 0 || !allowedEmails.includes(email.trim())) {
-      return { ok: true };
-    }
-  }
-
   const record = await getRateLimit(email);
   const now = Date.now();
   const windowStart = record?.otpSendWindowStart?.getTime() ?? 0;
