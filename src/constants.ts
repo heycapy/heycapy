@@ -10,3 +10,7 @@ export const GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta
 // Default service URLs
 export const OLLAMA_DEFAULT_URL = "https://ollama.yourdomain.com";
 export const NTFY_DEFAULT_URL = "https://ntfy.sh";
+
+export const WEBHOOK_KEY_PREFIX = "hc_live_";
+export const ITEM_TITLE_MAX_LENGTH = 500;
+export const BUCKET_NAME_MAX_LENGTH = 100;

@@ -8,10 +8,13 @@ import { getSession, deleteSession } from "@/lib/auth/session";
 import type { SessionPayload } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { buckets, chatMessages, chatSessions, items, userSettings } from "@/lib/db/schema";
-import { encryptValue, decryptValue } from "@/lib/crypto";
-import { TELEGRAM_API_BASE } from "@/constants";
+import { encryptValue, decryptValue, generateWebhookKey } from "@/lib/crypto";
+import { TELEGRAM_API_BASE, ITEM_TITLE_MAX_LENGTH, BUCKET_NAME_MAX_LENGTH } from "@/constants";
 import type { ItemsRulesConfig, NotificationsRulesConfig } from "@/components/buckets/constants";
+import { BucketSchema } from "@/types/rules";
 import type { RecurringConfig } from "@/types/rules";
+import { enqueue, processPending } from "@/lib/notifications/queue";
+import type { NotificationMedium } from "@/lib/notifications/queue";
 
 async function requireSession(): Promise<SessionPayload> {
   const session = await getSession();
@@ -178,7 +181,7 @@ export async function updateBucketSettingsAction(
 
   const trimmed = name.trim();
   if (!trimmed) return { ok: false, error: "Name is required" };
-  if (trimmed.length > 100) return { ok: false, error: "Name too long" };
+  if (trimmed.length > BUCKET_NAME_MAX_LENGTH) return { ok: false, error: "Name too long" };
 
   const bucket = await db.query.buckets.findFirst({
     where: (b, { eq: qeq, and: qand }) => qand(qeq(b.id, bucketId), qeq(b.userId, session.userId)),
@@ -212,7 +215,7 @@ export async function createBucketAction(
 
   const trimmed = name.trim();
   if (!trimmed) return { ok: false, error: "Name is required" };
-  if (trimmed.length > 100) return { ok: false, error: "Name too long" };
+  if (trimmed.length > BUCKET_NAME_MAX_LENGTH) return { ok: false, error: "Name too long" };
 
   const template = await db.query.templates.findFirst({
     where: (t, { eq: qeq }) => qeq(t.id, templateId),
@@ -238,6 +241,7 @@ export async function createBucketAction(
     itemsRules: JSON.stringify(rules.items ?? {}),
     mcpRules: rules.mcp ? JSON.stringify(rules.mcp) : null,
     personalityRules: JSON.stringify(rules.personality ?? {}),
+    webhookKey: encryptValue(generateWebhookKey()),
     sortOrder: maxRow.max + 1,
   });
 
@@ -256,7 +260,7 @@ export async function addItemAction(
 
   const trimmed = title.trim();
   if (!trimmed) return { ok: false, error: "Title is required" };
-  if (trimmed.length > 500) return { ok: false, error: "Title too long" };
+  if (trimmed.length > ITEM_TITLE_MAX_LENGTH) return { ok: false, error: "Title too long" };
 
   const bucket = await db.query.buckets.findFirst({
     where: (b, { eq: qeq, and: qand }) => qand(qeq(b.id, bucketId), qeq(b.userId, session.userId)),
@@ -295,7 +299,7 @@ export async function updateItemAction(
 
   const trimmed = title.trim();
   if (!trimmed) return { ok: false, error: "Title is required" };
-  if (trimmed.length > 500) return { ok: false, error: "Title too long" };
+  if (trimmed.length > ITEM_TITLE_MAX_LENGTH) return { ok: false, error: "Title too long" };
 
   const item = await db.query.items.findFirst({
     where: (i, { eq: qeq, and: qand }) => qand(qeq(i.id, itemId), qeq(i.userId, session.userId)),
@@ -320,6 +324,47 @@ export async function updateItemAction(
       updatedAt: new Date(),
     })
     .where(and(eq(items.id, itemId), eq(items.userId, session.userId)));
+
+  if (status !== undefined && status !== item.status) {
+    const bucket = await db.query.buckets.findFirst({
+      where: (b, { eq: qeq }) => qeq(b.id, item.bucketId),
+    });
+    if (bucket?.fieldSchema) {
+      const parsed = BucketSchema.safeParse(
+        typeof bucket.fieldSchema === "string" ? JSON.parse(bucket.fieldSchema) : bucket.fieldSchema
+      );
+      if (parsed.success) {
+        const matchingTrigger = parsed.data.notificationTriggers.find(
+          (t) => t.type === "status" && t.onStatus === status
+        );
+        if (matchingTrigger) {
+          const userRow = await db.query.userSettings.findFirst({
+            where: (s, { eq: qeq }) => qeq(s.userId, session.userId),
+          });
+          if (userRow) {
+            const mediums: NotificationMedium[] = [];
+            if (userRow.notificationsEmail) mediums.push("email");
+            if (userRow.notificationsPush && userRow.ntfyUrl && userRow.ntfyTopic)
+              mediums.push("ntfy");
+            if (userRow.notificationsTelegram && userRow.telegramBotToken && userRow.telegramChatId)
+              mediums.push("telegram");
+
+            const notifTitle = `[${bucket.name}] Status updated`;
+            const message = `"${trimmed}" is now ${status}.`;
+
+            await Promise.all(
+              mediums.map((medium) =>
+                enqueue({ userId: session.userId, itemId, medium, title: notifTitle, message })
+              )
+            );
+            void processPending().catch((err) => {
+              process.stderr.write(`[actions] processPending error: ${String(err)}\n`);
+            });
+          }
+        }
+      }
+    }
+  }
 
   revalidatePath("/");
   return { ok: true };
@@ -547,6 +592,40 @@ export async function deleteChatSessionAction(sessionId: number): Promise<{ ok: 
   await db.delete(chatSessions).where(eq(chatSessions.id, sessionId));
 
   return { ok: true };
+}
+
+export async function rotateWebhookKeyAction(
+  bucketId: number
+): Promise<{ ok: true; key: string } | { ok: false; error: string }> {
+  const session = await requireSession();
+
+  const bucket = await db.query.buckets.findFirst({
+    where: (b, { eq: qeq, and: qand }) => qand(qeq(b.id, bucketId), qeq(b.userId, session.userId)),
+  });
+  if (!bucket) return { ok: false, error: "Bucket not found" };
+
+  const key = generateWebhookKey();
+  await db
+    .update(buckets)
+    .set({ webhookKey: encryptValue(key), updatedAt: new Date() })
+    .where(and(eq(buckets.id, bucketId), eq(buckets.userId, session.userId)));
+
+  revalidatePath("/");
+  return { ok: true, key };
+}
+
+export async function getWebhookKeyAction(
+  bucketId: number
+): Promise<{ ok: true; key: string } | { ok: false; error: string }> {
+  const session = await requireSession();
+
+  const bucket = await db.query.buckets.findFirst({
+    where: (b, { eq: qeq, and: qand }) => qand(qeq(b.id, bucketId), qeq(b.userId, session.userId)),
+  });
+  if (!bucket) return { ok: false, error: "Bucket not found" };
+  if (!bucket.webhookKey) return { ok: false, error: "No webhook key set" };
+
+  return { ok: true, key: decryptValue(bucket.webhookKey) };
 }
 
 export async function registerTelegramWebhookAction(
