@@ -21,7 +21,8 @@ export default defineConfig({
       : []),
   ],
   webServer: {
-    command: "pnpm build && node .next/standalone/server.js",
+    command:
+      "pnpm build && cp -r src/lib/db/migrations .next/standalone/migrations && node .next/standalone/server.js",
     url: "http://localhost:3000",
     reuseExistingServer: !process.env.CI,
     timeout: 120000,
