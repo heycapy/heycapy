@@ -1,5 +1,5 @@
 import type { LucideIcon } from "lucide-react";
-import { Bell, Briefcase, CreditCard, GitBranch, ListTodo } from "lucide-react";
+import { Bell, Briefcase, CreditCard, ListTodo } from "lucide-react";
 
 export type SortBy = "deadline" | "created_at" | "manual";
 export type NotificationMedium = "ntfy" | "email" | "telegram";
@@ -27,7 +27,6 @@ export const TEMPLATE_ICONS: Record<string, LucideIcon> = {
   Reminders: Bell,
   Todo: ListTodo,
   Work: Briefcase,
-  Linear: GitBranch,
 };
 
 export const ITEM_STATUSES = [

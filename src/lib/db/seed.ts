@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, eq, isNull, notInArray } from "drizzle-orm";
 import { db } from "./index";
 import { itemStatuses, templates } from "./schema";
 
@@ -101,36 +101,6 @@ const BUILTIN_TEMPLATES = [
     }),
     isBuiltin: true,
   },
-  {
-    name: "Linear",
-    description: "Linear issues assigned to you with due dates.",
-    rulesJson: JSON.stringify({
-      notifications: {
-        medium: ["ntfy"],
-        notifyAt: "09:00",
-        quietHours: null,
-        defaultOffsetMins: 1440,
-        repeat: "once",
-        snoozeUntil: null,
-      },
-      items: {
-        sortBy: "deadline",
-        drag: false,
-        readonly: true,
-        showCompleted: false,
-        defaultDeadlineOffsetDays: null,
-      },
-      mcp: {
-        refreshMode: "interval",
-        refreshIntervalMins: 15,
-        allowCreate: true,
-        allowEdit: false,
-        filters: {},
-      },
-      personality: { toneOverride: null },
-    }),
-    isBuiltin: true,
-  },
 ];
 
 export async function seed(userId: number) {
@@ -154,4 +124,15 @@ export async function seed(userId: number) {
       await db.insert(templates).values({ ...t, userId: null });
     }
   }
+
+  const currentNames = BUILTIN_TEMPLATES.map((t) => t.name);
+  await db
+    .delete(templates)
+    .where(
+      and(
+        eq(templates.isBuiltin, true),
+        isNull(templates.userId),
+        notInArray(templates.name, currentNames)
+      )
+    );
 }

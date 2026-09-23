@@ -28,6 +28,32 @@ function getDate() {
   });
 }
 
+function LogoutConfirm({ onConfirm, onCancel }: { onConfirm: () => void; onCancel: () => void }) {
+  return createPortal(
+    <>
+      <div className="fixed inset-0 z-50 bg-black/40" onClick={onCancel} />
+      <div
+        className="bg-background border-border fixed top-1/2 left-1/2 z-50 -translate-x-1/2 -translate-y-1/2 border-2 p-5"
+        style={{ boxShadow: "3px 3px 0 var(--border)", minWidth: 220 }}
+      >
+        <p className="font-pixel mb-1 text-sm">log out?</p>
+        <p className="text-muted-foreground mb-4 font-mono text-xs">
+          you&apos;ll need to log in again.
+        </p>
+        <div className="flex gap-2">
+          <BracketButton onClick={onConfirm} variant="destructive" className="px-2 py-1">
+            log out
+          </BracketButton>
+          <BracketButton onClick={onCancel} className="px-2 py-1">
+            cancel
+          </BracketButton>
+        </div>
+      </div>
+    </>,
+    document.body
+  );
+}
+
 function GlobalMenu({
   onSettings,
   onArchive,
@@ -38,6 +64,7 @@ function GlobalMenu({
   onTrash: () => void;
 }) {
   const [open, setOpen] = useState(false);
+  const [confirmLogout, setConfirmLogout] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const [pos, setPos] = useState({ top: 0, left: 0 });
 
@@ -60,6 +87,13 @@ function GlobalMenu({
           ···
         </BracketButton>
       </div>
+
+      {confirmLogout && (
+        <LogoutConfirm
+          onConfirm={() => void logoutAction()}
+          onCancel={() => setConfirmLogout(false)}
+        />
+      )}
 
       {open &&
         createPortal(
@@ -97,7 +131,7 @@ function GlobalMenu({
               </button>
               <div className="border-border my-1 border-t" />
               <button
-                onClick={() => pick(() => void logoutAction())}
+                onClick={() => pick(() => setConfirmLogout(true))}
                 className="text-destructive hover:bg-muted flex w-full items-center gap-2.5 px-3 py-1.5 font-mono text-xs transition-colors"
               >
                 <LogOut size={11} />
