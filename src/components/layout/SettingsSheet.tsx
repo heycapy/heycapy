@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
+import { useScrollLock } from "@/hooks/useScrollLock";
 import { useTheme } from "next-themes";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -20,6 +21,7 @@ interface SettingsSheetProps {
 }
 
 export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
+  useScrollLock(open);
   const { theme, setTheme } = useTheme();
   const [tab, setTab] = useState<Tab>("appearance");
   const [pending, startTransition] = useTransition();

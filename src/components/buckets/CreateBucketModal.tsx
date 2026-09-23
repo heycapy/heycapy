@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import { motion, AnimatePresence, type Transition } from "framer-motion";
 import { ArrowLeft, X } from "lucide-react";
 import { useUIStore } from "@/store/ui";
+import { useScrollLock } from "@/hooks/useScrollLock";
 import { Button } from "@/components/ui/button";
 import { BracketButton } from "@/components/ui/BracketButton";
 import { createBucketAction } from "@/app/(app)/actions";
@@ -23,6 +24,7 @@ const transition: Transition = { duration: 0.15, ease: "easeOut" };
 
 export function CreateBucketModal({ templates }: CreateBucketModalProps) {
   const { createBucketOpen, closeCreateBucket } = useUIStore();
+  useScrollLock(createBucketOpen);
   const [step, setStep] = useState<Step>("pick");
   const [selected, setSelected] = useState<TemplateRow | null>(null);
   const [name, setName] = useState("");

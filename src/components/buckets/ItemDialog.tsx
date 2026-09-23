@@ -11,6 +11,7 @@ import { RECURRING_FREQUENCIES } from "./constants";
 import type { RecurringConfig } from "@/types/rules";
 import { cn } from "@/lib/utils";
 import { useUIStore } from "@/store/ui";
+import { useScrollLock } from "@/hooks/useScrollLock";
 
 function describeRecurring(config: RecurringConfig): string {
   const freq = RECURRING_FREQUENCIES.find((f) => f.value === config.frequency);
@@ -71,6 +72,7 @@ export function ItemDialog({
 }: ItemDialogProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const statuses = useUIStore((s) => s.statuses);
+  useScrollLock(open);
   const [timeHour, setTimeHour] = useState("9");
   const [timeMin, setTimeMin] = useState("00");
   const [timeAmpm, setTimeAmpm] = useState<Ampm>("am");

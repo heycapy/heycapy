@@ -15,7 +15,7 @@ const CapyChat = dynamic(() => import("@/components/capy/CapyChat").then((m) => 
   ssr: false,
 });
 
-export function AppShell({ children }: { children: ReactNode }) {
+export function AppShell({ children, email }: { children: ReactNode; email: string }) {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [archivedOpen, setArchivedOpen] = useState(false);
   const [trashOpen, setTrashOpen] = useState(false);
@@ -37,6 +37,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   return (
     <>
       <Header
+        email={email}
         onSettingsOpen={() => setSettingsOpen(true)}
         onArchiveOpen={() => setArchivedOpen(true)}
         onTrashOpen={() => setTrashOpen(true)}

@@ -5,8 +5,10 @@ import { createPortal } from "react-dom";
 import { Archive, LogOut, SlidersHorizontal, Trash2 } from "lucide-react";
 import { BracketButton } from "@/components/ui/BracketButton";
 import { logoutAction } from "@/app/(app)/actions";
+import { useScrollLock } from "@/hooks/useScrollLock";
 
 interface HeaderProps {
+  email: string;
   onSettingsOpen: () => void;
   onArchiveOpen: () => void;
   onTrashOpen: () => void;
@@ -55,16 +57,19 @@ function LogoutConfirm({ onConfirm, onCancel }: { onConfirm: () => void; onCance
 }
 
 function GlobalMenu({
+  email,
   onSettings,
   onArchive,
   onTrash,
 }: {
+  email: string;
   onSettings: () => void;
   onArchive: () => void;
   onTrash: () => void;
 }) {
   const [open, setOpen] = useState(false);
   const [confirmLogout, setConfirmLogout] = useState(false);
+  useScrollLock(confirmLogout);
   const containerRef = useRef<HTMLDivElement>(null);
   const [pos, setPos] = useState({ top: 0, left: 0 });
 
@@ -108,6 +113,9 @@ function GlobalMenu({
                 boxShadow: "2px 2px 0 var(--border)",
               }}
             >
+              <div className="text-muted-foreground border-border mb-1 border-b px-3 pt-0.5 pb-1.5 font-mono text-[10px]">
+                {email}
+              </div>
               <button
                 onClick={() => pick(onSettings)}
                 className="text-foreground hover:bg-muted flex w-full items-center gap-2.5 px-3 py-1.5 font-mono text-xs transition-colors"
@@ -145,7 +153,7 @@ function GlobalMenu({
   );
 }
 
-export function Header({ onSettingsOpen, onArchiveOpen, onTrashOpen }: HeaderProps) {
+export function Header({ email, onSettingsOpen, onArchiveOpen, onTrashOpen }: HeaderProps) {
   const greeting = useMemo(() => getGreeting(), []);
   const date = useMemo(() => getDate(), []);
 
@@ -157,7 +165,12 @@ export function Header({ onSettingsOpen, onArchiveOpen, onTrashOpen }: HeaderPro
       </div>
 
       <div className="flex items-center gap-3">
-        <GlobalMenu onSettings={onSettingsOpen} onArchive={onArchiveOpen} onTrash={onTrashOpen} />
+        <GlobalMenu
+          email={email}
+          onSettings={onSettingsOpen}
+          onArchive={onArchiveOpen}
+          onTrash={onTrashOpen}
+        />
       </div>
     </header>
   );

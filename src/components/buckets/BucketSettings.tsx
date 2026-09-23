@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
+import { useScrollLock } from "@/hooks/useScrollLock";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { BracketButton } from "@/components/ui/BracketButton";
@@ -79,6 +80,7 @@ const tabCn = (active: boolean) =>
 
 export function BucketSettings({ open, bucket, onClose }: BucketSettingsProps) {
   const router = useRouter();
+  useScrollLock(open);
   const [tab, setTab] = useState<Tab>("items");
   const [name, setName] = useState(bucket.name);
   const [error, setError] = useState("");

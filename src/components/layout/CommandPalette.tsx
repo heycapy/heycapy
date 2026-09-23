@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef, useTransition, type ReactNode } from "react";
+import { useScrollLock } from "@/hooks/useScrollLock";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTheme } from "next-themes";
@@ -26,6 +27,7 @@ interface CommandPaletteProps {
 }
 
 export function CommandPalette({ open, onClose }: CommandPaletteProps) {
+  useScrollLock(open);
   const { theme, setTheme } = useTheme();
   const [query, setQuery] = useState("");
   const [selectedId, setSelectedId] = useState<string>("");

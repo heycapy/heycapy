@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
+import { useScrollLock } from "@/hooks/useScrollLock";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { BracketButton } from "@/components/ui/BracketButton";
@@ -19,6 +20,7 @@ interface ArchivedBucketsSheetProps {
 }
 
 export function ArchivedBucketsSheet({ open, onClose }: ArchivedBucketsSheetProps) {
+  useScrollLock(open);
   const router = useRouter();
   const [archived, setArchived] = useState<BucketRow[]>([]);
   const [loading, setLoading] = useState(true);
