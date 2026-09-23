@@ -202,14 +202,14 @@ export const ChatInputBar = forwardRef<ChatInputBarHandle, Props>(function ChatI
             disabled={streaming}
             title="voice input (ctrl+shift+m)"
             aria-label="Record voice"
-            className="border-border text-muted-foreground hover:border-foreground hover:text-foreground mb-0.5 shrink-0 border p-1 transition-colors disabled:cursor-not-allowed disabled:opacity-40"
+            className="border-border text-muted-foreground hover:border-foreground hover:text-foreground mb-0.5 shrink-0 border p-2.5 transition-colors disabled:cursor-not-allowed disabled:opacity-40 md:p-1"
           >
-            <Mic size={12} />
+            <Mic size={14} />
           </button>
           {streaming ? (
             <button
               onClick={onStop}
-              className="text-destructive border-destructive font-pixel mb-0.5 shrink-0 border px-1.5 py-0.5 text-[9px] transition-opacity hover:opacity-70"
+              className="text-destructive border-destructive font-pixel mb-0.5 shrink-0 border px-2.5 py-1.5 text-[11px] transition-opacity hover:opacity-70 md:px-1.5 md:py-0.5 md:text-[9px]"
               aria-label="Stop"
             >
               stop
@@ -219,14 +219,14 @@ export const ChatInputBar = forwardRef<ChatInputBarHandle, Props>(function ChatI
               onClick={onSend}
               disabled={!input.trim()}
               className={cn(
-                "border-border mb-0.5 shrink-0 border p-1 transition-colors",
+                "border-border mb-0.5 shrink-0 border p-2.5 transition-colors md:p-1",
                 input.trim()
                   ? "bg-foreground text-background"
                   : "text-muted-foreground cursor-not-allowed"
               )}
               aria-label="Send"
             >
-              <ArrowUp size={12} />
+              <ArrowUp size={14} />
             </button>
           )}
         </div>

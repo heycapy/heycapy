@@ -144,10 +144,12 @@ function ScrollColumn<T extends string>({
     <div className="flex flex-col items-center gap-0.5" style={{ width }}>
       <button
         disabled={disabled}
-        onMouseDown={() => startHold(-1)}
-        onMouseUp={stopHold}
-        onMouseLeave={stopHold}
+        onPointerDown={() => startHold(-1)}
+        onPointerUp={stopHold}
+        onPointerLeave={stopHold}
+        onPointerCancel={stopHold}
         className="text-muted-foreground hover:text-foreground inline-flex items-center font-mono text-xs transition-colors disabled:opacity-25"
+        style={{ touchAction: "none" }}
       >
         <span className="opacity-50">[</span>
         <ChevronUp size={10} strokeWidth={2} />
@@ -187,6 +189,7 @@ function ScrollColumn<T extends string>({
             scrollbarWidth: "none",
             paddingTop: ITEM_H,
             paddingBottom: ITEM_H,
+            touchAction: "pan-y",
           }}
         >
           {items.map((item, idx) => {
@@ -240,10 +243,12 @@ function ScrollColumn<T extends string>({
 
       <button
         disabled={disabled}
-        onMouseDown={() => startHold(1)}
-        onMouseUp={stopHold}
-        onMouseLeave={stopHold}
+        onPointerDown={() => startHold(1)}
+        onPointerUp={stopHold}
+        onPointerLeave={stopHold}
+        onPointerCancel={stopHold}
         className="text-muted-foreground hover:text-foreground inline-flex items-center font-mono text-xs transition-colors disabled:opacity-25"
+        style={{ touchAction: "none" }}
       >
         <span className="opacity-50">[</span>
         <ChevronDown size={10} strokeWidth={2} />

@@ -613,3 +613,11 @@ body {
   font-size: 10px;
   line-height: 1;
 }
+
+@media (max-width: 767px) {
+  input:not([type="range"]),
+  textarea,
+  select {
+    font-size: 16px;
+  }
+}

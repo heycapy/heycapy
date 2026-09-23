@@ -64,14 +64,14 @@ export function BucketsShell({ buckets }: BucketsShellProps) {
         <div className="flex items-center md:hidden">
           <button
             onClick={openCreateBucket}
-            className="text-muted-foreground hover:text-foreground -mt-0.5 shrink-0 border-t-2 border-t-transparent px-3 py-2.5 transition-colors"
+            className="text-muted-foreground hover:text-foreground -mt-0.5 shrink-0 border-t-2 border-t-transparent px-3 py-3.5 transition-colors"
             aria-label="New bucket"
           >
             <Plus size={13} />
           </button>
           <div className="relative -mt-0.5 min-w-0 flex-1">
             <div
-              className="bg-card pointer-events-none border-t-2 px-3 py-2.5"
+              className="bg-card pointer-events-none border-t-2 px-3 py-3.5"
               style={{ borderTopColor: accentColor }}
             >
               <span className="font-pixel text-foreground block truncate text-xs">
@@ -99,7 +99,7 @@ export function BucketsShell({ buckets }: BucketsShellProps) {
         <div className="scrollbar-hide hidden overflow-x-auto md:flex">
           <button
             onClick={openCreateBucket}
-            className="text-muted-foreground hover:text-foreground -mt-0.5 shrink-0 border-t-2 border-t-transparent px-3 py-2.5 transition-colors"
+            className="text-muted-foreground hover:text-foreground -mt-0.5 shrink-0 border-t-2 border-t-transparent px-3 py-[13.8px] transition-colors"
             aria-label="New bucket"
           >
             <Plus size={12} />
@@ -114,7 +114,7 @@ export function BucketsShell({ buckets }: BucketsShellProps) {
                 onClick={() => setActiveBucketId(bucket.id)}
                 style={isActive ? { borderTopColor: color } : undefined}
                 className={cn(
-                  "-mt-0.5 max-w-[140px] shrink-0 border-t-2 px-3 py-2.5 text-left transition-colors",
+                  "-mt-0.5 max-w-[140px] shrink-0 border-t-2 px-3 py-[13.8px] text-left transition-colors",
                   isActive
                     ? "bg-card text-foreground"
                     : "text-muted-foreground hover:text-foreground border-t-transparent"
