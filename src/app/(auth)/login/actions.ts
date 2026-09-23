@@ -43,7 +43,11 @@ export async function sendOtpAction(email: string): Promise<SendOtpResult> {
 
   if (!isDev) {
     const configuredEmail = process.env.EMAIL;
-    if (!configuredEmail || email.trim() !== configuredEmail) {
+    const allowedEmails = (configuredEmail ?? "")
+      .split(",")
+      .map((e) => e.trim())
+      .filter(Boolean);
+    if (allowedEmails.length === 0 || !allowedEmails.includes(email.trim())) {
       return { ok: true };
     }
   }
