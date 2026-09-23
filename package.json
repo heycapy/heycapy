@@ -80,7 +80,7 @@
     "*.{js,mjs,mts}": [
       "prettier --write"
     ],
-    "*.{css,json,md}": [
+    "*.{css,json,md,yml,yaml}": [
       "prettier --write"
     ]
   },
