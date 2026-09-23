@@ -6,12 +6,13 @@ import { GripVertical } from "lucide-react";
 import type { DragControls } from "framer-motion";
 import { cn } from "@/lib/utils";
 import type { items } from "@/lib/db/schema";
-import { useUIStore } from "@/store/ui";
+import type { StatusDef } from "@/types/rules";
 
 type ItemRow = typeof items.$inferSelect;
 
 interface ItemRowProps {
   item: ItemRow;
+  statuses: StatusDef[];
   dragControls?: DragControls;
   isEditing?: boolean;
   onEditStart?: () => void;
@@ -20,17 +21,17 @@ interface ItemRowProps {
 
 function StatusPicker({
   current,
+  statuses,
   position,
   onSelect,
   onClose,
 }: {
   current: string;
+  statuses: StatusDef[];
   position: { top: number; left: number };
   onSelect: (s: string) => void;
   onClose: () => void;
 }) {
-  const statuses = useUIStore((s) => s.statuses);
-
   return createPortal(
     <>
       <div className="fixed inset-0 z-30" onClick={onClose} />
@@ -99,6 +100,7 @@ function relativeTime(deadline: Date): string {
 
 export function ItemRow({
   item,
+  statuses,
   dragControls,
   isEditing,
   onEditStart,
@@ -106,7 +108,6 @@ export function ItemRow({
 }: ItemRowProps) {
   const [pickerPos, setPickerPos] = useState<{ top: number; left: number } | null>(null);
   const dotRef = useRef<HTMLButtonElement>(null);
-  const statuses = useUIStore((s) => s.statuses);
   const rel = item.deadline ? relativeTime(item.deadline) : null;
   const isCompleted = item.status === "completed";
   const recurringFreq = getRecurringFrequency(item.recurring);
@@ -155,6 +156,7 @@ export function ItemRow({
       {pickerPos && onStatusChange && (
         <StatusPicker
           current={item.status}
+          statuses={statuses}
           position={pickerPos}
           onSelect={(s) => {
             onStatusChange(s);

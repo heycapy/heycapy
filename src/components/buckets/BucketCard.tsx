@@ -6,7 +6,9 @@ import { Settings, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AddItemForm } from "./AddItemForm";
 import { ItemRow } from "./ItemRow";
+import { DEFAULT_BUCKET_STATUSES } from "./constants";
 import type { buckets, items as itemsTable } from "@/lib/db/schema";
+import { BucketSchema } from "@/types/rules";
 
 type BucketRow = typeof buckets.$inferSelect;
 type Item = typeof itemsTable.$inferSelect;
@@ -117,7 +119,24 @@ export function BucketCard({ bucket, items }: BucketCardProps) {
                   no items yet
                 </p>
               ) : (
-                items.map((item) => <ItemRow key={item.id} item={item} />)
+                items.map((item) => (
+                  <ItemRow
+                    key={item.id}
+                    item={item}
+                    statuses={(() => {
+                      try {
+                        const raw = bucket.fieldSchema as unknown as string | null | undefined;
+                        if (!raw) return DEFAULT_BUCKET_STATUSES;
+                        const parsed = BucketSchema.parse(JSON.parse(raw));
+                        return parsed.statuses.length > 0
+                          ? parsed.statuses
+                          : DEFAULT_BUCKET_STATUSES;
+                      } catch {
+                        return DEFAULT_BUCKET_STATUSES;
+                      }
+                    })()}
+                  />
+                ))
               )}
             </div>
           </motion.div>

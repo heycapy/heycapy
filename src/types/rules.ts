@@ -44,3 +44,134 @@ export type ItemsRules = z.infer<typeof ItemsRules>;
 export type McpRules = z.infer<typeof McpRules>;
 export type PersonalityRules = z.infer<typeof PersonalityRules>;
 export type RecurringConfig = z.infer<typeof RecurringConfig>;
+
+// V2: BucketSchema — fields, statuses, notification triggers
+
+export const FIELD_TYPES = [
+  "text",
+  "textarea",
+  "number",
+  "currency",
+  "boolean",
+  "date",
+  "datetime",
+  "url",
+  "select",
+  "multiselect",
+] as const;
+
+export type FieldType = (typeof FIELD_TYPES)[number];
+
+export const FieldValidation = z.object({
+  required: z.boolean().optional(),
+  min: z.number().optional(),
+  max: z.number().optional(),
+  minLength: z.number().int().nonnegative().optional(),
+  maxLength: z.number().int().nonnegative().optional(),
+  pattern: z.string().optional(),
+});
+
+export const FieldDef = z.object({
+  key: z.string().min(1).max(50),
+  label: z.string().min(1).max(100),
+  type: z.enum(FIELD_TYPES),
+  options: z.array(z.string()).optional(),
+  currency: z.string().optional(),
+  showInRow: z.boolean().optional(),
+  icon: z.string().optional(),
+  validation: FieldValidation.optional(),
+});
+
+export const StatusDef = z.object({
+  name: z.string().min(1).max(50),
+  color: z.string().regex(/^#[0-9a-fA-F]{6}$/),
+  isDefault: z.boolean().optional(),
+  isCompleted: z.boolean().optional(),
+});
+
+export const TriggerDef = z.discriminatedUnion("type", [
+  z.object({ type: z.literal("deadline"), offsetMins: z.number().int() }),
+  z.object({ type: z.literal("status"), onStatus: z.string().min(1) }),
+  z.object({ type: z.literal("arrival") }),
+  z.object({ type: z.literal("overdue") }),
+]);
+
+export const BucketSchema = z.object({
+  fields: z.array(FieldDef).default([]),
+  statuses: z.array(StatusDef).default([]),
+  notificationTriggers: z.array(TriggerDef).default([]),
+});
+
+export type FieldValidation = z.infer<typeof FieldValidation>;
+export type FieldDef = z.infer<typeof FieldDef>;
+export type StatusDef = z.infer<typeof StatusDef>;
+export type TriggerDef = z.infer<typeof TriggerDef>;
+export type BucketSchema = z.infer<typeof BucketSchema>;
+
+/**
+ * Generates a Zod validator for item properties based on a bucket's fieldSchema.
+ * Used by the webhook endpoint and item creation to validate dynamic field values.
+ */
+export function buildPropertyValidator(fields: FieldDef[]): z.ZodObject<Record<string, z.ZodType>> {
+  const shape: Record<string, z.ZodType> = {};
+
+  for (const field of fields) {
+    let base: z.ZodType;
+
+    switch (field.type) {
+      case "text":
+      case "textarea": {
+        let v = z.string();
+        if (field.validation?.minLength !== undefined) v = v.min(field.validation.minLength);
+        if (field.validation?.maxLength !== undefined) v = v.max(field.validation.maxLength);
+        if (field.validation?.pattern !== undefined)
+          v = v.regex(new RegExp(field.validation.pattern));
+        base = v;
+        break;
+      }
+      case "url":
+        base = z.url();
+        break;
+      case "number": {
+        let v = z.number();
+        if (field.validation?.min !== undefined) v = v.min(field.validation.min);
+        if (field.validation?.max !== undefined) v = v.max(field.validation.max);
+        base = v;
+        break;
+      }
+      case "currency": {
+        let v = z.number().nonnegative();
+        if (field.validation?.min !== undefined) v = v.min(field.validation.min);
+        if (field.validation?.max !== undefined) v = v.max(field.validation.max);
+        base = v;
+        break;
+      }
+      case "boolean":
+        base = z.boolean();
+        break;
+      case "date":
+        base = z.iso.date();
+        break;
+      case "datetime":
+        base = z.iso.datetime();
+        break;
+      case "select": {
+        const opts = field.options ?? [];
+        base = opts.length > 0 ? z.enum(opts as [string, ...string[]]) : z.string();
+        break;
+      }
+      case "multiselect": {
+        const opts = field.options ?? [];
+        const itemValidator = opts.length > 0 ? z.enum(opts as [string, ...string[]]) : z.string();
+        base = z.array(itemValidator);
+        break;
+      }
+      default:
+        base = z.unknown();
+    }
+
+    shape[field.key] = field.validation?.required ? base : base.optional().nullable();
+  }
+
+  return z.object(shape);
+}

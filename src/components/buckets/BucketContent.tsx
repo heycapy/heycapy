@@ -8,6 +8,7 @@ import { BucketSettings } from "./BucketSettings";
 import { BracketButton } from "@/components/ui/BracketButton";
 import { daysToDisplayStr, parseDurationToDate } from "@/lib/duration";
 import type { ItemStatus, ItemsRulesConfig } from "./constants";
+import { DEFAULT_BUCKET_STATUSES } from "./constants";
 import {
   addItemAction,
   updateItemAction,
@@ -17,8 +18,8 @@ import {
 } from "@/app/(app)/actions";
 import type { buckets, items as itemsTable } from "@/lib/db/schema";
 import type { DragControls } from "framer-motion";
-import { RecurringConfig as RecurringConfigSchema } from "@/types/rules";
-import type { RecurringConfig } from "@/types/rules";
+import { BucketSchema, RecurringConfig as RecurringConfigSchema } from "@/types/rules";
+import type { RecurringConfig, StatusDef } from "@/types/rules";
 import { useUIStore } from "@/store/ui";
 
 type BucketRow = typeof buckets.$inferSelect;
@@ -50,12 +51,14 @@ function parseRecurring(raw: string | null): RecurringConfig | null {
 
 function DraggableItem({
   item,
+  statuses,
   orderedItemsRef,
   isEditing,
   onEditStart,
   onStatusChange,
 }: {
   item: Item;
+  statuses: StatusDef[];
   orderedItemsRef: React.RefObject<Item[]>;
   isEditing?: boolean;
   onEditStart?: () => void;
@@ -79,6 +82,7 @@ function DraggableItem({
     >
       <ItemRow
         item={item}
+        statuses={statuses}
         dragControls={controls}
         isEditing={isEditing}
         onEditStart={onEditStart}
@@ -96,6 +100,17 @@ export function BucketContent({ bucket, accentColor }: BucketContentProps) {
       return JSON.parse(bucket.itemsRules) as ItemsRulesConfig;
     } catch {
       return {};
+    }
+  })();
+
+  const bucketStatuses: StatusDef[] = (() => {
+    try {
+      const raw = bucket.fieldSchema as unknown as string | null | undefined;
+      if (!raw) return DEFAULT_BUCKET_STATUSES;
+      const parsed = BucketSchema.parse(JSON.parse(raw));
+      return parsed.statuses.length > 0 ? parsed.statuses : DEFAULT_BUCKET_STATUSES;
+    } catch {
+      return DEFAULT_BUCKET_STATUSES;
     }
   })();
 
@@ -303,6 +318,7 @@ export function BucketContent({ bucket, accentColor }: BucketContentProps) {
               <DraggableItem
                 key={item.id}
                 item={item}
+                statuses={bucketStatuses}
                 orderedItemsRef={orderedItemsRef}
                 isEditing={editingItemId === item.id}
                 onEditStart={isReadonly ? undefined : () => startEditing(item)}
@@ -316,6 +332,7 @@ export function BucketContent({ bucket, accentColor }: BucketContentProps) {
               <ItemRow
                 key={item.id}
                 item={item}
+                statuses={bucketStatuses}
                 isEditing={editingItemId === item.id}
                 onEditStart={isReadonly ? undefined : () => startEditing(item)}
                 onStatusChange={isReadonly ? undefined : (s) => handleStatusChange(item, s)}
@@ -331,6 +348,7 @@ export function BucketContent({ bucket, accentColor }: BucketContentProps) {
         title={addingItem ? addTitle : editTitle}
         deadline={addingItem ? addDeadline : editDeadline}
         status={addingItem ? addStatus : editStatus}
+        statuses={bucketStatuses}
         recurring={addingItem ? addRecurring : editRecurring}
         error={addingItem ? addError : undefined}
         pending={addingItem ? addPending : editPending}

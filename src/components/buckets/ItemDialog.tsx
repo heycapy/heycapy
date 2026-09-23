@@ -8,9 +8,8 @@ import { BracketButton } from "@/components/ui/BracketButton";
 import { OptionButton } from "@/components/ui/OptionButton";
 import { TimeScrollPicker, type Ampm } from "@/components/ui/TimeScrollPicker";
 import { RECURRING_FREQUENCIES } from "./constants";
-import type { RecurringConfig } from "@/types/rules";
+import type { RecurringConfig, StatusDef } from "@/types/rules";
 import { cn } from "@/lib/utils";
-import { useUIStore } from "@/store/ui";
 import { useScrollLock } from "@/hooks/useScrollLock";
 
 function describeRecurring(config: RecurringConfig): string {
@@ -41,6 +40,7 @@ interface ItemDialogProps {
   title: string;
   deadline: string;
   status: string;
+  statuses: StatusDef[];
   recurring?: RecurringConfig | null;
   error?: string;
   pending?: boolean;
@@ -59,6 +59,7 @@ export function ItemDialog({
   title,
   deadline,
   status,
+  statuses,
   recurring,
   error,
   pending,
@@ -71,7 +72,6 @@ export function ItemDialog({
   onDelete,
 }: ItemDialogProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const statuses = useUIStore((s) => s.statuses);
   useScrollLock(open);
   const [timeHour, setTimeHour] = useState("9");
   const [timeMin, setTimeMin] = useState("00");

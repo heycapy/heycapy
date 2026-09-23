@@ -1,6 +1,5 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
-import type { UserStatus } from "@/types/status";
 
 type UIStore = {
   createBucketOpen: boolean;
@@ -14,9 +13,6 @@ type UIStore = {
 
   aiRefreshTick: number;
   tickAiRefresh: () => void;
-
-  statuses: UserStatus[];
-  setStatuses: (s: UserStatus[]) => void;
 
   activeBucketId: number | null;
   setActiveBucketId: (id: number) => void;
@@ -36,9 +32,6 @@ export const useUIStore = create<UIStore>()(
 
       aiRefreshTick: 0,
       tickAiRefresh: () => set((s) => ({ aiRefreshTick: s.aiRefreshTick + 1 })),
-
-      statuses: [],
-      setStatuses: (s) => set({ statuses: s }),
 
       activeBucketId: null,
       setActiveBucketId: (id) => set({ activeBucketId: id }),

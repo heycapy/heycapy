@@ -1,5 +1,6 @@
 import type { LucideIcon } from "lucide-react";
 import { Bell, Briefcase, CreditCard, ListTodo } from "lucide-react";
+import type { StatusDef } from "@/types/rules";
 
 export type SortBy = "deadline" | "created_at" | "manual";
 export type NotificationMedium = "ntfy" | "email" | "telegram";
@@ -29,13 +30,13 @@ export const TEMPLATE_ICONS: Record<string, LucideIcon> = {
   Work: Briefcase,
 };
 
-export const ITEM_STATUSES = [
-  { value: "active", color: "bg-[var(--status-active)]" },
-  { value: "completed", color: "bg-[var(--status-completed)]" },
-  { value: "snoozed", color: "bg-[var(--status-snoozed)]" },
-] as const;
-
 export type ItemStatus = string;
+
+export const DEFAULT_BUCKET_STATUSES: StatusDef[] = [
+  { name: "active", color: "#22c55e", isDefault: true },
+  { name: "completed", color: "#3b82f6", isCompleted: true },
+  { name: "snoozed", color: "#f59e0b" },
+];
 
 export const STATUS_COLORS = [
   "#ef4444",

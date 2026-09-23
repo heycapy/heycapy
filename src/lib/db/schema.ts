@@ -1,5 +1,6 @@
 import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
 import { sql } from "drizzle-orm";
+import type { BucketSchema } from "@/types/rules";
 
 // users
 
@@ -102,19 +103,6 @@ export const otps = sqliteTable("otps", {
     .default(sql`(unixepoch())`),
 });
 
-// item_statuses — system statuses (active/completed/archived/snoozed) + user-created
-
-export const itemStatuses = sqliteTable("item_statuses", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
-  userId: integer("user_id")
-    .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
-  name: text("name").notNull(),
-  color: text("color").notNull().default("#737373"),
-  sortOrder: integer("sort_order").notNull().default(0),
-  isSystem: integer("is_system", { mode: "boolean" }).notNull().default(false),
-});
-
 // buckets
 
 export const buckets = sqliteTable("buckets", {
@@ -129,6 +117,8 @@ export const buckets = sqliteTable("buckets", {
   itemsRules: text("items_rules").notNull().default("{}"),
   mcpRules: text("mcp_rules"),
   personalityRules: text("personality_rules").notNull().default("{}"),
+  fieldSchema: text("field_schema").$type<BucketSchema>(),
+  webhookKey: text("webhook_key"),
   mcpIntegration: text("mcp_integration"),
   mcpConfig: text("mcp_config"),
   lastSyncedAt: integer("last_synced_at", { mode: "timestamp" }),
@@ -155,17 +145,20 @@ export const items = sqliteTable("items", {
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
   title: text("title").notNull(),
+  description: text("description"),
   deadline: integer("deadline", { mode: "timestamp" }),
   status: text("status").notNull().default("active"),
+  properties: text("properties"),
+  externalId: text("external_id"),
+  externalUrl: text("external_url"),
   notificationOffsetMins: integer("notification_offset_mins"),
   notifiedAt: integer("notified_at", { mode: "timestamp" }),
   snoozedUntil: integer("snoozed_until", { mode: "timestamp" }),
   sortOrder: integer("sort_order").notNull().default(0),
   recurring: text("recurring"),
-  source: text("source", { enum: ["manual", "ai", "mcp"] })
+  source: text("source", { enum: ["manual", "ai", "mcp", "webhook", "system"] })
     .notNull()
     .default("manual"),
-  externalId: text("external_id"),
   completedAt: integer("completed_at", { mode: "timestamp" }),
   deletedAt: integer("deleted_at", { mode: "timestamp" }),
   createdAt: integer("created_at", { mode: "timestamp" })
@@ -176,7 +169,31 @@ export const items = sqliteTable("items", {
     .default(sql`(unixepoch())`),
 });
 
-// notification_log
+// notification_queue — reliable delivery with retries
+
+export const notificationQueue = sqliteTable("notification_queue", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  userId: integer("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  itemId: integer("item_id").references(() => items.id, { onDelete: "set null" }),
+  medium: text("medium", { enum: ["email", "ntfy", "telegram"] }).notNull(),
+  title: text("title").notNull(),
+  message: text("message").notNull(),
+  status: text("status", { enum: ["pending", "sending", "sent", "failed", "dead"] })
+    .notNull()
+    .default("pending"),
+  attempts: integer("attempts").notNull().default(0),
+  maxAttempts: integer("max_attempts").notNull().default(3),
+  nextRetryAt: integer("next_retry_at", { mode: "timestamp" }),
+  lastError: text("last_error"),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .default(sql`(unixepoch())`),
+  sentAt: integer("sent_at", { mode: "timestamp" }),
+});
+
+// notification_log — immutable audit trail
 
 export const notificationLog = sqliteTable("notification_log", {
   id: integer("id").primaryKey({ autoIncrement: true }),
@@ -233,6 +250,8 @@ export const chatMessages = sqliteTable("chat_messages", {
 });
 
 // templates — builtin (seeded) + user-created
+// rulesJson: existing rulebook (notifications/items/personality)
+// fieldSchemaJson: BucketSchema JSON (fields, statuses, notificationTriggers)
 
 export const templates = sqliteTable("templates", {
   id: integer("id").primaryKey({ autoIncrement: true }),
@@ -240,6 +259,7 @@ export const templates = sqliteTable("templates", {
   name: text("name").notNull(),
   description: text("description"),
   rulesJson: text("rules_json").notNull(),
+  fieldSchemaJson: text("field_schema_json"),
   isBuiltin: integer("is_builtin", { mode: "boolean" }).notNull().default(false),
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()

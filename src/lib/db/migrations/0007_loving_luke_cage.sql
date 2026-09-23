@@ -1,1 +1,0 @@
-ALTER TABLE `chat_sessions` ADD `source` text DEFAULT 'web' NOT NULL;

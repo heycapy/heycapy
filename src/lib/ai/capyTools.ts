@@ -1,7 +1,7 @@
 import { revalidatePath } from "next/cache";
 import { and, eq, gte, isNull, lte, ne, or, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { buckets, items, itemStatuses } from "@/lib/db/schema";
+import { buckets, items } from "@/lib/db/schema";
 import { RecurringConfig } from "@/types/rules";
 import type { ToolCall } from "./types";
 
@@ -546,39 +546,6 @@ async function executeToolCallInner(
         });
 
       return JSON.stringify(enriched);
-    }
-
-    case "list_statuses": {
-      const result = await db.select().from(itemStatuses).where(eq(itemStatuses.userId, userId));
-      return JSON.stringify(result.sort((a, b) => a.sortOrder - b.sortOrder));
-    }
-
-    case "create_status": {
-      const name = String(args.name ?? "").trim();
-      const color = String(args.color ?? "#6b7280");
-      if (!name) return JSON.stringify({ ok: false, error: "Name is required" });
-      if (name.length > 30) return JSON.stringify({ ok: false, error: "Name too long (max 30)" });
-
-      const [existing] = await db
-        .select({ id: itemStatuses.id })
-        .from(itemStatuses)
-        .where(
-          and(eq(itemStatuses.userId, userId), sql`lower(${itemStatuses.name}) = lower(${name})`)
-        )
-        .limit(1);
-      if (existing) return JSON.stringify({ ok: false, error: "Status already exists" });
-
-      const [maxRow] = await db
-        .select({ max: sql<number>`COALESCE(MAX(${itemStatuses.sortOrder}), 2)` })
-        .from(itemStatuses)
-        .where(eq(itemStatuses.userId, userId));
-
-      const [inserted] = await db
-        .insert(itemStatuses)
-        .values({ userId, name, color, sortOrder: (maxRow?.max ?? 2) + 1, isSystem: false })
-        .returning({ id: itemStatuses.id });
-
-      return JSON.stringify({ ok: true, statusId: inserted?.id });
     }
 
     default:

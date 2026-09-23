@@ -1,40 +1,19 @@
 import { and, eq, isNull, notInArray } from "drizzle-orm";
 import { db } from "./index";
-import { itemStatuses, templates } from "./schema";
+import { templates } from "./schema";
+import type { BucketSchema } from "@/types/rules";
 
-const SYSTEM_STATUSES = [
-  { name: "active", color: "#22c55e", sortOrder: 0, isSystem: true },
-  { name: "completed", color: "#3b82f6", sortOrder: 1, isSystem: true },
-  { name: "snoozed", color: "#f59e0b", sortOrder: 2, isSystem: true },
-];
+type BuiltinTemplate = {
+  name: string;
+  description: string;
+  rulesJson: string;
+  fieldSchemaJson: string;
+};
 
-const BUILTIN_TEMPLATES = [
-  {
-    name: "Subscriptions",
-    description: "Track recurring bills. Notifies 3 days + 1 day before renewal.",
-    rulesJson: JSON.stringify({
-      notifications: {
-        medium: ["ntfy"],
-        notifyAt: "09:00",
-        quietHours: null,
-        defaultOffsetMins: 4320,
-        repeat: "once",
-        snoozeUntil: null,
-      },
-      items: {
-        sortBy: "deadline",
-        drag: false,
-        readonly: false,
-        showCompleted: true,
-        defaultDeadlineOffsetDays: 30,
-      },
-      personality: { toneOverride: null },
-    }),
-    isBuiltin: true,
-  },
+const BUILTIN_TEMPLATES: BuiltinTemplate[] = [
   {
     name: "Reminders",
-    description: "General reminders. Notifies via push and email at deadline.",
+    description: "General reminders. Notifies at deadline.",
     rulesJson: JSON.stringify({
       notifications: {
         medium: ["ntfy", "email"],
@@ -53,11 +32,70 @@ const BUILTIN_TEMPLATES = [
       },
       personality: { toneOverride: null },
     }),
-    isBuiltin: true,
+    fieldSchemaJson: JSON.stringify({
+      fields: [],
+      statuses: [
+        { name: "active", color: "#22c55e", isDefault: true },
+        { name: "completed", color: "#3b82f6", isCompleted: true },
+        { name: "snoozed", color: "#f59e0b" },
+      ],
+      notificationTriggers: [{ type: "deadline", offsetMins: 0 }],
+    } satisfies BucketSchema),
+  },
+  {
+    name: "Subscriptions",
+    description: "Track recurring bills. Notifies 3 days and 1 day before renewal.",
+    rulesJson: JSON.stringify({
+      notifications: {
+        medium: ["ntfy"],
+        notifyAt: "09:00",
+        quietHours: null,
+        defaultOffsetMins: 4320,
+        repeat: "once",
+        snoozeUntil: null,
+      },
+      items: {
+        sortBy: "deadline",
+        drag: false,
+        readonly: false,
+        showCompleted: true,
+        defaultDeadlineOffsetDays: 30,
+      },
+      personality: { toneOverride: null },
+    }),
+    fieldSchemaJson: JSON.stringify({
+      fields: [
+        {
+          key: "amount",
+          label: "Amount",
+          type: "currency",
+          currency: "USD",
+          showInRow: true,
+          validation: { required: true },
+        },
+        {
+          key: "plan",
+          label: "Plan",
+          type: "select",
+          options: ["free", "basic", "pro", "enterprise"],
+        },
+        { key: "website", label: "Website", type: "url" },
+        { key: "autoRenew", label: "Auto-renew", type: "boolean" },
+      ],
+      statuses: [
+        { name: "active", color: "#22c55e", isDefault: true },
+        { name: "cancelled", color: "#ef4444", isCompleted: true },
+        { name: "paused", color: "#f59e0b" },
+      ],
+      notificationTriggers: [
+        { type: "deadline", offsetMins: 4320 },
+        { type: "deadline", offsetMins: 1440 },
+      ],
+    } satisfies BucketSchema),
   },
   {
     name: "Todo",
-    description: "Simple manual todo list. No notifications, drag to reorder.",
+    description: "Simple manual todo list. Drag to reorder.",
     rulesJson: JSON.stringify({
       notifications: {
         medium: [],
@@ -76,11 +114,26 @@ const BUILTIN_TEMPLATES = [
       },
       personality: { toneOverride: null },
     }),
-    isBuiltin: true,
+    fieldSchemaJson: JSON.stringify({
+      fields: [
+        {
+          key: "priority",
+          label: "Priority",
+          type: "select",
+          options: ["low", "medium", "high"],
+          showInRow: true,
+        },
+      ],
+      statuses: [
+        { name: "active", color: "#22c55e", isDefault: true },
+        { name: "completed", color: "#3b82f6", isCompleted: true },
+      ],
+      notificationTriggers: [{ type: "overdue" }],
+    } satisfies BucketSchema),
   },
   {
     name: "Work",
-    description: "Work tasks. Email notifications 1 day before, quiet after 6pm.",
+    description: "Work tasks with deadlines. Notifies 1 day before, quiet after 6pm.",
     rulesJson: JSON.stringify({
       notifications: {
         medium: ["email"],
@@ -99,16 +152,33 @@ const BUILTIN_TEMPLATES = [
       },
       personality: { toneOverride: "professional" },
     }),
-    isBuiltin: true,
+    fieldSchemaJson: JSON.stringify({
+      fields: [
+        {
+          key: "priority",
+          label: "Priority",
+          type: "select",
+          options: ["low", "medium", "high", "urgent"],
+          showInRow: true,
+        },
+        { key: "project", label: "Project", type: "text" },
+        { key: "notes", label: "Notes", type: "textarea" },
+      ],
+      statuses: [
+        { name: "todo", color: "#6b7280", isDefault: true },
+        { name: "in-progress", color: "#3b82f6" },
+        { name: "blocked", color: "#ef4444" },
+        { name: "done", color: "#22c55e", isCompleted: true },
+      ],
+      notificationTriggers: [
+        { type: "deadline", offsetMins: 1440 },
+        { type: "status", onStatus: "blocked" },
+      ],
+    } satisfies BucketSchema),
   },
 ];
 
-export async function seed(userId: number) {
-  await db
-    .insert(itemStatuses)
-    .values(SYSTEM_STATUSES.map((s) => ({ ...s, userId })))
-    .onConflictDoNothing();
-
+export async function seed(_userId: number) {
   for (const t of BUILTIN_TEMPLATES) {
     const existing = await db.query.templates.findFirst({
       where: (tmpl, { and, eq, isNull }) =>
@@ -118,7 +188,11 @@ export async function seed(userId: number) {
     if (existing) {
       await db
         .update(templates)
-        .set({ description: t.description, rulesJson: t.rulesJson })
+        .set({
+          description: t.description,
+          rulesJson: t.rulesJson,
+          fieldSchemaJson: t.fieldSchemaJson,
+        })
         .where(eq(templates.id, existing.id));
     } else {
       await db.insert(templates).values({ ...t, userId: null });
