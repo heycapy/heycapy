@@ -17,8 +17,17 @@ function buildWebhookUrl(bucketId: number): string {
   return `${window.location.origin}/api/webhook/${bucketId}`;
 }
 
+function buildCurlCommand(url: string, key: string, schema: BucketSchema | null): string {
+  const payload = buildExamplePayload(schema);
+  return `curl -X POST ${url} \\\n  -H "Authorization: Bearer ${key}" \\\n  -H "Content-Type: application/json" \\\n  -d '${payload.replace(/\n/g, "\n  ")}'`;
+}
+
 function buildExamplePayload(schema: BucketSchema | null): string {
   const payload: Record<string, unknown> = { title: "My item title" };
+  if (schema?.statuses && schema.statuses.length > 0) {
+    payload.status = schema.statuses[0].name;
+  }
+  payload.deadline = "2026-12-31T09:00:00Z";
   if (schema) {
     for (const field of schema.fields) {
       switch (field.type) {
@@ -61,6 +70,7 @@ export function WebhookPanel({ bucket }: WebhookPanelProps) {
   const [revealed, setRevealed] = useState(false);
   const [copied, setCopied] = useState(false);
   const [urlCopied, setUrlCopied] = useState(false);
+  const [curlCopied, setCurlCopied] = useState(false);
   const [pending, startTransition] = useTransition();
 
   const webhookUrl = buildWebhookUrl(bucket.id);
@@ -161,10 +171,28 @@ export function WebhookPanel({ bucket }: WebhookPanelProps) {
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <label className={LABEL}>example payload</label>
-        <span className={HINT}>JSON body to send in the POST request</span>
+        <div className="flex items-center justify-between">
+          <label className={LABEL}>test with curl</label>
+          {key && (
+            <button
+              onClick={() => {
+                void navigator.clipboard
+                  .writeText(buildCurlCommand(webhookUrl, key, schema))
+                  .then(() => {
+                    setCurlCopied(true);
+                    setTimeout(() => setCurlCopied(false), 2000);
+                  });
+              }}
+              className="text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors"
+            >
+              <Copy size={10} />
+              <span className="font-mono text-[9px]">{curlCopied ? "copied!" : "copy"}</span>
+            </button>
+          )}
+        </div>
+        <span className={HINT}>paste this in your terminal to create a test item</span>
         <pre className="border-border text-muted-foreground overflow-x-auto border bg-transparent p-2 font-mono text-[9px]">
-          {buildExamplePayload(schema)}
+          {key ? buildCurlCommand(webhookUrl, key, schema) : buildExamplePayload(schema)}
         </pre>
       </div>
     </div>

@@ -263,7 +263,7 @@ async function runNotifications(): Promise<void> {
 
       await db.update(items).set({ notifiedAt: now }).where(eq(items.id, row.item.id));
 
-      dataEvents.emit("refresh");
+      dataEvents.emit("refresh", row.userId);
 
       if (row.item.recurring) {
         const recurringConfig = RecurringConfig.parse(JSON.parse(row.item.recurring));

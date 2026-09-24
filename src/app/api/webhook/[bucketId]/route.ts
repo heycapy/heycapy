@@ -10,6 +10,7 @@ import {
 import { errorMessage } from "@/lib/errors";
 import { ITEM_TITLE_MAX_LENGTH } from "@/constants";
 import type { NotificationMedium } from "@/lib/notifications/queue";
+import { dataEvents } from "@/lib/events";
 
 const rateLimitMap = new Map<string, number[]>();
 
@@ -114,6 +115,37 @@ export async function POST(
     }
   }
 
+  // Optional status — must match a bucket status name if custom statuses are defined
+  let status: string | undefined;
+  if (raw.status !== undefined) {
+    if (typeof raw.status !== "string") {
+      return Response.json({ error: "status must be a string" }, { status: 400 });
+    }
+    const validStatuses = parsedSchema?.success ? parsedSchema.data.statuses : [];
+    if (validStatuses.length > 0 && !validStatuses.some((s) => s.name === raw.status)) {
+      return Response.json(
+        {
+          error: `invalid status "${raw.status}" — valid values: ${validStatuses.map((s) => s.name).join(", ")}`,
+        },
+        { status: 400 }
+      );
+    }
+    status = raw.status;
+  }
+
+  // Optional deadline — must be an ISO datetime string
+  let deadline: Date | undefined;
+  if (raw.deadline !== undefined) {
+    if (typeof raw.deadline !== "string") {
+      return Response.json({ error: "deadline must be an ISO datetime string" }, { status: 400 });
+    }
+    const d = new Date(raw.deadline);
+    if (isNaN(d.getTime())) {
+      return Response.json({ error: "deadline is not a valid datetime" }, { status: 400 });
+    }
+    deadline = d;
+  }
+
   const [item] = await db
     .insert(items)
     .values({
@@ -122,6 +154,8 @@ export async function POST(
       title,
       properties: properties ? JSON.stringify(properties) : null,
       source: "webhook",
+      ...(status !== undefined && { status }),
+      ...(deadline !== undefined && { deadline }),
     })
     .returning();
 
@@ -153,6 +187,8 @@ export async function POST(
       });
     }
   }
+
+  dataEvents.emit("refresh", bucket.userId);
 
   return Response.json({ id: item.id, title: item.title }, { status: 201 });
 }
