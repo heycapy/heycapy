@@ -95,7 +95,7 @@ function relativeTime(deadline: Date): string {
   const deadlineDay = new Date(deadline.getFullYear(), deadline.getMonth(), deadline.getDate());
   const diffDays = Math.round((deadlineDay.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
   if (diffDays < 0) return "overdue";
-  if (diffDays === 0) return "today";
+  if (diffDays === 0) return deadline < now ? "overdue" : "today";
   return `${diffDays}d`;
 }
 

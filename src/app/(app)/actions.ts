@@ -311,13 +311,17 @@ export async function updateItemAction(
   });
   if (!item) return { ok: false, error: "Item not found" };
 
+  const newDeadline = deadline
+    ? new Date(deadline.includes("T") ? deadline : deadline + "T12:00:00")
+    : null;
+  const deadlineChanged = (item.deadline?.getTime() ?? null) !== (newDeadline?.getTime() ?? null);
+
   await db
     .update(items)
     .set({
       title: trimmed,
-      deadline: deadline
-        ? new Date(deadline.includes("T") ? deadline : deadline + "T12:00:00")
-        : null,
+      deadline: newDeadline,
+      ...(deadlineChanged && { notifiedAt: null }),
       ...(status !== undefined && { status }),
       ...(status === "completed" && item.status !== "completed" && { completedAt: new Date() }),
       ...(status !== undefined &&

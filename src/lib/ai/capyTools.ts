@@ -316,6 +316,7 @@ async function executeToolCallInner(
         updatedAt: Date;
         title?: string;
         deadline?: Date | null;
+        notifiedAt?: Date | null;
         notificationOffsetMins?: number | null;
         recurring?: string | null;
         status?: string;
@@ -329,9 +330,13 @@ async function executeToolCallInner(
         updates.title = title;
       }
       if ("deadline" in args) {
-        updates.deadline = args.deadline
+        const newDeadline = args.deadline
           ? parseDeadlineInTimezone(String(args.deadline), timezone)
           : null;
+        updates.deadline = newDeadline;
+        if ((item.deadline?.getTime() ?? null) !== (newDeadline?.getTime() ?? null)) {
+          updates.notifiedAt = null;
+        }
       }
       if ("notification_offset_mins" in args) {
         updates.notificationOffsetMins =
