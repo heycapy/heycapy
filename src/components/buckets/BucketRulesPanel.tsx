@@ -104,12 +104,7 @@ export function BucketRulesPanel({
         <OptionGroup options={MEDIUM_OPTIONS} value={mediums} onChange={onMediumToggle} multi />
       </div>
       <div className="flex flex-col gap-1.5">
-        <label className={LABEL}>notify at</label>
-        <span className={HINT}>time of day to deliver the notification (e.g. 9 am, 6 pm)</span>
-        <TimePicker value={notifyAt} onChange={onNotifyAtChange} disabled={disabled} />
-      </div>
-      <div className="flex flex-col gap-1.5">
-        <label className={LABEL}>offset before deadline</label>
+        <label className={LABEL}>remind me before deadline</label>
         <span className={HINT}>
           how far in advance to notify — leave empty to notify at the deadline
         </span>
@@ -119,6 +114,14 @@ export function BucketRulesPanel({
           placeholder="e.g. 3 days, 1 hour — empty = at deadline"
           disabled={disabled}
         />
+      </div>
+      <div className="flex flex-col gap-1.5">
+        <label className={LABEL}>notify at</label>
+        <span className={HINT}>
+          if the early reminder lands at an odd hour, this delays it — e.g. deadline 6am + remind 6h
+          early triggers at midnight, set notify at 5am to get it at 5am instead
+        </span>
+        <TimePicker value={notifyAt} onChange={onNotifyAtChange} disabled={disabled} />
       </div>
       <div className="flex flex-col gap-1.5">
         <label className={LABEL}>repeat</label>

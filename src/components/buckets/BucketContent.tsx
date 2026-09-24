@@ -111,8 +111,20 @@ export function BucketContent({ bucket, accentColor }: BucketContentProps) {
       const raw = bucket.fieldSchema as unknown as string | null | undefined;
       if (!raw) return { bucketStatuses: DEFAULT_BUCKET_STATUSES, bucketFields: [] as FieldDef[] };
       const parsed = BucketSchema.parse(JSON.parse(raw));
+      const customStatuses = parsed.statuses;
+      let resolvedStatuses: typeof DEFAULT_BUCKET_STATUSES;
+      if (customStatuses.length === 0) {
+        resolvedStatuses = DEFAULT_BUCKET_STATUSES;
+      } else if (customStatuses.some((s) => s.isCompleted)) {
+        resolvedStatuses = customStatuses;
+      } else {
+        resolvedStatuses = [
+          ...customStatuses,
+          { name: "completed", color: "#3b82f6", isCompleted: true as const },
+        ];
+      }
       return {
-        bucketStatuses: parsed.statuses.length > 0 ? parsed.statuses : DEFAULT_BUCKET_STATUSES,
+        bucketStatuses: resolvedStatuses,
         bucketFields: parsed.fields,
       };
     } catch {
@@ -162,9 +174,10 @@ export function BucketContent({ bucket, accentColor }: BucketContentProps) {
   }, [bucket.id, bucket.itemsRules, aiRefreshTick]);
 
   useEffect(() => {
+    const completedNames = new Set(bucketStatuses.filter((s) => s.isCompleted).map((s) => s.name));
     const next = showCompleted
       ? fetchedItems
-      : fetchedItems.filter((i) => i.status !== "completed");
+      : fetchedItems.filter((i) => !completedNames.has(i.status));
     const id = setTimeout(() => {
       setOrderedItems(next);
       orderedItemsRef.current = next;

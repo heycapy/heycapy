@@ -315,6 +315,38 @@ export async function updateItemAction(
     ? new Date(deadline.includes("T") ? deadline : deadline + "T12:00:00")
     : null;
   const deadlineChanged = (item.deadline?.getTime() ?? null) !== (newDeadline?.getTime() ?? null);
+  const statusChanged = status !== undefined && status !== item.status;
+
+  let parsedSchema: ReturnType<typeof BucketSchema.safeParse> | null = null;
+  let bucket: Awaited<ReturnType<typeof db.query.buckets.findFirst>> = undefined;
+  if (statusChanged) {
+    bucket = await db.query.buckets.findFirst({
+      where: (b, { eq: qeq }) => qeq(b.id, item.bucketId),
+    });
+    if (bucket?.fieldSchema) {
+      parsedSchema = BucketSchema.safeParse(
+        typeof bucket.fieldSchema === "string" ? JSON.parse(bucket.fieldSchema) : bucket.fieldSchema
+      );
+    }
+  }
+
+  const newStatusDef = parsedSchema?.success
+    ? parsedSchema.data.statuses.find((s) => s.name === status)
+    : null;
+  const oldStatusDef = parsedSchema?.success
+    ? parsedSchema.data.statuses.find((s) => s.name === item.status)
+    : null;
+
+  const nowCompleted =
+    statusChanged &&
+    (status === "completed" || newStatusDef?.isCompleted === true) &&
+    item.status !== "completed" &&
+    oldStatusDef?.isCompleted !== true;
+  const nowUncompleted =
+    statusChanged &&
+    status !== "completed" &&
+    newStatusDef?.isCompleted !== true &&
+    (item.status === "completed" || oldStatusDef?.isCompleted === true);
 
   await db
     .update(items)
@@ -323,10 +355,8 @@ export async function updateItemAction(
       deadline: newDeadline,
       ...(deadlineChanged && { notifiedAt: null, overdueNotifiedAt: null }),
       ...(status !== undefined && { status }),
-      ...(status === "completed" && item.status !== "completed" && { completedAt: new Date() }),
-      ...(status !== undefined &&
-        status !== "completed" &&
-        item.status === "completed" && { completedAt: null }),
+      ...(nowCompleted && { completedAt: new Date() }),
+      ...(nowUncompleted && { completedAt: null }),
       ...(recurring !== undefined && {
         recurring: recurring?.enabled ? JSON.stringify(recurring) : null,
       }),
@@ -337,43 +367,32 @@ export async function updateItemAction(
     })
     .where(and(eq(items.id, itemId), eq(items.userId, session.userId)));
 
-  if (status !== undefined && status !== item.status) {
-    const bucket = await db.query.buckets.findFirst({
-      where: (b, { eq: qeq }) => qeq(b.id, item.bucketId),
-    });
-    if (bucket?.fieldSchema) {
-      const parsed = BucketSchema.safeParse(
-        typeof bucket.fieldSchema === "string" ? JSON.parse(bucket.fieldSchema) : bucket.fieldSchema
-      );
-      if (parsed.success) {
-        const matchingStatus = parsed.data.statuses.find(
-          (st) => st.name === status && st.notifyOnReach
+  if (statusChanged && parsedSchema?.success && bucket) {
+    const matchingStatus = parsedSchema.data.statuses.find(
+      (st) => st.name === status && st.notifyOnReach
+    );
+    if (matchingStatus) {
+      const userRow = await db.query.userSettings.findFirst({
+        where: (s, { eq: qeq }) => qeq(s.userId, session.userId),
+      });
+      if (userRow) {
+        const mediums: NotificationMedium[] = [];
+        if (userRow.notificationsEmail) mediums.push("email");
+        if (userRow.notificationsPush && userRow.ntfyUrl && userRow.ntfyTopic) mediums.push("ntfy");
+        if (userRow.notificationsTelegram && userRow.telegramBotToken && userRow.telegramChatId)
+          mediums.push("telegram");
+
+        const notifTitle = `[${bucket.name}] Status updated`;
+        const message = `"${trimmed}" is now ${status}.`;
+
+        await Promise.all(
+          mediums.map((medium) =>
+            enqueue({ userId: session.userId, itemId, medium, title: notifTitle, message })
+          )
         );
-        if (matchingStatus) {
-          const userRow = await db.query.userSettings.findFirst({
-            where: (s, { eq: qeq }) => qeq(s.userId, session.userId),
-          });
-          if (userRow) {
-            const mediums: NotificationMedium[] = [];
-            if (userRow.notificationsEmail) mediums.push("email");
-            if (userRow.notificationsPush && userRow.ntfyUrl && userRow.ntfyTopic)
-              mediums.push("ntfy");
-            if (userRow.notificationsTelegram && userRow.telegramBotToken && userRow.telegramChatId)
-              mediums.push("telegram");
-
-            const notifTitle = `[${bucket.name}] Status updated`;
-            const message = `"${trimmed}" is now ${status}.`;
-
-            await Promise.all(
-              mediums.map((medium) =>
-                enqueue({ userId: session.userId, itemId, medium, title: notifTitle, message })
-              )
-            );
-            void processPending().catch((err) => {
-              process.stderr.write(`[actions] processPending error: ${String(err)}\n`);
-            });
-          }
-        }
+        void processPending().catch((err) => {
+          process.stderr.write(`[actions] processPending error: ${String(err)}\n`);
+        });
       }
     }
   }

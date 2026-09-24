@@ -141,7 +141,9 @@ export function ItemRow({
   const [pickerPos, setPickerPos] = useState<{ top: number; left: number } | null>(null);
   const dotRef = useRef<HTMLButtonElement>(null);
   const rel = item.deadline ? relativeTime(item.deadline) : null;
-  const isCompleted = item.status === "completed";
+  const isCompleted =
+    item.status === "completed" ||
+    statuses.find((s) => s.name === item.status)?.isCompleted === true;
   const recurringFreq = getRecurringFrequency(item.recurring);
   const dotColor = statuses.find((s) => s.name === item.status)?.color ?? "var(--muted-foreground)";
   const badges = fields ? getShowInRowBadges(fields, item.properties) : [];

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Trash2 } from "lucide-react";
+import { Trash2, X } from "lucide-react";
 import { DatePicker } from "@/components/ui/DatePicker";
 import { BracketButton } from "@/components/ui/BracketButton";
 import { OptionButton } from "@/components/ui/OptionButton";
@@ -179,7 +179,19 @@ export function ItemDialog({
     <>
       <div className="flex flex-col gap-1.5">
         <label className={LABEL}>when</label>
-        <DatePicker value={datePart} onChange={handleDateChange} disabled={pending} />
+        <div className="flex items-center gap-2">
+          <div className="flex-1">
+            <DatePicker value={datePart} onChange={handleDateChange} disabled={pending} />
+          </div>
+          {hasDate && !pending && (
+            <button
+              onClick={() => handleDateChange("")}
+              className="text-muted-foreground hover:text-destructive shrink-0 transition-colors"
+            >
+              <X size={11} />
+            </button>
+          )}
+        </div>
         {hasDate && (
           <TimeScrollPicker
             hour={timeHour}

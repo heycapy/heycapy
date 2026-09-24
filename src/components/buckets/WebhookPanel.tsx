@@ -34,8 +34,10 @@ function buildExamplePayload(schema: BucketSchema | null): string {
       switch (field.type) {
         case "text":
         case "textarea":
-        case "url":
           payload[field.key] = `example ${field.label}`;
+          break;
+        case "url":
+          payload[field.key] = "https://example.com";
           break;
         case "number":
         case "currency":
@@ -44,12 +46,16 @@ function buildExamplePayload(schema: BucketSchema | null): string {
         case "boolean":
           payload[field.key] = true;
           break;
-        case "date":
-          payload[field.key] = "2026-12-31";
+        case "date": {
+          const d = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+          payload[field.key] = d.toISOString().slice(0, 10);
           break;
-        case "datetime":
-          payload[field.key] = "2026-12-31T09:00:00Z";
+        }
+        case "datetime": {
+          const dt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+          payload[field.key] = dt.toISOString().replace(/\.\d{3}Z$/, "Z");
           break;
+        }
         case "select":
           payload[field.key] = field.options?.[0] ?? "option1";
           break;

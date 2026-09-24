@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { X } from "lucide-react";
 import { DatePicker } from "@/components/ui/DatePicker";
 import { OptionButton } from "@/components/ui/OptionButton";
 import { TimeScrollPicker, type Ampm } from "@/components/ui/TimeScrollPicker";
@@ -136,29 +137,30 @@ function FieldInput({
         </div>
       );
 
-    case "date":
+    case "date": {
+      const dateVal = typeof value === "string" ? value : "";
       return (
-        <DatePicker
-          value={typeof value === "string" ? value : ""}
-          onChange={onChange}
-          disabled={disabled}
-        />
+        <div className="flex items-center gap-2">
+          <div className="flex-1">
+            <DatePicker value={dateVal} onChange={onChange} disabled={disabled} />
+          </div>
+          {dateVal && !disabled && (
+            <button
+              onClick={() => onChange(undefined)}
+              className="text-muted-foreground hover:text-destructive shrink-0 transition-colors"
+            >
+              <X size={11} />
+            </button>
+          )}
+        </div>
       );
+    }
 
     case "datetime":
       return <DatetimeFieldInput value={value} disabled={disabled} onChange={onChange} />;
 
     case "url":
-      return (
-        <input
-          type="url"
-          value={typeof value === "string" ? value : ""}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder="https://"
-          disabled={disabled}
-          className={INPUT}
-        />
-      );
+      return <UrlFieldInput value={value} disabled={disabled} onChange={onChange} />;
 
     case "select": {
       const opts = field.options ?? [];
@@ -343,17 +345,34 @@ function DatetimeFieldInput({
     onChange(isNaN(dt.getTime()) ? undefined : dt.toISOString());
   }
 
+  function clear() {
+    setDate("");
+    onChange(undefined);
+  }
+
   return (
     <div className="flex flex-col gap-2">
-      <DatePicker
-        value={date}
-        onChange={(d) => {
-          const s = d as string;
-          setDate(s);
-          emit(s, hour, min, ampm);
-        }}
-        disabled={disabled}
-      />
+      <div className="flex items-center gap-2">
+        <div className="flex-1">
+          <DatePicker
+            value={date}
+            onChange={(d) => {
+              const s = d as string;
+              setDate(s);
+              emit(s, hour, min, ampm);
+            }}
+            disabled={disabled}
+          />
+        </div>
+        {date && !disabled && (
+          <button
+            onClick={clear}
+            className="text-muted-foreground hover:text-destructive shrink-0 transition-colors"
+          >
+            <X size={11} />
+          </button>
+        )}
+      </div>
       {date && (
         <TimeScrollPicker
           hour={hour}
@@ -373,6 +392,46 @@ function DatetimeFieldInput({
           }}
           disabled={disabled}
         />
+      )}
+    </div>
+  );
+}
+
+function isValidUrl(s: string): boolean {
+  try {
+    const url = new URL(s);
+    return url.protocol === "http:" || url.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
+function UrlFieldInput({
+  value,
+  disabled,
+  onChange,
+}: {
+  value: unknown;
+  disabled?: boolean;
+  onChange: (v: unknown) => void;
+}) {
+  const [touched, setTouched] = useState(false);
+  const str = typeof value === "string" ? value : "";
+  const hasError = touched && str !== "" && !isValidUrl(str);
+
+  return (
+    <div className="flex flex-col gap-1">
+      <input
+        type="text"
+        value={str}
+        onChange={(e) => onChange(e.target.value)}
+        onBlur={() => setTouched(true)}
+        placeholder="https://"
+        disabled={disabled}
+        className={INPUT}
+      />
+      {hasError && (
+        <p className="text-destructive font-mono text-[9px]">must be a valid URL (https://...)</p>
       )}
     </div>
   );
