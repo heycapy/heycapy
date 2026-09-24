@@ -12,5 +12,21 @@ export const OLLAMA_DEFAULT_URL = "https://ollama.yourdomain.com";
 export const NTFY_DEFAULT_URL = "https://ntfy.sh";
 
 export const WEBHOOK_KEY_PREFIX = "hc_live_";
+
+// Item / bucket field limits
 export const ITEM_TITLE_MAX_LENGTH = 500;
 export const BUCKET_NAME_MAX_LENGTH = 100;
+export const FIELD_LABEL_MAX_LENGTH = 100;
+export const STATUS_NAME_MAX_LENGTH = 50;
+
+// Settings field limits
+export const PERSONALITY_NAME_MAX_LENGTH = 50;
+export const CUSTOM_PROMPT_MAX_LENGTH = 1000;
+// Free-form fields whose length we can't predict — keep generous
+export const AI_MODEL_MAX_LENGTH = 500;
+export const SETTINGS_URL_MAX_LENGTH = 500;
+export const SETTINGS_API_KEY_MAX_LENGTH = 500;
+// Known-format fields — keep tight
+export const NTFY_TOPIC_MAX_LENGTH = 100;
+export const TIMEZONE_MAX_LENGTH = 50;
+export const TELEGRAM_CHAT_ID_MAX_LENGTH = 50;

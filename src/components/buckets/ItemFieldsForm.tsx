@@ -7,6 +7,7 @@ import { OptionButton } from "@/components/ui/OptionButton";
 import { TimeScrollPicker, type Ampm } from "@/components/ui/TimeScrollPicker";
 import type { FieldDef } from "@/types/rules";
 import { cn } from "@/lib/utils";
+import { toH12, toH24 } from "@/lib/time";
 
 const LABEL = "text-muted-foreground font-mono text-[10px]";
 const INPUT =
@@ -172,6 +173,8 @@ function FieldInput({
               active={value === opt}
               onClick={() => onChange(value === opt ? undefined : opt)}
               disabled={disabled}
+              className="max-w-[200px] truncate"
+              title={opt}
             >
               {opt}
             </OptionButton>
@@ -196,6 +199,8 @@ function FieldInput({
                 onChange(next.length > 0 ? next : undefined);
               }}
               disabled={disabled}
+              className="max-w-[200px] truncate"
+              title={opt}
             >
               {opt}
             </OptionButton>
@@ -304,17 +309,6 @@ function DatetimeFieldInput({
   disabled?: boolean;
   onChange: (v: unknown) => void;
 }) {
-  function toH12(h24: number): { hour: string; ampm: Ampm } {
-    const isPm = h24 >= 12;
-    const h = isPm ? (h24 === 12 ? 12 : h24 - 12) : h24 === 0 ? 12 : h24;
-    return { hour: String(h), ampm: isPm ? "pm" : "am" };
-  }
-
-  function toH24(h12: number, ampm: Ampm): number {
-    if (ampm === "am") return h12 === 12 ? 0 : h12;
-    return h12 === 12 ? 12 : h12 + 12;
-  }
-
   const parsed = typeof value === "string" && value.includes("T") ? new Date(value) : null;
   const validParsed = parsed && !isNaN(parsed.getTime()) ? parsed : null;
 

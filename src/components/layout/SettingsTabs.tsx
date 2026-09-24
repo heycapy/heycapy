@@ -16,7 +16,18 @@ import {
   TRANSCRIPTION_DEFAULT_MODELS,
 } from "./settings-constants";
 import type { UserTone, AIProvider, TranscriptionProvider } from "./settings-constants";
-import { OLLAMA_DEFAULT_URL, NTFY_DEFAULT_URL } from "@/constants";
+import {
+  OLLAMA_DEFAULT_URL,
+  NTFY_DEFAULT_URL,
+  PERSONALITY_NAME_MAX_LENGTH,
+  CUSTOM_PROMPT_MAX_LENGTH,
+  AI_MODEL_MAX_LENGTH,
+  SETTINGS_URL_MAX_LENGTH,
+  SETTINGS_API_KEY_MAX_LENGTH,
+  NTFY_TOPIC_MAX_LENGTH,
+  TIMEZONE_MAX_LENGTH,
+  TELEGRAM_CHAT_ID_MAX_LENGTH,
+} from "@/constants";
 
 interface AppearanceTabProps {
   theme: string | undefined;
@@ -71,10 +82,20 @@ export function AppearanceTab({
           value={timezone}
           onChange={(e) => setTimezone(e.target.value)}
           placeholder="America/New_York"
-          maxLength={50}
+          maxLength={TIMEZONE_MAX_LENGTH}
           disabled={pending}
           className={INPUT}
         />
+        {timezone.length > 0 && (
+          <p
+            className={cn(
+              "mt-0.5 text-right font-mono text-[9px] transition-colors",
+              charCountColor(timezone.length, TIMEZONE_MAX_LENGTH)
+            )}
+          >
+            {timezone.length}/{TIMEZONE_MAX_LENGTH}
+          </p>
+        )}
       </div>
     </>
   );
@@ -152,10 +173,20 @@ export function NotificationsTab({
             value={ntfyUrl}
             onChange={(e) => setNtfyUrl(e.target.value)}
             placeholder={NTFY_DEFAULT_URL}
-            maxLength={200}
+            maxLength={SETTINGS_URL_MAX_LENGTH}
             disabled={pending}
             className={INPUT}
           />
+          {ntfyUrl.length > 0 && (
+            <p
+              className={cn(
+                "mt-0.5 text-right font-mono text-[9px] transition-colors",
+                charCountColor(ntfyUrl.length, SETTINGS_URL_MAX_LENGTH)
+              )}
+            >
+              {ntfyUrl.length}/{SETTINGS_URL_MAX_LENGTH}
+            </p>
+          )}
         </div>
         <div className="flex flex-col gap-1.5">
           <div className="flex items-center justify-between">
@@ -189,10 +220,20 @@ export function NotificationsTab({
             value={ntfyTopic}
             onChange={(e) => setNtfyTopic(e.target.value)}
             placeholder="heycapy-k3m9xp2qlr7a"
-            maxLength={100}
+            maxLength={NTFY_TOPIC_MAX_LENGTH}
             disabled={pending}
             className={INPUT}
           />
+          {ntfyTopic.length > 0 && (
+            <p
+              className={cn(
+                "mt-0.5 text-right font-mono text-[9px] transition-colors",
+                charCountColor(ntfyTopic.length, NTFY_TOPIC_MAX_LENGTH)
+              )}
+            >
+              {ntfyTopic.length}/{NTFY_TOPIC_MAX_LENGTH}
+            </p>
+          )}
         </div>
       </div>
 
@@ -215,10 +256,20 @@ export function NotificationsTab({
             value={telegramBotToken}
             onChange={(e) => setTelegramBotToken(e.target.value)}
             placeholder="1234567890:ABC..."
-            maxLength={200}
+            maxLength={SETTINGS_API_KEY_MAX_LENGTH}
             disabled={pending}
             className={INPUT}
           />
+          {telegramBotToken.length > 0 && (
+            <p
+              className={cn(
+                "mt-0.5 text-right font-mono text-[9px] transition-colors",
+                charCountColor(telegramBotToken.length, SETTINGS_API_KEY_MAX_LENGTH)
+              )}
+            >
+              {telegramBotToken.length}/{SETTINGS_API_KEY_MAX_LENGTH}
+            </p>
+          )}
         </div>
         <div className="flex flex-col gap-1.5">
           <label className={LABEL}>chat id</label>
@@ -227,10 +278,20 @@ export function NotificationsTab({
             value={telegramChatId}
             onChange={(e) => setTelegramChatId(e.target.value)}
             placeholder="123456789"
-            maxLength={50}
+            maxLength={TELEGRAM_CHAT_ID_MAX_LENGTH}
             disabled={pending}
             className={INPUT}
           />
+          {telegramChatId.length > 0 && (
+            <p
+              className={cn(
+                "mt-0.5 text-right font-mono text-[9px] transition-colors",
+                charCountColor(telegramChatId.length, TELEGRAM_CHAT_ID_MAX_LENGTH)
+              )}
+            >
+              {telegramChatId.length}/{TELEGRAM_CHAT_ID_MAX_LENGTH}
+            </p>
+          )}
         </div>
         <p className="text-muted-foreground font-mono text-[9px]">
           Get a bot token from @BotFather · Get your chat ID from @userinfobot
@@ -319,10 +380,20 @@ export function AITab({
                 value={aiOllamaUrl}
                 onChange={(e) => setAiOllamaUrl(e.target.value)}
                 placeholder={OLLAMA_DEFAULT_URL}
-                maxLength={200}
+                maxLength={SETTINGS_URL_MAX_LENGTH}
                 disabled={pending}
                 className={INPUT}
               />
+              {aiOllamaUrl.length > 0 && (
+                <p
+                  className={cn(
+                    "mt-0.5 text-right font-mono text-[9px] transition-colors",
+                    charCountColor(aiOllamaUrl.length, SETTINGS_URL_MAX_LENGTH)
+                  )}
+                >
+                  {aiOllamaUrl.length}/{SETTINGS_URL_MAX_LENGTH}
+                </p>
+              )}
             </div>
           )}
           {aiProvider !== "ollama" && (
@@ -333,10 +404,20 @@ export function AITab({
                 value={aiApiKey}
                 onChange={(e) => setAiApiKey(e.target.value)}
                 placeholder="sk-..."
-                maxLength={200}
+                maxLength={SETTINGS_API_KEY_MAX_LENGTH}
                 disabled={pending}
                 className={INPUT}
               />
+              {aiApiKey.length > 0 && (
+                <p
+                  className={cn(
+                    "mt-0.5 text-right font-mono text-[9px] transition-colors",
+                    charCountColor(aiApiKey.length, SETTINGS_API_KEY_MAX_LENGTH)
+                  )}
+                >
+                  {aiApiKey.length}/{SETTINGS_API_KEY_MAX_LENGTH}
+                </p>
+              )}
             </div>
           )}
           <div className="flex flex-col gap-1.5">
@@ -346,10 +427,20 @@ export function AITab({
               value={aiModel}
               onChange={(e) => setAiModel(e.target.value)}
               placeholder={PROVIDER_DEFAULT_MODELS[aiProvider]}
-              maxLength={100}
+              maxLength={AI_MODEL_MAX_LENGTH}
               disabled={pending}
               className={INPUT}
             />
+            {aiModel.length > 0 && (
+              <p
+                className={cn(
+                  "mt-0.5 text-right font-mono text-[9px] transition-colors",
+                  charCountColor(aiModel.length, AI_MODEL_MAX_LENGTH)
+                )}
+              >
+                {aiModel.length}/{AI_MODEL_MAX_LENGTH}
+              </p>
+            )}
           </div>
           <div className="flex flex-col gap-1.5">
             <label className={LABEL}>autocompact after</label>
@@ -399,10 +490,20 @@ export function AITab({
                   value={transcriptionApiKey}
                   onChange={(e) => setTranscriptionApiKey(e.target.value)}
                   placeholder="sk-..."
-                  maxLength={200}
+                  maxLength={SETTINGS_API_KEY_MAX_LENGTH}
                   disabled={pending}
                   className={INPUT}
                 />
+                {transcriptionApiKey.length > 0 && (
+                  <p
+                    className={cn(
+                      "mt-0.5 text-right font-mono text-[9px] transition-colors",
+                      charCountColor(transcriptionApiKey.length, SETTINGS_API_KEY_MAX_LENGTH)
+                    )}
+                  >
+                    {transcriptionApiKey.length}/{SETTINGS_API_KEY_MAX_LENGTH}
+                  </p>
+                )}
               </div>
               <div className="flex flex-col gap-1.5">
                 <label className={LABEL}>model</label>
@@ -411,10 +512,20 @@ export function AITab({
                   value={transcriptionModel}
                   onChange={(e) => setTranscriptionModel(e.target.value)}
                   placeholder={TRANSCRIPTION_DEFAULT_MODELS[transcriptionProvider]}
-                  maxLength={100}
+                  maxLength={AI_MODEL_MAX_LENGTH}
                   disabled={pending}
                   className={INPUT}
                 />
+                {transcriptionModel.length > 0 && (
+                  <p
+                    className={cn(
+                      "mt-0.5 text-right font-mono text-[9px] transition-colors",
+                      charCountColor(transcriptionModel.length, AI_MODEL_MAX_LENGTH)
+                    )}
+                  >
+                    {transcriptionModel.length}/{AI_MODEL_MAX_LENGTH}
+                  </p>
+                )}
               </div>
             </>
           )}
@@ -456,7 +567,7 @@ export function PersonalityTab({
           value={personalityName}
           onChange={(e) => setPersonalityName(e.target.value)}
           placeholder="Capy"
-          maxLength={50}
+          maxLength={PERSONALITY_NAME_MAX_LENGTH}
           disabled={pending}
           className={INPUT}
         />
@@ -464,10 +575,10 @@ export function PersonalityTab({
           <p
             className={cn(
               "text-right font-mono text-[9px] transition-colors",
-              charCountColor(personalityName.length, 50)
+              charCountColor(personalityName.length, PERSONALITY_NAME_MAX_LENGTH)
             )}
           >
-            {personalityName.length}/50
+            {personalityName.length}/{PERSONALITY_NAME_MAX_LENGTH}
           </p>
         )}
       </div>
@@ -487,7 +598,7 @@ export function PersonalityTab({
             value={personalityCustomPrompt}
             onChange={(e) => setPersonalityCustomPrompt(e.target.value)}
             placeholder="Describe the tone and style..."
-            maxLength={1000}
+            maxLength={CUSTOM_PROMPT_MAX_LENGTH}
             disabled={pending}
             rows={4}
             className="border-border placeholder:text-muted-foreground/50 focus:border-foreground w-full resize-none border-b bg-transparent py-1.5 font-mono text-xs outline-none disabled:opacity-50"

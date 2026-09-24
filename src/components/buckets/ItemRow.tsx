@@ -99,6 +99,13 @@ function relativeTime(deadline: Date): string {
   return `${diffDays}d`;
 }
 
+function daysLeftColor(rel: string): string {
+  const d = parseInt(rel);
+  if (d <= 2) return "text-orange-500";
+  if (d <= 5) return "text-yellow-500";
+  return "text-muted-foreground/50";
+}
+
 function getShowInRowBadges(
   fields: FieldDef[],
   propertiesRaw: string | null
@@ -143,9 +150,7 @@ export function ItemRow({
   const [pickerPos, setPickerPos] = useState<{ top: number; left: number } | null>(null);
   const dotRef = useRef<HTMLButtonElement>(null);
   const rel = item.deadline ? relativeTime(item.deadline) : null;
-  const isCompleted =
-    item.status === "completed" ||
-    statuses.find((s) => s.name === item.status)?.isCompleted === true;
+  const isCompleted = item.status === "completed";
   const recurringFreq = getRecurringFrequency(item.recurring);
   const dotColor = statuses.find((s) => s.name === item.status)?.color ?? "var(--muted-foreground)";
   const badges = fields ? getShowInRowBadges(fields, item.properties) : [];
@@ -257,12 +262,7 @@ export function ItemRow({
         <span
           className={cn(
             "flex shrink-0 items-center pl-2 font-mono text-[10px]",
-            (() => {
-              const d = parseInt(rel);
-              if (d <= 2) return "text-orange-500";
-              if (d <= 5) return "text-yellow-500";
-              return "text-muted-foreground/50";
-            })()
+            daysLeftColor(rel)
           )}
         >
           {rel}

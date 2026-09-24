@@ -22,6 +22,7 @@ import {
   archiveBucketAction,
   deleteBucketAction,
 } from "@/app/(app)/actions";
+import { BUCKET_NAME_MAX_LENGTH } from "@/constants";
 import type { buckets } from "@/lib/db/schema";
 
 type BucketRow = typeof buckets.$inferSelect;
@@ -202,7 +203,7 @@ export function BucketSettings({ open, bucket, onClose }: BucketSettingsProps) {
                       type="text"
                       value={name}
                       onChange={(e) => setName(e.target.value)}
-                      maxLength={100}
+                      maxLength={BUCKET_NAME_MAX_LENGTH}
                       disabled={pending}
                       className="border-border focus:border-foreground w-full border-b bg-transparent py-1.5 font-mono text-xs outline-none disabled:opacity-50"
                     />
@@ -210,10 +211,10 @@ export function BucketSettings({ open, bucket, onClose }: BucketSettingsProps) {
                       <p
                         className={cn(
                           "text-right font-mono text-[9px] transition-colors",
-                          charCountColor(name.length, 100)
+                          charCountColor(name.length, BUCKET_NAME_MAX_LENGTH)
                         )}
                       >
-                        {name.length}/100
+                        {name.length}/{BUCKET_NAME_MAX_LENGTH}
                       </p>
                     )}
                     {error && (

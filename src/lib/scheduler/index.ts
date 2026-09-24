@@ -195,21 +195,6 @@ async function runNotifications(): Promise<void> {
         continue;
       }
 
-      if (row.bucketFieldSchema) {
-        const schemaParsed = BucketSchema.safeParse(
-          typeof row.bucketFieldSchema === "string"
-            ? JSON.parse(row.bucketFieldSchema)
-            : row.bucketFieldSchema
-        );
-        if (
-          schemaParsed.success &&
-          schemaParsed.data.statuses.some((s) => s.name === row.item.status && s.isCompleted)
-        ) {
-          process.stderr.write(`${tag} skip: custom completed status\n`);
-          continue;
-        }
-      }
-
       const deadline = row.item.deadline;
       if (!deadline) {
         process.stderr.write(`${tag} skip: no deadline\n`);
@@ -355,8 +340,6 @@ async function runOverdueTriggers(now: Date): Promise<void> {
     if (!parsed.success) continue;
 
     if (!parsed.data.notifyWhenOverdue) continue;
-
-    if (parsed.data.statuses.some((s) => s.name === row.item.status && s.isCompleted)) continue;
 
     const repeatHours = parsed.data.overdueRepeatHours;
     const lastOverdue = row.item.overdueNotifiedAt;

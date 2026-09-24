@@ -4,19 +4,17 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { BracketButton } from "@/components/ui/BracketButton";
 import { updateBucketSchemaAction } from "@/app/(app)/actions";
-import type { FieldDef, StatusDef, BucketSchema } from "@/types/rules";
-import { STATUS_COLORS } from "./constants";
+import type { FieldDef, BucketSchema } from "@/types/rules";
 import type { buckets } from "@/lib/db/schema";
 import { useScrollToFirst } from "@/hooks/useScrollToFirst";
-import { FieldsSection, StatusesSection, NotificationsSection } from "./SchemaEditorSections";
+import { FieldsSection, NotificationsSection } from "./SchemaEditorSections";
 
 type BucketRow = typeof buckets.$inferSelect;
 
 const BLANK_FIELD: FieldDef = { key: "", label: "", type: "text", showInRow: true };
-const BLANK_STATUS: StatusDef = { name: "", color: STATUS_COLORS[3] };
 
 function parseSavedSchema(raw: unknown): BucketSchema {
-  const empty: BucketSchema = { fields: [], statuses: [] };
+  const empty: BucketSchema = { fields: [] };
   if (!raw) return empty;
   try {
     const parsed = typeof raw === "string" ? (JSON.parse(raw) as unknown) : raw;
@@ -24,7 +22,6 @@ function parseSavedSchema(raw: unknown): BucketSchema {
     const obj = parsed as Record<string, unknown>;
     return {
       fields: Array.isArray(obj.fields) ? (obj.fields as FieldDef[]) : [],
-      statuses: Array.isArray(obj.statuses) ? (obj.statuses as StatusDef[]) : [],
       notifyOnArrival: obj.notifyOnArrival === true,
       notifyWhenOverdue: obj.notifyWhenOverdue === true,
       overdueRepeatHours:
@@ -43,15 +40,11 @@ interface SchemaEditorDialogProps {
 
 export function SchemaEditorDialog({ open, bucket, onClose }: SchemaEditorDialogProps) {
   const [fields, setFields] = useState<FieldDef[]>([]);
-  const [statuses, setStatuses] = useState<StatusDef[]>([]);
   const [notifyOnArrival, setNotifyOnArrival] = useState(false);
   const [notifyWhenOverdue, setNotifyWhenOverdue] = useState(false);
   const [overdueRepeatHours, setOverdueRepeatHours] = useState<number | undefined>(undefined);
   const [error, setError] = useState("");
-  const [validationErr, setValidationErr] = useState<{
-    type: "field" | "status";
-    idx: number;
-  } | null>(null);
+  const [validationErr, setValidationErr] = useState<number | null>(null);
   const [pending, startTransition] = useTransition();
   const scrollBodyRef = useRef<HTMLDivElement>(null);
   const scrollToFirst = useScrollToFirst(scrollBodyRef);
@@ -61,7 +54,6 @@ export function SchemaEditorDialog({ open, bucket, onClose }: SchemaEditorDialog
     const s = parseSavedSchema(bucket.fieldSchema);
     const id = setTimeout(() => {
       setFields(s.fields);
-      setStatuses(s.statuses);
       setNotifyOnArrival(s.notifyOnArrival ?? false);
       setNotifyWhenOverdue(s.notifyWhenOverdue ?? false);
       setOverdueRepeatHours(s.overdueRepeatHours);
@@ -76,22 +68,14 @@ export function SchemaEditorDialog({ open, bucket, onClose }: SchemaEditorDialog
     setValidationErr(null);
     for (let i = 0; i < fields.length; i++) {
       if (!fields[i].label.trim()) {
-        setValidationErr({ type: "field", idx: i });
+        setValidationErr(i);
         scrollToFirst(`[data-field-idx="${i}"]`);
-        return;
-      }
-    }
-    for (let i = 0; i < statuses.length; i++) {
-      if (!statuses[i].name.trim()) {
-        setValidationErr({ type: "status", idx: i });
-        scrollToFirst(`[data-status-idx="${i}"]`);
         return;
       }
     }
     startTransition(async () => {
       const result = await updateBucketSchemaAction(bucket.id, {
         fields,
-        statuses,
         notifyOnArrival: notifyOnArrival || undefined,
         notifyWhenOverdue: notifyWhenOverdue || undefined,
         overdueRepeatHours: notifyWhenOverdue ? overdueRepeatHours : undefined,
@@ -103,18 +87,7 @@ export function SchemaEditorDialog({ open, bucket, onClose }: SchemaEditorDialog
 
   function updateField(i: number, patch: Partial<FieldDef>) {
     setFields((prev) => prev.map((f, idx) => (idx === i ? { ...f, ...patch } : f)));
-    if (validationErr?.type === "field" && validationErr.idx === i) setValidationErr(null);
-  }
-
-  function updateStatus(i: number, patch: Partial<StatusDef>) {
-    setStatuses((prev) => prev.map((s, idx) => (idx === i ? { ...s, ...patch } : s)));
-    if (validationErr?.type === "status" && validationErr.idx === i) setValidationErr(null);
-  }
-
-  function setDefaultStatus(i: number) {
-    setStatuses((prev) =>
-      prev.map((s, idx) => ({ ...s, isDefault: idx === i ? true : undefined }))
-    );
+    if (validationErr === i) setValidationErr(null);
   }
 
   return (
@@ -153,7 +126,7 @@ export function SchemaEditorDialog({ open, bucket, onClose }: SchemaEditorDialog
               >
                 <FieldsSection
                   fields={fields}
-                  errorIdx={validationErr?.type === "field" ? validationErr.idx : undefined}
+                  errorIdx={validationErr ?? undefined}
                   onAdd={() => setFields((p) => [...p, { ...BLANK_FIELD }])}
                   onRemove={(i) => setFields((p) => p.filter((_, idx) => idx !== i))}
                   onUpdate={updateField}
@@ -166,15 +139,6 @@ export function SchemaEditorDialog({ open, bucket, onClose }: SchemaEditorDialog
                     });
                     setValidationErr(null);
                   }}
-                  disabled={pending}
-                />
-                <StatusesSection
-                  statuses={statuses}
-                  errorIdx={validationErr?.type === "status" ? validationErr.idx : undefined}
-                  onAdd={() => setStatuses((p) => [...p, { ...BLANK_STATUS }])}
-                  onRemove={(i) => setStatuses((p) => p.filter((_, idx) => idx !== i))}
-                  onUpdate={updateStatus}
-                  onSetDefault={setDefaultStatus}
                   disabled={pending}
                 />
                 <NotificationsSection

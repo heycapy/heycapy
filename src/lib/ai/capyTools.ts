@@ -256,30 +256,32 @@ async function executeToolCallInner(
       const statusArg = args.status ? String(args.status).trim() : "active";
       const finalStatus = statusArg || "active";
 
+      let schemaParsed: ReturnType<typeof BucketSchema.safeParse> | null = null;
+      if (bucket.fieldSchema) {
+        schemaParsed = BucketSchema.safeParse(
+          typeof bucket.fieldSchema === "string"
+            ? JSON.parse(bucket.fieldSchema)
+            : bucket.fieldSchema
+        );
+      }
+
       let propertiesJson: string | null = null;
       if (
         args.properties &&
         typeof args.properties === "object" &&
         !Array.isArray(args.properties)
       ) {
-        if (bucket.fieldSchema) {
-          const schemaParsed = BucketSchema.safeParse(
-            typeof bucket.fieldSchema === "string"
-              ? JSON.parse(bucket.fieldSchema)
-              : bucket.fieldSchema
-          );
-          if (schemaParsed.success && schemaParsed.data.fields.length > 0) {
-            const validator = buildPropertyValidator(schemaParsed.data.fields);
-            const validated = validator.safeParse(args.properties);
-            if (!validated.success)
-              return JSON.stringify({
-                ok: false,
-                error: "Invalid properties",
-                issues: validated.error.issues,
-              });
-            propertiesJson = JSON.stringify(validated.data);
-          }
-        } else {
+        if (schemaParsed?.success && schemaParsed.data.fields.length > 0) {
+          const validator = buildPropertyValidator(schemaParsed.data.fields);
+          const validated = validator.safeParse(args.properties);
+          if (!validated.success)
+            return JSON.stringify({
+              ok: false,
+              error: "Invalid properties",
+              issues: validated.error.issues,
+            });
+          propertiesJson = JSON.stringify(validated.data);
+        } else if (!bucket.fieldSchema) {
           propertiesJson = JSON.stringify(args.properties);
         }
       }
@@ -358,11 +360,10 @@ async function executeToolCallInner(
         const statusName = String(args.status).trim();
         if (statusName) {
           updates.status = statusName;
-          if (statusName === "completed" && item.status !== "completed") {
+          if (statusName === "completed" && item.status !== "completed")
             updates.completedAt = new Date();
-          } else if (statusName !== "completed" && item.status === "completed") {
+          else if (statusName !== "completed" && item.status === "completed")
             updates.completedAt = null;
-          }
         }
       }
 

@@ -13,22 +13,10 @@ import type { RecurringConfig, StatusDef, FieldDef } from "@/types/rules";
 import { cn } from "@/lib/utils";
 import { useScrollLock } from "@/hooks/useScrollLock";
 import { useScrollToFirst } from "@/hooks/useScrollToFirst";
+import { buildDeadline } from "@/lib/time";
+import { ITEM_TITLE_MAX_LENGTH } from "@/constants";
 
 const LABEL = "text-muted-foreground font-mono text-[10px]";
-
-function toH24(h12: number, ampm: "am" | "pm"): number {
-  if (ampm === "am") return h12 === 12 ? 0 : h12;
-  return h12 === 12 ? 12 : h12 + 12;
-}
-
-function buildDeadline(date: string, hour: string, min: string, ampm: "am" | "pm"): string {
-  if (!date) return "";
-  const h = parseInt(hour, 10);
-  if (!hour.trim() || !Number.isFinite(h)) return date;
-  const local = `${date}T${String(toH24(h, ampm)).padStart(2, "0")}:${min.padStart(2, "0")}:00`;
-  const d = new Date(local);
-  return isNaN(d.getTime()) ? date : d.toISOString();
-}
 
 function isEmpty(value: unknown): boolean {
   if (value === undefined || value === null) return true;
@@ -293,7 +281,7 @@ export function ItemDialog({
                       if (e.key === "Escape") onCancel();
                     }}
                     placeholder={error || "what needs doing?"}
-                    maxLength={500}
+                    maxLength={ITEM_TITLE_MAX_LENGTH}
                     disabled={pending}
                     rows={1}
                     className={cn(

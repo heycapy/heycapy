@@ -106,29 +106,15 @@ export function BucketContent({ bucket, accentColor }: BucketContentProps) {
     }
   })();
 
-  const { bucketStatuses, bucketFields } = (() => {
+  const bucketStatuses = DEFAULT_BUCKET_STATUSES;
+  const bucketFields = (() => {
     try {
-      const raw = bucket.fieldSchema as unknown as string | null | undefined;
-      if (!raw) return { bucketStatuses: DEFAULT_BUCKET_STATUSES, bucketFields: [] as FieldDef[] };
-      const parsed = BucketSchema.parse(JSON.parse(raw));
-      const customStatuses = parsed.statuses;
-      let resolvedStatuses: typeof DEFAULT_BUCKET_STATUSES;
-      if (customStatuses.length === 0) {
-        resolvedStatuses = DEFAULT_BUCKET_STATUSES;
-      } else if (customStatuses.some((s) => s.isCompleted)) {
-        resolvedStatuses = customStatuses;
-      } else {
-        resolvedStatuses = [
-          ...customStatuses,
-          { name: "completed", color: "#3b82f6", isCompleted: true as const },
-        ];
-      }
-      return {
-        bucketStatuses: resolvedStatuses,
-        bucketFields: parsed.fields,
-      };
+      if (!bucket.fieldSchema) return [] as FieldDef[];
+      const raw = bucket.fieldSchema as unknown as string;
+      const parsed = BucketSchema.parse(typeof raw === "string" ? JSON.parse(raw) : raw);
+      return parsed.fields;
     } catch {
-      return { bucketStatuses: DEFAULT_BUCKET_STATUSES, bucketFields: [] as FieldDef[] };
+      return [] as FieldDef[];
     }
   })();
 
@@ -174,10 +160,9 @@ export function BucketContent({ bucket, accentColor }: BucketContentProps) {
   }, [bucket.id, bucket.itemsRules, aiRefreshTick]);
 
   useEffect(() => {
-    const completedNames = new Set(bucketStatuses.filter((s) => s.isCompleted).map((s) => s.name));
     const next = showCompleted
       ? fetchedItems
-      : fetchedItems.filter((i) => !completedNames.has(i.status));
+      : fetchedItems.filter((i) => i.status !== "completed");
     const id = setTimeout(() => {
       setOrderedItems(next);
       orderedItemsRef.current = next;

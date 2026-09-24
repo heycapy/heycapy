@@ -34,11 +34,6 @@ const BUILTIN_TEMPLATES: BuiltinTemplate[] = [
     }),
     fieldSchemaJson: JSON.stringify({
       fields: [],
-      statuses: [
-        { name: "active", color: "#22c55e", isDefault: true },
-        { name: "completed", color: "#3b82f6", isCompleted: true },
-        { name: "snoozed", color: "#f59e0b" },
-      ],
       notifyWhenOverdue: true,
     } satisfies BucketSchema),
   },
@@ -82,11 +77,6 @@ const BUILTIN_TEMPLATES: BuiltinTemplate[] = [
         { key: "website", label: "Website", type: "url" },
         { key: "autoRenew", label: "Auto-renew", type: "boolean" },
       ],
-      statuses: [
-        { name: "active", color: "#22c55e", isDefault: true },
-        { name: "cancelled", color: "#ef4444", isCompleted: true },
-        { name: "paused", color: "#f59e0b" },
-      ],
       notifyWhenOverdue: true,
     } satisfies BucketSchema),
   },
@@ -120,10 +110,6 @@ const BUILTIN_TEMPLATES: BuiltinTemplate[] = [
           options: ["low", "medium", "high"],
           showInRow: true,
         },
-      ],
-      statuses: [
-        { name: "active", color: "#22c55e", isDefault: true },
-        { name: "completed", color: "#3b82f6", isCompleted: true },
       ],
       notifyWhenOverdue: true,
     } satisfies BucketSchema),
@@ -160,12 +146,6 @@ const BUILTIN_TEMPLATES: BuiltinTemplate[] = [
         },
         { key: "project", label: "Project", type: "text" },
         { key: "notes", label: "Notes", type: "textarea" },
-      ],
-      statuses: [
-        { name: "todo", color: "#6b7280", isDefault: true },
-        { name: "in-progress", color: "#3b82f6" },
-        { name: "blocked", color: "#ef4444", notifyOnReach: true },
-        { name: "done", color: "#22c55e", isCompleted: true },
       ],
       notifyWhenOverdue: true,
     } satisfies BucketSchema),

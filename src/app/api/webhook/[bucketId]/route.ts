@@ -115,18 +115,16 @@ export async function POST(
     }
   }
 
-  // Optional status — must match a bucket status name if custom statuses are defined
+  // Optional status — must be one of the three built-in statuses
+  const VALID_STATUSES = ["active", "completed", "snoozed"] as const;
   let status: string | undefined;
   if (raw.status !== undefined) {
     if (typeof raw.status !== "string") {
       return Response.json({ error: "status must be a string" }, { status: 400 });
     }
-    const validStatuses = parsedSchema?.success ? parsedSchema.data.statuses : [];
-    if (validStatuses.length > 0 && !validStatuses.some((s) => s.name === raw.status)) {
+    if (!VALID_STATUSES.includes(raw.status as (typeof VALID_STATUSES)[number])) {
       return Response.json(
-        {
-          error: `invalid status "${raw.status}" — valid values: ${validStatuses.map((s) => s.name).join(", ")}`,
-        },
+        { error: `invalid status "${raw.status}" — valid values: ${VALID_STATUSES.join(", ")}` },
         { status: 400 }
       );
     }

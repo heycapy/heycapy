@@ -10,6 +10,9 @@ import { BracketButton } from "@/components/ui/BracketButton";
 import { createBucketAction } from "@/app/(app)/actions";
 import { Package } from "lucide-react";
 import { TEMPLATE_ICONS } from "./constants";
+import { BUCKET_NAME_MAX_LENGTH } from "@/constants";
+import { cn } from "@/lib/utils";
+import { charCountColor } from "@/components/ui/input";
 import type { templates } from "@/lib/db/schema";
 
 type TemplateRow = typeof templates.$inferSelect;
@@ -159,10 +162,20 @@ export function CreateBucketModal({ templates }: CreateBucketModalProps) {
                         if (e.key === "Enter" && name.trim()) handleCreate();
                       }}
                       placeholder="Bucket name…"
-                      maxLength={100}
+                      maxLength={BUCKET_NAME_MAX_LENGTH}
                       disabled={pending}
                       className="border-border bg-input placeholder:text-muted-foreground focus:ring-ring rounded border px-3 py-2 text-sm outline-none focus:ring-1 disabled:opacity-50"
                     />
+                    {name.length > 0 && (
+                      <p
+                        className={cn(
+                          "mt-0.5 text-right font-mono text-[9px] transition-colors",
+                          charCountColor(name.length, BUCKET_NAME_MAX_LENGTH)
+                        )}
+                      >
+                        {name.length}/{BUCKET_NAME_MAX_LENGTH}
+                      </p>
+                    )}
                     {error && <p className="text-destructive text-xs">{error}</p>}
                     <Button onClick={handleCreate} loading={pending} disabled={!name.trim()}>
                       Create bucket

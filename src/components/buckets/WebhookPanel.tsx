@@ -5,7 +5,7 @@ import { Copy, Eye, EyeOff, RefreshCw } from "lucide-react";
 import { BracketButton } from "@/components/ui/BracketButton";
 import { getWebhookKeyAction, rotateWebhookKeyAction } from "@/app/(app)/actions";
 import type { buckets } from "@/lib/db/schema";
-import type { BucketSchema } from "@/types/rules";
+import { BucketSchema } from "@/types/rules";
 
 type BucketRow = typeof buckets.$inferSelect;
 
@@ -24,9 +24,7 @@ function buildCurlCommand(url: string, key: string, schema: BucketSchema | null)
 
 function buildExamplePayload(schema: BucketSchema | null): string {
   const payload: Record<string, unknown> = { title: "My item title" };
-  if (schema?.statuses && schema.statuses.length > 0) {
-    payload.status = schema.statuses[0].name;
-  }
+  payload.status = "active";
   const sevenDaysFromNow = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
   payload.deadline = sevenDaysFromNow.toISOString().replace(/\.\d{3}Z$/, "Z");
   if (schema) {
@@ -83,10 +81,10 @@ export function WebhookPanel({ bucket }: WebhookPanelProps) {
   const webhookUrl = buildWebhookUrl(bucket.id);
 
   const schema: BucketSchema | null = (() => {
+    if (!bucket.fieldSchema) return null;
     try {
-      const raw = bucket.fieldSchema as unknown as string | null | undefined;
-      if (!raw) return null;
-      return JSON.parse(raw) as BucketSchema;
+      const raw = bucket.fieldSchema as unknown as string;
+      return BucketSchema.parse(typeof raw === "string" ? JSON.parse(raw) : raw);
     } catch {
       return null;
     }

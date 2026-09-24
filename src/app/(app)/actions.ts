@@ -14,8 +14,7 @@ import type { ItemsRulesConfig, NotificationsRulesConfig } from "@/components/bu
 import { BucketSchema } from "@/types/rules";
 import type { RecurringConfig } from "@/types/rules";
 import { buildPropertyValidator } from "@/types/rules";
-import { enqueue, processPending } from "@/lib/notifications/queue";
-import type { NotificationMedium } from "@/lib/notifications/queue";
+import { parseDeadlineString } from "@/lib/time";
 
 async function requireSession(): Promise<SessionPayload> {
   const session = await getSession();
@@ -279,9 +278,7 @@ export async function addItemAction(
     bucketId,
     userId: session.userId,
     title: trimmed,
-    deadline: deadline
-      ? new Date(deadline.includes("T") ? deadline : deadline + "T12:00:00")
-      : null,
+    deadline: deadline ? parseDeadlineString(deadline) : null,
     status: status ?? "active",
     sortOrder: maxRow.max + 1,
     recurring: recurring?.enabled ? JSON.stringify(recurring) : null,
@@ -311,42 +308,12 @@ export async function updateItemAction(
   });
   if (!item) return { ok: false, error: "Item not found" };
 
-  const newDeadline = deadline
-    ? new Date(deadline.includes("T") ? deadline : deadline + "T12:00:00")
-    : null;
+  const newDeadline = deadline ? parseDeadlineString(deadline) : null;
   const deadlineChanged = (item.deadline?.getTime() ?? null) !== (newDeadline?.getTime() ?? null);
   const statusChanged = status !== undefined && status !== item.status;
 
-  let parsedSchema: ReturnType<typeof BucketSchema.safeParse> | null = null;
-  let bucket: Awaited<ReturnType<typeof db.query.buckets.findFirst>> = undefined;
-  if (statusChanged) {
-    bucket = await db.query.buckets.findFirst({
-      where: (b, { eq: qeq }) => qeq(b.id, item.bucketId),
-    });
-    if (bucket?.fieldSchema) {
-      parsedSchema = BucketSchema.safeParse(
-        typeof bucket.fieldSchema === "string" ? JSON.parse(bucket.fieldSchema) : bucket.fieldSchema
-      );
-    }
-  }
-
-  const newStatusDef = parsedSchema?.success
-    ? parsedSchema.data.statuses.find((s) => s.name === status)
-    : null;
-  const oldStatusDef = parsedSchema?.success
-    ? parsedSchema.data.statuses.find((s) => s.name === item.status)
-    : null;
-
-  const nowCompleted =
-    statusChanged &&
-    (status === "completed" || newStatusDef?.isCompleted === true) &&
-    item.status !== "completed" &&
-    oldStatusDef?.isCompleted !== true;
-  const nowUncompleted =
-    statusChanged &&
-    status !== "completed" &&
-    newStatusDef?.isCompleted !== true &&
-    (item.status === "completed" || oldStatusDef?.isCompleted === true);
+  const nowCompleted = statusChanged && status === "completed" && item.status !== "completed";
+  const nowUncompleted = statusChanged && status !== "completed" && item.status === "completed";
 
   await db
     .update(items)
@@ -366,36 +333,6 @@ export async function updateItemAction(
       updatedAt: new Date(),
     })
     .where(and(eq(items.id, itemId), eq(items.userId, session.userId)));
-
-  if (statusChanged && parsedSchema?.success && bucket) {
-    const matchingStatus = parsedSchema.data.statuses.find(
-      (st) => st.name === status && st.notifyOnReach
-    );
-    if (matchingStatus) {
-      const userRow = await db.query.userSettings.findFirst({
-        where: (s, { eq: qeq }) => qeq(s.userId, session.userId),
-      });
-      if (userRow) {
-        const mediums: NotificationMedium[] = [];
-        if (userRow.notificationsEmail) mediums.push("email");
-        if (userRow.notificationsPush && userRow.ntfyUrl && userRow.ntfyTopic) mediums.push("ntfy");
-        if (userRow.notificationsTelegram && userRow.telegramBotToken && userRow.telegramChatId)
-          mediums.push("telegram");
-
-        const notifTitle = `[${bucket.name}] Status updated`;
-        const message = `"${trimmed}" is now ${status}.`;
-
-        await Promise.all(
-          mediums.map((medium) =>
-            enqueue({ userId: session.userId, itemId, medium, title: notifTitle, message })
-          )
-        );
-        void processPending().catch((err) => {
-          process.stderr.write(`[actions] processPending error: ${String(err)}\n`);
-        });
-      }
-    }
-  }
 
   revalidatePath("/");
   return { ok: true };

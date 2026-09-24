@@ -34,20 +34,9 @@ export type ItemStatus = string;
 
 export const DEFAULT_BUCKET_STATUSES: StatusDef[] = [
   { name: "active", color: "#22c55e", isDefault: true },
-  { name: "completed", color: "#3b82f6", isCompleted: true },
+  { name: "completed", color: "#3b82f6" },
   { name: "snoozed", color: "#f59e0b" },
 ];
-
-export const STATUS_COLORS = [
-  "#ef4444",
-  "#f97316",
-  "#eab308",
-  "#22c55e",
-  "#3b82f6",
-  "#8b5cf6",
-  "#ec4899",
-  "#6b7280",
-] as const;
 
 export const BUCKET_PALETTE = ["var(--p1)", "var(--p2)", "var(--p3)", "var(--p4)", "var(--p5)"];
 

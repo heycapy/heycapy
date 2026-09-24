@@ -5,9 +5,10 @@ import { BracketButton } from "@/components/ui/BracketButton";
 import { charCountColor } from "@/components/ui/input";
 import { OptionButton } from "@/components/ui/OptionButton";
 import { OptionGroup } from "@/components/ui/OptionGroup";
-import type { FieldDef, StatusDef } from "@/types/rules";
+import type { FieldDef } from "@/types/rules";
 import { FIELD_TYPES } from "@/types/rules";
 import { CURRENCY_OPTIONS } from "./constants";
+import { FIELD_LABEL_MAX_LENGTH } from "@/constants";
 import { cn } from "@/lib/utils";
 
 export const SCHEMA_LABEL = "text-muted-foreground font-mono text-[10px]";
@@ -64,7 +65,7 @@ function FieldRow({
           <input
             className={`${INPUT} w-full`}
             value={field.label}
-            maxLength={100}
+            maxLength={FIELD_LABEL_MAX_LENGTH}
             onChange={(e) =>
               onUpdate({
                 label: e.target.value,
@@ -81,10 +82,10 @@ function FieldRow({
             <p
               className={cn(
                 "mt-0.5 text-right font-mono text-[9px] transition-colors",
-                charCountColor(field.label.length, 100)
+                charCountColor(field.label.length, FIELD_LABEL_MAX_LENGTH)
               )}
             >
-              {field.label.length}/100
+              {field.label.length}/{FIELD_LABEL_MAX_LENGTH}
             </p>
           )}
         </div>
@@ -236,121 +237,6 @@ export function FieldsSection({
           />
         ))}
       </div>
-    </div>
-  );
-}
-
-export function StatusesSection({
-  statuses,
-  errorIdx,
-  onAdd,
-  onRemove,
-  onUpdate,
-  onSetDefault,
-  disabled,
-}: {
-  statuses: StatusDef[];
-  errorIdx?: number;
-  onAdd: () => void;
-  onRemove: (i: number) => void;
-  onUpdate: (i: number, patch: Partial<StatusDef>) => void;
-  onSetDefault: (i: number) => void;
-  disabled?: boolean;
-}) {
-  return (
-    <div className="flex flex-col gap-3">
-      <div className="flex items-start justify-between gap-2">
-        <div className="flex flex-col gap-0.5">
-          <p className={SCHEMA_LABEL}>statuses</p>
-          <p className={SCHEMA_HINT}>
-            define the stages items can move through — if none, built-in active and completed are
-            used
-          </p>
-        </div>
-        <button
-          onClick={onAdd}
-          disabled={disabled}
-          className="text-muted-foreground hover:text-foreground shrink-0 transition-colors disabled:opacity-40"
-        >
-          <Plus size={12} />
-        </button>
-      </div>
-      {statuses.length === 0 && (
-        <p className={SCHEMA_HINT}>no custom statuses — using built-in active and completed</p>
-      )}
-      {statuses.map((s, i) => (
-        <div
-          key={i}
-          data-status-idx={i}
-          className={cn(
-            "border-border flex flex-col gap-2.5 border p-3",
-            errorIdx === i && "border-destructive"
-          )}
-        >
-          {errorIdx === i && (
-            <p className="text-destructive font-mono text-[9px]">status name is required</p>
-          )}
-          <div className="flex items-center gap-2">
-            <input
-              type="color"
-              value={s.color}
-              onChange={(e) => onUpdate(i, { color: e.target.value })}
-              className="h-5 w-5 shrink-0 cursor-pointer rounded-none border-0 bg-transparent p-0 disabled:opacity-40"
-              disabled={disabled}
-            />
-            <div className="min-w-0 flex-1">
-              <input
-                className={`${INPUT} w-full`}
-                value={s.name}
-                maxLength={50}
-                onChange={(e) => onUpdate(i, { name: e.target.value })}
-                placeholder="status name"
-                disabled={disabled}
-              />
-              {s.name.length > 0 && (
-                <p
-                  className={cn(
-                    "mt-0.5 text-right font-mono text-[9px] transition-colors",
-                    charCountColor(s.name.length, 50)
-                  )}
-                >
-                  {s.name.length}/50
-                </p>
-              )}
-            </div>
-            <button
-              onClick={() => onRemove(i)}
-              disabled={disabled}
-              className="text-muted-foreground hover:text-destructive shrink-0 transition-colors disabled:opacity-40"
-            >
-              <Trash2 size={11} />
-            </button>
-          </div>
-          <div className="flex flex-wrap gap-1.5">
-            <OptionButton
-              active={!!s.isDefault}
-              onClick={() => onSetDefault(i)}
-              disabled={disabled}
-            >
-              starting status
-            </OptionButton>
-            <OptionButton
-              active={!!s.isCompleted}
-              onClick={() => onUpdate(i, { isCompleted: !s.isCompleted || undefined })}
-              disabled={disabled}
-            >
-              marks item complete
-            </OptionButton>
-            <OptionButton
-              active={!!s.notifyOnReach}
-              onClick={() => onUpdate(i, { notifyOnReach: !s.notifyOnReach || undefined })}
-              disabled={disabled}
-            >
-              notify when reached
-            </OptionButton>
-          </div>
-        </div>
-      ))}
     </div>
   );
 }
