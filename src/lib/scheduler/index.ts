@@ -162,6 +162,7 @@ async function runNotifications(): Promise<void> {
       aiApiKey: userSettings.aiApiKey,
       aiModel: userSettings.aiModel,
       aiOllamaUrl: userSettings.aiOllamaUrl,
+      aiNotifyMessages: userSettings.aiNotifyMessages,
       personalityName: userSettings.personalityName,
       personalityTone: userSettings.personalityTone,
       personalityEmoji: userSettings.personalityEmoji,
@@ -236,7 +237,9 @@ async function runNotifications(): Promise<void> {
         year: "numeric",
       });
       const subject = `[${APP_NAME}] ${row.item.title}`;
-      const message = await generateNotificationText(row.item.title, deadlineStr, row);
+      const message = row.aiNotifyMessages
+        ? await generateNotificationText(row.item.title, deadlineStr, row)
+        : `Reminder: "${row.item.title}" is due ${deadlineStr}`;
 
       const mediums: NotificationMedium[] = [];
       if (rules.medium.includes("email") && row.notificationsEmail) mediums.push("email");

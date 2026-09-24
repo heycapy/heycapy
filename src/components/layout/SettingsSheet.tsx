@@ -38,6 +38,7 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
   const [aiModel, setAiModel] = useState("");
   const [aiOllamaUrl, setAiOllamaUrl] = useState("");
   const [aiCompactThreshold, setAiCompactThreshold] = useState(40);
+  const [aiNotifyMessages, setAiNotifyMessages] = useState(true);
   const [transcriptionProvider, setTranscriptionProvider] = useState<TranscriptionProvider | null>(
     null
   );
@@ -64,6 +65,7 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
     setAiModel(s.aiModel ?? "");
     setAiOllamaUrl(s.aiOllamaUrl ?? "");
     setAiCompactThreshold(s.aiCompactThreshold ?? 40);
+    setAiNotifyMessages(s.aiNotifyMessages ?? true);
     setTimezone(
       s.timezone !== "UTC" ? s.timezone : Intl.DateTimeFormat().resolvedOptions().timeZone
     );
@@ -108,6 +110,7 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
         aiModel: aiModel || null,
         aiOllamaUrl: aiOllamaUrl || null,
         aiCompactThreshold,
+        aiNotifyMessages,
         notificationsEmail,
         notificationsPush,
         ntfyUrl: ntfyUrl || null,
@@ -214,6 +217,8 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
                       setAiOllamaUrl={setAiOllamaUrl}
                       aiCompactThreshold={aiCompactThreshold}
                       setAiCompactThreshold={setAiCompactThreshold}
+                      aiNotifyMessages={aiNotifyMessages}
+                      setAiNotifyMessages={setAiNotifyMessages}
                       transcriptionProvider={transcriptionProvider}
                       setTranscriptionProvider={setTranscriptionProvider}
                       transcriptionApiKey={transcriptionApiKey}

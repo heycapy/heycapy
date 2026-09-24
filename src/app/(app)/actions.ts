@@ -56,6 +56,7 @@ type UserSettingsUpdate = {
   aiModel: string | null;
   aiOllamaUrl: string | null;
   aiCompactThreshold: number;
+  aiNotifyMessages: boolean;
   notificationsEmail: boolean;
   notificationsPush: boolean;
   ntfyUrl: string | null;
@@ -91,6 +92,7 @@ export async function updateUserSettingsAction(
       aiModel: data.aiModel || null,
       aiOllamaUrl: data.aiOllamaUrl || null,
       aiCompactThreshold: data.aiCompactThreshold,
+      aiNotifyMessages: data.aiNotifyMessages,
       notificationsEmail: data.notificationsEmail,
       notificationsPush: data.notificationsPush,
       ntfyUrl: data.ntfyUrl || null,

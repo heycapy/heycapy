@@ -312,6 +312,8 @@ interface AITabProps {
   setAiOllamaUrl: (v: string) => void;
   aiCompactThreshold: number;
   setAiCompactThreshold: (v: number) => void;
+  aiNotifyMessages: boolean;
+  setAiNotifyMessages: (v: boolean) => void;
   transcriptionProvider: TranscriptionProvider | null;
   setTranscriptionProvider: (v: TranscriptionProvider | null) => void;
   transcriptionApiKey: string;
@@ -332,6 +334,8 @@ export function AITab({
   setAiOllamaUrl,
   aiCompactThreshold,
   setAiCompactThreshold,
+  aiNotifyMessages,
+  setAiNotifyMessages,
   transcriptionProvider,
   setTranscriptionProvider,
   transcriptionApiKey,
@@ -456,6 +460,14 @@ export function AITab({
             />
             <span className="text-muted-foreground/50 font-mono text-[9px]">
               messages before compacting chat history — increase for more powerful models
+            </span>
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <label className={LABEL}>ai notification messages</label>
+            <Toggle value={aiNotifyMessages} onChange={setAiNotifyMessages} disabled={pending} />
+            <span className="text-muted-foreground/50 font-mono text-[9px]">
+              generate notification text with AI — may add delay depending on your model and
+              provider
             </span>
           </div>
         </>
