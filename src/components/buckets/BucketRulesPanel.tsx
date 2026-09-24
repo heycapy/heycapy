@@ -126,7 +126,8 @@ export function BucketRulesPanel({
       <div className="flex flex-col gap-1.5">
         <label className={LABEL}>repeat</label>
         <span className={HINT}>
-          once = notify one time only · daily = re-notify every day until done
+          once = one notification when the reminder triggers, never again · daily = keeps notifying
+          once per day from that point until the item is completed
         </span>
         <OptionGroup options={REPEAT_OPTIONS} value={repeat} onChange={onRepeatChange} />
       </div>

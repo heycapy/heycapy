@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Trash2, Plus } from "lucide-react";
 import { Toggle } from "@/components/ui/Toggle";
+import { BracketButton } from "@/components/ui/BracketButton";
 import { OptionButton } from "@/components/ui/OptionButton";
 import { OptionGroup } from "@/components/ui/OptionGroup";
 import type { FieldDef, StatusDef } from "@/types/rules";
@@ -19,6 +20,10 @@ function FieldRow({
   field,
   dataIdx,
   hasError,
+  canMoveUp,
+  canMoveDown,
+  onMoveUp,
+  onMoveDown,
   onUpdate,
   onRemove,
   disabled,
@@ -26,6 +31,10 @@ function FieldRow({
   field: FieldDef;
   dataIdx: number;
   hasError?: boolean;
+  canMoveUp?: boolean;
+  canMoveDown?: boolean;
+  onMoveUp?: () => void;
+  onMoveDown?: () => void;
   onUpdate: (patch: Partial<FieldDef>) => void;
   onRemove: () => void;
   disabled?: boolean;
@@ -50,21 +59,40 @@ function FieldRow({
       data-field-idx={dataIdx}
     >
       <div className="flex items-center gap-2">
-        <input
-          className={`${INPUT} flex-1`}
-          value={field.label}
-          onChange={(e) =>
-            onUpdate({
-              label: e.target.value,
-              key: e.target.value
-                .toLowerCase()
-                .replace(/\s+/g, "_")
-                .replace(/[^a-z0-9_]/g, ""),
-            })
-          }
-          placeholder="field name"
-          disabled={disabled}
-        />
+        <div className="min-w-0 flex-1">
+          <input
+            className={`${INPUT} w-full`}
+            value={field.label}
+            maxLength={100}
+            onChange={(e) =>
+              onUpdate({
+                label: e.target.value,
+                key: e.target.value
+                  .toLowerCase()
+                  .replace(/\s+/g, "_")
+                  .replace(/[^a-z0-9_]/g, ""),
+              })
+            }
+            placeholder="field name"
+            disabled={disabled}
+          />
+          {field.label.length > 0 && (
+            <p
+              className={cn(
+                "mt-0.5 text-right font-mono text-[9px] transition-colors",
+                field.label.length >= 100
+                  ? "text-destructive"
+                  : field.label.length >= 75
+                    ? "text-orange-500"
+                    : field.label.length >= 50
+                      ? "text-yellow-500"
+                      : "text-muted-foreground/40"
+              )}
+            >
+              {field.label.length}/100
+            </p>
+          )}
+        </div>
         <button
           onClick={onRemove}
           disabled={disabled}
@@ -144,6 +172,17 @@ function FieldRow({
           />
         </div>
       )}
+
+      {(onMoveUp || onMoveDown) && (
+        <div className="flex justify-end gap-1">
+          <BracketButton onClick={onMoveUp} disabled={disabled || !canMoveUp}>
+            up
+          </BracketButton>
+          <BracketButton onClick={onMoveDown} disabled={disabled || !canMoveDown}>
+            down
+          </BracketButton>
+        </div>
+      )}
     </div>
   );
 }
@@ -154,6 +193,7 @@ export function FieldsSection({
   onAdd,
   onRemove,
   onUpdate,
+  onMove,
   disabled,
 }: {
   fields: FieldDef[];
@@ -161,6 +201,7 @@ export function FieldsSection({
   onAdd: () => void;
   onRemove: (i: number) => void;
   onUpdate: (i: number, patch: Partial<FieldDef>) => void;
+  onMove: (from: number, to: number) => void;
   disabled?: boolean;
 }) {
   return (
@@ -183,17 +224,23 @@ export function FieldsSection({
       {fields.length === 0 && (
         <p className={SCHEMA_HINT}>no fields defined — items only have a title and deadline</p>
       )}
-      {fields.map((f, i) => (
-        <FieldRow
-          key={i}
-          field={f}
-          dataIdx={i}
-          hasError={errorIdx === i}
-          onUpdate={(patch) => onUpdate(i, patch)}
-          onRemove={() => onRemove(i)}
-          disabled={disabled}
-        />
-      ))}
+      <div className="flex flex-col gap-3">
+        {fields.map((f, i) => (
+          <FieldRow
+            key={i}
+            field={f}
+            dataIdx={i}
+            hasError={errorIdx === i}
+            canMoveUp={i > 0}
+            canMoveDown={i < fields.length - 1}
+            onMoveUp={() => onMove(i, i - 1)}
+            onMoveDown={() => onMove(i, i + 1)}
+            onUpdate={(patch) => onUpdate(i, patch)}
+            onRemove={() => onRemove(i)}
+            disabled={disabled}
+          />
+        ))}
+      </div>
     </div>
   );
 }

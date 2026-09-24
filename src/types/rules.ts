@@ -72,7 +72,7 @@ export const FieldValidation = z.object({
 });
 
 export const FieldDef = z.object({
-  key: z.string().min(1).max(50),
+  key: z.string().min(1).max(100),
   label: z.string().min(1).max(100),
   type: z.enum(FIELD_TYPES),
   options: z.array(z.string()).optional(),

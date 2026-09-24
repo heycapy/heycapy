@@ -12,7 +12,7 @@ import { FieldsSection, StatusesSection, NotificationsSection } from "./SchemaEd
 
 type BucketRow = typeof buckets.$inferSelect;
 
-const BLANK_FIELD: FieldDef = { key: "", label: "", type: "text" };
+const BLANK_FIELD: FieldDef = { key: "", label: "", type: "text", showInRow: true };
 const BLANK_STATUS: StatusDef = { name: "", color: STATUS_COLORS[3] };
 
 function parseSavedSchema(raw: unknown): BucketSchema {
@@ -157,6 +157,15 @@ export function SchemaEditorDialog({ open, bucket, onClose }: SchemaEditorDialog
                   onAdd={() => setFields((p) => [...p, { ...BLANK_FIELD }])}
                   onRemove={(i) => setFields((p) => p.filter((_, idx) => idx !== i))}
                   onUpdate={updateField}
+                  onMove={(from, to) => {
+                    setFields((p) => {
+                      const next = [...p];
+                      const [item] = next.splice(from, 1);
+                      next.splice(to, 0, item);
+                      return next;
+                    });
+                    setValidationErr(null);
+                  }}
                   disabled={pending}
                 />
                 <StatusesSection
