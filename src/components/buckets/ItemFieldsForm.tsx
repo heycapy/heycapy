@@ -47,6 +47,7 @@ export function ItemFieldsForm({
         return (
           <div
             key={field.key}
+            data-field-key={field.key}
             className="border-border flex flex-col gap-1.5 border-b p-3 last:border-b-0"
           >
             <label className={cn(LABEL, hasError && "text-destructive")}>

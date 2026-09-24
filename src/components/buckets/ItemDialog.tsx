@@ -12,6 +12,7 @@ import { ItemFieldsForm } from "./ItemFieldsForm";
 import type { RecurringConfig, StatusDef, FieldDef } from "@/types/rules";
 import { cn } from "@/lib/utils";
 import { useScrollLock } from "@/hooks/useScrollLock";
+import { useScrollToFirst } from "@/hooks/useScrollToFirst";
 
 const LABEL = "text-muted-foreground font-mono text-[10px]";
 
@@ -80,6 +81,8 @@ export function ItemDialog({
   onDelete,
 }: ItemDialogProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const scrollBodyRef = useRef<HTMLDivElement>(null);
+  const scrollToFirst = useScrollToFirst(scrollBodyRef);
   useScrollLock(open);
   const [timeHour, setTimeHour] = useState("9");
   const [timeMin, setTimeMin] = useState("00");
@@ -156,7 +159,17 @@ export function ItemDialog({
 
   function handleConfirmClick() {
     setValidationAttempted(true);
-    if (!title.trim() || hasEmptyRequired) return;
+    if (!title.trim()) {
+      scrollToFirst("[data-title-section]");
+      return;
+    }
+    if (hasEmptyRequired) {
+      const firstEmpty = fields?.find(
+        (f) => f.validation?.required && isEmpty(properties?.[f.key])
+      );
+      if (firstEmpty) scrollToFirst(`[data-field-key="${firstEmpty.key}"]`);
+      return;
+    }
     onConfirm();
   }
 
@@ -250,8 +263,8 @@ export function ItemDialog({
                 </BracketButton>
               </div>
 
-              <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
-                <div className="flex flex-col gap-1.5 pb-5">
+              <div ref={scrollBodyRef} className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
+                <div data-title-section className="flex flex-col gap-1.5 pb-5">
                   <label className={cn(LABEL, titleHasError && "text-destructive")}>title</label>
                   <textarea
                     ref={textareaRef}
