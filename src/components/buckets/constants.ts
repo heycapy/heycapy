@@ -74,3 +74,11 @@ export const REPEAT_OPTIONS: { value: RepeatMode; label: string }[] = [
   { value: "once", label: "once" },
   { value: "daily", label: "daily" },
 ];
+
+export const CURRENCY_OPTIONS = [
+  { value: "$", label: "$" },
+  { value: "€", label: "€" },
+  { value: "₹", label: "₹" },
+] as const;
+
+export type CurrencySymbol = (typeof CURRENCY_OPTIONS)[number]["value"];

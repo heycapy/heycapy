@@ -53,6 +53,7 @@ export function parseDurationToMins(str: string | null | undefined): number | nu
 
 /** Returns a display string for a number of minutes, e.g. 4320 → "3 days". */
 export function minsToDisplayStr(mins: number): string {
+  if (mins <= 0) return "";
   const MONTH = 30 * 24 * 60;
   const WEEK = 7 * 24 * 60;
   const DAY = 24 * 60;
@@ -77,6 +78,7 @@ export function parseDurationToDays(str: string | null | undefined): number | nu
 
 /** Returns a display string for a number of days, e.g. 14 → "2 weeks". */
 export function daysToDisplayStr(days: number): string {
+  if (days <= 0) return "";
   if (days % 30 === 0) return `${days / 30} months`;
   if (days % 7 === 0) return `${days / 7} weeks`;
   return `${days} days`;

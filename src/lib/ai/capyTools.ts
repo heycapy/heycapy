@@ -2,7 +2,7 @@ import { revalidatePath } from "next/cache";
 import { and, eq, gte, isNull, lte, ne, or, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { buckets, items } from "@/lib/db/schema";
-import { RecurringConfig } from "@/types/rules";
+import { RecurringConfig, BucketSchema, buildPropertyValidator } from "@/types/rules";
 import type { ToolCall } from "./types";
 
 export { CAPY_TOOLS } from "./capyToolDefs";
@@ -256,6 +256,34 @@ async function executeToolCallInner(
       const statusArg = args.status ? String(args.status).trim() : "active";
       const finalStatus = statusArg || "active";
 
+      let propertiesJson: string | null = null;
+      if (
+        args.properties &&
+        typeof args.properties === "object" &&
+        !Array.isArray(args.properties)
+      ) {
+        if (bucket.fieldSchema) {
+          const schemaParsed = BucketSchema.safeParse(
+            typeof bucket.fieldSchema === "string"
+              ? JSON.parse(bucket.fieldSchema)
+              : bucket.fieldSchema
+          );
+          if (schemaParsed.success && schemaParsed.data.fields.length > 0) {
+            const validator = buildPropertyValidator(schemaParsed.data.fields);
+            const validated = validator.safeParse(args.properties);
+            if (!validated.success)
+              return JSON.stringify({
+                ok: false,
+                error: "Invalid properties",
+                issues: validated.error.issues,
+              });
+            propertiesJson = JSON.stringify(validated.data);
+          }
+        } else {
+          propertiesJson = JSON.stringify(args.properties);
+        }
+      }
+
       const [inserted] = await db
         .insert(items)
         .values({
@@ -267,6 +295,7 @@ async function executeToolCallInner(
           deadline,
           notificationOffsetMins,
           recurring: recurringJson,
+          properties: propertiesJson,
           source: "ai",
           sortOrder: (maxRow?.max ?? -1) + 1,
         })
@@ -291,6 +320,7 @@ async function executeToolCallInner(
         recurring?: string | null;
         status?: string;
         completedAt?: Date | null;
+        properties?: string | null;
       } = { updatedAt: new Date() };
 
       if (args.title !== undefined) {
@@ -326,6 +356,14 @@ async function executeToolCallInner(
           } else if (statusName !== "completed" && item.status === "completed") {
             updates.completedAt = null;
           }
+        }
+      }
+
+      if (args.properties !== undefined) {
+        if (args.properties === null) {
+          updates.properties = null;
+        } else if (typeof args.properties === "object" && !Array.isArray(args.properties)) {
+          updates.properties = JSON.stringify(args.properties);
         }
       }
 
@@ -442,6 +480,7 @@ async function executeToolCallInner(
           notificationOffsetMins: items.notificationOffsetMins,
           snoozedUntil: items.snoozedUntil,
           recurring: items.recurring,
+          properties: items.properties,
         })
         .from(items)
         .where(
@@ -458,6 +497,7 @@ async function executeToolCallInner(
       const enriched = rows.map((row) => ({
         ...row,
         recurring: row.recurring ? (JSON.parse(row.recurring) as unknown) : null,
+        properties: row.properties ? (JSON.parse(row.properties) as unknown) : null,
         deadlineRelative: row.deadline ? deadlineRelative(row.deadline, timezone) : null,
       }));
       return JSON.stringify(enriched);

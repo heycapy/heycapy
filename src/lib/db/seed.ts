@@ -39,7 +39,7 @@ const BUILTIN_TEMPLATES: BuiltinTemplate[] = [
         { name: "completed", color: "#3b82f6", isCompleted: true },
         { name: "snoozed", color: "#f59e0b" },
       ],
-      notificationTriggers: [{ type: "deadline", offsetMins: 0 }],
+      notifyWhenOverdue: true,
     } satisfies BucketSchema),
   },
   {
@@ -69,7 +69,7 @@ const BUILTIN_TEMPLATES: BuiltinTemplate[] = [
           key: "amount",
           label: "Amount",
           type: "currency",
-          currency: "USD",
+          currency: "$",
           showInRow: true,
           validation: { required: true },
         },
@@ -87,10 +87,7 @@ const BUILTIN_TEMPLATES: BuiltinTemplate[] = [
         { name: "cancelled", color: "#ef4444", isCompleted: true },
         { name: "paused", color: "#f59e0b" },
       ],
-      notificationTriggers: [
-        { type: "deadline", offsetMins: 4320 },
-        { type: "deadline", offsetMins: 1440 },
-      ],
+      notifyWhenOverdue: true,
     } satisfies BucketSchema),
   },
   {
@@ -128,7 +125,7 @@ const BUILTIN_TEMPLATES: BuiltinTemplate[] = [
         { name: "active", color: "#22c55e", isDefault: true },
         { name: "completed", color: "#3b82f6", isCompleted: true },
       ],
-      notificationTriggers: [{ type: "overdue" }],
+      notifyWhenOverdue: true,
     } satisfies BucketSchema),
   },
   {
@@ -167,13 +164,10 @@ const BUILTIN_TEMPLATES: BuiltinTemplate[] = [
       statuses: [
         { name: "todo", color: "#6b7280", isDefault: true },
         { name: "in-progress", color: "#3b82f6" },
-        { name: "blocked", color: "#ef4444" },
+        { name: "blocked", color: "#ef4444", notifyOnReach: true },
         { name: "done", color: "#22c55e", isCompleted: true },
       ],
-      notificationTriggers: [
-        { type: "deadline", offsetMins: 1440 },
-        { type: "status", onStatus: "blocked" },
-      ],
+      notifyWhenOverdue: true,
     } satisfies BucketSchema),
   },
 ];

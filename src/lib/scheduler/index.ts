@@ -339,8 +339,7 @@ async function runOverdueTriggers(now: Date): Promise<void> {
     );
     if (!parsed.success) continue;
 
-    const hasOverdueTrigger = parsed.data.notificationTriggers.some((t) => t.type === "overdue");
-    if (!hasOverdueTrigger) continue;
+    if (!parsed.data.notifyWhenOverdue) continue;
 
     const mediums: NotificationMedium[] = [];
     if (row.notificationsEmail) mediums.push("email");

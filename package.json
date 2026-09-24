@@ -89,5 +89,9 @@
   "engines": {
     "node": ">=22",
     "pnpm": ">=10"
+  },
+  "optionalDependencies": {
+    "@types/pg": "^8.23.1",
+    "pg": "^8.23.0"
   }
 }

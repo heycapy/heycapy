@@ -87,25 +87,19 @@ export const StatusDef = z.object({
   color: z.string().regex(/^#[0-9a-fA-F]{6}$/),
   isDefault: z.boolean().optional(),
   isCompleted: z.boolean().optional(),
+  notifyOnReach: z.boolean().optional(),
 });
-
-export const TriggerDef = z.discriminatedUnion("type", [
-  z.object({ type: z.literal("deadline"), offsetMins: z.number().int() }),
-  z.object({ type: z.literal("status"), onStatus: z.string().min(1) }),
-  z.object({ type: z.literal("arrival") }),
-  z.object({ type: z.literal("overdue") }),
-]);
 
 export const BucketSchema = z.object({
   fields: z.array(FieldDef).default([]),
   statuses: z.array(StatusDef).default([]),
-  notificationTriggers: z.array(TriggerDef).default([]),
+  notifyOnArrival: z.boolean().optional(),
+  notifyWhenOverdue: z.boolean().optional(),
 });
 
 export type FieldValidation = z.infer<typeof FieldValidation>;
 export type FieldDef = z.infer<typeof FieldDef>;
 export type StatusDef = z.infer<typeof StatusDef>;
-export type TriggerDef = z.infer<typeof TriggerDef>;
 export type BucketSchema = z.infer<typeof BucketSchema>;
 
 /**

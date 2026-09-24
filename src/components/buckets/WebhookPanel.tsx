@@ -1,0 +1,172 @@
+"use client";
+
+import { useEffect, useState, useTransition } from "react";
+import { Copy, Eye, EyeOff, RefreshCw } from "lucide-react";
+import { BracketButton } from "@/components/ui/BracketButton";
+import { getWebhookKeyAction, rotateWebhookKeyAction } from "@/app/(app)/actions";
+import type { buckets } from "@/lib/db/schema";
+import type { BucketSchema } from "@/types/rules";
+
+type BucketRow = typeof buckets.$inferSelect;
+
+const LABEL = "text-muted-foreground font-mono text-[10px]";
+const HINT = "text-muted-foreground/50 font-mono text-[9px] leading-tight";
+
+function buildWebhookUrl(bucketId: number): string {
+  if (typeof window === "undefined") return "";
+  return `${window.location.origin}/api/webhook/${bucketId}`;
+}
+
+function buildExamplePayload(schema: BucketSchema | null): string {
+  const payload: Record<string, unknown> = { title: "My item title" };
+  if (schema) {
+    for (const field of schema.fields) {
+      switch (field.type) {
+        case "text":
+        case "textarea":
+        case "url":
+          payload[field.key] = `example ${field.label}`;
+          break;
+        case "number":
+        case "currency":
+          payload[field.key] = 42;
+          break;
+        case "boolean":
+          payload[field.key] = true;
+          break;
+        case "date":
+          payload[field.key] = "2026-12-31";
+          break;
+        case "datetime":
+          payload[field.key] = "2026-12-31T09:00:00Z";
+          break;
+        case "select":
+          payload[field.key] = field.options?.[0] ?? "option1";
+          break;
+        case "multiselect":
+          payload[field.key] = [field.options?.[0] ?? "option1"];
+          break;
+      }
+    }
+  }
+  return JSON.stringify(payload, null, 2);
+}
+
+interface WebhookPanelProps {
+  bucket: BucketRow;
+}
+
+export function WebhookPanel({ bucket }: WebhookPanelProps) {
+  const [key, setKey] = useState<string | null>(null);
+  const [revealed, setRevealed] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [urlCopied, setUrlCopied] = useState(false);
+  const [pending, startTransition] = useTransition();
+
+  const webhookUrl = buildWebhookUrl(bucket.id);
+
+  const schema: BucketSchema | null = (() => {
+    try {
+      const raw = bucket.fieldSchema as unknown as string | null | undefined;
+      if (!raw) return null;
+      return JSON.parse(raw) as BucketSchema;
+    } catch {
+      return null;
+    }
+  })();
+
+  useEffect(() => {
+    void getWebhookKeyAction(bucket.id).then((r) => {
+      if (r.ok) setKey(r.key);
+    });
+  }, [bucket.id]);
+
+  function copyKey() {
+    if (!key) return;
+    void navigator.clipboard.writeText(key).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }
+
+  function copyUrl() {
+    void navigator.clipboard.writeText(webhookUrl).then(() => {
+      setUrlCopied(true);
+      setTimeout(() => setUrlCopied(false), 2000);
+    });
+  }
+
+  function handleRotate() {
+    startTransition(async () => {
+      const result = await rotateWebhookKeyAction(bucket.id);
+      if (result.ok) {
+        setKey(result.key);
+        setRevealed(true);
+      }
+    });
+  }
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-1.5">
+        <label className={LABEL}>endpoint url</label>
+        <span className={HINT}>POST to this URL to create an item in this bucket</span>
+        <div className="flex items-center gap-2">
+          <code className="border-border text-muted-foreground flex-1 overflow-hidden border bg-transparent px-2 py-1 font-mono text-[9px] text-ellipsis">
+            {webhookUrl}
+          </code>
+          <button
+            onClick={copyUrl}
+            className="text-muted-foreground hover:text-foreground shrink-0 transition-colors"
+          >
+            <Copy size={11} />
+          </button>
+        </div>
+        {urlCopied && <span className="text-muted-foreground font-mono text-[9px]">copied!</span>}
+      </div>
+
+      <div className="flex flex-col gap-1.5">
+        <label className={LABEL}>secret key</label>
+        <span className={HINT}>
+          send as Authorization: Bearer {"<key>"} — rotate to invalidate the old key
+        </span>
+        <div className="flex items-center gap-2">
+          <code className="border-border text-muted-foreground flex-1 overflow-hidden border bg-transparent px-2 py-1 font-mono text-[9px] text-ellipsis">
+            {key ? (revealed ? key : "hc_live_" + "•".repeat(32)) : "loading..."}
+          </code>
+          <button
+            onClick={() => setRevealed((v) => !v)}
+            disabled={!key}
+            className="text-muted-foreground hover:text-foreground shrink-0 transition-colors disabled:opacity-30"
+          >
+            {revealed ? <EyeOff size={11} /> : <Eye size={11} />}
+          </button>
+          <button
+            onClick={copyKey}
+            disabled={!key}
+            className="text-muted-foreground hover:text-foreground shrink-0 transition-colors disabled:opacity-30"
+          >
+            <Copy size={11} />
+          </button>
+        </div>
+        {copied && <span className="text-muted-foreground font-mono text-[9px]">copied!</span>}
+        <BracketButton
+          onClick={handleRotate}
+          disabled={pending}
+          className="mt-1 flex w-fit items-center gap-1.5"
+        >
+          <RefreshCw size={10} />
+          rotate key
+        </BracketButton>
+      </div>
+
+      <div className="flex flex-col gap-1.5">
+        <label className={LABEL}>example payload</label>
+        <span className={HINT}>JSON body to send in the POST request</span>
+        <pre className="border-border text-muted-foreground overflow-x-auto border bg-transparent p-2 font-mono text-[9px]">
+          {buildExamplePayload(schema)}
+        </pre>
+      </div>
+    </div>
+  );
+}

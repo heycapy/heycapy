@@ -125,9 +125,7 @@ export async function POST(
     })
     .returning();
 
-  const hasArrivalTrigger =
-    parsedSchema?.success &&
-    parsedSchema.data.notificationTriggers.some((t) => t.type === "arrival");
+  const hasArrivalTrigger = parsedSchema?.success && parsedSchema.data.notifyOnArrival === true;
 
   if (hasArrivalTrigger) {
     const userRow = await db.query.userSettings.findFirst({

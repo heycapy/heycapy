@@ -6,13 +6,14 @@ import { GripVertical } from "lucide-react";
 import type { DragControls } from "framer-motion";
 import { cn } from "@/lib/utils";
 import type { items } from "@/lib/db/schema";
-import type { StatusDef } from "@/types/rules";
+import type { StatusDef, FieldDef } from "@/types/rules";
 
 type ItemRow = typeof items.$inferSelect;
 
 interface ItemRowProps {
   item: ItemRow;
   statuses: StatusDef[];
+  fields?: FieldDef[];
   dragControls?: DragControls;
   isEditing?: boolean;
   onEditStart?: () => void;
@@ -98,9 +99,40 @@ function relativeTime(deadline: Date): string {
   return `${diffDays}d`;
 }
 
+function getShowInRowBadges(
+  fields: FieldDef[],
+  propertiesRaw: string | null
+): { label: string; value: string }[] {
+  if (!propertiesRaw) return [];
+  let props: Record<string, unknown>;
+  try {
+    props = JSON.parse(propertiesRaw) as Record<string, unknown>;
+  } catch {
+    return [];
+  }
+  return fields
+    .filter((f) => f.showInRow)
+    .flatMap((f) => {
+      const v = props[f.key];
+      if (v === undefined || v === null || v === "") return [];
+      let display: string;
+      if (f.type === "boolean") {
+        display = v ? "yes" : "no";
+      } else if (f.type === "currency") {
+        display = `${f.currency ?? ""}${typeof v === "number" ? v.toFixed(2) : String(v)}`;
+      } else if (Array.isArray(v)) {
+        display = v.join(", ");
+      } else {
+        display = String(v);
+      }
+      return [{ label: f.label, value: display }];
+    });
+}
+
 export function ItemRow({
   item,
   statuses,
+  fields,
   dragControls,
   isEditing,
   onEditStart,
@@ -112,6 +144,7 @@ export function ItemRow({
   const isCompleted = item.status === "completed";
   const recurringFreq = getRecurringFrequency(item.recurring);
   const dotColor = statuses.find((s) => s.name === item.status)?.color ?? "var(--muted-foreground)";
+  const badges = fields ? getShowInRowBadges(fields, item.properties) : [];
 
   function openPicker() {
     if (!dotRef.current) return;
@@ -178,6 +211,18 @@ export function ItemRow({
         >
           {item.title}
         </span>
+        {badges.length > 0 && (
+          <span className="mt-0.5 flex flex-wrap gap-1">
+            {badges.map((b) => (
+              <span
+                key={b.label}
+                className="border-border text-muted-foreground border px-1 font-mono text-[9px]"
+              >
+                {b.label}: {b.value}
+              </span>
+            ))}
+          </span>
+        )}
         <span className="mt-0.5 flex items-center gap-1 font-mono text-[10px]">
           <span className="text-muted-foreground/30">#{item.id}</span>
           {(item.deadline ?? item.notifiedAt) && (

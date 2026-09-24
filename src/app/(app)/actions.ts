@@ -13,6 +13,7 @@ import { TELEGRAM_API_BASE, ITEM_TITLE_MAX_LENGTH, BUCKET_NAME_MAX_LENGTH } from
 import type { ItemsRulesConfig, NotificationsRulesConfig } from "@/components/buckets/constants";
 import { BucketSchema } from "@/types/rules";
 import type { RecurringConfig } from "@/types/rules";
+import { buildPropertyValidator } from "@/types/rules";
 import { enqueue, processPending } from "@/lib/notifications/queue";
 import type { NotificationMedium } from "@/lib/notifications/queue";
 
@@ -241,6 +242,7 @@ export async function createBucketAction(
     itemsRules: JSON.stringify(rules.items ?? {}),
     mcpRules: rules.mcp ? JSON.stringify(rules.mcp) : null,
     personalityRules: JSON.stringify(rules.personality ?? {}),
+    fieldSchema: (template.fieldSchemaJson ?? null) as unknown as BucketSchema,
     webhookKey: encryptValue(generateWebhookKey()),
     sortOrder: maxRow.max + 1,
   });
@@ -254,7 +256,8 @@ export async function addItemAction(
   title: string,
   deadline: string | null,
   status?: string,
-  recurring?: RecurringConfig | null
+  recurring?: RecurringConfig | null,
+  properties?: Record<string, unknown> | null
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   const session = await requireSession();
 
@@ -282,6 +285,7 @@ export async function addItemAction(
     status: status ?? "active",
     sortOrder: maxRow.max + 1,
     recurring: recurring?.enabled ? JSON.stringify(recurring) : null,
+    properties: properties ? JSON.stringify(properties) : null,
   });
 
   revalidatePath("/");
@@ -293,7 +297,8 @@ export async function updateItemAction(
   title: string,
   deadline: string | null,
   status?: string,
-  recurring?: RecurringConfig | null
+  recurring?: RecurringConfig | null,
+  properties?: Record<string, unknown> | null
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   const session = await requireSession();
 
@@ -321,6 +326,9 @@ export async function updateItemAction(
       ...(recurring !== undefined && {
         recurring: recurring?.enabled ? JSON.stringify(recurring) : null,
       }),
+      ...(properties !== undefined && {
+        properties: properties ? JSON.stringify(properties) : null,
+      }),
       updatedAt: new Date(),
     })
     .where(and(eq(items.id, itemId), eq(items.userId, session.userId)));
@@ -334,10 +342,10 @@ export async function updateItemAction(
         typeof bucket.fieldSchema === "string" ? JSON.parse(bucket.fieldSchema) : bucket.fieldSchema
       );
       if (parsed.success) {
-        const matchingTrigger = parsed.data.notificationTriggers.find(
-          (t) => t.type === "status" && t.onStatus === status
+        const matchingStatus = parsed.data.statuses.find(
+          (st) => st.name === status && st.notifyOnReach
         );
-        if (matchingTrigger) {
+        if (matchingStatus) {
           const userRow = await db.query.userSettings.findFirst({
             where: (s, { eq: qeq }) => qeq(s.userId, session.userId),
           });
@@ -626,6 +634,38 @@ export async function getWebhookKeyAction(
   if (!bucket.webhookKey) return { ok: false, error: "No webhook key set" };
 
   return { ok: true, key: decryptValue(bucket.webhookKey) };
+}
+
+export async function updateBucketSchemaAction(
+  bucketId: number,
+  schema: unknown
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const session = await requireSession();
+
+  const bucket = await db.query.buckets.findFirst({
+    where: (b, { eq: qeq, and: qand }) => qand(qeq(b.id, bucketId), qeq(b.userId, session.userId)),
+  });
+  if (!bucket) return { ok: false, error: "Bucket not found" };
+
+  const parsed = BucketSchema.safeParse(schema);
+  if (!parsed.success) return { ok: false, error: "Invalid schema" };
+
+  try {
+    buildPropertyValidator(parsed.data.fields);
+  } catch {
+    return { ok: false, error: "Invalid field definitions" };
+  }
+
+  await db
+    .update(buckets)
+    .set({
+      fieldSchema: JSON.stringify(parsed.data) as unknown as BucketSchema,
+      updatedAt: new Date(),
+    })
+    .where(and(eq(buckets.id, bucketId), eq(buckets.userId, session.userId)));
+
+  revalidatePath("/");
+  return { ok: true };
 }
 
 export async function registerTelegramWebhookAction(
