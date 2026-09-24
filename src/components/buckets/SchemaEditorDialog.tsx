@@ -27,6 +27,8 @@ function parseSavedSchema(raw: unknown): BucketSchema {
       statuses: Array.isArray(obj.statuses) ? (obj.statuses as StatusDef[]) : [],
       notifyOnArrival: obj.notifyOnArrival === true,
       notifyWhenOverdue: obj.notifyWhenOverdue === true,
+      overdueRepeatHours:
+        typeof obj.overdueRepeatHours === "number" ? obj.overdueRepeatHours : undefined,
     };
   } catch {
     return empty;
@@ -44,6 +46,7 @@ export function SchemaEditorDialog({ open, bucket, onClose }: SchemaEditorDialog
   const [statuses, setStatuses] = useState<StatusDef[]>([]);
   const [notifyOnArrival, setNotifyOnArrival] = useState(false);
   const [notifyWhenOverdue, setNotifyWhenOverdue] = useState(false);
+  const [overdueRepeatHours, setOverdueRepeatHours] = useState<number | undefined>(undefined);
   const [error, setError] = useState("");
   const [validationErr, setValidationErr] = useState<{
     type: "field" | "status";
@@ -61,6 +64,7 @@ export function SchemaEditorDialog({ open, bucket, onClose }: SchemaEditorDialog
       setStatuses(s.statuses);
       setNotifyOnArrival(s.notifyOnArrival ?? false);
       setNotifyWhenOverdue(s.notifyWhenOverdue ?? false);
+      setOverdueRepeatHours(s.overdueRepeatHours);
       setError("");
       setValidationErr(null);
     }, 0);
@@ -90,6 +94,7 @@ export function SchemaEditorDialog({ open, bucket, onClose }: SchemaEditorDialog
         statuses,
         notifyOnArrival: notifyOnArrival || undefined,
         notifyWhenOverdue: notifyWhenOverdue || undefined,
+        overdueRepeatHours: notifyWhenOverdue ? overdueRepeatHours : undefined,
       });
       if (result.ok) onClose();
       else setError(result.error);
@@ -166,8 +171,10 @@ export function SchemaEditorDialog({ open, bucket, onClose }: SchemaEditorDialog
                 <NotificationsSection
                   notifyOnArrival={notifyOnArrival}
                   notifyWhenOverdue={notifyWhenOverdue}
+                  overdueRepeatHours={overdueRepeatHours}
                   onArrivalChange={setNotifyOnArrival}
                   onOverdueChange={setNotifyWhenOverdue}
+                  onOverdueRepeatChange={setOverdueRepeatHours}
                   disabled={pending}
                 />
                 {error && <p className="text-destructive font-mono text-[10px]">{error}</p>}

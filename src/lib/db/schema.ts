@@ -153,6 +153,7 @@ export const items = sqliteTable("items", {
   externalUrl: text("external_url"),
   notificationOffsetMins: integer("notification_offset_mins"),
   notifiedAt: integer("notified_at", { mode: "timestamp" }),
+  overdueNotifiedAt: integer("overdue_notified_at", { mode: "timestamp" }),
   snoozedUntil: integer("snoozed_until", { mode: "timestamp" }),
   sortOrder: integer("sort_order").notNull().default(0),
   recurring: text("recurring"),

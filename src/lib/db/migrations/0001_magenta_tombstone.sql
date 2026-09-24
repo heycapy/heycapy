@@ -1,0 +1,1 @@
+ALTER TABLE `items` ADD `overdue_notified_at` integer;

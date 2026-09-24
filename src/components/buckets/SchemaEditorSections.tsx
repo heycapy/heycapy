@@ -300,17 +300,29 @@ export function StatusesSection({
   );
 }
 
+const OVERDUE_REPEAT_OPTIONS = [
+  { value: "0", label: "once" },
+  { value: "24", label: "daily" },
+  { value: "48", label: "every 2 days" },
+  { value: "72", label: "every 3 days" },
+  { value: "168", label: "weekly" },
+] as const;
+
 export function NotificationsSection({
   notifyOnArrival,
   notifyWhenOverdue,
+  overdueRepeatHours,
   onArrivalChange,
   onOverdueChange,
+  onOverdueRepeatChange,
   disabled,
 }: {
   notifyOnArrival: boolean;
   notifyWhenOverdue: boolean;
+  overdueRepeatHours: number | undefined;
   onArrivalChange: (v: boolean) => void;
   onOverdueChange: (v: boolean) => void;
+  onOverdueRepeatChange: (v: number | undefined) => void;
   disabled?: boolean;
 }) {
   return (
@@ -324,9 +336,23 @@ export function NotificationsSection({
       <div className="flex flex-col gap-1.5">
         <p className={SCHEMA_LABEL}>notify when overdue</p>
         <p className={SCHEMA_HINT}>
-          send a one-time notification when an item passes its deadline without being completed
+          send a notification when an item passes its deadline without being completed
         </p>
         <Toggle value={notifyWhenOverdue} onChange={onOverdueChange} disabled={disabled} />
+        {notifyWhenOverdue && (
+          <div className="mt-1.5 flex flex-col gap-1.5">
+            <p className={SCHEMA_HINT}>repeat reminder</p>
+            <OptionGroup
+              options={[...OVERDUE_REPEAT_OPTIONS]}
+              value={String(overdueRepeatHours ?? 0)}
+              onChange={(v) => {
+                const n = parseInt(v, 10);
+                onOverdueRepeatChange(n === 0 ? undefined : n);
+              }}
+              disabled={disabled}
+            />
+          </div>
+        )}
       </div>
     </div>
   );

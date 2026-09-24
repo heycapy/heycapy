@@ -27,7 +27,8 @@ function buildExamplePayload(schema: BucketSchema | null): string {
   if (schema?.statuses && schema.statuses.length > 0) {
     payload.status = schema.statuses[0].name;
   }
-  payload.deadline = "2026-12-31T09:00:00Z";
+  const sevenDaysFromNow = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+  payload.deadline = sevenDaysFromNow.toISOString().replace(/\.\d{3}Z$/, "Z");
   if (schema) {
     for (const field of schema.fields) {
       switch (field.type) {

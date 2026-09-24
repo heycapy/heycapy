@@ -112,6 +112,7 @@ export const items = pgTable("items", {
   externalUrl: text("external_url"),
   notificationOffsetMins: integer("notification_offset_mins"),
   notifiedAt: timestamp("notified_at"),
+  overdueNotifiedAt: timestamp("overdue_notified_at"),
   snoozedUntil: timestamp("snoozed_until"),
   sortOrder: integer("sort_order").notNull().default(0),
   recurring: text("recurring"),

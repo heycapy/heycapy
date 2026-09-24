@@ -317,6 +317,7 @@ async function executeToolCallInner(
         title?: string;
         deadline?: Date | null;
         notifiedAt?: Date | null;
+        overdueNotifiedAt?: Date | null;
         notificationOffsetMins?: number | null;
         recurring?: string | null;
         status?: string;
@@ -336,6 +337,7 @@ async function executeToolCallInner(
         updates.deadline = newDeadline;
         if ((item.deadline?.getTime() ?? null) !== (newDeadline?.getTime() ?? null)) {
           updates.notifiedAt = null;
+          updates.overdueNotifiedAt = null;
         }
       }
       if ("notification_offset_mins" in args) {

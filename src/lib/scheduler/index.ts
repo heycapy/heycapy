@@ -323,7 +323,7 @@ async function runOverdueTriggers(now: Date): Promise<void> {
         lt(items.deadline, now),
         isNull(items.deletedAt),
         ne(items.status, "completed"),
-        isNull(items.notifiedAt),
+        ne(items.status, "snoozed"),
         or(isNull(items.snoozedUntil), lt(items.snoozedUntil, now))
       )
     )
@@ -340,6 +340,15 @@ async function runOverdueTriggers(now: Date): Promise<void> {
     if (!parsed.success) continue;
 
     if (!parsed.data.notifyWhenOverdue) continue;
+
+    const repeatHours = parsed.data.overdueRepeatHours;
+    const lastOverdue = row.item.overdueNotifiedAt;
+
+    if (lastOverdue) {
+      if (!repeatHours) continue;
+      const nextFireTime = new Date(lastOverdue.getTime() + repeatHours * 60 * 60 * 1000);
+      if (nextFireTime > now) continue;
+    }
 
     const mediums: NotificationMedium[] = [];
     if (row.notificationsEmail) mediums.push("email");
@@ -358,7 +367,7 @@ async function runOverdueTriggers(now: Date): Promise<void> {
       )
     );
 
-    await db.update(items).set({ notifiedAt: now }).where(eq(items.id, row.item.id));
+    await db.update(items).set({ overdueNotifiedAt: now }).where(eq(items.id, row.item.id));
   }
 }
 

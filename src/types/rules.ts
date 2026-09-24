@@ -95,6 +95,7 @@ export const BucketSchema = z.object({
   statuses: z.array(StatusDef).default([]),
   notifyOnArrival: z.boolean().optional(),
   notifyWhenOverdue: z.boolean().optional(),
+  overdueRepeatHours: z.number().int().positive().optional(),
 });
 
 export type FieldValidation = z.infer<typeof FieldValidation>;
