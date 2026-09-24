@@ -254,7 +254,19 @@ export function ItemRow({
       </button>
 
       {rel && rel !== "overdue" && rel !== "today" && (
-        <span className="text-muted-foreground/50 shrink-0 pl-2 font-mono text-[10px]">{rel}</span>
+        <span
+          className={cn(
+            "flex shrink-0 items-center pl-2 font-mono text-[10px]",
+            (() => {
+              const d = parseInt(rel);
+              if (d <= 2) return "text-orange-500";
+              if (d <= 5) return "text-yellow-500";
+              return "text-muted-foreground/50";
+            })()
+          )}
+        >
+          {rel}
+        </span>
       )}
     </div>
   );

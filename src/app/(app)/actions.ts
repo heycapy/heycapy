@@ -436,14 +436,14 @@ export async function reorderItemsAction(
   });
   if (!bucket) return { ok: false, error: "Bucket not found" };
 
-  await db.transaction(async (tx) => {
-    for (let i = 0; i < orderedIds.length; i++) {
-      await tx
+  await Promise.all(
+    orderedIds.map((id, i) =>
+      db
         .update(items)
         .set({ sortOrder: i })
-        .where(and(eq(items.id, orderedIds[i]), eq(items.userId, session.userId)));
-    }
-  });
+        .where(and(eq(items.id, id), eq(items.userId, session.userId)))
+    )
+  );
 
   revalidatePath("/");
   return { ok: true };
