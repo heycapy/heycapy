@@ -26,7 +26,7 @@ import { BUCKET_NAME_MAX_LENGTH } from "@/constants";
 import type { buckets } from "@/lib/db/schema";
 
 type BucketRow = typeof buckets.$inferSelect;
-type Tab = "items" | "notifications" | "schema" | "webhook";
+type Tab = "items" | "notifications" | "schema" | "webhook" | "danger";
 
 type RawItemsRules = {
   sortBy?: string;
@@ -222,11 +222,13 @@ export function BucketSettings({ open, bucket, onClose }: BucketSettingsProps) {
                     )}
                   </div>
                   <div className="border-border flex border-b">
-                    {(["items", "notifications", "schema", "webhook"] as Tab[]).map((t) => (
-                      <button key={t} onClick={() => setTab(t)} className={tabCn(tab === t)}>
-                        {t}
-                      </button>
-                    ))}
+                    {(["items", "notifications", "schema", "webhook", "danger"] as Tab[]).map(
+                      (t) => (
+                        <button key={t} onClick={() => setTab(t)} className={tabCn(tab === t)}>
+                          {t}
+                        </button>
+                      )
+                    )}
                   </div>
                 </div>
 
@@ -270,43 +272,54 @@ export function BucketSettings({ open, bucket, onClose }: BucketSettingsProps) {
                     </div>
                   )}
                   {tab === "webhook" && <WebhookPanel bucket={bucket} />}
+                  {tab === "danger" && (
+                    <div className="flex flex-col gap-3">
+                      <p className="text-muted-foreground/50 font-mono text-[9px] leading-relaxed">
+                        archived and deleted buckets can be accessed via the header — use archive to
+                        hide a bucket, or delete to move it to trash.
+                      </p>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <BracketButton variant="warning" onClick={handleArchive} disabled={pending}>
+                          archive
+                        </BracketButton>
+                        {confirmDelete ? (
+                          <>
+                            <span className="text-destructive font-mono text-[10px]">sure?</span>
+                            <BracketButton
+                              variant="destructive"
+                              onClick={handleDelete}
+                              disabled={pending}
+                            >
+                              confirm
+                            </BracketButton>
+                            <BracketButton
+                              onClick={() => setConfirmDelete(false)}
+                              disabled={pending}
+                            >
+                              cancel
+                            </BracketButton>
+                          </>
+                        ) : (
+                          <BracketButton
+                            variant="destructive"
+                            onClick={() => setConfirmDelete(true)}
+                            disabled={pending}
+                          >
+                            delete
+                          </BracketButton>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
-                <div className="border-border flex shrink-0 flex-wrap items-center justify-between gap-y-2 border-t px-3 py-2.5">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <BracketButton variant="warning" onClick={handleArchive} disabled={pending}>
-                      archive
-                    </BracketButton>
-                    {confirmDelete ? (
-                      <>
-                        <span className="text-destructive font-mono text-[10px]">sure?</span>
-                        <BracketButton
-                          variant="destructive"
-                          onClick={handleDelete}
-                          disabled={pending}
-                        >
-                          confirm
-                        </BracketButton>
-                        <BracketButton onClick={() => setConfirmDelete(false)} disabled={pending}>
-                          cancel
-                        </BracketButton>
-                      </>
-                    ) : (
-                      <BracketButton
-                        variant="destructive"
-                        onClick={() => setConfirmDelete(true)}
-                        disabled={pending}
-                      >
-                        delete
-                      </BracketButton>
-                    )}
-                  </div>
-                  {showSave && (
+                {showSave && (
+                  <div className="border-border flex shrink-0 justify-end border-t px-3 py-2.5">
                     <BracketButton onClick={handleSave} disabled={!name.trim() || pending}>
                       save
                     </BracketButton>
-                  )}
-                </div>
+                  </div>
+                )}
               </div>
             </motion.div>
           </>

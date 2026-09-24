@@ -77,7 +77,7 @@ export function BucketRulesPanel({
         </div>
         <div className="flex flex-col gap-1.5">
           <label className={LABEL}>read only</label>
-          <span className={HINT}>prevent adding or editing items (useful for synced buckets)</span>
+          <span className={HINT}>prevent adding or editing items in this bucket</span>
           <Toggle value={readonly} onChange={onReadonlyChange} />
         </div>
         <div className="flex flex-col gap-1.5">

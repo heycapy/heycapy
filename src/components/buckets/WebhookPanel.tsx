@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
-import { Copy, Eye, EyeOff, RefreshCw } from "lucide-react";
+import { Eye, EyeOff, RefreshCw } from "lucide-react";
 import { BracketButton } from "@/components/ui/BracketButton";
 import { getWebhookKeyAction, rotateWebhookKeyAction } from "@/app/(app)/actions";
 import type { buckets } from "@/lib/db/schema";
@@ -126,18 +126,17 @@ export function WebhookPanel({ bucket }: WebhookPanelProps) {
       <div className="flex flex-col gap-1.5">
         <label className={LABEL}>endpoint url</label>
         <span className={HINT}>POST to this URL to create an item in this bucket</span>
-        <div className="flex items-center gap-2">
-          <code className="border-border text-muted-foreground flex-1 overflow-hidden border bg-transparent px-2 py-1 font-mono text-[9px] text-ellipsis">
+        <div className="border-border flex items-center border">
+          <code className="text-muted-foreground flex-1 overflow-hidden bg-transparent px-2 py-1 font-mono text-[9px] text-ellipsis">
             {webhookUrl}
           </code>
           <button
             onClick={copyUrl}
-            className="text-muted-foreground hover:text-foreground shrink-0 transition-colors"
+            className="text-muted-foreground hover:text-foreground shrink-0 px-2 font-mono text-[9px] transition-colors"
           >
-            <Copy size={11} />
+            {urlCopied ? "[copied]" : "[copy]"}
           </button>
         </div>
-        {urlCopied && <span className="text-muted-foreground font-mono text-[9px]">copied!</span>}
       </div>
 
       <div className="flex flex-col gap-1.5">
@@ -145,26 +144,25 @@ export function WebhookPanel({ bucket }: WebhookPanelProps) {
         <span className={HINT}>
           send as Authorization: Bearer {"<key>"} — rotate to invalidate the old key
         </span>
-        <div className="flex items-center gap-2">
-          <code className="border-border text-muted-foreground flex-1 overflow-hidden border bg-transparent px-2 py-1 font-mono text-[9px] text-ellipsis">
+        <div className="border-border flex items-center border">
+          <code className="text-muted-foreground flex-1 overflow-hidden bg-transparent px-2 py-1 font-mono text-[9px] text-ellipsis">
             {key ? (revealed ? key : "hc_live_" + "•".repeat(32)) : "loading..."}
           </code>
           <button
             onClick={() => setRevealed((v) => !v)}
             disabled={!key}
-            className="text-muted-foreground hover:text-foreground shrink-0 transition-colors disabled:opacity-30"
+            className="text-muted-foreground hover:text-foreground shrink-0 px-2 transition-colors disabled:opacity-30"
           >
             {revealed ? <EyeOff size={11} /> : <Eye size={11} />}
           </button>
           <button
             onClick={copyKey}
             disabled={!key}
-            className="text-muted-foreground hover:text-foreground shrink-0 transition-colors disabled:opacity-30"
+            className="text-muted-foreground hover:text-foreground shrink-0 px-2 font-mono text-[9px] transition-colors disabled:opacity-30"
           >
-            <Copy size={11} />
+            {copied ? "[copied]" : "[copy]"}
           </button>
         </div>
-        {copied && <span className="text-muted-foreground font-mono text-[9px]">copied!</span>}
         <BracketButton
           onClick={handleRotate}
           disabled={pending}
@@ -176,8 +174,12 @@ export function WebhookPanel({ bucket }: WebhookPanelProps) {
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <div className="flex items-center justify-between">
-          <label className={LABEL}>test with curl</label>
+        <label className={LABEL}>test with curl</label>
+        <span className={HINT}>paste this in your terminal to create a test item</span>
+        <div className="border-border relative border">
+          <pre className="text-muted-foreground overflow-x-auto bg-transparent p-2 font-mono text-[9px]">
+            {key ? buildCurlCommand(webhookUrl, key, schema) : buildExamplePayload(schema)}
+          </pre>
           {key && (
             <button
               onClick={() => {
@@ -188,17 +190,12 @@ export function WebhookPanel({ bucket }: WebhookPanelProps) {
                     setTimeout(() => setCurlCopied(false), 2000);
                   });
               }}
-              className="text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors"
+              className="text-muted-foreground hover:text-foreground absolute right-1.5 bottom-1.5 font-mono text-[9px] transition-colors"
             >
-              <Copy size={10} />
-              <span className="font-mono text-[9px]">{curlCopied ? "copied!" : "copy"}</span>
+              {curlCopied ? "[copied]" : "[copy]"}
             </button>
           )}
         </div>
-        <span className={HINT}>paste this in your terminal to create a test item</span>
-        <pre className="border-border text-muted-foreground overflow-x-auto border bg-transparent p-2 font-mono text-[9px]">
-          {key ? buildCurlCommand(webhookUrl, key, schema) : buildExamplePayload(schema)}
-        </pre>
       </div>
     </div>
   );
