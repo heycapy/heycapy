@@ -125,7 +125,9 @@ function getShowInRowBadges(
       } else {
         display = String(v);
       }
-      return [{ label: f.label, value: display }];
+      const label = f.label.length > 15 ? f.label.slice(0, 15) + "…" : f.label;
+      const value = display.length > 20 ? display.slice(0, 20) + "…" : display;
+      return [{ label, value }];
     });
 }
 

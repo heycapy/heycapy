@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { cn } from "@/lib/utils";
+import { charCountColor } from "@/components/ui/input";
 import { Toggle } from "@/components/ui/Toggle";
 import { OptionGroup } from "@/components/ui/OptionGroup";
 import {
@@ -459,6 +460,16 @@ export function PersonalityTab({
           disabled={pending}
           className={INPUT}
         />
+        {personalityName.length > 0 && (
+          <p
+            className={cn(
+              "text-right font-mono text-[9px] transition-colors",
+              charCountColor(personalityName.length, 50)
+            )}
+          >
+            {personalityName.length}/50
+          </p>
+        )}
       </div>
       <div className="flex flex-col gap-1.5">
         <label className={LABEL}>tone</label>

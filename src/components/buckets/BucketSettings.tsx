@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
+import { cn } from "@/lib/utils";
+import { charCountColor } from "@/components/ui/input";
 import { useScrollLock } from "@/hooks/useScrollLock";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
@@ -204,6 +206,16 @@ export function BucketSettings({ open, bucket, onClose }: BucketSettingsProps) {
                       disabled={pending}
                       className="border-border focus:border-foreground w-full border-b bg-transparent py-1.5 font-mono text-xs outline-none disabled:opacity-50"
                     />
+                    {name.length > 0 && (
+                      <p
+                        className={cn(
+                          "text-right font-mono text-[9px] transition-colors",
+                          charCountColor(name.length, 100)
+                        )}
+                      >
+                        {name.length}/100
+                      </p>
+                    )}
                     {error && (
                       <span className="text-destructive font-mono text-[10px]">{error}</span>
                     )}

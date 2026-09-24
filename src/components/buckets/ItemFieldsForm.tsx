@@ -51,7 +51,7 @@ export function ItemFieldsForm({
             data-field-key={field.key}
             className="border-border flex flex-col gap-1.5 border-b p-3 last:border-b-0"
           >
-            <label className={cn(LABEL, hasError && "text-destructive")}>
+            <label className={cn(LABEL, "block break-words", hasError && "text-destructive")}>
               <span className="mr-1">{idx + 1}.</span>
               {field.icon ? `${field.icon} ` : ""}
               {field.label}

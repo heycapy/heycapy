@@ -3,6 +3,14 @@
 import { cn } from "@/lib/utils";
 import { useState, type InputHTMLAttributes, type ChangeEvent } from "react";
 
+export function charCountColor(length: number, max: number): string {
+  const pct = length / max;
+  if (pct >= 1) return "text-destructive";
+  if (pct >= 0.75) return "text-orange-500";
+  if (pct >= 0.5) return "text-yellow-500";
+  return "text-muted-foreground/40";
+}
+
 export function Input({
   className,
   maxLength,
@@ -13,16 +21,6 @@ export function Input({
   const [internalValue, setInternalValue] = useState("");
 
   const current = value !== undefined ? String(value) : internalValue;
-  const pct = maxLength ? current.length / maxLength : 0;
-
-  const countColor =
-    pct >= 1
-      ? "text-destructive"
-      : pct >= 0.75
-        ? "text-orange-500"
-        : pct >= 0.5
-          ? "text-yellow-500"
-          : "text-muted-foreground/40";
 
   function handleChange(e: ChangeEvent<HTMLInputElement>) {
     if (value === undefined) setInternalValue(e.target.value);
@@ -42,7 +40,12 @@ export function Input({
         {...props}
       />
       {maxLength && (
-        <p className={cn("mt-0.5 text-right font-mono text-[9px] transition-colors", countColor)}>
+        <p
+          className={cn(
+            "mt-0.5 text-right font-mono text-[9px] transition-colors",
+            charCountColor(current.length, maxLength)
+          )}
+        >
           {current.length}/{maxLength}
         </p>
       )}

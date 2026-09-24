@@ -275,7 +275,10 @@ export function ItemDialog({
                 </BracketButton>
               </div>
 
-              <div ref={scrollBodyRef} className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
+              <div
+                ref={scrollBodyRef}
+                className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto px-5 py-4"
+              >
                 <div data-title-section className="flex flex-col gap-1.5 pb-5">
                   <label className={cn(LABEL, titleHasError && "text-destructive")}>title</label>
                   <textarea

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Trash2, Plus } from "lucide-react";
 import { Toggle } from "@/components/ui/Toggle";
 import { BracketButton } from "@/components/ui/BracketButton";
+import { charCountColor } from "@/components/ui/input";
 import { OptionButton } from "@/components/ui/OptionButton";
 import { OptionGroup } from "@/components/ui/OptionGroup";
 import type { FieldDef, StatusDef } from "@/types/rules";
@@ -80,13 +81,7 @@ function FieldRow({
             <p
               className={cn(
                 "mt-0.5 text-right font-mono text-[9px] transition-colors",
-                field.label.length >= 100
-                  ? "text-destructive"
-                  : field.label.length >= 75
-                    ? "text-orange-500"
-                    : field.label.length >= 50
-                      ? "text-yellow-500"
-                      : "text-muted-foreground/40"
+                charCountColor(field.label.length, 100)
               )}
             >
               {field.label.length}/100
@@ -303,13 +298,26 @@ export function StatusesSection({
               className="h-5 w-5 shrink-0 cursor-pointer rounded-none border-0 bg-transparent p-0 disabled:opacity-40"
               disabled={disabled}
             />
-            <input
-              className={`${INPUT} flex-1`}
-              value={s.name}
-              onChange={(e) => onUpdate(i, { name: e.target.value })}
-              placeholder="status name"
-              disabled={disabled}
-            />
+            <div className="min-w-0 flex-1">
+              <input
+                className={`${INPUT} w-full`}
+                value={s.name}
+                maxLength={50}
+                onChange={(e) => onUpdate(i, { name: e.target.value })}
+                placeholder="status name"
+                disabled={disabled}
+              />
+              {s.name.length > 0 && (
+                <p
+                  className={cn(
+                    "mt-0.5 text-right font-mono text-[9px] transition-colors",
+                    charCountColor(s.name.length, 50)
+                  )}
+                >
+                  {s.name.length}/50
+                </p>
+              )}
+            </div>
             <button
               onClick={() => onRemove(i)}
               disabled={disabled}
