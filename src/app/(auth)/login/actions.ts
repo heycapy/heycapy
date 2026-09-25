@@ -1,14 +1,14 @@
 "use server";
 
-import { Resend } from "resend";
 import { z } from "zod";
 import { createOtp, verifyOtp } from "@/lib/auth/otp";
+import { buildOtpEmail } from "@/lib/auth/otpEmail";
+import { sendEmail, type UserEmailConfig } from "@/lib/notifications/email";
 import { createSession } from "@/lib/auth/session";
-import { APP_NAME, APP_EMAIL_FROM } from "@/constants";
-import { OTP_TTL_MINUTES } from "@/lib/auth/constants";
 import { db } from "@/lib/db";
 import { users, userSettings, authRateLimits } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
+import { decryptValue } from "@/lib/crypto";
 import { seed } from "@/lib/db/seed";
 
 type SendOtpResult = { ok: true; devCode?: string } | { ok: false; error: string };
@@ -39,7 +39,30 @@ export async function sendOtpAction(email: string): Promise<SendOtpResult> {
     return { ok: false, error: "Enter a valid email address." };
   }
 
-  const isDev = !process.env.RESEND_API_KEY;
+  const existingUser = await db.query.users.findFirst({ where: eq(users.email, email) });
+  let userEmailConfig: UserEmailConfig | undefined;
+  if (existingUser) {
+    const us = await db.query.userSettings.findFirst({
+      where: eq(userSettings.userId, existingUser.id),
+    });
+    if (us?.emailProvider) {
+      userEmailConfig = {
+        emailProvider: us.emailProvider,
+        resendApiKey: us.resendApiKey ? decryptValue(us.resendApiKey) : null,
+        smtpHost: us.smtpHost,
+        smtpPort: us.smtpPort,
+        smtpUser: us.smtpUser,
+        smtpPass: us.smtpPass ? decryptValue(us.smtpPass) : null,
+        smtpSecure: us.smtpSecure,
+        smtpFrom: us.smtpFrom,
+      };
+    }
+  }
+
+  const hasUserEmail =
+    (userEmailConfig?.emailProvider === "smtp" && !!userEmailConfig.smtpHost) ||
+    (userEmailConfig?.emailProvider === "resend" && !!userEmailConfig.resendApiKey);
+  const isDev = !hasUserEmail && !process.env.RESEND_API_KEY && !process.env.SMTP_HOST;
 
   const record = await getRateLimit(email);
   const now = Date.now();
@@ -63,17 +86,11 @@ export async function sendOtpAction(email: string): Promise<SendOtpResult> {
     return { ok: true, devCode: code };
   }
 
-  const from = process.env.EMAIL_FROM ?? APP_EMAIL_FROM;
-  const resend = new Resend(process.env.RESEND_API_KEY);
-  const result = await resend.emails.send({
-    from,
-    to: email,
-    subject: `Your ${APP_NAME} login code: ${code}`,
-    text: `Your login code is: ${code}\n\nIt expires in ${OTP_TTL_MINUTES} minutes.`,
-  });
-
-  if (result.error) {
-    return { ok: false, error: `Failed to send code: ${result.error.message}` };
+  try {
+    const emailPayload = await buildOtpEmail(code);
+    await sendEmail({ to: email, ...emailPayload }, userEmailConfig);
+  } catch {
+    return { ok: false, error: "Failed to send code. Please try again." };
   }
 
   return { ok: true };

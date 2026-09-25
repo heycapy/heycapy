@@ -7,9 +7,27 @@ import { Toggle } from "@/components/ui/Toggle";
 import { LABEL, INPUT } from "./settings-constants";
 import { NTFY_DEFAULT_URL, SETTINGS_URL_MAX_LENGTH, NTFY_TOPIC_MAX_LENGTH } from "@/constants";
 
+type EmailProvider = "resend" | "smtp" | null;
+
 interface NotificationsTabProps {
   notificationsEmail: boolean;
   setNotificationsEmail: (v: boolean) => void;
+  emailProvider: EmailProvider;
+  setEmailProvider: (v: EmailProvider) => void;
+  resendApiKey: string;
+  setResendApiKey: (v: string) => void;
+  smtpHost: string;
+  setSmtpHost: (v: string) => void;
+  smtpPort: string;
+  setSmtpPort: (v: string) => void;
+  smtpUser: string;
+  setSmtpUser: (v: string) => void;
+  smtpPass: string;
+  setSmtpPass: (v: string) => void;
+  smtpSecure: boolean;
+  setSmtpSecure: (v: boolean) => void;
+  smtpFrom: string;
+  setSmtpFrom: (v: string) => void;
   notificationsPush: boolean;
   setNotificationsPush: (v: boolean) => void;
   ntfyUrl: string;
@@ -29,9 +47,33 @@ interface NotificationsTabProps {
   pending: boolean;
 }
 
+const SECTION =
+  "text-muted-foreground font-mono text-[10px] font-semibold tracking-widest uppercase";
+const PROVIDER_BTN = (active: boolean) =>
+  cn(
+    "font-mono text-[10px] px-2 py-1 border border-border transition-colors",
+    active ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"
+  );
+
 export function NotificationsTab({
   notificationsEmail,
   setNotificationsEmail,
+  emailProvider,
+  setEmailProvider,
+  resendApiKey,
+  setResendApiKey,
+  smtpHost,
+  setSmtpHost,
+  smtpPort,
+  setSmtpPort,
+  smtpUser,
+  setSmtpUser,
+  smtpPass,
+  setSmtpPass,
+  smtpSecure,
+  setSmtpSecure,
+  smtpFrom,
+  setSmtpFrom,
   notificationsPush,
   setNotificationsPush,
   ntfyUrl,
@@ -50,13 +92,15 @@ export function NotificationsTab({
   telegramError,
   pending,
 }: NotificationsTabProps) {
-  const [copied, setCopied] = useState(false);
+  const [ntfyCopied, setNtfyCopied] = useState(false);
+  const [showSmtpPass, setShowSmtpPass] = useState(false);
+  const [showResendKey, setShowResendKey] = useState(false);
 
-  function handleCopy() {
+  function handleCopyNtfy() {
     if (!ntfyTopic) return;
     void navigator.clipboard.writeText(ntfyTopic).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
+      setNtfyCopied(true);
+      setTimeout(() => setNtfyCopied(false), 1500);
     });
   }
 
@@ -65,19 +109,152 @@ export function NotificationsTab({
   return (
     <>
       <div className="flex flex-col gap-3">
-        <span className="text-muted-foreground font-mono text-[10px] font-semibold tracking-widest uppercase">
-          email
-        </span>
+        <span className={SECTION}>email</span>
         <div className="flex items-center justify-between">
           <label className={LABEL}>enabled</label>
           <Toggle value={notificationsEmail} onChange={setNotificationsEmail} disabled={pending} />
         </div>
+
+        <div className="flex flex-col gap-1.5">
+          <label className={LABEL}>email provider</label>
+          <div className="flex gap-1">
+            {(["resend", "smtp"] as NonNullable<EmailProvider>[]).map((p) => (
+              <button
+                key={p}
+                type="button"
+                onClick={() => setEmailProvider(emailProvider === p ? null : p)}
+                disabled={pending}
+                className={PROVIDER_BTN(emailProvider === p)}
+              >
+                {p}
+              </button>
+            ))}
+          </div>
+          {emailProvider === null && (
+            <p className="text-muted-foreground/60 font-mono text-[9px] leading-relaxed">
+              using server defaults — reads <code className="font-mono">RESEND_API_KEY</code> or{" "}
+              <code className="font-mono">SMTP_HOST</code> from .env
+            </p>
+          )}
+          {emailProvider === "resend" && (
+            <p className="text-muted-foreground/60 font-mono text-[9px] leading-relaxed">
+              requires a verified domain on resend.com. for personal self-hosted use, smtp is
+              simpler.
+            </p>
+          )}
+        </div>
+
+        {emailProvider === "resend" && (
+          <div className="flex flex-col gap-1.5">
+            <div className="flex items-center justify-between">
+              <label className={LABEL}>resend api key</label>
+              <button
+                type="button"
+                onClick={() => setShowResendKey((v) => !v)}
+                className="text-muted-foreground hover:text-foreground font-mono text-[9px]"
+              >
+                {showResendKey ? "hide" : "show"}
+              </button>
+            </div>
+            <input
+              type={showResendKey ? "text" : "password"}
+              value={resendApiKey}
+              onChange={(e) => setResendApiKey(e.target.value)}
+              placeholder="re_xxxxxxxxxxxxxxxxxxxx"
+              disabled={pending}
+              className={INPUT}
+              autoComplete="off"
+            />
+            <p className="text-muted-foreground/60 font-mono text-[9px] leading-relaxed">
+              stored encrypted. get yours at resend.com.
+            </p>
+          </div>
+        )}
+
+        {emailProvider === "smtp" && (
+          <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-1.5">
+              <label className={LABEL}>host</label>
+              <input
+                type="text"
+                value={smtpHost}
+                onChange={(e) => setSmtpHost(e.target.value)}
+                placeholder="smtp.gmail.com"
+                disabled={pending}
+                className={INPUT}
+              />
+            </div>
+            <div className="flex gap-3">
+              <div className="flex w-24 shrink-0 flex-col gap-1.5">
+                <label className={LABEL}>port</label>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  value={smtpPort}
+                  onChange={(e) => setSmtpPort(e.target.value)}
+                  placeholder="587"
+                  disabled={pending}
+                  className={INPUT}
+                />
+              </div>
+              <div className="flex flex-1 flex-col gap-1.5">
+                <label className={LABEL}>from address</label>
+                <input
+                  type="text"
+                  value={smtpFrom}
+                  onChange={(e) => setSmtpFrom(e.target.value)}
+                  placeholder="you@example.com"
+                  disabled={pending}
+                  className={INPUT}
+                />
+              </div>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label className={LABEL}>username</label>
+              <input
+                type="text"
+                value={smtpUser}
+                onChange={(e) => setSmtpUser(e.target.value)}
+                placeholder="you@gmail.com"
+                disabled={pending}
+                className={INPUT}
+                autoComplete="off"
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <div className="flex items-center justify-between">
+                <label className={LABEL}>password / app password</label>
+                <button
+                  type="button"
+                  onClick={() => setShowSmtpPass((v) => !v)}
+                  className="text-muted-foreground hover:text-foreground font-mono text-[9px]"
+                >
+                  {showSmtpPass ? "hide" : "show"}
+                </button>
+              </div>
+              <input
+                type={showSmtpPass ? "text" : "password"}
+                value={smtpPass}
+                onChange={(e) => setSmtpPass(e.target.value)}
+                placeholder="app password"
+                disabled={pending}
+                className={INPUT}
+                autoComplete="off"
+              />
+              <p className="text-muted-foreground/60 font-mono text-[9px] leading-relaxed">
+                stored encrypted. for gmail: use an app password, not your account password.
+              </p>
+            </div>
+            <div className="flex items-center justify-between">
+              <label className={LABEL}>tls / ssl (port 465)</label>
+              <Toggle value={smtpSecure} onChange={setSmtpSecure} disabled={pending} />
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="border-border flex flex-col gap-3 border-t pt-3">
-        <span className="text-muted-foreground font-mono text-[10px] font-semibold tracking-widest uppercase">
-          ntfy (push)
-        </span>
+        <span className={SECTION}>ntfy (push)</span>
         <div className="flex items-center justify-between">
           <label className={LABEL}>enabled</label>
           <Toggle value={notificationsPush} onChange={setNotificationsPush} disabled={pending} />
@@ -111,10 +288,10 @@ export function NotificationsTab({
               {ntfyTopic && (
                 <button
                   type="button"
-                  onClick={handleCopy}
+                  onClick={handleCopyNtfy}
                   className="text-muted-foreground hover:text-foreground font-mono text-[9px]"
                 >
-                  {copied ? "copied!" : "copy"}
+                  {ntfyCopied ? "copied!" : "copy"}
                 </button>
               )}
               <button
@@ -154,9 +331,7 @@ export function NotificationsTab({
       </div>
 
       <div className="flex flex-col gap-3">
-        <span className="text-muted-foreground font-mono text-[10px] font-semibold tracking-widest uppercase">
-          telegram
-        </span>
+        <span className={SECTION}>telegram</span>
 
         {!telegramBotConfigured ? (
           <p className="text-muted-foreground/60 font-mono text-[9px]">

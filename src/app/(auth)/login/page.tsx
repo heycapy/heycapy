@@ -21,6 +21,8 @@ export default function LoginPage() {
   const [code, setCode] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [devCode, setDevCode] = useState("");
+  const [devCopied, setDevCopied] = useState(false);
   const [resendCountdown, setResendCountdown] = useState(0);
   const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -39,9 +41,18 @@ export default function LoginPage() {
     countdownRef.current = id;
   }
 
-  function logDevOtp(devCode?: string) {
+  function applyDevCode(dc?: string) {
     // eslint-disable-next-line no-console
-    if (devCode) console.log(`[dev] OTP: ${devCode}`);
+    if (dc) console.log(`[dev] OTP: ${dc}`);
+    setDevCode(dc ?? "");
+  }
+
+  function handleCopyDevCode() {
+    if (!devCode) return;
+    void navigator.clipboard.writeText(devCode).then(() => {
+      setDevCopied(true);
+      setTimeout(() => setDevCopied(false), 1500);
+    });
   }
 
   async function handleSendOtp(e: FormEvent<HTMLFormElement>) {
@@ -54,7 +65,7 @@ export default function LoginPage() {
       setError(result.error);
       return;
     }
-    logDevOtp(result.devCode);
+    applyDevCode(result.devCode);
     setStep("otp");
     startResendCountdown();
   }
@@ -69,7 +80,7 @@ export default function LoginPage() {
       setError(result.error);
       return;
     }
-    logDevOtp(result.devCode);
+    applyDevCode(result.devCode);
     startResendCountdown();
   }
 
@@ -90,6 +101,7 @@ export default function LoginPage() {
     setStep("email");
     setCode("");
     setError("");
+    setDevCode("");
     setResendCountdown(0);
     if (countdownRef.current) clearInterval(countdownRef.current);
   }
@@ -162,6 +174,21 @@ export default function LoginPage() {
             </p>
           </div>
           <OtpInput value={code} onChange={setCode} disabled={loading} focus={step === "otp"} />
+          {devCode && (
+            <div className="bg-muted flex items-center justify-between rounded px-3 py-2">
+              <span className="text-muted-foreground font-mono text-xs">
+                dev:{" "}
+                <span className="text-foreground font-semibold tracking-widest">{devCode}</span>
+              </span>
+              <button
+                type="button"
+                onClick={handleCopyDevCode}
+                className="text-muted-foreground hover:text-foreground font-mono text-xs"
+              >
+                {devCopied ? "copied!" : "[copy]"}
+              </button>
+            </div>
+          )}
           <Button type="submit" loading={loading} disabled={code.length !== 6}>
             Sign in
           </Button>

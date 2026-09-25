@@ -72,6 +72,14 @@ export const userSettings = sqliteTable("user_settings", {
   transcriptionApiKey: text("transcription_api_key"),
   transcriptionModel: text("transcription_model"),
   telegramState: text("telegram_state"),
+  emailProvider: text("email_provider"),
+  resendApiKey: text("resend_api_key"),
+  smtpHost: text("smtp_host"),
+  smtpPort: integer("smtp_port"),
+  smtpUser: text("smtp_user"),
+  smtpPass: text("smtp_pass"),
+  smtpSecure: integer("smtp_secure", { mode: "boolean" }).default(false),
+  smtpFrom: text("smtp_from"),
   updatedAt: integer("updated_at", { mode: "timestamp" })
     .notNull()
     .default(sql`(unixepoch())`),

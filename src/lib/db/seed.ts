@@ -16,7 +16,7 @@ const BUILTIN_TEMPLATES: BuiltinTemplate[] = [
     description: "General reminders. Notifies at deadline.",
     rulesJson: JSON.stringify({
       notifications: {
-        medium: ["ntfy", "email"],
+        medium: ["email", "telegram"],
         notifyAt: "",
         quietHours: null,
         defaultOffsetMins: 0,
@@ -42,7 +42,7 @@ const BUILTIN_TEMPLATES: BuiltinTemplate[] = [
     description: "Track recurring bills. Notifies 3 days and 1 day before renewal.",
     rulesJson: JSON.stringify({
       notifications: {
-        medium: ["ntfy"],
+        medium: ["email", "telegram"],
         notifyAt: "09:00",
         quietHours: null,
         defaultOffsetMins: 4320,

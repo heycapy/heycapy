@@ -5,6 +5,7 @@ import { sendEmail } from "./email";
 import { sendNtfy } from "./ntfy";
 import { sendTelegram, sendTelegramItemNotification } from "./telegram";
 import { errorMessage } from "@/lib/errors";
+import { decryptValue } from "@/lib/crypto";
 import {
   QUEUE_DEFAULT_MAX_ATTEMPTS,
   QUEUE_PROCESS_BATCH_SIZE,
@@ -62,6 +63,14 @@ export async function processPending(): Promise<void> {
         ntfyTopic: userSettings.ntfyTopic,
         telegramChatId: userSettings.telegramChatId,
         notificationsTelegram: userSettings.notificationsTelegram,
+        emailProvider: userSettings.emailProvider,
+        resendApiKey: userSettings.resendApiKey,
+        smtpHost: userSettings.smtpHost,
+        smtpPort: userSettings.smtpPort,
+        smtpUser: userSettings.smtpUser,
+        smtpPass: userSettings.smtpPass,
+        smtpSecure: userSettings.smtpSecure,
+        smtpFrom: userSettings.smtpFrom,
       })
       .from(users)
       .innerJoin(userSettings, eq(userSettings.userId, users.id))
@@ -81,10 +90,26 @@ export async function processPending(): Promise<void> {
 
     try {
       switch (job.medium) {
-        case "email":
+        case "email": {
           if (!userRow.notificationsEmail) throw new Error("Email notifications disabled");
-          await sendEmail(userRow.email, job.title, job.message);
+          const userEmailConfig = userRow.emailProvider
+            ? {
+                emailProvider: userRow.emailProvider,
+                resendApiKey: userRow.resendApiKey ? decryptValue(userRow.resendApiKey) : null,
+                smtpHost: userRow.smtpHost,
+                smtpPort: userRow.smtpPort,
+                smtpUser: userRow.smtpUser,
+                smtpPass: userRow.smtpPass ? decryptValue(userRow.smtpPass) : null,
+                smtpSecure: userRow.smtpSecure,
+                smtpFrom: userRow.smtpFrom,
+              }
+            : undefined;
+          await sendEmail(
+            { to: userRow.email, subject: job.title, text: job.message },
+            userEmailConfig
+          );
           break;
+        }
         case "ntfy":
           if (!userRow.notificationsPush || !userRow.ntfyUrl || !userRow.ntfyTopic)
             throw new Error("ntfy not configured");

@@ -13,12 +13,12 @@ import {
   disconnectTelegramAction,
 } from "@/app/(app)/actions";
 import { AppearanceTab, NotificationsTab, AITab, PersonalityTab } from "./SettingsTabs";
-import { StatusesTab } from "./StatusesTab";
 import type { UserTone, AIProvider, TranscriptionProvider } from "./settings-constants";
 import type { userSettings } from "@/lib/db/schema";
 
 type Settings = typeof userSettings.$inferSelect;
-type Tab = "appearance" | "notifications" | "ai" | "personality" | "statuses";
+type Tab = "appearance" | "notifications" | "ai" | "personality";
+type EmailProvider = "resend" | "smtp" | null;
 
 interface SettingsSheetProps {
   open: boolean;
@@ -53,6 +53,14 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
   const [timezone, setTimezone] = useState(() => Intl.DateTimeFormat().resolvedOptions().timeZone);
 
   const [notificationsEmail, setNotificationsEmail] = useState(true);
+  const [emailProvider, setEmailProvider] = useState<EmailProvider>(null);
+  const [resendApiKey, setResendApiKey] = useState("");
+  const [smtpHost, setSmtpHost] = useState("");
+  const [smtpPort, setSmtpPort] = useState("");
+  const [smtpUser, setSmtpUser] = useState("");
+  const [smtpPass, setSmtpPass] = useState("");
+  const [smtpSecure, setSmtpSecure] = useState(false);
+  const [smtpFrom, setSmtpFrom] = useState("");
   const [notificationsPush, setNotificationsPush] = useState(true);
   const [ntfyUrl, setNtfyUrl] = useState("");
   const [ntfyTopic, setNtfyTopic] = useState("");
@@ -78,6 +86,14 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
       s.timezone !== "UTC" ? s.timezone : Intl.DateTimeFormat().resolvedOptions().timeZone
     );
     setNotificationsEmail(s.notificationsEmail);
+    setEmailProvider((s.emailProvider as EmailProvider) ?? null);
+    setResendApiKey(s.resendApiKey ?? "");
+    setSmtpHost(s.smtpHost ?? "");
+    setSmtpPort(s.smtpPort !== null ? String(s.smtpPort) : "");
+    setSmtpUser(s.smtpUser ?? "");
+    setSmtpPass(s.smtpPass ?? "");
+    setSmtpSecure(s.smtpSecure ?? false);
+    setSmtpFrom(s.smtpFrom ?? "");
     setNotificationsPush(s.notificationsPush);
     setNtfyUrl(s.ntfyUrl ?? "");
     setNtfyTopic(s.ntfyTopic ?? "");
@@ -151,6 +167,7 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
   function handleSave() {
     if (pending) return;
     setError("");
+    const parsedPort = smtpPort ? parseInt(smtpPort, 10) : null;
     startTransition(async () => {
       const result = await updateUserSettingsAction({
         personalityName,
@@ -165,6 +182,14 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
         aiCompactThreshold,
         aiNotifyMessages,
         notificationsEmail,
+        emailProvider: emailProvider,
+        resendApiKey: resendApiKey || null,
+        smtpHost: smtpHost || null,
+        smtpPort: parsedPort && !isNaN(parsedPort) ? parsedPort : null,
+        smtpUser: smtpUser || null,
+        smtpPass: smtpPass || null,
+        smtpSecure,
+        smtpFrom: smtpFrom || null,
         notificationsPush,
         ntfyUrl: ntfyUrl || null,
         ntfyTopic: ntfyTopic || null,
@@ -214,13 +239,11 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
             </div>
 
             <div className="border-border scrollbar-hide flex overflow-x-auto border-b-2">
-              {(["appearance", "notifications", "ai", "personality", "statuses"] as Tab[]).map(
-                (t) => (
-                  <button key={t} onClick={() => setTab(t)} className={tabBtn(t)}>
-                    {t}
-                  </button>
-                )
-              )}
+              {(["appearance", "notifications", "ai", "personality"] as Tab[]).map((t) => (
+                <button key={t} onClick={() => setTab(t)} className={tabBtn(t)}>
+                  {t}
+                </button>
+              ))}
             </div>
 
             <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-4 py-4">
@@ -241,6 +264,22 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
                     <NotificationsTab
                       notificationsEmail={notificationsEmail}
                       setNotificationsEmail={setNotificationsEmail}
+                      emailProvider={emailProvider}
+                      setEmailProvider={setEmailProvider}
+                      resendApiKey={resendApiKey}
+                      setResendApiKey={setResendApiKey}
+                      smtpHost={smtpHost}
+                      setSmtpHost={setSmtpHost}
+                      smtpPort={smtpPort}
+                      setSmtpPort={setSmtpPort}
+                      smtpUser={smtpUser}
+                      setSmtpUser={setSmtpUser}
+                      smtpPass={smtpPass}
+                      setSmtpPass={setSmtpPass}
+                      smtpSecure={smtpSecure}
+                      setSmtpSecure={setSmtpSecure}
+                      smtpFrom={smtpFrom}
+                      setSmtpFrom={setSmtpFrom}
                       notificationsPush={notificationsPush}
                       setNotificationsPush={setNotificationsPush}
                       ntfyUrl={ntfyUrl}
@@ -296,21 +335,16 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
                       pending={pending}
                     />
                   )}
-                  {tab === "statuses" && <StatusesTab />}
-                  {error && tab !== "statuses" && (
-                    <span className="text-destructive font-mono text-[10px]">{error}</span>
-                  )}
+                  {error && <span className="text-destructive font-mono text-[10px]">{error}</span>}
                 </>
               )}
             </div>
 
-            {tab !== "statuses" && (
-              <div className="border-border flex items-center justify-end border-t-2 px-3 py-2.5">
-                <BracketButton onClick={handleSave} disabled={pending || !loaded}>
-                  save
-                </BracketButton>
-              </div>
-            )}
+            <div className="border-border flex items-center justify-end border-t-2 px-3 py-2.5">
+              <BracketButton onClick={handleSave} disabled={pending || !loaded}>
+                save
+              </BracketButton>
+            </div>
           </motion.aside>
         </>
       )}

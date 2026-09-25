@@ -30,6 +30,14 @@ type UserSettingsUpdate = {
   transcriptionProvider: string | null;
   transcriptionApiKey: string | null;
   transcriptionModel: string | null;
+  emailProvider: string | null;
+  resendApiKey: string | null;
+  smtpHost: string | null;
+  smtpPort: number | null;
+  smtpUser: string | null;
+  smtpPass: string | null;
+  smtpSecure: boolean;
+  smtpFrom: string | null;
 };
 
 export async function getUserSettingsAction(): Promise<
@@ -51,6 +59,8 @@ export async function getUserSettingsAction(): Promise<
       transcriptionApiKey: settings.transcriptionApiKey
         ? decryptValue(settings.transcriptionApiKey)
         : null,
+      resendApiKey: settings.resendApiKey ? decryptValue(settings.resendApiKey) : null,
+      smtpPass: settings.smtpPass ? decryptValue(settings.smtpPass) : null,
     },
   };
 }
@@ -87,6 +97,14 @@ export async function updateUserSettingsAction(
       transcriptionProvider: data.transcriptionProvider || null,
       transcriptionApiKey: data.transcriptionApiKey ? encryptValue(data.transcriptionApiKey) : null,
       transcriptionModel: data.transcriptionModel || null,
+      emailProvider: data.emailProvider || null,
+      resendApiKey: data.resendApiKey ? encryptValue(data.resendApiKey) : null,
+      smtpHost: data.smtpHost || null,
+      smtpPort: data.smtpPort || null,
+      smtpUser: data.smtpUser || null,
+      smtpPass: data.smtpPass ? encryptValue(data.smtpPass) : null,
+      smtpSecure: data.smtpSecure,
+      smtpFrom: data.smtpFrom || null,
       updatedAt: new Date(),
     })
     .where(eq(userSettings.userId, session.userId));
@@ -168,8 +186,14 @@ export async function getNotifAvailabilityAction(): Promise<{
   });
   if (!settings) return { email: false, ntfy: false, telegram: false };
 
+  const emailConfigured =
+    !!process.env.RESEND_API_KEY ||
+    !!process.env.SMTP_HOST ||
+    (settings.emailProvider === "resend" && !!settings.resendApiKey) ||
+    (settings.emailProvider === "smtp" && !!settings.smtpHost);
+
   return {
-    email: settings.notificationsEmail && !!process.env.RESEND_API_KEY,
+    email: settings.notificationsEmail && emailConfigured,
     ntfy: settings.notificationsPush && !!settings.ntfyUrl && !!settings.ntfyTopic,
     telegram: settings.notificationsTelegram && !!settings.telegramChatId,
   };

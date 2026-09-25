@@ -29,6 +29,13 @@
       "when": 1790310000000,
       "tag": "0003_telegram_bucket_config",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1790334158301,
+      "tag": "0004_deep_lord_hawal",
+      "breakpoints": true
     }
   ]
 }
