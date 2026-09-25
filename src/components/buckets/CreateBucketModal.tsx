@@ -2,17 +2,12 @@
 
 import { useEffect, useRef, useState, useTransition } from "react";
 import { motion, AnimatePresence, type Transition } from "framer-motion";
-import { ArrowLeft, Trash2, Upload, X } from "lucide-react";
+import { ArrowLeft, X } from "lucide-react";
 import { useUIStore } from "@/store/ui";
 import { useScrollLock } from "@/hooks/useScrollLock";
 import { Button } from "@/components/ui/button";
 import { BracketButton } from "@/components/ui/BracketButton";
-import {
-  createBucketAction,
-  importBucketFromCapyAction,
-  deleteUserTemplateAction,
-} from "@/app/(app)/actions";
-import type { CapyFile } from "@/app/(app)/bucket-actions";
+import { createBucketAction } from "@/app/(app)/actions";
 import { Package } from "lucide-react";
 import { TEMPLATE_ICONS } from "./constants";
 import { BUCKET_NAME_MAX_LENGTH } from "@/constants";
@@ -35,16 +30,10 @@ export function CreateBucketModal({ templates }: CreateBucketModalProps) {
   useScrollLock(createBucketOpen);
   const [step, setStep] = useState<Step>("pick");
   const [selected, setSelected] = useState<TemplateRow | null>(null);
-  const [importData, setImportData] = useState<CapyFile | null>(null);
   const [name, setName] = useState("");
   const [error, setError] = useState("");
   const [pending, startTransition] = useTransition();
-  const [deletingId, setDeletingId] = useState<number | null>(null);
   const nameInputRef = useRef<HTMLInputElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const builtinTemplates = templates.filter((t) => t.userId === null);
-  const userTemplates = templates.filter((t) => t.userId !== null);
 
   useEffect(() => {
     if (step === "name") {
@@ -56,71 +45,26 @@ export function CreateBucketModal({ templates }: CreateBucketModalProps) {
   function handleExitComplete() {
     setStep("pick");
     setSelected(null);
-    setImportData(null);
     setName("");
     setError("");
-    setDeletingId(null);
   }
 
   function handlePickTemplate(t: TemplateRow) {
     setSelected(t);
-    setImportData(null);
     setName(t.name);
     setStep("name");
   }
 
-  function handleImportClick() {
-    fileInputRef.current?.click();
-  }
-
-  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      try {
-        const parsed = JSON.parse(ev.target?.result as string) as CapyFile;
-        if (parsed.version !== 1) {
-          setError("Invalid .capy file format.");
-          return;
-        }
-        setImportData(parsed);
-        setSelected(null);
-        setName(parsed.name ?? "");
-        setStep("name");
-      } catch {
-        setError("Could not read file. Make sure it is a valid .capy file.");
-      }
-    };
-    reader.readAsText(file);
-    e.target.value = "";
-  }
-
   function handleCreate() {
+    if (!selected) return;
     setError("");
     startTransition(async () => {
-      let result: { ok: true } | { ok: false; error: string };
-      if (importData) {
-        result = await importBucketFromCapyAction(importData, name);
-      } else if (selected) {
-        result = await createBucketAction(selected.id, name);
-      } else {
-        return;
-      }
+      const result = await createBucketAction(selected.id, name);
       if (result.ok) {
         closeCreateBucket();
       } else {
         setError(result.error);
       }
-    });
-  }
-
-  function handleDeleteUserTemplate(e: React.MouseEvent, templateId: number) {
-    e.stopPropagation();
-    setDeletingId(templateId);
-    startTransition(async () => {
-      await deleteUserTemplateAction(templateId);
-      setDeletingId(null);
     });
   }
 
@@ -173,7 +117,7 @@ export function CreateBucketModal({ templates }: CreateBucketModalProps) {
                     )}
 
                     <div className="grid grid-cols-2 gap-2 p-3">
-                      {builtinTemplates.map((t) => (
+                      {templates.map((t) => (
                         <button
                           key={t.id}
                           onClick={() => handlePickTemplate(t)}
@@ -192,55 +136,7 @@ export function CreateBucketModal({ templates }: CreateBucketModalProps) {
                         </button>
                       ))}
                     </div>
-
-                    {userTemplates.length > 0 && (
-                      <>
-                        <div className="border-border border-t px-4 py-2">
-                          <p className="text-muted-foreground font-mono text-[9px] tracking-wider uppercase">
-                            my templates
-                          </p>
-                        </div>
-                        <div className="flex flex-col gap-1 px-3 pb-3">
-                          {userTemplates.map((t) => (
-                            <div key={t.id} className="flex items-center gap-2">
-                              <button
-                                onClick={() => handlePickTemplate(t)}
-                                disabled={pending && deletingId === t.id}
-                                className="border-border bg-card hover:bg-muted flex flex-1 items-center gap-2 rounded border px-3 py-2 text-left transition-colors disabled:opacity-50"
-                              >
-                                <Package size={12} className="text-muted-foreground shrink-0" />
-                                <span className="font-pixel text-xs">{t.name}</span>
-                              </button>
-                              <button
-                                onClick={(e) => handleDeleteUserTemplate(e, t.id)}
-                                disabled={pending}
-                                className="text-muted-foreground hover:text-destructive shrink-0 transition-colors disabled:opacity-50"
-                              >
-                                <Trash2 size={12} />
-                              </button>
-                            </div>
-                          ))}
-                        </div>
-                      </>
-                    )}
                   </div>
-
-                  <div className="border-border flex justify-end border-t px-3 py-2">
-                    <button
-                      onClick={handleImportClick}
-                      className="text-muted-foreground hover:text-foreground flex items-center gap-1.5 font-mono text-[10px] transition-colors"
-                    >
-                      <Upload size={11} />
-                      import .capy
-                    </button>
-                  </div>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept=".capy,.json"
-                    className="hidden"
-                    onChange={handleFileChange}
-                  />
                 </motion.div>
               ) : (
                 <motion.div
@@ -261,9 +157,7 @@ export function CreateBucketModal({ templates }: CreateBucketModalProps) {
                       >
                         <ArrowLeft size={14} />
                       </button>
-                      <p className="font-pixel text-sm">
-                        {importData ? "Import bucket" : "Name it"}
-                      </p>
+                      <p className="font-pixel text-sm">Name it</p>
                     </div>
                     <BracketButton onClick={closeCreateBucket}>
                       <X size={12} />
@@ -294,7 +188,7 @@ export function CreateBucketModal({ templates }: CreateBucketModalProps) {
                     )}
                     {error && <p className="text-destructive text-xs">{error}</p>}
                     <Button onClick={handleCreate} loading={pending} disabled={!name.trim()}>
-                      {importData ? "Import bucket" : "Create bucket"}
+                      Create bucket
                     </Button>
                   </div>
                 </motion.div>

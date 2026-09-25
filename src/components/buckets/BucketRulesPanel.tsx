@@ -1,6 +1,7 @@
 "use client";
 
 import { Toggle } from "@/components/ui/Toggle";
+import { OptionButton } from "@/components/ui/OptionButton";
 import { OptionGroup } from "@/components/ui/OptionGroup";
 import { TimePicker } from "@/components/ui/TimePicker";
 import { DurationInput } from "@/components/ui/DurationInput";
@@ -11,11 +12,12 @@ const LABEL = "text-muted-foreground font-mono text-[10px]";
 const HINT = "text-muted-foreground/50 font-mono text-[9px] leading-tight";
 
 const OVERDUE_REPEAT_OPTIONS = [
-  { value: "0", label: "once" },
-  { value: "24", label: "daily" },
-  { value: "48", label: "every 2 days" },
-  { value: "72", label: "every 3 days" },
-  { value: "168", label: "weekly" },
+  { value: "0.25", label: "15 min" },
+  { value: "0.5", label: "30 min" },
+  { value: "1", label: "1 hour" },
+  { value: "2", label: "2 hours" },
+  { value: "4", label: "4 hours" },
+  { value: "8", label: "8 hours" },
 ] as const;
 
 export type NotifAvailability = { email: boolean; ntfy: boolean; telegram: boolean };
@@ -123,8 +125,8 @@ export function BucketRulesPanel({
   return (
     <>
       <div className="flex flex-col gap-1.5">
-        <label className={LABEL}>medium</label>
-        <span className={HINT}>where to send notifications — ntfy is push, email is inbox</span>
+        <label className={LABEL}>channels</label>
+        <span className={HINT}>where to send notifications for this bucket</span>
         <OptionGroup options={MEDIUM_OPTIONS} value={mediums} onChange={onMediumToggle} multi />
         {notifAvailability && mediums.length > 0 && (
           <div className="mt-0.5 flex flex-col gap-0.5">
@@ -161,16 +163,14 @@ export function BucketRulesPanel({
       <div className="flex flex-col gap-1.5">
         <label className={LABEL}>notify at</label>
         <span className={HINT}>
-          if the early reminder lands at an odd hour, this delays it — e.g. deadline 6am + remind 6h
-          early triggers at midnight, set notify at 5am to get it at 5am instead
+          send no earlier than this time — delays reminders that would otherwise fire at odd hours
         </span>
         <TimePicker value={notifyAt} onChange={onNotifyAtChange} disabled={disabled} />
       </div>
       <div className="flex flex-col gap-1.5">
-        <label className={LABEL}>repeat</label>
+        <label className={LABEL}>deadline repeat</label>
         <span className={HINT}>
-          once = one notification when the reminder triggers, never again · daily = keeps notifying
-          once per day from that point until the item is completed
+          daily = re-send the deadline reminder every day until the item is completed
         </span>
         <OptionGroup options={REPEAT_OPTIONS} value={repeat} onChange={onRepeatChange} />
       </div>
@@ -196,16 +196,24 @@ export function BucketRulesPanel({
           />
           {notifyWhenOverdue && (
             <div className="mt-1.5 flex flex-col gap-1.5">
-              <span className={HINT}>repeat reminder</span>
-              <OptionGroup
-                options={[...OVERDUE_REPEAT_OPTIONS]}
-                value={String(overdueRepeatHours ?? 0)}
-                onChange={(v) => {
-                  const n = parseInt(v, 10);
-                  onOverdueRepeatHoursChange(n === 0 ? undefined : n);
-                }}
-                disabled={disabled}
-              />
+              <span className={HINT}>repeat every — leave unset to notify once</span>
+              <div className="flex flex-wrap gap-1.5">
+                {OVERDUE_REPEAT_OPTIONS.map((opt) => {
+                  const active = String(overdueRepeatHours) === opt.value;
+                  return (
+                    <OptionButton
+                      key={opt.value}
+                      active={active}
+                      disabled={disabled}
+                      onClick={() =>
+                        onOverdueRepeatHoursChange(active ? undefined : parseFloat(opt.value))
+                      }
+                    >
+                      {opt.label}
+                    </OptionButton>
+                  );
+                })}
+              </div>
             </div>
           )}
         </div>

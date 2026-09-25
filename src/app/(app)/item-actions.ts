@@ -157,6 +157,7 @@ export async function completeItemAction(
     .set({
       status: newStatus,
       completedAt: newStatus === "completed" ? new Date() : null,
+      ...(newStatus === "active" && { overdueNotifiedAt: null }),
       updatedAt: new Date(),
     })
     .where(and(eq(items.id, itemId), eq(items.userId, session.userId)));

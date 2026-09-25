@@ -87,6 +87,21 @@ export async function processPending(): Promise<void> {
       continue;
     }
 
+    if (job.itemId) {
+      const itemId = job.itemId;
+      const itemRow = await db.query.items.findFirst({
+        where: (i, { eq: qeq }) => qeq(i.id, itemId),
+        columns: { status: true, deletedAt: true },
+      });
+      if (!itemRow || itemRow.deletedAt || itemRow.status === "completed") {
+        await db
+          .update(notificationQueue)
+          .set({ status: "sent", sentAt: new Date() })
+          .where(eq(notificationQueue.id, job.id));
+        continue;
+      }
+    }
+
     let deliveryError: string | null = null;
 
     try {

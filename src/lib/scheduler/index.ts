@@ -344,8 +344,14 @@ async function runOverdueTriggers(now: Date): Promise<void> {
 
     const repeatHours = parsed.data.overdueRepeatHours;
     const lastOverdue = row.item.overdueNotifiedAt;
+    const initialDelayHours = repeatHours ?? 1;
+    if (!row.item.deadline) continue;
+    const deadlineTime = new Date(row.item.deadline);
 
-    if (lastOverdue) {
+    if (!lastOverdue) {
+      const firstFireTime = new Date(deadlineTime.getTime() + initialDelayHours * 60 * 60 * 1000);
+      if (firstFireTime > now) continue;
+    } else {
       if (!repeatHours) continue;
       const nextFireTime = new Date(lastOverdue.getTime() + repeatHours * 60 * 60 * 1000);
       if (nextFireTime > now) continue;
