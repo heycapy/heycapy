@@ -12,6 +12,31 @@ type BuiltinTemplate = {
 
 const BUILTIN_TEMPLATES: BuiltinTemplate[] = [
   {
+    name: "Blank",
+    description: "Empty template. Start from scratch.",
+    rulesJson: JSON.stringify({
+      notifications: {
+        medium: [],
+        notifyAt: "",
+        quietHours: null,
+        defaultOffsetMins: 0,
+        repeat: "once",
+        snoozeUntil: null,
+      },
+      items: {
+        sortBy: "created_at",
+        drag: false,
+        readonly: false,
+        showCompleted: true,
+        defaultDeadlineOffsetDays: null,
+      },
+      personality: { toneOverride: null },
+    }),
+    fieldSchemaJson: JSON.stringify({
+      fields: [],
+    } satisfies BucketSchema),
+  },
+  {
     name: "Reminders",
     description: "General reminders. Notifies at deadline.",
     rulesJson: JSON.stringify({
@@ -150,6 +175,50 @@ const BUILTIN_TEMPLATES: BuiltinTemplate[] = [
       notifyWhenOverdue: true,
     } satisfies BucketSchema),
   },
+  {
+    name: "CI/CD Monitor",
+    description: "Track deployments and pipeline runs. Notifies on arrival and when overdue.",
+    rulesJson: JSON.stringify({
+      notifications: {
+        medium: ["email", "telegram"],
+        notifyAt: "",
+        quietHours: null,
+        defaultOffsetMins: 0,
+        repeat: "once",
+        snoozeUntil: null,
+      },
+      items: {
+        sortBy: "created_at",
+        drag: false,
+        readonly: false,
+        showCompleted: false,
+        defaultDeadlineOffsetDays: null,
+      },
+      personality: { toneOverride: "professional" },
+    }),
+    fieldSchemaJson: JSON.stringify({
+      fields: [
+        {
+          key: "service",
+          label: "Service",
+          type: "text",
+          showInRow: true,
+          validation: { required: true },
+        },
+        {
+          key: "status",
+          label: "Status",
+          type: "select",
+          options: ["passing", "failing", "pending", "cancelled"],
+          showInRow: true,
+        },
+        { key: "url", label: "Run URL", type: "url" },
+        { key: "branch", label: "Branch", type: "text" },
+      ],
+      notifyOnArrival: true,
+      notifyWhenOverdue: false,
+    } satisfies BucketSchema),
+  },
 ];
 
 export async function seed(_userId: number) {
@@ -169,7 +238,7 @@ export async function seed(_userId: number) {
         })
         .where(eq(templates.id, existing.id));
     } else {
-      await db.insert(templates).values({ ...t, userId: null });
+      await db.insert(templates).values({ ...t, userId: null, isBuiltin: true });
     }
   }
 

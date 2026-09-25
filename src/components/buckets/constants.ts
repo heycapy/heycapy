@@ -1,5 +1,5 @@
 import type { LucideIcon } from "lucide-react";
-import { Bell, Briefcase, CreditCard, ListTodo } from "lucide-react";
+import { Activity, Bell, Briefcase, CreditCard, ListTodo, Square } from "lucide-react";
 import type { StatusDef } from "@/types/rules";
 
 export type SortBy = "deadline" | "created_at" | "manual";
@@ -24,10 +24,12 @@ export type NotificationsRulesConfig = {
 };
 
 export const TEMPLATE_ICONS: Record<string, LucideIcon> = {
+  Blank: Square,
   Subscriptions: CreditCard,
   Reminders: Bell,
   Todo: ListTodo,
   Work: Briefcase,
+  "CI/CD Monitor": Activity,
 };
 
 export type ItemStatus = string;

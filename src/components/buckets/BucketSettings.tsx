@@ -24,6 +24,8 @@ import {
   archiveBucketAction,
   deleteBucketAction,
   getNotifAvailabilityAction,
+  saveAsTemplateAction,
+  exportBucketCapyAction,
 } from "@/app/(app)/actions";
 import { BUCKET_NAME_MAX_LENGTH } from "@/constants";
 import type { buckets } from "@/lib/db/schema";
@@ -80,6 +82,9 @@ export function BucketSettings({ open, bucket, onClose }: BucketSettingsProps) {
   const [name, setName] = useState(bucket.name);
   const [error, setError] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [templateName, setTemplateName] = useState("");
+  const [templateSaved, setTemplateSaved] = useState(false);
+  const [templateError, setTemplateError] = useState("");
   const [pending, startTransition] = useTransition();
 
   const [sortBy, setSortBy] = useState<SortBy>("created_at");
@@ -102,6 +107,9 @@ export function BucketSettings({ open, bucket, onClose }: BucketSettingsProps) {
     if (!open) return;
     const id = setTimeout(() => {
       setConfirmDelete(false);
+      setTemplateName(bucket.name);
+      setTemplateSaved(false);
+      setTemplateError("");
       setName(bucket.name);
       setError("");
       setTab("items");
@@ -188,6 +196,31 @@ export function BucketSettings({ open, bucket, onClose }: BucketSettingsProps) {
       await deleteBucketAction(bucket.id);
       router.refresh();
       onClose();
+    });
+  }
+
+  function handleSaveAsTemplate() {
+    if (!templateName.trim() || pending) return;
+    setTemplateError("");
+    setTemplateSaved(false);
+    startTransition(async () => {
+      const result = await saveAsTemplateAction(bucket.id, templateName);
+      if (result.ok) setTemplateSaved(true);
+      else setTemplateError(result.error);
+    });
+  }
+
+  function handleExportCapy() {
+    startTransition(async () => {
+      const result = await exportBucketCapyAction(bucket.id);
+      if (!result.ok) return;
+      const blob = new Blob([JSON.stringify(result.data, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${bucket.name.toLowerCase().replace(/\s+/g, "-")}.capy`;
+      a.click();
+      URL.revokeObjectURL(url);
     });
   }
 
@@ -318,6 +351,58 @@ export function BucketSettings({ open, bucket, onClose }: BucketSettingsProps) {
                         </p>
                         <BracketButton onClick={() => setSchemaOpen(true)} className="w-fit">
                           configure schema
+                        </BracketButton>
+                      </div>
+
+                      <div className="border-border border-t" />
+
+                      <div className="flex flex-col gap-1.5">
+                        <p className="text-muted-foreground font-mono text-[10px]">
+                          save as template
+                        </p>
+                        <p className="text-muted-foreground/50 font-mono text-[9px] leading-tight">
+                          save this bucket&apos;s rules as a reusable template
+                        </p>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="text"
+                            value={templateName}
+                            onChange={(e) => {
+                              setTemplateName(e.target.value);
+                              setTemplateSaved(false);
+                            }}
+                            placeholder="Template name…"
+                            disabled={pending}
+                            className="border-border focus:border-foreground min-w-0 flex-1 border-b bg-transparent py-1 font-mono text-xs outline-none disabled:opacity-50"
+                          />
+                          <BracketButton
+                            onClick={handleSaveAsTemplate}
+                            disabled={!templateName.trim() || pending}
+                          >
+                            save
+                          </BracketButton>
+                        </div>
+                        {templateSaved && (
+                          <p className="text-muted-foreground font-mono text-[9px]">saved ✓</p>
+                        )}
+                        {templateError && (
+                          <p className="text-destructive font-mono text-[9px]">{templateError}</p>
+                        )}
+                      </div>
+
+                      <div className="border-border border-t" />
+
+                      <div className="flex flex-col gap-1.5">
+                        <p className="text-muted-foreground font-mono text-[10px]">export</p>
+                        <p className="text-muted-foreground/50 font-mono text-[9px] leading-tight">
+                          export bucket config as a .capy file to import elsewhere
+                        </p>
+                        <BracketButton
+                          onClick={handleExportCapy}
+                          disabled={pending}
+                          className="w-fit"
+                        >
+                          export .capy
                         </BracketButton>
                       </div>
 
