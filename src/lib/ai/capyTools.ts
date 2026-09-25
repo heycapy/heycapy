@@ -22,7 +22,7 @@ export type UpcomingItem = {
  *   and convert to the correct UTC instant.
  * - If it's a date-only string (YYYY-MM-DD), treat it as midnight in the user's TZ.
  */
-function parseDeadlineInTimezone(str: string, timezone: string): Date {
+export function parseDeadlineInTimezone(str: string, timezone: string): Date {
   const s = str.trim();
 
   // Already has an offset or Z — parse directly

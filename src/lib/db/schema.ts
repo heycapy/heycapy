@@ -64,7 +64,6 @@ export const userSettings = sqliteTable("user_settings", {
   notificationsPush: integer("notifications_push", { mode: "boolean" }).notNull().default(true),
   ntfyUrl: text("ntfy_url"),
   ntfyTopic: text("ntfy_topic"),
-  telegramBotToken: text("telegram_bot_token"),
   telegramChatId: text("telegram_chat_id"),
   notificationsTelegram: integer("notifications_telegram", { mode: "boolean" })
     .notNull()
@@ -72,6 +71,7 @@ export const userSettings = sqliteTable("user_settings", {
   transcriptionProvider: text("transcription_provider"),
   transcriptionApiKey: text("transcription_api_key"),
   transcriptionModel: text("transcription_model"),
+  telegramState: text("telegram_state"),
   updatedAt: integer("updated_at", { mode: "timestamp" })
     .notNull()
     .default(sql`(unixepoch())`),
@@ -119,6 +119,7 @@ export const buckets = sqliteTable("buckets", {
   mcpRules: text("mcp_rules"),
   personalityRules: text("personality_rules").notNull().default("{}"),
   fieldSchema: text("field_schema").$type<BucketSchema>(),
+  telegramConfig: text("telegram_config"),
   webhookKey: text("webhook_key"),
   mcpIntegration: text("mcp_integration"),
   mcpConfig: text("mcp_config"),

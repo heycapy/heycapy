@@ -8,8 +8,10 @@ import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { BracketButton } from "@/components/ui/BracketButton";
 import { BucketRulesPanel } from "./BucketRulesPanel";
+import type { NotifAvailability } from "./BucketRulesPanel";
 import { SchemaEditorDialog } from "./SchemaEditorDialog";
-import { WebhookPanel } from "./WebhookPanel";
+import { TelegramConfigDialog } from "./TelegramConfigDialog";
+import { WebhookDialog } from "./WebhookDialog";
 import type { SortBy, NotificationMedium, RepeatMode } from "./constants";
 import {
   parseDurationToMins,
@@ -21,12 +23,13 @@ import {
   updateBucketSettingsAction,
   archiveBucketAction,
   deleteBucketAction,
+  getNotifAvailabilityAction,
 } from "@/app/(app)/actions";
 import { BUCKET_NAME_MAX_LENGTH } from "@/constants";
 import type { buckets } from "@/lib/db/schema";
 
 type BucketRow = typeof buckets.$inferSelect;
-type Tab = "items" | "notifications" | "schema" | "webhook" | "danger";
+type Tab = "items" | "notifications" | "telegram" | "advanced";
 
 type RawItemsRules = {
   sortBy?: string;
@@ -59,7 +62,7 @@ function parseJson<T>(json: string, fallback: T): T {
 }
 
 const tabCn = (active: boolean) =>
-  `font-mono text-[10px] px-2 py-1 transition-colors ${active ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"}`;
+  `font-mono text-[10px] px-2 py-1 transition-colors shrink-0 whitespace-nowrap ${active ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"}`;
 
 interface BucketSettingsProps {
   open: boolean;
@@ -72,6 +75,8 @@ export function BucketSettings({ open, bucket, onClose }: BucketSettingsProps) {
   useScrollLock(open);
   const [tab, setTab] = useState<Tab>("items");
   const [schemaOpen, setSchemaOpen] = useState(false);
+  const [telegramOpen, setTelegramOpen] = useState(false);
+  const [webhookOpen, setWebhookOpen] = useState(false);
   const [name, setName] = useState(bucket.name);
   const [error, setError] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -86,6 +91,9 @@ export function BucketSettings({ open, bucket, onClose }: BucketSettingsProps) {
   const [notifyAt, setNotifyAt] = useState("");
   const [defaultOffset, setDefaultOffset] = useState("");
   const [repeat, setRepeat] = useState<RepeatMode>("once");
+  const [notifAvailability, setNotifAvailability] = useState<NotifAvailability | undefined>(
+    undefined
+  );
 
   useEffect(() => {
     if (!open) return;
@@ -113,6 +121,7 @@ export function BucketSettings({ open, bucket, onClose }: BucketSettingsProps) {
           : (nr.default_offset ?? "")
       );
       setRepeat(nr.repeat ?? "once");
+      void getNotifAvailabilityAction().then(setNotifAvailability);
     }, 0);
     return () => clearTimeout(id);
   }, [open, bucket.id]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -221,14 +230,12 @@ export function BucketSettings({ open, bucket, onClose }: BucketSettingsProps) {
                       <span className="text-destructive font-mono text-[10px]">{error}</span>
                     )}
                   </div>
-                  <div className="border-border flex border-b">
-                    {(["items", "notifications", "schema", "webhook", "danger"] as Tab[]).map(
-                      (t) => (
-                        <button key={t} onClick={() => setTab(t)} className={tabCn(tab === t)}>
-                          {t}
-                        </button>
-                      )
-                    )}
+                  <div className="border-border flex overflow-x-auto border-b">
+                    {(["items", "notifications", "telegram", "advanced"] as Tab[]).map((t) => (
+                      <button key={t} onClick={() => setTab(t)} className={tabCn(tab === t)}>
+                        {t}
+                      </button>
+                    ))}
                   </div>
                 </div>
 
@@ -259,55 +266,89 @@ export function BucketSettings({ open, bucket, onClose }: BucketSettingsProps) {
                       onNotifyAtChange={setNotifyAt}
                       onDefaultOffsetChange={setDefaultOffset}
                       onRepeatChange={setRepeat}
+                      notifAvailability={notifAvailability}
                     />
                   )}
-                  {tab === "schema" && (
-                    <div className="flex flex-col gap-1.5">
-                      <p className="text-muted-foreground/50 font-mono text-[9px] leading-tight">
-                        define custom fields, statuses, and notification rules for this bucket
+
+                  {tab === "telegram" && (
+                    <div className="flex flex-col gap-2">
+                      <p className="text-muted-foreground/50 font-mono text-[9px] leading-relaxed">
+                        configure how this bucket behaves in the telegram bot — set an alias
+                        shortcut, choose deadline buttons, time slots, and recurring options.
                       </p>
-                      <BracketButton onClick={() => setSchemaOpen(true)} className="w-fit">
-                        configure schema
+                      <BracketButton onClick={() => setTelegramOpen(true)} className="w-fit">
+                        configure telegram
                       </BracketButton>
                     </div>
                   )}
-                  {tab === "webhook" && <WebhookPanel bucket={bucket} />}
-                  {tab === "danger" && (
-                    <div className="flex flex-col gap-3">
-                      <p className="text-muted-foreground/50 font-mono text-[9px] leading-relaxed">
-                        archived and deleted buckets can be accessed via the header — use archive to
-                        hide a bucket, or delete to move it to trash.
-                      </p>
-                      <div className="flex flex-wrap items-center gap-2">
-                        <BracketButton variant="warning" onClick={handleArchive} disabled={pending}>
-                          archive
+
+                  {tab === "advanced" && (
+                    <div className="flex flex-col gap-5">
+                      <div className="flex flex-col gap-1.5">
+                        <p className="text-muted-foreground font-mono text-[10px]">schema</p>
+                        <p className="text-muted-foreground/50 font-mono text-[9px] leading-tight">
+                          define custom fields and notification rules for this bucket
+                        </p>
+                        <BracketButton onClick={() => setSchemaOpen(true)} className="w-fit">
+                          configure schema
                         </BracketButton>
-                        {confirmDelete ? (
-                          <>
-                            <span className="text-destructive font-mono text-[10px]">sure?</span>
-                            <BracketButton
-                              variant="destructive"
-                              onClick={handleDelete}
-                              disabled={pending}
-                            >
-                              confirm
-                            </BracketButton>
-                            <BracketButton
-                              onClick={() => setConfirmDelete(false)}
-                              disabled={pending}
-                            >
-                              cancel
-                            </BracketButton>
-                          </>
-                        ) : (
+                      </div>
+
+                      <div className="border-border border-t" />
+
+                      <div className="flex flex-col gap-1.5">
+                        <p className="text-muted-foreground font-mono text-[10px]">webhook</p>
+                        <p className="text-muted-foreground/50 font-mono text-[9px] leading-tight">
+                          receive items from external services via HTTP
+                        </p>
+                        <BracketButton onClick={() => setWebhookOpen(true)} className="w-fit">
+                          configure webhook
+                        </BracketButton>
+                      </div>
+
+                      <div className="border-border border-t" />
+
+                      <div className="flex flex-col gap-3">
+                        <p className="text-muted-foreground font-mono text-[10px]">danger zone</p>
+                        <p className="text-muted-foreground/50 font-mono text-[9px] leading-relaxed">
+                          archived and deleted buckets can be accessed via the header — use archive
+                          to hide a bucket, or delete to move it to trash.
+                        </p>
+                        <div className="flex flex-wrap items-center gap-2">
                           <BracketButton
-                            variant="destructive"
-                            onClick={() => setConfirmDelete(true)}
+                            variant="warning"
+                            onClick={handleArchive}
                             disabled={pending}
                           >
-                            delete
+                            archive
                           </BracketButton>
-                        )}
+                          {confirmDelete ? (
+                            <>
+                              <span className="text-destructive font-mono text-[10px]">sure?</span>
+                              <BracketButton
+                                variant="destructive"
+                                onClick={handleDelete}
+                                disabled={pending}
+                              >
+                                confirm
+                              </BracketButton>
+                              <BracketButton
+                                onClick={() => setConfirmDelete(false)}
+                                disabled={pending}
+                              >
+                                cancel
+                              </BracketButton>
+                            </>
+                          ) : (
+                            <BracketButton
+                              variant="destructive"
+                              onClick={() => setConfirmDelete(true)}
+                              disabled={pending}
+                            >
+                              delete
+                            </BracketButton>
+                          )}
+                        </div>
                       </div>
                     </div>
                   )}
@@ -325,7 +366,14 @@ export function BucketSettings({ open, bucket, onClose }: BucketSettingsProps) {
           </>
         )}
       </AnimatePresence>
+
       <SchemaEditorDialog open={schemaOpen} bucket={bucket} onClose={() => setSchemaOpen(false)} />
+      <TelegramConfigDialog
+        open={telegramOpen}
+        bucket={bucket}
+        onClose={() => setTelegramOpen(false)}
+      />
+      <WebhookDialog open={webhookOpen} bucket={bucket} onClose={() => setWebhookOpen(false)} />
     </>
   );
 }

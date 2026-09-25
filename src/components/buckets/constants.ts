@@ -64,6 +64,55 @@ export const REPEAT_OPTIONS: { value: RepeatMode; label: string }[] = [
   { value: "daily", label: "daily" },
 ];
 
+export type TelegramDeadlinePreset =
+  "today" | "tomorrow" | "this_week" | "end_of_month" | "pick_date" | "no_deadline";
+
+export type TelegramRecurringDefault = "none" | "daily" | "weekly" | "monthly" | "yearly";
+
+export type TelegramBotConfig = {
+  alias: string | null;
+  deadlinePresets: TelegramDeadlinePreset[];
+  showRecurring: boolean;
+  defaultRecurring: TelegramRecurringDefault;
+  timeSlots: string[];
+};
+
+export const DEFAULT_TELEGRAM_BOT_CONFIG: TelegramBotConfig = {
+  alias: null,
+  deadlinePresets: ["today", "tomorrow", "this_week", "no_deadline"],
+  showRecurring: false,
+  defaultRecurring: "none",
+  timeSlots: ["09:00", "12:00", "15:00", "18:00", "21:00"],
+};
+
+export const TELEGRAM_TIME_SLOT_OPTIONS: { value: string; label: string }[] = Array.from(
+  { length: 16 },
+  (_, i) => {
+    const h = i + 7;
+    const value = `${String(h).padStart(2, "0")}:00`;
+    const period = h < 12 ? "am" : "pm";
+    const h12 = h > 12 ? h - 12 : h;
+    return { value, label: `${h12}${period}` };
+  }
+);
+
+export const TELEGRAM_DEADLINE_PRESETS: { value: TelegramDeadlinePreset; label: string }[] = [
+  { value: "today", label: "today" },
+  { value: "tomorrow", label: "tomorrow" },
+  { value: "this_week", label: "this week" },
+  { value: "end_of_month", label: "end of month" },
+  { value: "pick_date", label: "pick date" },
+  { value: "no_deadline", label: "no deadline" },
+];
+
+export const TELEGRAM_RECURRING_OPTIONS: { value: TelegramRecurringDefault; label: string }[] = [
+  { value: "none", label: "none" },
+  { value: "daily", label: "daily" },
+  { value: "weekly", label: "weekly" },
+  { value: "monthly", label: "monthly" },
+  { value: "yearly", label: "yearly" },
+];
+
 export const CURRENCY_OPTIONS = [
   { value: "$", label: "$" },
   { value: "€", label: "€" },

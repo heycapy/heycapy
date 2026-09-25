@@ -155,7 +155,6 @@ async function runNotifications(): Promise<void> {
       notificationsPush: userSettings.notificationsPush,
       ntfyUrl: userSettings.ntfyUrl,
       ntfyTopic: userSettings.ntfyTopic,
-      telegramBotToken: userSettings.telegramBotToken,
       telegramChatId: userSettings.telegramChatId,
       notificationsTelegram: userSettings.notificationsTelegram,
       aiProvider: userSettings.aiProvider,
@@ -248,7 +247,7 @@ async function runNotifications(): Promise<void> {
       if (
         rules.medium.includes("telegram") &&
         row.notificationsTelegram &&
-        row.telegramBotToken &&
+        process.env.TELEGRAM_BOT_TOKEN &&
         row.telegramChatId
       )
         mediums.push("telegram");
@@ -313,7 +312,6 @@ async function runOverdueTriggers(now: Date): Promise<void> {
       notificationsPush: userSettings.notificationsPush,
       ntfyUrl: userSettings.ntfyUrl,
       ntfyTopic: userSettings.ntfyTopic,
-      telegramBotToken: userSettings.telegramBotToken,
       telegramChatId: userSettings.telegramChatId,
       notificationsTelegram: userSettings.notificationsTelegram,
     })
@@ -356,7 +354,7 @@ async function runOverdueTriggers(now: Date): Promise<void> {
     const mediums: NotificationMedium[] = [];
     if (row.notificationsEmail) mediums.push("email");
     if (row.notificationsPush && row.ntfyUrl && row.ntfyTopic) mediums.push("ntfy");
-    if (row.notificationsTelegram && row.telegramBotToken && row.telegramChatId)
+    if (row.notificationsTelegram && process.env.TELEGRAM_BOT_TOKEN && row.telegramChatId)
       mediums.push("telegram");
 
     if (mediums.length === 0) continue;

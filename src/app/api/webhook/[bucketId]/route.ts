@@ -168,7 +168,7 @@ export async function POST(
       const mediums: NotificationMedium[] = [];
       if (userRow.notificationsEmail) mediums.push("email");
       if (userRow.notificationsPush && userRow.ntfyUrl && userRow.ntfyTopic) mediums.push("ntfy");
-      if (userRow.notificationsTelegram && userRow.telegramBotToken && userRow.telegramChatId)
+      if (userRow.notificationsTelegram && process.env.TELEGRAM_BOT_TOKEN && userRow.telegramChatId)
         mediums.push("telegram");
 
       const notifTitle = `New item in ${bucket.name}`;

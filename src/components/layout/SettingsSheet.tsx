@@ -6,7 +6,12 @@ import { useTheme } from "next-themes";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { BracketButton } from "@/components/ui/BracketButton";
-import { getUserSettingsAction, updateUserSettingsAction } from "@/app/(app)/actions";
+import {
+  getUserSettingsAction,
+  updateUserSettingsAction,
+  setupTelegramAction,
+  disconnectTelegramAction,
+} from "@/app/(app)/actions";
 import { AppearanceTab, NotificationsTab, AITab, PersonalityTab } from "./SettingsTabs";
 import { StatusesTab } from "./StatusesTab";
 import type { UserTone, AIProvider, TranscriptionProvider } from "./settings-constants";
@@ -52,8 +57,11 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
   const [ntfyUrl, setNtfyUrl] = useState("");
   const [ntfyTopic, setNtfyTopic] = useState("");
   const [notificationsTelegram, setNotificationsTelegram] = useState(false);
-  const [telegramBotToken, setTelegramBotToken] = useState("");
-  const [telegramChatId, setTelegramChatId] = useState("");
+  const [telegramChatId, setTelegramChatId] = useState<string | null>(null);
+  const [telegramBotUsername, setTelegramBotUsername] = useState<string | null>(null);
+  const [telegramBotConfigured, setTelegramBotConfigured] = useState(false);
+  const [telegramActionPending, startTelegramTransition] = useTransition();
+  const [telegramError, setTelegramError] = useState("");
 
   function populate(s: Settings) {
     setPersonalityName(s.personalityName);
@@ -74,8 +82,7 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
     setNtfyUrl(s.ntfyUrl ?? "");
     setNtfyTopic(s.ntfyTopic ?? "");
     setNotificationsTelegram(s.notificationsTelegram);
-    setTelegramBotToken(s.telegramBotToken ?? "");
-    setTelegramChatId(s.telegramChatId ?? "");
+    setTelegramChatId(s.telegramChatId ?? null);
     setTranscriptionProvider((s.transcriptionProvider as TranscriptionProvider | null) ?? null);
     setTranscriptionApiKey(s.transcriptionApiKey ?? "");
     setTranscriptionModel(s.transcriptionModel ?? "");
@@ -87,6 +94,9 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
       setTab("appearance");
       setError("");
       setLoaded(false);
+      setTelegramBotUsername(null);
+      setTelegramBotConfigured(false);
+      setTelegramError("");
       getUserSettingsAction().then((result) => {
         if (result.ok) populate(result.settings);
         setLoaded(true);
@@ -94,6 +104,49 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
     }, 0);
     return () => clearTimeout(id);
   }, [open]);
+
+  useEffect(() => {
+    if (!open || tab !== "notifications") return;
+    setupTelegramAction().then((result) => {
+      if (result.ok) {
+        setTelegramBotConfigured(true);
+        setTelegramBotUsername(result.botUsername);
+      } else {
+        setTelegramBotConfigured(false);
+      }
+    });
+  }, [open, tab]);
+
+  async function handleSetupTelegram() {
+    setTelegramError("");
+    startTelegramTransition(async () => {
+      const result = await setupTelegramAction();
+      if (result.ok) {
+        setTelegramBotConfigured(true);
+        setTelegramBotUsername(result.botUsername);
+      } else {
+        setTelegramError(result.error);
+      }
+    });
+  }
+
+  async function handleDisconnectTelegram() {
+    startTelegramTransition(async () => {
+      await disconnectTelegramAction();
+      setTelegramChatId(null);
+      setNotificationsTelegram(false);
+    });
+  }
+
+  async function handleRecheckTelegram() {
+    startTelegramTransition(async () => {
+      const result = await getUserSettingsAction();
+      if (result.ok) {
+        setTelegramChatId(result.settings.telegramChatId ?? null);
+        setNotificationsTelegram(result.settings.notificationsTelegram);
+      }
+    });
+  }
 
   function handleSave() {
     if (pending) return;
@@ -116,8 +169,6 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
         ntfyUrl: ntfyUrl || null,
         ntfyTopic: ntfyTopic || null,
         notificationsTelegram,
-        telegramBotToken: telegramBotToken || null,
-        telegramChatId: telegramChatId || null,
         transcriptionProvider: transcriptionProvider || null,
         transcriptionApiKey: transcriptionApiKey || null,
         transcriptionModel: transcriptionModel || null,
@@ -198,10 +249,14 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
                       setNtfyTopic={setNtfyTopic}
                       notificationsTelegram={notificationsTelegram}
                       setNotificationsTelegram={setNotificationsTelegram}
-                      telegramBotToken={telegramBotToken}
-                      setTelegramBotToken={setTelegramBotToken}
                       telegramChatId={telegramChatId}
-                      setTelegramChatId={setTelegramChatId}
+                      telegramBotUsername={telegramBotUsername}
+                      telegramBotConfigured={telegramBotConfigured}
+                      onSetupTelegram={handleSetupTelegram}
+                      onDisconnectTelegram={handleDisconnectTelegram}
+                      onRecheckTelegram={handleRecheckTelegram}
+                      telegramActionPending={telegramActionPending}
+                      telegramError={telegramError}
                       pending={pending}
                     />
                   )}

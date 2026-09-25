@@ -60,7 +60,6 @@ export async function processPending(): Promise<void> {
         notificationsPush: userSettings.notificationsPush,
         ntfyUrl: userSettings.ntfyUrl,
         ntfyTopic: userSettings.ntfyTopic,
-        telegramBotToken: userSettings.telegramBotToken,
         telegramChatId: userSettings.telegramChatId,
         notificationsTelegram: userSettings.notificationsTelegram,
       })
@@ -91,15 +90,13 @@ export async function processPending(): Promise<void> {
             throw new Error("ntfy not configured");
           await sendNtfy(userRow.ntfyUrl, userRow.ntfyTopic, job.title, job.message);
           break;
-        case "telegram":
-          if (
-            !userRow.notificationsTelegram ||
-            !userRow.telegramBotToken ||
-            !userRow.telegramChatId
-          )
+        case "telegram": {
+          const botToken = process.env.TELEGRAM_BOT_TOKEN;
+          if (!userRow.notificationsTelegram || !botToken || !userRow.telegramChatId)
             throw new Error("Telegram not configured");
-          await sendTelegram(userRow.telegramBotToken, userRow.telegramChatId, job.message);
+          await sendTelegram(botToken, userRow.telegramChatId, job.message);
           break;
+        }
       }
     } catch (err) {
       deliveryError = errorMessage(err);

@@ -10,6 +10,8 @@ import { SORT_OPTIONS, MEDIUM_OPTIONS, REPEAT_OPTIONS } from "./constants";
 const LABEL = "text-muted-foreground font-mono text-[10px]";
 const HINT = "text-muted-foreground/50 font-mono text-[9px] leading-tight";
 
+export type NotifAvailability = { email: boolean; ntfy: boolean; telegram: boolean };
+
 interface BucketRulesPanelProps {
   activeTab: "items" | "notifications";
   disabled?: boolean;
@@ -31,6 +33,7 @@ interface BucketRulesPanelProps {
   onNotifyAtChange: (v: string) => void;
   onDefaultOffsetChange: (v: string) => void;
   onRepeatChange: (v: RepeatMode) => void;
+  notifAvailability?: NotifAvailability;
 }
 
 export function BucketRulesPanel({
@@ -54,6 +57,7 @@ export function BucketRulesPanel({
   onNotifyAtChange,
   onDefaultOffsetChange,
   onRepeatChange,
+  notifAvailability,
 }: BucketRulesPanelProps) {
   if (activeTab === "items") {
     return (
@@ -102,6 +106,25 @@ export function BucketRulesPanel({
         <label className={LABEL}>medium</label>
         <span className={HINT}>where to send notifications — ntfy is push, email is inbox</span>
         <OptionGroup options={MEDIUM_OPTIONS} value={mediums} onChange={onMediumToggle} multi />
+        {notifAvailability && mediums.length > 0 && (
+          <div className="mt-0.5 flex flex-col gap-0.5">
+            {mediums.includes("email") && !notifAvailability.email && (
+              <span className="text-warning font-mono text-[9px]">
+                ⚠ email not configured — set up in tweaks
+              </span>
+            )}
+            {mediums.includes("ntfy") && !notifAvailability.ntfy && (
+              <span className="text-warning font-mono text-[9px]">
+                ⚠ ntfy not configured — add server url + topic in tweaks
+              </span>
+            )}
+            {mediums.includes("telegram") && !notifAvailability.telegram && (
+              <span className="text-warning font-mono text-[9px]">
+                ⚠ telegram not connected — set up in tweaks
+              </span>
+            )}
+          </div>
+        )}
       </div>
       <div className="flex flex-col gap-1.5">
         <label className={LABEL}>remind me before deadline</label>

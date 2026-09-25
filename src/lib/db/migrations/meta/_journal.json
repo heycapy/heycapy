@@ -15,6 +15,20 @@
       "when": 1790241515624,
       "tag": "0001_magenta_tombstone",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1790300000000,
+      "tag": "0002_telegram_state",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1790310000000,
+      "tag": "0003_telegram_bucket_config",
+      "breakpoints": true
     }
   ]
 }
