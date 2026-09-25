@@ -1,56 +1,154 @@
-import { and, eq, isNotNull, isNull, lt, ne, sql } from "drizzle-orm";
+import { and, eq, gte, isNotNull, isNull, lt, lte, ne, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { buckets, items } from "@/lib/db/schema";
-import { getUpcomingItems } from "@/lib/ai/capyTools";
+import { sendTelegramButtons, sendTelegramWithQuickActions } from "@/lib/notifications/telegram";
+import type { InlineButton } from "@/lib/notifications/telegram";
 import {
   getUserBuckets,
-  createItem,
   getBucketTelegramConfig,
   parseNaturalDeadline,
   fmtDate,
+  fmtDateTimeShort,
+  getLocalDateStr,
+  createItem,
 } from "./telegram-utils";
 import { dataEvents } from "@/lib/events";
 
-export async function cmdBuckets(userId: number): Promise<string> {
+export async function cmdBuckets(botToken: string, chatId: string, userId: number): Promise<void> {
   const rows = await getUserBuckets(userId);
-  if (rows.length === 0) return "No buckets yet.";
+  if (rows.length === 0) {
+    await sendTelegramWithQuickActions(botToken, chatId, "No buckets yet. Create one in the app.");
+    return;
+  }
   const counts = await db
     .select({ bucketId: items.bucketId, count: sql<number>`count(*)` })
     .from(items)
     .where(and(eq(items.userId, userId), isNull(items.deletedAt), ne(items.status, "completed")))
     .groupBy(items.bucketId);
   const countMap = new Map(counts.map((c) => [c.bucketId, c.count]));
-  const lines = rows.map((b, i) => {
+  const buttonRows: InlineButton[][] = rows.map((b) => {
     const n = countMap.get(b.id) ?? 0;
-    return `${i + 1}. ${b.icon ? b.icon + " " : ""}${b.name} (${n} item${n === 1 ? "" : "s"})`;
+    return [
+      {
+        text: `${b.icon ? b.icon + " " : ""}${b.name}  ·  ${n} item${n === 1 ? "" : "s"}`,
+        callback_data: `lb:${b.id}:${b.name.slice(0, 20)}`,
+      },
+    ];
   });
-  return `Buckets:\n${lines.join("\n")}`;
+  await sendTelegramButtons(botToken, chatId, "Your buckets — tap to browse:", buttonRows);
 }
 
-export async function cmdList(userId: number, timezone: string): Promise<string> {
-  const upcoming = await getUpcomingItems(userId, timezone);
-  if (upcoming.length === 0) return "Nothing due in the next 7 days.";
-  return `Upcoming (7 days):\n${upcoming.map((it) => `• ${it.title} — ${it.deadlineRelative} [${it.bucket}]`).join("\n")}`;
+export async function cmdList(
+  botToken: string,
+  chatId: string,
+  userId: number,
+  timezone: string
+): Promise<void> {
+  const now = new Date();
+  const sevenDaysLater = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+  const rows = await db
+    .select({
+      id: items.id,
+      title: items.title,
+      deadline: items.deadline,
+      bucketName: buckets.name,
+    })
+    .from(items)
+    .innerJoin(buckets, eq(items.bucketId, buckets.id))
+    .where(
+      and(
+        eq(items.userId, userId),
+        isNull(items.deletedAt),
+        ne(items.status, "completed"),
+        isNotNull(items.deadline),
+        gte(items.deadline, now),
+        lte(items.deadline, sevenDaysLater)
+      )
+    )
+    .orderBy(items.deadline)
+    .limit(20);
+
+  if (rows.length === 0) {
+    await sendTelegramWithQuickActions(botToken, chatId, "Nothing due in the next 7 days.");
+    return;
+  }
+  const buttonRows: InlineButton[][] = rows.map((r) => {
+    const when = r.deadline ? fmtDateTimeShort(r.deadline, timezone) : "?";
+    return [
+      {
+        text: `${r.title}  ·  ${when} [${r.bucketName}]`.slice(0, 60),
+        callback_data: `mi:${r.id}`,
+      },
+    ];
+  });
+  buttonRows.push([{ text: "✖ Close", callback_data: "cancel" }]);
+  await sendTelegramButtons(botToken, chatId, "Upcoming (7 days) — tap to manage:", buttonRows);
 }
 
-export async function cmdDue(userId: number, timezone: string): Promise<string> {
-  const today = (await getUpcomingItems(userId, timezone)).filter(
-    (it) => it.deadlineRelative === "today"
+export async function cmdDue(
+  botToken: string,
+  chatId: string,
+  userId: number,
+  timezone: string
+): Promise<void> {
+  const todayStr = getLocalDateStr(new Date(), timezone);
+  const rows = await db
+    .select({
+      id: items.id,
+      title: items.title,
+      deadline: items.deadline,
+      bucketName: buckets.name,
+    })
+    .from(items)
+    .innerJoin(buckets, eq(items.bucketId, buckets.id))
+    .where(
+      and(
+        eq(items.userId, userId),
+        isNull(items.deletedAt),
+        ne(items.status, "completed"),
+        isNotNull(items.deadline)
+      )
+    )
+    .orderBy(items.deadline)
+    .limit(50);
+
+  const dueToday = rows.filter(
+    (r) => r.deadline && getLocalDateStr(r.deadline, timezone) === todayStr
   );
-  if (today.length === 0) return "Nothing due today.";
-  return `Due today:\n${today.map((it) => `• ${it.title} [${it.bucket}]`).join("\n")}`;
+
+  if (dueToday.length === 0) {
+    await sendTelegramWithQuickActions(botToken, chatId, "Nothing due today.");
+    return;
+  }
+  const buttonRows: InlineButton[][] = dueToday.map((r) => {
+    const when = r.deadline ? fmtDateTimeShort(r.deadline, timezone) : "?";
+    return [
+      {
+        text: `${r.title}  ·  ${when} [${r.bucketName}]`.slice(0, 60),
+        callback_data: `mi:${r.id}`,
+      },
+    ];
+  });
+  buttonRows.push([{ text: "✖ Close", callback_data: "cancel" }]);
+  await sendTelegramButtons(botToken, chatId, "Due today — tap to manage:", buttonRows);
 }
 
-export async function cmdOverdue(userId: number, timezone: string): Promise<string> {
+export async function cmdOverdue(
+  botToken: string,
+  chatId: string,
+  userId: number,
+  timezone: string
+): Promise<void> {
   const now = new Date();
   const rows = await db
     .select({
       id: items.id,
       title: items.title,
       deadline: items.deadline,
-      bucketId: items.bucketId,
+      bucketName: buckets.name,
     })
     .from(items)
+    .innerJoin(buckets, eq(items.bucketId, buckets.id))
     .where(
       and(
         eq(items.userId, userId),
@@ -62,16 +160,22 @@ export async function cmdOverdue(userId: number, timezone: string): Promise<stri
     )
     .orderBy(items.deadline)
     .limit(20);
-  if (rows.length === 0) return "Nothing overdue.";
-  const bucketMap = new Map(
-    (
-      await db
-        .select({ id: buckets.id, name: buckets.name })
-        .from(buckets)
-        .where(eq(buckets.userId, userId))
-    ).map((b) => [b.id, b.name])
-  );
-  return `Overdue:\n${rows.map((r) => `• ${r.title} (was ${r.deadline ? fmtDate(r.deadline, timezone) : "?"}) [${bucketMap.get(r.bucketId) ?? "?"}]`).join("\n")}`;
+
+  if (rows.length === 0) {
+    await sendTelegramWithQuickActions(botToken, chatId, "Nothing overdue.");
+    return;
+  }
+  const buttonRows: InlineButton[][] = rows.map((r) => {
+    const when = r.deadline ? fmtDateTimeShort(r.deadline, timezone) : "?";
+    return [
+      {
+        text: `${r.title}  ·  ${when} [${r.bucketName}]`.slice(0, 60),
+        callback_data: `mi:${r.id}`,
+      },
+    ];
+  });
+  buttonRows.push([{ text: "✖ Close", callback_data: "cancel" }]);
+  await sendTelegramButtons(botToken, chatId, "Overdue — tap to manage:", buttonRows);
 }
 
 export async function cmdAddDirect(
@@ -113,7 +217,7 @@ export async function buildHelpText(userId: number): Promise<string> {
   }
   return [
     "Commands:",
-    "/buckets — list your buckets",
+    "/buckets — browse your buckets",
     "/list — upcoming items (7 days)",
     "/due — items due today",
     "/overdue — overdue items",
@@ -121,6 +225,6 @@ export async function buildHelpText(userId: number): Promise<string> {
     "/add <#> <title> [@ <deadline>] — quick add",
     ...(aliases.length > 0 ? ["", "Your shortcuts:", ...aliases] : []),
     "",
-    "Or tap ➕ Add below.",
+    "Or tap ➕ Add · 📝 List below.",
   ].join("\n");
 }

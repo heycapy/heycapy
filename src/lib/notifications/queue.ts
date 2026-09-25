@@ -3,7 +3,7 @@ import { db } from "@/lib/db";
 import { notificationQueue, notificationLog, users, userSettings } from "@/lib/db/schema";
 import { sendEmail } from "./email";
 import { sendNtfy } from "./ntfy";
-import { sendTelegram } from "./telegram";
+import { sendTelegram, sendTelegramItemNotification } from "./telegram";
 import { errorMessage } from "@/lib/errors";
 import {
   QUEUE_DEFAULT_MAX_ATTEMPTS,
@@ -94,7 +94,16 @@ export async function processPending(): Promise<void> {
           const botToken = process.env.TELEGRAM_BOT_TOKEN;
           if (!userRow.notificationsTelegram || !botToken || !userRow.telegramChatId)
             throw new Error("Telegram not configured");
-          await sendTelegram(botToken, userRow.telegramChatId, job.message);
+          if (job.itemId) {
+            await sendTelegramItemNotification(
+              botToken,
+              userRow.telegramChatId,
+              job.message,
+              job.itemId
+            );
+          } else {
+            await sendTelegram(botToken, userRow.telegramChatId, job.message);
+          }
           break;
         }
       }

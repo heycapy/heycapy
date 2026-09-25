@@ -53,9 +53,41 @@ export async function sendTelegramWithQuickActions(
       chat_id: chatId,
       text,
       reply_markup: {
-        keyboard: [["➕ Add", "📋 Today", "⚠️ Overdue"]],
+        keyboard: [
+          ["➕ Add", "📝 List"],
+          ["📋 Today", "⚠️ Overdue"],
+        ],
         resize_keyboard: true,
         is_persistent: true,
+      },
+    }),
+  });
+
+  if (!res.ok) {
+    const body = await res.text();
+    throw new Error(`Telegram API error ${res.status}: ${body}`);
+  }
+}
+
+export async function sendTelegramItemNotification(
+  botToken: string,
+  chatId: string,
+  text: string,
+  itemId: number
+): Promise<void> {
+  const res = await fetch(`${TELEGRAM_API_BASE}/bot${botToken}/sendMessage`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      chat_id: chatId,
+      text,
+      reply_markup: {
+        inline_keyboard: [
+          [
+            { text: "✓ Done", callback_data: `qc:${itemId}` },
+            { text: "📅 Update deadline", callback_data: `qu:${itemId}` },
+          ],
+        ],
       },
     }),
   });

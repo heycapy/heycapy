@@ -28,7 +28,14 @@ import {
   getEndOfMonthDateStr,
   getUserBuckets,
   applyTimeToDate,
-  parseTimeString,
+  parseTimeStringExtended,
+  parseNaturalDeadline,
+  fmtDate,
+  fmtDateTime,
+  completeItemById,
+  updateItemTitle,
+  updateItemDeadline,
+  softDeleteItemById,
 } from "./telegram-utils";
 import type { TelegramUpdate } from "./telegram-utils";
 import {
@@ -41,6 +48,15 @@ import {
   handleRepeatCallback,
 } from "./telegram-flow";
 import {
+  showListBucketPicker,
+  showItemList,
+  showItemActionMenu,
+  showDeleteConfirm,
+  showEditDeadlinePicker,
+  showEditTimePicker,
+  showEditCalendar,
+} from "./telegram-manage";
+import {
   cmdBuckets,
   cmdList,
   cmdDue,
@@ -48,7 +64,6 @@ import {
   cmdAddDirect,
   buildHelpText,
 } from "./telegram-commands";
-import { parseNaturalDeadline } from "./telegram-utils";
 
 export async function POST(req: Request) {
   const botToken = process.env.TELEGRAM_BOT_TOKEN;
@@ -271,6 +286,331 @@ export async function POST(req: Request) {
       return new Response("OK");
     }
 
+    // ── list / item management flow ──
+
+    if (callbackData.startsWith("lb:")) {
+      const parts = callbackData.slice(3).split(":");
+      const bucketId = Number(parts[0]);
+      const bucketName = parts.slice(1).join(":") || "Bucket";
+      await setFlowState(userId, { s: "lb_items", bucketId, bucketName, page: 0 });
+      await showItemList(botToken, chatIdStr, userId, bucketId, bucketName, 0, timezone);
+      return new Response("OK");
+    }
+
+    if (callbackData.startsWith("mp:") && flowState?.s === "lb_items") {
+      const page = parseInt(callbackData.slice(3), 10);
+      await setFlowState(userId, { ...flowState, page });
+      await showItemList(
+        botToken,
+        chatIdStr,
+        userId,
+        flowState.bucketId,
+        flowState.bucketName,
+        page,
+        timezone
+      );
+      return new Response("OK");
+    }
+
+    if (callbackData.startsWith("mi:")) {
+      const itemId = parseInt(callbackData.slice(3), 10);
+      const itemRow = await db.query.items.findFirst({
+        where: (i, { eq: qeq, and: qand }) => qand(qeq(i.id, itemId), qeq(i.userId, userId)),
+      });
+      if (!itemRow) {
+        await setFlowState(userId, null);
+        await sendTelegramWithQuickActions(botToken, chatIdStr, "Item not found.");
+        return new Response("OK");
+      }
+      const bucketRow = await db.query.buckets.findFirst({
+        where: (b, { eq: qeq }) => qeq(b.id, itemRow.bucketId),
+      });
+      const bucketId = itemRow.bucketId;
+      const bucketName = bucketRow?.name ?? "Bucket";
+      await setFlowState(userId, {
+        s: "mg_edit",
+        itemId,
+        itemTitle: itemRow.title,
+        bucketId,
+        bucketName,
+      });
+      await showItemActionMenu(botToken, chatIdStr, itemRow.title);
+      return new Response("OK");
+    }
+
+    if (callbackData.startsWith("la:") && flowState?.s === "mg_edit") {
+      const action = callbackData.slice(3);
+      if (action === "complete") {
+        await completeItemById(userId, flowState.itemId);
+        await setFlowState(userId, null);
+        dataEvents.emit("refresh", userId);
+        await sendTelegramWithQuickActions(
+          botToken,
+          chatIdStr,
+          `✓ "${flowState.itemTitle}" marked as complete!`
+        );
+      } else if (action === "delete") {
+        await setFlowState(userId, {
+          s: "mg_confirm",
+          itemId: flowState.itemId,
+          itemTitle: flowState.itemTitle,
+          bucketId: flowState.bucketId,
+          bucketName: flowState.bucketName,
+        });
+        await showDeleteConfirm(botToken, chatIdStr, flowState.itemTitle);
+      }
+      return new Response("OK");
+    }
+
+    // ── quick actions from notifications ──
+
+    if (callbackData.startsWith("qc:")) {
+      const itemId = parseInt(callbackData.slice(3), 10);
+      const itemRow = await db.query.items.findFirst({
+        where: (i, { eq: qeq, and: qand }) => qand(qeq(i.id, itemId), qeq(i.userId, userId)),
+      });
+      if (!itemRow) return new Response("OK");
+      await completeItemById(userId, itemId);
+      dataEvents.emit("refresh", userId);
+      await sendTelegramWithQuickActions(
+        botToken,
+        chatIdStr,
+        `✓ "${itemRow.title}" marked as complete!`
+      );
+      return new Response("OK");
+    }
+
+    if (callbackData.startsWith("qu:")) {
+      const itemId = parseInt(callbackData.slice(3), 10);
+      const itemRow = await db.query.items.findFirst({
+        where: (i, { eq: qeq, and: qand }) => qand(qeq(i.id, itemId), qeq(i.userId, userId)),
+      });
+      if (!itemRow) return new Response("OK");
+      const bucket = await db.query.buckets.findFirst({
+        where: (b, { eq: qeq }) => qeq(b.id, itemRow.bucketId),
+      });
+      await setFlowState(userId, {
+        s: "mg_edit_dl",
+        itemId,
+        itemTitle: itemRow.title,
+        bucketId: itemRow.bucketId,
+        bucketName: bucket?.name ?? "Bucket",
+      });
+      await showEditDeadlinePicker(botToken, chatIdStr, itemRow.title, itemRow.bucketId);
+      return new Response("OK");
+    }
+
+    if (callbackData === "dc:yes" && flowState?.s === "mg_confirm") {
+      await softDeleteItemById(userId, flowState.itemId);
+      await setFlowState(userId, null);
+      dataEvents.emit("refresh", userId);
+      await sendTelegramWithQuickActions(
+        botToken,
+        chatIdStr,
+        `🗑 "${flowState.itemTitle}" deleted.`
+      );
+      return new Response("OK");
+    }
+
+    if (callbackData.startsWith("me:") && flowState?.s === "mg_edit") {
+      const what = callbackData.slice(3);
+      if (what === "rename") {
+        await setFlowState(userId, {
+          s: "mg_edit_title",
+          itemId: flowState.itemId,
+          itemTitle: flowState.itemTitle,
+          bucketId: flowState.bucketId,
+          bucketName: flowState.bucketName,
+        });
+        await sendTelegramButtons(
+          botToken,
+          chatIdStr,
+          `Type a new title for "${flowState.itemTitle.slice(0, 40)}":`,
+          [[{ text: "✖ Cancel", callback_data: "cancel" }]]
+        );
+      } else if (what === "deadline") {
+        await setFlowState(userId, {
+          s: "mg_edit_dl",
+          itemId: flowState.itemId,
+          itemTitle: flowState.itemTitle,
+          bucketId: flowState.bucketId,
+          bucketName: flowState.bucketName,
+        });
+        await showEditDeadlinePicker(botToken, chatIdStr, flowState.itemTitle, flowState.bucketId);
+      }
+      return new Response("OK");
+    }
+
+    if (callbackData.startsWith("eq:") && flowState?.s === "mg_edit_dl") {
+      const preset = callbackData.slice(3) as TelegramDeadlinePreset;
+      if (preset === "no_deadline") {
+        await updateItemDeadline(userId, flowState.itemId, null);
+        await setFlowState(userId, null);
+        dataEvents.emit("refresh", userId);
+        await sendTelegramWithQuickActions(
+          botToken,
+          chatIdStr,
+          `Updated "${flowState.itemTitle}" — deadline removed ✓`
+        );
+      } else if (preset === "today" || preset === "tomorrow") {
+        const offset = preset === "today" ? 0 : 1;
+        const dateStr = getLocalDateStr(new Date(Date.now() + offset * 86_400_000), timezone);
+        await setFlowState(userId, {
+          s: "mg_edit_time",
+          itemId: flowState.itemId,
+          itemTitle: flowState.itemTitle,
+          bucketId: flowState.bucketId,
+          bucketName: flowState.bucketName,
+          date: dateStr,
+          isToday: preset === "today",
+        });
+        await showEditTimePicker(
+          botToken,
+          chatIdStr,
+          flowState.itemTitle,
+          flowState.bucketId,
+          timezone,
+          preset === "today"
+        );
+      } else if (preset === "end_of_month") {
+        const dateStr = getEndOfMonthDateStr(timezone);
+        await setFlowState(userId, {
+          s: "mg_edit_time",
+          itemId: flowState.itemId,
+          itemTitle: flowState.itemTitle,
+          bucketId: flowState.bucketId,
+          bucketName: flowState.bucketName,
+          date: dateStr,
+          isToday: false,
+        });
+        await showEditTimePicker(
+          botToken,
+          chatIdStr,
+          flowState.itemTitle,
+          flowState.bucketId,
+          timezone,
+          false
+        );
+      } else if (preset === "pick_date") {
+        const now = new Date();
+        const monthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+        await setFlowState(userId, {
+          s: "mg_edit_cal",
+          itemId: flowState.itemId,
+          itemTitle: flowState.itemTitle,
+          bucketId: flowState.bucketId,
+          bucketName: flowState.bucketName,
+          month: monthStr,
+        });
+        await showEditCalendar(botToken, chatIdStr, monthStr, flowState.itemTitle);
+      } else if (preset === "this_week") {
+        const deadline = parseNaturalDeadline("next week", timezone);
+        if (deadline) {
+          await updateItemDeadline(userId, flowState.itemId, deadline);
+          dataEvents.emit("refresh", userId);
+          await sendTelegramWithQuickActions(
+            botToken,
+            chatIdStr,
+            `Updated "${flowState.itemTitle}" — due ${fmtDate(deadline, timezone)} ✓`
+          );
+        }
+        await setFlowState(userId, null);
+      }
+      return new Response("OK");
+    }
+
+    if (callbackData.startsWith("ec:") && flowState?.s === "mg_edit_cal") {
+      const newMonth = callbackData.slice(3);
+      await setFlowState(userId, { ...flowState, month: newMonth });
+      await showEditCalendar(botToken, chatIdStr, newMonth, flowState.itemTitle);
+      return new Response("OK");
+    }
+
+    if (callbackData.startsWith("ek:") && flowState?.s === "mg_edit_cal") {
+      const dateStr = callbackData.slice(3);
+      const today = getLocalDateStr(new Date(), timezone);
+      await setFlowState(userId, {
+        s: "mg_edit_time",
+        itemId: flowState.itemId,
+        itemTitle: flowState.itemTitle,
+        bucketId: flowState.bucketId,
+        bucketName: flowState.bucketName,
+        date: dateStr,
+        isToday: dateStr === today,
+      });
+      await showEditTimePicker(
+        botToken,
+        chatIdStr,
+        flowState.itemTitle,
+        flowState.bucketId,
+        timezone,
+        dateStr === today
+      );
+      return new Response("OK");
+    }
+
+    if (callbackData.startsWith("et:") && flowState?.s === "mg_edit_time") {
+      const when = callbackData.slice(3);
+      if (when === "custom") {
+        await setFlowState(userId, {
+          s: "mg_edit_ctime",
+          itemId: flowState.itemId,
+          itemTitle: flowState.itemTitle,
+          bucketId: flowState.bucketId,
+          bucketName: flowState.bucketName,
+          date: flowState.date,
+        });
+        await sendTelegramButtons(botToken, chatIdStr, "Type a time (e.g. 3pm, 15:30, 9am):", [
+          [{ text: "✖ Cancel", callback_data: "cancel" }],
+        ]);
+        return new Response("OK");
+      }
+      const deadline =
+        when === "none"
+          ? applyTimeToDate(flowState.date, 12, 0, timezone)
+          : applyTimeToDate(
+              flowState.date,
+              parseInt(when.split(":")[0] ?? "12"),
+              parseInt(when.split(":")[1] ?? "0"),
+              timezone
+            );
+      await updateItemDeadline(userId, flowState.itemId, deadline);
+      await setFlowState(userId, null);
+      dataEvents.emit("refresh", userId);
+      await sendTelegramWithQuickActions(
+        botToken,
+        chatIdStr,
+        `Updated "${flowState.itemTitle}" — due ${fmtDateTime(deadline, timezone)} ✓`
+      );
+      return new Response("OK");
+    }
+
+    if (
+      callbackData.startsWith("ap:") &&
+      (flowState?.s === "ctime_ampm" || flowState?.s === "mg_edit_ampm")
+    ) {
+      const period = callbackData.slice(3);
+      let hour = flowState.hour;
+      if (period === "pm" && hour !== 12) hour += 12;
+      if (period === "am" && hour === 12) hour = 0;
+
+      if (flowState.s === "ctime_ampm") {
+        const deadline = applyTimeToDate(flowState.date, hour, flowState.minute, timezone);
+        await handleAfterTime(botToken, chatIdStr, userId, flowState, deadline, timezone);
+      } else {
+        const deadline = applyTimeToDate(flowState.date, hour, flowState.minute, timezone);
+        await updateItemDeadline(userId, flowState.itemId, deadline);
+        await setFlowState(userId, null);
+        dataEvents.emit("refresh", userId);
+        await sendTelegramWithQuickActions(
+          botToken,
+          chatIdStr,
+          `Updated "${flowState.itemTitle}" — due ${fmtDateTime(deadline, timezone)} ✓`
+        );
+      }
+      return new Response("OK");
+    }
+
     return new Response("OK");
   }
 
@@ -297,17 +637,114 @@ export async function POST(req: Request) {
   }
 
   if (flowState?.s === "ctime" || flowState?.s === "time") {
-    const parsed = parseTimeString(text);
+    const parsed = parseTimeStringExtended(text);
     if (!parsed) {
-      await sendTelegram(
+      await sendTelegramButtons(
         botToken,
         chatIdStr,
-        `Couldn't parse "${text}". Try "3pm", "15:30", or "9am":`
+        `Couldn't parse "${text}". Try "3pm", "15:30", or "9am":`,
+        [[{ text: "✖ Cancel", callback_data: "cancel" }]]
+      );
+      return new Response("OK");
+    }
+    if (parsed.ambiguous) {
+      await setFlowState(userId, {
+        s: "ctime_ampm",
+        bucketId: flowState.bucketId,
+        bucketName: flowState.bucketName,
+        title: flowState.title,
+        date: flowState.date,
+        hour: parsed.hour,
+        minute: parsed.minute,
+      });
+      await sendTelegramButtons(
+        botToken,
+        chatIdStr,
+        `${parsed.hour}:${String(parsed.minute).padStart(2, "0")} — AM or PM?`,
+        [
+          [
+            { text: "AM", callback_data: "ap:am" },
+            { text: "PM", callback_data: "ap:pm" },
+          ],
+          [{ text: "✖ Cancel", callback_data: "cancel" }],
+        ]
       );
       return new Response("OK");
     }
     const deadline = applyTimeToDate(flowState.date, parsed.hour, parsed.minute, timezone);
     await handleAfterTime(botToken, chatIdStr, userId, flowState, deadline, timezone);
+    return new Response("OK");
+  }
+
+  if (flowState?.s === "mg_edit_title") {
+    const newTitle = text.trim();
+    if (!newTitle) {
+      await sendTelegram(botToken, chatIdStr, "Title cannot be empty. Try again:");
+      return new Response("OK");
+    }
+    await updateItemTitle(userId, flowState.itemId, newTitle);
+    await setFlowState(userId, null);
+    dataEvents.emit("refresh", userId);
+    await sendTelegramWithQuickActions(botToken, chatIdStr, `✓ Renamed to "${newTitle}"`);
+    return new Response("OK");
+  }
+
+  if (flowState?.s === "mg_edit_ctime") {
+    const parsed = parseTimeStringExtended(text);
+    if (!parsed) {
+      await sendTelegramButtons(
+        botToken,
+        chatIdStr,
+        `Couldn't parse "${text}". Try "3pm", "15:30", or "9am":`,
+        [[{ text: "✖ Cancel", callback_data: "cancel" }]]
+      );
+      return new Response("OK");
+    }
+    if (parsed.ambiguous) {
+      await setFlowState(userId, {
+        s: "mg_edit_ampm",
+        itemId: flowState.itemId,
+        itemTitle: flowState.itemTitle,
+        bucketId: flowState.bucketId,
+        bucketName: flowState.bucketName,
+        date: flowState.date,
+        hour: parsed.hour,
+        minute: parsed.minute,
+      });
+      await sendTelegramButtons(
+        botToken,
+        chatIdStr,
+        `${parsed.hour}:${String(parsed.minute).padStart(2, "0")} — AM or PM?`,
+        [
+          [
+            { text: "AM", callback_data: "ap:am" },
+            { text: "PM", callback_data: "ap:pm" },
+          ],
+          [{ text: "✖ Cancel", callback_data: "cancel" }],
+        ]
+      );
+      return new Response("OK");
+    }
+    const deadline = applyTimeToDate(flowState.date, parsed.hour, parsed.minute, timezone);
+    await updateItemDeadline(userId, flowState.itemId, deadline);
+    await setFlowState(userId, null);
+    dataEvents.emit("refresh", userId);
+    await sendTelegramWithQuickActions(
+      botToken,
+      chatIdStr,
+      `Updated "${flowState.itemTitle}" — due ${fmtDateTime(deadline, timezone)} ✓`
+    );
+    return new Response("OK");
+  }
+
+  if (flowState?.s === "ctime_ampm" || flowState?.s === "mg_edit_ampm") {
+    await sendTelegramButtons(botToken, chatIdStr, "Please tap AM or PM:", [
+      [
+        { text: "AM", callback_data: "ap:am" },
+        { text: "PM", callback_data: "ap:pm" },
+      ],
+      [{ text: "✖ Cancel", callback_data: "cancel" }],
+    ]);
     return new Response("OK");
   }
 
@@ -320,7 +757,8 @@ export async function POST(req: Request) {
     !lower.startsWith("/buckets") &&
     !lower.startsWith("/list") &&
     !lower.startsWith("/due") &&
-    !lower.startsWith("/overdue")
+    !lower.startsWith("/overdue") &&
+    !lower.startsWith("/list_items")
   ) {
     const spaceIdx = text.indexOf(" ");
     const alias = (spaceIdx === -1 ? text.slice(1) : text.slice(1, spaceIdx)).toLowerCase();
@@ -367,29 +805,44 @@ export async function POST(req: Request) {
   const isAddGuided = lower === "/add" || lower === "➕ add";
   const isTodayShortcut = lower === "📋 today";
   const isOverdueShortcut = lower === "⚠️ overdue";
+  const isListShortcut = lower === "📝 list" || lower === "/list_items";
 
   if (isAddGuided) {
     await showBucketPicker(botToken, chatIdStr, await getUserBuckets(userId));
     return new Response("OK");
   }
 
-  let commandReply: string | null = null;
-  if (lower === "/help") {
-    commandReply = await buildHelpText(userId);
-  } else if (lower === "/buckets") {
-    commandReply = await cmdBuckets(userId);
-  } else if (lower === "/list") {
-    commandReply = await cmdList(userId, timezone);
-  } else if (lower === "/due" || isTodayShortcut) {
-    commandReply = await cmdDue(userId, timezone);
-  } else if (lower === "/overdue" || isOverdueShortcut) {
-    commandReply = await cmdOverdue(userId, timezone);
-  } else if (lower.startsWith("/add ")) {
-    commandReply = await cmdAddDirect(text.slice(5).trim(), userId, timezone);
+  if (isListShortcut) {
+    await showListBucketPicker(botToken, chatIdStr, await getUserBuckets(userId));
+    return new Response("OK");
   }
 
-  if (commandReply !== null) {
-    await sendTelegramWithQuickActions(botToken, chatIdStr, commandReply);
+  if (lower === "/help") {
+    await sendTelegramWithQuickActions(botToken, chatIdStr, await buildHelpText(userId));
+    return new Response("OK");
+  }
+  if (lower === "/buckets") {
+    await cmdBuckets(botToken, chatIdStr, userId);
+    return new Response("OK");
+  }
+  if (lower === "/list") {
+    await cmdList(botToken, chatIdStr, userId, timezone);
+    return new Response("OK");
+  }
+  if (lower === "/due" || isTodayShortcut) {
+    await cmdDue(botToken, chatIdStr, userId, timezone);
+    return new Response("OK");
+  }
+  if (lower === "/overdue" || isOverdueShortcut) {
+    await cmdOverdue(botToken, chatIdStr, userId, timezone);
+    return new Response("OK");
+  }
+  if (lower.startsWith("/add ")) {
+    await sendTelegramWithQuickActions(
+      botToken,
+      chatIdStr,
+      await cmdAddDirect(text.slice(5).trim(), userId, timezone)
+    );
     return new Response("OK");
   }
 

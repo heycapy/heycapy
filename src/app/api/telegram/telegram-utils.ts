@@ -1,4 +1,4 @@
-import { and, eq, isNull, sql } from "drizzle-orm";
+import { and, eq, isNull, ne, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { buckets, items, userSettings } from "@/lib/db/schema";
 import { parseDeadlineInTimezone } from "@/lib/ai/capyTools";
@@ -28,6 +28,56 @@ export type FlowState =
   | { s: "ctime"; bucketId: number; bucketName: string; title: string; date: string }
   | { s: "cal"; bucketId: number; bucketName: string; title: string; month: string }
   | { s: "repeat"; bucketId: number; bucketName: string; title: string; deadline: string | null }
+  | {
+      s: "ctime_ampm";
+      bucketId: number;
+      bucketName: string;
+      title: string;
+      date: string;
+      hour: number;
+      minute: number;
+    }
+  | {
+      s: "mg_edit_ampm";
+      itemId: number;
+      itemTitle: string;
+      bucketId: number;
+      bucketName: string;
+      date: string;
+      hour: number;
+      minute: number;
+    }
+  // list / item management flow
+  | { s: "lb_items"; bucketId: number; bucketName: string; page: number }
+  | { s: "mg_edit"; itemId: number; itemTitle: string; bucketId: number; bucketName: string }
+  | { s: "mg_confirm"; itemId: number; itemTitle: string; bucketId: number; bucketName: string }
+  | { s: "mg_edit_title"; itemId: number; itemTitle: string; bucketId: number; bucketName: string }
+  | { s: "mg_edit_dl"; itemId: number; itemTitle: string; bucketId: number; bucketName: string }
+  | {
+      s: "mg_edit_cal";
+      itemId: number;
+      itemTitle: string;
+      bucketId: number;
+      bucketName: string;
+      month: string;
+    }
+  | {
+      s: "mg_edit_time";
+      itemId: number;
+      itemTitle: string;
+      bucketId: number;
+      bucketName: string;
+      date: string;
+      isToday: boolean;
+    }
+  | {
+      s: "mg_edit_ctime";
+      itemId: number;
+      itemTitle: string;
+      bucketId: number;
+      bucketName: string;
+      date: string;
+    }
   | null;
 
 export function getFlowState(raw: string | null): FlowState {
@@ -114,7 +164,9 @@ export function applyTimeToDate(
   );
 }
 
-export function parseTimeString(input: string): { hour: number; minute: number } | null {
+export function parseTimeStringExtended(
+  input: string
+): { hour: number; minute: number; ambiguous: boolean } | null {
   const s = input.trim().toLowerCase().replace(/\s+/g, "");
   const ampmMatch = s.match(/^(\d{1,2})(?::(\d{2}))?(am|pm)$/);
   if (ampmMatch) {
@@ -123,13 +175,16 @@ export function parseTimeString(input: string): { hour: number; minute: number }
     const period = ampmMatch[3];
     if (period === "pm" && h !== 12) h += 12;
     if (period === "am" && h === 12) h = 0;
-    if (h >= 0 && h < 24 && m >= 0 && m < 60) return { hour: h, minute: m };
+    if (h >= 0 && h < 24 && m >= 0 && m < 60) return { hour: h, minute: m, ambiguous: false };
   }
-  const h24Match = s.match(/^(\d{1,2})(?::(\d{2}))?$/);
-  if (h24Match) {
-    const h = parseInt(h24Match[1] ?? "0");
-    const m = parseInt(h24Match[2] ?? "0");
-    if (h >= 0 && h < 24 && m >= 0 && m < 60) return { hour: h, minute: m };
+  const plainMatch = s.match(/^(\d{1,2})(?::(\d{2}))?$/);
+  if (plainMatch) {
+    const h = parseInt(plainMatch[1] ?? "0");
+    const m = parseInt(plainMatch[2] ?? "0");
+    if (h >= 0 && h < 24 && m >= 0 && m < 60) {
+      // 1–11: ambiguous (could be AM or PM), 0/12–23: unambiguous
+      return { hour: h, minute: m, ambiguous: h >= 1 && h <= 11 };
+    }
   }
   return null;
 }
@@ -158,6 +213,16 @@ export function fmtDateTime(d: Date, timezone: string): string {
     month: "short",
     day: "numeric",
     year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
+export function fmtDateTimeShort(d: Date, timezone: string): string {
+  return d.toLocaleString("en-US", {
+    timeZone: timezone,
+    month: "short",
+    day: "numeric",
     hour: "numeric",
     minute: "2-digit",
   });
@@ -260,6 +325,57 @@ export async function getUserBuckets(userId: number) {
     .from(buckets)
     .where(and(eq(buckets.userId, userId), isNull(buckets.deletedAt), isNull(buckets.archivedAt)))
     .orderBy(buckets.sortOrder);
+}
+
+export async function getActiveItemsForBucket(userId: number, bucketId: number) {
+  return db
+    .select({ id: items.id, title: items.title, deadline: items.deadline })
+    .from(items)
+    .where(
+      and(
+        eq(items.userId, userId),
+        eq(items.bucketId, bucketId),
+        isNull(items.deletedAt),
+        ne(items.status, "completed")
+      )
+    )
+    .orderBy(items.sortOrder, items.createdAt);
+}
+
+export async function completeItemById(userId: number, itemId: number): Promise<void> {
+  await db
+    .update(items)
+    .set({ status: "completed", completedAt: new Date(), updatedAt: new Date() })
+    .where(and(eq(items.id, itemId), eq(items.userId, userId)));
+}
+
+export async function updateItemTitle(
+  userId: number,
+  itemId: number,
+  title: string
+): Promise<void> {
+  await db
+    .update(items)
+    .set({ title, updatedAt: new Date() })
+    .where(and(eq(items.id, itemId), eq(items.userId, userId)));
+}
+
+export async function updateItemDeadline(
+  userId: number,
+  itemId: number,
+  deadline: Date | null
+): Promise<void> {
+  await db
+    .update(items)
+    .set({ deadline, updatedAt: new Date() })
+    .where(and(eq(items.id, itemId), eq(items.userId, userId)));
+}
+
+export async function softDeleteItemById(userId: number, itemId: number): Promise<void> {
+  await db
+    .update(items)
+    .set({ deletedAt: new Date() })
+    .where(and(eq(items.id, itemId), eq(items.userId, userId)));
 }
 
 export async function createItem(
