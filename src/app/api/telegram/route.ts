@@ -974,14 +974,51 @@ export async function POST(req: Request) {
   const isListShortcut = lower === "📝 list" || lower === "/list_items";
 
   if (isAddGuided) {
-    const newMsgId = await showBucketPicker(botToken, chatIdStr, await getUserBuckets(userId));
-    await setFlowState(userId, null, newMsgId);
+    const userBuckets = await getUserBuckets(userId);
+    const onlyBucket = userBuckets.length === 1 ? userBuckets[0] : null;
+    if (onlyBucket) {
+      const newMsgId = await sendOrEditButtons(
+        botToken,
+        chatIdStr,
+        null,
+        `Adding to ${onlyBucket.name}.\n\nWhat's the title?`,
+        [[{ text: "✖ Cancel", callback_data: "cancel" }]]
+      );
+      await setFlowState(
+        userId,
+        { s: "title", bucketId: onlyBucket.id, bucketName: onlyBucket.name },
+        newMsgId
+      );
+    } else {
+      const newMsgId = await showBucketPicker(botToken, chatIdStr, userBuckets);
+      await setFlowState(userId, null, newMsgId);
+    }
     return new Response("OK");
   }
 
   if (isListShortcut) {
-    const newMsgId = await showListBucketPicker(botToken, chatIdStr, await getUserBuckets(userId));
-    await setFlowState(userId, null, newMsgId);
+    const userBuckets = await getUserBuckets(userId);
+    const onlyBucket = userBuckets.length === 1 ? userBuckets[0] : null;
+    if (onlyBucket) {
+      const newMsgId = await showItemList(
+        botToken,
+        chatIdStr,
+        userId,
+        onlyBucket.id,
+        onlyBucket.name,
+        0,
+        timezone,
+        null
+      );
+      await setFlowState(
+        userId,
+        { s: "lb_items", bucketId: onlyBucket.id, bucketName: onlyBucket.name, page: 0 },
+        newMsgId
+      );
+    } else {
+      const newMsgId = await showListBucketPicker(botToken, chatIdStr, userBuckets);
+      await setFlowState(userId, null, newMsgId);
+    }
     return new Response("OK");
   }
 

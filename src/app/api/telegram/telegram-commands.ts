@@ -78,12 +78,10 @@ export async function cmdList(
   }
   const buttonRows: InlineButton[][] = rows.map((r) => {
     const when = r.deadline ? fmtDateTimeShort(r.deadline, timezone) : "?";
-    return [
-      {
-        text: `${r.title}  ·  ${when} [${r.bucketName}]`.slice(0, 60),
-        callback_data: `mi:${r.id}`,
-      },
-    ];
+    const suffix = `  ·  ${when} [${r.bucketName}]`;
+    const maxTitle = 60 - suffix.length;
+    const truncTitle = r.title.length > maxTitle ? r.title.slice(0, maxTitle - 1) + "…" : r.title;
+    return [{ text: `${truncTitle}${suffix}`, callback_data: `mi:${r.id}` }];
   });
   buttonRows.push([{ text: "✖ Close", callback_data: "cancel" }]);
   return sendTelegramButtons(botToken, chatId, "Upcoming (7 days) — tap to manage:", buttonRows);
@@ -126,12 +124,10 @@ export async function cmdDue(
   }
   const buttonRows: InlineButton[][] = dueToday.map((r) => {
     const when = r.deadline ? fmtDateTimeShort(r.deadline, timezone) : "?";
-    return [
-      {
-        text: `${r.title}  ·  ${when} [${r.bucketName}]`.slice(0, 60),
-        callback_data: `mi:${r.id}`,
-      },
-    ];
+    const suffix = `  ·  ${when} [${r.bucketName}]`;
+    const maxTitle = 60 - suffix.length;
+    const truncTitle = r.title.length > maxTitle ? r.title.slice(0, maxTitle - 1) + "…" : r.title;
+    return [{ text: `${truncTitle}${suffix}`, callback_data: `mi:${r.id}` }];
   });
   buttonRows.push([{ text: "✖ Close", callback_data: "cancel" }]);
   return sendTelegramButtons(botToken, chatId, "Due today — tap to manage:", buttonRows);
@@ -171,12 +167,10 @@ export async function cmdOverdue(
   }
   const buttonRows: InlineButton[][] = rows.map((r) => {
     const when = r.deadline ? fmtDateTimeShort(r.deadline, timezone) : "?";
-    return [
-      {
-        text: `${r.title}  ·  ${when} [${r.bucketName}]`.slice(0, 60),
-        callback_data: `mi:${r.id}`,
-      },
-    ];
+    const suffix = `  ·  ${when} [${r.bucketName}]`;
+    const maxTitle = 60 - suffix.length;
+    const truncTitle = r.title.length > maxTitle ? r.title.slice(0, maxTitle - 1) + "…" : r.title;
+    return [{ text: `${truncTitle}${suffix}`, callback_data: `mi:${r.id}` }];
   });
   buttonRows.push([{ text: "✖ Close", callback_data: "cancel" }]);
   return sendTelegramButtons(botToken, chatId, "Overdue — tap to manage:", buttonRows);

@@ -65,8 +65,10 @@ export async function showItemList(
   const slice = allItems.slice(safePage * ITEMS_PER_PAGE, (safePage + 1) * ITEMS_PER_PAGE);
   const rows: InlineButton[][] = slice.map((item) => {
     const deadlineSuffix = item.deadline ? ` — ${fmtDateTimeShort(item.deadline, timezone)}` : "";
-    const label = `${item.title}${deadlineSuffix}`.slice(0, 60);
-    return [{ text: label, callback_data: `mi:${item.id}` }];
+    const maxTitle = 60 - deadlineSuffix.length;
+    const truncTitle =
+      item.title.length > maxTitle ? item.title.slice(0, maxTitle - 1) + "…" : item.title;
+    return [{ text: `${truncTitle}${deadlineSuffix}`, callback_data: `mi:${item.id}` }];
   });
   if (totalPages > 1) {
     const navRow: InlineButton[] = [];
