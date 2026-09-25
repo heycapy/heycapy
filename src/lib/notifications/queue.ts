@@ -64,7 +64,6 @@ export async function processPending(): Promise<void> {
         telegramChatId: userSettings.telegramChatId,
         notificationsTelegram: userSettings.notificationsTelegram,
         emailProvider: userSettings.emailProvider,
-        resendApiKey: userSettings.resendApiKey,
         smtpHost: userSettings.smtpHost,
         smtpPort: userSettings.smtpPort,
         smtpUser: userSettings.smtpUser,
@@ -92,18 +91,18 @@ export async function processPending(): Promise<void> {
       switch (job.medium) {
         case "email": {
           if (!userRow.notificationsEmail) throw new Error("Email notifications disabled");
-          const userEmailConfig = userRow.emailProvider
-            ? {
-                emailProvider: userRow.emailProvider,
-                resendApiKey: userRow.resendApiKey ? decryptValue(userRow.resendApiKey) : null,
-                smtpHost: userRow.smtpHost,
-                smtpPort: userRow.smtpPort,
-                smtpUser: userRow.smtpUser,
-                smtpPass: userRow.smtpPass ? decryptValue(userRow.smtpPass) : null,
-                smtpSecure: userRow.smtpSecure,
-                smtpFrom: userRow.smtpFrom,
-              }
-            : undefined;
+          const userEmailConfig =
+            userRow.emailProvider === "smtp" && userRow.smtpHost
+              ? {
+                  emailProvider: userRow.emailProvider,
+                  smtpHost: userRow.smtpHost,
+                  smtpPort: userRow.smtpPort,
+                  smtpUser: userRow.smtpUser,
+                  smtpPass: userRow.smtpPass ? decryptValue(userRow.smtpPass) : null,
+                  smtpSecure: userRow.smtpSecure,
+                  smtpFrom: userRow.smtpFrom,
+                }
+              : undefined;
           await sendEmail(
             { to: userRow.email, subject: job.title, text: job.message },
             userEmailConfig

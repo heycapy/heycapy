@@ -9,7 +9,6 @@ export type EmailPayload = {
 
 export type UserEmailConfig = {
   emailProvider?: string | null;
-  resendApiKey?: string | null;
   smtpHost?: string | null;
   smtpPort?: number | null;
   smtpUser?: string | null;
@@ -18,16 +17,12 @@ export type UserEmailConfig = {
   smtpFrom?: string | null;
 };
 
-async function sendViaResend(
-  payload: EmailPayload,
-  apiKey: string,
-  from?: string | null
-): Promise<void> {
+async function sendViaResend(payload: EmailPayload, apiKey: string): Promise<void> {
   const { Resend } = await import("resend");
-  const sender = from ?? process.env.EMAIL_FROM ?? APP_EMAIL_FROM;
+  const from = process.env.EMAIL_FROM ?? APP_EMAIL_FROM;
   const resend = new Resend(apiKey);
   const result = await resend.emails.send({
-    from: sender,
+    from,
     to: payload.to,
     subject: payload.subject,
     text: payload.text,
@@ -80,10 +75,6 @@ export async function sendEmail(
       secure: userConfig.smtpSecure,
       from: userConfig.smtpFrom,
     });
-    return;
-  }
-  if (userConfig?.emailProvider === "resend" && userConfig.resendApiKey) {
-    await sendViaResend(payload, userConfig.resendApiKey);
     return;
   }
   const smtpHost = process.env.SMTP_HOST;

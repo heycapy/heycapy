@@ -73,7 +73,6 @@ export const userSettings = sqliteTable("user_settings", {
   transcriptionModel: text("transcription_model"),
   telegramState: text("telegram_state"),
   emailProvider: text("email_provider"),
-  resendApiKey: text("resend_api_key"),
   smtpHost: text("smtp_host"),
   smtpPort: integer("smtp_port"),
   smtpUser: text("smtp_user"),

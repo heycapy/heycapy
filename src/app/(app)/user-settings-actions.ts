@@ -31,7 +31,6 @@ type UserSettingsUpdate = {
   transcriptionApiKey: string | null;
   transcriptionModel: string | null;
   emailProvider: string | null;
-  resendApiKey: string | null;
   smtpHost: string | null;
   smtpPort: number | null;
   smtpUser: string | null;
@@ -59,7 +58,6 @@ export async function getUserSettingsAction(): Promise<
       transcriptionApiKey: settings.transcriptionApiKey
         ? decryptValue(settings.transcriptionApiKey)
         : null,
-      resendApiKey: settings.resendApiKey ? decryptValue(settings.resendApiKey) : null,
       smtpPass: settings.smtpPass ? decryptValue(settings.smtpPass) : null,
     },
   };
@@ -98,7 +96,6 @@ export async function updateUserSettingsAction(
       transcriptionApiKey: data.transcriptionApiKey ? encryptValue(data.transcriptionApiKey) : null,
       transcriptionModel: data.transcriptionModel || null,
       emailProvider: data.emailProvider || null,
-      resendApiKey: data.resendApiKey ? encryptValue(data.resendApiKey) : null,
       smtpHost: data.smtpHost || null,
       smtpPort: data.smtpPort || null,
       smtpUser: data.smtpUser || null,
@@ -189,7 +186,6 @@ export async function getNotifAvailabilityAction(): Promise<{
   const emailConfigured =
     !!process.env.RESEND_API_KEY ||
     !!process.env.SMTP_HOST ||
-    (settings.emailProvider === "resend" && !!settings.resendApiKey) ||
     (settings.emailProvider === "smtp" && !!settings.smtpHost);
 
   return {

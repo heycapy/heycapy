@@ -7,15 +7,13 @@ import { Toggle } from "@/components/ui/Toggle";
 import { LABEL, INPUT } from "./settings-constants";
 import { NTFY_DEFAULT_URL, SETTINGS_URL_MAX_LENGTH, NTFY_TOPIC_MAX_LENGTH } from "@/constants";
 
-type EmailProvider = "resend" | "smtp" | null;
+type EmailProvider = "smtp" | null;
 
 interface NotificationsTabProps {
   notificationsEmail: boolean;
   setNotificationsEmail: (v: boolean) => void;
   emailProvider: EmailProvider;
   setEmailProvider: (v: EmailProvider) => void;
-  resendApiKey: string;
-  setResendApiKey: (v: string) => void;
   smtpHost: string;
   setSmtpHost: (v: string) => void;
   smtpPort: string;
@@ -60,8 +58,6 @@ export function NotificationsTab({
   setNotificationsEmail,
   emailProvider,
   setEmailProvider,
-  resendApiKey,
-  setResendApiKey,
   smtpHost,
   setSmtpHost,
   smtpPort,
@@ -94,7 +90,6 @@ export function NotificationsTab({
 }: NotificationsTabProps) {
   const [ntfyCopied, setNtfyCopied] = useState(false);
   const [showSmtpPass, setShowSmtpPass] = useState(false);
-  const [showResendKey, setShowResendKey] = useState(false);
 
   function handleCopyNtfy() {
     if (!ntfyTopic) return;
@@ -116,19 +111,16 @@ export function NotificationsTab({
         </div>
 
         <div className="flex flex-col gap-1.5">
-          <label className={LABEL}>email provider</label>
+          <label className={LABEL}>smtp</label>
           <div className="flex gap-1">
-            {(["resend", "smtp"] as NonNullable<EmailProvider>[]).map((p) => (
-              <button
-                key={p}
-                type="button"
-                onClick={() => setEmailProvider(emailProvider === p ? null : p)}
-                disabled={pending}
-                className={PROVIDER_BTN(emailProvider === p)}
-              >
-                {p}
-              </button>
-            ))}
+            <button
+              type="button"
+              onClick={() => setEmailProvider(emailProvider === "smtp" ? null : "smtp")}
+              disabled={pending}
+              className={PROVIDER_BTN(emailProvider === "smtp")}
+            >
+              {emailProvider === "smtp" ? "configured" : "configure smtp"}
+            </button>
           </div>
           {emailProvider === null && (
             <p className="text-muted-foreground/60 font-mono text-[9px] leading-relaxed">
@@ -136,40 +128,7 @@ export function NotificationsTab({
               <code className="font-mono">SMTP_HOST</code> from .env
             </p>
           )}
-          {emailProvider === "resend" && (
-            <p className="text-muted-foreground/60 font-mono text-[9px] leading-relaxed">
-              requires a verified domain on resend.com. for personal self-hosted use, smtp is
-              simpler.
-            </p>
-          )}
         </div>
-
-        {emailProvider === "resend" && (
-          <div className="flex flex-col gap-1.5">
-            <div className="flex items-center justify-between">
-              <label className={LABEL}>resend api key</label>
-              <button
-                type="button"
-                onClick={() => setShowResendKey((v) => !v)}
-                className="text-muted-foreground hover:text-foreground font-mono text-[9px]"
-              >
-                {showResendKey ? "hide" : "show"}
-              </button>
-            </div>
-            <input
-              type={showResendKey ? "text" : "password"}
-              value={resendApiKey}
-              onChange={(e) => setResendApiKey(e.target.value)}
-              placeholder="re_xxxxxxxxxxxxxxxxxxxx"
-              disabled={pending}
-              className={INPUT}
-              autoComplete="off"
-            />
-            <p className="text-muted-foreground/60 font-mono text-[9px] leading-relaxed">
-              stored encrypted. get yours at resend.com.
-            </p>
-          </div>
-        )}
 
         {emailProvider === "smtp" && (
           <div className="flex flex-col gap-3">

@@ -45,10 +45,9 @@ export async function sendOtpAction(email: string): Promise<SendOtpResult> {
     const us = await db.query.userSettings.findFirst({
       where: eq(userSettings.userId, existingUser.id),
     });
-    if (us?.emailProvider) {
+    if (us?.emailProvider === "smtp" && us.smtpHost) {
       userEmailConfig = {
         emailProvider: us.emailProvider,
-        resendApiKey: us.resendApiKey ? decryptValue(us.resendApiKey) : null,
         smtpHost: us.smtpHost,
         smtpPort: us.smtpPort,
         smtpUser: us.smtpUser,
@@ -59,10 +58,8 @@ export async function sendOtpAction(email: string): Promise<SendOtpResult> {
     }
   }
 
-  const hasUserEmail =
-    (userEmailConfig?.emailProvider === "smtp" && !!userEmailConfig.smtpHost) ||
-    (userEmailConfig?.emailProvider === "resend" && !!userEmailConfig.resendApiKey);
-  const isDev = !hasUserEmail && !process.env.RESEND_API_KEY && !process.env.SMTP_HOST;
+  const hasUserSmtp = !!userEmailConfig?.smtpHost;
+  const isDev = !hasUserSmtp && !process.env.RESEND_API_KEY && !process.env.SMTP_HOST;
 
   const record = await getRateLimit(email);
   const now = Date.now();

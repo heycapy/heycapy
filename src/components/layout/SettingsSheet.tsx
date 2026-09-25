@@ -18,7 +18,7 @@ import type { userSettings } from "@/lib/db/schema";
 
 type Settings = typeof userSettings.$inferSelect;
 type Tab = "appearance" | "notifications" | "ai" | "personality";
-type EmailProvider = "resend" | "smtp" | null;
+type EmailProvider = "smtp" | null;
 
 interface SettingsSheetProps {
   open: boolean;
@@ -54,7 +54,6 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
 
   const [notificationsEmail, setNotificationsEmail] = useState(true);
   const [emailProvider, setEmailProvider] = useState<EmailProvider>(null);
-  const [resendApiKey, setResendApiKey] = useState("");
   const [smtpHost, setSmtpHost] = useState("");
   const [smtpPort, setSmtpPort] = useState("");
   const [smtpUser, setSmtpUser] = useState("");
@@ -87,7 +86,6 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
     );
     setNotificationsEmail(s.notificationsEmail);
     setEmailProvider((s.emailProvider as EmailProvider) ?? null);
-    setResendApiKey(s.resendApiKey ?? "");
     setSmtpHost(s.smtpHost ?? "");
     setSmtpPort(s.smtpPort !== null ? String(s.smtpPort) : "");
     setSmtpUser(s.smtpUser ?? "");
@@ -183,7 +181,6 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
         aiNotifyMessages,
         notificationsEmail,
         emailProvider: emailProvider,
-        resendApiKey: resendApiKey || null,
         smtpHost: smtpHost || null,
         smtpPort: parsedPort && !isNaN(parsedPort) ? parsedPort : null,
         smtpUser: smtpUser || null,
@@ -266,8 +263,6 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
                       setNotificationsEmail={setNotificationsEmail}
                       emailProvider={emailProvider}
                       setEmailProvider={setEmailProvider}
-                      resendApiKey={resendApiKey}
-                      setResendApiKey={setResendApiKey}
                       smtpHost={smtpHost}
                       setSmtpHost={setSmtpHost}
                       smtpPort={smtpPort}
