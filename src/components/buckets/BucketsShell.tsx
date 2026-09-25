@@ -3,7 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Drawer } from "vaul";
-import { Check, ChevronDown, Plus } from "lucide-react";
+import { Check, ChevronDown } from "lucide-react";
+import { BracketButton } from "@/components/ui/BracketButton";
 import { cn } from "@/lib/utils";
 import { BucketContent } from "./BucketContent";
 import { BUCKET_PALETTE } from "./constants";
@@ -126,13 +127,9 @@ export function BucketsShell({ buckets }: BucketsShellProps) {
       <div className="border-border bg-background sticky bottom-0 border-t-2">
         {/* Mobile: custom picker */}
         <div className="flex items-center md:hidden">
-          <button
-            onClick={openCreateBucket}
-            className="text-muted-foreground hover:text-foreground -mt-0.5 shrink-0 border-t-2 border-t-transparent px-3 py-3.5 transition-colors"
-            aria-label="New bucket"
-          >
-            <Plus size={13} />
-          </button>
+          <BracketButton onClick={openCreateBucket} className="shrink-0 px-3 py-3.5">
+            add bucket
+          </BracketButton>
           <button onClick={() => setPickerOpen(true)} className="-mt-0.5 min-w-0 flex-1">
             <div
               className="bg-card flex items-center justify-between gap-2 border-t-2 px-3 py-3.5"
@@ -150,13 +147,9 @@ export function BucketsShell({ buckets }: BucketsShellProps) {
 
         {/* Desktop: tab bar */}
         <div className="scrollbar-hide hidden overflow-x-auto md:flex">
-          <button
-            onClick={openCreateBucket}
-            className="text-muted-foreground hover:text-foreground -mt-0.5 shrink-0 border-t-2 border-t-transparent px-3 py-[13.8px] transition-colors"
-            aria-label="New bucket"
-          >
-            <Plus size={12} />
-          </button>
+          <BracketButton onClick={openCreateBucket} className="shrink-0 px-3 py-[13.8px]">
+            add bucket
+          </BracketButton>
           {buckets.map((bucket, i) => {
             const isActive = bucket.id === activeId;
             const color = BUCKET_PALETTE[i % BUCKET_PALETTE.length];

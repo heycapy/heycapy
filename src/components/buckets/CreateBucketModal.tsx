@@ -116,20 +116,24 @@ export function CreateBucketModal({ templates }: CreateBucketModalProps) {
                       <p className="text-destructive px-4 pt-3 font-mono text-[10px]">{error}</p>
                     )}
 
-                    <div className="grid grid-cols-2 gap-2 p-3">
+                    <div className="grid grid-cols-2 gap-1.5 p-2 sm:gap-2 sm:p-3">
                       {templates.map((t) => (
                         <button
                           key={t.id}
                           onClick={() => handlePickTemplate(t)}
-                          className="border-border bg-card hover:bg-muted flex flex-col gap-1.5 rounded border p-3 text-left transition-colors"
+                          className="border-border bg-card hover:bg-muted flex flex-col gap-1 rounded border p-2 text-left transition-colors sm:gap-1.5 sm:p-3"
                         >
                           {(() => {
                             const Icon = TEMPLATE_ICONS[t.name] ?? Package;
-                            return <Icon size={15} className="text-muted-foreground" />;
+                            return (
+                              <Icon size={12} className="text-muted-foreground sm:size-[15px]" />
+                            );
                           })()}
-                          <span className="font-pixel text-xs">{t.name}</span>
+                          <span className="font-pixel truncate text-[10px] sm:text-xs">
+                            {t.name}
+                          </span>
                           {t.description && (
-                            <span className="text-muted-foreground line-clamp-2 text-[10px] leading-snug">
+                            <span className="text-muted-foreground line-clamp-2 text-[9px] leading-snug sm:text-[10px]">
                               {t.description}
                             </span>
                           )}

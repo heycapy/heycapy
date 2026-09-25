@@ -39,7 +39,7 @@ export function ChatMessageList({ messages, streaming, fullscreen }: Props) {
   const isLastStreaming = (msg: ChatMessage) => streaming && msg.id === messages.at(-1)?.id;
 
   return (
-    <div className="scrollbar-hide flex flex-1 flex-col gap-3 overflow-y-auto p-3">
+    <div className="scrollbar-hide flex flex-1 flex-col gap-3 overflow-y-auto overscroll-contain p-3">
       {messages.map((msg) => (
         <div
           key={msg.id}
