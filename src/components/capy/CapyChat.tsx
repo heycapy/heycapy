@@ -14,7 +14,7 @@ import { DEFAULT_H, HEADER_H } from "./chatTypes";
 type ChatState = "closed" | "open" | "minimized" | "fullscreen";
 
 export function CapyChat() {
-  const [chatState, setChatState] = useState<ChatState>("open");
+  const [chatState, setChatState] = useState<ChatState>("closed");
   const [historyOpen, setHistoryOpen] = useState(false);
   const inputBarRef = useRef<ChatInputBarHandle>(null);
   const prevChatStateRef = useRef<ChatState>(chatState);

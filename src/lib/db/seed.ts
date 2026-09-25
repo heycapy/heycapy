@@ -1,4 +1,4 @@
-import { and, eq, isNull, notInArray } from "drizzle-orm";
+import { and, eq, isNotNull, isNull, notInArray } from "drizzle-orm";
 import { db } from "./index";
 import { templates } from "./schema";
 import type { BucketSchema } from "@/types/rules";
@@ -183,4 +183,5 @@ export async function seed(_userId: number) {
         notInArray(templates.name, currentNames)
       )
     );
+  await db.delete(templates).where(and(eq(templates.isBuiltin, true), isNotNull(templates.userId)));
 }

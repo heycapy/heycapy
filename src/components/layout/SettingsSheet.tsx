@@ -242,12 +242,17 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
               </BracketButton>
             </div>
 
-            <div className="border-border scrollbar-hide flex overflow-x-auto border-b-2">
+            <div className="border-border scrollbar-hide flex overflow-x-auto border-b">
               {(["appearance", "notifications", "ai", "personality"] as Tab[]).map((t) => (
                 <button key={t} onClick={() => setTab(t)} className={tabBtn(t)}>
                   {t}
                 </button>
               ))}
+            </div>
+            <div className="border-border flex justify-end border-b px-3 py-1.5">
+              <BracketButton onClick={handleSave} disabled={pending || !loaded}>
+                save
+              </BracketButton>
             </div>
 
             <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-4 py-4">
@@ -339,12 +344,6 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
                   {error && <span className="text-destructive font-mono text-[10px]">{error}</span>}
                 </>
               )}
-            </div>
-
-            <div className="border-border flex items-center justify-end border-t-2 px-3 py-2.5">
-              <BracketButton onClick={handleSave} disabled={pending || !loaded}>
-                save
-              </BracketButton>
             </div>
           </motion.aside>
         </>

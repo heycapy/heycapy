@@ -15,6 +15,13 @@
       "when": 1790344005312,
       "tag": "0001_bumpy_living_tribunal",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1793000000000,
+      "tag": "0002_remove_duplicate_builtin_templates",
+      "breakpoints": true
     }
   ]
 }

@@ -96,14 +96,14 @@ export function ItemDialog({
     const didJustOpen = open && !wasOpenRef.current;
     wasOpenRef.current = open;
     if (!didJustOpen) return;
-    setValidationAttempted(false);
+    const el = textareaRef.current;
+    if (el) {
+      el.style.height = "auto";
+      el.style.height = `${el.scrollHeight}px`;
+      el.focus();
+    }
     const id = setTimeout(() => {
-      const el = textareaRef.current;
-      if (el) {
-        el.style.height = "auto";
-        el.style.height = `${el.scrollHeight}px`;
-        el.focus();
-      }
+      setValidationAttempted(false);
       if (deadline.includes("T")) {
         const d = new Date(deadline);
         const h24 = d.getHours();
@@ -115,7 +115,7 @@ export function ItemDialog({
         setTimeMin("00");
         setTimeAmpm("am");
       }
-    }, 60);
+    }, 0);
     return () => clearTimeout(id);
   }, [open, deadline]);
 
