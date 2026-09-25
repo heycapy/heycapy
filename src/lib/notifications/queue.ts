@@ -2,6 +2,7 @@ import { and, eq, isNull, lte, or } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { notificationQueue, notificationLog, users, userSettings } from "@/lib/db/schema";
 import { sendEmail } from "./email";
+import { buildNotificationEmail } from "@/lib/auth/notificationEmail";
 import { sendNtfy } from "./ntfy";
 import { sendTelegram, sendTelegramItemNotification } from "./telegram";
 import { errorMessage } from "@/lib/errors";
@@ -58,6 +59,7 @@ export async function processPending(): Promise<void> {
       .select({
         email: users.email,
         notificationsEmail: userSettings.notificationsEmail,
+        notificationEmailTo: userSettings.notificationEmailTo,
         notificationsPush: userSettings.notificationsPush,
         ntfyUrl: userSettings.ntfyUrl,
         ntfyTopic: userSettings.ntfyTopic,
@@ -103,8 +105,17 @@ export async function processPending(): Promise<void> {
                   smtpFrom: userRow.smtpFrom,
                 }
               : undefined;
+          const { text: emailText, html: emailHtml } = buildNotificationEmail(
+            job.title,
+            job.message
+          );
           await sendEmail(
-            { to: userRow.email, subject: job.title, text: job.message },
+            {
+              to: userRow.notificationEmailTo ?? userRow.email,
+              subject: job.title,
+              text: emailText,
+              html: emailHtml,
+            },
             userEmailConfig
           );
           break;

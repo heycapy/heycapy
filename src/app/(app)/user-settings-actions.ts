@@ -6,9 +6,11 @@ import { headers } from "next/headers";
 import { eq } from "drizzle-orm";
 import { getSession, deleteSession } from "@/lib/auth/session";
 import { db } from "@/lib/db";
-import { userSettings } from "@/lib/db/schema";
+import { users, userSettings } from "@/lib/db/schema";
 import { encryptValue, decryptValue } from "@/lib/crypto";
 import { TELEGRAM_API_BASE } from "@/constants";
+import { sendEmail } from "@/lib/notifications/email";
+import { APP_NAME } from "@/constants";
 
 type UserSettingsUpdate = {
   personalityName: string;
@@ -23,6 +25,7 @@ type UserSettingsUpdate = {
   aiCompactThreshold: number;
   aiNotifyMessages: boolean;
   notificationsEmail: boolean;
+  notificationEmailTo: string | null;
   notificationsPush: boolean;
   ntfyUrl: string | null;
   ntfyTopic: string | null;
@@ -40,25 +43,36 @@ type UserSettingsUpdate = {
 };
 
 export async function getUserSettingsAction(): Promise<
-  { ok: true; settings: typeof userSettings.$inferSelect } | { ok: false; error: string }
+  | {
+      ok: true;
+      settings: typeof userSettings.$inferSelect;
+      userEmail: string;
+      smtpPassSaved: boolean;
+    }
+  | { ok: false; error: string }
 > {
   const session = await getSession();
   if (!session) return { ok: false, error: "Unauthorized" };
 
-  const settings = await db.query.userSettings.findFirst({
-    where: (s, { eq: qeq }) => qeq(s.userId, session.userId),
-  });
+  const [settings, user] = await Promise.all([
+    db.query.userSettings.findFirst({
+      where: (s, { eq: qeq }) => qeq(s.userId, session.userId),
+    }),
+    db.query.users.findFirst({ where: eq(users.id, session.userId) }),
+  ]);
   if (!settings) return { ok: false, error: "Settings not found" };
 
   return {
     ok: true,
+    userEmail: user?.email ?? session.email,
+    smtpPassSaved: !!settings.smtpPass,
     settings: {
       ...settings,
       aiApiKey: settings.aiApiKey ? decryptValue(settings.aiApiKey) : null,
       transcriptionApiKey: settings.transcriptionApiKey
         ? decryptValue(settings.transcriptionApiKey)
         : null,
-      smtpPass: settings.smtpPass ? decryptValue(settings.smtpPass) : null,
+      smtpPass: null, // never expose — write-only
     },
   };
 }
@@ -88,6 +102,7 @@ export async function updateUserSettingsAction(
       aiCompactThreshold: data.aiCompactThreshold,
       aiNotifyMessages: data.aiNotifyMessages,
       notificationsEmail: data.notificationsEmail,
+      notificationEmailTo: data.notificationEmailTo || null,
       notificationsPush: data.notificationsPush,
       ntfyUrl: data.ntfyUrl || null,
       ntfyTopic: data.ntfyTopic || null,
@@ -99,7 +114,7 @@ export async function updateUserSettingsAction(
       smtpHost: data.smtpHost || null,
       smtpPort: data.smtpPort || null,
       smtpUser: data.smtpUser || null,
-      smtpPass: data.smtpPass ? encryptValue(data.smtpPass) : null,
+      ...(data.smtpPass ? { smtpPass: encryptValue(data.smtpPass) } : {}),
       smtpSecure: data.smtpSecure,
       smtpFrom: data.smtpFrom || null,
       updatedAt: new Date(),
@@ -220,5 +235,53 @@ export async function registerTelegramWebhookAction(
     return { ok: true };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : "Unknown error" };
+  }
+}
+
+export async function testSmtpAction(config: {
+  smtpHost: string;
+  smtpPort: string;
+  smtpUser: string;
+  smtpPass: string | null; // null = use saved encrypted value from DB
+  smtpSecure: boolean;
+  sendTo: string;
+}): Promise<{ ok: true } | { ok: false; error: string }> {
+  const session = await getSession();
+  if (!session) return { ok: false, error: "Unauthorized" };
+
+  if (!config.smtpHost) return { ok: false, error: "SMTP host is required" };
+  if (!config.sendTo) return { ok: false, error: "Recipient email is required" };
+
+  const parsedPort = config.smtpPort ? parseInt(config.smtpPort, 10) : null;
+
+  let smtpPass: string | null = config.smtpPass;
+  if (!smtpPass) {
+    const saved = await db.query.userSettings.findFirst({
+      where: eq(userSettings.userId, session.userId),
+    });
+    smtpPass = saved?.smtpPass ? decryptValue(saved.smtpPass) : null;
+  }
+
+  try {
+    await sendEmail(
+      {
+        to: config.sendTo,
+        subject: `[${APP_NAME}] smtp test`,
+        text: `your smtp is working correctly — sent while relaxing`,
+        html: `<!DOCTYPE html><html><body style="margin:0;padding:40px 16px;background:#fdf6e3;font-family:'Courier New',Courier,monospace;"><table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center"><table width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;background:#fdf6e3;border:2px solid #2c1f0e;"><tr><td style="padding:20px 32px 16px;border-bottom:1px solid #2c1f0e;"><p style="margin:0;font-size:18px;font-weight:700;color:#2c1f0e;">[ ${APP_NAME} ]</p><p style="margin:4px 0 0;font-size:11px;color:#7a6a55;letter-spacing:0.05em;">smtp test</p></td></tr><tr><td style="padding:24px 32px 24px;"><p style="margin:0;font-size:14px;color:#2c1f0e;line-height:1.6;">your smtp is working correctly.</p></td></tr><tr><td style="padding:16px 32px 20px;border-top:1px solid #2c1f0e;"><p style="margin:0;font-size:11px;color:#7a6a55;">your capy &mdash; sent while relaxing</p></td></tr></table></td></tr></table></body></html>`,
+      },
+      {
+        emailProvider: "smtp",
+        smtpHost: config.smtpHost,
+        smtpPort: parsedPort && !isNaN(parsedPort) ? parsedPort : null,
+        smtpUser: config.smtpUser || null,
+        smtpPass,
+        smtpSecure: config.smtpSecure,
+        smtpFrom: config.smtpUser || null,
+      }
+    );
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : "Failed to send test email" };
   }
 }

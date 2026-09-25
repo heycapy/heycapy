@@ -1,9 +1,9 @@
-import { APP_NAME } from "@/constants";
+import { APP_NAME, USELESS_FACTS_API_URL } from "@/constants";
 import { OTP_TTL_MINUTES } from "./constants";
 
 async function fetchRandomFact(): Promise<string | null> {
   try {
-    const res = await fetch("https://uselessfacts.jsph.pl/api/v2/facts/random?language=en", {
+    const res = await fetch(USELESS_FACTS_API_URL, {
       headers: { Accept: "application/json" },
       signal: AbortSignal.timeout(3000),
     });
@@ -22,7 +22,7 @@ export async function buildOtpEmail(
 
   const subject = `[${APP_NAME}] your sign-in code`;
 
-  const factText = fact ? `\n\n[fact] ${fact}` : "";
+  const factText = fact ? `\n\n[did you know] ${fact}` : "";
 
   const text = [
     `[ ${APP_NAME} ] — sign-in code`,
@@ -47,7 +47,7 @@ export async function buildOtpEmail(
           <tr>
             <td style="padding:0 32px 0;">
               <div style="border-top:1px solid ${border};padding-top:16px;padding-bottom:16px;">
-                <span style="font-family:${mono};font-size:11px;color:${muted};letter-spacing:0.05em;">[fact]</span>
+                <span style="font-family:${mono};font-size:11px;color:${muted};letter-spacing:0.05em;">[did you know]</span>
                 <p style="margin:6px 0 0;font-family:${mono};font-size:13px;color:${fg};line-height:1.6;">${fact.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</p>
               </div>
             </td>

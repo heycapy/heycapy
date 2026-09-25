@@ -8,9 +8,6 @@ primary_region = 'fra'
 
 [build]
 
-[env]
-  DATABASE_URL = 'file:/data/heycapy.db'
-
 [processes]
   app = 'node server.js'
 

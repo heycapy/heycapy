@@ -1,8 +1,8 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "cd1be26e-f38b-4dd1-973c-100070c1ffb8",
-  "prevId": "3950a82a-4340-43e1-9ec1-fae232aba83f",
+  "id": "1282e77d-3fde-4e0f-90dd-f14e93035bd0",
+  "prevId": "f1f09ce4-e1cd-484f-a14b-c81a7d56909a",
   "tables": {
     "auth_rate_limits": {
       "name": "auth_rate_limits",
@@ -143,6 +143,13 @@
         },
         "field_schema": {
           "name": "field_schema",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "telegram_config": {
+          "name": "telegram_config",
           "type": "text",
           "primaryKey": false,
           "notNull": false,
@@ -1006,6 +1013,14 @@
           "autoincrement": false,
           "default": 40
         },
+        "ai_notify_messages": {
+          "name": "ai_notify_messages",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": true
+        },
         "notifications_email": {
           "name": "notifications_email",
           "type": "integer",
@@ -1013,6 +1028,13 @@
           "notNull": true,
           "autoincrement": false,
           "default": true
+        },
+        "notification_email_to": {
+          "name": "notification_email_to",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
         },
         "notifications_push": {
           "name": "notifications_push",
@@ -1031,13 +1053,6 @@
         },
         "ntfy_topic": {
           "name": "ntfy_topic",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "telegram_bot_token": {
-          "name": "telegram_bot_token",
           "type": "text",
           "primaryKey": false,
           "notNull": false,
@@ -1074,6 +1089,63 @@
         },
         "transcription_model": {
           "name": "transcription_model",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "telegram_state": {
+          "name": "telegram_state",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "email_provider": {
+          "name": "email_provider",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "smtp_host": {
+          "name": "smtp_host",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "smtp_port": {
+          "name": "smtp_port",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "smtp_user": {
+          "name": "smtp_user",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "smtp_pass": {
+          "name": "smtp_pass",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "smtp_secure": {
+          "name": "smtp_secure",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false,
+          "default": false
+        },
+        "smtp_from": {
+          "name": "smtp_from",
           "type": "text",
           "primaryKey": false,
           "notNull": false,

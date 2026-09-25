@@ -5,36 +5,15 @@
     {
       "idx": 0,
       "version": "6",
-      "when": 1790187245509,
-      "tag": "0000_many_wolfsbane",
+      "when": 1790342309346,
+      "tag": "0000_motionless_mystique",
       "breakpoints": true
     },
     {
       "idx": 1,
       "version": "6",
-      "when": 1790241515624,
-      "tag": "0001_magenta_tombstone",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "6",
-      "when": 1790300000000,
-      "tag": "0002_telegram_state",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "6",
-      "when": 1790310000000,
-      "tag": "0003_telegram_bucket_config",
-      "breakpoints": true
-    },
-    {
-      "idx": 4,
-      "version": "6",
-      "when": 1790334158301,
-      "tag": "0004_deep_lord_hawal",
+      "when": 1790344005312,
+      "tag": "0001_bumpy_living_tribunal",
       "breakpoints": true
     }
   ]

@@ -47,7 +47,13 @@ async function sendViaSmtp(
   const secure = opts?.secure ?? (process.env.SMTP_SECURE === "true" || port === 465);
   const user = opts?.user ?? process.env.SMTP_USER;
   const pass = opts?.pass ?? process.env.SMTP_PASS;
-  const from = opts?.from ?? process.env.SMTP_FROM ?? process.env.EMAIL_FROM ?? APP_EMAIL_FROM;
+  const from =
+    opts?.from ??
+    opts?.user ??
+    process.env.SMTP_FROM ??
+    process.env.SMTP_USER ??
+    process.env.EMAIL_FROM ??
+    APP_EMAIL_FROM;
   const transport = nodemailer.createTransport({
     host,
     port,

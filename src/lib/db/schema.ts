@@ -61,6 +61,7 @@ export const userSettings = sqliteTable("user_settings", {
   aiCompactThreshold: integer("ai_compact_threshold").notNull().default(40),
   aiNotifyMessages: integer("ai_notify_messages", { mode: "boolean" }).notNull().default(true),
   notificationsEmail: integer("notifications_email", { mode: "boolean" }).notNull().default(true),
+  notificationEmailTo: text("notification_email_to"),
   notificationsPush: integer("notifications_push", { mode: "boolean" }).notNull().default(true),
   ntfyUrl: text("ntfy_url"),
   ntfyTopic: text("ntfy_topic"),

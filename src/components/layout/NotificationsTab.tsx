@@ -6,14 +6,14 @@ import { charCountColor } from "@/components/ui/input";
 import { Toggle } from "@/components/ui/Toggle";
 import { LABEL, INPUT } from "./settings-constants";
 import { NTFY_DEFAULT_URL, SETTINGS_URL_MAX_LENGTH, NTFY_TOPIC_MAX_LENGTH } from "@/constants";
-
-type EmailProvider = "smtp" | null;
+import { SmtpTestDialog } from "./SmtpTestDialog";
 
 interface NotificationsTabProps {
   notificationsEmail: boolean;
   setNotificationsEmail: (v: boolean) => void;
-  emailProvider: EmailProvider;
-  setEmailProvider: (v: EmailProvider) => void;
+  notificationEmailTo: string;
+  setNotificationEmailTo: (v: string) => void;
+  userEmail: string;
   smtpHost: string;
   setSmtpHost: (v: string) => void;
   smtpPort: string;
@@ -22,10 +22,8 @@ interface NotificationsTabProps {
   setSmtpUser: (v: string) => void;
   smtpPass: string;
   setSmtpPass: (v: string) => void;
+  smtpPassSaved: boolean;
   smtpSecure: boolean;
-  setSmtpSecure: (v: boolean) => void;
-  smtpFrom: string;
-  setSmtpFrom: (v: string) => void;
   notificationsPush: boolean;
   setNotificationsPush: (v: boolean) => void;
   ntfyUrl: string;
@@ -47,17 +45,14 @@ interface NotificationsTabProps {
 
 const SECTION =
   "text-muted-foreground font-mono text-[10px] font-semibold tracking-widest uppercase";
-const PROVIDER_BTN = (active: boolean) =>
-  cn(
-    "font-mono text-[10px] px-2 py-1 border border-border transition-colors",
-    active ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"
-  );
+const BOX = "border-border flex flex-col gap-3 border p-3";
 
 export function NotificationsTab({
   notificationsEmail,
   setNotificationsEmail,
-  emailProvider,
-  setEmailProvider,
+  notificationEmailTo,
+  setNotificationEmailTo,
+  userEmail,
   smtpHost,
   setSmtpHost,
   smtpPort,
@@ -66,10 +61,8 @@ export function NotificationsTab({
   setSmtpUser,
   smtpPass,
   setSmtpPass,
+  smtpPassSaved,
   smtpSecure,
-  setSmtpSecure,
-  smtpFrom,
-  setSmtpFrom,
   notificationsPush,
   setNotificationsPush,
   ntfyUrl,
@@ -89,7 +82,8 @@ export function NotificationsTab({
   pending,
 }: NotificationsTabProps) {
   const [ntfyCopied, setNtfyCopied] = useState(false);
-  const [showSmtpPass, setShowSmtpPass] = useState(false);
+  const [testDialogOpen, setTestDialogOpen] = useState(false);
+  const [smtpPassFocused, setSmtpPassFocused] = useState(false);
 
   function handleCopyNtfy() {
     if (!ntfyTopic) return;
@@ -100,76 +94,45 @@ export function NotificationsTab({
   }
 
   const telegramConnected = !!telegramChatId;
+  const effectiveDeliverTo = notificationEmailTo || userEmail;
 
   return (
-    <>
-      <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-3">
+      <div className={BOX}>
         <span className={SECTION}>email</span>
+
         <div className="flex items-center justify-between">
           <label className={LABEL}>enabled</label>
           <Toggle value={notificationsEmail} onChange={setNotificationsEmail} disabled={pending} />
         </div>
 
-        <div className="flex flex-col gap-1.5">
-          <label className={LABEL}>smtp</label>
-          <div className="flex gap-1">
-            <button
-              type="button"
-              onClick={() => setEmailProvider(emailProvider === "smtp" ? null : "smtp")}
+        <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-1.5">
+            <label className={LABEL}>host</label>
+            <input
+              type="text"
+              value={smtpHost}
+              onChange={(e) => setSmtpHost(e.target.value)}
+              placeholder="smtp.gmail.com"
               disabled={pending}
-              className={PROVIDER_BTN(emailProvider === "smtp")}
-            >
-              {emailProvider === "smtp" ? "configured" : "configure smtp"}
-            </button>
+              className={INPUT}
+            />
           </div>
-          {emailProvider === null && (
-            <p className="text-muted-foreground/60 font-mono text-[9px] leading-relaxed">
-              using server defaults — reads <code className="font-mono">RESEND_API_KEY</code> or{" "}
-              <code className="font-mono">SMTP_HOST</code> from .env
-            </p>
-          )}
-        </div>
-
-        {emailProvider === "smtp" && (
-          <div className="flex flex-col gap-3">
-            <div className="flex flex-col gap-1.5">
-              <label className={LABEL}>host</label>
+          <div className="flex gap-3">
+            <div className="flex w-24 shrink-0 flex-col gap-1.5">
+              <label className={LABEL}>port</label>
               <input
                 type="text"
-                value={smtpHost}
-                onChange={(e) => setSmtpHost(e.target.value)}
-                placeholder="smtp.gmail.com"
+                inputMode="numeric"
+                value={smtpPort}
+                onChange={(e) => setSmtpPort(e.target.value)}
+                placeholder="587"
                 disabled={pending}
                 className={INPUT}
               />
             </div>
-            <div className="flex gap-3">
-              <div className="flex w-24 shrink-0 flex-col gap-1.5">
-                <label className={LABEL}>port</label>
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  value={smtpPort}
-                  onChange={(e) => setSmtpPort(e.target.value)}
-                  placeholder="587"
-                  disabled={pending}
-                  className={INPUT}
-                />
-              </div>
-              <div className="flex flex-1 flex-col gap-1.5">
-                <label className={LABEL}>from address</label>
-                <input
-                  type="text"
-                  value={smtpFrom}
-                  onChange={(e) => setSmtpFrom(e.target.value)}
-                  placeholder="you@example.com"
-                  disabled={pending}
-                  className={INPUT}
-                />
-              </div>
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <label className={LABEL}>username</label>
+            <div className="flex flex-1 flex-col gap-1.5">
+              <label className={LABEL}>send from</label>
               <input
                 type="text"
                 value={smtpUser}
@@ -180,39 +143,55 @@ export function NotificationsTab({
                 autoComplete="off"
               />
             </div>
-            <div className="flex flex-col gap-1.5">
-              <div className="flex items-center justify-between">
-                <label className={LABEL}>password / app password</label>
-                <button
-                  type="button"
-                  onClick={() => setShowSmtpPass((v) => !v)}
-                  className="text-muted-foreground hover:text-foreground font-mono text-[9px]"
-                >
-                  {showSmtpPass ? "hide" : "show"}
-                </button>
-              </div>
-              <input
-                type={showSmtpPass ? "text" : "password"}
-                value={smtpPass}
-                onChange={(e) => setSmtpPass(e.target.value)}
-                placeholder="app password"
-                disabled={pending}
-                className={INPUT}
-                autoComplete="off"
-              />
-              <p className="text-muted-foreground/60 font-mono text-[9px] leading-relaxed">
-                stored encrypted. for gmail: use an app password, not your account password.
-              </p>
-            </div>
-            <div className="flex items-center justify-between">
-              <label className={LABEL}>tls / ssl (port 465)</label>
-              <Toggle value={smtpSecure} onChange={setSmtpSecure} disabled={pending} />
-            </div>
           </div>
-        )}
+          <p className="text-muted-foreground/60 -mt-1 font-mono text-[9px]">
+            port 587 = standard (gmail) · port 465 = ssl
+          </p>
+          <div className="flex flex-col gap-1.5">
+            <label className={LABEL}>app password</label>
+            <input
+              type="password"
+              value={smtpPassSaved && !smtpPass && !smtpPassFocused ? "••••••••" : smtpPass}
+              onChange={(e) => setSmtpPass(e.target.value)}
+              onFocus={() => {
+                setSmtpPassFocused(true);
+                if (smtpPassSaved && !smtpPass) setSmtpPass("");
+              }}
+              onBlur={() => setSmtpPassFocused(false)}
+              placeholder="app password"
+              disabled={pending}
+              className={INPUT}
+              autoComplete="new-password"
+            />
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-1.5">
+          <label className={LABEL}>deliver to</label>
+          <input
+            type="text"
+            value={notificationEmailTo}
+            onChange={(e) => setNotificationEmailTo(e.target.value)}
+            placeholder={userEmail}
+            disabled={pending}
+            className={INPUT}
+          />
+          <p className="text-muted-foreground/60 font-mono text-[9px]">
+            where notifications are sent · defaults to your account email
+          </p>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setTestDialogOpen(true)}
+          disabled={pending || !smtpHost}
+          className="text-muted-foreground hover:text-foreground self-start font-mono text-[10px] disabled:opacity-40"
+        >
+          [send test email]
+        </button>
       </div>
 
-      <div className="border-border flex flex-col gap-3 border-t pt-3">
+      <div className={BOX}>
         <span className={SECTION}>ntfy (push)</span>
         <div className="flex items-center justify-between">
           <label className={LABEL}>enabled</label>
@@ -289,7 +268,7 @@ export function NotificationsTab({
         </div>
       </div>
 
-      <div className="flex flex-col gap-3">
+      <div className={BOX}>
         <span className={SECTION}>telegram</span>
 
         {!telegramBotConfigured ? (
@@ -362,6 +341,18 @@ export function NotificationsTab({
           </>
         )}
       </div>
-    </>
+
+      <SmtpTestDialog
+        open={testDialogOpen}
+        onClose={() => setTestDialogOpen(false)}
+        from={smtpUser}
+        defaultTo={effectiveDeliverTo}
+        smtpHost={smtpHost}
+        smtpPort={smtpPort}
+        smtpUser={smtpUser}
+        smtpPass={smtpPass || null}
+        smtpSecure={smtpSecure}
+      />
+    </div>
   );
 }

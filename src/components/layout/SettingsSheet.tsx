@@ -18,7 +18,6 @@ import type { userSettings } from "@/lib/db/schema";
 
 type Settings = typeof userSettings.$inferSelect;
 type Tab = "appearance" | "notifications" | "ai" | "personality";
-type EmailProvider = "smtp" | null;
 
 interface SettingsSheetProps {
   open: boolean;
@@ -53,13 +52,14 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
   const [timezone, setTimezone] = useState(() => Intl.DateTimeFormat().resolvedOptions().timeZone);
 
   const [notificationsEmail, setNotificationsEmail] = useState(true);
-  const [emailProvider, setEmailProvider] = useState<EmailProvider>(null);
+  const [notificationEmailTo, setNotificationEmailTo] = useState("");
+  const [userEmail, setUserEmail] = useState("");
   const [smtpHost, setSmtpHost] = useState("");
   const [smtpPort, setSmtpPort] = useState("");
   const [smtpUser, setSmtpUser] = useState("");
   const [smtpPass, setSmtpPass] = useState("");
+  const [smtpPassSaved, setSmtpPassSaved] = useState(false);
   const [smtpSecure, setSmtpSecure] = useState(false);
-  const [smtpFrom, setSmtpFrom] = useState("");
   const [notificationsPush, setNotificationsPush] = useState(true);
   const [ntfyUrl, setNtfyUrl] = useState("");
   const [ntfyTopic, setNtfyTopic] = useState("");
@@ -85,13 +85,12 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
       s.timezone !== "UTC" ? s.timezone : Intl.DateTimeFormat().resolvedOptions().timeZone
     );
     setNotificationsEmail(s.notificationsEmail);
-    setEmailProvider((s.emailProvider as EmailProvider) ?? null);
+    setNotificationEmailTo(s.notificationEmailTo ?? "");
     setSmtpHost(s.smtpHost ?? "");
     setSmtpPort(s.smtpPort !== null ? String(s.smtpPort) : "");
     setSmtpUser(s.smtpUser ?? "");
-    setSmtpPass(s.smtpPass ?? "");
+    setSmtpPass(""); // write-only — never populated from server
     setSmtpSecure(s.smtpSecure ?? false);
-    setSmtpFrom(s.smtpFrom ?? "");
     setNotificationsPush(s.notificationsPush);
     setNtfyUrl(s.ntfyUrl ?? "");
     setNtfyTopic(s.ntfyTopic ?? "");
@@ -112,7 +111,14 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
       setTelegramBotConfigured(false);
       setTelegramError("");
       getUserSettingsAction().then((result) => {
-        if (result.ok) populate(result.settings);
+        if (result.ok) {
+          populate(result.settings);
+          setUserEmail(result.userEmail);
+          setSmtpPassSaved(result.smtpPassSaved);
+          if (!result.settings.notificationEmailTo) {
+            setNotificationEmailTo(result.userEmail);
+          }
+        }
         setLoaded(true);
       });
     }, 0);
@@ -180,13 +186,14 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
         aiCompactThreshold,
         aiNotifyMessages,
         notificationsEmail,
-        emailProvider: emailProvider,
+        notificationEmailTo: notificationEmailTo || null,
+        emailProvider: smtpHost ? "smtp" : null,
         smtpHost: smtpHost || null,
         smtpPort: parsedPort && !isNaN(parsedPort) ? parsedPort : null,
         smtpUser: smtpUser || null,
         smtpPass: smtpPass || null,
         smtpSecure,
-        smtpFrom: smtpFrom || null,
+        smtpFrom: smtpUser || null,
         notificationsPush,
         ntfyUrl: ntfyUrl || null,
         ntfyTopic: ntfyTopic || null,
@@ -261,8 +268,9 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
                     <NotificationsTab
                       notificationsEmail={notificationsEmail}
                       setNotificationsEmail={setNotificationsEmail}
-                      emailProvider={emailProvider}
-                      setEmailProvider={setEmailProvider}
+                      notificationEmailTo={notificationEmailTo}
+                      setNotificationEmailTo={setNotificationEmailTo}
+                      userEmail={userEmail}
                       smtpHost={smtpHost}
                       setSmtpHost={setSmtpHost}
                       smtpPort={smtpPort}
@@ -271,10 +279,8 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
                       setSmtpUser={setSmtpUser}
                       smtpPass={smtpPass}
                       setSmtpPass={setSmtpPass}
+                      smtpPassSaved={smtpPassSaved}
                       smtpSecure={smtpSecure}
-                      setSmtpSecure={setSmtpSecure}
-                      smtpFrom={smtpFrom}
-                      setSmtpFrom={setSmtpFrom}
                       notificationsPush={notificationsPush}
                       setNotificationsPush={setNotificationsPush}
                       ntfyUrl={ntfyUrl}
