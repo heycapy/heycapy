@@ -7,7 +7,7 @@ import { updateBucketSchemaAction } from "@/app/(app)/actions";
 import type { FieldDef, BucketSchema } from "@/types/rules";
 import type { buckets } from "@/lib/db/schema";
 import { useScrollToFirst } from "@/hooks/useScrollToFirst";
-import { FieldsSection, NotificationsSection } from "./SchemaEditorSections";
+import { FieldsSection } from "./SchemaEditorSections";
 
 type BucketRow = typeof buckets.$inferSelect;
 
@@ -40,9 +40,6 @@ interface SchemaEditorDialogProps {
 
 export function SchemaEditorDialog({ open, bucket, onClose }: SchemaEditorDialogProps) {
   const [fields, setFields] = useState<FieldDef[]>([]);
-  const [notifyOnArrival, setNotifyOnArrival] = useState(false);
-  const [notifyWhenOverdue, setNotifyWhenOverdue] = useState(false);
-  const [overdueRepeatHours, setOverdueRepeatHours] = useState<number | undefined>(undefined);
   const [error, setError] = useState("");
   const [validationErr, setValidationErr] = useState<number | null>(null);
   const [pending, startTransition] = useTransition();
@@ -54,9 +51,6 @@ export function SchemaEditorDialog({ open, bucket, onClose }: SchemaEditorDialog
     const s = parseSavedSchema(bucket.fieldSchema);
     const id = setTimeout(() => {
       setFields(s.fields);
-      setNotifyOnArrival(s.notifyOnArrival ?? false);
-      setNotifyWhenOverdue(s.notifyWhenOverdue ?? false);
-      setOverdueRepeatHours(s.overdueRepeatHours);
       setError("");
       setValidationErr(null);
     }, 0);
@@ -74,12 +68,7 @@ export function SchemaEditorDialog({ open, bucket, onClose }: SchemaEditorDialog
       }
     }
     startTransition(async () => {
-      const result = await updateBucketSchemaAction(bucket.id, {
-        fields,
-        notifyOnArrival: notifyOnArrival || undefined,
-        notifyWhenOverdue: notifyWhenOverdue || undefined,
-        overdueRepeatHours: notifyWhenOverdue ? overdueRepeatHours : undefined,
-      });
+      const result = await updateBucketSchemaAction(bucket.id, { fields });
       if (result.ok) onClose();
       else setError(result.error);
     });
@@ -139,15 +128,6 @@ export function SchemaEditorDialog({ open, bucket, onClose }: SchemaEditorDialog
                     });
                     setValidationErr(null);
                   }}
-                  disabled={pending}
-                />
-                <NotificationsSection
-                  notifyOnArrival={notifyOnArrival}
-                  notifyWhenOverdue={notifyWhenOverdue}
-                  overdueRepeatHours={overdueRepeatHours}
-                  onArrivalChange={setNotifyOnArrival}
-                  onOverdueChange={setNotifyWhenOverdue}
-                  onOverdueRepeatChange={setOverdueRepeatHours}
                   disabled={pending}
                 />
                 {error && <p className="text-destructive font-mono text-[10px]">{error}</p>}

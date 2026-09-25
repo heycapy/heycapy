@@ -91,6 +91,9 @@ export function BucketSettings({ open, bucket, onClose }: BucketSettingsProps) {
   const [notifyAt, setNotifyAt] = useState("");
   const [defaultOffset, setDefaultOffset] = useState("");
   const [repeat, setRepeat] = useState<RepeatMode>("once");
+  const [notifyOnArrival, setNotifyOnArrival] = useState(false);
+  const [notifyWhenOverdue, setNotifyWhenOverdue] = useState(false);
+  const [overdueRepeatHours, setOverdueRepeatHours] = useState<number | undefined>(undefined);
   const [notifAvailability, setNotifAvailability] = useState<NotifAvailability | undefined>(
     undefined
   );
@@ -121,6 +124,22 @@ export function BucketSettings({ open, bucket, onClose }: BucketSettingsProps) {
           : (nr.default_offset ?? "")
       );
       setRepeat(nr.repeat ?? "once");
+      try {
+        const fs = bucket.fieldSchema
+          ? ((typeof bucket.fieldSchema === "string"
+              ? JSON.parse(bucket.fieldSchema)
+              : bucket.fieldSchema) as Record<string, unknown>)
+          : {};
+        setNotifyOnArrival(fs.notifyOnArrival === true);
+        setNotifyWhenOverdue(fs.notifyWhenOverdue === true);
+        setOverdueRepeatHours(
+          typeof fs.overdueRepeatHours === "number" ? fs.overdueRepeatHours : undefined
+        );
+      } catch {
+        setNotifyOnArrival(false);
+        setNotifyWhenOverdue(false);
+        setOverdueRepeatHours(undefined);
+      }
       void getNotifAvailabilityAction().then(setNotifAvailability);
     }, 0);
     return () => clearTimeout(id);
@@ -145,7 +164,9 @@ export function BucketSettings({ open, bucket, onClose }: BucketSettingsProps) {
           notifyAt: notifyAt || undefined,
           defaultOffsetMins: parseDurationToMins(defaultOffset) ?? undefined,
           repeat,
-        }
+        },
+        undefined,
+        { notifyOnArrival, notifyWhenOverdue, overdueRepeatHours }
       );
       if (result.ok) onClose();
       else setError(result.error);
@@ -253,6 +274,9 @@ export function BucketSettings({ open, bucket, onClose }: BucketSettingsProps) {
                       notifyAt={notifyAt}
                       defaultOffset={defaultOffset}
                       repeat={repeat}
+                      notifyOnArrival={notifyOnArrival}
+                      notifyWhenOverdue={notifyWhenOverdue}
+                      overdueRepeatHours={overdueRepeatHours}
                       onSortByChange={setSortBy}
                       onDragChange={setDrag}
                       onShowCompletedChange={setShowCompleted}
@@ -266,6 +290,9 @@ export function BucketSettings({ open, bucket, onClose }: BucketSettingsProps) {
                       onNotifyAtChange={setNotifyAt}
                       onDefaultOffsetChange={setDefaultOffset}
                       onRepeatChange={setRepeat}
+                      onNotifyOnArrivalChange={setNotifyOnArrival}
+                      onNotifyWhenOverdueChange={setNotifyWhenOverdue}
+                      onOverdueRepeatHoursChange={setOverdueRepeatHours}
                       notifAvailability={notifAvailability}
                     />
                   )}

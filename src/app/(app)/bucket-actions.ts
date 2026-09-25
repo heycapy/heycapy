@@ -59,12 +59,19 @@ export async function createBucketAction(
   return { ok: true };
 }
 
+type NotificationTriggers = {
+  notifyOnArrival?: boolean;
+  notifyWhenOverdue?: boolean;
+  overdueRepeatHours?: number | undefined;
+};
+
 export async function updateBucketSettingsAction(
   bucketId: number,
   name: string,
   itemsRules: ItemsRulesConfig,
   notificationsRules: NotificationsRulesConfig,
-  telegramConfig?: TelegramBotConfig | null
+  telegramConfig?: TelegramBotConfig | null,
+  notificationTriggers?: NotificationTriggers
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   const session = await requireSession();
 
@@ -77,6 +84,29 @@ export async function updateBucketSettingsAction(
   });
   if (!bucket) return { ok: false, error: "Bucket not found" };
 
+  let updatedFieldSchema: unknown = bucket.fieldSchema;
+  if (notificationTriggers !== undefined) {
+    try {
+      const existing = bucket.fieldSchema
+        ? ((typeof bucket.fieldSchema === "string"
+            ? JSON.parse(bucket.fieldSchema as string)
+            : bucket.fieldSchema) as Record<string, unknown>)
+        : {};
+      updatedFieldSchema = {
+        ...existing,
+        notifyOnArrival: notificationTriggers.notifyOnArrival ?? false,
+        notifyWhenOverdue: notificationTriggers.notifyWhenOverdue ?? false,
+        overdueRepeatHours: notificationTriggers.notifyWhenOverdue
+          ? notificationTriggers.overdueRepeatHours
+          : undefined,
+      };
+    } catch (err) {
+      process.stderr.write(
+        `[bucket-actions] failed to parse fieldSchema for bucket ${bucketId}: ${err instanceof Error ? err.message : String(err)}\n`
+      );
+    }
+  }
+
   await db
     .update(buckets)
     .set({
@@ -85,6 +115,9 @@ export async function updateBucketSettingsAction(
       notificationsRules: JSON.stringify(notificationsRules),
       ...(telegramConfig !== undefined
         ? { telegramConfig: telegramConfig ? JSON.stringify(telegramConfig) : null }
+        : {}),
+      ...(notificationTriggers !== undefined
+        ? { fieldSchema: JSON.stringify(updatedFieldSchema) as unknown as BucketSchema }
         : {}),
       updatedAt: new Date(),
     })
@@ -234,10 +267,35 @@ export async function updateBucketSchemaAction(
     return { ok: false, error: "Invalid field definitions" };
   }
 
+  let existing: Record<string, unknown> = {};
+  try {
+    if (bucket.fieldSchema) {
+      existing =
+        typeof bucket.fieldSchema === "string"
+          ? (JSON.parse(bucket.fieldSchema as string) as Record<string, unknown>)
+          : (bucket.fieldSchema as Record<string, unknown>);
+    }
+  } catch (err) {
+    process.stderr.write(
+      `[bucket-actions] failed to parse existing fieldSchema for bucket ${bucketId}: ${err instanceof Error ? err.message : String(err)}\n`
+    );
+  }
+
+  const merged = {
+    ...parsed.data,
+    ...(existing.notifyOnArrival !== undefined && { notifyOnArrival: existing.notifyOnArrival }),
+    ...(existing.notifyWhenOverdue !== undefined && {
+      notifyWhenOverdue: existing.notifyWhenOverdue,
+    }),
+    ...(existing.overdueRepeatHours !== undefined && {
+      overdueRepeatHours: existing.overdueRepeatHours,
+    }),
+  };
+
   await db
     .update(buckets)
     .set({
-      fieldSchema: JSON.stringify(parsed.data) as unknown as BucketSchema,
+      fieldSchema: JSON.stringify(merged) as unknown as BucketSchema,
       updatedAt: new Date(),
     })
     .where(and(eq(buckets.id, bucketId), eq(buckets.userId, session.userId)));

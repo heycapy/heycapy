@@ -10,6 +10,14 @@ import { SORT_OPTIONS, MEDIUM_OPTIONS, REPEAT_OPTIONS } from "./constants";
 const LABEL = "text-muted-foreground font-mono text-[10px]";
 const HINT = "text-muted-foreground/50 font-mono text-[9px] leading-tight";
 
+const OVERDUE_REPEAT_OPTIONS = [
+  { value: "0", label: "once" },
+  { value: "24", label: "daily" },
+  { value: "48", label: "every 2 days" },
+  { value: "72", label: "every 3 days" },
+  { value: "168", label: "weekly" },
+] as const;
+
 export type NotifAvailability = { email: boolean; ntfy: boolean; telegram: boolean };
 
 interface BucketRulesPanelProps {
@@ -24,6 +32,9 @@ interface BucketRulesPanelProps {
   notifyAt: string;
   defaultOffset: string;
   repeat: RepeatMode;
+  notifyOnArrival: boolean;
+  notifyWhenOverdue: boolean;
+  overdueRepeatHours: number | undefined;
   onSortByChange: (v: SortBy) => void;
   onDragChange: (v: boolean) => void;
   onShowCompletedChange: (v: boolean) => void;
@@ -33,6 +44,9 @@ interface BucketRulesPanelProps {
   onNotifyAtChange: (v: string) => void;
   onDefaultOffsetChange: (v: string) => void;
   onRepeatChange: (v: RepeatMode) => void;
+  onNotifyOnArrivalChange: (v: boolean) => void;
+  onNotifyWhenOverdueChange: (v: boolean) => void;
+  onOverdueRepeatHoursChange: (v: number | undefined) => void;
   notifAvailability?: NotifAvailability;
 }
 
@@ -48,6 +62,9 @@ export function BucketRulesPanel({
   notifyAt,
   defaultOffset,
   repeat,
+  notifyOnArrival,
+  notifyWhenOverdue,
+  overdueRepeatHours,
   onSortByChange,
   onDragChange,
   onShowCompletedChange,
@@ -57,6 +74,9 @@ export function BucketRulesPanel({
   onNotifyAtChange,
   onDefaultOffsetChange,
   onRepeatChange,
+  onNotifyOnArrivalChange,
+  onNotifyWhenOverdueChange,
+  onOverdueRepeatHoursChange,
   notifAvailability,
 }: BucketRulesPanelProps) {
   if (activeTab === "items") {
@@ -153,6 +173,42 @@ export function BucketRulesPanel({
           once per day from that point until the item is completed
         </span>
         <OptionGroup options={REPEAT_OPTIONS} value={repeat} onChange={onRepeatChange} />
+      </div>
+
+      <div className="border-border flex flex-col gap-4 border-t pt-4">
+        <p className={LABEL}>triggers</p>
+        <div className="flex flex-col gap-1.5">
+          <label className={LABEL}>notify on arrival</label>
+          <span className={HINT}>
+            send a notification every time a new item arrives via webhook
+          </span>
+          <Toggle value={notifyOnArrival} onChange={onNotifyOnArrivalChange} disabled={disabled} />
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <label className={LABEL}>notify when overdue</label>
+          <span className={HINT}>
+            send a notification when an item passes its deadline without being completed
+          </span>
+          <Toggle
+            value={notifyWhenOverdue}
+            onChange={onNotifyWhenOverdueChange}
+            disabled={disabled}
+          />
+          {notifyWhenOverdue && (
+            <div className="mt-1.5 flex flex-col gap-1.5">
+              <span className={HINT}>repeat reminder</span>
+              <OptionGroup
+                options={[...OVERDUE_REPEAT_OPTIONS]}
+                value={String(overdueRepeatHours ?? 0)}
+                onChange={(v) => {
+                  const n = parseInt(v, 10);
+                  onOverdueRepeatHoursChange(n === 0 ? undefined : n);
+                }}
+                disabled={disabled}
+              />
+            </div>
+          )}
+        </div>
       </div>
     </>
   );
