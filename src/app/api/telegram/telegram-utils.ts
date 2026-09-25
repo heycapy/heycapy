@@ -89,10 +89,32 @@ export function getFlowState(raw: string | null): FlowState {
   }
 }
 
-export async function setFlowState(userId: number, state: FlowState): Promise<void> {
+export function getFlowMessageId(raw: string | null): number | null {
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw) as Record<string, unknown>;
+    const mid = parsed._mid;
+    return typeof mid === "number" ? mid : null;
+  } catch {
+    return null;
+  }
+}
+
+export async function setFlowState(
+  userId: number,
+  state: FlowState,
+  messageId?: number | null
+): Promise<void> {
+  const value = state
+    ? messageId
+      ? JSON.stringify({ ...state, _mid: messageId })
+      : JSON.stringify(state)
+    : messageId
+      ? JSON.stringify({ _mid: messageId })
+      : null;
   await db
     .update(userSettings)
-    .set({ telegramState: state ? JSON.stringify(state) : null })
+    .set({ telegramState: value })
     .where(eq(userSettings.userId, userId));
 }
 

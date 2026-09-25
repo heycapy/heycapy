@@ -24,7 +24,7 @@ export async function sendTelegramButtons(
   chatId: string,
   text: string,
   rows: InlineButton[][]
-): Promise<void> {
+): Promise<number> {
   const res = await fetch(`${TELEGRAM_API_BASE}/bot${botToken}/sendMessage`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -39,6 +39,62 @@ export async function sendTelegramButtons(
     const body = await res.text();
     throw new Error(`Telegram API error ${res.status}: ${body}`);
   }
+  const data = (await res.json()) as { result: { message_id: number } };
+  return data.result.message_id;
+}
+
+export async function editTelegramMessage(
+  botToken: string,
+  chatId: string,
+  messageId: number,
+  text: string,
+  rows: InlineButton[][]
+): Promise<void> {
+  const res = await fetch(`${TELEGRAM_API_BASE}/bot${botToken}/editMessageText`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      chat_id: chatId,
+      message_id: messageId,
+      text,
+      reply_markup: { inline_keyboard: rows },
+    }),
+  });
+  if (!res.ok) {
+    const body = await res.text();
+    if (body.includes("message is not modified")) return;
+    throw new Error(`Telegram editMessageText error ${res.status}: ${body}`);
+  }
+}
+
+export async function removeMessageButtons(
+  botToken: string,
+  chatId: string,
+  messageId: number
+): Promise<void> {
+  await fetch(`${TELEGRAM_API_BASE}/bot${botToken}/editMessageReplyMarkup`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      chat_id: chatId,
+      message_id: messageId,
+      reply_markup: { inline_keyboard: [] },
+    }),
+  }).catch(() => {});
+}
+
+export async function sendOrEditButtons(
+  botToken: string,
+  chatId: string,
+  messageId: number | null | undefined,
+  text: string,
+  rows: InlineButton[][]
+): Promise<number> {
+  if (messageId) {
+    await editTelegramMessage(botToken, chatId, messageId, text, rows);
+    return messageId;
+  }
+  return sendTelegramButtons(botToken, chatId, text, rows);
 }
 
 export async function sendTelegramWithQuickActions(

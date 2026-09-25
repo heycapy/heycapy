@@ -1,4 +1,4 @@
-import { sendTelegramButtons, sendTelegramWithQuickActions } from "@/lib/notifications/telegram";
+import { sendTelegramWithQuickActions, sendOrEditButtons } from "@/lib/notifications/telegram";
 import type { InlineButton } from "@/lib/notifications/telegram";
 import type { TelegramDeadlinePreset } from "@/components/buckets/constants";
 import {
@@ -23,15 +23,16 @@ const PRESET_LABELS: Record<TelegramDeadlinePreset, string> = {
 export async function showListBucketPicker(
   botToken: string,
   chatId: string,
-  buckets: { id: number; name: string; icon: string | null }[]
-): Promise<void> {
+  buckets: { id: number; name: string; icon: string | null }[],
+  messageId?: number | null
+): Promise<number> {
   if (buckets.length === 0) {
     await sendTelegramWithQuickActions(
       botToken,
       chatId,
       "No buckets yet. Create one in the app first."
     );
-    return;
+    return 0;
   }
   const buttonRows: InlineButton[][] = buckets.map((b) => [
     {
@@ -40,7 +41,7 @@ export async function showListBucketPicker(
     },
   ]);
   buttonRows.push([{ text: "✖ Cancel", callback_data: "cancel" }]);
-  await sendTelegramButtons(botToken, chatId, "Which bucket?", buttonRows);
+  return sendOrEditButtons(botToken, chatId, messageId, "Which bucket?", buttonRows);
 }
 
 export async function showItemList(
@@ -50,14 +51,14 @@ export async function showItemList(
   bucketId: number,
   bucketName: string,
   page: number,
-  timezone: string
-): Promise<void> {
+  timezone: string,
+  messageId?: number | null
+): Promise<number> {
   const allItems = await getActiveItemsForBucket(userId, bucketId);
   if (allItems.length === 0) {
-    await sendTelegramButtons(botToken, chatId, `No active items in ${bucketName}.`, [
+    return sendOrEditButtons(botToken, chatId, messageId, `No active items in ${bucketName}.`, [
       [{ text: "✖ Cancel", callback_data: "cancel" }],
     ]);
-    return;
   }
   const totalPages = Math.ceil(allItems.length / ITEMS_PER_PAGE);
   const safePage = Math.max(0, Math.min(page, totalPages - 1));
@@ -76,15 +77,16 @@ export async function showItemList(
     rows.push(navRow);
   }
   rows.push([{ text: "✖ Cancel", callback_data: "cancel" }]);
-  await sendTelegramButtons(botToken, chatId, `${bucketName} — tap an item:`, rows);
+  return sendOrEditButtons(botToken, chatId, messageId, `${bucketName} — tap an item:`, rows);
 }
 
 export async function showItemActionMenu(
   botToken: string,
   chatId: string,
-  itemTitle: string
-): Promise<void> {
-  await sendTelegramButtons(botToken, chatId, `"${itemTitle.slice(0, 50)}"`, [
+  itemTitle: string,
+  messageId?: number | null
+): Promise<number> {
+  return sendOrEditButtons(botToken, chatId, messageId, `"${itemTitle.slice(0, 50)}"`, [
     [
       { text: "✓ Complete", callback_data: "la:complete" },
       { text: "✏️ Rename", callback_data: "me:rename" },
@@ -100,9 +102,10 @@ export async function showItemActionMenu(
 export async function showDeleteConfirm(
   botToken: string,
   chatId: string,
-  itemTitle: string
-): Promise<void> {
-  await sendTelegramButtons(botToken, chatId, `Delete "${itemTitle.slice(0, 40)}"?`, [
+  itemTitle: string,
+  messageId?: number | null
+): Promise<number> {
+  return sendOrEditButtons(botToken, chatId, messageId, `Delete "${itemTitle.slice(0, 40)}"?`, [
     [
       { text: "🗑 Yes, delete", callback_data: "dc:yes" },
       { text: "✖ No", callback_data: "cancel" },
@@ -114,8 +117,9 @@ export async function showEditDeadlinePicker(
   botToken: string,
   chatId: string,
   itemTitle: string,
-  bucketId: number
-): Promise<void> {
+  bucketId: number,
+  messageId?: number | null
+): Promise<number> {
   const config = await getBucketTelegramConfig(bucketId);
   const presets = config.deadlinePresets.filter((p) => p !== "no_deadline");
   const buttons: InlineButton[] = presets.map((p) => ({
@@ -133,7 +137,13 @@ export async function showEditDeadlinePicker(
   }
   rows.push([{ text: "✕ Remove deadline", callback_data: "eq:no_deadline" }]);
   rows.push([{ text: "✖ Cancel", callback_data: "cancel" }]);
-  await sendTelegramButtons(botToken, chatId, `"${itemTitle.slice(0, 40)}"\n\nNew deadline?`, rows);
+  return sendOrEditButtons(
+    botToken,
+    chatId,
+    messageId,
+    `"${itemTitle.slice(0, 40)}"\n\nNew deadline?`,
+    rows
+  );
 }
 
 export async function showEditTimePicker(
@@ -142,8 +152,9 @@ export async function showEditTimePicker(
   itemTitle: string,
   bucketId: number,
   timezone: string,
-  isToday: boolean
-): Promise<void> {
+  isToday: boolean,
+  messageId?: number | null
+): Promise<number> {
   const config = await getBucketTelegramConfig(bucketId);
   const sorted = [...config.timeSlots].sort();
   const filtered = isToday
@@ -175,9 +186,10 @@ export async function showEditTimePicker(
   ]);
   rows.push([{ text: "✖ Cancel", callback_data: "cancel" }]);
   const when = isToday ? "today" : "tomorrow";
-  await sendTelegramButtons(
+  return sendOrEditButtons(
     botToken,
     chatId,
+    messageId,
     `"${itemTitle.slice(0, 40)}" (${when})\n\nWhat time?`,
     rows
   );
@@ -237,11 +249,13 @@ export async function showEditCalendar(
   botToken: string,
   chatId: string,
   monthStr: string,
-  itemTitle: string
-): Promise<void> {
-  await sendTelegramButtons(
+  itemTitle: string,
+  messageId?: number | null
+): Promise<number> {
+  return sendOrEditButtons(
     botToken,
     chatId,
+    messageId,
     `"${itemTitle.slice(0, 40)}"\n\nPick a new date:`,
     buildEditCalendarRows(monthStr)
   );

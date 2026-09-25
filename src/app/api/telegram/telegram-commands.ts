@@ -14,11 +14,15 @@ import {
 } from "./telegram-utils";
 import { dataEvents } from "@/lib/events";
 
-export async function cmdBuckets(botToken: string, chatId: string, userId: number): Promise<void> {
+export async function cmdBuckets(
+  botToken: string,
+  chatId: string,
+  userId: number
+): Promise<number> {
   const rows = await getUserBuckets(userId);
   if (rows.length === 0) {
     await sendTelegramWithQuickActions(botToken, chatId, "No buckets yet. Create one in the app.");
-    return;
+    return 0;
   }
   const counts = await db
     .select({ bucketId: items.bucketId, count: sql<number>`count(*)` })
@@ -35,7 +39,7 @@ export async function cmdBuckets(botToken: string, chatId: string, userId: numbe
       },
     ];
   });
-  await sendTelegramButtons(botToken, chatId, "Your buckets — tap to browse:", buttonRows);
+  return sendTelegramButtons(botToken, chatId, "Your buckets — tap to browse:", buttonRows);
 }
 
 export async function cmdList(
@@ -43,7 +47,7 @@ export async function cmdList(
   chatId: string,
   userId: number,
   timezone: string
-): Promise<void> {
+): Promise<number> {
   const now = new Date();
   const sevenDaysLater = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
   const rows = await db
@@ -70,7 +74,7 @@ export async function cmdList(
 
   if (rows.length === 0) {
     await sendTelegramWithQuickActions(botToken, chatId, "Nothing due in the next 7 days.");
-    return;
+    return 0;
   }
   const buttonRows: InlineButton[][] = rows.map((r) => {
     const when = r.deadline ? fmtDateTimeShort(r.deadline, timezone) : "?";
@@ -82,7 +86,7 @@ export async function cmdList(
     ];
   });
   buttonRows.push([{ text: "✖ Close", callback_data: "cancel" }]);
-  await sendTelegramButtons(botToken, chatId, "Upcoming (7 days) — tap to manage:", buttonRows);
+  return sendTelegramButtons(botToken, chatId, "Upcoming (7 days) — tap to manage:", buttonRows);
 }
 
 export async function cmdDue(
@@ -90,7 +94,7 @@ export async function cmdDue(
   chatId: string,
   userId: number,
   timezone: string
-): Promise<void> {
+): Promise<number> {
   const todayStr = getLocalDateStr(new Date(), timezone);
   const rows = await db
     .select({
@@ -118,7 +122,7 @@ export async function cmdDue(
 
   if (dueToday.length === 0) {
     await sendTelegramWithQuickActions(botToken, chatId, "Nothing due today.");
-    return;
+    return 0;
   }
   const buttonRows: InlineButton[][] = dueToday.map((r) => {
     const when = r.deadline ? fmtDateTimeShort(r.deadline, timezone) : "?";
@@ -130,7 +134,7 @@ export async function cmdDue(
     ];
   });
   buttonRows.push([{ text: "✖ Close", callback_data: "cancel" }]);
-  await sendTelegramButtons(botToken, chatId, "Due today — tap to manage:", buttonRows);
+  return sendTelegramButtons(botToken, chatId, "Due today — tap to manage:", buttonRows);
 }
 
 export async function cmdOverdue(
@@ -138,7 +142,7 @@ export async function cmdOverdue(
   chatId: string,
   userId: number,
   timezone: string
-): Promise<void> {
+): Promise<number> {
   const now = new Date();
   const rows = await db
     .select({
@@ -163,7 +167,7 @@ export async function cmdOverdue(
 
   if (rows.length === 0) {
     await sendTelegramWithQuickActions(botToken, chatId, "Nothing overdue.");
-    return;
+    return 0;
   }
   const buttonRows: InlineButton[][] = rows.map((r) => {
     const when = r.deadline ? fmtDateTimeShort(r.deadline, timezone) : "?";
@@ -175,7 +179,7 @@ export async function cmdOverdue(
     ];
   });
   buttonRows.push([{ text: "✖ Close", callback_data: "cancel" }]);
-  await sendTelegramButtons(botToken, chatId, "Overdue — tap to manage:", buttonRows);
+  return sendTelegramButtons(botToken, chatId, "Overdue — tap to manage:", buttonRows);
 }
 
 export async function cmdAddDirect(

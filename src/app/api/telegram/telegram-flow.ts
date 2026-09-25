@@ -1,7 +1,8 @@
 import {
   sendTelegram,
-  sendTelegramButtons,
   sendTelegramWithQuickActions,
+  sendOrEditButtons,
+  removeMessageButtons,
 } from "@/lib/notifications/telegram";
 import type { InlineButton } from "@/lib/notifications/telegram";
 import type {
@@ -32,11 +33,12 @@ const PRESET_LABELS: Record<TelegramDeadlinePreset, string> = {
 export async function showBucketPicker(
   botToken: string,
   chatId: string,
-  buckets: { id: number; name: string; icon: string | null }[]
-): Promise<void> {
+  buckets: { id: number; name: string; icon: string | null }[],
+  messageId?: number | null
+): Promise<number> {
   if (buckets.length === 0) {
     await sendTelegram(botToken, chatId, "No buckets yet. Create one in the app first.");
-    return;
+    return 0;
   }
   const buttonRows: InlineButton[][] = buckets.map((b) => [
     {
@@ -45,14 +47,15 @@ export async function showBucketPicker(
     },
   ]);
   buttonRows.push([{ text: "✖ Cancel", callback_data: "cancel" }]);
-  await sendTelegramButtons(botToken, chatId, "Which bucket?", buttonRows);
+  return sendOrEditButtons(botToken, chatId, messageId, "Which bucket?", buttonRows);
 }
 
 export async function showDeadlinePicker(
   botToken: string,
   chatId: string,
-  state: { bucketId: number; bucketName: string; title: string }
-): Promise<void> {
+  state: { bucketId: number; bucketName: string; title: string },
+  messageId?: number | null
+): Promise<number> {
   const config = await getBucketTelegramConfig(state.bucketId);
   const buttons: InlineButton[] = config.deadlinePresets.map((p) => ({
     text: PRESET_LABELS[p],
@@ -65,9 +68,10 @@ export async function showDeadlinePicker(
     rows.push(row);
   }
   rows.push([{ text: "✖ Cancel", callback_data: "cancel" }]);
-  await sendTelegramButtons(
+  return sendOrEditButtons(
     botToken,
     chatId,
+    messageId,
     `"${state.title}" → ${state.bucketName}\n\nWhen is it due?`,
     rows
   );
@@ -79,8 +83,9 @@ export async function showTimePicker(
   state: { bucketName: string; title: string },
   timezone: string,
   isToday: boolean,
-  slots: string[]
-): Promise<void> {
+  slots: string[],
+  messageId?: number | null
+): Promise<number> {
   const sorted = [...slots].sort();
   const filtered = isToday
     ? (() => {
@@ -108,9 +113,10 @@ export async function showTimePicker(
   ]);
   buttonRows.push([{ text: "✖ Cancel", callback_data: "cancel" }]);
   const when = isToday ? "today" : "tomorrow";
-  await sendTelegramButtons(
+  return sendOrEditButtons(
     botToken,
     chatId,
+    messageId,
     `"${state.title}" → ${state.bucketName} (${when})\n\nWhat time?`,
     buttonRows
   );
@@ -171,11 +177,13 @@ export async function showCalendar(
   chatId: string,
   monthStr: string,
   title: string,
-  bucketName: string
-): Promise<void> {
-  await sendTelegramButtons(
+  bucketName: string,
+  messageId?: number | null
+): Promise<number> {
+  return sendOrEditButtons(
     botToken,
     chatId,
+    messageId,
     `"${title}" → ${bucketName}\n\nPick a date:`,
     buildCalendarRows(monthStr)
   );
@@ -185,12 +193,14 @@ export async function showRecurringPicker(
   botToken: string,
   chatId: string,
   state: { bucketName: string; title: string },
-  defaultRecurring: TelegramRecurringDefault
-): Promise<void> {
+  defaultRecurring: TelegramRecurringDefault,
+  messageId?: number | null
+): Promise<number> {
   const mark = (f: TelegramRecurringDefault) => (f === defaultRecurring ? "✓ " : "");
-  await sendTelegramButtons(
+  return sendOrEditButtons(
     botToken,
     chatId,
+    messageId,
     `"${state.title}" → ${state.bucketName}\n\nRepeats?`,
     [
       [
@@ -213,19 +223,31 @@ export async function handleAfterTime(
   userId: number,
   state: { bucketId: number; bucketName: string; title: string },
   deadline: Date,
-  timezone: string
+  timezone: string,
+  messageId?: number | null
 ): Promise<void> {
   const config = await getBucketTelegramConfig(state.bucketId);
   if (config.showRecurring) {
-    await setFlowState(userId, {
-      s: "repeat",
-      bucketId: state.bucketId,
-      bucketName: state.bucketName,
-      title: state.title,
-      deadline: deadline.toISOString(),
-    });
-    await showRecurringPicker(botToken, chatId, state, config.defaultRecurring);
+    const newMsgId = await showRecurringPicker(
+      botToken,
+      chatId,
+      state,
+      config.defaultRecurring,
+      messageId
+    );
+    await setFlowState(
+      userId,
+      {
+        s: "repeat",
+        bucketId: state.bucketId,
+        bucketName: state.bucketName,
+        title: state.title,
+        deadline: deadline.toISOString(),
+      },
+      newMsgId
+    );
   } else {
+    if (messageId) await removeMessageButtons(botToken, chatId, messageId);
     await createItem(userId, state.bucketId, state.title, deadline);
     await setFlowState(userId, null);
     dataEvents.emit("refresh", userId);
@@ -243,19 +265,31 @@ export async function handleAfterDeadline(
   userId: number,
   state: { bucketId: number; bucketName: string; title: string },
   deadline: Date | null,
-  timezone: string
+  timezone: string,
+  messageId?: number | null
 ): Promise<void> {
   const config = await getBucketTelegramConfig(state.bucketId);
   if (config.showRecurring) {
-    await setFlowState(userId, {
-      s: "repeat",
-      bucketId: state.bucketId,
-      bucketName: state.bucketName,
-      title: state.title,
-      deadline: deadline ? deadline.toISOString() : null,
-    });
-    await showRecurringPicker(botToken, chatId, state, config.defaultRecurring);
+    const newMsgId = await showRecurringPicker(
+      botToken,
+      chatId,
+      state,
+      config.defaultRecurring,
+      messageId
+    );
+    await setFlowState(
+      userId,
+      {
+        s: "repeat",
+        bucketId: state.bucketId,
+        bucketName: state.bucketName,
+        title: state.title,
+        deadline: deadline ? deadline.toISOString() : null,
+      },
+      newMsgId
+    );
   } else {
+    if (messageId) await removeMessageButtons(botToken, chatId, messageId);
     await createItem(userId, state.bucketId, state.title, deadline);
     await setFlowState(userId, null);
     const note = deadline ? ` (due ${fmtDate(deadline, timezone)})` : "";
@@ -274,13 +308,15 @@ export async function handleRepeatCallback(
   userId: number,
   state: Extract<FlowState, { s: "repeat" }>,
   freq: TelegramRecurringDefault,
-  timezone: string
+  timezone: string,
+  messageId?: number | null
 ): Promise<void> {
   const deadline = state.deadline ? new Date(state.deadline) : null;
   const recurring =
     freq === "none"
       ? null
       : JSON.stringify({ enabled: true, frequency: freq, interval: 1, endDate: null });
+  if (messageId) await removeMessageButtons(botToken, chatId, messageId);
   await createItem(userId, state.bucketId, state.title, deadline, recurring);
   await setFlowState(userId, null);
   dataEvents.emit("refresh", userId);
