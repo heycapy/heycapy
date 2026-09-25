@@ -262,16 +262,8 @@ export function parseNaturalDeadline(input: string, timezone: string): Date | nu
       month: "2-digit",
       day: "2-digit",
     }).formatToParts(t);
-    return new Date(
-      Date.UTC(
-        Number(parts.find((p) => p.type === "year")?.value ?? 0),
-        Number(parts.find((p) => p.type === "month")?.value ?? 1) - 1,
-        Number(parts.find((p) => p.type === "day")?.value ?? 1),
-        12,
-        0,
-        0
-      )
-    );
+    const dateStr = `${parts.find((p) => p.type === "year")?.value ?? "2000"}-${parts.find((p) => p.type === "month")?.value ?? "01"}-${parts.find((p) => p.type === "day")?.value ?? "01"}`;
+    return parseDeadlineInTimezone(`${dateStr}T12:00:00`, timezone);
   }
 
   if (s === "today") return localNoon(0);

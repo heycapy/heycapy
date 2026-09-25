@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import { BucketContent } from "./BucketContent";
 import { BUCKET_PALETTE } from "./constants";
 import { useUIStore } from "@/store/ui";
+import { saveTimezoneIfDefaultAction } from "@/app/(app)/user-settings-actions";
 import type { buckets } from "@/lib/db/schema";
 
 type BucketRow = typeof buckets.$inferSelect;
@@ -78,6 +79,11 @@ export function BucketsShell({ buckets }: BucketsShellProps) {
   const setActiveBucketId = useUIStore((s) => s.setActiveBucketId);
   const prevBucketsRef = useRef<BucketRow[]>(buckets);
   const [pickerOpen, setPickerOpen] = useState(false);
+
+  useEffect(() => {
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    void saveTimezoneIfDefaultAction(tz);
+  }, []);
 
   const activeId =
     activeBucketId !== null && buckets.some((b) => b.id === activeBucketId)

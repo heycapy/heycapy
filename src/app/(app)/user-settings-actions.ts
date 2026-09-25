@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { getSession, deleteSession } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { users, userSettings } from "@/lib/db/schema";
@@ -208,6 +208,16 @@ export async function getNotifAvailabilityAction(): Promise<{
     ntfy: settings.notificationsPush && !!settings.ntfyUrl && !!settings.ntfyTopic,
     telegram: settings.notificationsTelegram && !!settings.telegramChatId,
   };
+}
+
+export async function saveTimezoneIfDefaultAction(timezone: string): Promise<void> {
+  const session = await getSession();
+  if (!session) return;
+  if (!timezone || timezone === "UTC") return;
+  await db
+    .update(userSettings)
+    .set({ timezone })
+    .where(and(eq(userSettings.userId, session.userId), eq(userSettings.timezone, "UTC")));
 }
 
 export async function registerTelegramWebhookAction(

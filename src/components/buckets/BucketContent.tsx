@@ -179,7 +179,7 @@ export function BucketContent({ bucket, accentColor }: BucketContentProps) {
     await updateItemAction(
       item.id,
       item.title,
-      item.deadline ? toLocalDatetimeStr(item.deadline) : null,
+      item.deadline ? item.deadline.toISOString() : null,
       status
     );
     await refetchItems();
