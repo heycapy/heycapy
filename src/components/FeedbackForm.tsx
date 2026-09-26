@@ -1,14 +1,32 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+
+const COOLDOWN_MS = 60_000;
+const COOLDOWN_STEPS = 5;
 
 export function FeedbackForm({ fallbackEmail }: { fallbackEmail?: string }) {
   const [message, setMessage] = useState("");
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
   const [error, setError] = useState("");
+  const [cooldownUntil, setCooldownUntil] = useState<number | null>(null);
+  const [remaining, setRemaining] = useState(0);
   const formRef = useRef<HTMLFormElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    if (!cooldownUntil) return;
+    const id = setInterval(() => {
+      const left = Math.max(0, cooldownUntil - Date.now());
+      setRemaining(Math.ceil(left / 1000));
+      if (left <= 0) {
+        setCooldownUntil(null);
+        setSent(false);
+      }
+    }, 500);
+    return () => clearInterval(id);
+  }, [cooldownUntil]);
 
   const handleSubmit = async (e: { preventDefault(): void }) => {
     e.preventDefault();
@@ -28,6 +46,8 @@ export function FeedbackForm({ fallbackEmail }: { fallbackEmail?: string }) {
       setMessage("");
       formRef.current?.reset();
       if (textareaRef.current) textareaRef.current.style.height = "auto";
+      setRemaining(COOLDOWN_MS / 1000);
+      setCooldownUntil(Date.now() + COOLDOWN_MS);
     } catch {
       setError(
         fallbackEmail
@@ -40,10 +60,14 @@ export function FeedbackForm({ fallbackEmail }: { fallbackEmail?: string }) {
   };
 
   if (sent) {
+    const filled = Math.ceil((remaining / (COOLDOWN_MS / 1000)) * COOLDOWN_STEPS);
+    const boxes = "■".repeat(filled) + "□".repeat(COOLDOWN_STEPS - filled);
     return (
       <div className="border-border border p-4">
         <p className="font-pixel mb-2 text-[11px]">feedback</p>
-        <p className="text-muted-foreground font-mono text-[11px]">got it. thanks.</p>
+        <p className="text-muted-foreground font-mono text-[11px]">
+          got it. thanks. <span className="opacity-40">[{boxes}]</span>
+        </p>
       </div>
     );
   }

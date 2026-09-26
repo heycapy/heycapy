@@ -12,8 +12,17 @@ export async function proxy(request: NextRequest) {
   const rootDomain = process.env.ROOT_DOMAIN;
   const isRootDomain =
     !!rootDomain && (hostname === rootDomain || hostname === `www.${rootDomain}`);
-  if (isRootDomain && pathname === "/") {
-    return NextResponse.rewrite(new URL("/home", request.url));
+  if (isRootDomain) {
+    if (pathname === "/") {
+      return NextResponse.rewrite(new URL("/home", request.url));
+    }
+    if (PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(p + "/"))) {
+      return NextResponse.next();
+    }
+    const appUrl = process.env.APP_URL;
+    if (appUrl) {
+      return NextResponse.redirect(new URL(pathname + request.nextUrl.search, appUrl));
+    }
   }
 
   if (PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(p + "/"))) {
