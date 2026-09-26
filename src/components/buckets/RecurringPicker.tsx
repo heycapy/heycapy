@@ -28,6 +28,7 @@ export function RecurringPicker({
   onChange,
 }: RecurringPickerProps) {
   const [showEndDate, setShowEndDate] = useState(initialShowEndDate);
+  const [intervalStr, setIntervalStr] = useState(String(recurring?.interval ?? 1));
 
   function toggle() {
     if (recurring?.enabled) {
@@ -57,15 +58,22 @@ export function RecurringPicker({
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-muted-foreground font-mono text-[10px]">every</span>
             <input
-              type="number"
-              min={1}
-              value={recurring.interval}
+              type="text"
+              inputMode="numeric"
+              value={intervalStr}
               onChange={(e) => {
-                const val = parseInt(e.target.value, 10);
-                onChange({
-                  ...recurring,
-                  interval: Number.isFinite(val) && val > 0 ? val : 1,
-                });
+                const raw = e.target.value.replace(/[^0-9]/g, "");
+                setIntervalStr(raw);
+                const val = parseInt(raw, 10);
+                if (Number.isFinite(val) && val > 0) {
+                  onChange({ ...recurring, interval: val });
+                }
+              }}
+              onBlur={() => {
+                const val = parseInt(intervalStr, 10);
+                if (!Number.isFinite(val) || val < 1) {
+                  setIntervalStr(String(recurring.interval));
+                }
               }}
               disabled={disabled}
               className="border-border w-10 border-b bg-transparent py-0.5 text-center font-mono text-xs outline-none disabled:opacity-50"
