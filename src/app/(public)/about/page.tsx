@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 
 export default function AboutPage() {
   return (
-    <main className="flex min-h-full flex-col items-center justify-center p-6">
+    <main className="flex flex-1 flex-col items-center justify-center p-6">
       <div className="w-full max-w-sm">
         <div className="mb-8 flex items-center justify-between">
           <h1 className="font-pixel text-sm">about</h1>
