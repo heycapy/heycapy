@@ -1,21 +1,18 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
+import { cn } from "@/lib/utils";
+import { charCountColor } from "@/components/ui/input";
+import { useScrollLock } from "@/hooks/useScrollLock";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { BracketButton } from "@/components/ui/BracketButton";
-import { Toggle } from "@/components/ui/Toggle";
-import { OptionGroup } from "@/components/ui/OptionGroup";
-import { TimePicker } from "@/components/ui/TimePicker";
-import { DurationInput } from "@/components/ui/DurationInput";
-import {
-  type SortBy,
-  type NotificationMedium,
-  type RepeatMode,
-  SORT_OPTIONS,
-  MEDIUM_OPTIONS,
-  REPEAT_OPTIONS,
-} from "./constants";
+import { BucketRulesPanel } from "./BucketRulesPanel";
+import type { NotifAvailability } from "./BucketRulesPanel";
+import { SchemaEditorDialog } from "./SchemaEditorDialog";
+import { TelegramConfigDialog } from "./TelegramConfigDialog";
+import { WebhookDialog } from "./WebhookDialog";
+import type { SortBy, NotificationMedium, RepeatMode } from "./constants";
 import {
   parseDurationToMins,
   minsToDisplayStr,
@@ -26,19 +23,14 @@ import {
   updateBucketSettingsAction,
   archiveBucketAction,
   deleteBucketAction,
+  getNotifAvailabilityAction,
 } from "@/app/(app)/actions";
+import { BUCKET_NAME_MAX_LENGTH } from "@/constants";
 import type { buckets } from "@/lib/db/schema";
 
 type BucketRow = typeof buckets.$inferSelect;
-type Tab = "items" | "notifications";
+type Tab = "items" | "notifications" | "advanced";
 
-interface BucketSettingsProps {
-  open: boolean;
-  bucket: BucketRow;
-  onClose: () => void;
-}
-
-// Covers both old snake_case and new camelCase formats in DB
 type RawItemsRules = {
   sortBy?: string;
   sort_by?: string;
@@ -69,17 +61,22 @@ function parseJson<T>(json: string, fallback: T): T {
   }
 }
 
-const LABEL = "text-muted-foreground font-mono text-[10px]";
-const HINT = "text-muted-foreground/50 font-mono text-[9px] leading-tight";
-const INPUT =
-  "border-b border-border w-full bg-transparent py-1.5 font-mono text-xs outline-none placeholder:text-muted-foreground/50 focus:border-foreground disabled:opacity-50";
-
 const tabCn = (active: boolean) =>
-  `font-mono text-[10px] px-2 py-1 transition-colors ${active ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"}`;
+  `font-mono text-[10px] px-2 py-1 transition-colors shrink-0 whitespace-nowrap ${active ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"}`;
+
+interface BucketSettingsProps {
+  open: boolean;
+  bucket: BucketRow;
+  onClose: () => void;
+}
 
 export function BucketSettings({ open, bucket, onClose }: BucketSettingsProps) {
   const router = useRouter();
+  useScrollLock(open);
   const [tab, setTab] = useState<Tab>("items");
+  const [schemaOpen, setSchemaOpen] = useState(false);
+  const [telegramOpen, setTelegramOpen] = useState(false);
+  const [webhookOpen, setWebhookOpen] = useState(false);
   const [name, setName] = useState(bucket.name);
   const [error, setError] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -90,11 +87,16 @@ export function BucketSettings({ open, bucket, onClose }: BucketSettingsProps) {
   const [showCompleted, setShowCompleted] = useState(true);
   const [readonly, setReadonly] = useState(false);
   const [defaultDeadlineOffset, setDefaultDeadlineOffset] = useState("");
-
   const [mediums, setMediums] = useState<NotificationMedium[]>([]);
   const [notifyAt, setNotifyAt] = useState("");
   const [defaultOffset, setDefaultOffset] = useState("");
   const [repeat, setRepeat] = useState<RepeatMode>("once");
+  const [notifyOnArrival, setNotifyOnArrival] = useState(false);
+  const [notifyWhenOverdue, setNotifyWhenOverdue] = useState(false);
+  const [overdueRepeatHours, setOverdueRepeatHours] = useState<number | undefined>(undefined);
+  const [notifAvailability, setNotifAvailability] = useState<NotifAvailability | undefined>(
+    undefined
+  );
 
   useEffect(() => {
     if (!open) return;
@@ -103,7 +105,6 @@ export function BucketSettings({ open, bucket, onClose }: BucketSettingsProps) {
       setName(bucket.name);
       setError("");
       setTab("items");
-
       const ir = parseJson<RawItemsRules>(bucket.itemsRules, {});
       setSortBy(((ir.sortBy ?? ir.sort_by) as SortBy | undefined) ?? "created_at");
       setDrag(ir.drag ?? false);
@@ -123,13 +124,26 @@ export function BucketSettings({ open, bucket, onClose }: BucketSettingsProps) {
           : (nr.default_offset ?? "")
       );
       setRepeat(nr.repeat ?? "once");
+      try {
+        const fs = bucket.fieldSchema
+          ? ((typeof bucket.fieldSchema === "string"
+              ? JSON.parse(bucket.fieldSchema)
+              : bucket.fieldSchema) as Record<string, unknown>)
+          : {};
+        setNotifyOnArrival(fs.notifyOnArrival === true);
+        setNotifyWhenOverdue(fs.notifyWhenOverdue === true);
+        setOverdueRepeatHours(
+          typeof fs.overdueRepeatHours === "number" ? fs.overdueRepeatHours : undefined
+        );
+      } catch {
+        setNotifyOnArrival(false);
+        setNotifyWhenOverdue(false);
+        setOverdueRepeatHours(undefined);
+      }
+      void getNotifAvailabilityAction().then(setNotifAvailability);
     }, 0);
     return () => clearTimeout(id);
   }, [open, bucket.id]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  function toggleMedium(m: NotificationMedium) {
-    setMediums((prev) => (prev.includes(m) ? prev.filter((x) => x !== m) : [...prev, m]));
-  }
 
   function handleSave() {
     if (pending) return;
@@ -150,7 +164,9 @@ export function BucketSettings({ open, bucket, onClose }: BucketSettingsProps) {
           notifyAt: notifyAt || undefined,
           defaultOffsetMins: parseDurationToMins(defaultOffset) ?? undefined,
           repeat,
-        }
+        },
+        undefined,
+        { notifyOnArrival, notifyWhenOverdue, overdueRepeatHours }
       );
       if (result.ok) onClose();
       else setError(result.error);
@@ -175,180 +191,216 @@ export function BucketSettings({ open, bucket, onClose }: BucketSettingsProps) {
     });
   }
 
+  const showSave = tab === "items" || tab === "notifications";
+
   return (
-    <AnimatePresence>
-      {open && (
-        <>
-          <motion.div
-            key="backdrop"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 0.45 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.12 }}
-            className="fixed inset-0 z-[55] bg-black"
-            onClick={onClose}
-          />
-          <motion.div
-            key="dialog"
-            initial={{ opacity: 0, scale: 0.96, y: -10 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.96, y: -10 }}
-            transition={{ duration: 0.15, ease: "easeOut" }}
-            className="fixed top-[12%] left-1/2 z-[60] w-full max-w-sm -translate-x-1/2"
-            style={{ boxShadow: "5px 5px 0 var(--border)" }}
-          >
-            <div className="border-border bg-background overflow-hidden border-2">
-              <div className="bg-foreground text-background flex items-center justify-between px-3 py-1.5">
-                <span className="font-pixel text-xs">bucket settings</span>
-                <BracketButton variant="inverted" onClick={onClose}>
-                  x
-                </BracketButton>
-              </div>
-
-              <div className="flex flex-col gap-4 px-4 pt-4 pb-0">
-                <div className="flex flex-col gap-1.5">
-                  <label className={LABEL}>name</label>
-                  <input
-                    type="text"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    maxLength={100}
-                    disabled={pending}
-                    className={INPUT}
-                  />
-                  {error && <span className="text-destructive font-mono text-[10px]">{error}</span>}
-                </div>
-                <div className="border-border flex border-b">
-                  {(["items", "notifications"] as Tab[]).map((t) => (
-                    <button key={t} onClick={() => setTab(t)} className={tabCn(tab === t)}>
-                      {t}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="flex flex-col gap-4 px-4 py-4">
-                {tab === "items" && (
-                  <>
-                    <div className="flex flex-col gap-1.5">
-                      <label className={LABEL}>sort by</label>
-                      <span className={HINT}>how items are ordered in this bucket</span>
-                      <OptionGroup options={SORT_OPTIONS} value={sortBy} onChange={setSortBy} />
-                    </div>
-                    {sortBy === "manual" && (
-                      <div className="flex flex-col gap-1.5">
-                        <label className={LABEL}>allow drag</label>
-                        <span className={HINT}>let you drag items to reorder them manually</span>
-                        <Toggle value={drag} onChange={setDrag} />
-                      </div>
-                    )}
-                    <div className="flex flex-col gap-1.5">
-                      <label className={LABEL}>show completed</label>
-                      <span className={HINT}>keep completed items visible in the list</span>
-                      <Toggle value={showCompleted} onChange={setShowCompleted} />
-                    </div>
-                    <div className="flex flex-col gap-1.5">
-                      <label className={LABEL}>read only</label>
-                      <span className={HINT}>
-                        prevent adding or editing items (useful for synced buckets)
-                      </span>
-                      <Toggle value={readonly} onChange={setReadonly} />
-                    </div>
-                    <div className="flex flex-col gap-1.5">
-                      <label className={LABEL}>default deadline offset</label>
-                      <span className={HINT}>
-                        when adding an item, pre-fill the deadline this far from today
-                      </span>
-                      <DurationInput
-                        value={defaultDeadlineOffset}
-                        onChange={setDefaultDeadlineOffset}
-                        placeholder="e.g. 7 days, 2 weeks"
-                        disabled={pending}
-                      />
-                    </div>
-                  </>
-                )}
-                {tab === "notifications" && (
-                  <>
-                    <div className="flex flex-col gap-1.5">
-                      <label className={LABEL}>medium</label>
-                      <span className={HINT}>
-                        where to send notifications — ntfy is push, email is inbox
-                      </span>
-                      <OptionGroup
-                        options={MEDIUM_OPTIONS}
-                        value={mediums}
-                        onChange={toggleMedium}
-                        multi
-                      />
-                    </div>
-                    <div className="flex flex-col gap-1.5">
-                      <label className={LABEL}>notify at</label>
-                      <span className={HINT}>
-                        time of day to deliver the notification (e.g. 9 am, 6 pm)
-                      </span>
-                      <TimePicker value={notifyAt} onChange={setNotifyAt} disabled={pending} />
-                    </div>
-                    <div className="flex flex-col gap-1.5">
-                      <label className={LABEL}>offset before deadline</label>
-                      <span className={HINT}>
-                        how far in advance to notify — leave empty to notify at the deadline
-                      </span>
-                      <DurationInput
-                        value={defaultOffset}
-                        onChange={setDefaultOffset}
-                        placeholder="e.g. 3 days, 1 hour — empty = at deadline"
-                        disabled={pending}
-                      />
-                    </div>
-                    <div className="flex flex-col gap-1.5">
-                      <label className={LABEL}>repeat</label>
-                      <span className={HINT}>
-                        once = notify one time only · daily = re-notify every day until done
-                      </span>
-                      <OptionGroup options={REPEAT_OPTIONS} value={repeat} onChange={setRepeat} />
-                    </div>
-                  </>
-                )}
-              </div>
-
-              <div className="border-border flex items-center justify-between border-t px-3 py-2.5">
-                <div className="flex items-center gap-2">
-                  <BracketButton variant="destructive" onClick={handleArchive} disabled={pending}>
-                    archive
+    <>
+      <AnimatePresence>
+        {open && (
+          <>
+            <motion.div
+              key="backdrop"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 0.45 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.12 }}
+              className="fixed inset-0 z-[55] bg-black"
+              onClick={onClose}
+            />
+            <motion.div
+              key="dialog"
+              initial={{ opacity: 0, scale: 0.96, y: -10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.96, y: -10 }}
+              transition={{ duration: 0.15, ease: "easeOut" }}
+              className="fixed top-[8%] left-1/2 z-[60] w-[calc(100%-2rem)] max-w-sm -translate-x-1/2 sm:top-[12%]"
+              style={{ boxShadow: "5px 5px 0 var(--border)" }}
+            >
+              <div className="border-border bg-background flex max-h-[85vh] flex-col overflow-hidden border-2">
+                <div className="bg-foreground text-background flex shrink-0 items-center justify-between gap-2 px-3 py-1.5">
+                  <span className="font-pixel min-w-0 truncate text-xs">
+                    bucket settings [{bucket.name}]
+                  </span>
+                  <BracketButton variant="inverted" onClick={onClose}>
+                    x
                   </BracketButton>
-                  {confirmDelete ? (
-                    <>
-                      <span className="text-destructive font-mono text-[10px]">sure?</span>
-                      <BracketButton
-                        variant="destructive"
-                        onClick={handleDelete}
-                        disabled={pending}
-                      >
-                        confirm
-                      </BracketButton>
-                      <BracketButton onClick={() => setConfirmDelete(false)} disabled={pending}>
-                        cancel
-                      </BracketButton>
-                    </>
-                  ) : (
-                    <BracketButton
-                      variant="destructive"
-                      onClick={() => setConfirmDelete(true)}
+                </div>
+
+                <div className="flex shrink-0 flex-col gap-4 px-4 pt-4 pb-0">
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-muted-foreground font-mono text-[10px]">name</label>
+                    <input
+                      type="text"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      maxLength={BUCKET_NAME_MAX_LENGTH}
                       disabled={pending}
-                    >
-                      delete
-                    </BracketButton>
+                      className="border-border focus:border-foreground w-full border-b bg-transparent py-1.5 font-mono text-xs outline-none disabled:opacity-50"
+                    />
+                    {name.length > 0 && (
+                      <p
+                        className={cn(
+                          "text-right font-mono text-[9px] transition-colors",
+                          charCountColor(name.length, BUCKET_NAME_MAX_LENGTH)
+                        )}
+                      >
+                        {name.length}/{BUCKET_NAME_MAX_LENGTH}
+                      </p>
+                    )}
+                    {error && (
+                      <span className="text-destructive font-mono text-[10px]">{error}</span>
+                    )}
+                  </div>
+                  <div className="border-border flex overflow-x-auto border-b">
+                    {(["items", "notifications", "advanced"] as Tab[]).map((t) => (
+                      <button key={t} onClick={() => setTab(t)} className={tabCn(tab === t)}>
+                        {t}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-4 py-4">
+                  {(tab === "items" || tab === "notifications") && (
+                    <BucketRulesPanel
+                      activeTab={tab}
+                      disabled={pending}
+                      sortBy={sortBy}
+                      drag={drag}
+                      showCompleted={showCompleted}
+                      readonly={readonly}
+                      defaultDeadlineOffset={defaultDeadlineOffset}
+                      mediums={mediums}
+                      notifyAt={notifyAt}
+                      defaultOffset={defaultOffset}
+                      repeat={repeat}
+                      notifyOnArrival={notifyOnArrival}
+                      notifyWhenOverdue={notifyWhenOverdue}
+                      overdueRepeatHours={overdueRepeatHours}
+                      onSortByChange={setSortBy}
+                      onDragChange={setDrag}
+                      onShowCompletedChange={setShowCompleted}
+                      onReadonlyChange={setReadonly}
+                      onDefaultDeadlineOffsetChange={setDefaultDeadlineOffset}
+                      onMediumToggle={(m) =>
+                        setMediums((prev) =>
+                          prev.includes(m) ? prev.filter((x) => x !== m) : [...prev, m]
+                        )
+                      }
+                      onNotifyAtChange={setNotifyAt}
+                      onDefaultOffsetChange={setDefaultOffset}
+                      onRepeatChange={setRepeat}
+                      onNotifyOnArrivalChange={setNotifyOnArrival}
+                      onNotifyWhenOverdueChange={setNotifyWhenOverdue}
+                      onOverdueRepeatHoursChange={setOverdueRepeatHours}
+                      notifAvailability={notifAvailability}
+                    />
+                  )}
+
+                  {tab === "notifications" && (
+                    <div className="border-border flex flex-col gap-1.5 border-t pt-4">
+                      <p className="text-muted-foreground font-mono text-[10px]">telegram bot</p>
+                      <p className="text-muted-foreground/50 font-mono text-[9px] leading-tight">
+                        set an alias shortcut, deadline buttons, time slots, and recurring options
+                      </p>
+                      <BracketButton onClick={() => setTelegramOpen(true)} className="w-fit">
+                        configure telegram
+                      </BracketButton>
+                    </div>
+                  )}
+
+                  {tab === "advanced" && (
+                    <div className="flex flex-col gap-5">
+                      <div className="flex flex-col gap-1.5">
+                        <p className="text-muted-foreground font-mono text-[10px]">schema</p>
+                        <p className="text-muted-foreground/50 font-mono text-[9px] leading-tight">
+                          define custom fields and notification rules for this bucket
+                        </p>
+                        <BracketButton onClick={() => setSchemaOpen(true)} className="w-fit">
+                          configure schema
+                        </BracketButton>
+                      </div>
+
+                      <div className="border-border border-t" />
+
+                      <div className="flex flex-col gap-1.5">
+                        <p className="text-muted-foreground font-mono text-[10px]">webhook</p>
+                        <p className="text-muted-foreground/50 font-mono text-[9px] leading-tight">
+                          receive items from external services via HTTP
+                        </p>
+                        <BracketButton onClick={() => setWebhookOpen(true)} className="w-fit">
+                          configure webhook
+                        </BracketButton>
+                      </div>
+
+                      <div className="border-border border-t" />
+
+                      <div className="flex flex-col gap-3">
+                        <p className="text-muted-foreground font-mono text-[10px]">danger zone</p>
+                        <p className="text-muted-foreground/50 font-mono text-[9px] leading-relaxed">
+                          archived and deleted buckets can be accessed via the header — use archive
+                          to hide a bucket, or delete to move it to trash.
+                        </p>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <BracketButton
+                            variant="warning"
+                            onClick={handleArchive}
+                            disabled={pending}
+                          >
+                            archive
+                          </BracketButton>
+                          {confirmDelete ? (
+                            <>
+                              <span className="text-destructive font-mono text-[10px]">sure?</span>
+                              <BracketButton
+                                variant="destructive"
+                                onClick={handleDelete}
+                                disabled={pending}
+                              >
+                                confirm
+                              </BracketButton>
+                              <BracketButton
+                                onClick={() => setConfirmDelete(false)}
+                                disabled={pending}
+                              >
+                                cancel
+                              </BracketButton>
+                            </>
+                          ) : (
+                            <BracketButton
+                              variant="destructive"
+                              onClick={() => setConfirmDelete(true)}
+                              disabled={pending}
+                            >
+                              delete
+                            </BracketButton>
+                          )}
+                        </div>
+                      </div>
+                    </div>
                   )}
                 </div>
-                <BracketButton onClick={handleSave} disabled={!name.trim() || pending}>
-                  save
-                </BracketButton>
+
+                {showSave && (
+                  <div className="border-border flex shrink-0 justify-end border-t px-3 py-2.5">
+                    <BracketButton onClick={handleSave} disabled={!name.trim() || pending}>
+                      save
+                    </BracketButton>
+                  </div>
+                )}
               </div>
-            </div>
-          </motion.div>
-        </>
-      )}
-    </AnimatePresence>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      <SchemaEditorDialog open={schemaOpen} bucket={bucket} onClose={() => setSchemaOpen(false)} />
+      <TelegramConfigDialog
+        open={telegramOpen}
+        bucket={bucket}
+        onClose={() => setTelegramOpen(false)}
+      />
+      <WebhookDialog open={webhookOpen} bucket={bucket} onClose={() => setWebhookOpen(false)} />
+    </>
   );
 }

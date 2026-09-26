@@ -1,11 +1,21 @@
 import { schedule } from "node-cron";
 import { and, eq, isNotNull, isNull, lt, ne, or } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { items, buckets, users, userSettings, notificationLog } from "@/lib/db/schema";
-import { NotificationRules, RecurringConfig } from "@/types/rules";
-import { sendEmail } from "@/lib/notifications/email";
-import { sendNtfy } from "@/lib/notifications/ntfy";
+import { items, buckets, users, userSettings } from "@/lib/db/schema";
+import { NotificationRules, RecurringConfig, BucketSchema } from "@/types/rules";
 import { APP_NAME } from "@/constants";
+import { errorMessage } from "@/lib/errors";
+import { dataEvents } from "@/lib/events";
+import { decryptValue } from "@/lib/crypto";
+import { getAIProvider } from "@/lib/ai";
+import { enqueue, processPending } from "@/lib/notifications/queue";
+import type { NotificationMedium } from "@/lib/notifications/queue";
+import {
+  SCHEDULER_AI_TIMEOUT_MS,
+  SCHEDULER_CANDIDATE_LIMIT,
+  SCHEDULER_OVERDUE_LIMIT,
+} from "./constants";
+import type { AgentMessage } from "@/lib/ai/types";
 
 function isInQuietHours(quietHours: { from: string; to: string }, timezone: string): boolean {
   const now = new Date();
@@ -29,8 +39,17 @@ function isInQuietHours(quietHours: { from: string; to: string }, timezone: stri
     : nowMins >= fromMins && nowMins < toMins;
 }
 
-function errorMessage(err: unknown): string {
-  return err instanceof Error ? err.message : String(err);
+function hasNotifyAtPassed(notifyAt: string, timezone: string, now: Date): boolean {
+  const [h = 0, m = 0] = notifyAt.split(":").map(Number);
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: timezone,
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).formatToParts(now);
+  const currentH = parseInt(parts.find((p) => p.type === "hour")?.value ?? "0", 10);
+  const currentM = parseInt(parts.find((p) => p.type === "minute")?.value ?? "0", 10);
+  return currentH * 60 + currentM >= h * 60 + m;
 }
 
 function getNextDeadline(deadline: Date, config: RecurringConfig): Date {
@@ -53,21 +72,100 @@ function getNextDeadline(deadline: Date, config: RecurringConfig): Date {
   return next;
 }
 
+type PersonalityRow = {
+  aiProvider: string | null;
+  aiApiKey: string | null;
+  aiModel: string | null;
+  aiOllamaUrl: string | null;
+  personalityName: string;
+  personalityTone: string;
+  personalityEmoji: boolean;
+  personalityCustomPrompt: string | null;
+};
+
+async function generateNotificationText(
+  title: string,
+  deadlineStr: string,
+  row: PersonalityRow
+): Promise<string> {
+  const fallback = `Reminder: "${title}" is due ${deadlineStr}`;
+  if (!row.aiProvider) return fallback;
+
+  try {
+    const decryptedKey = row.aiApiKey ? decryptValue(row.aiApiKey) : null;
+    const ai = getAIProvider({
+      provider: row.aiProvider,
+      apiKey: decryptedKey,
+      model: row.aiModel,
+      ollamaUrl: row.aiOllamaUrl,
+    });
+
+    const toneGuide =
+      row.personalityTone === "custom" && row.personalityCustomPrompt
+        ? row.personalityCustomPrompt
+        : ({
+            chill: "casual and friendly",
+            professional: "professional and concise",
+            motivational: "energetic and motivating",
+          }[row.personalityTone] ?? "friendly");
+
+    const emojiNote = row.personalityEmoji
+      ? "You may use 1-2 relevant emojis."
+      : "Do not use emojis.";
+
+    const messages: AgentMessage[] = [
+      {
+        role: "system",
+        content: `You are ${row.personalityName}, a helpful assistant. Write a single short push notification sentence reminding the user about an upcoming deadline. Tone: ${toneGuide}. ${emojiNote} Output only the notification text — no quotes, no labels, nothing else.`,
+      },
+      {
+        role: "user",
+        content: `Item: "${title}" is due ${deadlineStr}.`,
+      },
+    ];
+
+    const result = await Promise.race([
+      ai.complete(messages, []),
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("AI timeout")), SCHEDULER_AI_TIMEOUT_MS)
+      ),
+    ]);
+    return result.content?.trim() || fallback;
+  } catch {
+    return fallback;
+  }
+}
+
 async function runNotifications(): Promise<void> {
   const now = new Date();
   const todayMidnight = new Date(now);
   todayMidnight.setUTCHours(0, 0, 0, 0);
+  process.stderr.write(`[scheduler] run at ${now.toISOString()}\n`);
 
   const candidates = await db
     .select({
       item: items,
       bucketNotifRules: buckets.notificationsRules,
+      bucketFieldSchema: buckets.fieldSchema,
+      bucketName: buckets.name,
       userEmail: users.email,
       userTimezone: userSettings.timezone,
+      userId: users.id,
       notificationsEmail: userSettings.notificationsEmail,
       notificationsPush: userSettings.notificationsPush,
       ntfyUrl: userSettings.ntfyUrl,
       ntfyTopic: userSettings.ntfyTopic,
+      telegramChatId: userSettings.telegramChatId,
+      notificationsTelegram: userSettings.notificationsTelegram,
+      aiProvider: userSettings.aiProvider,
+      aiApiKey: userSettings.aiApiKey,
+      aiModel: userSettings.aiModel,
+      aiOllamaUrl: userSettings.aiOllamaUrl,
+      aiNotifyMessages: userSettings.aiNotifyMessages,
+      personalityName: userSettings.personalityName,
+      personalityTone: userSettings.personalityTone,
+      personalityEmoji: userSettings.personalityEmoji,
+      personalityCustomPrompt: userSettings.personalityCustomPrompt,
     })
     .from(items)
     .innerJoin(buckets, eq(items.bucketId, buckets.id))
@@ -82,35 +180,55 @@ async function runNotifications(): Promise<void> {
         or(isNull(items.notifiedAt), lt(items.notifiedAt, todayMidnight)),
         or(isNull(items.snoozedUntil), lt(items.snoozedUntil, now))
       )
-    );
+    )
+    .limit(SCHEDULER_CANDIDATE_LIMIT);
+
+  process.stderr.write(`[scheduler] ${candidates.length} candidate(s)\n`);
 
   for (const row of candidates) {
+    const tag = `[scheduler] item ${row.item.id} "${row.item.title}"`;
     try {
       const rules = NotificationRules.parse(JSON.parse(row.bucketNotifRules));
 
-      if (rules.medium.length === 0) continue;
+      if (rules.medium.length === 0) {
+        process.stderr.write(`${tag} skip: no medium\n`);
+        continue;
+      }
 
       const deadline = row.item.deadline;
-      if (!deadline) continue;
+      if (!deadline) {
+        process.stderr.write(`${tag} skip: no deadline\n`);
+        continue;
+      }
 
-      if (row.item.notifiedAt && rules.repeat !== "daily") continue;
+      if (row.item.notifiedAt && rules.repeat !== "daily") {
+        process.stderr.write(
+          `${tag} skip: already notified at ${row.item.notifiedAt.toISOString()}\n`
+        );
+        continue;
+      }
 
       const offsetMins = row.item.notificationOffsetMins ?? rules.defaultOffsetMins;
       const triggerTime = new Date(deadline.getTime() - offsetMins * 60 * 1000);
 
-      if (triggerTime > now) continue;
-
-      let sendTime: Date;
-      if (rules.notifyAt) {
-        const [h, m] = rules.notifyAt.split(":").map(Number);
-        sendTime = new Date(now);
-        sendTime.setHours(h ?? 9, m ?? 0, 0, 0);
-      } else {
-        sendTime = triggerTime;
+      if (triggerTime > now) {
+        process.stderr.write(
+          `${tag} skip: triggerTime ${triggerTime.toISOString()} > now ${now.toISOString()}\n`
+        );
+        continue;
       }
-      if (sendTime > now) continue;
 
-      if (rules.quietHours && isInQuietHours(rules.quietHours, row.userTimezone)) continue;
+      if (rules.notifyAt && !hasNotifyAtPassed(rules.notifyAt, row.userTimezone, now)) {
+        process.stderr.write(
+          `${tag} skip: notifyAt=${rules.notifyAt} not yet reached in tz=${row.userTimezone}\n`
+        );
+        continue;
+      }
+
+      if (rules.quietHours && isInQuietHours(rules.quietHours, row.userTimezone)) {
+        process.stderr.write(`${tag} skip: quiet hours\n`);
+        continue;
+      }
 
       const deadlineStr = deadline.toLocaleDateString("en-US", {
         month: "short",
@@ -118,79 +236,145 @@ async function runNotifications(): Promise<void> {
         year: "numeric",
       });
       const subject = `[${APP_NAME}] ${row.item.title}`;
-      const message = `Reminder: "${row.item.title}" is due ${deadlineStr}`;
+      const message = row.aiNotifyMessages
+        ? await generateNotificationText(row.item.title, deadlineStr, row)
+        : `Reminder: "${row.item.title}" is due ${deadlineStr}`;
 
-      const sent: ("email" | "ntfy")[] = [];
-      const failures: { medium: "email" | "ntfy"; error: string }[] = [];
+      const mediums: NotificationMedium[] = [];
+      if (rules.medium.includes("email") && row.notificationsEmail) mediums.push("email");
+      if (rules.medium.includes("ntfy") && row.notificationsPush && row.ntfyUrl && row.ntfyTopic)
+        mediums.push("ntfy");
+      if (
+        rules.medium.includes("telegram") &&
+        row.notificationsTelegram &&
+        process.env.TELEGRAM_BOT_TOKEN &&
+        row.telegramChatId
+      )
+        mediums.push("telegram");
 
-      if (rules.medium.includes("email") && row.notificationsEmail) {
-        try {
-          await sendEmail(row.userEmail, subject, message);
-          sent.push("email");
-        } catch (err) {
-          failures.push({ medium: "email", error: errorMessage(err) });
-        }
+      if (mediums.length === 0) {
+        process.stderr.write(`${tag} skip: no delivery channels configured\n`);
+        continue;
       }
 
-      if (rules.medium.includes("ntfy") && row.notificationsPush && row.ntfyUrl && row.ntfyTopic) {
-        try {
-          await sendNtfy(row.ntfyUrl, row.ntfyTopic, subject, message);
-          sent.push("ntfy");
-        } catch (err) {
-          failures.push({ medium: "ntfy", error: errorMessage(err) });
-        }
-      }
+      await Promise.all(
+        mediums.map((medium) =>
+          enqueue({ userId: row.userId, itemId: row.item.id, medium, title: subject, message })
+        )
+      );
 
-      for (const f of failures) {
-        await db.insert(notificationLog).values({
-          itemId: row.item.id,
-          userId: row.item.userId,
-          medium: f.medium,
-          message,
-          status: "failed",
-          error: f.error,
-        });
-      }
+      await db.update(items).set({ notifiedAt: now }).where(eq(items.id, row.item.id));
 
-      if (sent.length === 0) continue;
+      dataEvents.emit("refresh", row.userId);
 
-      await db.transaction(async (tx) => {
-        await tx.update(items).set({ notifiedAt: now }).where(eq(items.id, row.item.id));
-
-        for (const medium of sent) {
-          await tx.insert(notificationLog).values({
-            itemId: row.item.id,
-            userId: row.item.userId,
-            medium,
-            message,
-            status: "sent",
-          });
-        }
-
-        if (row.item.recurring) {
-          const recurringConfig = RecurringConfig.parse(JSON.parse(row.item.recurring));
-          if (recurringConfig.enabled) {
-            const nextDeadline = getNextDeadline(deadline, recurringConfig);
-            const withinEndDate =
-              !recurringConfig.endDate || nextDeadline <= new Date(recurringConfig.endDate);
-            if (withinEndDate) {
-              await tx.insert(items).values({
-                bucketId: row.item.bucketId,
-                userId: row.item.userId,
-                title: row.item.title,
-                deadline: nextDeadline,
-                status: "active",
-                notificationOffsetMins: row.item.notificationOffsetMins,
-                recurring: row.item.recurring,
-                source: row.item.source,
-              });
-            }
+      if (row.item.recurring) {
+        const recurringConfig = RecurringConfig.parse(JSON.parse(row.item.recurring));
+        if (recurringConfig.enabled) {
+          let nextDeadline = getNextDeadline(deadline, recurringConfig);
+          while (nextDeadline <= now) {
+            nextDeadline = getNextDeadline(nextDeadline, recurringConfig);
+          }
+          const withinEndDate =
+            !recurringConfig.endDate || nextDeadline <= new Date(recurringConfig.endDate);
+          if (withinEndDate) {
+            await db.insert(items).values({
+              bucketId: row.item.bucketId,
+              userId: row.item.userId,
+              title: row.item.title,
+              deadline: nextDeadline,
+              status: "active",
+              notificationOffsetMins: row.item.notificationOffsetMins,
+              recurring: row.item.recurring,
+              source: row.item.source,
+            });
           }
         }
-      });
+      }
     } catch (err) {
       process.stderr.write(`[scheduler] item ${row.item.id} failed: ${errorMessage(err)}\n`);
     }
+  }
+
+  await runOverdueTriggers(now);
+  await processPending().catch((err) => {
+    process.stderr.write(`[scheduler] processPending error: ${errorMessage(err)}\n`);
+  });
+}
+
+async function runOverdueTriggers(now: Date): Promise<void> {
+  const overdueCandidates = await db
+    .select({
+      item: items,
+      bucketFieldSchema: buckets.fieldSchema,
+      bucketName: buckets.name,
+      userId: users.id,
+      notificationsEmail: userSettings.notificationsEmail,
+      notificationsPush: userSettings.notificationsPush,
+      ntfyUrl: userSettings.ntfyUrl,
+      ntfyTopic: userSettings.ntfyTopic,
+      telegramChatId: userSettings.telegramChatId,
+      notificationsTelegram: userSettings.notificationsTelegram,
+    })
+    .from(items)
+    .innerJoin(buckets, eq(items.bucketId, buckets.id))
+    .innerJoin(users, eq(items.userId, users.id))
+    .innerJoin(userSettings, eq(items.userId, userSettings.userId))
+    .where(
+      and(
+        lt(items.deadline, now),
+        isNull(items.deletedAt),
+        ne(items.status, "completed"),
+        ne(items.status, "snoozed"),
+        or(isNull(items.snoozedUntil), lt(items.snoozedUntil, now))
+      )
+    )
+    .limit(SCHEDULER_OVERDUE_LIMIT);
+
+  for (const row of overdueCandidates) {
+    if (!row.bucketFieldSchema) continue;
+
+    const parsed = BucketSchema.safeParse(
+      typeof row.bucketFieldSchema === "string"
+        ? JSON.parse(row.bucketFieldSchema)
+        : row.bucketFieldSchema
+    );
+    if (!parsed.success) continue;
+
+    if (!parsed.data.notifyWhenOverdue) continue;
+
+    const repeatHours = parsed.data.overdueRepeatHours;
+    const lastOverdue = row.item.overdueNotifiedAt;
+    const initialDelayHours = repeatHours ?? 1;
+    if (!row.item.deadline) continue;
+    const deadlineTime = new Date(row.item.deadline);
+
+    if (!lastOverdue) {
+      const firstFireTime = new Date(deadlineTime.getTime() + initialDelayHours * 60 * 60 * 1000);
+      if (firstFireTime > now) continue;
+    } else {
+      if (!repeatHours) continue;
+      const nextFireTime = new Date(lastOverdue.getTime() + repeatHours * 60 * 60 * 1000);
+      if (nextFireTime > now) continue;
+    }
+
+    const mediums: NotificationMedium[] = [];
+    if (row.notificationsEmail) mediums.push("email");
+    if (row.notificationsPush && row.ntfyUrl && row.ntfyTopic) mediums.push("ntfy");
+    if (row.notificationsTelegram && process.env.TELEGRAM_BOT_TOKEN && row.telegramChatId)
+      mediums.push("telegram");
+
+    if (mediums.length === 0) continue;
+
+    const title = `[${APP_NAME}] Overdue: ${row.item.title}`;
+    const message = `"${row.item.title}" is overdue.`;
+
+    await Promise.all(
+      mediums.map((medium) =>
+        enqueue({ userId: row.userId, itemId: row.item.id, medium, title, message })
+      )
+    );
+
+    await db.update(items).set({ overdueNotifiedAt: now }).where(eq(items.id, row.item.id));
   }
 }
 

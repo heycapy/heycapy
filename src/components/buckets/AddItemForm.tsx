@@ -2,7 +2,9 @@
 
 import { useEffect, useRef, useState, useTransition } from "react";
 import { DatePicker } from "@/components/ui/DatePicker";
+import { BracketButton } from "@/components/ui/BracketButton";
 import { addItemAction } from "@/app/(app)/actions";
+import { ITEM_TITLE_MAX_LENGTH } from "@/constants";
 
 interface AddItemFormProps {
   bucketId: number;
@@ -45,7 +47,7 @@ export function AddItemForm({ bucketId, onClose }: AddItemFormProps) {
             if (e.key === "Escape") onClose();
           }}
           placeholder="What needs doing?"
-          maxLength={500}
+          maxLength={ITEM_TITLE_MAX_LENGTH}
           disabled={pending}
           className="placeholder:text-muted-foreground flex-1 bg-transparent text-sm outline-none disabled:opacity-50"
         />
@@ -54,20 +56,12 @@ export function AddItemForm({ bucketId, onClose }: AddItemFormProps) {
 
       <div className="mt-2 flex items-center justify-end gap-3">
         {error && <p className="text-destructive mr-auto font-mono text-xs">{error}</p>}
-        <button
-          onClick={onClose}
-          disabled={pending}
-          className="text-muted-foreground hover:text-foreground font-mono text-xs transition-colors disabled:opacity-50"
-        >
-          <span className="opacity-50">[</span>cancel<span className="opacity-50">]</span>
-        </button>
-        <button
-          onClick={handleSave}
-          disabled={!title.trim() || pending}
-          className="text-muted-foreground hover:text-foreground font-mono text-xs transition-colors disabled:opacity-30"
-        >
-          <span className="opacity-50">[</span>add<span className="opacity-50">]</span>
-        </button>
+        <BracketButton onClick={onClose} disabled={pending}>
+          cancel
+        </BracketButton>
+        <BracketButton onClick={handleSave} disabled={!title.trim() || pending}>
+          add
+        </BracketButton>
       </div>
     </div>
   );

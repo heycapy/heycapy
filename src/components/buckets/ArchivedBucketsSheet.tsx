@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
+import { useScrollLock } from "@/hooks/useScrollLock";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { BracketButton } from "@/components/ui/BracketButton";
@@ -19,6 +20,7 @@ interface ArchivedBucketsSheetProps {
 }
 
 export function ArchivedBucketsSheet({ open, onClose }: ArchivedBucketsSheetProps) {
+  useScrollLock(open);
   const router = useRouter();
   const [archived, setArchived] = useState<BucketRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -74,7 +76,7 @@ export function ArchivedBucketsSheet({ open, onClose }: ArchivedBucketsSheetProp
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
             transition={{ duration: 0.2, ease: "easeInOut" }}
-            className="bg-background border-border fixed top-0 right-0 z-[60] flex h-full w-80 flex-col border-l-2"
+            className="bg-background border-border fixed top-0 right-0 z-[60] flex h-full w-full flex-col border-l-2 sm:w-80"
             style={{ boxShadow: "-4px 0 0 var(--border)" }}
           >
             <div className="bg-foreground text-background flex items-center justify-between px-3 py-1.5">

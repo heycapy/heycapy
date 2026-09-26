@@ -1,11 +1,10 @@
 "use server";
 
-import { Resend } from "resend";
 import { z } from "zod";
 import { createOtp, verifyOtp } from "@/lib/auth/otp";
+import { buildOtpEmail } from "@/lib/auth/otpEmail";
+import { sendEmail } from "@/lib/notifications/email";
 import { createSession } from "@/lib/auth/session";
-import { APP_NAME, APP_EMAIL_FROM } from "@/constants";
-import { OTP_TTL_MINUTES } from "@/lib/auth/constants";
 import { db } from "@/lib/db";
 import { users, userSettings, authRateLimits } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
@@ -39,14 +38,7 @@ export async function sendOtpAction(email: string): Promise<SendOtpResult> {
     return { ok: false, error: "Enter a valid email address." };
   }
 
-  const isDev = !process.env.RESEND_API_KEY;
-
-  if (!isDev) {
-    const configuredEmail = process.env.EMAIL;
-    if (!configuredEmail || email.trim() !== configuredEmail) {
-      return { ok: true };
-    }
-  }
+  const isDev = !process.env.RESEND_API_KEY && !process.env.SMTP_HOST;
 
   const record = await getRateLimit(email);
   const now = Date.now();
@@ -66,22 +58,15 @@ export async function sendOtpAction(email: string): Promise<SendOtpResult> {
   const code = await createOtp(email);
 
   if (isDev) {
-    // eslint-disable-next-line no-console
-    console.log(`[heycapy] OTP for ${email}: ${code}`);
+    process.stderr.write(`[heycapy] OTP for ${email}: ${code}\n`);
     return { ok: true, devCode: code };
   }
 
-  const from = process.env.EMAIL_FROM ?? APP_EMAIL_FROM;
-  const resend = new Resend(process.env.RESEND_API_KEY);
-  const result = await resend.emails.send({
-    from,
-    to: email,
-    subject: `Your ${APP_NAME} login code: ${code}`,
-    text: `Your login code is: ${code}\n\nIt expires in ${OTP_TTL_MINUTES} minutes.`,
-  });
-
-  if (result.error) {
-    return { ok: false, error: `Failed to send code: ${result.error.message}` };
+  try {
+    const emailPayload = await buildOtpEmail(code);
+    await sendEmail({ to: email, ...emailPayload });
+  } catch {
+    return { ok: false, error: "Failed to send code. Please try again." };
   }
 
   return { ok: true };

@@ -5,15 +5,12 @@ services:
     environment:
       - NODE_ENV=production
       - DATABASE_PATH=/data/heycapy.db
-      - RESEND_API_KEY=${RESEND_API_KEY}
-      - EMAIL=${EMAIL}
       - JWT_SECRET=${JWT_SECRET}
-      - NTFY_URL=${NTFY_URL}
-      - NTFY_TOPIC=${NTFY_TOPIC}
-      - AI_PROVIDER=${AI_PROVIDER:-ollama}
-      - AI_API_KEY=${AI_API_KEY}
-      - AI_MODEL=${AI_MODEL}
-      - OLLAMA_URL=${OLLAMA_URL:-http://host.docker.internal:11434}
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY}
+      - RESEND_API_KEY=${RESEND_API_KEY}
+      - EMAIL_FROM=${EMAIL_FROM}
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - APP_URL=${APP_URL}
     volumes:
       - heycapy_data:/data
     expose:

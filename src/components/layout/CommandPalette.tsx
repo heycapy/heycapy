@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef, useTransition, type ReactNode } from "react";
+import { useScrollLock } from "@/hooks/useScrollLock";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTheme } from "next-themes";
@@ -26,6 +27,7 @@ interface CommandPaletteProps {
 }
 
 export function CommandPalette({ open, onClose }: CommandPaletteProps) {
+  useScrollLock(open);
   const { theme, setTheme } = useTheme();
   const [query, setQuery] = useState("");
   const [selectedId, setSelectedId] = useState<string>("");
@@ -134,7 +136,7 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -6, scale: 0.97 }}
             transition={{ duration: 0.15, ease: "easeOut" }}
-            className="bg-background border-border fixed top-[18%] left-1/2 z-[60] w-full max-w-sm -translate-x-1/2 overflow-hidden border-2"
+            className="bg-background border-border fixed top-[18%] left-1/2 z-[60] w-[calc(100%-2rem)] max-w-sm -translate-x-1/2 overflow-hidden border-2"
             style={{ boxShadow: "5px 5px 0 var(--border)" }}
           >
             {/* search bar */}

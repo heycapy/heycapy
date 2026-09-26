@@ -1,9 +1,10 @@
 "use client";
 
 import { useRef, useEffect, useState } from "react";
+import { ChevronUp, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const ITEM_H = 32;
+const ITEM_H = 24;
 const HOURS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"] as const;
 const MINUTES: readonly string[] = Array.from({ length: 60 }, (_, i) => String(i).padStart(2, "0"));
 const AMPMS = ["am", "pm"] as const;
@@ -29,12 +30,15 @@ function ScrollColumn<T extends string>({
 }: ColumnProps<T>) {
   const ref = useRef<HTMLDivElement>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const holdRef = useRef<ReturnType<typeof setInterval> | undefined>(undefined);
+  const holdDelayRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const userScrollingRef = useRef(false);
   const jumpingRef = useRef(false);
   const valueRef = useRef(value);
   const onChangeRef = useRef(onChange);
   const [editing, setEditing] = useState(false);
   const [editValue, setEditValue] = useState("");
+  const editingRef = useRef(false);
 
   useEffect(() => {
     valueRef.current = value;
@@ -51,7 +55,7 @@ function ScrollColumn<T extends string>({
   }
 
   useEffect(() => {
-    if (userScrollingRef.current) return;
+    if (userScrollingRef.current || editingRef.current) return;
     const el = ref.current;
     if (!el) return;
     jumpingRef.current = true;
@@ -62,11 +66,31 @@ function ScrollColumn<T extends string>({
   }, [value, items]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    return () => clearTimeout(timerRef.current);
+    return () => {
+      clearTimeout(timerRef.current);
+      clearTimeout(holdDelayRef.current);
+      clearInterval(holdRef.current);
+    };
   }, []);
+
+  function startHold(dir: 1 | -1) {
+    step(dir);
+    holdDelayRef.current = setTimeout(() => {
+      holdRef.current = setInterval(() => step(dir), 80);
+    }, 350);
+  }
+
+  function stopHold() {
+    clearTimeout(holdDelayRef.current);
+    clearInterval(holdRef.current);
+  }
 
   function handleScroll() {
     if (jumpingRef.current) return;
+    if (editingRef.current) {
+      editingRef.current = false;
+      setEditing(false);
+    }
     userScrollingRef.current = true;
     clearTimeout(timerRef.current);
     timerRef.current = setTimeout(() => {
@@ -86,10 +110,20 @@ function ScrollColumn<T extends string>({
   }
 
   function commitEdit() {
+    editingRef.current = false;
     setEditing(false);
     if (!normalize) return;
     const result = normalize(editValue.trim());
     if (result !== null && result !== value) onChange(result);
+  }
+
+  function step(dir: 1 | -1) {
+    const idx = resolvedIdx(valueRef.current);
+    const next = Math.max(0, Math.min(idx + dir, items.length - 1));
+    const el = ref.current;
+    if (el) el.scrollTo({ top: next * ITEM_H, behavior: "smooth" });
+    const nextItem = items[next];
+    if (nextItem !== undefined && nextItem !== valueRef.current) onChange(nextItem);
   }
 
   function handleItemClick(item: T, idx: number) {
@@ -98,6 +132,7 @@ function ScrollColumn<T extends string>({
     if (!el) return;
     if (item === value && normalize) {
       setEditValue(item);
+      editingRef.current = true;
       setEditing(true);
       return;
     }
@@ -106,87 +141,119 @@ function ScrollColumn<T extends string>({
   }
 
   return (
-    <div className="relative overflow-hidden" style={{ width, height: ITEM_H * 3 }}>
-      <div
-        className="border-border/60 pointer-events-none absolute inset-x-0 z-10 border-y"
-        style={{ top: ITEM_H, height: ITEM_H }}
-      />
-      <div
-        className="pointer-events-none absolute inset-x-0 top-0 z-10"
-        style={{
-          height: ITEM_H,
-          background: "linear-gradient(to bottom, var(--background) 30%, transparent)",
-        }}
-      />
-      <div
-        className="pointer-events-none absolute inset-x-0 bottom-0 z-10"
-        style={{
-          height: ITEM_H,
-          background: "linear-gradient(to top, var(--background) 30%, transparent)",
-        }}
-      />
-
-      <div
-        ref={ref}
-        onScroll={handleScroll}
-        className={cn(
-          "overflow-y-scroll [&::-webkit-scrollbar]:hidden",
-          disabled && "pointer-events-none opacity-40"
-        )}
-        style={{
-          height: ITEM_H * 3,
-          scrollSnapType: "y mandatory",
-          scrollbarWidth: "none",
-          paddingTop: ITEM_H,
-          paddingBottom: ITEM_H,
-        }}
+    <div className="flex flex-col items-center gap-0.5" style={{ width }}>
+      <button
+        disabled={disabled}
+        onPointerDown={() => startHold(-1)}
+        onPointerUp={stopHold}
+        onPointerLeave={stopHold}
+        onPointerCancel={stopHold}
+        className="text-muted-foreground hover:text-foreground inline-flex items-center font-mono text-xs transition-colors disabled:opacity-25"
+        style={{ touchAction: "none" }}
       >
-        {items.map((item, idx) => {
-          const isSelected = item === value;
-          const isEditingThis = isSelected && editing;
+        <span className="opacity-50">[</span>
+        <ChevronUp size={10} strokeWidth={2} />
+        <span className="opacity-50">]</span>
+      </button>
 
-          return (
-            <div
-              key={idx}
-              onClick={() => handleItemClick(item, idx)}
-              className={cn(
-                "flex items-center justify-center font-mono text-xs transition-opacity",
-                isSelected ? "text-foreground opacity-100" : "text-muted-foreground opacity-40",
-                normalize && isSelected && !editing ? "cursor-text" : "cursor-pointer select-none"
-              )}
-              style={{ height: ITEM_H, scrollSnapAlign: "center" }}
-            >
-              {isEditingThis ? (
-                <input
-                  autoFocus
-                  value={editValue}
-                  maxLength={2}
-                  onChange={(e) => setEditValue(e.target.value.replace(/[^0-9a-zA-Z]/g, ""))}
-                  onBlur={commitEdit}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      commitEdit();
-                    }
-                    if (e.key === "Escape") {
-                      e.preventDefault();
-                      setEditing(false);
-                    }
-                  }}
-                  onClick={(e) => e.stopPropagation()}
-                  className={cn(
-                    "w-full bg-transparent text-center font-mono text-xs transition-colors outline-none",
-                    editValue.length > 0 && !isEditValid ? "text-destructive" : "text-foreground"
-                  )}
-                  style={{ caretColor: "var(--foreground)" }}
-                />
-              ) : (
-                item
-              )}
-            </div>
-          );
-        })}
+      <div className="relative overflow-hidden" style={{ width, height: ITEM_H * 3 }}>
+        <div
+          className="border-border/60 pointer-events-none absolute inset-x-0 z-10 border-y"
+          style={{ top: ITEM_H, height: ITEM_H }}
+        />
+        <div
+          className="pointer-events-none absolute inset-x-0 top-0 z-10"
+          style={{
+            height: ITEM_H,
+            background: "linear-gradient(to bottom, var(--background) 30%, transparent)",
+          }}
+        />
+        <div
+          className="pointer-events-none absolute inset-x-0 bottom-0 z-10"
+          style={{
+            height: ITEM_H,
+            background: "linear-gradient(to top, var(--background) 30%, transparent)",
+          }}
+        />
+
+        <div
+          ref={ref}
+          onScroll={handleScroll}
+          className={cn(
+            "overflow-y-scroll [&::-webkit-scrollbar]:hidden",
+            disabled && "pointer-events-none opacity-40"
+          )}
+          style={{
+            height: ITEM_H * 3,
+            scrollSnapType: "y mandatory",
+            scrollbarWidth: "none",
+            paddingTop: ITEM_H,
+            paddingBottom: ITEM_H,
+            touchAction: "pan-y",
+          }}
+        >
+          {items.map((item, idx) => {
+            const isSelected = item === value;
+            const isEditingThis = isSelected && editing;
+
+            return (
+              <div
+                key={idx}
+                onClick={() => handleItemClick(item, idx)}
+                className={cn(
+                  "flex items-center justify-center font-mono text-xs transition-opacity",
+                  isSelected ? "text-foreground opacity-100" : "text-muted-foreground opacity-40",
+                  "cursor-pointer select-none"
+                )}
+                style={{ height: ITEM_H, scrollSnapAlign: "center" }}
+              >
+                {isEditingThis ? (
+                  <input
+                    autoFocus
+                    value={editValue}
+                    maxLength={2}
+                    onChange={(e) => setEditValue(e.target.value.replace(/[^0-9a-zA-Z]/g, ""))}
+                    onBlur={commitEdit}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        commitEdit();
+                      }
+                      if (e.key === "Escape") {
+                        e.preventDefault();
+                        editingRef.current = false;
+                        setEditing(false);
+                      }
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                    className={cn(
+                      "w-full bg-transparent text-center font-mono text-xs transition-colors outline-none",
+                      editValue.length > 0 && !isEditValid ? "text-destructive" : "text-foreground"
+                    )}
+                    style={{ caretColor: "var(--foreground)" }}
+                  />
+                ) : (
+                  item
+                )}
+              </div>
+            );
+          })}
+        </div>
       </div>
+
+      <button
+        disabled={disabled}
+        onPointerDown={() => startHold(1)}
+        onPointerUp={stopHold}
+        onPointerLeave={stopHold}
+        onPointerCancel={stopHold}
+        className="text-muted-foreground hover:text-foreground inline-flex items-center font-mono text-xs transition-colors disabled:opacity-25"
+        style={{ touchAction: "none" }}
+      >
+        <span className="opacity-50">[</span>
+        <ChevronDown size={10} strokeWidth={2} />
+        <span className="opacity-50">]</span>
+      </button>
     </div>
   );
 }
@@ -270,7 +337,7 @@ export function TimeScrollPicker({
         />
       </div>
       <p className="text-muted-foreground/50 font-mono text-[9px]">
-        scroll or tap · click selected to type
+        scroll, tap or arrows · click selected to type
       </p>
     </div>
   );

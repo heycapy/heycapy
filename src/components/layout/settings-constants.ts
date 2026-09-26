@@ -24,7 +24,7 @@ export const THEMES = [
 ] as const;
 
 export type UserTone = "chill" | "professional" | "motivational" | "custom";
-export type AIProvider = "ollama" | "openai" | "anthropic";
+export type AIProvider = "ollama" | "openai" | "anthropic" | "groq" | "gemini";
 
 export const TONE_OPTIONS: { value: UserTone; label: string }[] = [
   { value: "chill", label: "chill" },
@@ -37,4 +37,26 @@ export const PROVIDER_OPTIONS: { value: AIProvider; label: string }[] = [
   { value: "ollama", label: "ollama" },
   { value: "openai", label: "openai" },
   { value: "anthropic", label: "anthropic" },
+  { value: "groq", label: "groq" },
+  { value: "gemini", label: "gemini" },
 ];
+
+export const PROVIDER_DEFAULT_MODELS: Record<AIProvider, string> = {
+  ollama: "llama3.2",
+  openai: "gpt-4o",
+  anthropic: "claude-sonnet-4-6",
+  groq: "openai/gpt-oss-120b",
+  gemini: "gemini-2.5-flash",
+};
+
+export type TranscriptionProvider = "groq" | "openai";
+
+export const TRANSCRIPTION_PROVIDER_OPTIONS: { value: TranscriptionProvider; label: string }[] = [
+  { value: "groq", label: "groq" },
+  { value: "openai", label: "openai" },
+];
+
+export const TRANSCRIPTION_DEFAULT_MODELS: Record<TranscriptionProvider, string> = {
+  groq: "whisper-large-v3-turbo",
+  openai: "whisper-1",
+};

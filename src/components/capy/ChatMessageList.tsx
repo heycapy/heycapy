@@ -39,7 +39,7 @@ export function ChatMessageList({ messages, streaming, fullscreen }: Props) {
   const isLastStreaming = (msg: ChatMessage) => streaming && msg.id === messages.at(-1)?.id;
 
   return (
-    <div className="scrollbar-hide flex flex-1 flex-col gap-3 overflow-y-auto p-3">
+    <div className="scrollbar-hide flex flex-1 flex-col gap-3 overflow-y-auto overscroll-contain p-3">
       {messages.map((msg) => (
         <div
           key={msg.id}
@@ -55,12 +55,15 @@ export function ChatMessageList({ messages, streaming, fullscreen }: Props) {
             </div>
           )}
           <div
-            className={cn("flex flex-col gap-1", msg.role === "user" ? "items-end" : "items-start")}
+            className={cn(
+              "flex w-full flex-col gap-1",
+              msg.role === "user" ? "items-end" : "items-start"
+            )}
           >
             <div
               className={cn(
                 "w-fit px-3 py-2 font-mono text-xs leading-relaxed break-words",
-                fullscreen ? "max-w-[65ch]" : "max-w-[200px]",
+                fullscreen ? "max-w-[65ch]" : "max-w-[85%]",
                 msg.role === "user"
                   ? "bg-foreground text-background"
                   : "border-border bg-card text-card-foreground border"

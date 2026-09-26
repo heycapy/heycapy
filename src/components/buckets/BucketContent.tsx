@@ -8,6 +8,7 @@ import { BucketSettings } from "./BucketSettings";
 import { BracketButton } from "@/components/ui/BracketButton";
 import { daysToDisplayStr, parseDurationToDate } from "@/lib/duration";
 import type { ItemStatus, ItemsRulesConfig } from "./constants";
+import { DEFAULT_BUCKET_STATUSES } from "./constants";
 import {
   addItemAction,
   updateItemAction,
@@ -17,8 +18,8 @@ import {
 } from "@/app/(app)/actions";
 import type { buckets, items as itemsTable } from "@/lib/db/schema";
 import type { DragControls } from "framer-motion";
-import { RecurringConfig as RecurringConfigSchema } from "@/types/rules";
-import type { RecurringConfig } from "@/types/rules";
+import { BucketSchema, RecurringConfig as RecurringConfigSchema } from "@/types/rules";
+import type { RecurringConfig, StatusDef, FieldDef } from "@/types/rules";
 import { useUIStore } from "@/store/ui";
 
 type BucketRow = typeof buckets.$inferSelect;
@@ -50,12 +51,16 @@ function parseRecurring(raw: string | null): RecurringConfig | null {
 
 function DraggableItem({
   item,
+  statuses,
+  fields,
   orderedItemsRef,
   isEditing,
   onEditStart,
   onStatusChange,
 }: {
   item: Item;
+  statuses: StatusDef[];
+  fields: FieldDef[];
   orderedItemsRef: React.RefObject<Item[]>;
   isEditing?: boolean;
   onEditStart?: () => void;
@@ -79,6 +84,8 @@ function DraggableItem({
     >
       <ItemRow
         item={item}
+        statuses={statuses}
+        fields={fields}
         dragControls={controls}
         isEditing={isEditing}
         onEditStart={onEditStart}
@@ -99,6 +106,21 @@ export function BucketContent({ bucket, accentColor }: BucketContentProps) {
     }
   })();
 
+  const bucketStatuses = DEFAULT_BUCKET_STATUSES;
+  const bucketFields = (() => {
+    try {
+      if (!bucket.fieldSchema) return [] as FieldDef[];
+      const raw = bucket.fieldSchema as unknown as string;
+      const parsed = BucketSchema.parse(typeof raw === "string" ? JSON.parse(raw) : raw);
+      return parsed.fields;
+    } catch {
+      return [] as FieldDef[];
+    }
+  })();
+
+  const defaultStatus =
+    bucketStatuses.find((s) => s.isDefault)?.name ?? bucketStatuses[0]?.name ?? "active";
+
   const isDraggable = rules.drag === true && rules.sortBy === "manual";
   const showCompleted = rules.showCompleted !== false;
 
@@ -111,16 +133,18 @@ export function BucketContent({ bucket, accentColor }: BucketContentProps) {
   const [addingItem, setAddingItem] = useState(false);
   const [addTitle, setAddTitle] = useState("");
   const [addDeadline, setAddDeadline] = useState("");
-  const [addStatus, setAddStatus] = useState<ItemStatus>("active");
+  const [addStatus, setAddStatus] = useState<ItemStatus>(defaultStatus);
   const [addRecurring, setAddRecurring] = useState<RecurringConfig | null>(null);
+  const [addProperties, setAddProperties] = useState<Record<string, unknown>>({});
   const [addError, setAddError] = useState("");
   const [addPending, startAddTransition] = useTransition();
 
   const [editingItemId, setEditingItemId] = useState<number | null>(null);
   const [editTitle, setEditTitle] = useState("");
   const [editDeadline, setEditDeadline] = useState("");
-  const [editStatus, setEditStatus] = useState<ItemStatus>("active");
+  const [editStatus, setEditStatus] = useState<ItemStatus>(defaultStatus);
   const [editRecurring, setEditRecurring] = useState<RecurringConfig | null>(null);
+  const [editProperties, setEditProperties] = useState<Record<string, unknown>>({});
   const [editPending, startEditTransition] = useTransition();
 
   useEffect(() => {
@@ -155,7 +179,7 @@ export function BucketContent({ bucket, accentColor }: BucketContentProps) {
     await updateItemAction(
       item.id,
       item.title,
-      item.deadline ? toLocalDatetimeStr(item.deadline) : null,
+      item.deadline ? item.deadline.toISOString() : null,
       status
     );
     await refetchItems();
@@ -166,24 +190,29 @@ export function BucketContent({ bucket, accentColor }: BucketContentProps) {
     setEditingItemId(item.id);
     setEditTitle(item.title);
     setEditDeadline(item.deadline ? toLocalDatetimeStr(item.deadline) : "");
-    setEditStatus((item.status as ItemStatus) ?? "active");
+    setEditStatus((item.status as ItemStatus) || defaultStatus);
     setEditRecurring(parseRecurring(item.recurring));
+    setEditProperties(
+      item.properties ? (JSON.parse(item.properties) as Record<string, unknown>) : {}
+    );
   }
 
   function cancelEditing() {
     setEditingItemId(null);
     setEditTitle("");
     setEditDeadline("");
-    setEditStatus("active");
+    setEditStatus(defaultStatus);
     setEditRecurring(null);
+    setEditProperties({});
   }
 
   function cancelAdding() {
     setAddingItem(false);
     setAddTitle("");
     setAddDeadline("");
-    setAddStatus("active");
+    setAddStatus(defaultStatus);
     setAddRecurring(null);
+    setAddProperties({});
     setAddError("");
   }
 
@@ -196,7 +225,8 @@ export function BucketContent({ bucket, accentColor }: BucketContentProps) {
         addTitle,
         addDeadline || null,
         addStatus,
-        addRecurring
+        addRecurring,
+        Object.keys(addProperties).length > 0 ? addProperties : null
       );
       if (result.ok) {
         cancelAdding();
@@ -215,7 +245,8 @@ export function BucketContent({ bucket, accentColor }: BucketContentProps) {
         editTitle,
         editDeadline || null,
         editStatus,
-        editRecurring
+        editRecurring,
+        Object.keys(editProperties).length > 0 ? editProperties : null
       );
       if (result.ok) {
         cancelEditing();
@@ -251,6 +282,9 @@ export function BucketContent({ bucket, accentColor }: BucketContentProps) {
           />
           <span className="font-pixel min-w-0 truncate overflow-hidden text-sm leading-snug">
             {bucket.icon ? `${bucket.icon} ${bucket.name}` : bucket.name}
+          </span>
+          <span className="text-muted-foreground/40 shrink-0 font-mono text-[10px]">
+            #{bucket.id}
           </span>
         </div>
         <div className="flex items-center gap-2">
@@ -300,6 +334,8 @@ export function BucketContent({ bucket, accentColor }: BucketContentProps) {
               <DraggableItem
                 key={item.id}
                 item={item}
+                statuses={bucketStatuses}
+                fields={bucketFields}
                 orderedItemsRef={orderedItemsRef}
                 isEditing={editingItemId === item.id}
                 onEditStart={isReadonly ? undefined : () => startEditing(item)}
@@ -313,6 +349,8 @@ export function BucketContent({ bucket, accentColor }: BucketContentProps) {
               <ItemRow
                 key={item.id}
                 item={item}
+                statuses={bucketStatuses}
+                fields={bucketFields}
                 isEditing={editingItemId === item.id}
                 onEditStart={isReadonly ? undefined : () => startEditing(item)}
                 onStatusChange={isReadonly ? undefined : (s) => handleStatusChange(item, s)}
@@ -328,12 +366,16 @@ export function BucketContent({ bucket, accentColor }: BucketContentProps) {
         title={addingItem ? addTitle : editTitle}
         deadline={addingItem ? addDeadline : editDeadline}
         status={addingItem ? addStatus : editStatus}
+        statuses={bucketStatuses}
+        fields={bucketFields.length > 0 ? bucketFields : undefined}
+        properties={addingItem ? addProperties : editProperties}
         recurring={addingItem ? addRecurring : editRecurring}
         error={addingItem ? addError : undefined}
         pending={addingItem ? addPending : editPending}
         onTitleChange={addingItem ? setAddTitle : setEditTitle}
         onDeadlineChange={addingItem ? setAddDeadline : setEditDeadline}
         onStatusChange={addingItem ? setAddStatus : setEditStatus}
+        onPropertiesChange={addingItem ? setAddProperties : setEditProperties}
         onRecurringChange={addingItem ? setAddRecurring : setEditRecurring}
         onConfirm={addingItem ? handleAdd : handleUpdate}
         onCancel={addingItem ? cancelAdding : cancelEditing}

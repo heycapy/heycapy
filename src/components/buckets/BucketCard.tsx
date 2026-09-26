@@ -6,6 +6,7 @@ import { Settings, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AddItemForm } from "./AddItemForm";
 import { ItemRow } from "./ItemRow";
+import { DEFAULT_BUCKET_STATUSES } from "./constants";
 import type { buckets, items as itemsTable } from "@/lib/db/schema";
 
 type BucketRow = typeof buckets.$inferSelect;
@@ -45,7 +46,10 @@ export function BucketCard({ bucket, items }: BucketCardProps) {
         onClick={() => setExpanded((v) => !v)}
       >
         <div className="flex min-w-0 flex-col gap-1">
-          <span className="font-pixel text-sm leading-snug">{bucket.name}</span>
+          <span className="flex items-baseline gap-1.5">
+            <span className="font-pixel text-sm leading-snug">{bucket.name}</span>
+            <span className="text-muted-foreground/40 font-mono text-[10px]">#{bucket.id}</span>
+          </span>
           {!expanded && nextItem && (
             <p
               className={cn(
@@ -114,7 +118,9 @@ export function BucketCard({ bucket, items }: BucketCardProps) {
                   no items yet
                 </p>
               ) : (
-                items.map((item) => <ItemRow key={item.id} item={item} />)
+                items.map((item) => (
+                  <ItemRow key={item.id} item={item} statuses={DEFAULT_BUCKET_STATUSES} />
+                ))
               )}
             </div>
           </motion.div>

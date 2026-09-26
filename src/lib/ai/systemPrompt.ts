@@ -80,13 +80,37 @@ export function buildSystemPrompt(
           .join("\n")
       : "No buckets yet.";
 
-  const dateParts = new Intl.DateTimeFormat("en-US", {
+  const tzParts = new Intl.DateTimeFormat("en-US", {
     timeZone: timezone,
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
   }).formatToParts(now);
-  const isoDate = `${dateParts.find((p) => p.type === "year")?.value}-${dateParts.find((p) => p.type === "month")?.value}-${dateParts.find((p) => p.type === "day")?.value}`;
+  const yr = tzParts.find((p) => p.type === "year")?.value ?? "";
+  const mo = tzParts.find((p) => p.type === "month")?.value ?? "";
+  const dy = tzParts.find((p) => p.type === "day")?.value ?? "";
+  const hr = tzParts.find((p) => p.type === "hour")?.value ?? "";
+  const mn = tzParts.find((p) => p.type === "minute")?.value ?? "";
+  const sc = tzParts.find((p) => p.type === "second")?.value ?? "";
+  const isoDate = `${yr}-${mo}-${dy}`;
+
+  const naiveMs = Date.UTC(
+    Number(yr),
+    Number(mo) - 1,
+    Number(dy),
+    Number(hr),
+    Number(mn),
+    Number(sc)
+  );
+  const offsetTotalMins = Math.round((now.getTime() - naiveMs) / 60000);
+  const offsetSign = offsetTotalMins >= 0 ? "+" : "-";
+  const absMin = Math.abs(offsetTotalMins);
+  const offsetStr = `${offsetSign}${String(Math.floor(absMin / 60)).padStart(2, "0")}:${String(absMin % 60).padStart(2, "0")}`;
+  const nowWithOffset = `${isoDate}T${hr}:${mn}:${sc}${offsetStr}`;
 
   const timeStr = new Intl.DateTimeFormat("en-US", {
     timeZone: timezone,
@@ -109,7 +133,7 @@ ${toneText} ${emojiLine}
 Buckets (tags show their configured rules — you can see these but cannot change bucket settings, only the user can do that in the tweaks panel):
 ${bucketLines}
 
-Today: ${isoDate} (${timeStr}, ${timezone})
+Now: ${nowWithOffset} (${timeStr}, ${timezone})
 ${upcomingSection}
 
 Rules:
@@ -124,9 +148,16 @@ Rules:
 - The upcoming list above is only a deadline preview — it is NOT the full contents of any bucket. To count or list all items in a bucket, always call list_items
 - When counting or listing all items in a bucket, always pass include_completed: true so completed items are included in the total
 - Item IDs shown in the upcoming list can be used directly for operations without calling list_items first
+- CRITICAL: When setting deadlines, always use a naive local datetime string with NO timezone suffix — format: \`YYYY-MM-DDTHH:mm:00\` (e.g. \`2026-09-23T09:00:00\`). Never add Z, UTC offsets, or any timezone suffix. The system converts local time to UTC automatically. The "Now:" line shows the current local date and time to use as your reference.
 - After every tool call, confirm briefly what you actually did based on the tool result
 - When creating items, always use a meaningful descriptive title that reflects what the task actually is — never use a status name (like "active" or "snoozed") as the title
 - Keep replies short
-- If a deadline is mentioned without a time, ask what time before calling any tool
-- If the bucket is unclear, pick the best match or ask`;
+- When a time of day is vague, use sensible defaults and proceed — morning=9am, afternoon=2pm, evening=6pm, night=10pm. Only ask if the time is genuinely critical and completely ambiguous (e.g. "sometime tomorrow" with no other context)
+- CRITICAL: Never set a deadline to a time already in the past. When the user says a relative time like "this afternoon" or "tonight", check the current time against your defaults (afternoon=2pm, evening=6pm, etc.). If that slot has already passed today, assume they mean TOMORROW at that time and proceed — do not ask, just state the date you used (e.g. "Updated to tomorrow afternoon at 2pm")
+- When updating a deadline, always prefer update_item on the existing item — never create a new item to reschedule an existing one. Search for the item if you don't already have its ID
+- Infer the bucket from context — a "reminder" goes in the Reminders bucket, a "task" goes in Tasks, etc. Make the call confidently; only ask if multiple buckets are equally plausible
+- If the bucket is unclear and you must ask, name your best guess: "I'll add this to <bucket> — is that right?"
+- This app has exactly two things: buckets and items. Every user request is about one of these. When intent is clear, act immediately — don't ask for permission. Only ask when the action is destructive (delete) or genuinely ambiguous
+- CRITICAL: When the user says "yes", "ok", "sure", "go ahead", or any short affirmation — read the conversation to understand what they are responding to. If the last thing you did was successfully complete an action, they are acknowledging it — do NOT repeat the action. If you proposed something and haven't acted yet, now act. Never blindly repeat a tool call based on an affirmation alone
+- Be decisive. Make reasonable assumptions and act. State what you did — don't ask for confirmation of obvious intents`;
 }

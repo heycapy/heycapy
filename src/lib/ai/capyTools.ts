@@ -1,8 +1,8 @@
 import { revalidatePath } from "next/cache";
-import { and, eq, isNull, or, sql } from "drizzle-orm";
+import { and, eq, gte, isNull, lte, ne, or, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { buckets, items, itemStatuses } from "@/lib/db/schema";
-import { RecurringConfig } from "@/types/rules";
+import { buckets, items } from "@/lib/db/schema";
+import { RecurringConfig, BucketSchema, buildPropertyValidator } from "@/types/rules";
 import type { ToolCall } from "./types";
 
 export { CAPY_TOOLS } from "./capyToolDefs";
@@ -14,6 +14,50 @@ export type UpcomingItem = {
   deadlineRelative: string;
   deadline: Date;
 };
+
+/**
+ * Parse a deadline string from the AI in the context of the user's timezone.
+ * - If the string already carries an offset (e.g. +05:30) or Z, parse as-is.
+ * - If it's a naive datetime (no offset), interpret it as the user's local time
+ *   and convert to the correct UTC instant.
+ * - If it's a date-only string (YYYY-MM-DD), treat it as midnight in the user's TZ.
+ */
+export function parseDeadlineInTimezone(str: string, timezone: string): Date {
+  const s = str.trim();
+
+  // Already has an offset or Z — parse directly
+  if (/Z$|[+-]\d{2}:\d{2}$/.test(s)) return new Date(s);
+
+  // Date-only: YYYY-MM-DD — treat as midnight in user's TZ by appending T00:00:00 and falling through
+  const normalized = /^\d{4}-\d{2}-\d{2}$/.test(s) ? `${s}T00:00:00` : s;
+
+  // Parse as if UTC to extract the numeric components
+  const naiveUtc = new Date(`${normalized}Z`);
+  if (isNaN(naiveUtc.getTime())) return new Date(s); // fallback for unparseable strings
+
+  // Get what the user's local time looks like at that UTC instant
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: timezone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  }).formatToParts(naiveUtc);
+  const localMs = Date.UTC(
+    Number(parts.find((p) => p.type === "year")?.value ?? 0),
+    Number(parts.find((p) => p.type === "month")?.value ?? 1) - 1,
+    Number(parts.find((p) => p.type === "day")?.value ?? 1),
+    Number(parts.find((p) => p.type === "hour")?.value ?? 0),
+    Number(parts.find((p) => p.type === "minute")?.value ?? 0),
+    Number(parts.find((p) => p.type === "second")?.value ?? 0)
+  );
+  // offsetMs = UTC - local (positive for timezones east of UTC like IST)
+  const offsetMs = naiveUtc.getTime() - localMs;
+  return new Date(naiveUtc.getTime() + offsetMs);
+}
 
 function toDateStr(d: Date, tz: string): string {
   const parts = new Intl.DateTimeFormat("en-US", {
@@ -59,8 +103,24 @@ function parseRecurringArgs(args: Record<string, unknown>): string | null | unde
 }
 
 const activeOnly = or(eq(items.status, "active"), isNull(items.status));
+const notCompleted = ne(items.status, "completed");
 
 export async function executeToolCall(
+  call: ToolCall,
+  userId: number,
+  timezone = "UTC"
+): Promise<string> {
+  try {
+    return await executeToolCallInner(call, userId, timezone);
+  } catch (err) {
+    process.stderr.write(
+      `[ai-tools] tool ${call.name} failed: ${err instanceof Error ? err.message : String(err)}\n`
+    );
+    return JSON.stringify({ ok: false, error: "Tool execution failed" });
+  }
+}
+
+async function executeToolCallInner(
   call: ToolCall,
   userId: number,
   timezone = "UTC"
@@ -81,6 +141,23 @@ export async function executeToolCall(
     case "create_bucket": {
       const name = String(args.name ?? "").trim();
       if (!name) return JSON.stringify({ ok: false, error: "Name is required" });
+
+      const [duplicate] = await db
+        .select({ id: buckets.id })
+        .from(buckets)
+        .where(
+          and(
+            eq(buckets.userId, userId),
+            isNull(buckets.deletedAt),
+            sql`lower(${buckets.name}) = lower(${name})`
+          )
+        )
+        .limit(1);
+      if (duplicate)
+        return JSON.stringify({
+          ok: false,
+          error: `A bucket named "${name}" already exists (id: ${duplicate.id}). Use that bucket instead of creating a new one.`,
+        });
 
       const [maxRow] = await db
         .select({ max: sql<number>`COALESCE(MAX(${buckets.sortOrder}), -1)` })
@@ -160,7 +237,9 @@ export async function executeToolCall(
         .from(items)
         .where(eq(items.bucketId, bucketId));
 
-      const deadline = args.deadline ? new Date(String(args.deadline)) : null;
+      const deadline = args.deadline
+        ? parseDeadlineInTimezone(String(args.deadline), timezone)
+        : null;
       const notificationOffsetMins =
         args.notification_offset_mins !== null && args.notification_offset_mins !== undefined
           ? Number(args.notification_offset_mins)
@@ -175,6 +254,37 @@ export async function executeToolCall(
       }
 
       const statusArg = args.status ? String(args.status).trim() : "active";
+      const finalStatus = statusArg || "active";
+
+      let schemaParsed: ReturnType<typeof BucketSchema.safeParse> | null = null;
+      if (bucket.fieldSchema) {
+        schemaParsed = BucketSchema.safeParse(
+          typeof bucket.fieldSchema === "string"
+            ? JSON.parse(bucket.fieldSchema)
+            : bucket.fieldSchema
+        );
+      }
+
+      let propertiesJson: string | null = null;
+      if (
+        args.properties &&
+        typeof args.properties === "object" &&
+        !Array.isArray(args.properties)
+      ) {
+        if (schemaParsed?.success && schemaParsed.data.fields.length > 0) {
+          const validator = buildPropertyValidator(schemaParsed.data.fields);
+          const validated = validator.safeParse(args.properties);
+          if (!validated.success)
+            return JSON.stringify({
+              ok: false,
+              error: "Invalid properties",
+              issues: validated.error.issues,
+            });
+          propertiesJson = JSON.stringify(validated.data);
+        } else if (!bucket.fieldSchema) {
+          propertiesJson = JSON.stringify(args.properties);
+        }
+      }
 
       const [inserted] = await db
         .insert(items)
@@ -182,10 +292,12 @@ export async function executeToolCall(
           bucketId,
           userId,
           title,
-          status: statusArg || "active",
+          status: finalStatus,
+          completedAt: finalStatus === "completed" ? new Date() : null,
           deadline,
           notificationOffsetMins,
           recurring: recurringJson,
+          properties: propertiesJson,
           source: "ai",
           sortOrder: (maxRow?.max ?? -1) + 1,
         })
@@ -206,9 +318,13 @@ export async function executeToolCall(
         updatedAt: Date;
         title?: string;
         deadline?: Date | null;
+        notifiedAt?: Date | null;
+        overdueNotifiedAt?: Date | null;
         notificationOffsetMins?: number | null;
         recurring?: string | null;
         status?: string;
+        completedAt?: Date | null;
+        properties?: string | null;
       } = { updatedAt: new Date() };
 
       if (args.title !== undefined) {
@@ -217,7 +333,14 @@ export async function executeToolCall(
         updates.title = title;
       }
       if ("deadline" in args) {
-        updates.deadline = args.deadline ? new Date(String(args.deadline)) : null;
+        const newDeadline = args.deadline
+          ? parseDeadlineInTimezone(String(args.deadline), timezone)
+          : null;
+        updates.deadline = newDeadline;
+        if ((item.deadline?.getTime() ?? null) !== (newDeadline?.getTime() ?? null)) {
+          updates.notifiedAt = null;
+          updates.overdueNotifiedAt = null;
+        }
       }
       if ("notification_offset_mins" in args) {
         updates.notificationOffsetMins =
@@ -235,7 +358,21 @@ export async function executeToolCall(
 
       if (args.status !== undefined) {
         const statusName = String(args.status).trim();
-        if (statusName) updates.status = statusName;
+        if (statusName) {
+          updates.status = statusName;
+          if (statusName === "completed" && item.status !== "completed")
+            updates.completedAt = new Date();
+          else if (statusName !== "completed" && item.status === "completed")
+            updates.completedAt = null;
+        }
+      }
+
+      if (args.properties !== undefined) {
+        if (args.properties === null) {
+          updates.properties = null;
+        } else if (typeof args.properties === "object" && !Array.isArray(args.properties)) {
+          updates.properties = JSON.stringify(args.properties);
+        }
       }
 
       await db
@@ -257,7 +394,11 @@ export async function executeToolCall(
       const newStatus = item.status === "completed" ? "active" : "completed";
       await db
         .update(items)
-        .set({ status: newStatus, updatedAt: new Date() })
+        .set({
+          status: newStatus,
+          completedAt: newStatus === "completed" ? new Date() : null,
+          updatedAt: new Date(),
+        })
         .where(and(eq(items.id, itemId), eq(items.userId, userId)));
 
       revalidatePath("/");
@@ -317,7 +458,9 @@ export async function executeToolCall(
       });
       if (!item) return JSON.stringify({ ok: false, error: "Item not found" });
 
-      const snoozedUntil = args.snooze_until ? new Date(String(args.snooze_until)) : null;
+      const snoozedUntil = args.snooze_until
+        ? parseDeadlineInTimezone(String(args.snooze_until), timezone)
+        : null;
       await db
         .update(items)
         .set({ snoozedUntil, updatedAt: new Date() })
@@ -345,6 +488,7 @@ export async function executeToolCall(
           notificationOffsetMins: items.notificationOffsetMins,
           snoozedUntil: items.snoozedUntil,
           recurring: items.recurring,
+          properties: items.properties,
         })
         .from(items)
         .where(
@@ -354,13 +498,14 @@ export async function executeToolCall(
                 eq(items.bucketId, bucketId),
                 eq(items.userId, userId),
                 isNull(items.deletedAt),
-                activeOnly
+                notCompleted
               )
         );
 
       const enriched = rows.map((row) => ({
         ...row,
         recurring: row.recurring ? (JSON.parse(row.recurring) as unknown) : null,
+        properties: row.properties ? (JSON.parse(row.properties) as unknown) : null,
         deadlineRelative: row.deadline ? deadlineRelative(row.deadline, timezone) : null,
       }));
       return JSON.stringify(enriched);
@@ -371,33 +516,48 @@ export async function executeToolCall(
       const deadlineFilter = (args.deadline_filter as string | undefined) ?? "all";
       const bucketId = args.bucket_id !== undefined ? Number(args.bucket_id) : null;
       const includeCompleted = Boolean(args.include_completed ?? false);
+      const completedWithinDays =
+        args.completed_within_days !== undefined ? Number(args.completed_within_days) : null;
+      const dueWithinDays =
+        args.due_within_days !== undefined ? Number(args.due_within_days) : null;
+
+      const now = new Date();
+      const wantsCompleted = includeCompleted || completedWithinDays !== null;
 
       const conditions = [
         eq(items.userId, userId),
         isNull(items.deletedAt),
-        ...(includeCompleted ? [] : [activeOnly]),
+        ...(wantsCompleted ? [] : [notCompleted]),
         ...(bucketId !== null ? [eq(items.bucketId, bucketId)] : []),
+        ...(completedWithinDays !== null
+          ? [gte(items.completedAt, new Date(now.getTime() - completedWithinDays * 86_400_000))]
+          : []),
+        ...(dueWithinDays !== null
+          ? [lte(items.deadline, new Date(now.getTime() + dueWithinDays * 86_400_000))]
+          : []),
       ];
 
-      const rows = await db
-        .select({
-          id: items.id,
-          title: items.title,
-          deadline: items.deadline,
-          status: items.status,
-          bucketId: items.bucketId,
-          notificationOffsetMins: items.notificationOffsetMins,
-          snoozedUntil: items.snoozedUntil,
-        })
-        .from(items)
-        .where(and(...conditions));
+      const [rows, bucketRows] = await Promise.all([
+        db
+          .select({
+            id: items.id,
+            title: items.title,
+            deadline: items.deadline,
+            status: items.status,
+            bucketId: items.bucketId,
+            notificationOffsetMins: items.notificationOffsetMins,
+            snoozedUntil: items.snoozedUntil,
+            completedAt: items.completedAt,
+          })
+          .from(items)
+          .where(and(...conditions)),
+        db
+          .select({ id: buckets.id, name: buckets.name })
+          .from(buckets)
+          .where(and(eq(buckets.userId, userId), isNull(buckets.deletedAt))),
+      ]);
 
       const keywordWords = keyword ? keyword.toLowerCase().split(/\s+/).filter(Boolean) : null;
-
-      const bucketRows = await db
-        .select({ id: buckets.id, name: buckets.name })
-        .from(buckets)
-        .where(and(eq(buckets.userId, userId), isNull(buckets.deletedAt)));
       const bucketMap = new Map(bucketRows.map((b) => [b.id, b.name]));
 
       const enriched = rows
@@ -415,6 +575,7 @@ export async function executeToolCall(
           deadline: row.deadline,
           deadlineRelative: row.deadline ? deadlineRelative(row.deadline, timezone) : null,
           snoozedUntil: row.snoozedUntil,
+          completedAt: row.completedAt,
         }))
         .filter((row) => {
           if (deadlineFilter === "all") return true;
@@ -435,65 +596,41 @@ export async function executeToolCall(
       return JSON.stringify(enriched);
     }
 
-    case "list_statuses": {
-      const result = await db.select().from(itemStatuses).where(eq(itemStatuses.userId, userId));
-      return JSON.stringify(result.sort((a, b) => a.sortOrder - b.sortOrder));
-    }
-
-    case "create_status": {
-      const name = String(args.name ?? "").trim();
-      const color = String(args.color ?? "#6b7280");
-      if (!name) return JSON.stringify({ ok: false, error: "Name is required" });
-      if (name.length > 30) return JSON.stringify({ ok: false, error: "Name too long (max 30)" });
-
-      const existing = await db.query.itemStatuses.findFirst({
-        where: (s, { eq: qeq, and: qand }) => qand(qeq(s.userId, userId), qeq(s.name, name)),
-      });
-      if (existing) return JSON.stringify({ ok: false, error: "Status already exists" });
-
-      const [maxRow] = await db
-        .select({ max: sql<number>`COALESCE(MAX(${itemStatuses.sortOrder}), 2)` })
-        .from(itemStatuses)
-        .where(eq(itemStatuses.userId, userId));
-
-      const [inserted] = await db
-        .insert(itemStatuses)
-        .values({ userId, name, color, sortOrder: (maxRow?.max ?? 2) + 1, isSystem: false })
-        .returning({ id: itemStatuses.id });
-
-      return JSON.stringify({ ok: true, statusId: inserted?.id });
-    }
-
     default:
       return JSON.stringify({ ok: false, error: `Unknown tool: ${call.name}` });
   }
 }
 
 export async function getUpcomingItems(userId: number, timezone: string): Promise<UpcomingItem[]> {
-  const rows = await db
-    .select({
-      id: items.id,
-      title: items.title,
-      deadline: items.deadline,
-      bucketId: items.bucketId,
-    })
-    .from(items)
-    .where(and(eq(items.userId, userId), isNull(items.deletedAt), activeOnly));
+  const weekFromNow = new Date(Date.now() + 7 * 86_400_000);
 
-  const bucketRows = await db
-    .select({ id: buckets.id, name: buckets.name })
-    .from(buckets)
-    .where(and(eq(buckets.userId, userId), isNull(buckets.deletedAt)));
+  const [rows, bucketRows] = await Promise.all([
+    db
+      .select({
+        id: items.id,
+        title: items.title,
+        deadline: items.deadline,
+        bucketId: items.bucketId,
+      })
+      .from(items)
+      .where(
+        and(
+          eq(items.userId, userId),
+          isNull(items.deletedAt),
+          activeOnly,
+          lte(items.deadline, weekFromNow)
+        )
+      ),
+    db
+      .select({ id: buckets.id, name: buckets.name })
+      .from(buckets)
+      .where(and(eq(buckets.userId, userId), isNull(buckets.deletedAt))),
+  ]);
+
   const bucketMap = new Map(bucketRows.map((b) => [b.id, b.name]));
 
-  const now = new Date();
-  const weekFromNow = new Date(now.getTime() + 7 * 86_400_000);
-
   return rows
-    .filter((row): row is typeof row & { deadline: Date } => {
-      if (!row.deadline) return false;
-      return row.deadline <= weekFromNow;
-    })
+    .filter((row): row is typeof row & { deadline: Date } => row.deadline !== null)
     .map((row) => ({
       id: row.id,
       title: row.title,

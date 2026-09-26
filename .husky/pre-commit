@@ -1,4 +1,7 @@
 pnpm exec lint-staged
+pnpm typecheck
+pnpm lint
+pnpm format:check
 pnpm build
 pnpm test:run
 pnpm test:e2e

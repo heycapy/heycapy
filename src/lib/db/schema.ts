@@ -1,5 +1,6 @@
 import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
 import { sql } from "drizzle-orm";
+import type { BucketSchema } from "@/types/rules";
 
 // users
 
@@ -53,14 +54,32 @@ export const userSettings = sqliteTable("user_settings", {
     .default("chill"),
   personalityEmoji: integer("personality_emoji", { mode: "boolean" }).notNull().default(true),
   personalityCustomPrompt: text("personality_custom_prompt"),
-  aiProvider: text("ai_provider", { enum: ["ollama", "openai", "anthropic"] }),
+  aiProvider: text("ai_provider", { enum: ["ollama", "openai", "anthropic", "groq", "gemini"] }),
   aiApiKey: text("ai_api_key"),
   aiModel: text("ai_model"),
   aiOllamaUrl: text("ai_ollama_url"),
+  aiCompactThreshold: integer("ai_compact_threshold").notNull().default(40),
+  aiNotifyMessages: integer("ai_notify_messages", { mode: "boolean" }).notNull().default(true),
   notificationsEmail: integer("notifications_email", { mode: "boolean" }).notNull().default(true),
+  notificationEmailTo: text("notification_email_to"),
   notificationsPush: integer("notifications_push", { mode: "boolean" }).notNull().default(true),
   ntfyUrl: text("ntfy_url"),
   ntfyTopic: text("ntfy_topic"),
+  telegramChatId: text("telegram_chat_id"),
+  notificationsTelegram: integer("notifications_telegram", { mode: "boolean" })
+    .notNull()
+    .default(false),
+  transcriptionProvider: text("transcription_provider"),
+  transcriptionApiKey: text("transcription_api_key"),
+  transcriptionModel: text("transcription_model"),
+  telegramState: text("telegram_state"),
+  emailProvider: text("email_provider"),
+  smtpHost: text("smtp_host"),
+  smtpPort: integer("smtp_port"),
+  smtpUser: text("smtp_user"),
+  smtpPass: text("smtp_pass"),
+  smtpSecure: integer("smtp_secure", { mode: "boolean" }).default(false),
+  smtpFrom: text("smtp_from"),
   updatedAt: integer("updated_at", { mode: "timestamp" })
     .notNull()
     .default(sql`(unixepoch())`),
@@ -93,19 +112,6 @@ export const otps = sqliteTable("otps", {
     .default(sql`(unixepoch())`),
 });
 
-// item_statuses — system statuses (active/completed/archived/snoozed) + user-created
-
-export const itemStatuses = sqliteTable("item_statuses", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
-  userId: integer("user_id")
-    .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
-  name: text("name").notNull(),
-  color: text("color").notNull().default("#737373"),
-  sortOrder: integer("sort_order").notNull().default(0),
-  isSystem: integer("is_system", { mode: "boolean" }).notNull().default(false),
-});
-
 // buckets
 
 export const buckets = sqliteTable("buckets", {
@@ -120,6 +126,9 @@ export const buckets = sqliteTable("buckets", {
   itemsRules: text("items_rules").notNull().default("{}"),
   mcpRules: text("mcp_rules"),
   personalityRules: text("personality_rules").notNull().default("{}"),
+  fieldSchema: text("field_schema").$type<BucketSchema>(),
+  telegramConfig: text("telegram_config"),
+  webhookKey: text("webhook_key"),
   mcpIntegration: text("mcp_integration"),
   mcpConfig: text("mcp_config"),
   lastSyncedAt: integer("last_synced_at", { mode: "timestamp" }),
@@ -146,17 +155,22 @@ export const items = sqliteTable("items", {
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
   title: text("title").notNull(),
+  description: text("description"),
   deadline: integer("deadline", { mode: "timestamp" }),
   status: text("status").notNull().default("active"),
+  properties: text("properties"),
+  externalId: text("external_id"),
+  externalUrl: text("external_url"),
   notificationOffsetMins: integer("notification_offset_mins"),
   notifiedAt: integer("notified_at", { mode: "timestamp" }),
+  overdueNotifiedAt: integer("overdue_notified_at", { mode: "timestamp" }),
   snoozedUntil: integer("snoozed_until", { mode: "timestamp" }),
   sortOrder: integer("sort_order").notNull().default(0),
   recurring: text("recurring"),
-  source: text("source", { enum: ["manual", "ai", "mcp"] })
+  source: text("source", { enum: ["manual", "ai", "mcp", "webhook", "system"] })
     .notNull()
     .default("manual"),
-  externalId: text("external_id"),
+  completedAt: integer("completed_at", { mode: "timestamp" }),
   deletedAt: integer("deleted_at", { mode: "timestamp" }),
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
@@ -166,7 +180,31 @@ export const items = sqliteTable("items", {
     .default(sql`(unixepoch())`),
 });
 
-// notification_log
+// notification_queue — reliable delivery with retries
+
+export const notificationQueue = sqliteTable("notification_queue", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  userId: integer("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  itemId: integer("item_id").references(() => items.id, { onDelete: "set null" }),
+  medium: text("medium", { enum: ["email", "ntfy", "telegram"] }).notNull(),
+  title: text("title").notNull(),
+  message: text("message").notNull(),
+  status: text("status", { enum: ["pending", "sending", "sent", "failed", "dead"] })
+    .notNull()
+    .default("pending"),
+  attempts: integer("attempts").notNull().default(0),
+  maxAttempts: integer("max_attempts").notNull().default(3),
+  nextRetryAt: integer("next_retry_at", { mode: "timestamp" }),
+  lastError: text("last_error"),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .default(sql`(unixepoch())`),
+  sentAt: integer("sent_at", { mode: "timestamp" }),
+});
+
+// notification_log — immutable audit trail
 
 export const notificationLog = sqliteTable("notification_log", {
   id: integer("id").primaryKey({ autoIncrement: true }),
@@ -174,7 +212,7 @@ export const notificationLog = sqliteTable("notification_log", {
   userId: integer("user_id")
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
-  medium: text("medium", { enum: ["email", "ntfy"] }).notNull(),
+  medium: text("medium", { enum: ["email", "ntfy", "telegram"] }).notNull(),
   message: text("message").notNull(),
   status: text("status", { enum: ["sent", "failed"] })
     .notNull()
@@ -193,6 +231,10 @@ export const chatSessions = sqliteTable("chat_sessions", {
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
   title: text("title").notNull(),
+  source: text("source", { enum: ["web", "telegram"] })
+    .notNull()
+    .default("web"),
+  summary: text("summary"),
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
     .default(sql`(unixepoch())`),
@@ -219,6 +261,8 @@ export const chatMessages = sqliteTable("chat_messages", {
 });
 
 // templates — builtin (seeded) + user-created
+// rulesJson: existing rulebook (notifications/items/personality)
+// fieldSchemaJson: BucketSchema JSON (fields, statuses, notificationTriggers)
 
 export const templates = sqliteTable("templates", {
   id: integer("id").primaryKey({ autoIncrement: true }),
@@ -226,6 +270,7 @@ export const templates = sqliteTable("templates", {
   name: text("name").notNull(),
   description: text("description"),
   rulesJson: text("rules_json").notNull(),
+  fieldSchemaJson: text("field_schema_json"),
   isBuiltin: integer("is_builtin", { mode: "boolean" }).notNull().default(false),
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()

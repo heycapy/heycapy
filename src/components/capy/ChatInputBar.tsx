@@ -1,6 +1,10 @@
-import { forwardRef, useEffect, useImperativeHandle, useRef } from "react";
-import { ArrowUp } from "lucide-react";
+"use client";
+
+import { forwardRef, useEffect, useImperativeHandle, useRef, useState, createElement } from "react";
+import { ArrowUp, Mic } from "lucide-react";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { Sprite } from "./Sprite";
 
 type Props = {
   input: string;
@@ -12,27 +16,58 @@ type Props = {
 
 export type ChatInputBarHandle = { focus: () => void };
 
+function formatTime(seconds: number) {
+  const m = String(Math.floor(seconds / 60)).padStart(2, "0");
+  const s = String(seconds % 60).padStart(2, "0");
+  return `${m}:${s}`;
+}
+
 export const ChatInputBar = forwardRef<ChatInputBarHandle, Props>(function ChatInputBar(
   { input, setInput, streaming, onSend, onStop }: Props,
   ref
 ) {
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
+  const [recording, setRecording] = useState(false);
+  const [transcribing, setTranscribing] = useState(false);
+  const [recSeconds, setRecSeconds] = useState(0);
 
   useImperativeHandle(ref, () => ({ focus: () => inputRef.current?.focus() }));
-  const prevStreamingRef = useRef(streaming);
 
+  const prevStreamingRef = useRef(streaming);
   useEffect(() => {
-    if (prevStreamingRef.current && !streaming) {
-      inputRef.current?.focus();
-    }
+    if (prevStreamingRef.current && !streaming) inputRef.current?.focus();
     prevStreamingRef.current = streaming;
   }, [streaming]);
 
   useEffect(() => {
-    if (!input && inputRef.current) {
-      inputRef.current.style.height = "auto";
-    }
+    const el = inputRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    if (input) el.style.height = `${Math.min(el.scrollHeight, 80)}px`;
   }, [input]);
+
+  useEffect(() => {
+    if (!recording) {
+      setRecSeconds(0);
+      return;
+    }
+    const id = setInterval(() => setRecSeconds((s) => s + 1), 1000);
+    return () => clearInterval(id);
+  }, [recording]);
+
+  // Ctrl+Shift+M keybinding
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.ctrlKey && e.shiftKey && e.key === "M") {
+        e.preventDefault();
+        void handleMicClick();
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  });
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -41,46 +76,160 @@ export const ChatInputBar = forwardRef<ChatInputBarHandle, Props>(function ChatI
     }
   }
 
+  async function handleMicClick() {
+    if (transcribing || streaming) return;
+
+    if (recording) {
+      mediaRecorderRef.current?.stop();
+      return;
+    }
+
+    let stream: MediaStream;
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    } catch {
+      toast.error("microphone access denied", {
+        icon: createElement(Sprite, { id: "capy-error", size: 28 }),
+      });
+      return;
+    }
+
+    const mr = new MediaRecorder(stream);
+    chunksRef.current = [];
+
+    mr.ondataavailable = (e) => {
+      if (e.data.size > 0) chunksRef.current.push(e.data);
+    };
+
+    mr.onstop = async () => {
+      stream.getTracks().forEach((t) => t.stop());
+      setRecording(false);
+      setTranscribing(true);
+
+      const blob = new Blob(chunksRef.current, { type: mr.mimeType || "audio/webm" });
+      const fd = new FormData();
+      fd.append("audio", blob, "recording.webm");
+
+      try {
+        const res = await fetch("/api/transcribe", { method: "POST", body: fd });
+        const body = (await res.json()) as { text?: string; error?: string };
+        if (!res.ok || !body.text) {
+          toast.error("transcription failed", {
+            description: body.error ?? "Unknown error.",
+            icon: createElement(Sprite, { id: "capy-error", size: 28 }),
+          });
+        } else {
+          setInput(body.text);
+          setTimeout(() => {
+            const el = inputRef.current;
+            if (!el) return;
+            el.focus();
+            el.selectionStart = el.selectionEnd = el.value.length;
+          }, 0);
+        }
+      } catch {
+        toast.error("transcription failed", {
+          description: "Could not reach the server.",
+          icon: createElement(Sprite, { id: "capy-error", size: 28 }),
+        });
+      } finally {
+        setTranscribing(false);
+      }
+    };
+
+    mr.start();
+    mediaRecorderRef.current = mr;
+    setRecording(true);
+  }
+
+  const isRecordingOrTranscribing = recording || transcribing;
+
   return (
-    <div className="border-border flex items-end gap-2 border-t-2 px-3 py-2">
-      <textarea
-        ref={inputRef}
-        value={input}
-        onChange={(e) => setInput(e.target.value)}
-        onKeyDown={handleKeyDown}
-        placeholder="ask capy..."
-        rows={1}
-        disabled={streaming}
-        className="scrollbar-hide placeholder:text-muted-foreground flex-1 resize-none bg-transparent font-mono text-xs outline-none disabled:opacity-50"
-        style={{ maxHeight: 72 }}
-        onInput={(e) => {
-          const el = e.currentTarget;
-          el.style.height = "auto";
-          el.style.height = `${Math.min(el.scrollHeight, 72)}px`;
-        }}
-      />
-      {streaming ? (
-        <button
-          onClick={onStop}
-          className="text-destructive border-destructive font-pixel mb-0.5 shrink-0 border px-1.5 py-0.5 text-[9px] transition-opacity hover:opacity-70"
-          aria-label="Stop"
-        >
-          stop
-        </button>
-      ) : (
-        <button
-          onClick={onSend}
-          disabled={!input.trim()}
-          className={cn(
-            "border-border mb-0.5 shrink-0 border p-1 transition-colors",
-            input.trim()
-              ? "bg-foreground text-background"
-              : "text-muted-foreground cursor-not-allowed"
+    <div
+      className={cn(
+        "border-t-2 px-3 py-2 transition-colors",
+        recording ? "border-destructive" : "border-border"
+      )}
+    >
+      {isRecordingOrTranscribing ? (
+        <div className="flex items-center gap-3">
+          <div className="flex flex-1 items-center gap-2">
+            {recording ? (
+              <>
+                <span className="text-destructive font-pixel animate-[pulse_0.8s_ease-in-out_infinite] text-[10px]">
+                  ●
+                </span>
+                <span className="text-destructive font-pixel text-[10px]">
+                  rec {formatTime(recSeconds)}
+                </span>
+              </>
+            ) : (
+              <span className="text-muted-foreground font-pixel animate-pulse text-[10px]">
+                transcribing...
+              </span>
+            )}
+          </div>
+
+          {recording && (
+            <button
+              onClick={() => mediaRecorderRef.current?.stop()}
+              className="border-destructive text-destructive font-pixel shrink-0 border px-1.5 py-0.5 text-[9px] transition-opacity hover:opacity-70"
+            >
+              ■ stop
+            </button>
           )}
-          aria-label="Send"
-        >
-          <ArrowUp size={12} />
-        </button>
+        </div>
+      ) : (
+        <div className="flex items-end gap-2">
+          <textarea
+            ref={inputRef}
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="ask capy..."
+            rows={1}
+            disabled={streaming}
+            className="placeholder:text-muted-foreground flex-1 resize-none bg-transparent font-mono text-xs outline-none disabled:opacity-50"
+            style={{ maxHeight: 80 }}
+            onInput={(e) => {
+              const el = e.currentTarget;
+              el.style.height = "auto";
+              el.style.height = `${Math.min(el.scrollHeight, 80)}px`;
+            }}
+          />
+          <button
+            onClick={() => void handleMicClick()}
+            disabled={streaming}
+            title="voice input (ctrl+shift+m)"
+            aria-label="Record voice"
+            className="border-border text-muted-foreground hover:border-foreground hover:text-foreground mb-0.5 shrink-0 border p-2.5 transition-colors disabled:cursor-not-allowed disabled:opacity-40 md:p-1"
+          >
+            <Mic size={14} />
+          </button>
+          {streaming ? (
+            <button
+              onClick={onStop}
+              className="text-destructive border-destructive font-pixel mb-0.5 shrink-0 border px-2.5 py-2.5 text-[11px] transition-opacity hover:opacity-70 md:px-1.5 md:py-0.5 md:text-[9px]"
+              aria-label="Stop"
+            >
+              stop
+            </button>
+          ) : (
+            <button
+              onClick={onSend}
+              disabled={!input.trim()}
+              className={cn(
+                "border-border mb-0.5 shrink-0 border p-2.5 transition-colors md:p-1",
+                input.trim()
+                  ? "bg-foreground text-background"
+                  : "text-muted-foreground cursor-not-allowed"
+              )}
+              aria-label="Send"
+            >
+              <ArrowUp size={14} />
+            </button>
+          )}
+        </div>
       )}
     </div>
   );

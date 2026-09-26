@@ -1,26 +1,31 @@
 import { z } from "zod";
 import { and, eq, isNull } from "drizzle-orm";
-import { getSession } from "@/lib/auth/session";
+import { requireApiSession } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { buckets, chatMessages, chatSessions, userSettings, users } from "@/lib/db/schema";
 import { getAIProvider } from "@/lib/ai";
+import { decryptValue } from "@/lib/crypto";
 import { buildSystemPrompt } from "@/lib/ai/systemPrompt";
 import { CAPY_TOOLS, executeToolCall, getUpcomingItems } from "@/lib/ai/capyTools";
+import { compactSessionIfNeeded } from "@/lib/ai/compact";
+import { aiErrorResponse } from "@/lib/errors";
 import type { AgentMessage } from "@/lib/ai/types";
 
 const bodySchema = z.object({
-  messages: z.array(
-    z.object({
-      role: z.enum(["user", "assistant", "system"]),
-      content: z.string(),
-    })
-  ),
+  messages: z
+    .array(
+      z.object({
+        role: z.enum(["user", "assistant", "system"]),
+        content: z.string().max(10_000),
+      })
+    )
+    .max(100),
   sessionId: z.number().nullish(),
 });
 
 export async function POST(req: Request) {
-  const session = await getSession();
-  if (!session) return new Response("Unauthorized", { status: 401 });
+  const [session, authErr] = await requireApiSession();
+  if (authErr) return authErr;
 
   const parsed = bodySchema.safeParse(await req.json());
   if (!parsed.success) {
@@ -58,7 +63,7 @@ export async function POST(req: Request) {
       getAIProvider({
         provider: settings?.aiProvider,
         model: settings?.aiModel,
-        apiKey: settings?.aiApiKey,
+        apiKey: settings?.aiApiKey ? decryptValue(settings.aiApiKey) : null,
         ollamaUrl: settings?.aiOllamaUrl,
       })
     ),
@@ -75,40 +80,78 @@ export async function POST(req: Request) {
     ),
   };
 
+  const threshold = settings?.aiCompactThreshold ?? 40;
+  const keepRecent = Math.max(10, Math.floor(threshold / 4));
+
+  let sessionSummary: string | null = null;
+  if (sessionId) {
+    const sess = await db.query.chatSessions.findFirst({
+      where: (s, { eq: qeq, and: qand }) =>
+        qand(qeq(s.id, sessionId), qeq(s.userId, session.userId)),
+    });
+    sessionSummary = sess?.summary ?? null;
+  }
+
+  const filtered = messages.filter(
+    (m): m is { role: "user" | "assistant"; content: string } => m.role !== "system"
+  );
+  const contextMessages = filtered.length > threshold ? filtered.slice(-keepRecent) : filtered;
+
   const agentMessages: AgentMessage[] = [
     systemMsg,
-    ...messages
-      .filter((m): m is { role: "user" | "assistant"; content: string } => m.role !== "system")
-      .map((m) => ({ role: m.role, content: m.content })),
+    ...(sessionSummary
+      ? [
+          {
+            role: "system" as const,
+            content: `Summary of earlier conversation:\n${sessionSummary}`,
+          },
+        ]
+      : []),
+    ...contextMessages.map((m) => ({ role: m.role, content: m.content })),
   ];
 
   let finalText = "";
   let lastAssistantContent = "";
 
-  for (let round = 0; round < 8; round++) {
-    const result = await provider.complete(agentMessages, CAPY_TOOLS);
+  try {
+    for (let round = 0; round < 8; round++) {
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      const timeoutMs = settings?.aiProvider === "ollama" ? 120_000 : 30_000;
+      const result = await Promise.race([
+        provider.complete(agentMessages, CAPY_TOOLS),
+        new Promise<never>((_, reject) => {
+          timer = setTimeout(() => reject(new Error("AI provider timeout")), timeoutMs);
+        }),
+      ]).finally(() => clearTimeout(timer));
 
-    if (result.content) lastAssistantContent = result.content;
+      if (result.content) lastAssistantContent = result.content;
 
-    if (result.toolCalls.length === 0) {
-      finalText = result.content ?? "";
-      break;
-    }
+      if (result.toolCalls.length === 0) {
+        finalText = result.content ?? "";
+        break;
+      }
 
-    agentMessages.push({ role: "assistant", content: result.content, toolCalls: result.toolCalls });
-
-    for (const call of result.toolCalls) {
-      const toolResult = await executeToolCall(call, session.userId, timezone);
       agentMessages.push({
-        role: "tool",
-        toolCallId: call.id,
-        toolName: call.name,
-        content: toolResult,
+        role: "assistant",
+        content: result.content,
+        toolCalls: result.toolCalls,
       });
-    }
-  }
 
-  if (!finalText) finalText = lastAssistantContent;
+      for (const call of result.toolCalls) {
+        const toolResult = await executeToolCall(call, session.userId, timezone);
+        agentMessages.push({
+          role: "tool",
+          toolCallId: call.id,
+          toolName: call.name,
+          content: toolResult,
+        });
+      }
+    }
+
+    if (!finalText) finalText = lastAssistantContent;
+  } catch (err) {
+    return aiErrorResponse(err, "chat");
+  }
 
   const lastUserMsg = [...messages].reverse().find((m) => m.role === "user");
   let resolvedSessionId = sessionId ?? null;
@@ -175,6 +218,10 @@ export async function POST(req: Request) {
       controller.close();
     },
   });
+
+  if (resolvedSessionId) {
+    void compactSessionIfNeeded(resolvedSessionId, provider, settings?.aiCompactThreshold ?? 40);
+  }
 
   const responseHeaders: Record<string, string> = {
     "Content-Type": "text/plain; charset=utf-8",

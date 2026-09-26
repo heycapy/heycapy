@@ -14,6 +14,7 @@
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
+  --color-warning: var(--status-snoozed, hsl(38 90% 55%));
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
@@ -593,5 +594,30 @@ body {
   }
   50% {
     transform: translateY(-10px);
+  }
+}
+
+[data-sonner-toast] [data-close-button] {
+  position: absolute !important;
+  top: 6px !important;
+  right: 6px !important;
+  left: auto !important;
+  transform: none !important;
+}
+[data-sonner-toast] [data-close-button] svg {
+  display: none;
+}
+[data-sonner-toast] [data-close-button]::before {
+  content: "[x]";
+  font-family: var(--font-geist-mono);
+  font-size: 10px;
+  line-height: 1;
+}
+
+@media (max-width: 767px) {
+  input:not([type="range"]),
+  textarea,
+  select {
+    font-size: 16px;
   }
 }

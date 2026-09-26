@@ -135,8 +135,15 @@ export const CAPY_TOOLS: Tool[] = [
           type: "string",
           description:
             "Initial status for the item. Defaults to 'active'. " +
-            "System statuses ('active', 'completed', 'snoozed') can be used directly. " +
-            "For custom statuses, call list_statuses first to confirm the exact name.",
+            "System statuses are 'active', 'completed', 'snoozed'. " +
+            "Custom statuses are defined per-bucket in the bucket's schema.",
+        },
+        properties: {
+          type: "object",
+          description:
+            "Optional key-value map of custom field values for this item, as defined by the bucket's schema. " +
+            "Keys must match the field keys in the bucket's fieldSchema. " +
+            "Only provide this if the user mentions specific field values or you know the bucket has custom fields.",
         },
       },
       required: ["bucket_id", "title"],
@@ -189,8 +196,12 @@ export const CAPY_TOOLS: Tool[] = [
         status: {
           type: "string",
           description:
-            "Set the item's status by name (e.g. 'active', 'completed', 'snoozed', or any custom status). " +
-            "Use list_statuses first if you're unsure what statuses are available.",
+            "Set the item's status by name (e.g. 'active', 'completed', 'snoozed', or any custom status defined in the bucket schema).",
+        },
+        properties: {
+          type: ["object", "null"],
+          description:
+            "Update custom field values. Pass an object with field key-value pairs to update, or null to clear all properties.",
         },
       },
       required: ["item_id"],
@@ -301,44 +312,12 @@ export const CAPY_TOOLS: Tool[] = [
     },
   },
   {
-    name: "list_statuses",
-    description:
-      "List all item statuses available to the user — system statuses (active, completed, snoozed) plus any custom ones they've created. " +
-      "Call this when the user asks about statuses, wants to see what statuses exist, or before using a status name in update_item.",
-    parameters: {
-      type: "object",
-      properties: {},
-    },
-  },
-  {
-    name: "create_status",
-    description:
-      "Create a new custom item status for the user. " +
-      "Use this when the user asks to add or create a new status. " +
-      "Pick a fitting hex color based on the status meaning (e.g. '#ef4444' for blocked, '#22c55e' for done, '#f97316' for in-progress).",
-    parameters: {
-      type: "object",
-      properties: {
-        name: {
-          type: "string",
-          description:
-            "The name of the new status (max 30 chars). Keep it short: 'blocked', 'in-progress', 'waiting', etc.",
-        },
-        color: {
-          type: "string",
-          description:
-            "Hex color for the status dot, e.g. '#ef4444'. Pick a color that fits the status meaning.",
-        },
-      },
-      required: ["name", "color"],
-    },
-  },
-  {
     name: "search_items",
     description:
       "Search for items across all buckets (or within one bucket) using a keyword and/or deadline filter. " +
       "Use this to answer questions like 'what's due today?', 'what's overdue?', " +
-      "'show me everything due this week', or 'find my Netflix reminder'. " +
+      "'show me everything due this week', 'find my Netflix reminder', " +
+      "'what did I complete in the last 2 days?', or 'what's coming up in the next 3 days?'. " +
       "Prefer this over calling list_items multiple times when you don't know which bucket contains the item.",
     parameters: {
       type: "object",
@@ -367,6 +346,20 @@ export const CAPY_TOOLS: Tool[] = [
         include_completed: {
           type: "boolean",
           description: "Whether to include completed items. Defaults to false.",
+        },
+        completed_within_days: {
+          type: "number",
+          description:
+            "Return only items completed within the last N days (based on completedAt). " +
+            "Automatically includes completed items — no need to also set include_completed. " +
+            "E.g. 2 = completed in the last 2 days, 7 = last week.",
+        },
+        due_within_days: {
+          type: "number",
+          description:
+            "Return only items whose deadline falls within the next N days from now. " +
+            "E.g. 3 = due in the next 3 days, 7 = due in the next week. " +
+            "Use this instead of deadline_filter when the user asks about a specific number of days ahead.",
         },
       },
     },

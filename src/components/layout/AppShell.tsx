@@ -6,28 +6,30 @@ import { Header } from "./Header";
 import { SettingsSheet } from "./SettingsSheet";
 import { ArchivedBucketsSheet } from "@/components/buckets/ArchivedBucketsSheet";
 import { TrashSheet } from "@/components/buckets/TrashSheet";
-import { getItemStatusesAction } from "@/app/(app)/actions";
 import { useUIStore } from "@/store/ui";
+import { useChatStore } from "@/store/chat";
+import { useServerEvents } from "@/hooks/useServerEvents";
 
 const CapyChat = dynamic(() => import("@/components/capy/CapyChat").then((m) => m.CapyChat), {
   ssr: false,
 });
 
-export function AppShell({ children }: { children: ReactNode }) {
+export function AppShell({ children, email }: { children: ReactNode; email: string }) {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [archivedOpen, setArchivedOpen] = useState(false);
   const [trashOpen, setTrashOpen] = useState(false);
-  const setStatuses = useUIStore((s) => s.setStatuses);
+
+  useServerEvents();
 
   useEffect(() => {
-    void getItemStatusesAction().then((r) => {
-      if (r.ok) setStatuses(r.statuses);
-    });
-  }, [setStatuses]);
+    void useUIStore.persist.rehydrate();
+    void useChatStore.persist.rehydrate();
+  }, []);
 
   return (
     <>
       <Header
+        email={email}
         onSettingsOpen={() => setSettingsOpen(true)}
         onArchiveOpen={() => setArchivedOpen(true)}
         onTrashOpen={() => setTrashOpen(true)}
