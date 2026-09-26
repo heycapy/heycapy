@@ -3,12 +3,11 @@
 import { z } from "zod";
 import { createOtp, verifyOtp } from "@/lib/auth/otp";
 import { buildOtpEmail } from "@/lib/auth/otpEmail";
-import { sendEmail, type UserEmailConfig } from "@/lib/notifications/email";
+import { sendEmail } from "@/lib/notifications/email";
 import { createSession } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { users, userSettings, authRateLimits } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
-import { decryptValue } from "@/lib/crypto";
 import { seed } from "@/lib/db/seed";
 
 type SendOtpResult = { ok: true; devCode?: string } | { ok: false; error: string };
@@ -39,27 +38,7 @@ export async function sendOtpAction(email: string): Promise<SendOtpResult> {
     return { ok: false, error: "Enter a valid email address." };
   }
 
-  const existingUser = await db.query.users.findFirst({ where: eq(users.email, email) });
-  let userEmailConfig: UserEmailConfig | undefined;
-  if (existingUser) {
-    const us = await db.query.userSettings.findFirst({
-      where: eq(userSettings.userId, existingUser.id),
-    });
-    if (us?.emailProvider === "smtp" && us.smtpHost) {
-      userEmailConfig = {
-        emailProvider: us.emailProvider,
-        smtpHost: us.smtpHost,
-        smtpPort: us.smtpPort,
-        smtpUser: us.smtpUser,
-        smtpPass: us.smtpPass ? decryptValue(us.smtpPass) : null,
-        smtpSecure: us.smtpSecure,
-        smtpFrom: us.smtpFrom,
-      };
-    }
-  }
-
-  const hasUserSmtp = !!userEmailConfig?.smtpHost;
-  const isDev = !hasUserSmtp && !process.env.RESEND_API_KEY && !process.env.SMTP_HOST;
+  const isDev = !process.env.RESEND_API_KEY && !process.env.SMTP_HOST;
 
   const record = await getRateLimit(email);
   const now = Date.now();
@@ -85,7 +64,7 @@ export async function sendOtpAction(email: string): Promise<SendOtpResult> {
 
   try {
     const emailPayload = await buildOtpEmail(code);
-    await sendEmail({ to: email, ...emailPayload }, userEmailConfig);
+    await sendEmail({ to: email, ...emailPayload });
   } catch {
     return { ok: false, error: "Failed to send code. Please try again." };
   }
