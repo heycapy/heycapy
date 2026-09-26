@@ -9,7 +9,9 @@ export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const hostname = request.headers.get("host") ?? "";
 
-  const isRootDomain = hostname === "heycapy.xyz" || hostname === "www.heycapy.xyz";
+  const rootDomain = process.env.ROOT_DOMAIN;
+  const isRootDomain =
+    !!rootDomain && (hostname === rootDomain || hostname === `www.${rootDomain}`);
   if (isRootDomain && pathname === "/") {
     return NextResponse.rewrite(new URL("/home", request.url));
   }
@@ -34,5 +36,7 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\.png$|api/telegram|api/webhook).*)"],
+  matcher: [
+    "/((?!_next/static|_next/image|favicon.ico|.*\\.png$|api/telegram|api/webhook|api/feedback).*)",
+  ],
 };

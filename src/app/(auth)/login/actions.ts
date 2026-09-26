@@ -1,5 +1,6 @@
 "use server";
 
+import { Resend } from "resend";
 import { z } from "zod";
 import { createOtp, verifyOtp } from "@/lib/auth/otp";
 import { buildOtpEmail } from "@/lib/auth/otpEmail";
@@ -105,6 +106,11 @@ export async function verifyOtpAction(email: string, code: string): Promise<Veri
     user = created;
     await db.insert(userSettings).values({ userId: user.id });
     await seed(user.id);
+
+    if (process.env.RESEND_API_KEY) {
+      const resend = new Resend(process.env.RESEND_API_KEY);
+      await resend.contacts.create({ email, unsubscribed: false }).catch(() => undefined);
+    }
   }
 
   await createSession({ userId: user.id, email: user.email });

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { FeedbackForm } from "@/components/FeedbackForm";
 
 export const metadata: Metadata = {
   title: "about | heycapy",
@@ -35,6 +36,8 @@ export default function AboutPage() {
               free. thanks for trying it out.
             </p>
           </div>
+
+          <FeedbackForm fallbackEmail={process.env.FEEDBACK_EMAIL} />
         </div>
 
         <div className="border-border mt-8 flex gap-4 border-t pt-5">
