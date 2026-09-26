@@ -65,8 +65,9 @@ export function FeedbackForm({ fallbackEmail }: { fallbackEmail?: string }) {
     return (
       <div className="border-border border p-4">
         <p className="font-pixel mb-2 text-[11px]">feedback</p>
-        <p className="text-muted-foreground font-mono text-[11px]">
-          got it. thanks. <span className="opacity-40">[{boxes}]</span>
+        <p className="text-muted-foreground font-mono text-[11px]">got it. thanks.</p>
+        <p className="text-muted-foreground/40 mt-1 font-mono text-[8px] leading-relaxed break-all">
+          {boxes}
         </p>
       </div>
     );

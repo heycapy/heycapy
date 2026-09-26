@@ -11,13 +11,20 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   const session = await getSession();
   if (!session) redirect("/login");
 
-  const [templateList, user] = await Promise.all([
+  const [rawTemplates, user] = await Promise.all([
     db
       .select()
       .from(templates)
       .where(or(isNull(templates.userId), eq(templates.userId, session.userId))),
     db.query.users.findFirst({ where: eq(users.id, session.userId) }),
   ]);
+
+  const seen = new Set<string>();
+  const templateList = rawTemplates.filter((t) => {
+    if (seen.has(t.name)) return false;
+    seen.add(t.name);
+    return true;
+  });
 
   return (
     <div className="flex h-full flex-col">

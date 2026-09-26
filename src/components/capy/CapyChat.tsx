@@ -82,7 +82,7 @@ export function CapyChat() {
       ? "inset-2"
       : cn(
           "bottom-0 inset-x-0 md:inset-x-auto md:right-6 md:w-[308px]",
-          isMobile && chatState !== "minimized" && "max-h-[65svh] overflow-hidden"
+          isMobile && chatState !== "minimized" && "h-[52svh] overflow-hidden"
         )
   );
 

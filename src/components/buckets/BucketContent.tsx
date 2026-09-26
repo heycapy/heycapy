@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useTransition } from "react";
 import { Reorder, useDragControls } from "framer-motion";
 import { ItemRow } from "./ItemRow";
+import { SwipeableRow } from "./SwipeableRow";
 import { ItemDialog } from "./ItemDialog";
 import { BucketSettings } from "./BucketSettings";
 import { BracketButton } from "@/components/ui/BracketButton";
@@ -57,6 +58,7 @@ function DraggableItem({
   isEditing,
   onEditStart,
   onStatusChange,
+  onDelete,
 }: {
   item: Item;
   statuses: StatusDef[];
@@ -65,6 +67,7 @@ function DraggableItem({
   isEditing?: boolean;
   onEditStart?: () => void;
   onStatusChange?: (status: string) => void;
+  onDelete?: () => void;
   dragControls?: DragControls;
 }) {
   const controls = useDragControls();
@@ -82,15 +85,17 @@ function DraggableItem({
       }}
       className="list-none"
     >
-      <ItemRow
-        item={item}
-        statuses={statuses}
-        fields={fields}
-        dragControls={controls}
-        isEditing={isEditing}
-        onEditStart={onEditStart}
-        onStatusChange={onStatusChange}
-      />
+      <SwipeableRow onDelete={onDelete ?? (() => undefined)} disabled={!onDelete}>
+        <ItemRow
+          item={item}
+          statuses={statuses}
+          fields={fields}
+          dragControls={controls}
+          isEditing={isEditing}
+          onEditStart={onEditStart}
+          onStatusChange={onStatusChange}
+        />
+      </SwipeableRow>
     </Reorder.Item>
   );
 }
@@ -264,6 +269,11 @@ export function BucketContent({ bucket, accentColor }: BucketContentProps) {
     });
   }
 
+  async function handleSwipeDelete(itemId: number) {
+    await deleteItemAction(itemId);
+    await refetchItems();
+  }
+
   function handleReorder(newOrder: Item[]) {
     orderedItemsRef.current = newOrder;
     setOrderedItems(newOrder);
@@ -340,21 +350,27 @@ export function BucketContent({ bucket, accentColor }: BucketContentProps) {
                 isEditing={editingItemId === item.id}
                 onEditStart={isReadonly ? undefined : () => startEditing(item)}
                 onStatusChange={isReadonly ? undefined : (s) => handleStatusChange(item, s)}
+                onDelete={isReadonly ? undefined : () => void handleSwipeDelete(item.id)}
               />
             ))}
           </Reorder.Group>
         ) : (
           <div className="divide-border/50 divide-y divide-dotted">
             {orderedItems.map((item) => (
-              <ItemRow
+              <SwipeableRow
                 key={item.id}
-                item={item}
-                statuses={bucketStatuses}
-                fields={bucketFields}
-                isEditing={editingItemId === item.id}
-                onEditStart={isReadonly ? undefined : () => startEditing(item)}
-                onStatusChange={isReadonly ? undefined : (s) => handleStatusChange(item, s)}
-              />
+                onDelete={() => void handleSwipeDelete(item.id)}
+                disabled={isReadonly}
+              >
+                <ItemRow
+                  item={item}
+                  statuses={bucketStatuses}
+                  fields={bucketFields}
+                  isEditing={editingItemId === item.id}
+                  onEditStart={isReadonly ? undefined : () => startEditing(item)}
+                  onStatusChange={isReadonly ? undefined : (s) => handleStatusChange(item, s)}
+                />
+              </SwipeableRow>
             ))}
           </div>
         )}

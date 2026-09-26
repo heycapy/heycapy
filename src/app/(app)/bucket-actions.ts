@@ -19,12 +19,18 @@ import { buildPropertyValidator } from "@/types/rules";
 export async function createBucketAction(
   templateId: number,
   name: string
-): Promise<{ ok: true } | { ok: false; error: string }> {
+): Promise<{ ok: true; bucketId: number } | { ok: false; error: string }> {
   const session = await requireSession();
 
   const trimmed = name.trim();
   if (!trimmed) return { ok: false, error: "Name is required" };
   if (trimmed.length > BUCKET_NAME_MAX_LENGTH) return { ok: false, error: "Name too long" };
+
+  const existing = await db.query.buckets.findFirst({
+    where: (b, { and: qa, eq: qe, isNull: qn }) =>
+      qa(qe(b.userId, session.userId), qe(b.name, trimmed), qn(b.deletedAt)),
+  });
+  if (existing) return { ok: false, error: "A bucket with this name already exists." };
 
   const template = await db.query.templates.findFirst({
     where: (t, { eq: qeq }) => qeq(t.id, templateId),
@@ -43,20 +49,23 @@ export async function createBucketAction(
     .from(buckets)
     .where(eq(buckets.userId, session.userId));
 
-  await db.insert(buckets).values({
-    userId: session.userId,
-    name: trimmed,
-    notificationsRules: JSON.stringify(rules.notifications ?? {}),
-    itemsRules: JSON.stringify(rules.items ?? {}),
-    mcpRules: rules.mcp ? JSON.stringify(rules.mcp) : null,
-    personalityRules: JSON.stringify(rules.personality ?? {}),
-    fieldSchema: (template.fieldSchemaJson ?? null) as unknown as BucketSchema,
-    webhookKey: encryptValue(generateWebhookKey()),
-    sortOrder: maxRow.max + 1,
-  });
+  const [newBucket] = await db
+    .insert(buckets)
+    .values({
+      userId: session.userId,
+      name: trimmed,
+      notificationsRules: JSON.stringify(rules.notifications ?? {}),
+      itemsRules: JSON.stringify(rules.items ?? {}),
+      mcpRules: rules.mcp ? JSON.stringify(rules.mcp) : null,
+      personalityRules: JSON.stringify(rules.personality ?? {}),
+      fieldSchema: (template.fieldSchemaJson ?? null) as unknown as BucketSchema,
+      webhookKey: encryptValue(generateWebhookKey()),
+      sortOrder: maxRow.max + 1,
+    })
+    .returning({ id: buckets.id });
 
   revalidatePath("/");
-  return { ok: true };
+  return { ok: true, bucketId: newBucket.id };
 }
 
 type NotificationTriggers = {
