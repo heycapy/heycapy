@@ -238,7 +238,9 @@ async function runNotifications(): Promise<void> {
         hour: "numeric",
         minute: "2-digit",
       }).format(deadline);
-      const subject = `[${APP_NAME}] ${row.item.title}`;
+      const titleShort =
+        row.item.title.length > 60 ? `${row.item.title.slice(0, 60)}…` : row.item.title;
+      const subject = `[${APP_NAME}] ${titleShort}`;
       const message = row.aiNotifyMessages
         ? await generateNotificationText(row.item.title, deadlineStr, row)
         : `due ${deadlineStr}`;
@@ -376,7 +378,9 @@ async function runOverdueTriggers(now: Date): Promise<void> {
       hour: "numeric",
       minute: "2-digit",
     }).format(deadlineTime);
-    const title = `[${APP_NAME}] Overdue: ${row.item.title}`;
+    const titleShort =
+      row.item.title.length > 60 ? `${row.item.title.slice(0, 60)}…` : row.item.title;
+    const title = `[${APP_NAME}] Overdue: ${titleShort}`;
     const message = `overdue — was due ${overdueDateStr}`;
 
     await Promise.all(
