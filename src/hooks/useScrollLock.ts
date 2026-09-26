@@ -5,12 +5,14 @@ import { useEffect } from "react";
 export function useScrollLock(active: boolean) {
   useEffect(() => {
     if (!active) return;
-    const el = document.querySelector("main") as HTMLElement | null;
-    if (!el) return;
-    const prev = el.style.overflow;
-    el.style.overflow = "hidden";
+    const main = document.querySelector("main") as HTMLElement | null;
+    const prevMain = main?.style.overflow ?? "";
+    const prevBody = document.body.style.overflow;
+    if (main) main.style.overflow = "hidden";
+    document.body.style.overflow = "hidden";
     return () => {
-      el.style.overflow = prev;
+      if (main) main.style.overflow = prevMain;
+      document.body.style.overflow = prevBody;
     };
   }, [active]);
 }
