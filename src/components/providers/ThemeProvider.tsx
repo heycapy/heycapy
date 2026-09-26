@@ -8,7 +8,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   return (
     <NextThemesProvider
       attribute="data-theme"
-      defaultTheme="gruvbox"
+      defaultTheme="gruvbox-dark-2"
       themes={[
         "capy",
         "light",

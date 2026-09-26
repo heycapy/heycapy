@@ -1,6 +1,9 @@
 export default function PublicLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div data-theme="gruvbox" className="bg-background text-foreground flex min-h-svh flex-col">
+    <div
+      data-theme="gruvbox-dark-2"
+      className="bg-background text-foreground flex min-h-svh flex-col"
+    >
       {children}
     </div>
   );
