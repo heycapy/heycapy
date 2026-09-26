@@ -22,7 +22,7 @@ export async function buildOtpEmail(
 
   const subject = `[${APP_NAME}] your sign-in code`;
 
-  const factText = fact ? `\n\n[did you know] ${fact}` : "";
+  const factText = fact ? `\n\n[did you know] ${fact}\n[please check yourself, please :| ]` : "";
 
   const text = [
     `[ ${APP_NAME} ] — sign-in code`,
@@ -37,18 +37,21 @@ export async function buildOtpEmail(
   ].join("\n");
 
   const mono = `'Courier New', Courier, monospace`;
-  const bg = `#fdf6e3`;
-  const fg = `#2c1f0e`;
-  const border = `#2c1f0e`;
-  const muted = `#7a6a55`;
+  const bg = `#282828`;
+  const card = `#3c3836`;
+  const fg = `#ebdbb2`;
+  const border = `#504945`;
+  const accent = `#d79921`;
+  const muted = `#bdae93`;
 
   const factHtml = fact
     ? `
           <tr>
-            <td style="padding:0 32px 0;">
+            <td style="padding:0 32px;">
               <div style="border-top:1px solid ${border};padding-top:16px;padding-bottom:16px;">
-                <span style="font-family:${mono};font-size:11px;color:${muted};letter-spacing:0.05em;">[did you know]</span>
+                <span style="font-family:${mono};font-size:11px;color:${accent};letter-spacing:0.05em;">[did you know]</span>
                 <p style="margin:6px 0 0;font-family:${mono};font-size:13px;color:${fg};line-height:1.6;">${fact.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</p>
+                <p style="margin:8px 0 0;font-family:${mono};font-size:10px;color:${muted};font-style:italic;">[please check yourself, please :| ]</p>
               </div>
             </td>
           </tr>`
@@ -66,11 +69,11 @@ export async function buildOtpEmail(
   <table width="100%" cellpadding="0" cellspacing="0" style="background:${bg};padding:40px 16px;">
     <tr>
       <td align="center">
-        <table width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;background:${bg};border:2px solid ${border};">
+        <table width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;background:${card};border-left:3px solid ${accent};">
 
           <tr>
             <td style="padding:20px 32px 16px;border-bottom:1px solid ${border};">
-              <p style="margin:0;font-family:${mono};font-size:18px;font-weight:700;color:${fg};letter-spacing:-0.01em;">[ ${APP_NAME} ]</p>
+              <p style="margin:0;font-family:${mono};font-size:18px;font-weight:700;color:${accent};letter-spacing:0.05em;">heycapy</p>
               <p style="margin:4px 0 0;font-family:${mono};font-size:11px;color:${muted};letter-spacing:0.05em;">sign-in request</p>
             </td>
           </tr>
@@ -78,7 +81,7 @@ export async function buildOtpEmail(
           <tr>
             <td style="padding:24px 32px 0;">
               <p style="margin:0 0 12px;font-family:${mono};font-size:12px;color:${muted};letter-spacing:0.05em;">your one-time code — expires in ${OTP_TTL_MINUTES} minutes:</p>
-              <div style="border:2px solid ${border};padding:20px;text-align:center;">
+              <div style="background:${bg};padding:20px;text-align:center;">
                 <span style="font-family:${mono};font-size:40px;font-weight:900;letter-spacing:0.25em;color:${fg};">${code}</span>
               </div>
               <p style="margin:12px 0 0;font-family:${mono};font-size:11px;color:${muted};">didn&rsquo;t request this? ignore it — your account is safe.</p>

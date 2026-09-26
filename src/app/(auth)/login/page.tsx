@@ -116,7 +116,7 @@ export default function LoginPage() {
   const transition: Transition = { duration: 0.22, ease: "easeInOut" };
 
   return (
-    <main className="flex min-h-full flex-col items-center justify-center gap-6 p-4">
+    <main className="flex flex-1 flex-col items-center justify-center gap-6 p-4">
       <div className="flex flex-col items-center gap-2">
         <Sprite id="capy-mascot" size={96} />
         <h1 className="font-pixel text-xl">{APP_NAME}</h1>

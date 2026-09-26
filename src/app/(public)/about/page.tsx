@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { FeedbackForm } from "@/components/FeedbackForm";
 
 export const metadata: Metadata = {
   title: "about | heycapy",
@@ -7,7 +8,7 @@ export const metadata: Metadata = {
 
 export default function AboutPage() {
   return (
-    <main className="flex min-h-full flex-col items-center justify-center p-6">
+    <main className="flex flex-1 flex-col items-center justify-center p-6">
       <div className="w-full max-w-sm">
         <div className="mb-8 flex items-center justify-between">
           <h1 className="font-pixel text-sm">about</h1>
@@ -35,6 +36,8 @@ export default function AboutPage() {
               free. thanks for trying it out.
             </p>
           </div>
+
+          <FeedbackForm fallbackEmail={process.env.FEEDBACK_EMAIL} />
         </div>
 
         <div className="border-border mt-8 flex gap-4 border-t pt-5">

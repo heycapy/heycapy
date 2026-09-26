@@ -74,7 +74,8 @@ function MobileBucketPicker({
   );
 }
 
-export function BucketsShell({ buckets }: BucketsShellProps) {
+export function BucketsShell({ buckets: rawBuckets }: BucketsShellProps) {
+  const buckets = rawBuckets.filter((b, i, arr) => arr.findIndex((x) => x.id === b.id) === i);
   const openCreateBucket = useUIStore((s) => s.openCreateBucket);
   const activeBucketId = useUIStore((s) => s.activeBucketId);
   const setActiveBucketId = useUIStore((s) => s.setActiveBucketId);

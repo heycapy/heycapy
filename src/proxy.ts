@@ -9,9 +9,20 @@ export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const hostname = request.headers.get("host") ?? "";
 
-  const isRootDomain = hostname === "heycapy.xyz" || hostname === "www.heycapy.xyz";
-  if (isRootDomain && pathname === "/") {
-    return NextResponse.rewrite(new URL("/home", request.url));
+  const rootDomain = process.env.ROOT_DOMAIN;
+  const isRootDomain =
+    !!rootDomain && (hostname === rootDomain || hostname === `www.${rootDomain}`);
+  if (isRootDomain) {
+    if (pathname === "/") {
+      return NextResponse.rewrite(new URL("/home", request.url));
+    }
+    if (PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(p + "/"))) {
+      return NextResponse.next();
+    }
+    const appUrl = process.env.APP_URL;
+    if (appUrl) {
+      return NextResponse.redirect(new URL(pathname + request.nextUrl.search, appUrl));
+    }
   }
 
   if (PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(p + "/"))) {
@@ -34,5 +45,7 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\.png$|api/telegram|api/webhook).*)"],
+  matcher: [
+    "/((?!_next/static|_next/image|favicon.ico|.*\\.png$|api/telegram|api/webhook|api/feedback).*)",
+  ],
 };

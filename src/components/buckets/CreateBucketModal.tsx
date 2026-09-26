@@ -26,7 +26,7 @@ type Step = "pick" | "name";
 const transition: Transition = { duration: 0.15, ease: "easeOut" };
 
 export function CreateBucketModal({ templates }: CreateBucketModalProps) {
-  const { createBucketOpen, closeCreateBucket } = useUIStore();
+  const { createBucketOpen, closeCreateBucket, setActiveBucketId } = useUIStore();
   useScrollLock(createBucketOpen);
   const [step, setStep] = useState<Step>("pick");
   const [selected, setSelected] = useState<TemplateRow | null>(null);
@@ -61,6 +61,7 @@ export function CreateBucketModal({ templates }: CreateBucketModalProps) {
     startTransition(async () => {
       const result = await createBucketAction(selected.id, name);
       if (result.ok) {
+        setActiveBucketId(result.bucketId);
         closeCreateBucket();
       } else {
         setError(result.error);

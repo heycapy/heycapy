@@ -222,12 +222,14 @@ const BUILTIN_TEMPLATES: BuiltinTemplate[] = [
 ];
 
 export async function seed(_userId: number) {
-  for (const t of BUILTIN_TEMPLATES) {
-    const existing = await db.query.templates.findFirst({
-      where: (tmpl, { and, eq, isNull }) =>
-        and(eq(tmpl.name, t.name), eq(tmpl.isBuiltin, true), isNull(tmpl.userId)),
-    });
+  // Fetch all existing builtin templates in one query to minimise the race window
+  const existingBuiltins = await db.query.templates.findMany({
+    where: (tmpl, { and, eq, isNull }) => and(eq(tmpl.isBuiltin, true), isNull(tmpl.userId)),
+  });
+  const existingByName = new Map(existingBuiltins.map((t) => [t.name, t]));
 
+  for (const t of BUILTIN_TEMPLATES) {
+    const existing = existingByName.get(t.name);
     if (existing) {
       await db
         .update(templates)
