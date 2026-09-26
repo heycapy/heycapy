@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 
 const COOLDOWN_MS = 60_000;
-const COOLDOWN_STEPS = 5;
+const COOLDOWN_STEPS = 60;
 
 export function FeedbackForm({ fallbackEmail }: { fallbackEmail?: string }) {
   const [message, setMessage] = useState("");
@@ -61,7 +61,7 @@ export function FeedbackForm({ fallbackEmail }: { fallbackEmail?: string }) {
 
   if (sent) {
     const filled = Math.ceil((remaining / (COOLDOWN_MS / 1000)) * COOLDOWN_STEPS);
-    const boxes = "■".repeat(filled) + "□".repeat(COOLDOWN_STEPS - filled);
+    const boxes = "▪".repeat(filled) + "·".repeat(COOLDOWN_STEPS - filled);
     return (
       <div className="border-border border p-4">
         <p className="font-pixel mb-2 text-[11px]">feedback</p>
