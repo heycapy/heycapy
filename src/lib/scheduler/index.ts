@@ -230,15 +230,18 @@ async function runNotifications(): Promise<void> {
         continue;
       }
 
-      const deadlineStr = deadline.toLocaleDateString("en-US", {
+      const deadlineStr = new Intl.DateTimeFormat("en-US", {
+        timeZone: row.userTimezone ?? "UTC",
         month: "short",
         day: "numeric",
         year: "numeric",
-      });
+        hour: "numeric",
+        minute: "2-digit",
+      }).format(deadline);
       const subject = `[${APP_NAME}] ${row.item.title}`;
       const message = row.aiNotifyMessages
         ? await generateNotificationText(row.item.title, deadlineStr, row)
-        : `Reminder: "${row.item.title}" is due ${deadlineStr}`;
+        : `due ${deadlineStr}`;
 
       const mediums: NotificationMedium[] = [];
       if (rules.medium.includes("email") && row.notificationsEmail) mediums.push("email");
@@ -308,6 +311,7 @@ async function runOverdueTriggers(now: Date): Promise<void> {
       bucketFieldSchema: buckets.fieldSchema,
       bucketName: buckets.name,
       userId: users.id,
+      userTimezone: userSettings.timezone,
       notificationsEmail: userSettings.notificationsEmail,
       notificationsPush: userSettings.notificationsPush,
       ntfyUrl: userSettings.ntfyUrl,
@@ -365,8 +369,16 @@ async function runOverdueTriggers(now: Date): Promise<void> {
 
     if (mediums.length === 0) continue;
 
+    const overdueDateStr = new Intl.DateTimeFormat("en-US", {
+      timeZone: row.userTimezone ?? "UTC",
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+    }).format(deadlineTime);
     const title = `[${APP_NAME}] Overdue: ${row.item.title}`;
-    const message = `"${row.item.title}" is overdue.`;
+    const message = `overdue — was due ${overdueDateStr}`;
 
     await Promise.all(
       mediums.map((medium) =>

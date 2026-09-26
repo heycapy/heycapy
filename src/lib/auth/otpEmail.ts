@@ -22,7 +22,7 @@ export async function buildOtpEmail(
 
   const subject = `[${APP_NAME}] your sign-in code`;
 
-  const factText = fact ? `\n\n[did you know] ${fact}` : "";
+  const factText = fact ? `\n\n[did you know] ${fact}\n[please check yourself, please :| ]` : "";
 
   const text = [
     `[ ${APP_NAME} ] — sign-in code`,
@@ -42,7 +42,7 @@ export async function buildOtpEmail(
   const fg = `#ebdbb2`;
   const border = `#504945`;
   const accent = `#d79921`;
-  const muted = `#a89984`;
+  const muted = `#bdae93`;
 
   const factHtml = fact
     ? `
@@ -51,6 +51,7 @@ export async function buildOtpEmail(
               <div style="border-top:1px solid ${border};padding-top:16px;padding-bottom:16px;">
                 <span style="font-family:${mono};font-size:11px;color:${accent};letter-spacing:0.05em;">[did you know]</span>
                 <p style="margin:6px 0 0;font-family:${mono};font-size:13px;color:${fg};line-height:1.6;">${fact.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</p>
+                <p style="margin:8px 0 0;font-family:${mono};font-size:10px;color:${muted};font-style:italic;">[please check yourself, please :| ]</p>
               </div>
             </td>
           </tr>`

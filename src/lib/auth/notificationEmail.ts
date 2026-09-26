@@ -4,10 +4,12 @@ export function buildNotificationEmail(
   title: string,
   message: string
 ): { text: string; html: string } {
+  const displayTitle = title.replace(/^\[[^\]]+\]\s*(Overdue:\s*)?/, "");
+
   const text = [
     `[ ${APP_NAME} ] — reminder`,
     ``,
-    `  ${title}`,
+    `  ${displayTitle}`,
     ``,
     message,
     ``,
@@ -25,7 +27,7 @@ export function buildNotificationEmail(
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>${title.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</title>
+  <title>${displayTitle.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</title>
 </head>
 <body style="margin:0;padding:0;background:${bg};font-family:${mono};">
   <span style="display:none;max-height:0;overflow:hidden;mso-hide:all;">reminder from ${APP_NAME} &nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;</span>
@@ -43,7 +45,7 @@ export function buildNotificationEmail(
 
           <tr>
             <td style="padding:24px 32px 24px;">
-              <p style="margin:0 0 16px;font-family:${mono};font-size:18px;font-weight:700;color:${fg};">${title.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</p>
+              <p style="margin:0 0 16px;font-family:${mono};font-size:18px;font-weight:700;color:${fg};">${displayTitle.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</p>
               <p style="margin:0;font-family:${mono};font-size:14px;color:${fg};line-height:1.6;">${message.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</p>
             </td>
           </tr>
