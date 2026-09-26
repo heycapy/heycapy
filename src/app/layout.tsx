@@ -22,7 +22,7 @@ const silkscreen = Silkscreen({
 
 export const metadata: Metadata = {
   title: APP_NAME,
-  description: "A capy to help you with your day.",
+  description: "a capy to help you with your day.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
