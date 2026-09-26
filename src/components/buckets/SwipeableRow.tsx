@@ -72,9 +72,11 @@ export function SwipeableRow({ children, onDelete, disabled }: SwipeableRowProps
     directionLockedRef.current = false;
     const moved = Math.abs(translateX);
     if (isOpen) {
-      moved < REVEAL_WIDTH - SWIPE_THRESHOLD ? snapClose() : snapOpen();
+      if (moved < REVEAL_WIDTH - SWIPE_THRESHOLD) snapClose();
+      else snapOpen();
     } else {
-      moved > SWIPE_THRESHOLD ? snapOpen() : snapClose();
+      if (moved > SWIPE_THRESHOLD) snapOpen();
+      else snapClose();
     }
   }
 
