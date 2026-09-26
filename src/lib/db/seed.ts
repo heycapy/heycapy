@@ -1,43 +1,47 @@
-import { and, eq, isNull, notInArray } from "drizzle-orm";
+import { and, eq, isNotNull, isNull, notInArray } from "drizzle-orm";
 import { db } from "./index";
-import { itemStatuses, templates } from "./schema";
+import { templates } from "./schema";
+import type { BucketSchema } from "@/types/rules";
 
-const SYSTEM_STATUSES = [
-  { name: "active", color: "#22c55e", sortOrder: 0, isSystem: true },
-  { name: "completed", color: "#3b82f6", sortOrder: 1, isSystem: true },
-  { name: "snoozed", color: "#f59e0b", sortOrder: 2, isSystem: true },
-];
+type BuiltinTemplate = {
+  name: string;
+  description: string;
+  rulesJson: string;
+  fieldSchemaJson: string;
+};
 
-const BUILTIN_TEMPLATES = [
+const BUILTIN_TEMPLATES: BuiltinTemplate[] = [
   {
-    name: "Subscriptions",
-    description: "Track recurring bills. Notifies 3 days + 1 day before renewal.",
+    name: "Blank",
+    description: "Empty template. Start from scratch.",
     rulesJson: JSON.stringify({
       notifications: {
-        medium: ["ntfy"],
-        notifyAt: "09:00",
+        medium: [],
+        notifyAt: "",
         quietHours: null,
-        defaultOffsetMins: 4320,
+        defaultOffsetMins: 0,
         repeat: "once",
         snoozeUntil: null,
       },
       items: {
-        sortBy: "deadline",
+        sortBy: "created_at",
         drag: false,
         readonly: false,
         showCompleted: true,
-        defaultDeadlineOffsetDays: 30,
+        defaultDeadlineOffsetDays: null,
       },
       personality: { toneOverride: null },
     }),
-    isBuiltin: true,
+    fieldSchemaJson: JSON.stringify({
+      fields: [],
+    } satisfies BucketSchema),
   },
   {
     name: "Reminders",
-    description: "General reminders. Notifies via push and email at deadline.",
+    description: "General reminders. Notifies at deadline.",
     rulesJson: JSON.stringify({
       notifications: {
-        medium: ["ntfy", "email"],
+        medium: ["email", "telegram"],
         notifyAt: "",
         quietHours: null,
         defaultOffsetMins: 0,
@@ -53,11 +57,57 @@ const BUILTIN_TEMPLATES = [
       },
       personality: { toneOverride: null },
     }),
-    isBuiltin: true,
+    fieldSchemaJson: JSON.stringify({
+      fields: [],
+      notifyWhenOverdue: true,
+    } satisfies BucketSchema),
+  },
+  {
+    name: "Subscriptions",
+    description: "Track recurring bills. Notifies 3 days and 1 day before renewal.",
+    rulesJson: JSON.stringify({
+      notifications: {
+        medium: ["email", "telegram"],
+        notifyAt: "09:00",
+        quietHours: null,
+        defaultOffsetMins: 4320,
+        repeat: "once",
+        snoozeUntil: null,
+      },
+      items: {
+        sortBy: "deadline",
+        drag: false,
+        readonly: false,
+        showCompleted: true,
+        defaultDeadlineOffsetDays: 30,
+      },
+      personality: { toneOverride: null },
+    }),
+    fieldSchemaJson: JSON.stringify({
+      fields: [
+        {
+          key: "amount",
+          label: "Amount",
+          type: "currency",
+          currency: "$",
+          showInRow: true,
+          validation: { required: true },
+        },
+        {
+          key: "plan",
+          label: "Plan",
+          type: "select",
+          options: ["free", "basic", "pro", "enterprise"],
+        },
+        { key: "website", label: "Website", type: "url" },
+        { key: "autoRenew", label: "Auto-renew", type: "boolean" },
+      ],
+      notifyWhenOverdue: true,
+    } satisfies BucketSchema),
   },
   {
     name: "Todo",
-    description: "Simple manual todo list. No notifications, drag to reorder.",
+    description: "Simple manual todo list. Drag to reorder.",
     rulesJson: JSON.stringify({
       notifications: {
         medium: [],
@@ -76,11 +126,22 @@ const BUILTIN_TEMPLATES = [
       },
       personality: { toneOverride: null },
     }),
-    isBuiltin: true,
+    fieldSchemaJson: JSON.stringify({
+      fields: [
+        {
+          key: "priority",
+          label: "Priority",
+          type: "select",
+          options: ["low", "medium", "high"],
+          showInRow: true,
+        },
+      ],
+      notifyWhenOverdue: true,
+    } satisfies BucketSchema),
   },
   {
     name: "Work",
-    description: "Work tasks. Email notifications 1 day before, quiet after 6pm.",
+    description: "Work tasks with deadlines. Notifies 1 day before, quiet after 6pm.",
     rulesJson: JSON.stringify({
       notifications: {
         medium: ["email"],
@@ -99,16 +160,68 @@ const BUILTIN_TEMPLATES = [
       },
       personality: { toneOverride: "professional" },
     }),
-    isBuiltin: true,
+    fieldSchemaJson: JSON.stringify({
+      fields: [
+        {
+          key: "priority",
+          label: "Priority",
+          type: "select",
+          options: ["low", "medium", "high", "urgent"],
+          showInRow: true,
+        },
+        { key: "project", label: "Project", type: "text" },
+        { key: "notes", label: "Notes", type: "textarea" },
+      ],
+      notifyWhenOverdue: true,
+    } satisfies BucketSchema),
+  },
+  {
+    name: "CI/CD Monitor",
+    description: "Track deployments and pipeline runs. Notifies on arrival and when overdue.",
+    rulesJson: JSON.stringify({
+      notifications: {
+        medium: ["email", "telegram"],
+        notifyAt: "",
+        quietHours: null,
+        defaultOffsetMins: 0,
+        repeat: "once",
+        snoozeUntil: null,
+      },
+      items: {
+        sortBy: "created_at",
+        drag: false,
+        readonly: false,
+        showCompleted: false,
+        defaultDeadlineOffsetDays: null,
+      },
+      personality: { toneOverride: "professional" },
+    }),
+    fieldSchemaJson: JSON.stringify({
+      fields: [
+        {
+          key: "service",
+          label: "Service",
+          type: "text",
+          showInRow: true,
+          validation: { required: true },
+        },
+        {
+          key: "status",
+          label: "Status",
+          type: "select",
+          options: ["passing", "failing", "pending", "cancelled"],
+          showInRow: true,
+        },
+        { key: "url", label: "Run URL", type: "url" },
+        { key: "branch", label: "Branch", type: "text" },
+      ],
+      notifyOnArrival: true,
+      notifyWhenOverdue: false,
+    } satisfies BucketSchema),
   },
 ];
 
-export async function seed(userId: number) {
-  await db
-    .insert(itemStatuses)
-    .values(SYSTEM_STATUSES.map((s) => ({ ...s, userId })))
-    .onConflictDoNothing();
-
+export async function seed(_userId: number) {
   for (const t of BUILTIN_TEMPLATES) {
     const existing = await db.query.templates.findFirst({
       where: (tmpl, { and, eq, isNull }) =>
@@ -118,10 +231,14 @@ export async function seed(userId: number) {
     if (existing) {
       await db
         .update(templates)
-        .set({ description: t.description, rulesJson: t.rulesJson })
+        .set({
+          description: t.description,
+          rulesJson: t.rulesJson,
+          fieldSchemaJson: t.fieldSchemaJson,
+        })
         .where(eq(templates.id, existing.id));
     } else {
-      await db.insert(templates).values({ ...t, userId: null });
+      await db.insert(templates).values({ ...t, userId: null, isBuiltin: true });
     }
   }
 
@@ -135,4 +252,5 @@ export async function seed(userId: number) {
         notInArray(templates.name, currentNames)
       )
     );
+  await db.delete(templates).where(and(eq(templates.isBuiltin, true), isNotNull(templates.userId)));
 }

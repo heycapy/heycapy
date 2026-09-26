@@ -1,0 +1,55 @@
+"use client";
+
+import { motion, AnimatePresence } from "framer-motion";
+import { BracketButton } from "@/components/ui/BracketButton";
+import { WebhookPanel } from "./WebhookPanel";
+import type { buckets } from "@/lib/db/schema";
+
+type BucketRow = typeof buckets.$inferSelect;
+
+interface WebhookDialogProps {
+  open: boolean;
+  bucket: BucketRow;
+  onClose: () => void;
+}
+
+export function WebhookDialog({ open, bucket, onClose }: WebhookDialogProps) {
+  return (
+    <AnimatePresence>
+      {open && (
+        <>
+          <motion.div
+            key="backdrop"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 0.45 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.12 }}
+            className="fixed inset-0 z-[65] bg-black"
+            onClick={onClose}
+          />
+          <motion.div
+            key="dialog"
+            initial={{ opacity: 0, scale: 0.96, y: -10 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.96, y: -10 }}
+            transition={{ duration: 0.15, ease: "easeOut" }}
+            className="fixed top-[8%] left-1/2 z-[70] w-[calc(100%-2rem)] max-w-sm -translate-x-1/2 sm:top-[12%]"
+            style={{ boxShadow: "5px 5px 0 var(--border)" }}
+          >
+            <div className="border-border bg-background flex max-h-[85vh] flex-col overflow-hidden border-2">
+              <div className="bg-foreground text-background flex shrink-0 items-center justify-between gap-2 px-3 py-1.5">
+                <span className="font-pixel min-w-0 truncate text-xs">webhook [{bucket.name}]</span>
+                <BracketButton variant="inverted" onClick={onClose}>
+                  x
+                </BracketButton>
+              </div>
+              <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
+                <WebhookPanel bucket={bucket} />
+              </div>
+            </div>
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
+  );
+}

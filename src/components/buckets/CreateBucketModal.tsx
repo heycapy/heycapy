@@ -10,6 +10,9 @@ import { BracketButton } from "@/components/ui/BracketButton";
 import { createBucketAction } from "@/app/(app)/actions";
 import { Package } from "lucide-react";
 import { TEMPLATE_ICONS } from "./constants";
+import { BUCKET_NAME_MAX_LENGTH } from "@/constants";
+import { cn } from "@/lib/utils";
+import { charCountColor } from "@/components/ui/input";
 import type { templates } from "@/lib/db/schema";
 
 type TemplateRow = typeof templates.$inferSelect;
@@ -107,25 +110,36 @@ export function CreateBucketModal({ templates }: CreateBucketModalProps) {
                       <X size={12} />
                     </BracketButton>
                   </div>
-                  <div className="grid grid-cols-2 gap-2 p-3">
-                    {templates.map((t) => (
-                      <button
-                        key={t.id}
-                        onClick={() => handlePickTemplate(t)}
-                        className="border-border bg-card hover:bg-muted flex flex-col gap-1.5 rounded border p-3 text-left transition-colors"
-                      >
-                        {(() => {
-                          const Icon = TEMPLATE_ICONS[t.name] ?? Package;
-                          return <Icon size={15} className="text-muted-foreground" />;
-                        })()}
-                        <span className="font-pixel text-xs">{t.name}</span>
-                        {t.description && (
-                          <span className="text-muted-foreground line-clamp-2 text-[10px] leading-snug">
-                            {t.description}
+
+                  <div className="max-h-[55vh] overflow-y-auto">
+                    {error && (
+                      <p className="text-destructive px-4 pt-3 font-mono text-[10px]">{error}</p>
+                    )}
+
+                    <div className="grid grid-cols-2 gap-1.5 p-2 sm:gap-2 sm:p-3">
+                      {templates.map((t) => (
+                        <button
+                          key={t.id}
+                          onClick={() => handlePickTemplate(t)}
+                          className="border-border bg-card hover:bg-muted flex flex-col gap-1 rounded border p-2 text-left transition-colors sm:gap-1.5 sm:p-3"
+                        >
+                          {(() => {
+                            const Icon = TEMPLATE_ICONS[t.name] ?? Package;
+                            return (
+                              <Icon size={12} className="text-muted-foreground sm:size-[15px]" />
+                            );
+                          })()}
+                          <span className="font-pixel truncate text-[10px] sm:text-xs">
+                            {t.name}
                           </span>
-                        )}
-                      </button>
-                    ))}
+                          {t.description && (
+                            <span className="text-muted-foreground line-clamp-2 text-[9px] leading-snug sm:text-[10px]">
+                              {t.description}
+                            </span>
+                          )}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 </motion.div>
               ) : (
@@ -139,7 +153,10 @@ export function CreateBucketModal({ templates }: CreateBucketModalProps) {
                   <div className="flex items-center justify-between border-b px-4 py-3">
                     <div className="flex items-center gap-2">
                       <button
-                        onClick={() => setStep("pick")}
+                        onClick={() => {
+                          setStep("pick");
+                          setError("");
+                        }}
                         className="text-muted-foreground hover:text-foreground transition-colors"
                       >
                         <ArrowLeft size={14} />
@@ -159,10 +176,20 @@ export function CreateBucketModal({ templates }: CreateBucketModalProps) {
                         if (e.key === "Enter" && name.trim()) handleCreate();
                       }}
                       placeholder="Bucket name…"
-                      maxLength={100}
+                      maxLength={BUCKET_NAME_MAX_LENGTH}
                       disabled={pending}
                       className="border-border bg-input placeholder:text-muted-foreground focus:ring-ring rounded border px-3 py-2 text-sm outline-none focus:ring-1 disabled:opacity-50"
                     />
+                    {name.length > 0 && (
+                      <p
+                        className={cn(
+                          "mt-0.5 text-right font-mono text-[9px] transition-colors",
+                          charCountColor(name.length, BUCKET_NAME_MAX_LENGTH)
+                        )}
+                      >
+                        {name.length}/{BUCKET_NAME_MAX_LENGTH}
+                      </p>
+                    )}
                     {error && <p className="text-destructive text-xs">{error}</p>}
                     <Button onClick={handleCreate} loading={pending} disabled={!name.trim()}>
                       Create bucket

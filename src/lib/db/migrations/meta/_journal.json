@@ -5,78 +5,22 @@
     {
       "idx": 0,
       "version": "6",
-      "when": 1789908283418,
-      "tag": "0000_cultured_shadow_king",
+      "when": 1790342309346,
+      "tag": "0000_motionless_mystique",
       "breakpoints": true
     },
     {
       "idx": 1,
       "version": "6",
-      "when": 1789988123384,
-      "tag": "0001_heavy_chat",
+      "when": 1790344005312,
+      "tag": "0001_bumpy_living_tribunal",
       "breakpoints": true
     },
     {
       "idx": 2,
       "version": "6",
-      "when": 1789995798488,
-      "tag": "0002_glorious_iron_monger",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "6",
-      "when": 1790058956692,
-      "tag": "0003_shallow_sentry",
-      "breakpoints": true
-    },
-    {
-      "idx": 4,
-      "version": "6",
-      "when": 1790075554757,
-      "tag": "0004_hot_betty_ross",
-      "breakpoints": true
-    },
-    {
-      "idx": 5,
-      "version": "6",
-      "when": 1790081953650,
-      "tag": "0005_nostalgic_nicolaos",
-      "breakpoints": true
-    },
-    {
-      "idx": 6,
-      "version": "6",
-      "when": 1790085110461,
-      "tag": "0006_chilly_sally_floyd",
-      "breakpoints": true
-    },
-    {
-      "idx": 7,
-      "version": "6",
-      "when": 1790088195499,
-      "tag": "0007_loving_luke_cage",
-      "breakpoints": true
-    },
-    {
-      "idx": 8,
-      "version": "6",
-      "when": 1790088460775,
-      "tag": "0008_gorgeous_talon",
-      "breakpoints": true
-    },
-    {
-      "idx": 9,
-      "version": "6",
-      "when": 1790088596659,
-      "tag": "0009_mixed_hemingway",
-      "breakpoints": true
-    },
-    {
-      "idx": 10,
-      "version": "6",
-      "when": 1790104330064,
-      "tag": "0010_magical_ogun",
+      "when": 1793000000000,
+      "tag": "0002_remove_duplicate_builtin_templates",
       "breakpoints": true
     }
   ]

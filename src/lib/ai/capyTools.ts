@@ -1,8 +1,8 @@
 import { revalidatePath } from "next/cache";
 import { and, eq, gte, isNull, lte, ne, or, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { buckets, items, itemStatuses } from "@/lib/db/schema";
-import { RecurringConfig } from "@/types/rules";
+import { buckets, items } from "@/lib/db/schema";
+import { RecurringConfig, BucketSchema, buildPropertyValidator } from "@/types/rules";
 import type { ToolCall } from "./types";
 
 export { CAPY_TOOLS } from "./capyToolDefs";
@@ -22,7 +22,7 @@ export type UpcomingItem = {
  *   and convert to the correct UTC instant.
  * - If it's a date-only string (YYYY-MM-DD), treat it as midnight in the user's TZ.
  */
-function parseDeadlineInTimezone(str: string, timezone: string): Date {
+export function parseDeadlineInTimezone(str: string, timezone: string): Date {
   const s = str.trim();
 
   // Already has an offset or Z — parse directly
@@ -256,6 +256,36 @@ async function executeToolCallInner(
       const statusArg = args.status ? String(args.status).trim() : "active";
       const finalStatus = statusArg || "active";
 
+      let schemaParsed: ReturnType<typeof BucketSchema.safeParse> | null = null;
+      if (bucket.fieldSchema) {
+        schemaParsed = BucketSchema.safeParse(
+          typeof bucket.fieldSchema === "string"
+            ? JSON.parse(bucket.fieldSchema)
+            : bucket.fieldSchema
+        );
+      }
+
+      let propertiesJson: string | null = null;
+      if (
+        args.properties &&
+        typeof args.properties === "object" &&
+        !Array.isArray(args.properties)
+      ) {
+        if (schemaParsed?.success && schemaParsed.data.fields.length > 0) {
+          const validator = buildPropertyValidator(schemaParsed.data.fields);
+          const validated = validator.safeParse(args.properties);
+          if (!validated.success)
+            return JSON.stringify({
+              ok: false,
+              error: "Invalid properties",
+              issues: validated.error.issues,
+            });
+          propertiesJson = JSON.stringify(validated.data);
+        } else if (!bucket.fieldSchema) {
+          propertiesJson = JSON.stringify(args.properties);
+        }
+      }
+
       const [inserted] = await db
         .insert(items)
         .values({
@@ -267,6 +297,7 @@ async function executeToolCallInner(
           deadline,
           notificationOffsetMins,
           recurring: recurringJson,
+          properties: propertiesJson,
           source: "ai",
           sortOrder: (maxRow?.max ?? -1) + 1,
         })
@@ -287,10 +318,13 @@ async function executeToolCallInner(
         updatedAt: Date;
         title?: string;
         deadline?: Date | null;
+        notifiedAt?: Date | null;
+        overdueNotifiedAt?: Date | null;
         notificationOffsetMins?: number | null;
         recurring?: string | null;
         status?: string;
         completedAt?: Date | null;
+        properties?: string | null;
       } = { updatedAt: new Date() };
 
       if (args.title !== undefined) {
@@ -299,9 +333,14 @@ async function executeToolCallInner(
         updates.title = title;
       }
       if ("deadline" in args) {
-        updates.deadline = args.deadline
+        const newDeadline = args.deadline
           ? parseDeadlineInTimezone(String(args.deadline), timezone)
           : null;
+        updates.deadline = newDeadline;
+        if ((item.deadline?.getTime() ?? null) !== (newDeadline?.getTime() ?? null)) {
+          updates.notifiedAt = null;
+          updates.overdueNotifiedAt = null;
+        }
       }
       if ("notification_offset_mins" in args) {
         updates.notificationOffsetMins =
@@ -321,11 +360,18 @@ async function executeToolCallInner(
         const statusName = String(args.status).trim();
         if (statusName) {
           updates.status = statusName;
-          if (statusName === "completed" && item.status !== "completed") {
+          if (statusName === "completed" && item.status !== "completed")
             updates.completedAt = new Date();
-          } else if (statusName !== "completed" && item.status === "completed") {
+          else if (statusName !== "completed" && item.status === "completed")
             updates.completedAt = null;
-          }
+        }
+      }
+
+      if (args.properties !== undefined) {
+        if (args.properties === null) {
+          updates.properties = null;
+        } else if (typeof args.properties === "object" && !Array.isArray(args.properties)) {
+          updates.properties = JSON.stringify(args.properties);
         }
       }
 
@@ -442,6 +488,7 @@ async function executeToolCallInner(
           notificationOffsetMins: items.notificationOffsetMins,
           snoozedUntil: items.snoozedUntil,
           recurring: items.recurring,
+          properties: items.properties,
         })
         .from(items)
         .where(
@@ -458,6 +505,7 @@ async function executeToolCallInner(
       const enriched = rows.map((row) => ({
         ...row,
         recurring: row.recurring ? (JSON.parse(row.recurring) as unknown) : null,
+        properties: row.properties ? (JSON.parse(row.properties) as unknown) : null,
         deadlineRelative: row.deadline ? deadlineRelative(row.deadline, timezone) : null,
       }));
       return JSON.stringify(enriched);
@@ -546,39 +594,6 @@ async function executeToolCallInner(
         });
 
       return JSON.stringify(enriched);
-    }
-
-    case "list_statuses": {
-      const result = await db.select().from(itemStatuses).where(eq(itemStatuses.userId, userId));
-      return JSON.stringify(result.sort((a, b) => a.sortOrder - b.sortOrder));
-    }
-
-    case "create_status": {
-      const name = String(args.name ?? "").trim();
-      const color = String(args.color ?? "#6b7280");
-      if (!name) return JSON.stringify({ ok: false, error: "Name is required" });
-      if (name.length > 30) return JSON.stringify({ ok: false, error: "Name too long (max 30)" });
-
-      const [existing] = await db
-        .select({ id: itemStatuses.id })
-        .from(itemStatuses)
-        .where(
-          and(eq(itemStatuses.userId, userId), sql`lower(${itemStatuses.name}) = lower(${name})`)
-        )
-        .limit(1);
-      if (existing) return JSON.stringify({ ok: false, error: "Status already exists" });
-
-      const [maxRow] = await db
-        .select({ max: sql<number>`COALESCE(MAX(${itemStatuses.sortOrder}), 2)` })
-        .from(itemStatuses)
-        .where(eq(itemStatuses.userId, userId));
-
-      const [inserted] = await db
-        .insert(itemStatuses)
-        .values({ userId, name, color, sortOrder: (maxRow?.max ?? 2) + 1, isSystem: false })
-        .returning({ id: itemStatuses.id });
-
-      return JSON.stringify({ ok: true, statusId: inserted?.id });
     }
 
     default:

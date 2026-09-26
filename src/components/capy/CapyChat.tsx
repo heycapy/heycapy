@@ -14,8 +14,16 @@ import { DEFAULT_H, HEADER_H } from "./chatTypes";
 type ChatState = "closed" | "open" | "minimized" | "fullscreen";
 
 export function CapyChat() {
-  const [chatState, setChatState] = useState<ChatState>("open");
+  const [chatState, setChatState] = useState<ChatState>("closed");
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
   const inputBarRef = useRef<ChatInputBarHandle>(null);
   const prevChatStateRef = useRef<ChatState>(chatState);
 
@@ -72,7 +80,10 @@ export function CapyChat() {
     "border-border bg-background flex flex-col border-2 fixed z-50",
     chatState === "fullscreen"
       ? "inset-2"
-      : "bottom-0 inset-x-0 md:inset-x-auto md:right-6 md:w-[308px]"
+      : cn(
+          "bottom-0 inset-x-0 md:inset-x-auto md:right-6 md:w-[308px]",
+          isMobile && chatState !== "minimized" && "max-h-[65svh] overflow-hidden"
+        )
   );
 
   const body = (
@@ -108,6 +119,15 @@ export function CapyChat() {
 
         {chatState === "fullscreen" ? (
           <div className="flex min-h-0 flex-1 flex-col overflow-hidden">{body}</div>
+        ) : isMobile ? (
+          <div
+            className={cn(
+              "flex flex-col overflow-hidden transition-[height] duration-200 ease-in-out",
+              chatState === "minimized" ? "h-0" : "min-h-0 flex-1"
+            )}
+          >
+            {body}
+          </div>
         ) : (
           <motion.div
             initial={false}

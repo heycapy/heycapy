@@ -2,37 +2,27 @@
 
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Trash2 } from "lucide-react";
+import { Trash2, X } from "lucide-react";
 import { DatePicker } from "@/components/ui/DatePicker";
 import { BracketButton } from "@/components/ui/BracketButton";
 import { OptionButton } from "@/components/ui/OptionButton";
 import { TimeScrollPicker, type Ampm } from "@/components/ui/TimeScrollPicker";
-import { RECURRING_FREQUENCIES } from "./constants";
-import type { RecurringConfig } from "@/types/rules";
+import { RecurringPicker } from "./RecurringPicker";
+import { ItemFieldsForm } from "./ItemFieldsForm";
+import type { RecurringConfig, StatusDef, FieldDef } from "@/types/rules";
 import { cn } from "@/lib/utils";
-import { useUIStore } from "@/store/ui";
 import { useScrollLock } from "@/hooks/useScrollLock";
+import { useScrollToFirst } from "@/hooks/useScrollToFirst";
+import { buildDeadline } from "@/lib/time";
+import { ITEM_TITLE_MAX_LENGTH } from "@/constants";
 
-function describeRecurring(config: RecurringConfig): string {
-  const freq = RECURRING_FREQUENCIES.find((f) => f.value === config.frequency);
-  const unit = freq?.label ?? config.frequency;
-  const n = config.interval;
-  const unitStr = n === 1 ? unit : `${unit}s`;
-  return n === 1 ? `every ${unitStr}` : `every ${n} ${unitStr}`;
-}
+const LABEL = "text-muted-foreground font-mono text-[10px]";
 
-function toH24(h12: number, ampm: "am" | "pm"): number {
-  if (ampm === "am") return h12 === 12 ? 0 : h12;
-  return h12 === 12 ? 12 : h12 + 12;
-}
-
-function buildDeadline(date: string, hour: string, min: string, ampm: "am" | "pm"): string {
-  if (!date) return "";
-  const h = parseInt(hour, 10);
-  if (!hour.trim() || !Number.isFinite(h)) return date;
-  const local = `${date}T${String(toH24(h, ampm)).padStart(2, "0")}:${min.padStart(2, "0")}:00`;
-  const d = new Date(local);
-  return isNaN(d.getTime()) ? date : d.toISOString();
+function isEmpty(value: unknown): boolean {
+  if (value === undefined || value === null) return true;
+  if (typeof value === "string" && !value.trim()) return true;
+  if (Array.isArray(value) && value.length === 0) return true;
+  return false;
 }
 
 interface ItemDialogProps {
@@ -41,12 +31,16 @@ interface ItemDialogProps {
   title: string;
   deadline: string;
   status: string;
+  statuses: StatusDef[];
+  fields?: FieldDef[];
+  properties?: Record<string, unknown>;
   recurring?: RecurringConfig | null;
   error?: string;
   pending?: boolean;
   onTitleChange: (v: string) => void;
   onDeadlineChange: (v: string) => void;
   onStatusChange: (v: string) => void;
+  onPropertiesChange?: (v: Record<string, unknown>) => void;
   onRecurringChange?: (v: RecurringConfig | null) => void;
   onConfirm: () => void;
   onCancel: () => void;
@@ -59,26 +53,32 @@ export function ItemDialog({
   title,
   deadline,
   status,
+  statuses,
+  fields,
+  properties,
   recurring,
   error,
   pending,
   onTitleChange,
   onDeadlineChange,
   onStatusChange,
+  onPropertiesChange,
   onRecurringChange,
   onConfirm,
   onCancel,
   onDelete,
 }: ItemDialogProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const statuses = useUIStore((s) => s.statuses);
+  const scrollBodyRef = useRef<HTMLDivElement>(null);
+  const scrollToFirst = useScrollToFirst(scrollBodyRef);
   useScrollLock(open);
   const [timeHour, setTimeHour] = useState("9");
   const [timeMin, setTimeMin] = useState("00");
   const [timeAmpm, setTimeAmpm] = useState<Ampm>("am");
-  const [showEndDate, setShowEndDate] = useState(false);
-
   const wasOpenRef = useRef(false);
+  const [validationAttempted, setValidationAttempted] = useState(false);
+
+  const hasFields = !!(fields && fields.length > 0);
 
   const datePart = deadline.includes("T")
     ? (() => {
@@ -88,17 +88,22 @@ export function ItemDialog({
     : deadline;
   const hasDate = datePart.length > 0;
 
+  const hasEmptyRequired = !!fields?.some(
+    (f) => f.validation?.required && isEmpty(properties?.[f.key])
+  );
+
   useEffect(() => {
     const didJustOpen = open && !wasOpenRef.current;
     wasOpenRef.current = open;
     if (!didJustOpen) return;
+    const el = textareaRef.current;
+    if (el) {
+      el.style.height = "auto";
+      el.style.height = `${el.scrollHeight}px`;
+      el.focus();
+    }
     const id = setTimeout(() => {
-      const el = textareaRef.current;
-      if (el) {
-        el.style.height = "auto";
-        el.style.height = `${el.scrollHeight}px`;
-        el.focus();
-      }
+      setValidationAttempted(false);
       if (deadline.includes("T")) {
         const d = new Date(deadline);
         const h24 = d.getHours();
@@ -110,10 +115,9 @@ export function ItemDialog({
         setTimeMin("00");
         setTimeAmpm("am");
       }
-      setShowEndDate(!!recurring?.endDate);
-    }, 60);
+    }, 0);
     return () => clearTimeout(id);
-  }, [open, deadline, recurring?.endDate]);
+  }, [open, deadline]);
 
   function handleTitleChange(e: React.ChangeEvent<HTMLTextAreaElement>) {
     onTitleChange(e.target.value);
@@ -141,13 +145,87 @@ export function ItemDialog({
     if (datePart) onDeadlineChange(buildDeadline(datePart, timeHour, timeMin, a));
   }
 
-  function toggleRecurring() {
-    if (recurring?.enabled) {
-      onRecurringChange?.(null);
-    } else {
-      onRecurringChange?.({ enabled: true, frequency: "monthly", interval: 1, endDate: null });
+  function handleConfirmClick() {
+    setValidationAttempted(true);
+    if (!title.trim()) {
+      scrollToFirst("[data-title-section]");
+      return;
     }
+    if (hasEmptyRequired) {
+      const firstEmpty = fields?.find(
+        (f) => f.validation?.required && isEmpty(properties?.[f.key])
+      );
+      if (firstEmpty) scrollToFirst(`[data-field-key="${firstEmpty.key}"]`);
+      return;
+    }
+    onConfirm();
   }
+
+  const titleHasError = validationAttempted && !title.trim();
+
+  const whenAndStatus = (
+    <>
+      <div className="flex flex-col gap-1.5">
+        <label className={LABEL}>when</label>
+        <div className="flex items-center gap-2">
+          <div className="flex-1">
+            <DatePicker value={datePart} onChange={handleDateChange} disabled={pending} />
+          </div>
+          {hasDate && !pending && (
+            <button
+              onClick={() => handleDateChange("")}
+              className="text-muted-foreground hover:text-destructive shrink-0 transition-colors"
+            >
+              <X size={11} />
+            </button>
+          )}
+        </div>
+        {hasDate && (
+          <TimeScrollPicker
+            hour={timeHour}
+            min={timeMin}
+            ampm={timeAmpm}
+            onHourChange={handleHourChange}
+            onMinChange={handleMinChange}
+            onAmpmChange={handleAmpmChange}
+            disabled={pending}
+          />
+        )}
+      </div>
+
+      {hasDate && onRecurringChange && (
+        <RecurringPicker
+          recurring={recurring}
+          initialShowEndDate={!!recurring?.endDate}
+          disabled={pending}
+          onChange={onRecurringChange}
+        />
+      )}
+
+      <div className="flex flex-col gap-1.5">
+        <label className={LABEL}>status</label>
+        <div className="flex flex-wrap gap-1.5">
+          {statuses.map((s) => (
+            <OptionButton
+              key={s.name}
+              active={status === s.name}
+              onClick={() => onStatusChange(s.name)}
+              disabled={pending}
+              className="flex items-center gap-1.5"
+            >
+              <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: s.color }} />
+              {s.name}
+            </OptionButton>
+          ))}
+        </div>
+        {status && !statuses.find((s) => s.name === status) && (
+          <p className="text-destructive font-mono text-[10px]">
+            &quot;{status}&quot; is not a valid status — pick one above to fix it
+          </p>
+        )}
+      </div>
+    </>
+  );
 
   return (
     <AnimatePresence>
@@ -169,10 +247,13 @@ export function ItemDialog({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.96, y: -10 }}
             transition={{ duration: 0.15, ease: "easeOut" }}
-            className="fixed top-[10%] left-1/2 z-[60] w-[calc(100%-2rem)] max-w-xs -translate-x-1/2 sm:top-[22%]"
+            className={cn(
+              "fixed top-[5%] left-1/2 z-[60] w-[calc(100%-2rem)] -translate-x-1/2",
+              hasFields ? "max-w-md" : "max-w-sm"
+            )}
             style={{ boxShadow: "5px 5px 0 var(--border)" }}
           >
-            <div className="border-border bg-background flex max-h-[80vh] flex-col overflow-hidden border-2">
+            <div className="border-border bg-background flex max-h-[78vh] flex-col overflow-hidden border-2">
               <div className="bg-foreground text-background flex shrink-0 items-center justify-between px-3 py-1.5">
                 <span className="font-pixel text-xs">
                   {mode === "add" ? "new item" : "edit item"}
@@ -182,9 +263,12 @@ export function ItemDialog({
                 </BracketButton>
               </div>
 
-              <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-4 py-4">
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-muted-foreground font-mono text-[10px]">title</label>
+              <div
+                ref={scrollBodyRef}
+                className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto px-5 py-4"
+              >
+                <div data-title-section className="flex flex-col gap-1.5 pb-5">
+                  <label className={cn(LABEL, titleHasError && "text-destructive")}>title</label>
                   <textarea
                     ref={textareaRef}
                     value={title}
@@ -192,148 +276,44 @@ export function ItemDialog({
                     onKeyDown={(e) => {
                       if (e.key === "Enter" && !e.shiftKey && title.trim()) {
                         e.preventDefault();
-                        onConfirm();
+                        handleConfirmClick();
                       }
                       if (e.key === "Escape") onCancel();
                     }}
                     placeholder={error || "what needs doing?"}
-                    maxLength={500}
+                    maxLength={ITEM_TITLE_MAX_LENGTH}
                     disabled={pending}
                     rows={1}
                     className={cn(
-                      "border-border focus:border-foreground w-full resize-none overflow-hidden border-b bg-transparent py-1.5 text-sm outline-none disabled:opacity-50",
-                      error ? "placeholder:text-destructive" : "placeholder:text-muted-foreground"
+                      "focus:border-foreground w-full resize-none overflow-hidden border-b bg-transparent py-1.5 text-sm outline-none disabled:opacity-50",
+                      error || titleHasError
+                        ? "border-destructive placeholder:text-destructive"
+                        : "border-border placeholder:text-muted-foreground"
                     )}
                   />
-                </div>
-
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-muted-foreground font-mono text-[10px]">when</label>
-                  <DatePicker value={datePart} onChange={handleDateChange} disabled={pending} />
-                  {hasDate && (
-                    <TimeScrollPicker
-                      hour={timeHour}
-                      min={timeMin}
-                      ampm={timeAmpm}
-                      onHourChange={handleHourChange}
-                      onMinChange={handleMinChange}
-                      onAmpmChange={handleAmpmChange}
-                      disabled={pending}
-                    />
+                  {titleHasError && (
+                    <p className="text-destructive font-mono text-[9px]">title is required</p>
                   )}
                 </div>
 
-                {hasDate && onRecurringChange && (
-                  <div className="flex flex-col gap-2">
-                    <div className="flex items-center justify-between">
-                      <label className="text-muted-foreground font-mono text-[10px]">
-                        ↺ repeats
-                      </label>
-                      <OptionButton
-                        active={!!recurring?.enabled}
-                        onClick={toggleRecurring}
-                        disabled={pending}
-                      >
-                        {recurring?.enabled ? "on" : "off"}
-                      </OptionButton>
-                    </div>
-
-                    {recurring?.enabled && (
-                      <div className="flex flex-col gap-2">
-                        <div className="flex items-center gap-2">
-                          <span className="text-muted-foreground font-mono text-[10px]">every</span>
-                          <input
-                            type="number"
-                            min={1}
-                            value={recurring.interval}
-                            onChange={(e) => {
-                              const val = parseInt(e.target.value, 10);
-                              onRecurringChange({
-                                ...recurring,
-                                interval: Number.isFinite(val) && val > 0 ? val : 1,
-                              });
-                            }}
-                            disabled={pending}
-                            className="border-border w-10 border-b bg-transparent py-0.5 text-center font-mono text-xs outline-none disabled:opacity-50"
-                          />
-                          <div className="flex flex-wrap gap-1">
-                            {RECURRING_FREQUENCIES.map((f) => (
-                              <OptionButton
-                                key={f.value}
-                                active={recurring.frequency === f.value}
-                                onClick={() =>
-                                  onRecurringChange({ ...recurring, frequency: f.value })
-                                }
-                                disabled={pending}
-                              >
-                                {f.label}
-                              </OptionButton>
-                            ))}
-                          </div>
-                        </div>
-                        <p className="text-muted-foreground font-mono text-[10px]">
-                          ↺ {describeRecurring(recurring)}
-                        </p>
-                        {showEndDate ? (
-                          <div className="flex items-center gap-2">
-                            <span className="text-muted-foreground font-mono text-[10px]">
-                              ends
-                            </span>
-                            <DatePicker
-                              value={recurring.endDate ?? ""}
-                              onChange={(v) =>
-                                onRecurringChange({ ...recurring, endDate: v || null })
-                              }
-                              disabled={pending}
-                            />
-                            <button
-                              onClick={() => {
-                                setShowEndDate(false);
-                                onRecurringChange({ ...recurring, endDate: null });
-                              }}
-                              className="text-muted-foreground hover:text-foreground font-mono text-[10px] transition-colors"
-                            >
-                              ×
-                            </button>
-                          </div>
-                        ) : (
-                          <button
-                            onClick={() => setShowEndDate(true)}
-                            className="text-muted-foreground hover:text-foreground w-fit font-mono text-[10px] transition-colors"
-                          >
-                            + set end date
-                          </button>
-                        )}
+                {hasFields ? (
+                  <div className="flex flex-col gap-5">
+                    {onPropertiesChange && fields && (
+                      <div className="border-border border">
+                        <ItemFieldsForm
+                          fields={fields}
+                          values={properties ?? {}}
+                          disabled={pending}
+                          showErrors={validationAttempted}
+                          onChange={onPropertiesChange}
+                        />
                       </div>
                     )}
+                    {whenAndStatus}
                   </div>
+                ) : (
+                  <div className="flex flex-col gap-5">{whenAndStatus}</div>
                 )}
-
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-muted-foreground font-mono text-[10px]">status</label>
-                  <div className="flex flex-wrap gap-1.5">
-                    {statuses.map((s) => (
-                      <OptionButton
-                        key={s.name}
-                        active={status === s.name}
-                        onClick={() => onStatusChange(s.name)}
-                        disabled={pending}
-                        className="flex items-center gap-1.5"
-                      >
-                        <span
-                          className="h-1.5 w-1.5 rounded-full"
-                          style={{ backgroundColor: s.color }}
-                        />
-                        {s.name}
-                      </OptionButton>
-                    ))}
-                  </div>
-                  {status && !statuses.find((s) => s.name === status) && (
-                    <p className="text-destructive font-mono text-[10px]">
-                      &quot;{status}&quot; is not a valid status — pick one above to fix it
-                    </p>
-                  )}
-                </div>
               </div>
 
               <div className="border-border flex shrink-0 items-center justify-between border-t px-3 py-2.5">
@@ -348,7 +328,7 @@ export function ItemDialog({
                 ) : (
                   <span />
                 )}
-                <BracketButton onClick={onConfirm} disabled={!title.trim() || pending}>
+                <BracketButton onClick={handleConfirmClick} disabled={pending}>
                   {mode === "add" ? "add" : "update"}
                 </BracketButton>
               </div>

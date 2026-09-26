@@ -53,6 +53,7 @@ export function parseDurationToMins(str: string | null | undefined): number | nu
 
 /** Returns a display string for a number of minutes, e.g. 4320 → "3 days". */
 export function minsToDisplayStr(mins: number): string {
+  if (mins <= 0) return "";
   const MONTH = 30 * 24 * 60;
   const WEEK = 7 * 24 * 60;
   const DAY = 24 * 60;
@@ -77,6 +78,7 @@ export function parseDurationToDays(str: string | null | undefined): number | nu
 
 /** Returns a display string for a number of days, e.g. 14 → "2 weeks". */
 export function daysToDisplayStr(days: number): string {
+  if (days <= 0) return "";
   if (days % 30 === 0) return `${days / 30} months`;
   if (days % 7 === 0) return `${days / 7} weeks`;
   return `${days} days`;
@@ -90,7 +92,16 @@ export function durationPreview(str: string): { text: string; valid: boolean } {
   if (!str.trim()) return { text: "", valid: true };
   const parsed = parse(str);
   if (!parsed) return { text: "unrecognized format", valid: false };
-  const date = apply(parsed.value, parsed.unit, new Date());
-  const label = date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-  return { text: `→ ${label}`, valid: true };
+  const days = parseDurationToDays(str);
+  if (days !== null) {
+    if (days === 1) return { text: "→ 1 day from today", valid: true };
+    if (days % 30 === 0)
+      return { text: `→ ${days / 30} month${days / 30 === 1 ? "" : "s"} from today`, valid: true };
+    if (days % 7 === 0)
+      return { text: `→ ${days / 7} week${days / 7 === 1 ? "" : "s"} from today`, valid: true };
+    return { text: `→ ${days} days from today`, valid: true };
+  }
+  if (parsed.unit === "hours")
+    return { text: `→ ${parsed.value} hour${parsed.value === 1 ? "" : "s"} from now`, valid: true };
+  return { text: "unrecognized format", valid: false };
 }

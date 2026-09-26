@@ -1,4 +1,9 @@
 import { createCipheriv, createDecipheriv, randomBytes } from "crypto";
+import { WEBHOOK_KEY_PREFIX } from "@/constants";
+
+export function generateWebhookKey(): string {
+  return WEBHOOK_KEY_PREFIX + randomBytes(16).toString("hex");
+}
 
 const ALGORITHM = "aes-256-gcm";
 const ENC_PREFIX = "enc:";

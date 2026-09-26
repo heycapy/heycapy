@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import { DatePicker } from "@/components/ui/DatePicker";
 import { BracketButton } from "@/components/ui/BracketButton";
 import { addItemAction } from "@/app/(app)/actions";
+import { ITEM_TITLE_MAX_LENGTH } from "@/constants";
 
 interface AddItemFormProps {
   bucketId: number;
@@ -46,7 +47,7 @@ export function AddItemForm({ bucketId, onClose }: AddItemFormProps) {
             if (e.key === "Escape") onClose();
           }}
           placeholder="What needs doing?"
-          maxLength={500}
+          maxLength={ITEM_TITLE_MAX_LENGTH}
           disabled={pending}
           className="placeholder:text-muted-foreground flex-1 bg-transparent text-sm outline-none disabled:opacity-50"
         />

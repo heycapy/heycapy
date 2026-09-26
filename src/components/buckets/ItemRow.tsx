@@ -6,12 +6,14 @@ import { GripVertical } from "lucide-react";
 import type { DragControls } from "framer-motion";
 import { cn } from "@/lib/utils";
 import type { items } from "@/lib/db/schema";
-import { useUIStore } from "@/store/ui";
+import type { StatusDef, FieldDef } from "@/types/rules";
 
 type ItemRow = typeof items.$inferSelect;
 
 interface ItemRowProps {
   item: ItemRow;
+  statuses: StatusDef[];
+  fields?: FieldDef[];
   dragControls?: DragControls;
   isEditing?: boolean;
   onEditStart?: () => void;
@@ -20,17 +22,17 @@ interface ItemRowProps {
 
 function StatusPicker({
   current,
+  statuses,
   position,
   onSelect,
   onClose,
 }: {
   current: string;
+  statuses: StatusDef[];
   position: { top: number; left: number };
   onSelect: (s: string) => void;
   onClose: () => void;
 }) {
-  const statuses = useUIStore((s) => s.statuses);
-
   return createPortal(
     <>
       <div className="fixed inset-0 z-30" onClick={onClose} />
@@ -93,12 +95,53 @@ function relativeTime(deadline: Date): string {
   const deadlineDay = new Date(deadline.getFullYear(), deadline.getMonth(), deadline.getDate());
   const diffDays = Math.round((deadlineDay.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
   if (diffDays < 0) return "overdue";
-  if (diffDays === 0) return "today";
+  if (diffDays === 0) return deadline < now ? "overdue" : "today";
   return `${diffDays}d`;
+}
+
+function daysLeftColor(rel: string): string {
+  const d = parseInt(rel);
+  if (d <= 2) return "text-orange-500";
+  if (d <= 5) return "text-yellow-500";
+  return "text-muted-foreground/50";
+}
+
+function getShowInRowBadges(
+  fields: FieldDef[],
+  propertiesRaw: string | null
+): { label: string; value: string }[] {
+  if (!propertiesRaw) return [];
+  let props: Record<string, unknown>;
+  try {
+    props = JSON.parse(propertiesRaw) as Record<string, unknown>;
+  } catch {
+    return [];
+  }
+  return fields
+    .filter((f) => f.showInRow)
+    .flatMap((f) => {
+      const v = props[f.key];
+      if (v === undefined || v === null || v === "") return [];
+      let display: string;
+      if (f.type === "boolean") {
+        display = v ? "yes" : "no";
+      } else if (f.type === "currency") {
+        display = `${f.currency ?? ""}${typeof v === "number" ? v.toFixed(2) : String(v)}`;
+      } else if (Array.isArray(v)) {
+        display = v.join(", ");
+      } else {
+        display = String(v);
+      }
+      const label = f.label.length > 15 ? f.label.slice(0, 15) + "…" : f.label;
+      const value = display.length > 20 ? display.slice(0, 20) + "…" : display;
+      return [{ label, value }];
+    });
 }
 
 export function ItemRow({
   item,
+  statuses,
+  fields,
   dragControls,
   isEditing,
   onEditStart,
@@ -106,11 +149,11 @@ export function ItemRow({
 }: ItemRowProps) {
   const [pickerPos, setPickerPos] = useState<{ top: number; left: number } | null>(null);
   const dotRef = useRef<HTMLButtonElement>(null);
-  const statuses = useUIStore((s) => s.statuses);
   const rel = item.deadline ? relativeTime(item.deadline) : null;
   const isCompleted = item.status === "completed";
   const recurringFreq = getRecurringFrequency(item.recurring);
   const dotColor = statuses.find((s) => s.name === item.status)?.color ?? "var(--muted-foreground)";
+  const badges = fields ? getShowInRowBadges(fields, item.properties) : [];
 
   function openPicker() {
     if (!dotRef.current) return;
@@ -155,6 +198,7 @@ export function ItemRow({
       {pickerPos && onStatusChange && (
         <StatusPicker
           current={item.status}
+          statuses={statuses}
           position={pickerPos}
           onSelect={(s) => {
             onStatusChange(s);
@@ -176,6 +220,18 @@ export function ItemRow({
         >
           {item.title}
         </span>
+        {badges.length > 0 && (
+          <span className="mt-0.5 flex flex-wrap gap-1">
+            {badges.map((b) => (
+              <span
+                key={b.label}
+                className="border-border text-muted-foreground border px-1 font-mono text-[9px]"
+              >
+                {b.label}: {b.value}
+              </span>
+            ))}
+          </span>
+        )}
         <span className="mt-0.5 flex items-center gap-1 font-mono text-[10px]">
           <span className="text-muted-foreground/30">#{item.id}</span>
           {(item.deadline ?? item.notifiedAt) && (
@@ -203,7 +259,14 @@ export function ItemRow({
       </button>
 
       {rel && rel !== "overdue" && rel !== "today" && (
-        <span className="text-muted-foreground/50 shrink-0 pl-2 font-mono text-[10px]">{rel}</span>
+        <span
+          className={cn(
+            "flex shrink-0 items-center pl-2 font-mono text-[10px]",
+            daysLeftColor(rel)
+          )}
+        >
+          {rel}
+        </span>
       )}
     </div>
   );

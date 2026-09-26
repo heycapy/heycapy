@@ -116,10 +116,11 @@ export async function POST(req: Request) {
   try {
     for (let round = 0; round < 8; round++) {
       let timer: ReturnType<typeof setTimeout> | undefined;
+      const timeoutMs = settings?.aiProvider === "ollama" ? 120_000 : 30_000;
       const result = await Promise.race([
         provider.complete(agentMessages, CAPY_TOOLS),
         new Promise<never>((_, reject) => {
-          timer = setTimeout(() => reject(new Error("AI provider timeout")), 30_000);
+          timer = setTimeout(() => reject(new Error("AI provider timeout")), timeoutMs);
         }),
       ]).finally(() => clearTimeout(timer));
 
