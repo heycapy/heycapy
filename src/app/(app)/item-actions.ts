@@ -123,7 +123,10 @@ export async function updateItemAction(
     .set({
       title: trimmed,
       deadline: newDeadline,
-      ...(deadlineChanged && { notifiedAt: null, overdueNotifiedAt: null }),
+      ...(deadlineChanged && {
+        overdueNotifiedAt: null,
+        notifiedAt: newDeadline && newDeadline < new Date() ? item.notifiedAt : null,
+      }),
       ...(status !== undefined && { status }),
       ...(nowCompleted && { completedAt: new Date() }),
       ...(nowUncompleted && { completedAt: null }),
