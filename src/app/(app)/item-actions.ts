@@ -8,7 +8,7 @@ import { items } from "@/lib/db/schema";
 import { ITEM_TITLE_MAX_LENGTH } from "@/constants";
 import type { RecurringConfig } from "@/types/rules";
 import { parseDeadlineString } from "@/lib/time";
-import { reminderResetForDeadline } from "@/lib/items/reminders";
+import { initialReminderState, reminderResetForDeadline } from "@/lib/items/reminders";
 import { refreshItemReminders } from "@/lib/reminders/refresh";
 import { createNextOccurrence, skipOccurrence } from "@/lib/items/recurrence";
 import {
@@ -106,13 +106,15 @@ export async function addItemAction(
     .from(items)
     .where(eq(items.bucketId, bucketId));
 
+  const parsedDeadline = deadline ? parseDeadlineString(deadline) : null;
   const [created] = await db
     .insert(items)
     .values({
       bucketId,
       userId: session.userId,
       title: trimmed,
-      deadline: deadline ? parseDeadlineString(deadline) : null,
+      deadline: parsedDeadline,
+      ...initialReminderState(parsedDeadline),
       status: status ?? "active",
       sortOrder: maxRow.max + 1,
       recurring: recurring?.enabled ? JSON.stringify(recurring) : null,

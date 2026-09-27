@@ -3,7 +3,7 @@ import { and, eq, gte, isNull, lte, ne, or, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { findBucketByName } from "@/lib/db/buckets";
 import { withDefaultChannels } from "@/lib/notifications/channels";
-import { reminderResetForDeadline } from "@/lib/items/reminders";
+import { initialReminderState, reminderResetForDeadline } from "@/lib/items/reminders";
 import { refreshItemReminders } from "@/lib/reminders/refresh";
 import { createNextOccurrence } from "@/lib/items/recurrence";
 import { encryptValue, generateWebhookKey } from "@/lib/crypto";
@@ -309,6 +309,7 @@ async function executeToolCallInner(
           status: finalStatus,
           completedAt: finalStatus === "completed" ? new Date() : null,
           deadline,
+          ...initialReminderState(deadline),
           notificationOffsetMins,
           recurring: recurringJson,
           properties: propertiesJson,

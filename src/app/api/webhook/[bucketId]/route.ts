@@ -10,6 +10,7 @@ import {
 import { errorMessage } from "@/lib/errors";
 import { ITEM_TITLE_MAX_LENGTH } from "@/constants";
 import { channelDecisions } from "@/lib/notifications/channels";
+import { initialReminderState } from "@/lib/items/reminders";
 import { dataEvents } from "@/lib/events";
 import { refreshItemReminders } from "@/lib/reminders/refresh";
 
@@ -163,7 +164,7 @@ export async function POST(
       properties: properties ? JSON.stringify(properties) : null,
       source: "webhook",
       ...(status !== undefined && { status }),
-      ...(deadline !== undefined && { deadline }),
+      ...(deadline !== undefined && { deadline, ...initialReminderState(deadline) }),
     })
     .returning();
   await refreshItemReminders([item.id]);

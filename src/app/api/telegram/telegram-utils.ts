@@ -2,7 +2,7 @@ import { and, eq, isNull, ne, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { buckets, items, userSettings } from "@/lib/db/schema";
 import { parseDeadlineInTimezone } from "@/lib/ai/capyTools";
-import { reminderResetForDeadline } from "@/lib/items/reminders";
+import { initialReminderState, reminderResetForDeadline } from "@/lib/items/reminders";
 import { refreshItemReminders } from "@/lib/reminders/refresh";
 import { createNextOccurrence } from "@/lib/items/recurrence";
 import type { TelegramBotConfig } from "@/components/buckets/constants";
@@ -423,6 +423,7 @@ export async function createItem(
       userId,
       title,
       deadline,
+      ...initialReminderState(deadline),
       status: "active",
       source: "manual",
       sortOrder: (maxRow?.max ?? -1) + 1,

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { reminderResetForDeadline } from "@/lib/items/reminders";
+import { initialReminderState, reminderResetForDeadline } from "@/lib/items/reminders";
 
 const now = new Date("2026-03-10T12:00:00Z");
 const notifiedAt = new Date("2026-03-10T09:00:00Z");
@@ -24,6 +24,14 @@ describe("reminderResetForDeadline", () => {
     });
   });
 
+  it("marks the reminder done when a never-reminded item is moved into the past", () => {
+    const fresh = { deadline: new Date("2026-03-11T09:00:00Z"), notifiedAt: null };
+    expect(reminderResetForDeadline(fresh, new Date("2026-03-10T10:00:00Z"), now)).toEqual({
+      notifiedAt: now,
+      overdueNotifiedAt: null,
+    });
+  });
+
   it("clears reminder state when the deadline is removed", () => {
     expect(reminderResetForDeadline(item, null, now)).toEqual({
       notifiedAt: null,
@@ -37,5 +45,18 @@ describe("reminderResetForDeadline", () => {
       notifiedAt: null,
       overdueNotifiedAt: null,
     });
+  });
+});
+
+describe("initialReminderState", () => {
+  it("marks the reminder done for a new item whose date is already past", () => {
+    expect(initialReminderState(new Date("2026-03-10T10:00:00Z"), now)).toEqual({
+      notifiedAt: now,
+    });
+  });
+
+  it("leaves future and missing dates alone", () => {
+    expect(initialReminderState(new Date("2026-03-11T10:00:00Z"), now)).toEqual({});
+    expect(initialReminderState(null, now)).toEqual({});
   });
 });
