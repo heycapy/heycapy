@@ -185,15 +185,11 @@ export async function processPending(): Promise<void> {
           const botToken = process.env.TELEGRAM_BOT_TOKEN;
           if (!userRow.notificationsTelegram || !botToken || !userRow.telegramChatId)
             throw new Error("Telegram not configured");
+          const text = `${job.title}\n${job.message}`;
           if (job.itemId) {
-            await sendTelegramItemNotification(
-              botToken,
-              userRow.telegramChatId,
-              job.message,
-              job.itemId
-            );
+            await sendTelegramItemNotification(botToken, userRow.telegramChatId, text, job.itemId);
           } else {
-            await sendTelegram(botToken, userRow.telegramChatId, job.message);
+            await sendTelegram(botToken, userRow.telegramChatId, text);
           }
           break;
         }
