@@ -12,3 +12,5 @@ export const RELATIVE_DAY_NAMES: Record<number, string> = {
   0: "today",
   1: "tomorrow",
 };
+
+export const POSTPONE_DAYS = [1, 2] as const;

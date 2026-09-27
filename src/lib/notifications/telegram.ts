@@ -1,4 +1,5 @@
 import { TELEGRAM_API_BASE } from "@/constants";
+import { POSTPONE_DAYS } from "./constants";
 
 export type InlineButton = { text: string; callback_data: string };
 
@@ -140,9 +141,13 @@ export async function sendTelegramItemNotification(
       parse_mode: "HTML",
       reply_markup: {
         inline_keyboard: [
+          [{ text: "✓ Done", callback_data: `qc:${itemId}` }],
           [
-            { text: "✓ Done", callback_data: `qc:${itemId}` },
-            { text: "📅 Update deadline", callback_data: `qu:${itemId}` },
+            ...POSTPONE_DAYS.map((days) => ({
+              text: days === 1 ? "+1 day" : `+${days} days`,
+              callback_data: `pp:${itemId}:${days}`,
+            })),
+            { text: "📅 Pick date", callback_data: `qu:${itemId}` },
           ],
         ],
       },

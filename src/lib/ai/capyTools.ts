@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import { findBucketByName } from "@/lib/db/buckets";
 import { withDefaultChannels } from "@/lib/notifications/channels";
 import { initialReminderState, reminderResetForDeadline } from "@/lib/items/reminders";
-import { refreshItemReminders } from "@/lib/reminders/refresh";
+import { bucketDefaultOffsetMins, refreshItemReminders } from "@/lib/reminders/refresh";
 import { createNextOccurrence } from "@/lib/items/recurrence";
 import { encryptValue, generateWebhookKey } from "@/lib/crypto";
 import { BUCKET_NAME_MAX_LENGTH } from "@/constants";
@@ -336,6 +336,7 @@ async function executeToolCallInner(
         deadline?: Date | null;
         notifiedAt?: Date | null;
         overdueNotifiedAt?: Date | null;
+        snoozedUntil?: Date | null;
         notificationOffsetMins?: number | null;
         recurring?: string | null;
         status?: string;
@@ -353,7 +354,10 @@ async function executeToolCallInner(
           ? parseDeadlineInTimezone(String(args.deadline), timezone)
           : null;
         updates.deadline = newDeadline;
-        Object.assign(updates, reminderResetForDeadline(item, newDeadline));
+        Object.assign(
+          updates,
+          reminderResetForDeadline(item, newDeadline, await bucketDefaultOffsetMins(item.bucketId))
+        );
       }
       if ("notification_offset_mins" in args) {
         updates.notificationOffsetMins =

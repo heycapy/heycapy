@@ -9,7 +9,7 @@ import { ITEM_TITLE_MAX_LENGTH } from "@/constants";
 import type { RecurringConfig } from "@/types/rules";
 import { parseDeadlineString } from "@/lib/time";
 import { initialReminderState, reminderResetForDeadline } from "@/lib/items/reminders";
-import { refreshItemReminders } from "@/lib/reminders/refresh";
+import { bucketDefaultOffsetMins, refreshItemReminders } from "@/lib/reminders/refresh";
 import { createNextOccurrence, skipOccurrence } from "@/lib/items/recurrence";
 import {
   getItemReminderInfo,
@@ -157,7 +157,7 @@ export async function updateItemAction(
     .set({
       title: trimmed,
       deadline: newDeadline,
-      ...reminderResetForDeadline(item, newDeadline),
+      ...reminderResetForDeadline(item, newDeadline, await bucketDefaultOffsetMins(item.bucketId)),
       ...(status !== undefined && { status }),
       ...(nowCompleted && { completedAt: new Date() }),
       ...(nowUncompleted && { completedAt: null }),

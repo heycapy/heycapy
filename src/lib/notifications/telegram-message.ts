@@ -53,3 +53,7 @@ export function itemAlertHtml(alert: ItemAlert, now: Date, timezone: string): st
 export function itemDoneHtml(title: string, alreadyDone: boolean): string {
   return `✓ <s>${escapeHtml(title)}</s>\n${alreadyDone ? "already done" : "done"}`;
 }
+
+export function itemMovedHtml(title: string, deadline: Date, now: Date, timezone: string): string {
+  return `📅 <b>${escapeHtml(title)}</b>\nmoved to ${formatWhen(deadline, now, timezone)}`;
+}

@@ -11,12 +11,10 @@ import {
   sendOrEditButtons,
   removeMessageButtons,
   answerCallbackQuery,
-  editTelegramHtml,
   sendChatAction,
 } from "@/lib/notifications/telegram";
 import { compactSessionIfNeeded } from "@/lib/ai/compact";
 import { dataEvents } from "@/lib/events";
-import { itemDoneHtml } from "@/lib/notifications/telegram-message";
 import { errorMessage } from "@/lib/errors";
 import { TELEGRAM_RESERVED_COMMANDS } from "@/constants";
 import type { AgentMessage } from "@/lib/ai/types";
@@ -43,6 +41,7 @@ import {
   softDeleteItemById,
 } from "./telegram-utils";
 import type { TelegramUpdate } from "./telegram-utils";
+import { handleReminderAction } from "./telegram-quick-actions";
 import {
   showBucketPicker,
   showDeadlinePicker,
@@ -431,26 +430,15 @@ export async function POST(req: Request) {
 
     // ── quick actions from notifications ──
 
-    if (callbackData.startsWith("qc:")) {
-      const itemId = parseInt(callbackData.slice(3), 10);
-      const found = await db.query.items.findFirst({
-        where: (i, { eq: qeq, and: qand }) => qand(qeq(i.id, itemId), qeq(i.userId, userId)),
-      });
-      const item = found && !found.deletedAt ? found : null;
-      const alreadyDone = item?.status === "completed";
-      if (item && !alreadyDone) {
-        await completeItemById(userId, itemId);
-        dataEvents.emit("refresh", userId);
-      }
-      const alertMessageId = body.callback_query?.message?.message_id;
-      if (alertMessageId) {
-        await editTelegramHtml(
-          botToken,
-          chatIdStr,
-          alertMessageId,
-          item ? itemDoneHtml(item.title, alreadyDone) : "this item no longer exists"
-        );
-      }
+    if (
+      await handleReminderAction(callbackData, {
+        botToken,
+        chatId: chatIdStr,
+        userId,
+        timezone,
+        alertMessageId: body.callback_query?.message?.message_id,
+      })
+    ) {
       return new Response("OK");
     }
 

@@ -3,47 +3,93 @@ import { initialReminderState, reminderResetForDeadline } from "@/lib/items/remi
 
 const now = new Date("2026-03-10T12:00:00Z");
 const notifiedAt = new Date("2026-03-10T09:00:00Z");
-const item = { deadline: new Date("2026-03-10T09:00:00Z"), notifiedAt };
+const item = {
+  deadline: new Date("2026-03-10T09:00:00Z"),
+  notifiedAt,
+  notificationOffsetMins: null,
+};
 
 describe("reminderResetForDeadline", () => {
   it("changes nothing when the deadline is the same", () => {
-    expect(reminderResetForDeadline(item, new Date(item.deadline), now)).toEqual({});
+    expect(reminderResetForDeadline(item, new Date(item.deadline), 0, now)).toEqual({});
   });
 
   it("re-arms both reminders when moved to the future", () => {
-    expect(reminderResetForDeadline(item, new Date("2026-03-11T09:00:00Z"), now)).toEqual({
+    expect(reminderResetForDeadline(item, new Date("2026-03-11T09:00:00Z"), 0, now)).toEqual({
       notifiedAt: null,
       overdueNotifiedAt: null,
+      snoozedUntil: null,
     });
   });
 
   it("keeps the sent reminder when moved to a time that already passed", () => {
-    expect(reminderResetForDeadline(item, new Date("2026-03-10T10:00:00Z"), now)).toEqual({
+    expect(reminderResetForDeadline(item, new Date("2026-03-10T10:00:00Z"), 0, now)).toEqual({
       notifiedAt,
       overdueNotifiedAt: null,
+      snoozedUntil: null,
     });
   });
 
   it("marks the reminder done when a never-reminded item is moved into the past", () => {
-    const fresh = { deadline: new Date("2026-03-11T09:00:00Z"), notifiedAt: null };
-    expect(reminderResetForDeadline(fresh, new Date("2026-03-10T10:00:00Z"), now)).toEqual({
+    const fresh = {
+      deadline: new Date("2026-03-11T09:00:00Z"),
+      notifiedAt: null,
+      notificationOffsetMins: null,
+    };
+    expect(reminderResetForDeadline(fresh, new Date("2026-03-10T10:00:00Z"), 0, now)).toEqual({
       notifiedAt: now,
       overdueNotifiedAt: null,
+      snoozedUntil: null,
     });
   });
 
   it("clears reminder state when the deadline is removed", () => {
-    expect(reminderResetForDeadline(item, null, now)).toEqual({
+    expect(reminderResetForDeadline(item, null, 0, now)).toEqual({
       notifiedAt: null,
       overdueNotifiedAt: null,
+      snoozedUntil: null,
     });
   });
 
   it("arms a reminder for an item that never had a deadline", () => {
-    const undated = { deadline: null, notifiedAt: null };
-    expect(reminderResetForDeadline(undated, new Date("2026-03-11T09:00:00Z"), now)).toEqual({
+    const undated = { deadline: null, notifiedAt: null, notificationOffsetMins: null };
+    expect(reminderResetForDeadline(undated, new Date("2026-03-11T09:00:00Z"), 0, now)).toEqual({
       notifiedAt: null,
       overdueNotifiedAt: null,
+      snoozedUntil: null,
+    });
+  });
+});
+
+describe("reminderResetForDeadline with an early reminder", () => {
+  const tomorrow = new Date("2026-03-11T09:00:00Z");
+
+  it("holds an already-sent reminder until the new deadline when its early time passed", () => {
+    // Remind 1 day before: moving to tomorrow puts that time in the past
+    expect(reminderResetForDeadline(item, tomorrow, 24 * 60, now)).toMatchObject({
+      notifiedAt: null,
+      snoozedUntil: tomorrow,
+    });
+  });
+
+  it("still sends the early reminder now for an item that was never reminded", () => {
+    const fresh = { ...item, notifiedAt: null };
+    expect(reminderResetForDeadline(fresh, tomorrow, 24 * 60, now)).toMatchObject({
+      snoozedUntil: null,
+    });
+  });
+
+  it("keeps the early reminder when its time is still ahead", () => {
+    expect(reminderResetForDeadline(item, tomorrow, 60, now)).toMatchObject({
+      notifiedAt: null,
+      snoozedUntil: null,
+    });
+  });
+
+  it("uses the item's own offset over the bucket default", () => {
+    const itemOffset = { ...item, notificationOffsetMins: 24 * 60 };
+    expect(reminderResetForDeadline(itemOffset, tomorrow, 0, now)).toMatchObject({
+      snoozedUntil: tomorrow,
     });
   });
 });

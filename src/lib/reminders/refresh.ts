@@ -49,6 +49,19 @@ function parseTriggers(raw: unknown): {
   }
 }
 
+export async function bucketDefaultOffsetMins(bucketId: number): Promise<number> {
+  const bucket = await db.query.buckets.findFirst({
+    where: eq(buckets.id, bucketId),
+    columns: { notificationsRules: true },
+  });
+  if (!bucket) return 0;
+  try {
+    return NotificationRules.parse(JSON.parse(bucket.notificationsRules)).defaultOffsetMins;
+  } catch {
+    return 0;
+  }
+}
+
 // Throws on invalid stored rules
 export function toReminderInputs(row: ReminderRow): ReminderInputs {
   const triggers = parseTriggers(row.fieldSchema);

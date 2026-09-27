@@ -1,7 +1,7 @@
 import { and, eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { items } from "@/lib/db/schema";
-import { refreshItemReminders } from "@/lib/reminders/refresh";
+import { bucketDefaultOffsetMins, refreshItemReminders } from "@/lib/reminders/refresh";
 import { reminderResetForDeadline } from "./reminders";
 import { nextOccurrenceDate, parseRecurring } from "./occurrence";
 
@@ -59,7 +59,16 @@ export async function skipOccurrence(
 
   await db
     .update(items)
-    .set({ deadline, ...reminderResetForDeadline(item, deadline, now), updatedAt: now })
+    .set({
+      deadline,
+      ...reminderResetForDeadline(
+        item,
+        deadline,
+        await bucketDefaultOffsetMins(item.bucketId),
+        now
+      ),
+      updatedAt: now,
+    })
     .where(eq(items.id, itemId));
   await refreshItemReminders([itemId]);
   return { ok: true };

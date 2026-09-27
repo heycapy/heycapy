@@ -3,7 +3,7 @@ import { db } from "@/lib/db";
 import { buckets, items, userSettings } from "@/lib/db/schema";
 import { parseDeadlineInTimezone } from "@/lib/ai/capyTools";
 import { initialReminderState, reminderResetForDeadline } from "@/lib/items/reminders";
-import { refreshItemReminders } from "@/lib/reminders/refresh";
+import { bucketDefaultOffsetMins, refreshItemReminders } from "@/lib/reminders/refresh";
 import { createNextOccurrence } from "@/lib/items/recurrence";
 import type { TelegramBotConfig } from "@/components/buckets/constants";
 import { DEFAULT_TELEGRAM_BOT_CONFIG } from "@/components/buckets/constants";
@@ -386,12 +386,17 @@ export async function updateItemDeadline(
 ): Promise<void> {
   const item = await db.query.items.findFirst({
     where: and(eq(items.id, itemId), eq(items.userId, userId)),
-    columns: { deadline: true, notifiedAt: true },
+    columns: { deadline: true, notifiedAt: true, notificationOffsetMins: true, bucketId: true },
   });
   if (!item) return;
+  const defaultOffset = await bucketDefaultOffsetMins(item.bucketId);
   await db
     .update(items)
-    .set({ deadline, ...reminderResetForDeadline(item, deadline), updatedAt: new Date() })
+    .set({
+      deadline,
+      ...reminderResetForDeadline(item, deadline, defaultOffset),
+      updatedAt: new Date(),
+    })
     .where(and(eq(items.id, itemId), eq(items.userId, userId)));
   await refreshItemReminders([itemId]);
 }
