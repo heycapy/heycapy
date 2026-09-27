@@ -9,11 +9,13 @@ import { db } from "@/lib/db";
 import { users, userSettings } from "@/lib/db/schema";
 import { encryptValue, decryptValue } from "@/lib/crypto";
 import { refreshUserReminders } from "@/lib/reminders/refresh";
-import { getWorkingChannels } from "@/lib/notifications/channels";
+import { ALL_CHANNELS, getWorkingChannels } from "@/lib/notifications/channels";
 import { TELEGRAM_API_BASE } from "@/constants";
 import { sendEmail } from "@/lib/notifications/email";
 import { sendNtfy } from "@/lib/notifications/ntfy";
 import { sendTelegram } from "@/lib/notifications/telegram";
+import { dismissChannelFailures } from "@/lib/notifications/failures";
+import type { NotificationMedium } from "@/lib/notifications/queue";
 import { isE2ETestMode } from "@/lib/e2e";
 import { errorMessage } from "@/lib/errors";
 import { APP_NAME } from "@/constants";
@@ -290,6 +292,7 @@ export async function testSmtpAction(config: {
         smtpFrom: config.smtpUser || null,
       }
     );
+    await clearFailuresAfterTest(session.userId, "email");
     return { ok: true };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : "Failed to send test email" };
@@ -332,11 +335,23 @@ export async function sendTestNotificationAction(
     send = () => sendTelegram(botToken, chatId, `${title}\n${message}`);
   }
 
-  if (isE2ETestMode()) return { ok: true };
   try {
-    await send();
-    return { ok: true };
+    if (!isE2ETestMode()) await send();
   } catch (err) {
     return { ok: false, error: errorMessage(err) };
   }
+  await clearFailuresAfterTest(session.userId, channel);
+  return { ok: true };
+}
+
+async function clearFailuresAfterTest(userId: number, medium: NotificationMedium): Promise<void> {
+  await dismissChannelFailures(userId, medium);
+  revalidatePath("/");
+}
+
+export async function dismissDeliveryFailuresAction(medium: NotificationMedium): Promise<void> {
+  const session = await getSession();
+  if (!session || !ALL_CHANNELS.includes(medium)) return;
+  await dismissChannelFailures(session.userId, medium);
+  revalidatePath("/");
 }

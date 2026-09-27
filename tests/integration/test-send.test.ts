@@ -1,8 +1,9 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { userSettings } from "@/lib/db/schema";
+import { notificationQueue, userSettings } from "@/lib/db/schema";
 import { sendTestNotificationAction } from "@/app/(app)/user-settings-actions";
+import { getChannelFailures } from "@/lib/notifications/failures";
 import { resetSchedulerEnvironment, seedUser, useSchedulerEnvironment } from "./helpers";
 
 const session = vi.hoisted(() => ({ userId: 0 }));
@@ -70,4 +71,24 @@ it("telegram test sends to the connected chat and reports failures", async () =>
 
   stubFetch(403, JSON.stringify({ ok: false, description: "bot was blocked by the user" }));
   expect(await sendTestNotificationAction("telegram")).toMatchObject({ ok: false });
+});
+
+it("a successful test clears that channel's failure banner, a failed one keeps it", async () => {
+  await db.insert(notificationQueue).values({
+    userId: session.userId,
+    medium: "telegram",
+    title: "t",
+    message: "m",
+    status: "dead",
+    lastError: "bot was blocked",
+    createdAt: new Date(Date.now() - 60_000),
+  });
+
+  stubFetch(403, JSON.stringify({ ok: false, description: "bot was blocked by the user" }));
+  await sendTestNotificationAction("telegram");
+  expect(await getChannelFailures(session.userId)).toHaveLength(1);
+
+  stubFetch(200, JSON.stringify({ ok: true, result: { message_id: 1 } }));
+  await sendTestNotificationAction("telegram");
+  expect(await getChannelFailures(session.userId)).toEqual([]);
 });

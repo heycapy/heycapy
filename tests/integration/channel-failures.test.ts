@@ -2,7 +2,7 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { db } from "@/lib/db";
 import { notificationQueue } from "@/lib/db/schema";
 import { dataEvents } from "@/lib/events";
-import { getChannelFailures } from "@/lib/notifications/failures";
+import { dismissChannelFailures, getChannelFailures } from "@/lib/notifications/failures";
 import { enqueue, processPending } from "@/lib/notifications/queue";
 import type { NotificationMedium } from "@/lib/notifications/queue";
 import {
@@ -98,4 +98,17 @@ it("a delivery that gives up tells open pages to refresh, a retry does not", asy
   await processPending();
   expect(refreshed).toHaveBeenCalledWith(userId);
   dataEvents.off("refresh", refreshed);
+});
+
+it("dismissing a channel hides its current failures but not later ones", async () => {
+  const userId = await seedUser();
+  await seedJob(userId, "telegram", "dead", { hoursAgo: 3 });
+  await seedJob(userId, "email", "dead", { hoursAgo: 3 });
+
+  await dismissChannelFailures(userId, "telegram");
+  expect((await getChannelFailures(userId, NOW)).map((f) => f.medium)).toEqual(["email"]);
+
+  await seedJob(userId, "telegram", "dead", { hoursAgo: 1, error: "new" });
+  const telegram = (await getChannelFailures(userId, NOW)).find((f) => f.medium === "telegram");
+  expect(telegram?.deliveries.map((d) => d.error)).toEqual(["new"]);
 });

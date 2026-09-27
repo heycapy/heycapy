@@ -1,8 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { BracketButton } from "@/components/ui/BracketButton";
+import { dismissDeliveryFailuresAction } from "@/app/(app)/actions";
 import type { ChannelFailure } from "@/lib/notifications/failures";
+import type { NotificationMedium } from "@/lib/notifications/queue";
 import { DeliveryFailuresDialog } from "./DeliveryFailuresDialog";
 
 interface DeliveryFailureBannerProps {
@@ -12,12 +14,26 @@ interface DeliveryFailureBannerProps {
 
 export function DeliveryFailureBanner({ failures, onFix }: DeliveryFailureBannerProps) {
   const [details, setDetails] = useState<ChannelFailure | null>(null);
+  const [dismissing, setDismissing] = useState<NotificationMedium[]>([]);
+  const [, startTransition] = useTransition();
 
-  if (failures.length === 0) return null;
+  function dismiss(medium: NotificationMedium) {
+    setDismissing((prev) => [...prev, medium]);
+    startTransition(async () => {
+      try {
+        await dismissDeliveryFailuresAction(medium);
+      } finally {
+        setDismissing((prev) => prev.filter((m) => m !== medium));
+      }
+    });
+  }
+
+  const visible = failures.filter((f) => !dismissing.includes(f.medium));
+  if (visible.length === 0) return null;
 
   return (
     <div className="flex flex-col gap-2 px-4 pt-3">
-      {failures.map((failure) => {
+      {visible.map((failure) => {
         const count = failure.deliveries.length;
         const latestError = failure.deliveries[0]?.error;
         return (
@@ -35,6 +51,13 @@ export function DeliveryFailureBanner({ failures, onFix }: DeliveryFailureBanner
             </BracketButton>
             <BracketButton onClick={() => setDetails(failure)} className="shrink-0">
               details
+            </BracketButton>
+            <BracketButton
+              onClick={() => dismiss(failure.medium)}
+              aria-label={`dismiss ${failure.medium} failures`}
+              className="shrink-0"
+            >
+              x
             </BracketButton>
           </div>
         );

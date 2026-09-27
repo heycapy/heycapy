@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, inArray } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, isNull } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { buckets, items, notificationQueue } from "@/lib/db/schema";
 import { CHANNEL_FAILURE_WINDOW_MS } from "./constants";
@@ -30,6 +30,7 @@ export async function getChannelFailures(
       and(
         eq(notificationQueue.userId, userId),
         inArray(notificationQueue.status, ["sent", "dead"]),
+        isNull(notificationQueue.dismissedAt),
         gte(notificationQueue.createdAt, new Date(now.getTime() - CHANNEL_FAILURE_WINDOW_MS))
       )
     )
@@ -53,4 +54,21 @@ export async function getChannelFailures(
     failures.set(job.medium, deliveries);
   }
   return [...failures].map(([medium, deliveries]) => ({ medium, deliveries }));
+}
+
+export async function dismissChannelFailures(
+  userId: number,
+  medium: NotificationMedium
+): Promise<void> {
+  await db
+    .update(notificationQueue)
+    .set({ dismissedAt: new Date() })
+    .where(
+      and(
+        eq(notificationQueue.userId, userId),
+        eq(notificationQueue.medium, medium),
+        eq(notificationQueue.status, "dead"),
+        isNull(notificationQueue.dismissedAt)
+      )
+    );
 }

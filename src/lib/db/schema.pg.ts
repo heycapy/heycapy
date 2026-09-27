@@ -152,6 +152,7 @@ export const notificationQueue = pgTable("notification_queue", {
   lastError: text("last_error"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   sentAt: timestamp("sent_at"),
+  dismissedAt: timestamp("dismissed_at"),
 });
 
 // notification_log — immutable audit trail

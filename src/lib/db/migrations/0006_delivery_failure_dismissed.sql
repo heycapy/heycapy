@@ -1,0 +1,1 @@
+ALTER TABLE `notification_queue` ADD `dismissed_at` integer;
