@@ -8,6 +8,7 @@ import { getSession, deleteSession } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { users, userSettings } from "@/lib/db/schema";
 import { encryptValue, decryptValue } from "@/lib/crypto";
+import { refreshUserReminders } from "@/lib/reminders/refresh";
 import { TELEGRAM_API_BASE } from "@/constants";
 import { sendEmail } from "@/lib/notifications/email";
 import { APP_NAME } from "@/constants";
@@ -120,6 +121,7 @@ export async function updateUserSettingsAction(
       updatedAt: new Date(),
     })
     .where(eq(userSettings.userId, session.userId));
+  await refreshUserReminders(session.userId);
 
   return { ok: true };
 }
@@ -214,10 +216,12 @@ export async function saveTimezoneIfDefaultAction(timezone: string): Promise<voi
   const session = await getSession();
   if (!session) return;
   if (!timezone || timezone === "UTC") return;
-  await db
+  const updated = await db
     .update(userSettings)
     .set({ timezone })
-    .where(and(eq(userSettings.userId, session.userId), eq(userSettings.timezone, "UTC")));
+    .where(and(eq(userSettings.userId, session.userId), eq(userSettings.timezone, "UTC")))
+    .returning({ userId: userSettings.userId });
+  if (updated.length > 0) await refreshUserReminders(session.userId);
 }
 
 export async function registerTelegramWebhookAction(

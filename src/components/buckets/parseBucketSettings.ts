@@ -59,7 +59,7 @@ function parseFieldSchema(raw: unknown): Record<string, unknown> {
   }
 }
 
-/** Turns a bucket's stored rule JSON (including legacy snake_case keys) into form values. */
+// Also accepts the legacy snake_case keys older buckets were saved with
 export function parseBucketSettings(bucket: BucketRow): BucketSettingsValues {
   const ir = parseJson<RawItemsRules>(bucket.itemsRules, {});
   const nr = parseJson<RawNotifRules>(bucket.notificationsRules, {});

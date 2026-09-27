@@ -11,6 +11,7 @@ import { errorMessage } from "@/lib/errors";
 import { ITEM_TITLE_MAX_LENGTH } from "@/constants";
 import type { NotificationMedium } from "@/lib/notifications/queue";
 import { dataEvents } from "@/lib/events";
+import { refreshItemReminders } from "@/lib/reminders/refresh";
 
 const rateLimitMap = new Map<string, number[]>();
 
@@ -156,6 +157,7 @@ export async function POST(
       ...(deadline !== undefined && { deadline }),
     })
     .returning();
+  await refreshItemReminders([item.id]);
 
   const hasArrivalTrigger = parsedSchema?.success && parsedSchema.data.notifyOnArrival === true;
 

@@ -1,9 +1,6 @@
 type ReminderState = { deadline: Date | null; notifiedAt: Date | null };
 
-/**
- * Reminder bookkeeping to apply when an item's deadline changes, so every path that edits
- * deadlines (web, assistant, telegram) re-arms reminders the same way.
- */
+// Shared by every path that edits deadlines (web, assistant, telegram) so they re-arm alike
 export function reminderResetForDeadline(
   item: ReminderState,
   newDeadline: Date | null,

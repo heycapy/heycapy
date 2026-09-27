@@ -3,6 +3,7 @@ import { and, eq, gte, isNull, lte, ne, or, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { findBucketByName } from "@/lib/db/buckets";
 import { reminderResetForDeadline } from "@/lib/items/reminders";
+import { refreshItemReminders } from "@/lib/reminders/refresh";
 import { encryptValue, generateWebhookKey } from "@/lib/crypto";
 import { BUCKET_NAME_MAX_LENGTH } from "@/constants";
 import { buckets, items } from "@/lib/db/schema";
@@ -312,6 +313,7 @@ async function executeToolCallInner(
           sortOrder: (maxRow?.max ?? -1) + 1,
         })
         .returning({ id: items.id });
+      if (inserted) await refreshItemReminders([inserted.id]);
 
       revalidatePath("/");
       return JSON.stringify({ ok: true, itemId: inserted?.id });
@@ -386,6 +388,7 @@ async function executeToolCallInner(
         .update(items)
         .set(updates)
         .where(and(eq(items.id, itemId), eq(items.userId, userId)));
+      await refreshItemReminders([itemId]);
 
       revalidatePath("/");
       return JSON.stringify({ ok: true });
@@ -407,6 +410,7 @@ async function executeToolCallInner(
           updatedAt: new Date(),
         })
         .where(and(eq(items.id, itemId), eq(items.userId, userId)));
+      await refreshItemReminders([itemId]);
 
       revalidatePath("/");
       return JSON.stringify({ ok: true, newStatus });
@@ -423,6 +427,7 @@ async function executeToolCallInner(
         .update(items)
         .set({ deletedAt: new Date() })
         .where(and(eq(items.id, itemId), eq(items.userId, userId)));
+      await refreshItemReminders([itemId]);
 
       revalidatePath("/");
       return JSON.stringify({ ok: true });
@@ -453,6 +458,7 @@ async function executeToolCallInner(
         .update(items)
         .set({ bucketId: destBucketId, sortOrder: (maxRow?.max ?? -1) + 1, updatedAt: new Date() })
         .where(and(eq(items.id, itemId), eq(items.userId, userId)));
+      await refreshItemReminders([itemId]);
 
       revalidatePath("/");
       return JSON.stringify({ ok: true });
@@ -473,6 +479,7 @@ async function executeToolCallInner(
         // Clearing notifiedAt makes the scheduler remind once more when the snooze ends
         .set({ snoozedUntil, notifiedAt: null, updatedAt: new Date() })
         .where(and(eq(items.id, itemId), eq(items.userId, userId)));
+      await refreshItemReminders([itemId]);
 
       revalidatePath("/");
       return JSON.stringify({ ok: true });

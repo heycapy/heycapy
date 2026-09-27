@@ -2,7 +2,7 @@ import { and, eq, isNull, ne, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { buckets } from "@/lib/db/schema";
 
-/** Finds a non-deleted bucket with the same name (case-insensitive), optionally ignoring one bucket. */
+// Case-insensitive, so "Todo" and "todo" count as the same name
 export async function findBucketByName(
   userId: number,
   name: string,

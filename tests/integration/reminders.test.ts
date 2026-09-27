@@ -1,79 +1,22 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { buckets, items, notificationQueue, userSettings, users } from "@/lib/db/schema";
-import { runNotifications } from "@/lib/scheduler";
+import { items } from "@/lib/db/schema";
 import { executeToolCall } from "@/lib/ai/capyTools";
 import { updateItemDeadline } from "@/app/api/telegram/telegram-utils";
+import {
+  HOUR,
+  remindersQueued,
+  resetSchedulerEnvironment,
+  runSchedulerAt,
+  seedReminder,
+  useSchedulerEnvironment,
+} from "./helpers";
 
-const HOUR = 60 * 60 * 1000;
 const T0 = new Date("2026-03-10T12:00:00Z");
 
-let userCount = 0;
-
-/** A user with telegram connected and a bucket that reminds once, via telegram, at the deadline. */
-async function seedReminder(opts: { deadline: Date; notifiedAt?: Date }) {
-  userCount += 1;
-  const [user] = await db
-    .insert(users)
-    .values({ email: `reminders-${userCount}@heycapy.test` })
-    .returning();
-  await db.insert(userSettings).values({
-    userId: user.id,
-    timezone: "UTC",
-    telegramChatId: "42",
-    notificationsTelegram: true,
-  });
-  const [bucket] = await db
-    .insert(buckets)
-    .values({
-      userId: user.id,
-      name: "Bills",
-      notificationsRules: JSON.stringify({ medium: ["telegram"], repeat: "once" }),
-    })
-    .returning();
-  const [item] = await db
-    .insert(items)
-    .values({
-      bucketId: bucket.id,
-      userId: user.id,
-      title: "pay rent",
-      deadline: opts.deadline,
-      notifiedAt: opts.notifiedAt ?? null,
-    })
-    .returning();
-  return { userId: user.id, itemId: item.id };
-}
-
-async function remindersQueued(itemId: number): Promise<number> {
-  const rows = await db
-    .select()
-    .from(notificationQueue)
-    .where(eq(notificationQueue.itemId, itemId));
-  return rows.length;
-}
-
-async function runSchedulerAt(time: Date): Promise<void> {
-  vi.setSystemTime(time);
-  await runNotifications();
-}
-
-beforeEach(() => {
-  vi.useFakeTimers({ toFake: ["Date"] });
-  vi.setSystemTime(T0);
-  process.env.TELEGRAM_BOT_TOKEN = "test-token";
-  vi.stubGlobal(
-    "fetch",
-    vi.fn(async () => new Response("{}", { status: 200 }))
-  );
-  vi.spyOn(process.stderr, "write").mockImplementation(() => true);
-});
-
-afterEach(() => {
-  vi.useRealTimers();
-  vi.unstubAllGlobals();
-  vi.restoreAllMocks();
-});
+beforeEach(() => useSchedulerEnvironment(T0));
+afterEach(() => resetSchedulerEnvironment());
 
 describe("scheduler baseline", () => {
   it("reminds about an item whose deadline has arrived", async () => {

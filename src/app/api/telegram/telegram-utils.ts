@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { buckets, items, userSettings } from "@/lib/db/schema";
 import { parseDeadlineInTimezone } from "@/lib/ai/capyTools";
 import { reminderResetForDeadline } from "@/lib/items/reminders";
+import { refreshItemReminders } from "@/lib/reminders/refresh";
 import type { TelegramBotConfig } from "@/components/buckets/constants";
 import { DEFAULT_TELEGRAM_BOT_CONFIG } from "@/components/buckets/constants";
 
@@ -362,6 +363,7 @@ export async function completeItemById(userId: number, itemId: number): Promise<
     .update(items)
     .set({ status: "completed", completedAt: new Date(), updatedAt: new Date() })
     .where(and(eq(items.id, itemId), eq(items.userId, userId)));
+  await refreshItemReminders([itemId]);
 }
 
 export async function updateItemTitle(
@@ -389,6 +391,7 @@ export async function updateItemDeadline(
     .update(items)
     .set({ deadline, ...reminderResetForDeadline(item, deadline), updatedAt: new Date() })
     .where(and(eq(items.id, itemId), eq(items.userId, userId)));
+  await refreshItemReminders([itemId]);
 }
 
 export async function softDeleteItemById(userId: number, itemId: number): Promise<void> {
@@ -396,6 +399,7 @@ export async function softDeleteItemById(userId: number, itemId: number): Promis
     .update(items)
     .set({ deletedAt: new Date() })
     .where(and(eq(items.id, itemId), eq(items.userId, userId)));
+  await refreshItemReminders([itemId]);
 }
 
 export async function createItem(
@@ -410,14 +414,18 @@ export async function createItem(
     .from(items)
     .where(eq(items.bucketId, bucketId));
 
-  await db.insert(items).values({
-    bucketId,
-    userId,
-    title,
-    deadline,
-    status: "active",
-    source: "manual",
-    sortOrder: (maxRow?.max ?? -1) + 1,
-    recurring,
-  });
+  const [created] = await db
+    .insert(items)
+    .values({
+      bucketId,
+      userId,
+      title,
+      deadline,
+      status: "active",
+      source: "manual",
+      sortOrder: (maxRow?.max ?? -1) + 1,
+      recurring,
+    })
+    .returning({ id: items.id });
+  if (created) await refreshItemReminders([created.id]);
 }

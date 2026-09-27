@@ -15,6 +15,7 @@ import {
   TELEGRAM_RESERVED_COMMANDS,
 } from "@/constants";
 import { findBucketByName } from "@/lib/db/buckets";
+import { refreshBucketReminders } from "@/lib/reminders/refresh";
 import {
   TELEGRAM_DEADLINE_PRESETS,
   TELEGRAM_RECURRING_OPTIONS,
@@ -161,6 +162,7 @@ export async function updateBucketSettingsAction(
       updatedAt: new Date(),
     })
     .where(and(eq(buckets.id, bucketId), eq(buckets.userId, session.userId)));
+  await refreshBucketReminders(bucketId);
 
   revalidatePath("/");
   return { ok: true };

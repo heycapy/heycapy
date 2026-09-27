@@ -9,6 +9,7 @@ import { ITEM_TITLE_MAX_LENGTH } from "@/constants";
 import type { RecurringConfig } from "@/types/rules";
 import { parseDeadlineString } from "@/lib/time";
 import { reminderResetForDeadline } from "@/lib/items/reminders";
+import { refreshItemReminders } from "@/lib/reminders/refresh";
 
 export async function getItemsForBucketAction(
   bucketId: number
@@ -87,16 +88,20 @@ export async function addItemAction(
     .from(items)
     .where(eq(items.bucketId, bucketId));
 
-  await db.insert(items).values({
-    bucketId,
-    userId: session.userId,
-    title: trimmed,
-    deadline: deadline ? parseDeadlineString(deadline) : null,
-    status: status ?? "active",
-    sortOrder: maxRow.max + 1,
-    recurring: recurring?.enabled ? JSON.stringify(recurring) : null,
-    properties: properties ? JSON.stringify(properties) : null,
-  });
+  const [created] = await db
+    .insert(items)
+    .values({
+      bucketId,
+      userId: session.userId,
+      title: trimmed,
+      deadline: deadline ? parseDeadlineString(deadline) : null,
+      status: status ?? "active",
+      sortOrder: maxRow.max + 1,
+      recurring: recurring?.enabled ? JSON.stringify(recurring) : null,
+      properties: properties ? JSON.stringify(properties) : null,
+    })
+    .returning({ id: items.id });
+  if (created) await refreshItemReminders([created.id]);
 
   revalidatePath("/");
   return { ok: true };
@@ -145,6 +150,7 @@ export async function updateItemAction(
       updatedAt: new Date(),
     })
     .where(and(eq(items.id, itemId), eq(items.userId, session.userId)));
+  await refreshItemReminders([itemId]);
 
   revalidatePath("/");
   return { ok: true };
@@ -170,6 +176,7 @@ export async function completeItemAction(
       updatedAt: new Date(),
     })
     .where(and(eq(items.id, itemId), eq(items.userId, session.userId)));
+  await refreshItemReminders([itemId]);
 
   revalidatePath("/");
   return { ok: true };
@@ -213,6 +220,7 @@ export async function deleteItemAction(
     .update(items)
     .set({ deletedAt: new Date() })
     .where(and(eq(items.id, itemId), eq(items.userId, session.userId)));
+  await refreshItemReminders([itemId]);
 
   revalidatePath("/");
   return { ok: true };

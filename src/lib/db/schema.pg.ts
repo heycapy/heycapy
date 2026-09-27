@@ -1,4 +1,4 @@
-import { boolean, integer, pgTable, serial, text, timestamp } from "drizzle-orm/pg-core";
+import { boolean, index, integer, pgTable, serial, text, timestamp } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import type { BucketSchema } from "@/types/rules";
 
@@ -95,33 +95,42 @@ export const buckets = pgTable("buckets", {
 
 // items
 
-export const items = pgTable("items", {
-  id: serial("id").primaryKey(),
-  bucketId: integer("bucket_id")
-    .notNull()
-    .references(() => buckets.id, { onDelete: "cascade" }),
-  userId: integer("user_id")
-    .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
-  title: text("title").notNull(),
-  description: text("description"),
-  deadline: timestamp("deadline"),
-  status: text("status").notNull().default("active"),
-  properties: text("properties"),
-  externalId: text("external_id"),
-  externalUrl: text("external_url"),
-  notificationOffsetMins: integer("notification_offset_mins"),
-  notifiedAt: timestamp("notified_at"),
-  overdueNotifiedAt: timestamp("overdue_notified_at"),
-  snoozedUntil: timestamp("snoozed_until"),
-  sortOrder: integer("sort_order").notNull().default(0),
-  recurring: text("recurring"),
-  source: text("source").notNull().default("manual"),
-  completedAt: timestamp("completed_at"),
-  deletedAt: timestamp("deleted_at"),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-  updatedAt: timestamp("updated_at").notNull().defaultNow(),
-});
+export const items = pgTable(
+  "items",
+  {
+    id: serial("id").primaryKey(),
+    bucketId: integer("bucket_id")
+      .notNull()
+      .references(() => buckets.id, { onDelete: "cascade" }),
+    userId: integer("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    title: text("title").notNull(),
+    description: text("description"),
+    deadline: timestamp("deadline"),
+    status: text("status").notNull().default("active"),
+    properties: text("properties"),
+    externalId: text("external_id"),
+    externalUrl: text("external_url"),
+    notificationOffsetMins: integer("notification_offset_mins"),
+    notifiedAt: timestamp("notified_at"),
+    overdueNotifiedAt: timestamp("overdue_notified_at"),
+    snoozedUntil: timestamp("snoozed_until"),
+    nextReminderAt: timestamp("next_reminder_at"),
+    nextOverdueAt: timestamp("next_overdue_at"),
+    sortOrder: integer("sort_order").notNull().default(0),
+    recurring: text("recurring"),
+    source: text("source").notNull().default("manual"),
+    completedAt: timestamp("completed_at"),
+    deletedAt: timestamp("deleted_at"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (t) => [
+    index("idx_items_next_reminder_at").on(t.nextReminderAt),
+    index("idx_items_next_overdue_at").on(t.nextOverdueAt),
+  ]
+);
 
 // notification_queue — reliable delivery with retries
 

@@ -1,4 +1,4 @@
-import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { index, integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
 import { sql } from "drizzle-orm";
 import type { BucketSchema } from "@/types/rules";
 
@@ -146,39 +146,48 @@ export const buckets = sqliteTable("buckets", {
 
 // items
 
-export const items = sqliteTable("items", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
-  bucketId: integer("bucket_id")
-    .notNull()
-    .references(() => buckets.id, { onDelete: "cascade" }),
-  userId: integer("user_id")
-    .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
-  title: text("title").notNull(),
-  description: text("description"),
-  deadline: integer("deadline", { mode: "timestamp" }),
-  status: text("status").notNull().default("active"),
-  properties: text("properties"),
-  externalId: text("external_id"),
-  externalUrl: text("external_url"),
-  notificationOffsetMins: integer("notification_offset_mins"),
-  notifiedAt: integer("notified_at", { mode: "timestamp" }),
-  overdueNotifiedAt: integer("overdue_notified_at", { mode: "timestamp" }),
-  snoozedUntil: integer("snoozed_until", { mode: "timestamp" }),
-  sortOrder: integer("sort_order").notNull().default(0),
-  recurring: text("recurring"),
-  source: text("source", { enum: ["manual", "ai", "mcp", "webhook", "system"] })
-    .notNull()
-    .default("manual"),
-  completedAt: integer("completed_at", { mode: "timestamp" }),
-  deletedAt: integer("deleted_at", { mode: "timestamp" }),
-  createdAt: integer("created_at", { mode: "timestamp" })
-    .notNull()
-    .default(sql`(unixepoch())`),
-  updatedAt: integer("updated_at", { mode: "timestamp" })
-    .notNull()
-    .default(sql`(unixepoch())`),
-});
+export const items = sqliteTable(
+  "items",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    bucketId: integer("bucket_id")
+      .notNull()
+      .references(() => buckets.id, { onDelete: "cascade" }),
+    userId: integer("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    title: text("title").notNull(),
+    description: text("description"),
+    deadline: integer("deadline", { mode: "timestamp" }),
+    status: text("status").notNull().default("active"),
+    properties: text("properties"),
+    externalId: text("external_id"),
+    externalUrl: text("external_url"),
+    notificationOffsetMins: integer("notification_offset_mins"),
+    notifiedAt: integer("notified_at", { mode: "timestamp" }),
+    overdueNotifiedAt: integer("overdue_notified_at", { mode: "timestamp" }),
+    snoozedUntil: integer("snoozed_until", { mode: "timestamp" }),
+    nextReminderAt: integer("next_reminder_at", { mode: "timestamp" }),
+    nextOverdueAt: integer("next_overdue_at", { mode: "timestamp" }),
+    sortOrder: integer("sort_order").notNull().default(0),
+    recurring: text("recurring"),
+    source: text("source", { enum: ["manual", "ai", "mcp", "webhook", "system"] })
+      .notNull()
+      .default("manual"),
+    completedAt: integer("completed_at", { mode: "timestamp" }),
+    deletedAt: integer("deleted_at", { mode: "timestamp" }),
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .default(sql`(unixepoch())`),
+    updatedAt: integer("updated_at", { mode: "timestamp" })
+      .notNull()
+      .default(sql`(unixepoch())`),
+  },
+  (t) => [
+    index("idx_items_next_reminder_at").on(t.nextReminderAt),
+    index("idx_items_next_overdue_at").on(t.nextOverdueAt),
+  ]
+);
 
 // notification_queue — reliable delivery with retries
 
