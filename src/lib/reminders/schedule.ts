@@ -1,4 +1,5 @@
 import type { NotificationRules } from "@/types/rules";
+import { ON_HOLD_STATUS } from "@/constants";
 import { OVERDUE_FIRST_ALERT_DEFAULT_MINS } from "./constants";
 import { atLocalClock, addLocalDays, minutesOfDay, parseClock, toLocal } from "./zoned";
 
@@ -6,7 +7,7 @@ export type ReminderInputs = {
   deadline: Date | null;
   status: string;
   deletedAt: Date | null;
-  snoozedUntil: Date | null;
+  remindNotBefore: Date | null;
   notifiedAt: Date | null;
   overdueNotifiedAt: Date | null;
   notificationOffsetMins: number | null;
@@ -22,7 +23,7 @@ function canRemind(i: ReminderInputs): i is ReminderInputs & { deadline: Date } 
     i.deadline !== null &&
     i.deletedAt === null &&
     i.status !== "completed" &&
-    i.status !== "snoozed"
+    i.status !== ON_HOLD_STATUS
   );
 }
 
@@ -70,7 +71,7 @@ export function nextDeadlineReminder(i: ReminderInputs): Date | null {
     return null;
   }
 
-  return applyDeliveryWindow(notBefore(due, i.snoozedUntil), i.rules, i.timezone);
+  return applyDeliveryWindow(notBefore(due, i.remindNotBefore), i.rules, i.timezone);
 }
 
 export function nextOverdueAlert(i: ReminderInputs): Date | null {
@@ -86,5 +87,5 @@ export function nextOverdueAlert(i: ReminderInputs): Date | null {
     return null;
   }
 
-  return notBefore(due, i.snoozedUntil);
+  return notBefore(due, i.remindNotBefore);
 }

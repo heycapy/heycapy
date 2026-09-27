@@ -121,10 +121,10 @@ describe("dialog details", () => {
     expect(done?.completedAt).toEqual(T0);
     expect(done?.nextChannels).toBeNull();
 
-    const snoozed = await seedItem(userId, bucketId, { deadline: TOMORROW });
-    await db.update(items).set({ status: "snoozed" }).where(eq(items.id, snoozed));
-    await refreshItemReminders([snoozed]);
-    expect((await getItemReminderInfo(userId, snoozed))?.reason).toBe("statusSnoozed");
+    const onHold = await seedItem(userId, bucketId, { deadline: TOMORROW });
+    await db.update(items).set({ status: "on hold" }).where(eq(items.id, onHold));
+    await refreshItemReminders([onHold]);
+    expect((await getItemReminderInfo(userId, onHold))?.reason).toBe("onHold");
 
     const other = await setup([]);
     const noChannel = await seedItem(other.userId, other.bucketId, { deadline: TOMORROW });

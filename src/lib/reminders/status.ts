@@ -2,6 +2,7 @@ import { and, desc, eq, inArray } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { buckets, items, notificationQueue, userSettings } from "@/lib/db/schema";
 import { NotificationRules } from "@/types/rules";
+import { ON_HOLD_STATUS } from "@/constants";
 import { ALL_CHANNELS, channelDecisions, type ChannelDecision } from "@/lib/notifications/channels";
 import type { NotificationMedium } from "@/lib/notifications/queue";
 
@@ -27,7 +28,7 @@ export type ItemReminderInfo = {
   next: Date | null;
   nextChannels: ChannelDecision[] | null;
   completedAt: Date | null;
-  reason: "completed" | "statusSnoozed" | "noChannel" | "alreadyReminded" | null;
+  reason: "completed" | "onHold" | "noChannel" | "alreadyReminded" | null;
   history: NotificationEvent[];
 };
 
@@ -163,8 +164,8 @@ export async function getItemReminderInfo(
   const reason =
     item.status === "completed"
       ? "completed"
-      : item.status === "snoozed"
-        ? "statusSnoozed"
+      : item.status === ON_HOLD_STATUS
+        ? "onHold"
         : !decisions.some((c) => c.state === "send")
           ? "noChannel"
           : item.nextReminderAt

@@ -166,7 +166,7 @@ export const items = sqliteTable(
     notificationOffsetMins: integer("notification_offset_mins"),
     notifiedAt: integer("notified_at", { mode: "timestamp" }),
     overdueNotifiedAt: integer("overdue_notified_at", { mode: "timestamp" }),
-    snoozedUntil: integer("snoozed_until", { mode: "timestamp" }),
+    remindNotBefore: integer("remind_not_before", { mode: "timestamp" }),
     nextReminderAt: integer("next_reminder_at", { mode: "timestamp" }),
     nextOverdueAt: integer("next_overdue_at", { mode: "timestamp" }),
     sortOrder: integer("sort_order").notNull().default(0),

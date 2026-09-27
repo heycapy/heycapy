@@ -16,7 +16,7 @@ function inputs(
     deadline,
     status: "active",
     deletedAt: null,
-    snoozedUntil: null,
+    remindNotBefore: null,
     notifiedAt: null,
     overdueNotifiedAt: null,
     notificationOffsetMins: null,
@@ -48,9 +48,9 @@ describe("nextDeadlineReminder", () => {
     ).toBe("2026-06-09T13:00:00.000Z");
   });
 
-  it("sends nothing for completed, snoozed-status, deleted or undated items", () => {
+  it("sends nothing for completed, on-hold, deleted or undated items", () => {
     expect(nextDeadlineReminder(inputs({ status: "completed" }))).toBeNull();
-    expect(nextDeadlineReminder(inputs({ status: "snoozed" }))).toBeNull();
+    expect(nextDeadlineReminder(inputs({ status: "on hold" }))).toBeNull();
     expect(nextDeadlineReminder(inputs({ deletedAt: new Date() }))).toBeNull();
     expect(nextDeadlineReminder(inputs({ deadline: null }))).toBeNull();
   });
@@ -68,9 +68,11 @@ describe("nextDeadlineReminder", () => {
     expect(iso(next)).toBe("2026-06-11T13:00:00.000Z");
   });
 
-  it("waits for a snooze to end", () => {
-    const snoozedUntil = new Date("2026-06-10T18:00:00Z");
-    expect(iso(nextDeadlineReminder(inputs({ snoozedUntil })))).toBe(snoozedUntil.toISOString());
+  it("waits until the not-before time", () => {
+    const remindNotBefore = new Date("2026-06-10T18:00:00Z");
+    expect(iso(nextDeadlineReminder(inputs({ remindNotBefore })))).toBe(
+      remindNotBefore.toISOString()
+    );
   });
 
   it("holds reminders until the 'notify at' time of that day", () => {
@@ -149,10 +151,10 @@ describe("nextOverdueAlert", () => {
     ).toBeNull();
   });
 
-  it("waits for a snooze and skips completed items", () => {
-    const snoozedUntil = new Date("2026-06-11T00:00:00Z");
-    expect(iso(nextOverdueAlert(inputs({ notifyWhenOverdue: true, snoozedUntil })))).toBe(
-      snoozedUntil.toISOString()
+  it("waits until the not-before time and skips completed items", () => {
+    const remindNotBefore = new Date("2026-06-11T00:00:00Z");
+    expect(iso(nextOverdueAlert(inputs({ notifyWhenOverdue: true, remindNotBefore })))).toBe(
+      remindNotBefore.toISOString()
     );
     expect(nextOverdueAlert(inputs({ notifyWhenOverdue: true, status: "completed" }))).toBeNull();
   });

@@ -12,6 +12,9 @@ export const GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta
 export const OLLAMA_DEFAULT_URL = "https://ollama.yourdomain.com";
 export const NTFY_DEFAULT_URL = "https://ntfy.sh";
 
+// Built-in status that pauses an item's reminders until changed
+export const ON_HOLD_STATUS = "on hold";
+
 export const WEBHOOK_KEY_PREFIX = "hc_live_";
 // Telegram command limit
 export const TELEGRAM_ALIAS_MAX_LENGTH = 32;

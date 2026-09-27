@@ -336,7 +336,7 @@ async function executeToolCallInner(
         deadline?: Date | null;
         notifiedAt?: Date | null;
         overdueNotifiedAt?: Date | null;
-        snoozedUntil?: Date | null;
+        remindNotBefore?: Date | null;
         notificationOffsetMins?: number | null;
         recurring?: string | null;
         status?: string;
@@ -474,27 +474,6 @@ async function executeToolCallInner(
       return JSON.stringify({ ok: true });
     }
 
-    case "snooze_item": {
-      const itemId = Number(args.item_id);
-      const item = await db.query.items.findFirst({
-        where: (i, { eq: qeq, and: qand }) => qand(qeq(i.id, itemId), qeq(i.userId, userId)),
-      });
-      if (!item) return JSON.stringify({ ok: false, error: "Item not found" });
-
-      const snoozedUntil = args.snooze_until
-        ? parseDeadlineInTimezone(String(args.snooze_until), timezone)
-        : null;
-      await db
-        .update(items)
-        // Clearing notifiedAt makes the scheduler remind once more when the snooze ends
-        .set({ snoozedUntil, notifiedAt: null, updatedAt: new Date() })
-        .where(and(eq(items.id, itemId), eq(items.userId, userId)));
-      await refreshItemReminders([itemId]);
-
-      revalidatePath("/");
-      return JSON.stringify({ ok: true });
-    }
-
     case "list_items": {
       const bucketId = Number(args.bucket_id);
       const includeCompleted = Boolean(args.include_completed ?? false);
@@ -511,7 +490,6 @@ async function executeToolCallInner(
           deadline: items.deadline,
           status: items.status,
           notificationOffsetMins: items.notificationOffsetMins,
-          snoozedUntil: items.snoozedUntil,
           recurring: items.recurring,
           properties: items.properties,
         })
@@ -571,7 +549,6 @@ async function executeToolCallInner(
             status: items.status,
             bucketId: items.bucketId,
             notificationOffsetMins: items.notificationOffsetMins,
-            snoozedUntil: items.snoozedUntil,
             completedAt: items.completedAt,
           })
           .from(items)
@@ -599,7 +576,6 @@ async function executeToolCallInner(
           bucketId: row.bucketId,
           deadline: row.deadline,
           deadlineRelative: row.deadline ? deadlineRelative(row.deadline, timezone) : null,
-          snoozedUntil: row.snoozedUntil,
           completedAt: row.completedAt,
         }))
         .filter((row) => {

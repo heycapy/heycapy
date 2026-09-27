@@ -73,18 +73,18 @@ describe("rescheduling from telegram", () => {
   });
 });
 
-describe("snoozing via the assistant", () => {
-  it("reminds again once the snooze ends, and not during it", async () => {
+describe("remind me later via the assistant", () => {
+  it("moves the deadline and reminds then, not before", async () => {
     const { userId, itemId } = await seedReminder({ deadline: T0 });
     await runSchedulerAt(new Date(T0.getTime() + 60_000));
     expect(await remindersQueued(itemId)).toBe(1);
 
-    const snoozeUntil = new Date(T0.getTime() + 3 * HOUR);
+    const later = new Date(T0.getTime() + 3 * HOUR);
     const result = await executeToolCall(
       {
         id: "call-1",
-        name: "snooze_item",
-        arguments: { item_id: itemId, snooze_until: snoozeUntil.toISOString() },
+        name: "update_item",
+        arguments: { item_id: itemId, deadline: later.toISOString() },
       },
       userId
     );
@@ -93,7 +93,7 @@ describe("snoozing via the assistant", () => {
     await runSchedulerAt(new Date(T0.getTime() + 2 * HOUR));
     expect(await remindersQueued(itemId)).toBe(1);
 
-    await runSchedulerAt(new Date(snoozeUntil.getTime() + 60_000));
+    await runSchedulerAt(new Date(later.getTime() + 60_000));
     expect(await remindersQueued(itemId)).toBe(2);
   });
 });

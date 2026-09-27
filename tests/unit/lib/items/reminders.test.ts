@@ -18,7 +18,7 @@ describe("reminderResetForDeadline", () => {
     expect(reminderResetForDeadline(item, new Date("2026-03-11T09:00:00Z"), 0, now)).toEqual({
       notifiedAt: null,
       overdueNotifiedAt: null,
-      snoozedUntil: null,
+      remindNotBefore: null,
     });
   });
 
@@ -26,7 +26,7 @@ describe("reminderResetForDeadline", () => {
     expect(reminderResetForDeadline(item, new Date("2026-03-10T10:00:00Z"), 0, now)).toEqual({
       notifiedAt,
       overdueNotifiedAt: null,
-      snoozedUntil: null,
+      remindNotBefore: null,
     });
   });
 
@@ -39,7 +39,7 @@ describe("reminderResetForDeadline", () => {
     expect(reminderResetForDeadline(fresh, new Date("2026-03-10T10:00:00Z"), 0, now)).toEqual({
       notifiedAt: now,
       overdueNotifiedAt: null,
-      snoozedUntil: null,
+      remindNotBefore: null,
     });
   });
 
@@ -47,7 +47,7 @@ describe("reminderResetForDeadline", () => {
     expect(reminderResetForDeadline(item, null, 0, now)).toEqual({
       notifiedAt: null,
       overdueNotifiedAt: null,
-      snoozedUntil: null,
+      remindNotBefore: null,
     });
   });
 
@@ -56,7 +56,7 @@ describe("reminderResetForDeadline", () => {
     expect(reminderResetForDeadline(undated, new Date("2026-03-11T09:00:00Z"), 0, now)).toEqual({
       notifiedAt: null,
       overdueNotifiedAt: null,
-      snoozedUntil: null,
+      remindNotBefore: null,
     });
   });
 });
@@ -68,28 +68,28 @@ describe("reminderResetForDeadline with an early reminder", () => {
     // Remind 1 day before: moving to tomorrow puts that time in the past
     expect(reminderResetForDeadline(item, tomorrow, 24 * 60, now)).toMatchObject({
       notifiedAt: null,
-      snoozedUntil: tomorrow,
+      remindNotBefore: tomorrow,
     });
   });
 
   it("still sends the early reminder now for an item that was never reminded", () => {
     const fresh = { ...item, notifiedAt: null };
     expect(reminderResetForDeadline(fresh, tomorrow, 24 * 60, now)).toMatchObject({
-      snoozedUntil: null,
+      remindNotBefore: null,
     });
   });
 
   it("keeps the early reminder when its time is still ahead", () => {
     expect(reminderResetForDeadline(item, tomorrow, 60, now)).toMatchObject({
       notifiedAt: null,
-      snoozedUntil: null,
+      remindNotBefore: null,
     });
   });
 
   it("uses the item's own offset over the bucket default", () => {
     const itemOffset = { ...item, notificationOffsetMins: 24 * 60 };
     expect(reminderResetForDeadline(itemOffset, tomorrow, 0, now)).toMatchObject({
-      snoozedUntil: tomorrow,
+      remindNotBefore: tomorrow,
     });
   });
 });

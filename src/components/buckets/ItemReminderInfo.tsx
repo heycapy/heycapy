@@ -12,7 +12,7 @@ import { formatDeadline } from "./ItemRow";
 
 const REASONS: Record<NonNullable<Info["reason"]>, string> = {
   completed: "completed",
-  statusSnoozed: "no reminders — status is snoozed",
+  onHold: "no reminders — item is on hold",
   noChannel: "no reminder — this bucket has no working channel",
   alreadyReminded: "no further reminders (repeat: once)",
 };

@@ -54,7 +54,7 @@ const FEATURES: Feature[] = [
         text: "items have a title, optional deadline, status, and optional recurring config.",
       },
       { type: "step", text: "click any item to edit it. enter to save, escape to cancel." },
-      { type: "step", text: "snoozed items hide until the snooze time passes." },
+      { type: "step", text: "items on hold get no reminders until you change their status." },
       { type: "step", text: "custom schema fields show up as extra inputs in the item editor." },
       {
         type: "tip",
@@ -100,7 +100,7 @@ const FEATURES: Feature[] = [
       { type: "step", text: 'minimum payload: {"title": "your item"}' },
       {
         type: "step",
-        text: 'optional: "deadline" (ISO datetime), "status" ("active" / "completed" / "snoozed")',
+        text: 'optional: "deadline" (ISO datetime), "status" ("active" / "completed" / "on hold")',
       },
       {
         type: "code",

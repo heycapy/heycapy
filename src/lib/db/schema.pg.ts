@@ -115,7 +115,7 @@ export const items = pgTable(
     notificationOffsetMins: integer("notification_offset_mins"),
     notifiedAt: timestamp("notified_at"),
     overdueNotifiedAt: timestamp("overdue_notified_at"),
-    snoozedUntil: timestamp("snoozed_until"),
+    remindNotBefore: timestamp("remind_not_before"),
     nextReminderAt: timestamp("next_reminder_at"),
     nextOverdueAt: timestamp("next_overdue_at"),
     sortOrder: integer("sort_order").notNull().default(0),

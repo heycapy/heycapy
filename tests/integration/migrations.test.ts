@@ -48,4 +48,50 @@ describe("migrations", () => {
     );
     sqlite.close();
   });
+
+  it("turn the snoozed status into on hold and keep the not-before time", () => {
+    const journal = JSON.parse(
+      readFileSync(path.join(MIGRATIONS, "meta/_journal.json"), "utf8")
+    ) as Journal;
+    const onHoldMigration = journal.entries.findIndex((e) => e.tag === "0008_on_hold_status");
+    const dbPath = path.join(mkdtempSync(path.join(tmpdir(), "heycapy-on-hold-")), "db.sqlite");
+    const sqlite = new Database(dbPath);
+    const db = drizzle(sqlite);
+    migrate(db, { migrationsFolder: migrationsUpTo(onHoldMigration) });
+
+    const statuses = JSON.stringify({
+      fields: [],
+      statuses: [
+        { name: "active", color: "#22c55e" },
+        { name: "snoozed", color: "#f59e0b" },
+      ],
+    });
+    sqlite.exec(`
+      INSERT INTO users (id, email) VALUES (1, 'a@heycapy.test');
+      INSERT INTO buckets (id, user_id, name, notifications_rules, field_schema)
+        VALUES (1, 1, 'Bills', '{}', '${statuses}');
+      INSERT INTO templates (name, rules_json, field_schema_json) VALUES ('T', '{}', '${statuses}');
+      INSERT INTO items (bucket_id, user_id, title, status, snoozed_until)
+        VALUES (1, 1, 'rent', 'snoozed', 1773144000), (1, 1, 'gym', 'active', NULL);
+    `);
+
+    migrate(db, { migrationsFolder: MIGRATIONS });
+
+    expect(sqlite.prepare("SELECT status, remind_not_before FROM items ORDER BY id").all()).toEqual(
+      [
+        { status: "on hold", remind_not_before: 1773144000 },
+        { status: "active", remind_not_before: null },
+      ]
+    );
+    const saved = [
+      sqlite.prepare("SELECT field_schema AS s FROM buckets").get(),
+      sqlite.prepare("SELECT field_schema_json AS s FROM templates").get(),
+    ] as { s: string }[];
+    for (const { s } of saved) {
+      expect(
+        (JSON.parse(s) as { statuses: { name: string }[] }).statuses.map((x) => x.name)
+      ).toEqual(["active", "on hold"]);
+    }
+    sqlite.close();
+  });
 });

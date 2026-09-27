@@ -69,7 +69,7 @@ export function toReminderInputs(row: ReminderRow): ReminderInputs {
     deadline: row.item.deadline,
     status: row.item.status,
     deletedAt: row.item.deletedAt,
-    snoozedUntil: row.item.snoozedUntil,
+    remindNotBefore: row.item.remindNotBefore,
     notifiedAt: row.item.notifiedAt,
     overdueNotifiedAt: row.item.overdueNotifiedAt,
     notificationOffsetMins: row.item.notificationOffsetMins,

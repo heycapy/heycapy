@@ -1,7 +1,12 @@
 import { test, expect, type Locator, type Page } from "@playwright/test";
 import { authState } from "../helpers/auth";
+import { NTFY_DEFAULT_URL } from "@/constants";
 
 test.use({ storageState: authState("test-send") });
+
+function ntfyInputs(ntfy: Locator): [Locator, Locator] {
+  return [ntfy.getByPlaceholder(NTFY_DEFAULT_URL), ntfy.getByPlaceholder("heycapy-k3m9xp2qlr7a")];
+}
 
 async function openNtfySettings(page: Page): Promise<Locator> {
   await page.goto("/");
@@ -17,7 +22,7 @@ async function openNtfySettings(page: Page): Promise<Locator> {
 test("ntfy send test is disabled until a server url and topic are entered", async ({ page }) => {
   const ntfy = await openNtfySettings(page);
   const sendTest = ntfy.getByRole("button", { name: "[send test]" });
-  const [url, topic] = await ntfy.locator("input[type=text]").all();
+  const [url, topic] = ntfyInputs(ntfy);
 
   await url.fill("");
   await topic.fill("");
@@ -30,7 +35,7 @@ test("ntfy send test is disabled until a server url and topic are entered", asyn
 
 test("ntfy send test confirms the send", async ({ page }) => {
   const ntfy = await openNtfySettings(page);
-  const [url, topic] = await ntfy.locator("input[type=text]").all();
+  const [url, topic] = ntfyInputs(ntfy);
   await url.fill("https://ntfy.example.com");
   await topic.fill("capy-test");
 
@@ -40,7 +45,7 @@ test("ntfy send test confirms the send", async ({ page }) => {
 
 test("ntfy send test reports an invalid server url", async ({ page }) => {
   const ntfy = await openNtfySettings(page);
-  const [url, topic] = await ntfy.locator("input[type=text]").all();
+  const [url, topic] = ntfyInputs(ntfy);
   await url.fill("ftp://ntfy.example.com");
   await topic.fill("capy-test");
 

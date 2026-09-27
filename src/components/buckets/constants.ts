@@ -1,5 +1,6 @@
 import type { LucideIcon } from "lucide-react";
 import { Activity, Bell, Briefcase, CreditCard, ListTodo, Square } from "lucide-react";
+import { ON_HOLD_STATUS } from "@/constants";
 import type { StatusDef } from "@/types/rules";
 
 export type SortBy = "deadline" | "created_at" | "manual";
@@ -20,7 +21,6 @@ export type NotificationsRulesConfig = {
   defaultOffsetMins?: number;
   repeat?: RepeatMode;
   quietHours?: { from: string; to: string } | null;
-  snoozeUntil?: string | null;
 };
 
 export const TEMPLATE_ICONS: Record<string, LucideIcon> = {
@@ -37,7 +37,7 @@ export type ItemStatus = string;
 export const DEFAULT_BUCKET_STATUSES: StatusDef[] = [
   { name: "active", color: "#22c55e", isDefault: true },
   { name: "completed", color: "#3b82f6" },
-  { name: "snoozed", color: "#f59e0b" },
+  { name: ON_HOLD_STATUS, color: "#f59e0b" },
 ];
 
 export const BUCKET_PALETTE = ["var(--p1)", "var(--p2)", "var(--p3)", "var(--p4)", "var(--p5)"];

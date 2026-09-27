@@ -21,7 +21,6 @@ const BUILTIN_TEMPLATES: BuiltinTemplate[] = [
         quietHours: null,
         defaultOffsetMins: 0,
         repeat: "once",
-        snoozeUntil: null,
       },
       items: {
         sortBy: "created_at",
@@ -46,7 +45,6 @@ const BUILTIN_TEMPLATES: BuiltinTemplate[] = [
         quietHours: null,
         defaultOffsetMins: 0,
         repeat: "once",
-        snoozeUntil: null,
       },
       items: {
         sortBy: "deadline",
@@ -72,7 +70,6 @@ const BUILTIN_TEMPLATES: BuiltinTemplate[] = [
         quietHours: null,
         defaultOffsetMins: 4320,
         repeat: "once",
-        snoozeUntil: null,
       },
       items: {
         sortBy: "deadline",
@@ -115,7 +112,6 @@ const BUILTIN_TEMPLATES: BuiltinTemplate[] = [
         quietHours: null,
         defaultOffsetMins: 0,
         repeat: "once",
-        snoozeUntil: null,
       },
       items: {
         sortBy: "manual",
@@ -149,7 +145,6 @@ const BUILTIN_TEMPLATES: BuiltinTemplate[] = [
         quietHours: { from: "18:00", to: "09:00" },
         defaultOffsetMins: 1440,
         repeat: "once",
-        snoozeUntil: null,
       },
       items: {
         sortBy: "deadline",
@@ -185,7 +180,6 @@ const BUILTIN_TEMPLATES: BuiltinTemplate[] = [
         quietHours: null,
         defaultOffsetMins: 0,
         repeat: "once",
-        snoozeUntil: null,
       },
       items: {
         sortBy: "created_at",

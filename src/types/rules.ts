@@ -6,7 +6,6 @@ export const NotificationRules = z.object({
   quietHours: z.object({ from: z.string(), to: z.string() }).nullable().default(null),
   defaultOffsetMins: z.number().int().nonnegative().default(0),
   repeat: z.enum(["once", "daily"]).default("once"),
-  snoozeUntil: z.iso.datetime().nullable().default(null),
 });
 
 export const ItemsRules = z.object({

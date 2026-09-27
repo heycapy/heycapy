@@ -265,7 +265,7 @@ export function ItemRow({
                     rel === "overdue"
                       ? "bg-destructive/15 text-destructive px-1"
                       : rel === "today"
-                        ? "font-medium text-(--status-snoozed)"
+                        ? "font-medium text-(--status-on-hold)"
                         : "text-muted-foreground"
                   )}
                 >

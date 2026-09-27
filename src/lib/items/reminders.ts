@@ -14,7 +14,7 @@ export function reminderResetForDeadline(
   newDeadline: Date | null,
   defaultOffsetMins: number,
   now = new Date()
-): { notifiedAt?: Date | null; overdueNotifiedAt?: null; snoozedUntil?: Date | null } {
+): { notifiedAt?: Date | null; overdueNotifiedAt?: null; remindNotBefore?: Date | null } {
   const unchanged = (item.deadline?.getTime() ?? null) === (newDeadline?.getTime() ?? null);
   if (unchanged) return {};
   const inPast = !!newDeadline && newDeadline < now;
@@ -28,6 +28,6 @@ export function reminderResetForDeadline(
   return {
     overdueNotifiedAt: null,
     notifiedAt: inPast ? (item.notifiedAt ?? now) : null,
-    snoozedUntil: holdUntilDeadline ? newDeadline : null,
+    remindNotBefore: holdUntilDeadline ? newDeadline : null,
   };
 }

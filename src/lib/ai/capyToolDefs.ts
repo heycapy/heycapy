@@ -135,7 +135,7 @@ export const CAPY_TOOLS: Tool[] = [
           type: "string",
           description:
             "Initial status for the item. Defaults to 'active'. " +
-            "System statuses are 'active', 'completed', 'snoozed'. " +
+            "System statuses are 'active', 'completed', 'on hold'. " +
             "Custom statuses are defined per-bucket in the bucket's schema.",
         },
         properties: {
@@ -154,7 +154,8 @@ export const CAPY_TOOLS: Tool[] = [
     description:
       "Update an existing item's title, deadline, notification offset, or recurring configuration. " +
       "Only include fields you want to change — omitted fields are left as-is. " +
-      "To clear the deadline, pass null. To remove recurring, set clear_recurring to true.",
+      "To clear the deadline, pass null. To remove recurring, set clear_recurring to true. " +
+      "When the user says 'remind me later', 'remind me tomorrow' or 'postpone', move the deadline.",
     parameters: {
       type: "object",
       properties: {
@@ -196,7 +197,7 @@ export const CAPY_TOOLS: Tool[] = [
         status: {
           type: "string",
           description:
-            "Set the item's status by name (e.g. 'active', 'completed', 'snoozed', or any custom status defined in the bucket schema).",
+            "Set the item's status by name (e.g. 'active', 'completed', 'on hold', or any custom status defined in the bucket schema).",
         },
         properties: {
           type: ["object", "null"],
@@ -259,30 +260,6 @@ export const CAPY_TOOLS: Tool[] = [
         },
       },
       required: ["item_id", "bucket_id"],
-    },
-  },
-  {
-    name: "snooze_item",
-    description:
-      "Snooze an item's notification until a specific date and time. " +
-      "The item will not trigger a notification until after the snooze period ends. " +
-      "Use this when the user says 'remind me later', 'snooze this', or 'remind me on [date]'. " +
-      "Pass null to clear an existing snooze.",
-    parameters: {
-      type: "object",
-      properties: {
-        item_id: {
-          type: "number",
-          description: "The ID of the item to snooze.",
-        },
-        snooze_until: {
-          type: ["string", "null"],
-          description:
-            "ISO 8601 datetime to snooze until, e.g. '2026-09-22T09:00:00Z'. " +
-            "Pass null to clear the snooze.",
-        },
-      },
-      required: ["item_id", "snooze_until"],
     },
   },
   {

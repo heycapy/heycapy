@@ -8,7 +8,7 @@ import {
   WEBHOOK_RATE_LIMIT_WINDOW_MS,
 } from "@/lib/notifications/constants";
 import { errorMessage } from "@/lib/errors";
-import { ITEM_TITLE_MAX_LENGTH } from "@/constants";
+import { ITEM_TITLE_MAX_LENGTH, ON_HOLD_STATUS } from "@/constants";
 import { channelDecisions } from "@/lib/notifications/channels";
 import { initialReminderState } from "@/lib/items/reminders";
 import { dataEvents } from "@/lib/events";
@@ -127,7 +127,7 @@ export async function POST(
   }
 
   // Optional status — must be one of the three built-in statuses
-  const VALID_STATUSES = ["active", "completed", "snoozed"] as const;
+  const VALID_STATUSES = ["active", "completed", ON_HOLD_STATUS] as const;
   let status: string | undefined;
   if (raw.status !== undefined) {
     if (typeof raw.status !== "string") {
