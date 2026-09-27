@@ -16,6 +16,7 @@ import {
 import { compactSessionIfNeeded } from "@/lib/ai/compact";
 import { dataEvents } from "@/lib/events";
 import { errorMessage } from "@/lib/errors";
+import { TELEGRAM_RESERVED_COMMANDS } from "@/constants";
 import type { AgentMessage } from "@/lib/ai/types";
 import type {
   TelegramDeadlinePreset,
@@ -907,24 +908,14 @@ export async function POST(req: Request) {
 
   const lower = text.toLowerCase();
 
-  if (
-    lower.startsWith("/") &&
-    !lower.startsWith("/add") &&
-    !lower.startsWith("/help") &&
-    !lower.startsWith("/buckets") &&
-    !lower.startsWith("/list") &&
-    !lower.startsWith("/due") &&
-    !lower.startsWith("/overdue") &&
-    !lower.startsWith("/list_items")
-  ) {
-    const spaceIdx = text.indexOf(" ");
-    const alias = (spaceIdx === -1 ? text.slice(1) : text.slice(1, spaceIdx)).toLowerCase();
-    const titlePart = spaceIdx === -1 ? "" : text.slice(spaceIdx + 1).trim();
+  const command = lower.startsWith("/") ? lower.slice(1).split(/\s+/)[0] : "";
+  if (command && !(TELEGRAM_RESERVED_COMMANDS as readonly string[]).includes(command)) {
+    const titlePart = text.slice(1 + command.length).trim();
     const allUserBuckets = await getUserBuckets(userId);
     let matchedBucket: (typeof allUserBuckets)[0] | undefined;
     for (const b of allUserBuckets) {
       const cfg = await getBucketTelegramConfig(b.id);
-      if (cfg.alias === alias) {
+      if (cfg.alias === command) {
         matchedBucket = b;
         break;
       }

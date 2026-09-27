@@ -50,7 +50,9 @@ src/
 │   └── utils.ts            # cn() utility
 ├── store/                  # Zustand stores
 └── types/                  # Shared TypeScript types
-tests/                      # Playwright E2E tests
+tests/
+├── e2e/                    # Playwright E2E tests
+└── unit/                   # Vitest unit tests (mirrors src/)
 ```
 
 ---

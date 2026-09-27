@@ -1,6 +1,10 @@
 import { revalidatePath } from "next/cache";
 import { and, eq, gte, isNull, lte, ne, or, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
+import { findBucketByName } from "@/lib/db/buckets";
+import { reminderResetForDeadline } from "@/lib/items/reminders";
+import { encryptValue, generateWebhookKey } from "@/lib/crypto";
+import { BUCKET_NAME_MAX_LENGTH } from "@/constants";
 import { buckets, items } from "@/lib/db/schema";
 import { RecurringConfig, BucketSchema, buildPropertyValidator } from "@/types/rules";
 import type { ToolCall } from "./types";
@@ -141,18 +145,14 @@ async function executeToolCallInner(
     case "create_bucket": {
       const name = String(args.name ?? "").trim();
       if (!name) return JSON.stringify({ ok: false, error: "Name is required" });
+      if (name.length > BUCKET_NAME_MAX_LENGTH) {
+        return JSON.stringify({
+          ok: false,
+          error: `Name must be at most ${BUCKET_NAME_MAX_LENGTH} characters`,
+        });
+      }
 
-      const [duplicate] = await db
-        .select({ id: buckets.id })
-        .from(buckets)
-        .where(
-          and(
-            eq(buckets.userId, userId),
-            isNull(buckets.deletedAt),
-            sql`lower(${buckets.name}) = lower(${name})`
-          )
-        )
-        .limit(1);
+      const duplicate = await findBucketByName(userId, name);
       if (duplicate)
         return JSON.stringify({
           ok: false,
@@ -171,6 +171,7 @@ async function executeToolCallInner(
           name,
           icon: args.icon ? String(args.icon) : null,
           sortOrder: (maxRow?.max ?? -1) + 1,
+          webhookKey: encryptValue(generateWebhookKey()),
         })
         .returning({ id: buckets.id });
 
@@ -191,6 +192,15 @@ async function executeToolCallInner(
       if (args.name !== undefined) {
         const name = String(args.name).trim();
         if (!name) return JSON.stringify({ ok: false, error: "Name cannot be empty" });
+        if (name.length > BUCKET_NAME_MAX_LENGTH) {
+          return JSON.stringify({
+            ok: false,
+            error: `Name must be at most ${BUCKET_NAME_MAX_LENGTH} characters`,
+          });
+        }
+        if (await findBucketByName(userId, name, bucketId)) {
+          return JSON.stringify({ ok: false, error: `A bucket named "${name}" already exists.` });
+        }
         updates.name = name;
       }
       if ("icon" in args) {
@@ -337,10 +347,7 @@ async function executeToolCallInner(
           ? parseDeadlineInTimezone(String(args.deadline), timezone)
           : null;
         updates.deadline = newDeadline;
-        if ((item.deadline?.getTime() ?? null) !== (newDeadline?.getTime() ?? null)) {
-          updates.notifiedAt = null;
-          updates.overdueNotifiedAt = null;
-        }
+        Object.assign(updates, reminderResetForDeadline(item, newDeadline));
       }
       if ("notification_offset_mins" in args) {
         updates.notificationOffsetMins =
@@ -463,7 +470,8 @@ async function executeToolCallInner(
         : null;
       await db
         .update(items)
-        .set({ snoozedUntil, updatedAt: new Date() })
+        // Clearing notifiedAt makes the scheduler remind once more when the snooze ends
+        .set({ snoozedUntil, notifiedAt: null, updatedAt: new Date() })
         .where(and(eq(items.id, itemId), eq(items.userId, userId)));
 
       revalidatePath("/");

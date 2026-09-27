@@ -127,10 +127,8 @@ export default function LoginPage() {
           onSubmit={handleSendOtp}
           animate={{ opacity: step === "email" ? 1 : 0, x: step === "email" ? 0 : -16 }}
           transition={transition}
-          className={cn(
-            "flex flex-col gap-3 [grid-area:1/1]",
-            step !== "email" && "pointer-events-none"
-          )}
+          inert={step !== "email"}
+          className="flex flex-col gap-3 [grid-area:1/1]"
         >
           <div>
             <p className="text-foreground text-sm font-medium">Sign in</p>
@@ -161,10 +159,8 @@ export default function LoginPage() {
           initial={{ opacity: 0, x: 16 }}
           animate={{ opacity: step === "otp" ? 1 : 0, x: step === "otp" ? 0 : 16 }}
           transition={transition}
-          className={cn(
-            "flex flex-col gap-3 [grid-area:1/1]",
-            step !== "otp" && "pointer-events-none"
-          )}
+          inert={step !== "otp"}
+          className="flex flex-col gap-3 [grid-area:1/1]"
         >
           <div>
             <p className="text-foreground text-sm font-medium">Check your email</p>

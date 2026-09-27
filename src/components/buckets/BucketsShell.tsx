@@ -95,10 +95,10 @@ export function BucketsShell({ buckets: rawBuckets }: BucketsShellProps) {
   useEffect(() => {
     if (activeBucketId === null) return;
     const stillExists = buckets.some((b) => b.id === activeBucketId);
-    if (!stillExists && buckets.length > 0) {
-      const prevIndex = prevBucketsRef.current.findIndex((b) => b.id === activeBucketId);
-      const nextIndex = Math.min(prevIndex, buckets.length - 1);
-      setActiveBucketId(buckets[Math.max(nextIndex, 0)].id);
+    const prevIndex = prevBucketsRef.current.findIndex((b) => b.id === activeBucketId);
+    // prevIndex === -1 means the bucket was just created and hasn't arrived yet, not removed
+    if (!stillExists && prevIndex !== -1 && buckets.length > 0) {
+      setActiveBucketId(buckets[Math.min(prevIndex, buckets.length - 1)].id);
     }
     prevBucketsRef.current = buckets;
   }, [buckets, activeBucketId, setActiveBucketId]);

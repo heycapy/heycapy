@@ -8,6 +8,7 @@ import { items } from "@/lib/db/schema";
 import { ITEM_TITLE_MAX_LENGTH } from "@/constants";
 import type { RecurringConfig } from "@/types/rules";
 import { parseDeadlineString } from "@/lib/time";
+import { reminderResetForDeadline } from "@/lib/items/reminders";
 
 export async function getItemsForBucketAction(
   bucketId: number
@@ -41,14 +42,23 @@ export async function getItemsForBucketAction(
           .select()
           .from(items)
           .where(condition)
-          .orderBy(sql`${items.deadline} IS NULL`, asc(items.deadline), asc(items.createdAt))
+          .orderBy(
+            sql`${items.deadline} IS NULL`,
+            asc(items.deadline),
+            asc(items.createdAt),
+            asc(items.id)
+          )
       : sortBy === "created_at"
-        ? await db.select().from(items).where(condition).orderBy(asc(items.createdAt))
+        ? await db
+            .select()
+            .from(items)
+            .where(condition)
+            .orderBy(asc(items.createdAt), asc(items.id))
         : await db
             .select()
             .from(items)
             .where(condition)
-            .orderBy(asc(items.sortOrder), asc(items.createdAt));
+            .orderBy(asc(items.sortOrder), asc(items.createdAt), asc(items.id));
 
   return { ok: true, items: result };
 }
@@ -112,7 +122,6 @@ export async function updateItemAction(
   if (!item) return { ok: false, error: "Item not found" };
 
   const newDeadline = deadline ? parseDeadlineString(deadline) : null;
-  const deadlineChanged = (item.deadline?.getTime() ?? null) !== (newDeadline?.getTime() ?? null);
   const statusChanged = status !== undefined && status !== item.status;
 
   const nowCompleted = statusChanged && status === "completed" && item.status !== "completed";
@@ -123,10 +132,7 @@ export async function updateItemAction(
     .set({
       title: trimmed,
       deadline: newDeadline,
-      ...(deadlineChanged && {
-        overdueNotifiedAt: null,
-        notifiedAt: newDeadline && newDeadline < new Date() ? item.notifiedAt : null,
-      }),
+      ...reminderResetForDeadline(item, newDeadline),
       ...(status !== undefined && { status }),
       ...(nowCompleted && { completedAt: new Date() }),
       ...(nowUncompleted && { completedAt: null }),

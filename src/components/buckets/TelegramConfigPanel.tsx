@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { cn } from "@/lib/utils";
+import { TELEGRAM_ALIAS_MAX_LENGTH } from "@/constants";
 import {
   DEFAULT_TELEGRAM_BOT_CONFIG,
   TELEGRAM_DEADLINE_PRESETS,
@@ -120,7 +121,7 @@ export function TelegramConfigPanel({ config, onChange, disabled }: TelegramConf
           }
           placeholder="e.g. todo, sub, work"
           disabled={disabled}
-          maxLength={20}
+          maxLength={TELEGRAM_ALIAS_MAX_LENGTH}
           className="border-border focus:border-foreground w-full border-b bg-transparent py-1.5 font-mono text-xs outline-none placeholder:opacity-40 disabled:opacity-50"
         />
         <p className="text-muted-foreground/50 font-mono text-[9px]">
@@ -143,6 +144,7 @@ export function TelegramConfigPanel({ config, onChange, disabled }: TelegramConf
               <button
                 key={value}
                 onClick={() => togglePreset(value)}
+                aria-pressed={active}
                 disabled={disabled || isLast}
                 title={isLast ? "at least one button required" : undefined}
                 className={cn(
@@ -175,6 +177,7 @@ export function TelegramConfigPanel({ config, onChange, disabled }: TelegramConf
               <button
                 key={value}
                 onClick={() => toggleStandardSlot(value)}
+                aria-pressed={active}
                 disabled={disabled || isLast}
                 title={isLast ? "at least one time required" : undefined}
                 className={cn(
@@ -200,6 +203,7 @@ export function TelegramConfigPanel({ config, onChange, disabled }: TelegramConf
                 {formatSlotLabel(hhmm)}
                 <button
                   onClick={() => removeSlot(hhmm)}
+                  aria-label={`remove ${formatSlotLabel(hhmm)}`}
                   disabled={disabled || config.timeSlots.length === 1}
                   className="leading-none opacity-60 transition-opacity hover:opacity-100 disabled:cursor-not-allowed"
                 >
@@ -249,6 +253,7 @@ export function TelegramConfigPanel({ config, onChange, disabled }: TelegramConf
           </label>
           <button
             onClick={() => set("showRecurring", !config.showRecurring)}
+            aria-pressed={config.showRecurring}
             disabled={disabled}
             className={cn(
               "border px-2 py-0.5 font-mono text-[10px] transition-colors disabled:opacity-50",
@@ -272,6 +277,7 @@ export function TelegramConfigPanel({ config, onChange, disabled }: TelegramConf
                 <button
                   key={value}
                   onClick={() => set("defaultRecurring", value as TelegramRecurringDefault)}
+                  aria-pressed={config.defaultRecurring === value}
                   disabled={disabled}
                   className={cn(
                     "border px-2 py-0.5 font-mono text-[10px] transition-colors disabled:opacity-50",

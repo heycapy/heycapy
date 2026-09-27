@@ -6,6 +6,7 @@ import { BracketButton } from "@/components/ui/BracketButton";
 import { getWebhookKeyAction, rotateWebhookKeyAction } from "@/app/(app)/actions";
 import type { buckets } from "@/lib/db/schema";
 import { BucketSchema } from "@/types/rules";
+import { WEBHOOK_KEY_MASK } from "@/constants";
 
 type BucketRow = typeof buckets.$inferSelect;
 
@@ -72,6 +73,7 @@ interface WebhookPanelProps {
 
 export function WebhookPanel({ bucket }: WebhookPanelProps) {
   const [key, setKey] = useState<string | null>(null);
+  const [keyMissing, setKeyMissing] = useState(false);
   const [revealed, setRevealed] = useState(false);
   const [copied, setCopied] = useState(false);
   const [urlCopied, setUrlCopied] = useState(false);
@@ -93,6 +95,7 @@ export function WebhookPanel({ bucket }: WebhookPanelProps) {
   useEffect(() => {
     void getWebhookKeyAction(bucket.id).then((r) => {
       if (r.ok) setKey(r.key);
+      else setKeyMissing(true);
     });
   }, [bucket.id]);
 
@@ -116,6 +119,7 @@ export function WebhookPanel({ bucket }: WebhookPanelProps) {
       const result = await rotateWebhookKeyAction(bucket.id);
       if (result.ok) {
         setKey(result.key);
+        setKeyMissing(false);
         setRevealed(true);
       }
     });
@@ -146,11 +150,18 @@ export function WebhookPanel({ bucket }: WebhookPanelProps) {
         </span>
         <div className="border-border flex items-center border">
           <code className="text-muted-foreground flex-1 overflow-hidden bg-transparent px-2 py-1 font-mono text-[9px] text-ellipsis">
-            {key ? (revealed ? key : "hc_live_" + "•".repeat(32)) : "loading..."}
+            {key
+              ? revealed
+                ? key
+                : WEBHOOK_KEY_MASK
+              : keyMissing
+                ? "no key yet — rotate to generate one"
+                : "loading..."}
           </code>
           <button
             onClick={() => setRevealed((v) => !v)}
             disabled={!key}
+            aria-label={revealed ? "hide key" : "show key"}
             className="text-muted-foreground hover:text-foreground shrink-0 px-2 transition-colors disabled:opacity-30"
           >
             {revealed ? <EyeOff size={11} /> : <Eye size={11} />}
@@ -178,7 +189,9 @@ export function WebhookPanel({ bucket }: WebhookPanelProps) {
         <span className={HINT}>paste this in your terminal to create a test item</span>
         <div className="border-border relative border">
           <pre className="text-muted-foreground overflow-x-auto bg-transparent p-2 font-mono text-[9px]">
-            {key ? buildCurlCommand(webhookUrl, key, schema) : buildExamplePayload(schema)}
+            {key
+              ? buildCurlCommand(webhookUrl, revealed ? key : WEBHOOK_KEY_MASK, schema)
+              : buildExamplePayload(schema)}
           </pre>
           {key && (
             <button

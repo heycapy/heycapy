@@ -4,17 +4,32 @@ import react from "@vitejs/plugin-react";
 export default defineConfig({
   plugins: [react()],
   test: {
-    environment: "jsdom",
     globals: true,
-    setupFiles: [],
-    include: ["src/**/*.test.{ts,tsx}"],
-    exclude: ["node_modules", ".next"],
     passWithNoTests: true,
     coverage: {
       provider: "v8",
       reporter: ["text", "json", "html"],
-      exclude: ["node_modules", ".next", "src/**/*.test.{ts,tsx}"],
+      include: ["src/**/*.{ts,tsx}"],
+      exclude: ["node_modules", ".next"],
     },
+    projects: [
+      {
+        test: {
+          name: "unit",
+          environment: "jsdom",
+          include: ["tests/unit/**/*.test.{ts,tsx}"],
+        },
+      },
+      {
+        // Real code against a throwaway SQLite database per test file
+        test: {
+          name: "integration",
+          environment: "node",
+          include: ["tests/integration/**/*.test.ts"],
+          setupFiles: ["tests/integration/setup.ts"],
+        },
+      },
+    ],
   },
   resolve: {
     alias: {

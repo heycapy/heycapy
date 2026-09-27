@@ -10,6 +10,7 @@ import { db } from "@/lib/db";
 import { users, userSettings, authRateLimits } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { seed } from "@/lib/db/seed";
+import { isE2ETestMode } from "@/lib/e2e";
 
 type SendOtpResult = { ok: true; devCode?: string } | { ok: false; error: string };
 type VerifyOtpResult = { ok: true } | { ok: false; error: string };
@@ -39,7 +40,7 @@ export async function sendOtpAction(email: string): Promise<SendOtpResult> {
     return { ok: false, error: "Enter a valid email address." };
   }
 
-  const isDev = !process.env.RESEND_API_KEY && !process.env.SMTP_HOST;
+  const isDev = (!process.env.RESEND_API_KEY && !process.env.SMTP_HOST) || isE2ETestMode();
 
   const record = await getRateLimit(email);
   const now = Date.now();

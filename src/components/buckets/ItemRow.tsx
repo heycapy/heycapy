@@ -173,6 +173,7 @@ export function ItemRow({
         <button
           className="text-muted-foreground/40 hover:text-muted-foreground flex shrink-0 cursor-grab touch-none items-center justify-center pr-2.5 transition-colors active:cursor-grabbing"
           onPointerDown={(e) => dragControls.start(e)}
+          aria-label="drag to reorder"
         >
           <GripVertical size={13} />
         </button>
@@ -181,6 +182,7 @@ export function ItemRow({
       <button
         ref={dotRef}
         onClick={onStatusChange ? openPicker : undefined}
+        aria-label={`status: ${item.status}`}
         className={cn(
           "flex shrink-0 items-center justify-center pr-2.5",
           onStatusChange ? "cursor-pointer" : "cursor-default"

@@ -25,12 +25,14 @@ export function TrashSheet({ open, onClose }: TrashSheetProps) {
   const [deleted, setDeleted] = useState<BucketRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [confirmId, setConfirmId] = useState<number | null>(null);
+  const [error, setError] = useState("");
   const [pending, startTransition] = useTransition();
 
   useEffect(() => {
     if (!open) return;
     const id = setTimeout(() => {
       setConfirmId(null);
+      setError("");
       setLoading(true);
       void getDeletedBucketsAction().then((result) => {
         if (result.ok) setDeleted(result.buckets);
@@ -42,7 +44,12 @@ export function TrashSheet({ open, onClose }: TrashSheetProps) {
 
   function handleRestore(bucketId: number) {
     startTransition(async () => {
-      await restoreDeletedBucketAction(bucketId);
+      setError("");
+      const result = await restoreDeletedBucketAction(bucketId);
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
       router.refresh();
       setDeleted((prev) => prev.filter((b) => b.id !== bucketId));
     });
@@ -89,6 +96,11 @@ export function TrashSheet({ open, onClose }: TrashSheetProps) {
             <p className="text-muted-foreground/60 border-border border-b px-4 py-2 font-mono text-[10px]">
               permanently deleted buckets and all their items cannot be recovered
             </p>
+            {error && (
+              <p className="text-destructive border-border border-b px-4 py-2 font-mono text-[10px]">
+                {error}
+              </p>
+            )}
 
             <div className="flex flex-1 flex-col overflow-y-auto">
               {loading ? (

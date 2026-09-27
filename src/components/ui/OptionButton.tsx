@@ -11,6 +11,7 @@ export function OptionButton({ active = false, className, ...props }: OptionButt
   return (
     <button
       type="button"
+      aria-pressed={active}
       className={cn(
         "border px-2 py-1 font-mono text-[10px] transition-[color,border-color,background-color,transform,box-shadow] disabled:opacity-40",
         active

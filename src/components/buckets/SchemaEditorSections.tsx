@@ -92,6 +92,7 @@ function FieldRow({
         <button
           onClick={onRemove}
           disabled={disabled}
+          aria-label="remove field"
           className="text-muted-foreground hover:text-destructive shrink-0 transition-colors disabled:opacity-40"
         >
           <Trash2 size={11} />
@@ -212,6 +213,7 @@ export function FieldsSection({
         <button
           onClick={onAdd}
           disabled={disabled}
+          aria-label="add field"
           className="text-muted-foreground hover:text-foreground shrink-0 transition-colors disabled:opacity-40"
         >
           <Plus size={12} />

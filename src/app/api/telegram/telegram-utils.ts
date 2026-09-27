@@ -2,6 +2,7 @@ import { and, eq, isNull, ne, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { buckets, items, userSettings } from "@/lib/db/schema";
 import { parseDeadlineInTimezone } from "@/lib/ai/capyTools";
+import { reminderResetForDeadline } from "@/lib/items/reminders";
 import type { TelegramBotConfig } from "@/components/buckets/constants";
 import { DEFAULT_TELEGRAM_BOT_CONFIG } from "@/components/buckets/constants";
 
@@ -379,9 +380,14 @@ export async function updateItemDeadline(
   itemId: number,
   deadline: Date | null
 ): Promise<void> {
+  const item = await db.query.items.findFirst({
+    where: and(eq(items.id, itemId), eq(items.userId, userId)),
+    columns: { deadline: true, notifiedAt: true },
+  });
+  if (!item) return;
   await db
     .update(items)
-    .set({ deadline, updatedAt: new Date() })
+    .set({ deadline, ...reminderResetForDeadline(item, deadline), updatedAt: new Date() })
     .where(and(eq(items.id, itemId), eq(items.userId, userId)));
 }
 

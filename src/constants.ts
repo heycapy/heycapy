@@ -13,10 +13,26 @@ export const OLLAMA_DEFAULT_URL = "https://ollama.yourdomain.com";
 export const NTFY_DEFAULT_URL = "https://ntfy.sh";
 
 export const WEBHOOK_KEY_PREFIX = "hc_live_";
+// Telegram bot command names are 1-32 lowercase letters, digits or underscores
+export const TELEGRAM_ALIAS_MAX_LENGTH = 32;
+export const WEBHOOK_KEY_MASK = WEBHOOK_KEY_PREFIX + "•".repeat(32);
+
+// Built-in telegram bot commands — bucket aliases must not shadow these
+export const TELEGRAM_RESERVED_COMMANDS = [
+  "start",
+  "add",
+  "help",
+  "buckets",
+  "list",
+  "list_items",
+  "due",
+  "overdue",
+] as const;
 
 // Item / bucket field limits
 export const ITEM_TITLE_MAX_LENGTH = 500;
 export const BUCKET_NAME_MAX_LENGTH = 100;
+export const DUPLICATE_BUCKET_NAME_ERROR = "A bucket with this name already exists.";
 export const FIELD_LABEL_MAX_LENGTH = 100;
 export const STATUS_NAME_MAX_LENGTH = 50;
 
