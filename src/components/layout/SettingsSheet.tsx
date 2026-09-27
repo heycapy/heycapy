@@ -66,10 +66,8 @@ export function SettingsSheet({ open, initialTab, onClose }: SettingsSheetProps)
   const [ntfyTopic, setNtfyTopic] = useState("");
   const [notificationsTelegram, setNotificationsTelegram] = useState(false);
   const [telegramChatId, setTelegramChatId] = useState<string | null>(null);
-  const [telegramBotUsername, setTelegramBotUsername] = useState<string | null>(null);
   const [telegramBotConfigured, setTelegramBotConfigured] = useState(false);
   const [telegramActionPending, startTelegramTransition] = useTransition();
-  const [telegramError, setTelegramError] = useState("");
 
   function populate(s: Settings) {
     setPersonalityName(s.personalityName);
@@ -108,9 +106,7 @@ export function SettingsSheet({ open, initialTab, onClose }: SettingsSheetProps)
       setTab(initialTab);
       setError("");
       setLoaded(false);
-      setTelegramBotUsername(null);
       setTelegramBotConfigured(false);
-      setTelegramError("");
       getUserSettingsAction().then((result) => {
         if (result.ok) {
           populate(result.settings);
@@ -131,25 +127,11 @@ export function SettingsSheet({ open, initialTab, onClose }: SettingsSheetProps)
     setupTelegramAction().then((result) => {
       if (result.ok) {
         setTelegramBotConfigured(true);
-        setTelegramBotUsername(result.botUsername);
       } else {
         setTelegramBotConfigured(false);
       }
     });
   }, [open, tab]);
-
-  async function handleSetupTelegram() {
-    setTelegramError("");
-    startTelegramTransition(async () => {
-      const result = await setupTelegramAction();
-      if (result.ok) {
-        setTelegramBotConfigured(true);
-        setTelegramBotUsername(result.botUsername);
-      } else {
-        setTelegramError(result.error);
-      }
-    });
-  }
 
   async function handleDisconnectTelegram() {
     startTelegramTransition(async () => {
@@ -296,13 +278,10 @@ export function SettingsSheet({ open, initialTab, onClose }: SettingsSheetProps)
                       notificationsTelegram={notificationsTelegram}
                       setNotificationsTelegram={setNotificationsTelegram}
                       telegramChatId={telegramChatId}
-                      telegramBotUsername={telegramBotUsername}
                       telegramBotConfigured={telegramBotConfigured}
-                      onSetupTelegram={handleSetupTelegram}
                       onDisconnectTelegram={handleDisconnectTelegram}
                       onRecheckTelegram={handleRecheckTelegram}
                       telegramActionPending={telegramActionPending}
-                      telegramError={telegramError}
                       pending={pending}
                     />
                   )}

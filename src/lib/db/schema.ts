@@ -66,6 +66,8 @@ export const userSettings = sqliteTable("user_settings", {
   ntfyUrl: text("ntfy_url"),
   ntfyTopic: text("ntfy_topic"),
   telegramChatId: text("telegram_chat_id"),
+  telegramLinkCodeHash: text("telegram_link_code_hash"),
+  telegramLinkExpiresAt: integer("telegram_link_expires_at", { mode: "timestamp" }),
   notificationsTelegram: integer("notifications_telegram", { mode: "boolean" })
     .notNull()
     .default(false),

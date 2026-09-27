@@ -32,13 +32,10 @@ interface NotificationsTabProps {
   notificationsTelegram: boolean;
   setNotificationsTelegram: (v: boolean) => void;
   telegramChatId: string | null;
-  telegramBotUsername: string | null;
   telegramBotConfigured: boolean;
-  onSetupTelegram: () => Promise<void>;
   onDisconnectTelegram: () => Promise<void>;
   onRecheckTelegram: () => Promise<void>;
   telegramActionPending: boolean;
-  telegramError: string;
   pending: boolean;
 }
 
@@ -67,13 +64,10 @@ export function NotificationsTab({
   notificationsTelegram,
   setNotificationsTelegram,
   telegramChatId,
-  telegramBotUsername,
   telegramBotConfigured,
-  onSetupTelegram,
   onDisconnectTelegram,
   onRecheckTelegram,
   telegramActionPending,
-  telegramError,
   pending,
 }: NotificationsTabProps) {
   const [testDialogOpen, setTestDialogOpen] = useState(false);
@@ -189,13 +183,10 @@ export function NotificationsTab({
         notificationsTelegram={notificationsTelegram}
         setNotificationsTelegram={setNotificationsTelegram}
         telegramChatId={telegramChatId}
-        telegramBotUsername={telegramBotUsername}
         telegramBotConfigured={telegramBotConfigured}
-        onSetupTelegram={onSetupTelegram}
         onDisconnectTelegram={onDisconnectTelegram}
         onRecheckTelegram={onRecheckTelegram}
         telegramActionPending={telegramActionPending}
-        telegramError={telegramError}
         pending={pending}
       />
       <SmtpTestDialog

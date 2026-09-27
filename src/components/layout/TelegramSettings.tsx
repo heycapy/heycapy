@@ -1,21 +1,19 @@
 "use client";
 
+import { useState, useTransition } from "react";
 import { Toggle } from "@/components/ui/Toggle";
-import { sendTestNotificationAction } from "@/app/(app)/actions";
-import { BOX, LABEL, SECTION } from "./settings-constants";
+import { createTelegramLinkAction, sendTestNotificationAction } from "@/app/(app)/actions";
+import { BOX, INPUT, LABEL, SECTION } from "./settings-constants";
 import { TestSendButton } from "./TestSendButton";
 
 interface TelegramSettingsProps {
   notificationsTelegram: boolean;
   setNotificationsTelegram: (v: boolean) => void;
   telegramChatId: string | null;
-  telegramBotUsername: string | null;
   telegramBotConfigured: boolean;
-  onSetupTelegram: () => Promise<void>;
   onDisconnectTelegram: () => Promise<void>;
   onRecheckTelegram: () => Promise<void>;
   telegramActionPending: boolean;
-  telegramError: string;
   pending: boolean;
 }
 
@@ -23,16 +21,41 @@ export function TelegramSettings({
   notificationsTelegram,
   setNotificationsTelegram,
   telegramChatId,
-  telegramBotUsername,
   telegramBotConfigured,
-  onSetupTelegram,
   onDisconnectTelegram,
   onRecheckTelegram,
   telegramActionPending,
-  telegramError,
   pending,
 }: TelegramSettingsProps) {
   const telegramConnected = !!telegramChatId;
+  const [link, setLink] = useState<string | null>(null);
+  const [connectError, setConnectError] = useState("");
+  const [connecting, startConnecting] = useTransition();
+  const [copyState, setCopyState] = useState<"idle" | "copied" | "failed">("idle");
+
+  function handleCopyLink() {
+    if (!link) return;
+    navigator.clipboard.writeText(link).then(
+      () => {
+        setCopyState("copied");
+        setTimeout(() => setCopyState("idle"), 1500);
+      },
+      () => setCopyState("failed")
+    );
+  }
+
+  function handleConnect() {
+    setConnectError("");
+    startConnecting(async () => {
+      const result = await createTelegramLinkAction();
+      if (!result.ok) {
+        setConnectError(result.error);
+        return;
+      }
+      setLink(result.url);
+      setCopyState("idle");
+    });
+  }
 
   return (
     <div className={BOX}>
@@ -91,24 +114,51 @@ export function TelegramSettings({
               </button>
               <button
                 type="button"
-                onClick={() => void onSetupTelegram()}
-                disabled={telegramActionPending || pending}
+                onClick={handleConnect}
+                disabled={connecting || telegramActionPending || pending}
                 className="text-muted-foreground hover:text-foreground font-mono text-[9px] disabled:opacity-40"
               >
-                {telegramActionPending ? "[connecting...]" : "[connect]"}
+                {connecting ? "[connecting...]" : "[connect]"}
               </button>
             </div>
           </div>
-          {telegramBotUsername && (
-            <p className="text-muted-foreground/60 font-mono text-[9px]">
-              send <code className="font-mono">/start</code> to{" "}
-              <span className="text-foreground/70">@{telegramBotUsername}</span> in Telegram — then
-              click [recheck] to confirm
-            </p>
+          {link && (
+            <div className="flex flex-col gap-1.5">
+              <div className="flex items-center gap-2">
+                <input
+                  readOnly
+                  value={link}
+                  onFocus={(e) => e.target.select()}
+                  aria-label="telegram connect link"
+                  className={INPUT}
+                />
+                <button
+                  type="button"
+                  onClick={handleCopyLink}
+                  className="text-muted-foreground hover:text-foreground shrink-0 font-mono text-[9px]"
+                >
+                  {copyState === "copied" ? "[copied]" : "[copy]"}
+                </button>
+              </div>
+              <p className="text-muted-foreground/60 font-mono text-[9px]">
+                <a
+                  href={link}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-foreground/80 hover:text-foreground underline"
+                >
+                  open in telegram
+                </a>{" "}
+                or copy it to your phone — works once, expires in 15 minutes. then click [recheck]
+              </p>
+              {copyState === "failed" && (
+                <p className="text-destructive font-mono text-[9px]">
+                  couldn&apos;t copy — select the link and copy it
+                </p>
+              )}
+            </div>
           )}
-          {telegramError && (
-            <p className="text-destructive font-mono text-[9px]">{telegramError}</p>
-          )}
+          {connectError && <p className="text-destructive font-mono text-[9px]">{connectError}</p>}
         </>
       )}
     </div>

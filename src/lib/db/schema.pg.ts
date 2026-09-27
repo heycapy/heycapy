@@ -36,6 +36,8 @@ export const userSettings = pgTable("user_settings", {
   ntfyTopic: text("ntfy_topic"),
   telegramBotToken: text("telegram_bot_token"),
   telegramChatId: text("telegram_chat_id"),
+  telegramLinkCodeHash: text("telegram_link_code_hash"),
+  telegramLinkExpiresAt: timestamp("telegram_link_expires_at"),
   notificationsTelegram: boolean("notifications_telegram").notNull().default(false),
   transcriptionProvider: text("transcription_provider"),
   transcriptionApiKey: text("transcription_api_key"),

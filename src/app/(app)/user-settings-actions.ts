@@ -10,11 +10,12 @@ import { users, userSettings } from "@/lib/db/schema";
 import { encryptValue, decryptValue } from "@/lib/crypto";
 import { refreshUserReminders } from "@/lib/reminders/refresh";
 import { ALL_CHANNELS, getWorkingChannels } from "@/lib/notifications/channels";
-import { TELEGRAM_API_BASE } from "@/constants";
+import { TELEGRAM_API_BASE, TELEGRAM_LINK_BASE } from "@/constants";
 import { sendEmail } from "@/lib/notifications/email";
 import { sendNtfy } from "@/lib/notifications/ntfy";
 import { sendTelegram } from "@/lib/notifications/telegram";
 import { dismissChannelFailures } from "@/lib/notifications/failures";
+import { createTelegramLinkCode } from "@/lib/notifications/telegram-link";
 import type { NotificationMedium } from "@/lib/notifications/queue";
 import { isE2ETestMode } from "@/lib/e2e";
 import { errorMessage } from "@/lib/errors";
@@ -177,6 +178,22 @@ export async function setupTelegramAction(): Promise<
   } catch {
     return { ok: false, error: "Could not reach Telegram API" };
   }
+}
+
+export async function createTelegramLinkAction(): Promise<
+  { ok: true; url: string } | { ok: false; error: string }
+> {
+  const session = await getSession();
+  if (!session) return { ok: false, error: "Unauthorized" };
+
+  let botUsername = "heycapy_test_bot";
+  if (!isE2ETestMode()) {
+    const setup = await setupTelegramAction();
+    if (!setup.ok) return setup;
+    botUsername = setup.botUsername;
+  }
+  const code = await createTelegramLinkCode(session.userId);
+  return { ok: true, url: `${TELEGRAM_LINK_BASE}/${botUsername}?start=${code}` };
 }
 
 export async function disconnectTelegramAction(): Promise<

@@ -4,6 +4,7 @@ export const APP_EMAIL_FROM = `${APP_NAME} <noreply@${APP_DOMAIN}>`;
 
 // External API base URLs
 export const TELEGRAM_API_BASE = "https://api.telegram.org";
+export const TELEGRAM_LINK_BASE = "https://t.me";
 export const USELESS_FACTS_API_URL = "https://uselessfacts.jsph.pl/api/v2/facts/random?language=en";
 export const GROQ_API_BASE = "https://api.groq.com/openai/v1";
 export const GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta/openai/";
@@ -50,3 +51,6 @@ export const SETTINGS_API_KEY_MAX_LENGTH = 500;
 export const NTFY_TOPIC_MAX_LENGTH = 100;
 export const TIMEZONE_MAX_LENGTH = 50;
 export const TELEGRAM_CHAT_ID_MAX_LENGTH = 50;
+
+// One-time link that connects a Telegram chat to an account
+export const TELEGRAM_LINK_TTL_MS = 15 * 60 * 1000;

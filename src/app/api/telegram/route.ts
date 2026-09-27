@@ -1,6 +1,6 @@
 import { desc, eq } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { buckets, chatMessages, chatSessions, userSettings, users } from "@/lib/db/schema";
+import { buckets, chatMessages, chatSessions, users } from "@/lib/db/schema";
 import { getAIProvider } from "@/lib/ai";
 import { decryptValue } from "@/lib/crypto";
 import { buildSystemPrompt } from "@/lib/ai/systemPrompt";
@@ -41,6 +41,7 @@ import {
   softDeleteItemById,
 } from "./telegram-utils";
 import type { TelegramUpdate } from "./telegram-utils";
+import { redeemTelegramLinkCode } from "@/lib/notifications/telegram-link";
 import { handleReminderAction } from "./telegram-quick-actions";
 import {
   showBucketPicker,
@@ -96,29 +97,27 @@ export async function POST(req: Request) {
 
   if (callbackQueryId) await answerCallbackQuery(botToken, callbackQueryId).catch(() => {});
 
-  if (text === "/start") {
+  if (text === "/start" || text?.startsWith("/start ")) {
+    const code = text.slice("/start".length).trim();
+    const linkedUserId = code ? redeemTelegramLinkCode(code, chatIdStr) : null;
+    if (linkedUserId !== null) {
+      dataEvents.emit("refresh", linkedUserId);
+      await sendTelegramWithQuickActions(
+        botToken,
+        chatIdStr,
+        "Connected to heycapy ✓\nYou can now chat with Capy and receive notifications here."
+      );
+      return new Response("OK");
+    }
     const existing = await db.query.userSettings.findFirst({
       where: (s, { eq: qeq }) => qeq(s.telegramChatId, chatIdStr),
     });
-    if (existing) {
-      await sendTelegramWithQuickActions(botToken, chatIdStr, "Already connected to heycapy ✓");
-      return new Response("OK");
-    }
-    const unconnected = await db.query.userSettings.findFirst({
-      where: (s, { isNull: qNull }) => qNull(s.telegramChatId),
-    });
-    if (!unconnected) {
-      await sendTelegram(botToken, chatIdStr, "No accounts available to connect.");
-      return new Response("OK");
-    }
-    await db
-      .update(userSettings)
-      .set({ telegramChatId: chatIdStr, notificationsTelegram: true })
-      .where(eq(userSettings.id, unconnected.id));
-    await sendTelegramWithQuickActions(
+    await sendTelegram(
       botToken,
       chatIdStr,
-      "Connected to heycapy ✓\nYou can now chat with Capy and receive notifications here."
+      existing
+        ? "Already connected to heycapy ✓"
+        : "To connect, open heycapy → tweaks → notifications → [connect], then tap the link there."
     );
     return new Response("OK");
   }

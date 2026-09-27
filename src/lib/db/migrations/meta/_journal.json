@@ -64,6 +64,13 @@
       "when": 1793180000000,
       "tag": "0008_on_hold_status",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1793190000000,
+      "tag": "0009_telegram_link_code",
+      "breakpoints": true
     }
   ]
 }
