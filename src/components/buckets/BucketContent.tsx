@@ -8,6 +8,7 @@ import { ItemDialog } from "./ItemDialog";
 import { BucketSettings } from "./BucketSettings";
 import type { SettingsTab } from "./BucketSettingsForm";
 import { RemindersOffNotice } from "./RemindersOffNotice";
+import type { ReminderBadge } from "@/lib/reminders/status";
 import { BracketButton } from "@/components/ui/BracketButton";
 import { daysToDisplayStr, parseDurationToDate } from "@/lib/duration";
 import type { ItemStatus, ItemsRulesConfig } from "./constants";
@@ -54,6 +55,7 @@ function DraggableItem({
   onEditStart,
   onStatusChange,
   onDelete,
+  reminderBadge,
 }: {
   item: Item;
   statuses: StatusDef[];
@@ -64,6 +66,7 @@ function DraggableItem({
   onStatusChange?: (status: string) => void;
   onDelete?: () => void;
   dragControls?: DragControls;
+  reminderBadge?: ReminderBadge;
 }) {
   const controls = useDragControls();
 
@@ -89,6 +92,7 @@ function DraggableItem({
           isEditing={isEditing}
           onEditStart={onEditStart}
           onStatusChange={onStatusChange}
+          reminderBadge={reminderBadge}
         />
       </SwipeableRow>
     </Reorder.Item>
@@ -125,6 +129,7 @@ export function BucketContent({ bucket, accentColor }: BucketContentProps) {
   const showCompleted = rules.showCompleted !== false;
 
   const [fetchedItems, setFetchedItems] = useState<Item[]>([]);
+  const [reminderBadges, setReminderBadges] = useState<Record<number, ReminderBadge>>({});
   const [loadingItems, setLoadingItems] = useState(true);
   const [orderedItems, setOrderedItems] = useState<Item[]>([]);
   const orderedItemsRef = useRef<Item[]>([]);
@@ -151,7 +156,10 @@ export function BucketContent({ bucket, accentColor }: BucketContentProps) {
     let cancelled = false;
     void getItemsForBucketAction(bucket.id).then((result) => {
       if (cancelled) return;
-      if (result.ok) setFetchedItems(result.items);
+      if (result.ok) {
+        setFetchedItems(result.items);
+        setReminderBadges(result.reminderBadges);
+      }
       setLoadingItems(false);
     });
     return () => {
@@ -172,7 +180,9 @@ export function BucketContent({ bucket, accentColor }: BucketContentProps) {
 
   async function refetchItems() {
     const result = await getItemsForBucketAction(bucket.id);
-    if (result.ok) setFetchedItems(result.items);
+    if (!result.ok) return;
+    setFetchedItems(result.items);
+    setReminderBadges(result.reminderBadges);
   }
 
   async function handleStatusChange(item: Item, status: string) {
@@ -369,6 +379,7 @@ export function BucketContent({ bucket, accentColor }: BucketContentProps) {
                 isEditing={editingItemId === item.id}
                 onEditStart={isReadonly ? undefined : () => startEditing(item)}
                 onStatusChange={isReadonly ? undefined : (s) => handleStatusChange(item, s)}
+                reminderBadge={reminderBadges[item.id]}
                 onDelete={isReadonly ? undefined : () => void handleSwipeDelete(item.id)}
               />
             ))}
@@ -388,6 +399,7 @@ export function BucketContent({ bucket, accentColor }: BucketContentProps) {
                   isEditing={editingItemId === item.id}
                   onEditStart={isReadonly ? undefined : () => startEditing(item)}
                   onStatusChange={isReadonly ? undefined : (s) => handleStatusChange(item, s)}
+                  reminderBadge={reminderBadges[item.id]}
                 />
               </SwipeableRow>
             ))}

@@ -37,11 +37,26 @@ export async function getWorkingChannels(userId: number): Promise<NotificationMe
   return settings ? workingChannels(settings) : [];
 }
 
-export function alertChannels(
+export const ALL_CHANNELS: NotificationMedium[] = ["email", "telegram", "ntfy"];
+
+export type ChannelDecision = {
+  medium: NotificationMedium;
+  state: "send" | "notSelected" | "notSetUp";
+};
+
+export function channelDecisions(
   bucketChannels: readonly string[],
-  settings: ChannelSettings
-): NotificationMedium[] {
-  return workingChannels(settings).filter((m) => bucketChannels.includes(m));
+  settings: ChannelSettings | undefined
+): ChannelDecision[] {
+  const working = settings ? workingChannels(settings) : [];
+  return ALL_CHANNELS.map((medium) => ({
+    medium,
+    state: !bucketChannels.includes(medium)
+      ? "notSelected"
+      : working.includes(medium)
+        ? "send"
+        : "notSetUp",
+  }));
 }
 
 export async function withDefaultChannels(

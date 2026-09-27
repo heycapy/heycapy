@@ -200,9 +200,13 @@ export const notificationQueue = sqliteTable("notification_queue", {
   medium: text("medium", { enum: ["email", "ntfy", "telegram"] }).notNull(),
   title: text("title").notNull(),
   message: text("message").notNull(),
-  status: text("status", { enum: ["pending", "sending", "sent", "failed", "dead"] })
+  status: text("status", {
+    enum: ["pending", "sending", "sent", "failed", "dead", "cancelled", "skipped"],
+  })
     .notNull()
     .default("pending"),
+  kind: text("kind", { enum: ["reminder", "overdue", "arrival"] }),
+  skipReason: text("skip_reason", { enum: ["notSelected", "notSetUp"] }),
   attempts: integer("attempts").notNull().default(0),
   maxAttempts: integer("max_attempts").notNull().default(3),
   nextRetryAt: integer("next_retry_at", { mode: "timestamp" }),

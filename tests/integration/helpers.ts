@@ -1,5 +1,5 @@
 import { vi } from "vitest";
-import { eq } from "drizzle-orm";
+import { and, eq, ne } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { buckets, items, notificationQueue, userSettings, users } from "@/lib/db/schema";
 import { runNotifications } from "@/lib/scheduler";
@@ -84,7 +84,7 @@ export async function remindersQueued(itemId: number): Promise<number> {
   const rows = await db
     .select()
     .from(notificationQueue)
-    .where(eq(notificationQueue.itemId, itemId));
+    .where(and(eq(notificationQueue.itemId, itemId), ne(notificationQueue.status, "skipped")));
   return rows.length;
 }
 

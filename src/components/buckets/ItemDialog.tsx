@@ -5,10 +5,10 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Trash2, X } from "lucide-react";
 import { DatePicker } from "@/components/ui/DatePicker";
 import { BracketButton } from "@/components/ui/BracketButton";
-import { OptionButton } from "@/components/ui/OptionButton";
 import { TimeScrollPicker, type Ampm } from "@/components/ui/TimeScrollPicker";
 import { RecurringPicker } from "./RecurringPicker";
 import { ItemFieldsForm } from "./ItemFieldsForm";
+import { ItemStatusField } from "./ItemStatusField";
 import type { RecurringConfig, StatusDef, FieldDef } from "@/types/rules";
 import { cn } from "@/lib/utils";
 import { useScrollLock } from "@/hooks/useScrollLock";
@@ -204,28 +204,12 @@ export function ItemDialog({
         />
       )}
 
-      <div className="flex flex-col gap-1.5">
-        <label className={LABEL}>status</label>
-        <div className="flex flex-wrap gap-1.5">
-          {statuses.map((s) => (
-            <OptionButton
-              key={s.name}
-              active={status === s.name}
-              onClick={() => onStatusChange(s.name)}
-              disabled={pending}
-              className="flex items-center gap-1.5"
-            >
-              <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: s.color }} />
-              {s.name}
-            </OptionButton>
-          ))}
-        </div>
-        {status && !statuses.find((s) => s.name === status) && (
-          <p className="text-destructive font-mono text-[10px]">
-            &quot;{status}&quot; is not a valid status — pick one above to fix it
-          </p>
-        )}
-      </div>
+      <ItemStatusField
+        status={status}
+        statuses={statuses}
+        onChange={onStatusChange}
+        disabled={pending}
+      />
     </>
   );
 

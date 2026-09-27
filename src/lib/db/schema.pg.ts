@@ -144,6 +144,8 @@ export const notificationQueue = pgTable("notification_queue", {
   title: text("title").notNull(),
   message: text("message").notNull(),
   status: text("status").notNull().default("pending"),
+  kind: text("kind"),
+  skipReason: text("skip_reason"),
   attempts: integer("attempts").notNull().default(0),
   maxAttempts: integer("max_attempts").notNull().default(3),
   nextRetryAt: timestamp("next_retry_at"),

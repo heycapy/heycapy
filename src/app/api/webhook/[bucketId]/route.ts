@@ -2,14 +2,14 @@ import { db } from "@/lib/db";
 import { items } from "@/lib/db/schema";
 import { decryptValue } from "@/lib/crypto";
 import { BucketSchema, NotificationRules, buildPropertyValidator } from "@/types/rules";
-import { enqueue, processPending } from "@/lib/notifications/queue";
+import { enqueueNotification, processPending } from "@/lib/notifications/queue";
 import {
   WEBHOOK_RATE_LIMIT_MAX,
   WEBHOOK_RATE_LIMIT_WINDOW_MS,
 } from "@/lib/notifications/constants";
 import { errorMessage } from "@/lib/errors";
 import { ITEM_TITLE_MAX_LENGTH } from "@/constants";
-import { alertChannels } from "@/lib/notifications/channels";
+import { channelDecisions } from "@/lib/notifications/channels";
 import { dataEvents } from "@/lib/events";
 import { refreshItemReminders } from "@/lib/reminders/refresh";
 
@@ -176,16 +176,14 @@ export async function POST(
     });
 
     if (userRow) {
-      const mediums = alertChannels(bucketChannels(bucket.notificationsRules), userRow);
-
-      const notifTitle = `New item in ${bucket.name}`;
-      const message = `"${title}" was added via webhook.`;
-
-      await Promise.all(
-        mediums.map((medium) =>
-          enqueue({ userId: bucket.userId, itemId: item.id, medium, title: notifTitle, message })
-        )
-      );
+      await enqueueNotification({
+        userId: bucket.userId,
+        itemId: item.id,
+        kind: "arrival",
+        title: `New item in ${bucket.name}`,
+        message: `"${title}" was added via webhook.`,
+        channels: channelDecisions(bucketChannels(bucket.notificationsRules), userRow),
+      });
 
       void processPending().catch((err) => {
         process.stderr.write(`[webhook] processPending error: ${errorMessage(err)}\n`);

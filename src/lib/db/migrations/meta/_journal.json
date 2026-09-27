@@ -36,6 +36,13 @@
       "when": 1793100000000,
       "tag": "0004_reminder_schedule",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1793150000000,
+      "tag": "0005_notification_kind",
+      "breakpoints": true
     }
   ]
 }

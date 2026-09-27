@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { eq } from "drizzle-orm";
+import { and, eq, ne } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { buckets, notificationQueue, userSettings } from "@/lib/db/schema";
 import { encryptValue } from "@/lib/crypto";
@@ -53,7 +53,7 @@ async function queuedMediums(userId: number): Promise<string[]> {
   const jobs = await db
     .select()
     .from(notificationQueue)
-    .where(eq(notificationQueue.userId, userId));
+    .where(and(eq(notificationQueue.userId, userId), ne(notificationQueue.status, "skipped")));
   return jobs.map((j) => j.medium).sort();
 }
 

@@ -2,11 +2,13 @@
 
 import { useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { GripVertical } from "lucide-react";
+import { Bell, BellOff, GripVertical, TriangleAlert } from "lucide-react";
 import type { DragControls } from "framer-motion";
 import { cn } from "@/lib/utils";
 import type { items } from "@/lib/db/schema";
 import type { StatusDef, FieldDef } from "@/types/rules";
+import type { ReminderBadge } from "@/lib/reminders/status";
+import { ReminderInfoDialog } from "./ReminderInfoDialog";
 
 type ItemRow = typeof items.$inferSelect;
 
@@ -18,6 +20,7 @@ interface ItemRowProps {
   isEditing?: boolean;
   onEditStart?: () => void;
   onStatusChange?: (status: string) => void;
+  reminderBadge?: ReminderBadge;
 }
 
 function StatusPicker({
@@ -77,7 +80,7 @@ function getRecurringFrequency(raw: string | null): string | null {
   }
 }
 
-function formatDeadline(d: Date): string {
+export function formatDeadline(d: Date): string {
   const date = `${MONTHS[d.getMonth()]} ${d.getDate()}`;
   const hasTime = d.getHours() !== 0 || d.getMinutes() !== 0;
   if (!hasTime) return date;
@@ -138,6 +141,20 @@ function getShowInRowBadges(
     });
 }
 
+const REMINDER_ICON: Record<ReminderBadge, { Icon: typeof Bell; className: string }> = {
+  upcoming: { Icon: Bell, className: "text-muted-foreground" },
+  noChannel: { Icon: BellOff, className: "text-muted-foreground/60" },
+  failed: { Icon: TriangleAlert, className: "text-warning" },
+  history: { Icon: Bell, className: "text-muted-foreground/30" },
+};
+
+function reminderLabel(badge: ReminderBadge, next: Date | null): string {
+  if (badge === "failed") return "reminder failed";
+  if (badge === "noChannel") return "no reminder";
+  if (badge === "history") return "reminder history";
+  return next ? `reminder ${formatDeadline(next)}` : "reminder";
+}
+
 export function ItemRow({
   item,
   statuses,
@@ -146,8 +163,11 @@ export function ItemRow({
   isEditing,
   onEditStart,
   onStatusChange,
+  reminderBadge,
 }: ItemRowProps) {
   const [pickerPos, setPickerPos] = useState<{ top: number; left: number } | null>(null);
+  const [reminderOpen, setReminderOpen] = useState(false);
+  const ReminderIcon = reminderBadge ? REMINDER_ICON[reminderBadge].Icon : null;
   const dotRef = useRef<HTMLButtonElement>(null);
   const rel = item.deadline ? relativeTime(item.deadline) : null;
   const isCompleted = item.status === "completed";
@@ -269,6 +289,28 @@ export function ItemRow({
         >
           {rel}
         </span>
+      )}
+
+      {reminderBadge && ReminderIcon && (
+        <button
+          type="button"
+          onClick={() => setReminderOpen(true)}
+          aria-label={reminderLabel(reminderBadge, item.nextReminderAt)}
+          title={reminderLabel(reminderBadge, item.nextReminderAt)}
+          className={cn(
+            "flex shrink-0 items-center pl-2 transition-opacity hover:opacity-70",
+            REMINDER_ICON[reminderBadge].className
+          )}
+        >
+          <ReminderIcon size={11} aria-hidden />
+        </button>
+      )}
+      {reminderOpen && (
+        <ReminderInfoDialog
+          itemId={item.id}
+          title={item.title}
+          onClose={() => setReminderOpen(false)}
+        />
       )}
     </div>
   );

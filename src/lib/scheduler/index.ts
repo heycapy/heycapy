@@ -7,8 +7,8 @@ import { errorMessage } from "@/lib/errors";
 import { dataEvents } from "@/lib/events";
 import { decryptValue } from "@/lib/crypto";
 import { getAIProvider } from "@/lib/ai";
-import { enqueue, processPending } from "@/lib/notifications/queue";
-import { alertChannels } from "@/lib/notifications/channels";
+import { enqueueNotification, processPending } from "@/lib/notifications/queue";
+import { channelDecisions } from "@/lib/notifications/channels";
 import { nextDeadlineReminder, nextOverdueAlert } from "@/lib/reminders/schedule";
 import { reconcile, reminderRowFields, toReminderInputs } from "@/lib/reminders/refresh";
 import {
@@ -167,23 +167,23 @@ async function sendDeadlineReminder(row: DueRow, now: Date): Promise<void> {
     return;
   }
 
-  const timezone = inputs.timezone;
-  const mediums = alertChannels(inputs.rules.medium, row);
-  const tag = `[scheduler] item ${row.item.id}`;
-
-  if (mediums.length > 0) {
-    const deadlineStr = formatDeadline(deadline, timezone);
-    const message = row.aiNotifyMessages
+  const channels = channelDecisions(inputs.rules.medium, row);
+  const sending = channels.some((c) => c.state === "send");
+  const deadlineStr = formatDeadline(deadline, inputs.timezone);
+  const message =
+    sending && row.aiNotifyMessages
       ? await generateNotificationText(row.item.title, deadlineStr, row)
       : `due ${deadlineStr}`;
-    const subject = `[${APP_NAME}] ${shortTitle(row.item.title)}`;
-    await Promise.all(
-      mediums.map((medium) =>
-        enqueue({ userId: row.userId, itemId: row.item.id, medium, title: subject, message })
-      )
-    );
-  } else {
-    process.stderr.write(`${tag} skip: no delivery channels configured\n`);
+  await enqueueNotification({
+    userId: row.userId,
+    itemId: row.item.id,
+    kind: "reminder",
+    title: `[${APP_NAME}] ${shortTitle(row.item.title)}`,
+    message,
+    channels,
+  });
+  if (!sending) {
+    process.stderr.write(`[scheduler] item ${row.item.id} skip: no delivery channels configured\n`);
   }
 
   await db
@@ -205,16 +205,14 @@ async function sendOverdueAlert(row: DueRow, now: Date): Promise<void> {
     return;
   }
 
-  const mediums = alertChannels(inputs.rules.medium, row);
-  if (mediums.length > 0) {
-    const title = `[${APP_NAME}] Overdue: ${shortTitle(row.item.title)}`;
-    const message = `overdue — was due ${formatDeadline(deadline, inputs.timezone)}`;
-    await Promise.all(
-      mediums.map((medium) =>
-        enqueue({ userId: row.userId, itemId: row.item.id, medium, title, message })
-      )
-    );
-  }
+  await enqueueNotification({
+    userId: row.userId,
+    itemId: row.item.id,
+    kind: "overdue",
+    title: `[${APP_NAME}] Overdue: ${shortTitle(row.item.title)}`,
+    message: `overdue — was due ${formatDeadline(deadline, inputs.timezone)}`,
+    channels: channelDecisions(inputs.rules.medium, row),
+  });
 
   await db
     .update(items)

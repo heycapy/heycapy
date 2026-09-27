@@ -11,10 +11,21 @@ import { parseDeadlineString } from "@/lib/time";
 import { reminderResetForDeadline } from "@/lib/items/reminders";
 import { refreshItemReminders } from "@/lib/reminders/refresh";
 import { createNextOccurrence, skipOccurrence } from "@/lib/items/recurrence";
+import {
+  getItemReminderInfo,
+  getReminderBadges,
+  type ItemReminderInfo,
+  type ReminderBadge,
+} from "@/lib/reminders/status";
 
-export async function getItemsForBucketAction(
-  bucketId: number
-): Promise<{ ok: true; items: (typeof items.$inferSelect)[] } | { ok: false; error: string }> {
+export async function getItemsForBucketAction(bucketId: number): Promise<
+  | {
+      ok: true;
+      items: (typeof items.$inferSelect)[];
+      reminderBadges: Record<number, ReminderBadge>;
+    }
+  | { ok: false; error: string }
+> {
   const session = await requireSession();
 
   const bucket = await db.query.buckets.findFirst({
@@ -62,7 +73,13 @@ export async function getItemsForBucketAction(
             .where(condition)
             .orderBy(asc(items.sortOrder), asc(items.createdAt), asc(items.id));
 
-  return { ok: true, items: result };
+  const reminderBadges = await getReminderBadges(session.userId, bucket.notificationsRules, result);
+  return { ok: true, items: result, reminderBadges };
+}
+
+export async function getItemReminderInfoAction(itemId: number): Promise<ItemReminderInfo | null> {
+  const session = await requireSession();
+  return getItemReminderInfo(session.userId, itemId);
 }
 
 export async function addItemAction(

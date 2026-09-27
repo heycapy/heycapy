@@ -8,6 +8,7 @@ import { sendTelegram, sendTelegramItemNotification } from "./telegram";
 import { errorMessage } from "@/lib/errors";
 import { decryptValue } from "@/lib/crypto";
 import { isE2ETestMode } from "@/lib/e2e";
+import type { ChannelDecision } from "./channels";
 import {
   QUEUE_DEFAULT_MAX_ATTEMPTS,
   QUEUE_PROCESS_BATCH_SIZE,
@@ -35,6 +36,30 @@ export async function enqueue(job: NotificationJob): Promise<void> {
     message: job.message,
     maxAttempts: job.maxAttempts ?? QUEUE_DEFAULT_MAX_ATTEMPTS,
   });
+}
+
+export async function enqueueNotification(notification: {
+  userId: number;
+  itemId: number;
+  kind: "reminder" | "overdue" | "arrival";
+  title: string;
+  message: string;
+  channels: ChannelDecision[];
+}): Promise<void> {
+  const createdAt = new Date();
+  await db.insert(notificationQueue).values(
+    notification.channels.map((c) => ({
+      userId: notification.userId,
+      itemId: notification.itemId,
+      kind: notification.kind,
+      medium: c.medium,
+      title: notification.title,
+      message: notification.message,
+      status: c.state === "send" ? ("pending" as const) : ("skipped" as const),
+      skipReason: c.state === "send" ? null : c.state,
+      createdAt,
+    }))
+  );
 }
 
 export async function processPending(): Promise<void> {
@@ -102,7 +127,7 @@ export async function processPending(): Promise<void> {
       if (!itemRow || itemRow.deletedAt || itemRow.status === "completed") {
         await db
           .update(notificationQueue)
-          .set({ status: "sent", sentAt: new Date() })
+          .set({ status: "cancelled" })
           .where(eq(notificationQueue.id, job.id));
         continue;
       }
