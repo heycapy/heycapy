@@ -41,10 +41,12 @@ import type { TelegramUpdate } from "./telegram-utils";
 import { redeemTelegramLinkCode } from "@/lib/notifications/telegram-link";
 import { handleReminderAction } from "./telegram-quick-actions";
 import {
+  abandonReschedule,
   handleRescheduleCallback,
   handleRescheduleText,
   startReschedule,
 } from "./telegram-reschedule";
+import { TELEGRAM_KEYBOARD } from "@/lib/notifications/constants";
 import {
   showBucketPicker,
   showDeadlinePicker,
@@ -128,7 +130,7 @@ export async function POST(req: Request) {
 
   const userId = row.userId;
   const timezone = row.timezone ?? "UTC";
-  const flowState = getFlowState(row.telegramState ?? null);
+  let flowState = getFlowState(row.telegramState ?? null);
   const msgId = getFlowMessageId(row.telegramState ?? null);
   const ctx = { botToken, chatId: chatIdStr, userId, timezone };
 
@@ -501,6 +503,17 @@ export async function POST(req: Request) {
   }
 
   if (!text) return new Response("OK");
+
+  // Commands and the keyboard buttons always win over a half-finished step
+  const isCommand =
+    text.startsWith("/") ||
+    TELEGRAM_KEYBOARD.some((row) => (row as readonly string[]).includes(text));
+  if (flowState && isCommand) {
+    if (flowState.s === "rs" && msgId) await abandonReschedule(ctx, flowState, msgId);
+    else if (msgId) await removeMessageButtons(botToken, chatIdStr, msgId);
+    await setFlowState(userId, null);
+    flowState = null;
+  }
 
   if (flowState?.s === "rs" && flowState.typing && msgId) {
     await handleRescheduleText(ctx, text, flowState, msgId);

@@ -28,3 +28,8 @@ export const RESCHEDULE_DAY_LABELS = {
   this_week: "Next week",
   end_of_month: "End of month",
 } as const;
+
+export const TELEGRAM_KEYBOARD = [
+  ["➕ Add", "📝 List"],
+  ["📋 Today", "⚠️ Overdue"],
+] as const;

@@ -3,7 +3,12 @@ import { db } from "@/lib/db";
 import { buckets, items } from "@/lib/db/schema";
 import { dataEvents } from "@/lib/events";
 import { RESCHEDULE_DAY_LABELS } from "@/lib/notifications/constants";
-import { editTelegramHtml, reminderButtons, type InlineButton } from "@/lib/notifications/telegram";
+import {
+  editTelegramHtml,
+  reminderButtons,
+  removeMessageButtons,
+  type InlineButton,
+} from "@/lib/notifications/telegram";
 import { escapeHtml, itemAlertHtml, itemMovedHtml } from "@/lib/notifications/telegram-message";
 import { addLocalDays, toLocal } from "@/lib/reminders/zoned";
 import {
@@ -187,6 +192,26 @@ async function applyTime(
     return;
   }
   await finish(ctx, item, deadline, messageId, now);
+}
+
+// Closes a reschedule the user walked away from; a reminder gets its own buttons back
+export async function abandonReschedule(
+  ctx: Ctx,
+  state: RescheduleState,
+  messageId: number
+): Promise<void> {
+  const item = state.origin === "reminder" ? await loadItem(ctx, state.itemId) : null;
+  if (item) {
+    await editTelegramHtml(
+      ctx.botToken,
+      ctx.chatId,
+      messageId,
+      heading(item, new Date(), ctx.timezone),
+      reminderButtons(item.id)
+    );
+  } else {
+    await removeMessageButtons(ctx.botToken, ctx.chatId, messageId);
+  }
 }
 
 export async function startReschedule(

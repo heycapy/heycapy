@@ -1,5 +1,5 @@
 import { TELEGRAM_API_BASE } from "@/constants";
-import { QUICK_REMIND_OPTIONS } from "./constants";
+import { QUICK_REMIND_OPTIONS, TELEGRAM_KEYBOARD } from "./constants";
 
 export type InlineButton = { text: string; callback_data: string };
 
@@ -110,10 +110,7 @@ export async function sendTelegramWithQuickActions(
       chat_id: chatId,
       text,
       reply_markup: {
-        keyboard: [
-          ["➕ Add", "📝 List"],
-          ["📋 Today", "⚠️ Overdue"],
-        ],
+        keyboard: TELEGRAM_KEYBOARD,
         resize_keyboard: true,
         is_persistent: true,
       },
