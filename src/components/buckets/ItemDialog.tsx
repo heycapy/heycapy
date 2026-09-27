@@ -45,6 +45,7 @@ interface ItemDialogProps {
   onConfirm: () => void;
   onCancel: () => void;
   onDelete?: () => void;
+  onSkip?: () => void;
 }
 
 export function ItemDialog({
@@ -67,6 +68,7 @@ export function ItemDialog({
   onConfirm,
   onCancel,
   onDelete,
+  onSkip,
 }: ItemDialogProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const scrollBodyRef = useRef<HTMLDivElement>(null);
@@ -328,9 +330,16 @@ export function ItemDialog({
                 ) : (
                   <span />
                 )}
-                <BracketButton onClick={handleConfirmClick} disabled={pending}>
-                  {mode === "add" ? "add" : "update"}
-                </BracketButton>
+                <div className="flex items-center gap-2">
+                  {onSkip && (
+                    <BracketButton onClick={onSkip} disabled={pending}>
+                      skip
+                    </BracketButton>
+                  )}
+                  <BracketButton onClick={handleConfirmClick} disabled={pending}>
+                    {mode === "add" ? "add" : "update"}
+                  </BracketButton>
+                </div>
               </div>
             </div>
           </motion.div>

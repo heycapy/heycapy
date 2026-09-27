@@ -10,7 +10,7 @@ import type { RecurringConfig } from "@/types/rules";
 import { parseDeadlineString } from "@/lib/time";
 import { reminderResetForDeadline } from "@/lib/items/reminders";
 import { refreshItemReminders } from "@/lib/reminders/refresh";
-import { createNextOccurrence } from "@/lib/items/recurrence";
+import { createNextOccurrence, skipOccurrence } from "@/lib/items/recurrence";
 
 export async function getItemsForBucketAction(
   bucketId: number
@@ -156,6 +156,15 @@ export async function updateItemAction(
 
   revalidatePath("/");
   return { ok: true };
+}
+
+export async function skipOccurrenceAction(
+  itemId: number
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const session = await requireSession();
+  const result = await skipOccurrence(session.userId, itemId);
+  if (result.ok) revalidatePath("/");
+  return result;
 }
 
 export async function completeItemAction(

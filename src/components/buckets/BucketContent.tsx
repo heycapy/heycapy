@@ -14,12 +14,14 @@ import {
   addItemAction,
   updateItemAction,
   deleteItemAction,
+  skipOccurrenceAction,
   reorderItemsAction,
   getItemsForBucketAction,
 } from "@/app/(app)/actions";
 import type { buckets, items as itemsTable } from "@/lib/db/schema";
 import type { DragControls } from "framer-motion";
-import { BucketSchema, RecurringConfig as RecurringConfigSchema } from "@/types/rules";
+import { BucketSchema } from "@/types/rules";
+import { nextOccurrenceDate, parseRecurring } from "@/lib/items/occurrence";
 import type { RecurringConfig, StatusDef, FieldDef } from "@/types/rules";
 import { useUIStore } from "@/store/ui";
 
@@ -39,15 +41,6 @@ function toLocalDatetimeStr(d: Date): string {
   const m = d.getMinutes();
   if (h === 0 && m === 0) return `${y}-${mo}-${dy}`;
   return `${y}-${mo}-${dy}T${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
-}
-
-function parseRecurring(raw: string | null): RecurringConfig | null {
-  if (!raw) return null;
-  try {
-    return RecurringConfigSchema.parse(JSON.parse(raw));
-  } catch {
-    return null;
-  }
 }
 
 function DraggableItem({
@@ -269,6 +262,17 @@ export function BucketContent({ bucket, accentColor }: BucketContentProps) {
     });
   }
 
+  function handleSkip() {
+    if (!editingItemId || editPending) return;
+    startEditTransition(async () => {
+      const result = await skipOccurrenceAction(editingItemId);
+      if (result.ok) {
+        cancelEditing();
+        await refetchItems();
+      }
+    });
+  }
+
   async function handleSwipeDelete(itemId: number) {
     await deleteItemAction(itemId);
     await refetchItems();
@@ -280,6 +284,13 @@ export function BucketContent({ bucket, accentColor }: BucketContentProps) {
   }
 
   const isDialogOpen = addingItem || editingItemId !== null;
+  const editingItem = fetchedItems.find((i) => i.id === editingItemId);
+  const editingRecurring = parseRecurring(editingItem?.recurring ?? null);
+  const canSkipEditing =
+    editingItem?.status !== "completed" &&
+    !!editingItem?.deadline &&
+    !!editingRecurring &&
+    nextOccurrenceDate(editingItem.deadline, editingRecurring) !== null;
   const isReadonly = rules.readonly === true;
 
   return (
@@ -396,6 +407,7 @@ export function BucketContent({ bucket, accentColor }: BucketContentProps) {
         onConfirm={addingItem ? handleAdd : handleUpdate}
         onCancel={addingItem ? cancelAdding : cancelEditing}
         onDelete={editingItemId !== null ? handleDelete : undefined}
+        onSkip={canSkipEditing ? handleSkip : undefined}
       />
 
       <BucketSettings open={settingsOpen} bucket={bucket} onClose={() => setSettingsOpen(false)} />

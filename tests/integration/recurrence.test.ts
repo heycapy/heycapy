@@ -4,7 +4,11 @@ import { db } from "@/lib/db";
 import { items } from "@/lib/db/schema";
 import { executeToolCall } from "@/lib/ai/capyTools";
 import { completeItemById } from "@/app/api/telegram/telegram-utils";
-import { completeItemAction, updateItemAction } from "@/app/(app)/item-actions";
+import {
+  completeItemAction,
+  skipOccurrenceAction,
+  updateItemAction,
+} from "@/app/(app)/item-actions";
 import { refreshItemReminders } from "@/lib/reminders/refresh";
 import {
   HOUR,
@@ -158,5 +162,73 @@ describe("no duplicate occurrences", () => {
     await completeItemAction(itemId);
     await completeItemAction(itemId);
     expect(await bucketItems(bucketId)).toHaveLength(2);
+  });
+});
+
+describe("skipping one occurrence", () => {
+  it("moves the item to its next date without creating a copy", async () => {
+    const { bucketId, itemId } = await seedRecurring({});
+    expect(await skipOccurrenceAction(itemId)).toEqual({ ok: true });
+
+    const all = await bucketItems(bucketId);
+    expect(all).toHaveLength(1);
+    expect(all[0].status).toBe("active");
+    expect(all[0].deadline?.toISOString()).toBe("2026-04-13T12:00:00.000Z");
+    expect(all[0].recurring).toBe(MONTHLY);
+  });
+
+  it("re-arms the reminder for the new date", async () => {
+    const { itemId } = await seedRecurring({ deadline: T0 });
+    await runSchedulerAt(new Date(T0.getTime() + MINUTE));
+    await skipOccurrenceAction(itemId);
+
+    const item = await db.query.items.findFirst({ where: eq(items.id, itemId) });
+    expect(item?.nextReminderAt?.toISOString()).toBe("2026-04-10T11:00:00.000Z");
+  });
+
+  it("jumps an overdue item to the next future date", async () => {
+    const { itemId } = await seedRecurring({ deadline: new Date(T0.getTime() - 70 * DAY) });
+    await skipOccurrenceAction(itemId);
+
+    const item = await db.query.items.findFirst({ where: eq(items.id, itemId) });
+    expect(item?.deadline && item.deadline > T0).toBe(true);
+  });
+
+  it("refuses to skip the last occurrence", async () => {
+    const recurring = JSON.stringify({
+      enabled: true,
+      frequency: "monthly",
+      interval: 1,
+      endDate: "2026-03-31",
+    });
+    const { itemId } = await seedRecurring({ recurring });
+    expect(await skipOccurrenceAction(itemId)).toEqual({
+      ok: false,
+      error: "This is the last occurrence — complete or delete it instead",
+    });
+  });
+
+  it("refuses items that are completed or not repeating", async () => {
+    const { itemId } = await seedRecurring({});
+    await completeItemAction(itemId);
+    expect((await skipOccurrenceAction(itemId)).ok).toBe(false);
+
+    const plain = await seedRecurring({ recurring: "" });
+    expect((await skipOccurrenceAction(plain.itemId)).ok).toBe(false);
+  });
+
+  it("cannot skip another user's item", async () => {
+    const { itemId } = await seedRecurring({});
+    await seedRecurring({});
+    expect(await skipOccurrenceAction(itemId)).toEqual({ ok: false, error: "Item not found" });
+  });
+});
+
+describe("stopping a repeat", () => {
+  it("turning repeat off in the edit dialog means completing creates no next occurrence", async () => {
+    const { bucketId, itemId } = await seedRecurring({});
+    await updateItemAction(itemId, "pay rent", "2026-03-13T12:00:00.000Z", "active", null);
+    await completeItemAction(itemId);
+    expect(await bucketItems(bucketId)).toHaveLength(1);
   });
 });

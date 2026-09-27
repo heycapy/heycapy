@@ -1,46 +1,17 @@
 import { and, eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { items } from "@/lib/db/schema";
-import { RecurringConfig } from "@/types/rules";
 import { refreshItemReminders } from "@/lib/reminders/refresh";
-
-function advance(deadline: Date, config: RecurringConfig): Date {
-  const next = new Date(deadline);
-  const n = config.interval;
-  switch (config.frequency) {
-    case "daily":
-      next.setDate(next.getDate() + n);
-      break;
-    case "weekly":
-      next.setDate(next.getDate() + n * 7);
-      break;
-    case "monthly":
-      next.setMonth(next.getMonth() + n);
-      break;
-    case "yearly":
-      next.setFullYear(next.getFullYear() + n);
-      break;
-  }
-  return next;
-}
+import { reminderResetForDeadline } from "./reminders";
+import { nextOccurrenceDate, parseRecurring } from "./occurrence";
 
 export async function createNextOccurrence(itemId: number, now = new Date()): Promise<void> {
   const completed = await db.query.items.findFirst({ where: eq(items.id, itemId) });
   if (completed?.status !== "completed" || !completed.recurring || !completed.deadline) return;
 
-  let raw: unknown;
-  try {
-    raw = JSON.parse(completed.recurring);
-  } catch {
-    return;
-  }
-  const parsed = RecurringConfig.safeParse(raw);
-  if (!parsed.success || !parsed.data.enabled) return;
-  const config = parsed.data;
-
-  let deadline = advance(completed.deadline, config);
-  while (deadline <= now) deadline = advance(deadline, config);
-  if (config.endDate && deadline > new Date(config.endDate)) return;
+  const config = parseRecurring(completed.recurring);
+  const deadline = config && nextOccurrenceDate(completed.deadline, config, now);
+  if (!deadline) return;
 
   // Moving the rule off the completed item only succeeds once, so a second completion can't duplicate
   const [claimed] = await db
@@ -65,4 +36,31 @@ export async function createNextOccurrence(itemId: number, now = new Date()): Pr
     })
     .returning({ id: items.id });
   if (next) await refreshItemReminders([next.id]);
+}
+
+export async function skipOccurrence(
+  userId: number,
+  itemId: number,
+  now = new Date()
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const item = await db.query.items.findFirst({
+    where: and(eq(items.id, itemId), eq(items.userId, userId)),
+  });
+  if (!item) return { ok: false, error: "Item not found" };
+  const config = parseRecurring(item.recurring);
+  if (item.status === "completed" || !item.deadline || !config?.enabled) {
+    return { ok: false, error: "Only an open repeating item with a date can be skipped" };
+  }
+
+  const deadline = nextOccurrenceDate(item.deadline, config, now);
+  if (!deadline) {
+    return { ok: false, error: "This is the last occurrence — complete or delete it instead" };
+  }
+
+  await db
+    .update(items)
+    .set({ deadline, ...reminderResetForDeadline(item, deadline, now), updatedAt: now })
+    .where(eq(items.id, itemId));
+  await refreshItemReminders([itemId]);
+  return { ok: true };
 }
