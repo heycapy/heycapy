@@ -17,17 +17,18 @@ import type { UserTone, AIProvider, TranscriptionProvider } from "./settings-con
 import type { userSettings } from "@/lib/db/schema";
 
 type Settings = typeof userSettings.$inferSelect;
-type Tab = "appearance" | "notifications" | "ai" | "personality";
+export type SettingsTab = "appearance" | "notifications" | "ai" | "personality";
 
 interface SettingsSheetProps {
   open: boolean;
+  initialTab: SettingsTab;
   onClose: () => void;
 }
 
-export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
+export function SettingsSheet({ open, initialTab, onClose }: SettingsSheetProps) {
   useScrollLock(open);
   const { theme, setTheme } = useTheme();
-  const [tab, setTab] = useState<Tab>("appearance");
+  const [tab, setTab] = useState<SettingsTab>("appearance");
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState("");
   const [loaded, setLoaded] = useState(false);
@@ -104,7 +105,7 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
   useEffect(() => {
     if (!open) return;
     const id = setTimeout(() => {
-      setTab("appearance");
+      setTab(initialTab);
       setError("");
       setLoaded(false);
       setTelegramBotUsername(null);
@@ -123,7 +124,7 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
       });
     }, 0);
     return () => clearTimeout(id);
-  }, [open]);
+  }, [open, initialTab]);
 
   useEffect(() => {
     if (!open || tab !== "notifications") return;
@@ -207,7 +208,7 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
     });
   }
 
-  const tabBtn = (t: Tab) =>
+  const tabBtn = (t: SettingsTab) =>
     cn(
       "font-mono text-[10px] px-1.5 py-1 whitespace-nowrap transition-colors shrink-0",
       tab === t ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"
@@ -243,7 +244,7 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
             </div>
 
             <div className="border-border scrollbar-hide flex overflow-x-auto border-b">
-              {(["appearance", "notifications", "ai", "personality"] as Tab[]).map((t) => (
+              {(["appearance", "notifications", "ai", "personality"] as SettingsTab[]).map((t) => (
                 <button key={t} onClick={() => setTab(t)} className={tabBtn(t)}>
                   {t}
                 </button>

@@ -8,6 +8,7 @@ import { sendTelegram, sendTelegramItemNotification } from "./telegram";
 import { errorMessage } from "@/lib/errors";
 import { decryptValue } from "@/lib/crypto";
 import { isE2ETestMode } from "@/lib/e2e";
+import { dataEvents } from "@/lib/events";
 import type { ChannelDecision } from "./channels";
 import {
   QUEUE_DEFAULT_MAX_ATTEMPTS,
@@ -215,6 +216,7 @@ export async function processPending(): Promise<void> {
         .update(notificationQueue)
         .set({ status: "sent", sentAt: now })
         .where(eq(notificationQueue.id, job.id));
+      dataEvents.emit("refresh", job.userId);
     } else {
       const newAttempts = job.attempts + 1;
       const isDead = newAttempts >= job.maxAttempts;
@@ -230,6 +232,7 @@ export async function processPending(): Promise<void> {
           lastError: deliveryError,
         })
         .where(eq(notificationQueue.id, job.id));
+      if (isDead) dataEvents.emit("refresh", job.userId);
     }
   }
 }
