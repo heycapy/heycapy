@@ -64,3 +64,5 @@ export const TRANSCRIPTION_DEFAULT_MODELS: Record<TranscriptionProvider, string>
   groq: "whisper-large-v3-turbo",
   openai: "whisper-1",
 };
+
+export const TELEGRAM_QR_SIZE = 144;

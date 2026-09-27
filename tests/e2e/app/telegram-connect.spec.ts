@@ -26,6 +26,7 @@ test("connect shows a one-time link that can be copied", async ({ page }) => {
   await telegram.getByRole("button", { name: "[connect]" }).click();
   const link = telegram.getByRole("textbox", { name: "telegram connect link" });
   await expect(link).toHaveValue(LINK);
+  await expect(telegram.getByRole("img", { name: "scan to connect telegram" })).toBeVisible();
   await expect(telegram.getByRole("link", { name: "open in telegram" })).toHaveAttribute(
     "href",
     await link.inputValue()

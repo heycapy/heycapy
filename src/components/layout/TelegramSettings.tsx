@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { QRCodeSVG } from "qrcode.react";
 import { Toggle } from "@/components/ui/Toggle";
 import { createTelegramLinkAction, sendTestNotificationAction } from "@/app/(app)/actions";
-import { BOX, INPUT, LABEL, SECTION } from "./settings-constants";
+import { BOX, INPUT, LABEL, SECTION, TELEGRAM_QR_SIZE } from "./settings-constants";
 import { TestSendButton } from "./TestSendButton";
 
 interface TelegramSettingsProps {
@@ -140,6 +141,14 @@ export function TelegramSettings({
                   {copyState === "copied" ? "[copied]" : "[copy]"}
                 </button>
               </div>
+              <QRCodeSVG
+                value={link}
+                size={TELEGRAM_QR_SIZE}
+                marginSize={4}
+                title="scan to connect telegram"
+                role="img"
+                className="self-start"
+              />
               <p className="text-muted-foreground/60 font-mono text-[9px]">
                 <a
                   href={link}
@@ -149,7 +158,8 @@ export function TelegramSettings({
                 >
                   open in telegram
                 </a>{" "}
-                or copy it to your phone — works once, expires in 15 minutes. then click [recheck]
+                scan it with your phone, or copy it — works once, expires in 15 minutes. then click
+                [recheck]
               </p>
               {copyState === "failed" && (
                 <p className="text-destructive font-mono text-[9px]">
