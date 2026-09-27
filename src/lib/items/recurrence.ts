@@ -13,7 +13,7 @@ export async function createNextOccurrence(itemId: number, now = new Date()): Pr
   const deadline = config && nextOccurrenceDate(completed.deadline, config, now);
   if (!deadline) return;
 
-  // Moving the rule off the completed item only succeeds once, so a second completion can't duplicate
+  // Atomic: only the first completion creates the next occurrence
   const [claimed] = await db
     .update(items)
     .set({ recurring: null })

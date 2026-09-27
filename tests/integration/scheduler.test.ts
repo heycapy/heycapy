@@ -19,7 +19,6 @@ const T0 = new Date("2026-03-10T12:00:00Z");
 beforeEach(() => useSchedulerEnvironment(T0));
 afterEach(() => resetSchedulerEnvironment());
 
-/** Old items that were already reminded once and never completed — they pile up over time. */
 async function seedStaleBacklog(userId: number, bucketId: number, count: number) {
   const past = new Date(T0.getTime() - 30 * 24 * HOUR);
   await db.insert(items).values(
@@ -31,7 +30,7 @@ async function seedStaleBacklog(userId: number, bucketId: number, count: number)
       notifiedAt: past,
     }))
   );
-  // Existing rows get their reminder times from the startup reconciliation
+  // As the startup reconcile would
   await reconcile();
 }
 
@@ -79,7 +78,7 @@ describe("large backlogs", () => {
 
 describe("daily repeat", () => {
   it("repeats once per day in the user's timezone, not per UTC day", async () => {
-    // 9:00 in New York is 13:00 UTC (EDT); 20:30 the same evening is 00:30 UTC the next day
+    // 09:00 EDT = 13:00 UTC; 20:30 EDT = 00:30 UTC next day
     const userId = await seedUser("America/New_York");
     const bucketId = await seedBucket(userId, { medium: ["telegram"], repeat: "daily" });
     const deadline = new Date("2026-06-10T13:00:00Z");

@@ -13,11 +13,11 @@ export const OLLAMA_DEFAULT_URL = "https://ollama.yourdomain.com";
 export const NTFY_DEFAULT_URL = "https://ntfy.sh";
 
 export const WEBHOOK_KEY_PREFIX = "hc_live_";
-// Telegram bot command names are 1-32 lowercase letters, digits or underscores
+// Telegram command limit
 export const TELEGRAM_ALIAS_MAX_LENGTH = 32;
 export const WEBHOOK_KEY_MASK = WEBHOOK_KEY_PREFIX + "•".repeat(32);
 
-// Built-in telegram bot commands — bucket aliases must not shadow these
+// Aliases must not shadow these
 export const TELEGRAM_RESERVED_COMMANDS = [
   "start",
   "add",

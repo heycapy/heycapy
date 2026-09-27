@@ -1,6 +1,5 @@
 type ReminderState = { deadline: Date | null; notifiedAt: Date | null };
 
-// Shared by every path that edits deadlines (web, assistant, telegram) so they re-arm alike
 export function reminderResetForDeadline(
   item: ReminderState,
   newDeadline: Date | null,
@@ -10,7 +9,7 @@ export function reminderResetForDeadline(
   if (unchanged) return {};
   return {
     overdueNotifiedAt: null,
-    // Moving to a time that has already passed must not fire an instant reminder
+    // Moved into the past: don't fire immediately
     notifiedAt: newDeadline && newDeadline < now ? item.notifiedAt : null,
   };
 }

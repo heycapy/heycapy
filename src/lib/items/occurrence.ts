@@ -29,7 +29,7 @@ function advance(deadline: Date, config: RecurringConfig): Date {
   return next;
 }
 
-// Skips occurrences already in the past; null once the series has ended
+// Skips past dates; null once the series has ended
 export function nextOccurrenceDate(
   deadline: Date,
   config: RecurringConfig,

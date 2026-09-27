@@ -1,6 +1,5 @@
 import { expect, type Locator, type Page } from "@playwright/test";
 
-/** A fixed-position dialog identified by the text in its header bar. */
 export function modal(page: Page, header: RegExp): Locator {
   return page.locator("div.fixed").filter({ has: page.getByText(header) });
 }
@@ -30,7 +29,7 @@ export async function switchTab(dialog: Locator, tab: "items" | "notifications" 
   await dialog.getByRole("button", { name: tab, exact: true }).click();
 }
 
-/** The wrapper around a labelled setting (label + hint + control). */
+// Label + hint + control wrapper
 export function field(dialog: Locator, label: string): Locator {
   return dialog
     .locator("label")
@@ -50,7 +49,6 @@ export function nameInput(dialog: Locator): Locator {
   return dialog.getByLabel("name", { exact: true });
 }
 
-/** Opens a sub-dialog from the advanced/notifications tab of bucket settings. */
 export async function openFromSettings(
   page: Page,
   tab: "notifications" | "advanced",

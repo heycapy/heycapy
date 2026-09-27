@@ -1,4 +1,4 @@
-import { and, eq, isNull, lte, or } from "drizzle-orm";
+import { and, eq, inArray, isNull, lte, or } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { notificationQueue, notificationLog, users, userSettings } from "@/lib/db/schema";
 import { sendEmail } from "./email";
@@ -12,6 +12,7 @@ import {
   QUEUE_DEFAULT_MAX_ATTEMPTS,
   QUEUE_PROCESS_BATCH_SIZE,
   QUEUE_RETRY_DELAY_MINS,
+  QUEUE_SENDING_LEASE_MS,
 } from "./constants";
 
 export type NotificationMedium = "email" | "ntfy" | "telegram";
@@ -39,22 +40,26 @@ export async function enqueue(job: NotificationJob): Promise<void> {
 export async function processPending(): Promise<void> {
   const now = new Date();
 
+  // Includes abandoned "sending" jobs whose lease expired
+  const ready = and(
+    inArray(notificationQueue.status, ["pending", "sending"]),
+    or(isNull(notificationQueue.nextRetryAt), lte(notificationQueue.nextRetryAt, now))
+  );
+
   const pending = await db
     .select()
     .from(notificationQueue)
-    .where(
-      and(
-        eq(notificationQueue.status, "pending"),
-        or(isNull(notificationQueue.nextRetryAt), lte(notificationQueue.nextRetryAt, now))
-      )
-    )
+    .where(ready)
     .limit(QUEUE_PROCESS_BATCH_SIZE);
 
   for (const job of pending) {
-    await db
+    // Atomic claim: overlapping runs send each job once
+    const [claimed] = await db
       .update(notificationQueue)
-      .set({ status: "sending" })
-      .where(eq(notificationQueue.id, job.id));
+      .set({ status: "sending", nextRetryAt: new Date(now.getTime() + QUEUE_SENDING_LEASE_MS) })
+      .where(and(eq(notificationQueue.id, job.id), ready))
+      .returning({ id: notificationQueue.id });
+    if (!claimed) continue;
 
     const userRow = await db
       .select({
@@ -104,7 +109,7 @@ export async function processPending(): Promise<void> {
     }
 
     if (isE2ETestMode()) {
-      // Test runs must never reach real inboxes or chats
+      // Never deliver during test runs
       await db
         .update(notificationQueue)
         .set({ status: "sent", sentAt: now })

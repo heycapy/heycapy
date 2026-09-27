@@ -10,7 +10,6 @@ const MIGRATIONS = path.join(import.meta.dirname, "../../src/lib/db/migrations")
 
 type Journal = { entries: { tag: string; when: number }[] };
 
-/** A copy of the migrations folder containing only the first `count` migrations. */
 function migrationsUpTo(count: number): string {
   const dir = mkdtempSync(path.join(tmpdir(), "heycapy-migrations-"));
   cpSync(MIGRATIONS, dir, { recursive: true });

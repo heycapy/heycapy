@@ -3,7 +3,6 @@ import { closeDialog, openFromSettings, settingsDialog } from "./settings";
 
 export type Webhook = { url: string; key: string };
 
-/** Rotates the active bucket's webhook key through the UI and returns the endpoint + new key. */
 export async function enableWebhook(page: Page): Promise<Webhook> {
   const { settings, dialog } = await openFromSettings(
     page,
@@ -39,7 +38,6 @@ export async function postItem(
   });
 }
 
-/** ISO datetime `days` from now, as the webhook expects. */
 export function daysFromNow(days: number): string {
   return new Date(Date.now() + days * 86_400_000).toISOString().replace(/\.\d{3}Z$/, "Z");
 }

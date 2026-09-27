@@ -1,6 +1,6 @@
 import { defineConfig, devices } from "@playwright/test";
 
-// Not 3000, so tests (and the pre-commit hook) can run while `pnpm dev` is up
+// Not 3000, so tests can run alongside `pnpm dev`
 const E2E_PORT = 3100;
 const BASE_URL = `http://localhost:${E2E_PORT}`;
 
@@ -23,7 +23,7 @@ export default defineConfig({
       use: { ...devices["Desktop Chrome"] },
     },
     {
-      // Each spec here logs in as its own user (see global-setup.ts and helpers/auth.ts)
+      // One user per spec, see global-setup.ts
       name: "chromium-app",
       testDir: "./tests/e2e/app",
       use: { ...devices["Desktop Chrome"] },
@@ -47,7 +47,7 @@ export default defineConfig({
     command:
       "pnpm build && cp -r public .next/standalone/ && cp -r .next/static .next/standalone/.next/ && cp -r src/lib/db/migrations .next/standalone/migrations && node .next/standalone/server.js",
     url: BASE_URL,
-    // A dummy key makes email count as configured on every machine; test mode never sends
+    // Dummy key: email counts as configured; test mode never sends
     env: { E2E_TEST_MODE: "1", RESEND_API_KEY: "e2e-not-used", PORT: String(E2E_PORT) },
     reuseExistingServer: !process.env.CI,
     timeout: 120000,

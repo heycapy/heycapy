@@ -20,7 +20,6 @@ beforeEach(() => {
 });
 afterEach(() => resetSchedulerEnvironment());
 
-/** A user whose only working channel is telegram (see seedUser). */
 async function signIn(): Promise<number> {
   session.userId = await seedUser();
   return session.userId;

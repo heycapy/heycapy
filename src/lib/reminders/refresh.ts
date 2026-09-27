@@ -43,7 +43,7 @@ function parseTriggers(raw: unknown): { notifyWhenOverdue: boolean; overdueRepea
   }
 }
 
-/** Throws when the bucket's stored notification rules are invalid. */
+// Throws on invalid stored rules
 export function toReminderInputs(row: ReminderRow): ReminderInputs {
   const triggers = parseTriggers(row.fieldSchema);
   return {
@@ -102,7 +102,7 @@ export async function refreshUserReminders(userId: number): Promise<void> {
   await reconcile(eq(items.userId, userId));
 }
 
-// Safety net: a write path that forgot to refresh can only delay a reminder, never lose it
+// Safety net for write paths that skip a refresh
 export async function reconcile(where?: SQL): Promise<void> {
   let lastId = 0;
   for (;;) {

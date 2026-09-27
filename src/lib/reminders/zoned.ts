@@ -33,10 +33,7 @@ function offsetMs(date: Date, timezone: string): number {
   return asUtc - Math.floor(date.getTime() / 60_000) * 60_000;
 }
 
-/**
- * The instant at which the wall clock in `timezone` shows `local`. Out-of-range fields roll
- * over (day 32 → next month). A wall time skipped by a DST jump resolves to just after it.
- */
+// Overflowing fields roll over; a time skipped by DST moves past the gap
 export function fromLocal(local: LocalDateTime, timezone: string): Date {
   const naive = Date.UTC(local.year, local.month - 1, local.day, local.hour, local.minute);
   const first = naive - offsetMs(new Date(naive), timezone);

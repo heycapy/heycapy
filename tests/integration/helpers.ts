@@ -18,7 +18,7 @@ type NotificationRulesInput = {
   quietHours?: { from: string; to: string } | null;
 };
 
-/** A user whose only enabled channel is telegram, in the given timezone. */
+// Only telegram is enabled
 export async function seedUser(timezone = "UTC"): Promise<number> {
   userCount += 1;
   const [user] = await db
@@ -73,7 +73,6 @@ export async function seedItem(
   return item.id;
 }
 
-/** A user + bucket (telegram, once) + one item — the common reminder setup. */
 export async function seedReminder(opts: { deadline: Date; notifiedAt?: Date }) {
   const userId = await seedUser();
   const bucketId = await seedBucket(userId);

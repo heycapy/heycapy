@@ -4,8 +4,7 @@ export function uniqueEmail(prefix: string): string {
   return `${prefix}-${Date.now()}@heycapy.test`;
 }
 
-// Both login steps stay mounted and are cross-faded with opacity, so visibility
-// checks can't tell them apart — assert the rendered opacity instead.
+// Both steps stay mounted and fade via opacity, so check opacity, not visibility
 export function emailStep(page: Page) {
   return page.locator("form").filter({ has: page.getByText("Enter your email") });
 }
@@ -22,7 +21,7 @@ export async function sendCode(page: Page, email: string): Promise<void> {
 }
 
 export async function readDevCode(page: Page): Promise<string> {
-  // The server shows the code on screen when running with E2E_TEST_MODE=1
+  // Shown on screen in E2E_TEST_MODE
   const devCode = page.locator(".font-semibold.tracking-widest");
   await expect(devCode).toHaveText(/^\d{6}$/);
   return (await devCode.textContent()) ?? "";

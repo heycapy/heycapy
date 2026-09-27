@@ -31,7 +31,6 @@ async function seedWorkBucket() {
   return { userId, bucketId };
 }
 
-/** What the settings dialog sends when the user only changes the repeat mode. */
 function saveFromDialog(bucketId: number, notifyAt?: string) {
   return updateBucketSettingsAction(
     bucketId,
@@ -60,7 +59,7 @@ describe("saving bucket settings", () => {
 
   it("keeps reminders out of quiet hours after a save", async () => {
     const { userId, bucketId } = await seedWorkBucket();
-    // 20:00 UTC falls inside the 18:00–09:00 quiet hours
+    // Inside the 18:00–09:00 quiet hours
     const itemId = await seedItem(userId, bucketId, { deadline: new Date("2026-03-10T20:00:00Z") });
     await saveFromDialog(bucketId, "08:00");
 

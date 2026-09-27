@@ -29,14 +29,14 @@ function notBefore(date: Date, floor: Date | null): Date {
   return floor && floor > date ? floor : date;
 }
 
-/** Pushes `date` past the bucket's "notify at" floor and out of its quiet hours. */
+// Applies "notify at" and quiet hours
 function applyDeliveryWindow(date: Date, rules: NotificationRules, timezone: string): Date {
   const notifyAt = rules.notifyAt ? parseClock(rules.notifyAt) : null;
   const quietFrom = rules.quietHours ? parseClock(rules.quietHours.from) : null;
   const quietTo = rules.quietHours ? parseClock(rules.quietHours.to) : null;
 
   let result = date;
-  // Each adjustment only moves forward within a day, so this settles in a couple of passes
+  // Converges within a few passes
   for (let pass = 0; pass < 3; pass++) {
     const start = result.getTime();
     if (notifyAt !== null && minutesOfDay(toLocal(result, timezone)) < notifyAt) {

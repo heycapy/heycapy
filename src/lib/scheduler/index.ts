@@ -159,10 +159,7 @@ function selectDue(key: DueKey, now: Date) {
     .limit(REMINDER_BATCH_SIZE);
 }
 
-/**
- * Processes every item whose `key` time is due, oldest first, in batches. `handle` must move
- * that time past `now` (or clear it) so each item is handled once per run.
- */
+// `handle` must move the due time past `now` or clear it, or the item repeats
 async function drainDue(
   key: DueKey,
   now: Date,
@@ -189,7 +186,7 @@ async function drainDue(
 async function sendDeadlineReminder(row: DueRow, now: Date): Promise<void> {
   const inputs = toReminderInputs(row);
   const due = nextDeadlineReminder(inputs);
-  // The stored time can be stale if a write path skipped a refresh — trust the live state
+  // Re-check live state; the stored time may be stale
   const deadline = row.item.deadline;
   if (!due || due > now || !deadline) {
     await db.update(items).set({ nextReminderAt: due }).where(eq(items.id, row.item.id));
@@ -283,7 +280,7 @@ export function startScheduler(): void {
   if (started) return;
   started = true;
 
-  // Backfills reminder times on startup, then re-checks hourly in case a write path missed one
+  // Backfill on startup, then hourly as a safety net
   void reconcileReminders().then(() => {
     schedule("* * * * *", () => void runNotifications(), { noOverlap: true });
     schedule("17 * * * *", () => void reconcileReminders(), { noOverlap: true });
