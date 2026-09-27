@@ -7,6 +7,7 @@ import { sendNtfy } from "./ntfy";
 import { sendTelegram, sendTelegramItemNotification } from "./telegram";
 import { errorMessage } from "@/lib/errors";
 import { decryptValue } from "@/lib/crypto";
+import { isE2ETestMode } from "@/lib/e2e";
 import {
   QUEUE_DEFAULT_MAX_ATTEMPTS,
   QUEUE_PROCESS_BATCH_SIZE,
@@ -100,6 +101,15 @@ export async function processPending(): Promise<void> {
           .where(eq(notificationQueue.id, job.id));
         continue;
       }
+    }
+
+    if (isE2ETestMode()) {
+      // Test runs must never reach real inboxes or chats
+      await db
+        .update(notificationQueue)
+        .set({ status: "sent", sentAt: now })
+        .where(eq(notificationQueue.id, job.id));
+      continue;
     }
 
     let deliveryError: string | null = null;

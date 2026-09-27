@@ -2,6 +2,7 @@ import { revalidatePath } from "next/cache";
 import { and, eq, gte, isNull, lte, ne, or, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { findBucketByName } from "@/lib/db/buckets";
+import { withDefaultChannels } from "@/lib/notifications/channels";
 import { reminderResetForDeadline } from "@/lib/items/reminders";
 import { refreshItemReminders } from "@/lib/reminders/refresh";
 import { createNextOccurrence } from "@/lib/items/recurrence";
@@ -172,6 +173,7 @@ async function executeToolCallInner(
           userId,
           name,
           icon: args.icon ? String(args.icon) : null,
+          notificationsRules: JSON.stringify(await withDefaultChannels(userId, {})),
           sortOrder: (maxRow?.max ?? -1) + 1,
           webhookKey: encryptValue(generateWebhookKey()),
         })

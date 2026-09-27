@@ -6,6 +6,8 @@ import { ItemRow } from "./ItemRow";
 import { SwipeableRow } from "./SwipeableRow";
 import { ItemDialog } from "./ItemDialog";
 import { BucketSettings } from "./BucketSettings";
+import type { SettingsTab } from "./BucketSettingsForm";
+import { RemindersOffNotice } from "./RemindersOffNotice";
 import { BracketButton } from "@/components/ui/BracketButton";
 import { daysToDisplayStr, parseDurationToDate } from "@/lib/duration";
 import type { ItemStatus, ItemsRulesConfig } from "./constants";
@@ -127,7 +129,7 @@ export function BucketContent({ bucket, accentColor }: BucketContentProps) {
   const [orderedItems, setOrderedItems] = useState<Item[]>([]);
   const orderedItemsRef = useRef<Item[]>([]);
 
-  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [settingsTab, setSettingsTab] = useState<SettingsTab | null>(null);
   const [addingItem, setAddingItem] = useState(false);
   const [addTitle, setAddTitle] = useState("");
   const [addDeadline, setAddDeadline] = useState("");
@@ -309,7 +311,7 @@ export function BucketContent({ bucket, accentColor }: BucketContentProps) {
           </span>
         </div>
         <div className="flex items-center gap-2">
-          <BracketButton onClick={() => setSettingsOpen(true)} className="px-1 py-1.5">
+          <BracketButton onClick={() => setSettingsTab("items")} className="px-1 py-1.5">
             settings
           </BracketButton>
           {!isReadonly && (
@@ -331,6 +333,12 @@ export function BucketContent({ bucket, accentColor }: BucketContentProps) {
           )}
         </div>
       </div>
+
+      <RemindersOffNotice
+        notificationsRules={bucket.notificationsRules}
+        hasDatedItems={fetchedItems.some((i) => i.deadline && i.status !== "completed")}
+        onSetUp={() => setSettingsTab("notifications")}
+      />
 
       <div
         className="border-border mx-4 overflow-hidden border-2"
@@ -410,7 +418,12 @@ export function BucketContent({ bucket, accentColor }: BucketContentProps) {
         onSkip={canSkipEditing ? handleSkip : undefined}
       />
 
-      <BucketSettings open={settingsOpen} bucket={bucket} onClose={() => setSettingsOpen(false)} />
+      <BucketSettings
+        open={settingsTab !== null}
+        initialTab={settingsTab ?? undefined}
+        bucket={bucket}
+        onClose={() => setSettingsTab(null)}
+      />
     </div>
   );
 }

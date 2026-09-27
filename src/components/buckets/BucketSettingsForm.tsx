@@ -19,9 +19,9 @@ import { BUCKET_NAME_MAX_LENGTH } from "@/constants";
 import type { buckets } from "@/lib/db/schema";
 
 type BucketRow = typeof buckets.$inferSelect;
-type Tab = "items" | "notifications" | "advanced";
+export type SettingsTab = "items" | "notifications" | "advanced";
 
-const TABS: Tab[] = ["items", "notifications", "advanced"];
+const TABS: SettingsTab[] = ["items", "notifications", "advanced"];
 
 const tabCn = (active: boolean) =>
   `font-mono text-[10px] px-2 py-1 transition-colors shrink-0 whitespace-nowrap ${active ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"}`;
@@ -32,6 +32,7 @@ interface BucketSettingsFormProps {
   onOpenSchema: () => void;
   onOpenTelegram: () => void;
   onOpenWebhook: () => void;
+  initialTab?: SettingsTab;
 }
 
 // Mounted fresh on every open, so the form always starts from the saved settings
@@ -41,10 +42,11 @@ export function BucketSettingsForm({
   onOpenSchema,
   onOpenTelegram,
   onOpenWebhook,
+  initialTab = "items",
 }: BucketSettingsFormProps) {
   const router = useRouter();
   const nameId = useId();
-  const [tab, setTab] = useState<Tab>("items");
+  const [tab, setTab] = useState<SettingsTab>(initialTab);
   const [values, setValues] = useState<BucketSettingsValues>(() => parseBucketSettings(bucket));
   const [error, setError] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(false);

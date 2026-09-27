@@ -258,8 +258,12 @@ async function runNotifications(): Promise<void> {
   const now = new Date();
   process.stderr.write(`[scheduler] run at ${now.toISOString()}\n`);
 
-  await drainDue("nextReminderAt", now, (row) => sendDeadlineReminder(row, now));
-  await drainDue("nextOverdueAt", now, (row) => sendOverdueAlert(row, now));
+  try {
+    await drainDue("nextReminderAt", now, (row) => sendDeadlineReminder(row, now));
+    await drainDue("nextOverdueAt", now, (row) => sendOverdueAlert(row, now));
+  } catch (err) {
+    process.stderr.write(`[scheduler] run failed: ${errorMessage(err)}\n`);
+  }
   await processPending().catch((err) => {
     process.stderr.write(`[scheduler] processPending error: ${errorMessage(err)}\n`);
   });

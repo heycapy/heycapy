@@ -9,6 +9,7 @@ import { db } from "@/lib/db";
 import { users, userSettings } from "@/lib/db/schema";
 import { encryptValue, decryptValue } from "@/lib/crypto";
 import { refreshUserReminders } from "@/lib/reminders/refresh";
+import { getWorkingChannels } from "@/lib/notifications/channels";
 import { TELEGRAM_API_BASE } from "@/constants";
 import { sendEmail } from "@/lib/notifications/email";
 import { APP_NAME } from "@/constants";
@@ -195,20 +196,11 @@ export async function getNotifAvailabilityAction(): Promise<{
   const session = await getSession();
   if (!session) return { email: false, ntfy: false, telegram: false };
 
-  const settings = await db.query.userSettings.findFirst({
-    where: (s, { eq: qeq }) => qeq(s.userId, session.userId),
-  });
-  if (!settings) return { email: false, ntfy: false, telegram: false };
-
-  const emailConfigured =
-    !!process.env.RESEND_API_KEY ||
-    !!process.env.SMTP_HOST ||
-    (settings.emailProvider === "smtp" && !!settings.smtpHost);
-
+  const working = await getWorkingChannels(session.userId);
   return {
-    email: settings.notificationsEmail && emailConfigured,
-    ntfy: settings.notificationsPush && !!settings.ntfyUrl && !!settings.ntfyTopic,
-    telegram: settings.notificationsTelegram && !!settings.telegramChatId,
+    email: working.includes("email"),
+    ntfy: working.includes("ntfy"),
+    telegram: working.includes("telegram"),
   };
 }
 

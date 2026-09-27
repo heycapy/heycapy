@@ -342,12 +342,11 @@ test.describe("notifications settings", () => {
     return reopened;
   }
 
-  test("defaults: no channels, repeat once, triggers off", async () => {
+  test("defaults: the user's working channel, repeat once, triggers off", async () => {
     const channels = field(dialog, "channels");
-    for (const ch of ["ntfy", "email", "telegram"]) {
-      await expect(option(channels, ch)).toBeVisible();
-      await expectSelected(option(channels, ch), false);
-    }
+    await expectSelected(option(channels, "email"));
+    await expectSelected(option(channels, "ntfy"), false);
+    await expectSelected(option(channels, "telegram"), false);
     await expectSelected(option(field(dialog, "deadline repeat"), "once"));
     await expectSelected(option(field(dialog, "notify on arrival"), "off"));
     await expectSelected(option(field(dialog, "notify when overdue"), "off"));
@@ -357,14 +356,13 @@ test.describe("notifications settings", () => {
     const channels = field(dialog, "channels");
 
     await option(channels, "ntfy").click();
-    await option(channels, "email").click();
     await expectSelected(option(channels, "ntfy"));
     await expectSelected(option(channels, "email"));
     await expectSelected(option(channels, "telegram"), false);
 
-    await option(channels, "ntfy").click();
-    await expectSelected(option(channels, "ntfy"), false);
-    await expectSelected(option(channels, "email"));
+    await option(channels, "email").click();
+    await expectSelected(option(channels, "email"), false);
+    await expectSelected(option(channels, "ntfy"));
   });
 
   test("deadline repeat is single-select", async () => {
@@ -437,7 +435,6 @@ test.describe("notifications settings", () => {
   });
 
   test("all notification settings persist after save and reload", async ({ page }) => {
-    await option(field(dialog, "channels"), "email").click();
     await option(field(dialog, "channels"), "telegram").click();
     await field(dialog, "remind me before deadline").getByRole("textbox").fill("3 hours");
     const notifyAt = field(dialog, "notify at").getByRole("textbox");

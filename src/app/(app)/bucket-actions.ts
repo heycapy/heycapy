@@ -15,6 +15,7 @@ import {
   TELEGRAM_RESERVED_COMMANDS,
 } from "@/constants";
 import { findBucketByName } from "@/lib/db/buckets";
+import { withDefaultChannels } from "@/lib/notifications/channels";
 import { refreshBucketReminders } from "@/lib/reminders/refresh";
 import {
   TELEGRAM_DEADLINE_PRESETS,
@@ -81,7 +82,9 @@ export async function createBucketAction(
     .values({
       userId: session.userId,
       name: trimmed,
-      notificationsRules: JSON.stringify(rules.notifications ?? {}),
+      notificationsRules: JSON.stringify(
+        await withDefaultChannels(session.userId, rules.notifications)
+      ),
       itemsRules: JSON.stringify(rules.items ?? {}),
       mcpRules: rules.mcp ? JSON.stringify(rules.mcp) : null,
       personalityRules: JSON.stringify(rules.personality ?? {}),

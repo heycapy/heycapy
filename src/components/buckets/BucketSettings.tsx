@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useScrollLock } from "@/hooks/useScrollLock";
-import { BucketSettingsForm } from "./BucketSettingsForm";
+import { BucketSettingsForm, type SettingsTab } from "./BucketSettingsForm";
 import { SchemaEditorDialog } from "./SchemaEditorDialog";
 import { TelegramConfigDialog } from "./TelegramConfigDialog";
 import { WebhookDialog } from "./WebhookDialog";
@@ -15,9 +15,10 @@ interface BucketSettingsProps {
   open: boolean;
   bucket: BucketRow;
   onClose: () => void;
+  initialTab?: SettingsTab;
 }
 
-export function BucketSettings({ open, bucket, onClose }: BucketSettingsProps) {
+export function BucketSettings({ open, bucket, onClose, initialTab }: BucketSettingsProps) {
   useScrollLock(open);
   const [schemaOpen, setSchemaOpen] = useState(false);
   const [telegramOpen, setTelegramOpen] = useState(false);
@@ -49,6 +50,7 @@ export function BucketSettings({ open, bucket, onClose }: BucketSettingsProps) {
               <BucketSettingsForm
                 bucket={bucket}
                 onClose={onClose}
+                initialTab={initialTab}
                 onOpenSchema={() => setSchemaOpen(true)}
                 onOpenTelegram={() => setTelegramOpen(true)}
                 onOpenWebhook={() => setWebhookOpen(true)}
