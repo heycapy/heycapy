@@ -7,6 +7,7 @@ import { TimePicker } from "@/components/ui/TimePicker";
 import { DurationInput } from "@/components/ui/DurationInput";
 import type { SortBy, NotificationMedium, RepeatMode } from "./constants";
 import { SORT_OPTIONS, MEDIUM_OPTIONS, REPEAT_OPTIONS } from "./constants";
+import { OVERDUE_FIRST_ALERT_DEFAULT_MINS } from "@/lib/reminders/constants";
 
 const LABEL = "text-muted-foreground font-mono text-[10px]";
 const HINT = "text-muted-foreground/50 font-mono text-[9px] leading-tight";
@@ -18,6 +19,15 @@ const OVERDUE_REPEAT_OPTIONS = [
   { value: "2", label: "2 hours" },
   { value: "4", label: "4 hours" },
   { value: "8", label: "8 hours" },
+] as const;
+
+const OVERDUE_FIRST_ALERT_OPTIONS = [
+  { value: 15, label: "15 min" },
+  { value: 30, label: "30 min" },
+  { value: 60, label: "1 hour" },
+  { value: 120, label: "2 hours" },
+  { value: 240, label: "4 hours" },
+  { value: 1440, label: "1 day" },
 ] as const;
 
 export type NotifAvailability = { email: boolean; ntfy: boolean; telegram: boolean };
@@ -37,6 +47,7 @@ interface BucketRulesPanelProps {
   notifyOnArrival: boolean;
   notifyWhenOverdue: boolean;
   overdueRepeatHours: number | undefined;
+  overdueFirstAlertMins: number | undefined;
   onSortByChange: (v: SortBy) => void;
   onDragChange: (v: boolean) => void;
   onShowCompletedChange: (v: boolean) => void;
@@ -49,6 +60,7 @@ interface BucketRulesPanelProps {
   onNotifyOnArrivalChange: (v: boolean) => void;
   onNotifyWhenOverdueChange: (v: boolean) => void;
   onOverdueRepeatHoursChange: (v: number | undefined) => void;
+  onOverdueFirstAlertMinsChange: (v: number) => void;
   notifAvailability?: NotifAvailability;
 }
 
@@ -67,6 +79,7 @@ export function BucketRulesPanel({
   notifyOnArrival,
   notifyWhenOverdue,
   overdueRepeatHours,
+  overdueFirstAlertMins,
   onSortByChange,
   onDragChange,
   onShowCompletedChange,
@@ -79,6 +92,7 @@ export function BucketRulesPanel({
   onNotifyOnArrivalChange,
   onNotifyWhenOverdueChange,
   onOverdueRepeatHoursChange,
+  onOverdueFirstAlertMinsChange,
   notifAvailability,
 }: BucketRulesPanelProps) {
   if (activeTab === "items") {
@@ -195,24 +209,43 @@ export function BucketRulesPanel({
             disabled={disabled}
           />
           {notifyWhenOverdue && (
-            <div className="mt-1.5 flex flex-col gap-1.5">
-              <span className={HINT}>repeat every — leave unset to notify once</span>
-              <div className="flex flex-wrap gap-1.5">
-                {OVERDUE_REPEAT_OPTIONS.map((opt) => {
-                  const active = String(overdueRepeatHours) === opt.value;
-                  return (
+            <div className="mt-1.5 flex flex-col gap-3">
+              <div role="group" aria-label="first alert after" className="flex flex-col gap-1.5">
+                <span className={HINT}>first alert after the deadline</span>
+                <div className="flex flex-wrap gap-1.5">
+                  {OVERDUE_FIRST_ALERT_OPTIONS.map((opt) => (
                     <OptionButton
                       key={opt.value}
-                      active={active}
-                      disabled={disabled}
-                      onClick={() =>
-                        onOverdueRepeatHoursChange(active ? undefined : parseFloat(opt.value))
+                      active={
+                        (overdueFirstAlertMins ?? OVERDUE_FIRST_ALERT_DEFAULT_MINS) === opt.value
                       }
+                      disabled={disabled}
+                      onClick={() => onOverdueFirstAlertMinsChange(opt.value)}
                     >
                       {opt.label}
                     </OptionButton>
-                  );
-                })}
+                  ))}
+                </div>
+              </div>
+              <div role="group" aria-label="repeat every" className="flex flex-col gap-1.5">
+                <span className={HINT}>repeat every — leave unset to notify once</span>
+                <div className="flex flex-wrap gap-1.5">
+                  {OVERDUE_REPEAT_OPTIONS.map((opt) => {
+                    const active = String(overdueRepeatHours) === opt.value;
+                    return (
+                      <OptionButton
+                        key={opt.value}
+                        active={active}
+                        disabled={disabled}
+                        onClick={() =>
+                          onOverdueRepeatHoursChange(active ? undefined : parseFloat(opt.value))
+                        }
+                      >
+                        {opt.label}
+                      </OptionButton>
+                    );
+                  })}
+                </div>
               </div>
             </div>
           )}

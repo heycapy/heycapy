@@ -8,6 +8,7 @@ import {
   nameInput,
   openSettings,
   option,
+  optionGroup,
   saveSettings,
   switchTab,
 } from "../helpers/settings";
@@ -412,7 +413,7 @@ test.describe("notifications settings", () => {
     await option(overdue, "on").click();
     await expect(overdue.getByText(/^repeat every/)).toBeVisible();
     for (const freq of ["15 min", "30 min", "1 hour", "2 hours", "4 hours", "8 hours"]) {
-      await expect(option(overdue, freq)).toBeVisible();
+      await expect(option(optionGroup(overdue, "repeat every"), freq)).toBeVisible();
     }
 
     await option(overdue, "off").click();
@@ -423,15 +424,15 @@ test.describe("notifications settings", () => {
     const overdue = field(dialog, "notify when overdue");
     await option(overdue, "on").click();
 
-    await option(overdue, "1 hour").click();
-    await expectSelected(option(overdue, "1 hour"));
+    await option(optionGroup(overdue, "repeat every"), "1 hour").click();
+    await expectSelected(option(optionGroup(overdue, "repeat every"), "1 hour"));
 
-    await option(overdue, "4 hours").click();
-    await expectSelected(option(overdue, "4 hours"));
-    await expectSelected(option(overdue, "1 hour"), false);
+    await option(optionGroup(overdue, "repeat every"), "4 hours").click();
+    await expectSelected(option(optionGroup(overdue, "repeat every"), "4 hours"));
+    await expectSelected(option(optionGroup(overdue, "repeat every"), "1 hour"), false);
 
-    await option(overdue, "4 hours").click();
-    await expectSelected(option(overdue, "4 hours"), false);
+    await option(optionGroup(overdue, "repeat every"), "4 hours").click();
+    await expectSelected(option(optionGroup(overdue, "repeat every"), "4 hours"), false);
   });
 
   test("all notification settings persist after save and reload", async ({ page }) => {
@@ -443,7 +444,10 @@ test.describe("notifications settings", () => {
     await option(field(dialog, "deadline repeat"), "daily").click();
     await option(field(dialog, "notify on arrival"), "on").click();
     await option(field(dialog, "notify when overdue"), "on").click();
-    await option(field(dialog, "notify when overdue"), "2 hours").click();
+    await option(
+      optionGroup(field(dialog, "notify when overdue"), "repeat every"),
+      "2 hours"
+    ).click();
     await saveSettings(dialog);
 
     await page.reload();
@@ -458,12 +462,33 @@ test.describe("notifications settings", () => {
     await expectSelected(option(field(reopened, "deadline repeat"), "daily"));
     await expectSelected(option(field(reopened, "notify on arrival"), "on"));
     await expectSelected(option(field(reopened, "notify when overdue"), "on"));
-    await expectSelected(option(field(reopened, "notify when overdue"), "2 hours"));
+    await expectSelected(
+      option(optionGroup(field(reopened, "notify when overdue"), "repeat every"), "2 hours")
+    );
+  });
+
+  test("first overdue alert defaults to 1 hour and the choice persists", async ({ page }) => {
+    await option(field(dialog, "notify when overdue"), "on").click();
+    const firstAlert = optionGroup(field(dialog, "notify when overdue"), "first alert after");
+    await expectSelected(option(firstAlert, "1 hour"));
+
+    await option(firstAlert, "30 min").click();
+    await expectSelected(option(firstAlert, "30 min"));
+    await expectSelected(option(firstAlert, "1 hour"), false);
+    await saveSettings(dialog);
+
+    const reopened = await reopenOnNotifications(page);
+    await expectSelected(
+      option(optionGroup(field(reopened, "notify when overdue"), "first alert after"), "30 min")
+    );
   });
 
   test("turning overdue off clears the saved repeat frequency", async ({ page }) => {
     await option(field(dialog, "notify when overdue"), "on").click();
-    await option(field(dialog, "notify when overdue"), "2 hours").click();
+    await option(
+      optionGroup(field(dialog, "notify when overdue"), "repeat every"),
+      "2 hours"
+    ).click();
     await saveSettings(dialog);
 
     let reopened = await reopenOnNotifications(page);
@@ -472,7 +497,10 @@ test.describe("notifications settings", () => {
 
     reopened = await reopenOnNotifications(page);
     await option(field(reopened, "notify when overdue"), "on").click();
-    await expectSelected(option(field(reopened, "notify when overdue"), "2 hours"), false);
+    await expectSelected(
+      option(optionGroup(field(reopened, "notify when overdue"), "repeat every"), "2 hours"),
+      false
+    );
   });
 
   test("configure telegram opens its dialog on top of settings", async ({ page }) => {

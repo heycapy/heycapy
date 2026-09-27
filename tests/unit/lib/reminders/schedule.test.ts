@@ -129,6 +129,12 @@ describe("nextOverdueAlert", () => {
     );
   });
 
+  it("first fires after the bucket's chosen delay", () => {
+    expect(
+      iso(nextOverdueAlert(inputs({ notifyWhenOverdue: true, overdueFirstAlertMins: 30 })))
+    ).toBe("2026-06-10T13:30:00.000Z");
+  });
+
   it("repeats on the configured interval, or stops without one", () => {
     const last = new Date("2026-06-10T14:00:00Z");
     expect(

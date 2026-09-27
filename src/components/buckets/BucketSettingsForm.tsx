@@ -92,6 +92,7 @@ export function BucketSettingsForm({
           notifyOnArrival: values.notifyOnArrival,
           notifyWhenOverdue: values.notifyWhenOverdue,
           overdueRepeatHours: values.overdueRepeatHours,
+          overdueFirstAlertMins: values.overdueFirstAlertMins,
         }
       );
       if (result.ok) onClose();
@@ -180,6 +181,7 @@ export function BucketSettingsForm({
             notifyOnArrival={values.notifyOnArrival}
             notifyWhenOverdue={values.notifyWhenOverdue}
             overdueRepeatHours={values.overdueRepeatHours}
+            overdueFirstAlertMins={values.overdueFirstAlertMins}
             onSortByChange={(v) => set("sortBy", v)}
             onDragChange={(v) => set("drag", v)}
             onShowCompletedChange={(v) => set("showCompleted", v)}
@@ -199,6 +201,7 @@ export function BucketSettingsForm({
             onNotifyOnArrivalChange={(v) => set("notifyOnArrival", v)}
             onNotifyWhenOverdueChange={(v) => set("notifyWhenOverdue", v)}
             onOverdueRepeatHoursChange={(v) => set("overdueRepeatHours", v)}
+            onOverdueFirstAlertMinsChange={(v) => set("overdueFirstAlertMins", v)}
             notifAvailability={notifAvailability}
           />
         )}

@@ -37,6 +37,10 @@ export function field(dialog: Locator, label: string): Locator {
     .locator("..");
 }
 
+export function optionGroup(scope: Locator, name: string): Locator {
+  return scope.getByRole("group", { name, exact: true });
+}
+
 export function option(scope: Locator, name: string): Locator {
   return scope.getByRole("button", { name, exact: true });
 }

@@ -9,6 +9,7 @@ import {
   openFromSettings,
   openSettings,
   option,
+  optionGroup,
   saveSettings,
   switchTab,
 } from "../helpers/settings";
@@ -143,7 +144,10 @@ test("saving the schema keeps notification triggers set in settings", async ({ p
   await switchTab(settingsDialog, "notifications");
   await option(field(settingsDialog, "notify on arrival"), "on").click();
   await option(field(settingsDialog, "notify when overdue"), "on").click();
-  await option(field(settingsDialog, "notify when overdue"), "4 hours").click();
+  await option(
+    optionGroup(field(settingsDialog, "notify when overdue"), "repeat every"),
+    "4 hours"
+  ).click();
   await saveSettings(settingsDialog);
 
   const { dialog: schema, settings } = await openSchema(page);
@@ -155,7 +159,9 @@ test("saving the schema keeps notification triggers set in settings", async ({ p
   await switchTab(reopened, "notifications");
   await expectSelected(option(field(reopened, "notify on arrival"), "on"));
   await expectSelected(option(field(reopened, "notify when overdue"), "on"));
-  await expectSelected(option(field(reopened, "notify when overdue"), "4 hours"));
+  await expectSelected(
+    option(optionGroup(field(reopened, "notify when overdue"), "repeat every"), "4 hours")
+  );
 });
 
 test("new fields can be added to a bucket that already has items", async ({ page }) => {

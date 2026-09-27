@@ -1,5 +1,5 @@
 import type { NotificationRules } from "@/types/rules";
-import { OVERDUE_FIRST_ALERT_DELAY_MS } from "./constants";
+import { OVERDUE_FIRST_ALERT_DEFAULT_MINS } from "./constants";
 import { atLocalClock, addLocalDays, minutesOfDay, parseClock, toLocal } from "./zoned";
 
 export type ReminderInputs = {
@@ -13,6 +13,7 @@ export type ReminderInputs = {
   rules: NotificationRules;
   notifyWhenOverdue: boolean;
   overdueRepeatHours: number | undefined;
+  overdueFirstAlertMins?: number;
   timezone: string;
 };
 
@@ -77,7 +78,8 @@ export function nextOverdueAlert(i: ReminderInputs): Date | null {
 
   let due: Date;
   if (!i.overdueNotifiedAt) {
-    due = new Date(i.deadline.getTime() + OVERDUE_FIRST_ALERT_DELAY_MS);
+    const delayMins = i.overdueFirstAlertMins ?? OVERDUE_FIRST_ALERT_DEFAULT_MINS;
+    due = new Date(i.deadline.getTime() + delayMins * 60_000);
   } else if (i.overdueRepeatHours) {
     due = new Date(i.overdueNotifiedAt.getTime() + i.overdueRepeatHours * 3_600_000);
   } else {

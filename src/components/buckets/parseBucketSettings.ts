@@ -38,6 +38,7 @@ export type BucketSettingsValues = {
   notifyOnArrival: boolean;
   notifyWhenOverdue: boolean;
   overdueRepeatHours: number | undefined;
+  overdueFirstAlertMins: number | undefined;
 };
 
 function parseJson<T>(json: string | null | undefined, fallback: T): T {
@@ -86,5 +87,7 @@ export function parseBucketSettings(bucket: BucketRow): BucketSettingsValues {
     notifyWhenOverdue: fs.notifyWhenOverdue === true,
     overdueRepeatHours:
       typeof fs.overdueRepeatHours === "number" ? fs.overdueRepeatHours : undefined,
+    overdueFirstAlertMins:
+      typeof fs.overdueFirstAlertMins === "number" ? fs.overdueFirstAlertMins : undefined,
   };
 }

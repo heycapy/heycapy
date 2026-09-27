@@ -29,7 +29,11 @@ export function selectReminderRows(where: SQL | undefined) {
     .where(where);
 }
 
-function parseTriggers(raw: unknown): { notifyWhenOverdue: boolean; overdueRepeatHours?: number } {
+function parseTriggers(raw: unknown): {
+  notifyWhenOverdue: boolean;
+  overdueRepeatHours?: number;
+  overdueFirstAlertMins?: number;
+} {
   try {
     const parsed = typeof raw === "string" ? (JSON.parse(raw) as unknown) : raw;
     const obj = parsed && typeof parsed === "object" ? (parsed as Record<string, unknown>) : {};
@@ -37,6 +41,8 @@ function parseTriggers(raw: unknown): { notifyWhenOverdue: boolean; overdueRepea
       notifyWhenOverdue: obj.notifyWhenOverdue === true,
       overdueRepeatHours:
         typeof obj.overdueRepeatHours === "number" ? obj.overdueRepeatHours : undefined,
+      overdueFirstAlertMins:
+        typeof obj.overdueFirstAlertMins === "number" ? obj.overdueFirstAlertMins : undefined,
     };
   } catch {
     return { notifyWhenOverdue: false };
@@ -57,6 +63,7 @@ export function toReminderInputs(row: ReminderRow): ReminderInputs {
     rules: NotificationRules.parse(JSON.parse(row.notificationsRules)),
     notifyWhenOverdue: triggers.notifyWhenOverdue,
     overdueRepeatHours: triggers.overdueRepeatHours,
+    overdueFirstAlertMins: triggers.overdueFirstAlertMins,
     timezone: row.timezone ?? "UTC",
   };
 }

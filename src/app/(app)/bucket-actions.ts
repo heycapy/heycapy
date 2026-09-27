@@ -111,6 +111,7 @@ type NotificationTriggers = {
   notifyOnArrival?: boolean;
   notifyWhenOverdue?: boolean;
   overdueRepeatHours?: number | undefined;
+  overdueFirstAlertMins?: number | undefined;
 };
 
 export async function updateBucketSettingsAction(
@@ -150,6 +151,9 @@ export async function updateBucketSettingsAction(
         notifyWhenOverdue: notificationTriggers.notifyWhenOverdue ?? false,
         overdueRepeatHours: notificationTriggers.notifyWhenOverdue
           ? notificationTriggers.overdueRepeatHours
+          : undefined,
+        overdueFirstAlertMins: notificationTriggers.notifyWhenOverdue
+          ? notificationTriggers.overdueFirstAlertMins
           : undefined,
       };
     } catch (err) {
@@ -382,6 +386,9 @@ export async function updateBucketSchemaAction(
     }),
     ...(existing.overdueRepeatHours !== undefined && {
       overdueRepeatHours: existing.overdueRepeatHours,
+    }),
+    ...(existing.overdueFirstAlertMins !== undefined && {
+      overdueFirstAlertMins: existing.overdueFirstAlertMins,
     }),
   };
 

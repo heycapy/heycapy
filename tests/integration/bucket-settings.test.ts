@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { buckets, items } from "@/lib/db/schema";
-import { updateBucketSettingsAction } from "@/app/(app)/bucket-actions";
+import { updateBucketSchemaAction, updateBucketSettingsAction } from "@/app/(app)/bucket-actions";
 import {
   resetSchedulerEnvironment,
   seedBucket,
@@ -71,5 +71,47 @@ describe("saving bucket settings", () => {
     const { bucketId } = await seedWorkBucket();
     await saveFromDialog(bucketId, undefined);
     expect(await storedRules(bucketId)).not.toHaveProperty("notifyAt");
+  });
+});
+
+describe("first overdue alert delay", () => {
+  function saveOverdue(bucketId: number, overdueFirstAlertMins?: number, on = true) {
+    return updateBucketSettingsAction(
+      bucketId,
+      `Bills ${Math.random()}`,
+      { sortBy: "deadline", drag: false, readonly: false, showCompleted: true },
+      { medium: ["telegram"], repeat: "once" },
+      undefined,
+      { notifyOnArrival: false, notifyWhenOverdue: on, overdueFirstAlertMins }
+    );
+  }
+
+  it("moves the next overdue alert as soon as it is saved", async () => {
+    const { userId, bucketId } = await seedWorkBucket();
+    const deadline = new Date("2026-03-10T15:00:00Z");
+    const itemId = await seedItem(userId, bucketId, { deadline });
+
+    await saveOverdue(bucketId, 30);
+    let item = await db.query.items.findFirst({ where: eq(items.id, itemId) });
+    expect(item?.nextOverdueAt?.toISOString()).toBe("2026-03-10T15:30:00.000Z");
+
+    await saveOverdue(bucketId, undefined);
+    item = await db.query.items.findFirst({ where: eq(items.id, itemId) });
+    expect(item?.nextOverdueAt?.toISOString()).toBe("2026-03-10T16:00:00.000Z");
+  });
+
+  it("is cleared when overdue alerts are turned off", async () => {
+    const { bucketId } = await seedWorkBucket();
+    await saveOverdue(bucketId, 30, false);
+    const bucket = await db.query.buckets.findFirst({ where: eq(buckets.id, bucketId) });
+    expect(JSON.parse(String(bucket?.fieldSchema))).not.toHaveProperty("overdueFirstAlertMins");
+  });
+
+  it("survives saving the bucket's schema", async () => {
+    const { bucketId } = await seedWorkBucket();
+    await saveOverdue(bucketId, 240);
+    await updateBucketSchemaAction(bucketId, { fields: [] });
+    const bucket = await db.query.buckets.findFirst({ where: eq(buckets.id, bucketId) });
+    expect(JSON.parse(String(bucket?.fieldSchema))).toMatchObject({ overdueFirstAlertMins: 240 });
   });
 });
