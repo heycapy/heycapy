@@ -2,6 +2,10 @@ export const LABEL = "text-muted-foreground font-mono text-[10px]";
 export const INPUT =
   "border-b border-border w-full bg-transparent py-1.5 font-mono text-xs outline-none placeholder:text-muted-foreground/50 focus:border-foreground disabled:opacity-50";
 
+export const SECTION =
+  "text-muted-foreground font-mono text-[10px] font-semibold tracking-widest uppercase";
+export const BOX = "border-border flex flex-col gap-3 border p-3";
+
 export const THEMES = [
   { id: "capy", label: "capy", bg: "#fdf6e3", fg: "#7c4b2a" },
   { id: "light", label: "light", bg: "#ffffff", fg: "#0a0a0a" },

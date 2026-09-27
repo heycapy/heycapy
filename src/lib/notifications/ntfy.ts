@@ -6,7 +6,7 @@ export async function sendNtfy(
 ): Promise<void> {
   const base = ntfyUrl.replace(/\/$/, "");
   const safeTitle = title.replace(/[^\x00-\xFF]/g, "").trim();
-  await fetch(`${base}/${topic}`, {
+  const res = await fetch(`${base}/${topic}`, {
     method: "POST",
     headers: {
       Title: safeTitle,
@@ -14,4 +14,9 @@ export async function sendNtfy(
     },
     body: message,
   });
+
+  if (!res.ok) {
+    const body = await res.text();
+    throw new Error(`ntfy error ${res.status}: ${body}`);
+  }
 }

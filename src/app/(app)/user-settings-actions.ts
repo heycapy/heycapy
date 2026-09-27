@@ -12,6 +12,10 @@ import { refreshUserReminders } from "@/lib/reminders/refresh";
 import { getWorkingChannels } from "@/lib/notifications/channels";
 import { TELEGRAM_API_BASE } from "@/constants";
 import { sendEmail } from "@/lib/notifications/email";
+import { sendNtfy } from "@/lib/notifications/ntfy";
+import { sendTelegram } from "@/lib/notifications/telegram";
+import { isE2ETestMode } from "@/lib/e2e";
+import { errorMessage } from "@/lib/errors";
 import { APP_NAME } from "@/constants";
 
 type UserSettingsUpdate = {
@@ -289,5 +293,50 @@ export async function testSmtpAction(config: {
     return { ok: true };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : "Failed to send test email" };
+  }
+}
+
+export async function sendTestNotificationAction(
+  channel: "ntfy" | "telegram",
+  ntfy?: { url: string; topic: string }
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const session = await getSession();
+  if (!session) return { ok: false, error: "Unauthorized" };
+
+  const title = `[${APP_NAME}] test`;
+  const message = "your notifications are working — sent while relaxing";
+
+  let send: () => Promise<void>;
+  if (channel === "ntfy") {
+    const url = ntfy?.url.trim() ?? "";
+    const topic = ntfy?.topic.trim() ?? "";
+    if (!url || !topic) return { ok: false, error: "enter a server url and topic first" };
+    let protocol: string;
+    try {
+      protocol = new URL(url).protocol;
+    } catch {
+      return { ok: false, error: "server url is not valid" };
+    }
+    if (protocol !== "https:" && protocol !== "http:") {
+      return { ok: false, error: "server url must start with http:// or https://" };
+    }
+    send = () => sendNtfy(url, topic, title, message);
+  } else {
+    const botToken = process.env.TELEGRAM_BOT_TOKEN;
+    const settings = await db.query.userSettings.findFirst({
+      where: eq(userSettings.userId, session.userId),
+    });
+    if (!botToken) return { ok: false, error: "telegram isn't enabled on this server" };
+    if (!settings?.telegramChatId) return { ok: false, error: "connect telegram first" };
+    const chatId = settings.telegramChatId;
+    send = () => sendTelegram(botToken, chatId, `${title}\n${message}`);
+  }
+
+  if (isE2ETestMode()) return { ok: true };
+  try {
+    await send();
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: errorMessage(err) };
   }
 }
