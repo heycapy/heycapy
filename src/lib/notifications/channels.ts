@@ -3,12 +3,19 @@ import { db } from "@/lib/db";
 import { userSettings } from "@/lib/db/schema";
 import type { NotificationMedium } from "./queue";
 
-export async function getWorkingChannels(userId: number): Promise<NotificationMedium[]> {
-  const settings = await db.query.userSettings.findFirst({
-    where: eq(userSettings.userId, userId),
-  });
-  if (!settings) return [];
+export type ChannelSettings = Pick<
+  typeof userSettings.$inferSelect,
+  | "notificationsEmail"
+  | "emailProvider"
+  | "smtpHost"
+  | "notificationsPush"
+  | "ntfyUrl"
+  | "ntfyTopic"
+  | "notificationsTelegram"
+  | "telegramChatId"
+>;
 
+export function workingChannels(settings: ChannelSettings): NotificationMedium[] {
   const emailConfigured =
     !!process.env.RESEND_API_KEY ||
     !!process.env.SMTP_HOST ||
@@ -21,6 +28,20 @@ export async function getWorkingChannels(userId: number): Promise<NotificationMe
     channels.push("telegram");
   }
   return channels;
+}
+
+export async function getWorkingChannels(userId: number): Promise<NotificationMedium[]> {
+  const settings = await db.query.userSettings.findFirst({
+    where: eq(userSettings.userId, userId),
+  });
+  return settings ? workingChannels(settings) : [];
+}
+
+export function alertChannels(
+  bucketChannels: readonly string[],
+  settings: ChannelSettings
+): NotificationMedium[] {
+  return workingChannels(settings).filter((m) => bucketChannels.includes(m));
 }
 
 export async function withDefaultChannels(

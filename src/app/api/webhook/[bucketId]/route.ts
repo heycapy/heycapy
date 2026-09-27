@@ -1,7 +1,7 @@
 import { db } from "@/lib/db";
 import { items } from "@/lib/db/schema";
 import { decryptValue } from "@/lib/crypto";
-import { BucketSchema, buildPropertyValidator } from "@/types/rules";
+import { BucketSchema, NotificationRules, buildPropertyValidator } from "@/types/rules";
 import { enqueue, processPending } from "@/lib/notifications/queue";
 import {
   WEBHOOK_RATE_LIMIT_MAX,
@@ -9,7 +9,7 @@ import {
 } from "@/lib/notifications/constants";
 import { errorMessage } from "@/lib/errors";
 import { ITEM_TITLE_MAX_LENGTH } from "@/constants";
-import type { NotificationMedium } from "@/lib/notifications/queue";
+import { alertChannels } from "@/lib/notifications/channels";
 import { dataEvents } from "@/lib/events";
 import { refreshItemReminders } from "@/lib/reminders/refresh";
 
@@ -27,6 +27,15 @@ function checkRateLimit(key: string): boolean {
   recent.push(now);
   rateLimitMap.set(key, recent);
   return true;
+}
+
+function bucketChannels(notificationsRules: string): string[] {
+  try {
+    const parsed = NotificationRules.safeParse(JSON.parse(notificationsRules));
+    return parsed.success ? parsed.data.medium : [];
+  } catch {
+    return [];
+  }
 }
 
 export async function POST(
@@ -167,11 +176,7 @@ export async function POST(
     });
 
     if (userRow) {
-      const mediums: NotificationMedium[] = [];
-      if (userRow.notificationsEmail) mediums.push("email");
-      if (userRow.notificationsPush && userRow.ntfyUrl && userRow.ntfyTopic) mediums.push("ntfy");
-      if (userRow.notificationsTelegram && process.env.TELEGRAM_BOT_TOKEN && userRow.telegramChatId)
-        mediums.push("telegram");
+      const mediums = alertChannels(bucketChannels(bucket.notificationsRules), userRow);
 
       const notifTitle = `New item in ${bucket.name}`;
       const message = `"${title}" was added via webhook.`;

@@ -8,7 +8,7 @@ import { dataEvents } from "@/lib/events";
 import { decryptValue } from "@/lib/crypto";
 import { getAIProvider } from "@/lib/ai";
 import { enqueue, processPending } from "@/lib/notifications/queue";
-import type { NotificationMedium } from "@/lib/notifications/queue";
+import { alertChannels } from "@/lib/notifications/channels";
 import { nextDeadlineReminder, nextOverdueAlert } from "@/lib/reminders/schedule";
 import { reconcile, reminderRowFields, toReminderInputs } from "@/lib/reminders/refresh";
 import {
@@ -83,34 +83,6 @@ async function generateNotificationText(
   }
 }
 
-type Channels = {
-  notificationsEmail: boolean | null;
-  notificationsPush: boolean | null;
-  ntfyUrl: string | null;
-  ntfyTopic: string | null;
-  notificationsTelegram: boolean | null;
-  telegramChatId: string | null;
-};
-
-function availableChannels(
-  channels: Channels,
-  allowed?: NotificationMedium[]
-): NotificationMedium[] {
-  const result: NotificationMedium[] = [];
-  const wants = (m: NotificationMedium) => !allowed || allowed.includes(m);
-  if (wants("email") && channels.notificationsEmail) result.push("email");
-  if (wants("ntfy") && channels.notificationsPush && channels.ntfyUrl && channels.ntfyTopic)
-    result.push("ntfy");
-  if (
-    wants("telegram") &&
-    channels.notificationsTelegram &&
-    process.env.TELEGRAM_BOT_TOKEN &&
-    channels.telegramChatId
-  )
-    result.push("telegram");
-  return result;
-}
-
 function formatDeadline(deadline: Date, timezone: string): string {
   return new Intl.DateTimeFormat("en-US", {
     timeZone: timezone,
@@ -128,6 +100,8 @@ const dueRowFields = {
   ...reminderRowFields,
   userId: users.id,
   notificationsEmail: userSettings.notificationsEmail,
+  emailProvider: userSettings.emailProvider,
+  smtpHost: userSettings.smtpHost,
   notificationsPush: userSettings.notificationsPush,
   ntfyUrl: userSettings.ntfyUrl,
   ntfyTopic: userSettings.ntfyTopic,
@@ -194,7 +168,7 @@ async function sendDeadlineReminder(row: DueRow, now: Date): Promise<void> {
   }
 
   const timezone = inputs.timezone;
-  const mediums = availableChannels(row, inputs.rules.medium);
+  const mediums = alertChannels(inputs.rules.medium, row);
   const tag = `[scheduler] item ${row.item.id}`;
 
   if (mediums.length > 0) {
@@ -231,7 +205,7 @@ async function sendOverdueAlert(row: DueRow, now: Date): Promise<void> {
     return;
   }
 
-  const mediums = availableChannels(row);
+  const mediums = alertChannels(inputs.rules.medium, row);
   if (mediums.length > 0) {
     const title = `[${APP_NAME}] Overdue: ${shortTitle(row.item.title)}`;
     const message = `overdue — was due ${formatDeadline(deadline, inputs.timezone)}`;

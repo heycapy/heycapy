@@ -119,6 +119,10 @@ describe("nextOverdueAlert", () => {
     expect(nextOverdueAlert(inputs())).toBeNull();
   });
 
+  it("is off when the bucket has no channels", () => {
+    expect(nextOverdueAlert(inputs({ notifyWhenOverdue: true, rules: { medium: [] } }))).toBeNull();
+  });
+
   it("first fires an hour after the deadline", () => {
     expect(iso(nextOverdueAlert(inputs({ notifyWhenOverdue: true })))).toBe(
       "2026-06-10T14:00:00.000Z"

@@ -73,7 +73,7 @@ export function nextDeadlineReminder(i: ReminderInputs): Date | null {
 }
 
 export function nextOverdueAlert(i: ReminderInputs): Date | null {
-  if (!canRemind(i) || !i.notifyWhenOverdue) return null;
+  if (!canRemind(i) || !i.notifyWhenOverdue || i.rules.medium.length === 0) return null;
 
   let due: Date;
   if (!i.overdueNotifiedAt) {
