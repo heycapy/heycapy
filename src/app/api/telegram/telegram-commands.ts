@@ -1,6 +1,6 @@
-import { and, eq, gte, isNotNull, isNull, lt, lte, ne, sql } from "drizzle-orm";
+import { and, eq, isNull, ne, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { buckets, items } from "@/lib/db/schema";
+import { items } from "@/lib/db/schema";
 import { sendTelegramButtons, sendTelegramWithQuickActions } from "@/lib/notifications/telegram";
 import type { InlineButton } from "@/lib/notifications/telegram";
 import {
@@ -8,8 +8,6 @@ import {
   getBucketTelegramConfig,
   parseNaturalDeadline,
   fmtDate,
-  fmtDateTimeShort,
-  getLocalDateStr,
   createItem,
 } from "./telegram-utils";
 import { dataEvents } from "@/lib/events";
@@ -40,140 +38,6 @@ export async function cmdBuckets(
     ];
   });
   return sendTelegramButtons(botToken, chatId, "Your buckets — tap to browse:", buttonRows);
-}
-
-export async function cmdList(
-  botToken: string,
-  chatId: string,
-  userId: number,
-  timezone: string
-): Promise<number> {
-  const now = new Date();
-  const sevenDaysLater = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
-  const rows = await db
-    .select({
-      id: items.id,
-      title: items.title,
-      deadline: items.deadline,
-      bucketName: buckets.name,
-    })
-    .from(items)
-    .innerJoin(buckets, eq(items.bucketId, buckets.id))
-    .where(
-      and(
-        eq(items.userId, userId),
-        isNull(items.deletedAt),
-        ne(items.status, "completed"),
-        isNotNull(items.deadline),
-        gte(items.deadline, now),
-        lte(items.deadline, sevenDaysLater)
-      )
-    )
-    .orderBy(items.deadline)
-    .limit(20);
-
-  if (rows.length === 0) {
-    await sendTelegramWithQuickActions(botToken, chatId, "Nothing due in the next 7 days.");
-    return 0;
-  }
-  const buttonRows: InlineButton[][] = rows.map((r) => {
-    const when = r.deadline ? fmtDateTimeShort(r.deadline, timezone) : "?";
-    const suffix = `  ·  ${when} [${r.bucketName}]`;
-    const maxTitle = 60 - suffix.length;
-    const truncTitle = r.title.length > maxTitle ? r.title.slice(0, maxTitle - 1) + "…" : r.title;
-    return [{ text: `${truncTitle}${suffix}`, callback_data: `mi:${r.id}` }];
-  });
-  buttonRows.push([{ text: "✖ Close", callback_data: "cancel" }]);
-  return sendTelegramButtons(botToken, chatId, "Upcoming (7 days) — tap to manage:", buttonRows);
-}
-
-export async function cmdDue(
-  botToken: string,
-  chatId: string,
-  userId: number,
-  timezone: string
-): Promise<number> {
-  const todayStr = getLocalDateStr(new Date(), timezone);
-  const rows = await db
-    .select({
-      id: items.id,
-      title: items.title,
-      deadline: items.deadline,
-      bucketName: buckets.name,
-    })
-    .from(items)
-    .innerJoin(buckets, eq(items.bucketId, buckets.id))
-    .where(
-      and(
-        eq(items.userId, userId),
-        isNull(items.deletedAt),
-        ne(items.status, "completed"),
-        isNotNull(items.deadline)
-      )
-    )
-    .orderBy(items.deadline)
-    .limit(50);
-
-  const dueToday = rows.filter(
-    (r) => r.deadline && getLocalDateStr(r.deadline, timezone) === todayStr
-  );
-
-  if (dueToday.length === 0) {
-    await sendTelegramWithQuickActions(botToken, chatId, "Nothing due today.");
-    return 0;
-  }
-  const buttonRows: InlineButton[][] = dueToday.map((r) => {
-    const when = r.deadline ? fmtDateTimeShort(r.deadline, timezone) : "?";
-    const suffix = `  ·  ${when} [${r.bucketName}]`;
-    const maxTitle = 60 - suffix.length;
-    const truncTitle = r.title.length > maxTitle ? r.title.slice(0, maxTitle - 1) + "…" : r.title;
-    return [{ text: `${truncTitle}${suffix}`, callback_data: `mi:${r.id}` }];
-  });
-  buttonRows.push([{ text: "✖ Close", callback_data: "cancel" }]);
-  return sendTelegramButtons(botToken, chatId, "Due today — tap to manage:", buttonRows);
-}
-
-export async function cmdOverdue(
-  botToken: string,
-  chatId: string,
-  userId: number,
-  timezone: string
-): Promise<number> {
-  const now = new Date();
-  const rows = await db
-    .select({
-      id: items.id,
-      title: items.title,
-      deadline: items.deadline,
-      bucketName: buckets.name,
-    })
-    .from(items)
-    .innerJoin(buckets, eq(items.bucketId, buckets.id))
-    .where(
-      and(
-        eq(items.userId, userId),
-        isNull(items.deletedAt),
-        ne(items.status, "completed"),
-        isNotNull(items.deadline),
-        lt(items.deadline, now)
-      )
-    )
-    .orderBy(items.deadline)
-    .limit(20);
-
-  if (rows.length === 0) {
-    await sendTelegramWithQuickActions(botToken, chatId, "Nothing overdue.");
-    return 0;
-  }
-  const buttonRows: InlineButton[][] = rows.map((r) => {
-    const when = r.deadline ? fmtDateTimeShort(r.deadline, timezone) : "?";
-    const suffix = `  ·  ${when} [${r.bucketName}]`;
-    const maxTitle = 60 - suffix.length;
-    const truncTitle = r.title.length > maxTitle ? r.title.slice(0, maxTitle - 1) + "…" : r.title;
-    return [{ text: `${truncTitle}${suffix}`, callback_data: `mi:${r.id}` }];
-  });
-  buttonRows.push([{ text: "✖ Close", callback_data: "cancel" }]);
-  return sendTelegramButtons(botToken, chatId, "Overdue — tap to manage:", buttonRows);
 }
 
 export async function cmdAddDirect(

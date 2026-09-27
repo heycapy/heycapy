@@ -40,6 +40,7 @@ import {
 import type { TelegramUpdate } from "./telegram-utils";
 import { redeemTelegramLinkCode } from "@/lib/notifications/telegram-link";
 import { handleReminderAction } from "./telegram-quick-actions";
+import { parseListKind, showItemListPage } from "./telegram-lists";
 import {
   abandonReschedule,
   handleRescheduleCallback,
@@ -56,20 +57,8 @@ import {
   handleAfterDeadline,
   handleRepeatCallback,
 } from "./telegram-flow";
-import {
-  showListBucketPicker,
-  showItemList,
-  showItemActionMenu,
-  showDeleteConfirm,
-} from "./telegram-manage";
-import {
-  cmdBuckets,
-  cmdList,
-  cmdDue,
-  cmdOverdue,
-  cmdAddDirect,
-  buildHelpText,
-} from "./telegram-commands";
+import { showListBucketPicker, showItemActionMenu, showDeleteConfirm } from "./telegram-manage";
+import { cmdBuckets, cmdAddDirect, buildHelpText } from "./telegram-commands";
 
 export async function POST(req: Request) {
   const botToken = process.env.TELEGRAM_BOT_TOKEN;
@@ -133,6 +122,7 @@ export async function POST(req: Request) {
   let flowState = getFlowState(row.telegramState ?? null);
   const msgId = getFlowMessageId(row.telegramState ?? null);
   const ctx = { botToken, chatId: chatIdStr, userId, timezone };
+  const tappedMsgId = body.callback_query?.message?.message_id;
 
   if (isCallback && callbackData) {
     if (callbackData === "_") return new Response("OK");
@@ -337,36 +327,24 @@ export async function POST(req: Request) {
     // ── list / item management flow ──
 
     if (callbackData.startsWith("lb:")) {
-      const parts = callbackData.slice(3).split(":");
-      const bucketId = Number(parts[0]);
-      const bucketName = parts.slice(1).join(":") || "Bucket";
-      const newMsgId = await showItemList(
-        botToken,
-        chatIdStr,
-        userId,
-        bucketId,
-        bucketName,
-        0,
-        timezone,
-        msgId
-      );
-      await setFlowState(userId, { s: "lb_items", bucketId, bucketName, page: 0 }, newMsgId);
+      const bucketId = Number(callbackData.slice(3).split(":")[0]);
+      const listMsgId = await showItemListPage(ctx, `b${bucketId}`, 0, tappedMsgId);
+      await setFlowState(userId, null, listMsgId);
       return new Response("OK");
     }
 
-    if (callbackData.startsWith("mp:") && flowState?.s === "lb_items") {
-      const page = parseInt(callbackData.slice(3), 10);
-      const newMsgId = await showItemList(
-        botToken,
-        chatIdStr,
-        userId,
-        flowState.bucketId,
-        flowState.bucketName,
-        page,
-        timezone,
-        msgId
-      );
-      await setFlowState(userId, { ...flowState, page }, newMsgId);
+    if (callbackData.startsWith("lp:")) {
+      const [, rawKind, rawPage] = callbackData.split(":");
+      const kind = parseListKind(rawKind ?? "");
+      if (kind && tappedMsgId) {
+        await showItemListPage(ctx, kind, Number(rawPage), tappedMsgId);
+        await setFlowState(userId, null, tappedMsgId);
+      }
+      return new Response("OK");
+    }
+
+    if (callbackData === "lc") {
+      if (tappedMsgId) await removeMessageButtons(botToken, chatIdStr, tappedMsgId);
       return new Response("OK");
     }
 
@@ -385,7 +363,15 @@ export async function POST(req: Request) {
       });
       const bucketId = itemRow.bucketId;
       const bucketName = bucketRow?.name ?? "Bucket";
-      const newMsgId = await showItemActionMenu(botToken, chatIdStr, itemRow.title, msgId);
+      const menuMsgId = tappedMsgId ?? msgId;
+      if (!menuMsgId) return new Response("OK");
+      const newMsgId = await showItemActionMenu(
+        botToken,
+        chatIdStr,
+        { title: itemRow.title, deadline: itemRow.deadline, bucketName },
+        timezone,
+        menuMsgId
+      );
       await setFlowState(
         userId,
         {
@@ -469,7 +455,7 @@ export async function POST(req: Request) {
           botToken,
           chatIdStr,
           msgId,
-          `Type a new title for "${flowState.itemTitle.slice(0, 40)}":`,
+          `Type a new title for "${flowState.itemTitle}":`,
           [[{ text: "✖ Cancel", callback_data: "cancel" }]]
         );
         await setFlowState(
@@ -706,21 +692,8 @@ export async function POST(req: Request) {
     const userBuckets = await getUserBuckets(userId);
     const onlyBucket = userBuckets.length === 1 ? userBuckets[0] : null;
     if (onlyBucket) {
-      const newMsgId = await showItemList(
-        botToken,
-        chatIdStr,
-        userId,
-        onlyBucket.id,
-        onlyBucket.name,
-        0,
-        timezone,
-        null
-      );
-      await setFlowState(
-        userId,
-        { s: "lb_items", bucketId: onlyBucket.id, bucketName: onlyBucket.name, page: 0 },
-        newMsgId
-      );
+      const listMsgId = await showItemListPage(ctx, `b${onlyBucket.id}`, 0);
+      await setFlowState(userId, null, listMsgId);
     } else {
       const newMsgId = await showListBucketPicker(botToken, chatIdStr, userBuckets);
       await setFlowState(userId, null, newMsgId);
@@ -738,18 +711,18 @@ export async function POST(req: Request) {
     return new Response("OK");
   }
   if (lower === "/list") {
-    const newMsgId = await cmdList(botToken, chatIdStr, userId, timezone);
-    await setFlowState(userId, null, newMsgId);
+    const listMsgId = await showItemListPage(ctx, "up", 0);
+    await setFlowState(userId, null, listMsgId);
     return new Response("OK");
   }
   if (lower === "/due" || isTodayShortcut) {
-    const newMsgId = await cmdDue(botToken, chatIdStr, userId, timezone);
-    await setFlowState(userId, null, newMsgId);
+    const listMsgId = await showItemListPage(ctx, "td", 0);
+    await setFlowState(userId, null, listMsgId);
     return new Response("OK");
   }
   if (lower === "/overdue" || isOverdueShortcut) {
-    const newMsgId = await cmdOverdue(botToken, chatIdStr, userId, timezone);
-    await setFlowState(userId, null, newMsgId);
+    const listMsgId = await showItemListPage(ctx, "od", 0);
+    await setFlowState(userId, null, listMsgId);
     return new Response("OK");
   }
   if (lower.startsWith("/add ")) {

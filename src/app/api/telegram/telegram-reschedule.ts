@@ -256,7 +256,13 @@ export async function handleRescheduleCallback(
   if (data === "rx") {
     await setFlowState(ctx.userId, null);
     if (state.origin === "list") {
-      const newMsgId = await showItemActionMenu(ctx.botToken, ctx.chatId, item.title, messageId);
+      const newMsgId = await showItemActionMenu(
+        ctx.botToken,
+        ctx.chatId,
+        item,
+        ctx.timezone,
+        messageId
+      );
       await setFlowState(
         ctx.userId,
         {

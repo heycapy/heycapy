@@ -297,7 +297,7 @@ describe("reschedule", () => {
     expect(lastEdit(api).text).toMatch(/\n\nWhen\?$/);
     await tap("rx", chat);
 
-    expect(lastEdit(api).text).toBe('"pay rent"');
+    expect(lastEdit(api).text).toMatch(/^<b>pay rent<\/b>\n<i>due today, 12:00 PM · Bucket /);
     const settings = await db.query.userSettings.findFirst({
       where: eq(userSettings.userId, userId),
     });

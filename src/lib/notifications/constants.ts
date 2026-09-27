@@ -33,3 +33,5 @@ export const TELEGRAM_KEYBOARD = [
   ["➕ Add", "📝 List"],
   ["📋 Today", "⚠️ Overdue"],
 ] as const;
+
+export const TELEGRAM_LIST_PAGE_SIZE = 6;

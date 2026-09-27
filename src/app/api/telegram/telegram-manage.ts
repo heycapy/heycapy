@@ -1,8 +1,10 @@
-import { sendTelegramWithQuickActions, sendOrEditButtons } from "@/lib/notifications/telegram";
+import {
+  editTelegramHtml,
+  sendOrEditButtons,
+  sendTelegramWithQuickActions,
+} from "@/lib/notifications/telegram";
+import { escapeHtml, formatWhen } from "@/lib/notifications/telegram-message";
 import type { InlineButton } from "@/lib/notifications/telegram";
-import { getActiveItemsForBucket, fmtDateTimeShort } from "./telegram-utils";
-
-const ITEMS_PER_PAGE = 8;
 
 export async function showListBucketPicker(
   botToken: string,
@@ -28,61 +30,34 @@ export async function showListBucketPicker(
   return sendOrEditButtons(botToken, chatId, messageId, "Which bucket?", buttonRows);
 }
 
-export async function showItemList(
-  botToken: string,
-  chatId: string,
-  userId: number,
-  bucketId: number,
-  bucketName: string,
-  page: number,
-  timezone: string,
-  messageId?: number | null
-): Promise<number> {
-  const allItems = await getActiveItemsForBucket(userId, bucketId);
-  if (allItems.length === 0) {
-    return sendOrEditButtons(botToken, chatId, messageId, `No active items in ${bucketName}.`, [
-      [{ text: "✖ Cancel", callback_data: "cancel" }],
-    ]);
-  }
-  const totalPages = Math.ceil(allItems.length / ITEMS_PER_PAGE);
-  const safePage = Math.max(0, Math.min(page, totalPages - 1));
-  const slice = allItems.slice(safePage * ITEMS_PER_PAGE, (safePage + 1) * ITEMS_PER_PAGE);
-  const rows: InlineButton[][] = slice.map((item) => {
-    const deadlineSuffix = item.deadline ? ` — ${fmtDateTimeShort(item.deadline, timezone)}` : "";
-    const maxTitle = 60 - deadlineSuffix.length;
-    const truncTitle =
-      item.title.length > maxTitle ? item.title.slice(0, maxTitle - 1) + "…" : item.title;
-    return [{ text: `${truncTitle}${deadlineSuffix}`, callback_data: `mi:${item.id}` }];
-  });
-  if (totalPages > 1) {
-    const navRow: InlineButton[] = [];
-    if (safePage > 0) navRow.push({ text: "◀ Prev", callback_data: `mp:${safePage - 1}` });
-    navRow.push({ text: `${safePage + 1}/${totalPages}`, callback_data: "_" });
-    if (safePage < totalPages - 1)
-      navRow.push({ text: "Next ▶", callback_data: `mp:${safePage + 1}` });
-    rows.push(navRow);
-  }
-  rows.push([{ text: "✖ Cancel", callback_data: "cancel" }]);
-  return sendOrEditButtons(botToken, chatId, messageId, `${bucketName} — tap an item:`, rows);
-}
+export type MenuItem = { title: string; deadline: Date | null; bucketName: string };
 
 export async function showItemActionMenu(
   botToken: string,
   chatId: string,
-  itemTitle: string,
-  messageId?: number | null
+  item: MenuItem,
+  timezone: string,
+  messageId: number
 ): Promise<number> {
-  return sendOrEditButtons(botToken, chatId, messageId, `"${itemTitle.slice(0, 50)}"`, [
+  const when = item.deadline ? `due ${formatWhen(item.deadline, new Date(), timezone)}` : "no date";
+  await editTelegramHtml(
+    botToken,
+    chatId,
+    messageId,
+    `<b>${escapeHtml(item.title)}</b>\n<i>${when} · ${escapeHtml(item.bucketName)}</i>`,
     [
-      { text: "✓ Complete", callback_data: "la:complete" },
-      { text: "✏️ Rename", callback_data: "me:rename" },
-    ],
-    [
-      { text: "📅 Change deadline", callback_data: "me:deadline" },
-      { text: "🗑 Delete", callback_data: "la:delete" },
-    ],
-    [{ text: "✖ Cancel", callback_data: "cancel" }],
-  ]);
+      [
+        { text: "✓ Complete", callback_data: "la:complete" },
+        { text: "✏️ Rename", callback_data: "me:rename" },
+      ],
+      [
+        { text: "🕐 Reschedule", callback_data: "me:deadline" },
+        { text: "🗑 Delete", callback_data: "la:delete" },
+      ],
+      [{ text: "✖ Cancel", callback_data: "cancel" }],
+    ]
+  );
+  return messageId;
 }
 
 export async function showDeleteConfirm(
@@ -91,7 +66,7 @@ export async function showDeleteConfirm(
   itemTitle: string,
   messageId?: number | null
 ): Promise<number> {
-  return sendOrEditButtons(botToken, chatId, messageId, `Delete "${itemTitle.slice(0, 40)}"?`, [
+  return sendOrEditButtons(botToken, chatId, messageId, `Delete "${itemTitle}"?`, [
     [
       { text: "🗑 Yes, delete", callback_data: "dc:yes" },
       { text: "✖ No", callback_data: "cancel" },

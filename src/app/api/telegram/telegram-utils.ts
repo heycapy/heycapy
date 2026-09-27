@@ -1,4 +1,4 @@
-import { and, eq, isNull, ne, sql } from "drizzle-orm";
+import { and, eq, isNull, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { buckets, items, userSettings } from "@/lib/db/schema";
 import { parseDeadlineInTimezone } from "@/lib/ai/capyTools";
@@ -51,7 +51,6 @@ export type FlowState =
       minute: number;
     }
   // list / item management flow
-  | { s: "lb_items"; bucketId: number; bucketName: string; page: number }
   | { s: "mg_edit"; itemId: number; itemTitle: string; bucketId: number; bucketName: string }
   | { s: "mg_confirm"; itemId: number; itemTitle: string; bucketId: number; bucketName: string }
   | { s: "mg_edit_title"; itemId: number; itemTitle: string; bucketId: number; bucketName: string }
@@ -218,16 +217,6 @@ export function fmtDateTime(d: Date, timezone: string): string {
   });
 }
 
-export function fmtDateTimeShort(d: Date, timezone: string): string {
-  return d.toLocaleString("en-US", {
-    timeZone: timezone,
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  });
-}
-
 export function parseNaturalDeadline(input: string, timezone: string): Date | null {
   const s = input.trim().toLowerCase();
   const now = new Date();
@@ -317,21 +306,6 @@ export async function getUserBuckets(userId: number) {
     .from(buckets)
     .where(and(eq(buckets.userId, userId), isNull(buckets.deletedAt), isNull(buckets.archivedAt)))
     .orderBy(buckets.sortOrder);
-}
-
-export async function getActiveItemsForBucket(userId: number, bucketId: number) {
-  return db
-    .select({ id: items.id, title: items.title, deadline: items.deadline })
-    .from(items)
-    .where(
-      and(
-        eq(items.userId, userId),
-        eq(items.bucketId, bucketId),
-        isNull(items.deletedAt),
-        ne(items.status, "completed")
-      )
-    )
-    .orderBy(items.sortOrder, items.createdAt);
 }
 
 export async function completeItemById(userId: number, itemId: number): Promise<void> {

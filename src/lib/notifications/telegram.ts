@@ -150,6 +150,30 @@ export async function sendTelegramItemNotification(
   return data.result.message_id;
 }
 
+export async function sendTelegramHtml(
+  botToken: string,
+  chatId: string,
+  html: string,
+  rows: InlineButton[][]
+): Promise<number> {
+  const res = await fetch(`${TELEGRAM_API_BASE}/bot${botToken}/sendMessage`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      chat_id: chatId,
+      text: html,
+      parse_mode: "HTML",
+      reply_markup: { inline_keyboard: rows },
+    }),
+  });
+  if (!res.ok) {
+    const body = await res.text();
+    throw new Error(`Telegram API error ${res.status}: ${body}`);
+  }
+  const data = (await res.json()) as { result: { message_id: number } };
+  return data.result.message_id;
+}
+
 export function reminderButtons(itemId: number): InlineButton[][] {
   return [
     [
