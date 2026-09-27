@@ -33,16 +33,18 @@ import {
   applyTimeToDate,
   parseTimeStringExtended,
   parseNaturalDeadline,
-  fmtDate,
-  fmtDateTime,
   completeItemById,
   updateItemTitle,
-  updateItemDeadline,
   softDeleteItemById,
 } from "./telegram-utils";
 import type { TelegramUpdate } from "./telegram-utils";
 import { redeemTelegramLinkCode } from "@/lib/notifications/telegram-link";
 import { handleReminderAction } from "./telegram-quick-actions";
+import {
+  handleRescheduleCallback,
+  handleRescheduleText,
+  startReschedule,
+} from "./telegram-reschedule";
 import {
   showBucketPicker,
   showDeadlinePicker,
@@ -57,9 +59,6 @@ import {
   showItemList,
   showItemActionMenu,
   showDeleteConfirm,
-  showEditDeadlinePicker,
-  showEditTimePicker,
-  showEditCalendar,
 } from "./telegram-manage";
 import {
   cmdBuckets,
@@ -131,6 +130,7 @@ export async function POST(req: Request) {
   const timezone = row.timezone ?? "UTC";
   const flowState = getFlowState(row.telegramState ?? null);
   const msgId = getFlowMessageId(row.telegramState ?? null);
+  const ctx = { botToken, chatId: chatIdStr, userId, timezone };
 
   if (isCallback && callbackData) {
     if (callbackData === "_") return new Response("OK");
@@ -427,7 +427,13 @@ export async function POST(req: Request) {
       return new Response("OK");
     }
 
-    // ── quick actions from notifications ──
+    if (flowState?.s === "rs" && /^(rd:|ec:|ek:|rt:|ra:|rb$|rx$)/.test(callbackData)) {
+      // Only the message that started this reschedule can drive it
+      if (msgId && body.callback_query?.message?.message_id === msgId) {
+        await handleRescheduleCallback(ctx, callbackData, flowState, msgId);
+      }
+      return new Response("OK");
+    }
 
     if (
       await handleReminderAction(callbackData, {
@@ -438,36 +444,6 @@ export async function POST(req: Request) {
         alertMessageId: body.callback_query?.message?.message_id,
       })
     ) {
-      return new Response("OK");
-    }
-
-    if (callbackData.startsWith("qu:")) {
-      const itemId = parseInt(callbackData.slice(3), 10);
-      const itemRow = await db.query.items.findFirst({
-        where: (i, { eq: qeq, and: qand }) => qand(qeq(i.id, itemId), qeq(i.userId, userId)),
-      });
-      if (!itemRow) return new Response("OK");
-      const bucket = await db.query.buckets.findFirst({
-        where: (b, { eq: qeq }) => qeq(b.id, itemRow.bucketId),
-      });
-      const newMsgId = await showEditDeadlinePicker(
-        botToken,
-        chatIdStr,
-        itemRow.title,
-        itemRow.bucketId,
-        msgId
-      );
-      await setFlowState(
-        userId,
-        {
-          s: "mg_edit_dl",
-          itemId,
-          itemTitle: itemRow.title,
-          bucketId: itemRow.bucketId,
-          bucketName: bucket?.name ?? "Bucket",
-        },
-        newMsgId
-      );
       return new Response("OK");
     }
 
@@ -505,239 +481,19 @@ export async function POST(req: Request) {
           },
           newMsgId
         );
-      } else if (what === "deadline") {
-        const newMsgId = await showEditDeadlinePicker(
-          botToken,
-          chatIdStr,
-          flowState.itemTitle,
-          flowState.bucketId,
-          msgId
-        );
-        await setFlowState(
-          userId,
-          {
-            s: "mg_edit_dl",
-            itemId: flowState.itemId,
-            itemTitle: flowState.itemTitle,
-            bucketId: flowState.bucketId,
-            bucketName: flowState.bucketName,
-          },
-          newMsgId
-        );
+      } else if (what === "deadline" && msgId) {
+        await startReschedule(ctx, flowState.itemId, "list", msgId);
       }
       return new Response("OK");
     }
 
-    if (callbackData.startsWith("eq:") && flowState?.s === "mg_edit_dl") {
-      const preset = callbackData.slice(3) as TelegramDeadlinePreset;
-      if (preset === "no_deadline") {
-        if (msgId) await removeMessageButtons(botToken, chatIdStr, msgId);
-        await updateItemDeadline(userId, flowState.itemId, null);
-        await setFlowState(userId, null);
-        dataEvents.emit("refresh", userId);
-        await sendTelegramWithQuickActions(
-          botToken,
-          chatIdStr,
-          `Updated "${flowState.itemTitle}" — deadline removed ✓`
-        );
-      } else if (preset === "today" || preset === "tomorrow") {
-        const offset = preset === "today" ? 0 : 1;
-        const dateStr = getLocalDateStr(new Date(Date.now() + offset * 86_400_000), timezone);
-        const newMsgId = await showEditTimePicker(
-          botToken,
-          chatIdStr,
-          flowState.itemTitle,
-          flowState.bucketId,
-          timezone,
-          preset === "today",
-          msgId
-        );
-        await setFlowState(
-          userId,
-          {
-            s: "mg_edit_time",
-            itemId: flowState.itemId,
-            itemTitle: flowState.itemTitle,
-            bucketId: flowState.bucketId,
-            bucketName: flowState.bucketName,
-            date: dateStr,
-            isToday: preset === "today",
-          },
-          newMsgId
-        );
-      } else if (preset === "end_of_month") {
-        const dateStr = getEndOfMonthDateStr(timezone);
-        const newMsgId = await showEditTimePicker(
-          botToken,
-          chatIdStr,
-          flowState.itemTitle,
-          flowState.bucketId,
-          timezone,
-          false,
-          msgId
-        );
-        await setFlowState(
-          userId,
-          {
-            s: "mg_edit_time",
-            itemId: flowState.itemId,
-            itemTitle: flowState.itemTitle,
-            bucketId: flowState.bucketId,
-            bucketName: flowState.bucketName,
-            date: dateStr,
-            isToday: false,
-          },
-          newMsgId
-        );
-      } else if (preset === "pick_date") {
-        const now = new Date();
-        const monthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-        const newMsgId = await showEditCalendar(
-          botToken,
-          chatIdStr,
-          monthStr,
-          flowState.itemTitle,
-          msgId
-        );
-        await setFlowState(
-          userId,
-          {
-            s: "mg_edit_cal",
-            itemId: flowState.itemId,
-            itemTitle: flowState.itemTitle,
-            bucketId: flowState.bucketId,
-            bucketName: flowState.bucketName,
-            month: monthStr,
-          },
-          newMsgId
-        );
-      } else if (preset === "this_week") {
-        const deadline = parseNaturalDeadline("next week", timezone);
-        if (deadline) {
-          if (msgId) await removeMessageButtons(botToken, chatIdStr, msgId);
-          await updateItemDeadline(userId, flowState.itemId, deadline);
-          dataEvents.emit("refresh", userId);
-          await sendTelegramWithQuickActions(
-            botToken,
-            chatIdStr,
-            `Updated "${flowState.itemTitle}" — due ${fmtDate(deadline, timezone)} ✓`
-          );
-        }
-        await setFlowState(userId, null);
-      }
-      return new Response("OK");
-    }
-
-    if (callbackData.startsWith("ec:") && flowState?.s === "mg_edit_cal") {
-      const newMonth = callbackData.slice(3);
-      const newMsgId = await showEditCalendar(
-        botToken,
-        chatIdStr,
-        newMonth,
-        flowState.itemTitle,
-        msgId
-      );
-      await setFlowState(userId, { ...flowState, month: newMonth }, newMsgId);
-      return new Response("OK");
-    }
-
-    if (callbackData.startsWith("ek:") && flowState?.s === "mg_edit_cal") {
-      const dateStr = callbackData.slice(3);
-      const today = getLocalDateStr(new Date(), timezone);
-      const newMsgId = await showEditTimePicker(
-        botToken,
-        chatIdStr,
-        flowState.itemTitle,
-        flowState.bucketId,
-        timezone,
-        dateStr === today,
-        msgId
-      );
-      await setFlowState(
-        userId,
-        {
-          s: "mg_edit_time",
-          itemId: flowState.itemId,
-          itemTitle: flowState.itemTitle,
-          bucketId: flowState.bucketId,
-          bucketName: flowState.bucketName,
-          date: dateStr,
-          isToday: dateStr === today,
-        },
-        newMsgId
-      );
-      return new Response("OK");
-    }
-
-    if (callbackData.startsWith("et:") && flowState?.s === "mg_edit_time") {
-      const when = callbackData.slice(3);
-      if (when === "custom") {
-        const newMsgId = await sendOrEditButtons(
-          botToken,
-          chatIdStr,
-          msgId,
-          "Type a time (e.g. 3pm, 15:30, 9am):",
-          [[{ text: "✖ Cancel", callback_data: "cancel" }]]
-        );
-        await setFlowState(
-          userId,
-          {
-            s: "mg_edit_ctime",
-            itemId: flowState.itemId,
-            itemTitle: flowState.itemTitle,
-            bucketId: flowState.bucketId,
-            bucketName: flowState.bucketName,
-            date: flowState.date,
-          },
-          newMsgId
-        );
-        return new Response("OK");
-      }
-      const deadline =
-        when === "none"
-          ? applyTimeToDate(flowState.date, 12, 0, timezone)
-          : applyTimeToDate(
-              flowState.date,
-              parseInt(when.split(":")[0] ?? "12"),
-              parseInt(when.split(":")[1] ?? "0"),
-              timezone
-            );
-      if (msgId) await removeMessageButtons(botToken, chatIdStr, msgId);
-      await updateItemDeadline(userId, flowState.itemId, deadline);
-      await setFlowState(userId, null);
-      dataEvents.emit("refresh", userId);
-      await sendTelegramWithQuickActions(
-        botToken,
-        chatIdStr,
-        `Updated "${flowState.itemTitle}" — due ${fmtDateTime(deadline, timezone)} ✓`
-      );
-      return new Response("OK");
-    }
-
-    if (
-      callbackData.startsWith("ap:") &&
-      (flowState?.s === "ctime_ampm" || flowState?.s === "mg_edit_ampm")
-    ) {
+    if (callbackData.startsWith("ap:") && flowState?.s === "ctime_ampm") {
       const period = callbackData.slice(3);
       let hour = flowState.hour;
       if (period === "pm" && hour !== 12) hour += 12;
       if (period === "am" && hour === 12) hour = 0;
-
-      if (flowState.s === "ctime_ampm") {
-        const deadline = applyTimeToDate(flowState.date, hour, flowState.minute, timezone);
-        await handleAfterTime(botToken, chatIdStr, userId, flowState, deadline, timezone, msgId);
-      } else {
-        const deadline = applyTimeToDate(flowState.date, hour, flowState.minute, timezone);
-        if (msgId) await removeMessageButtons(botToken, chatIdStr, msgId);
-        await updateItemDeadline(userId, flowState.itemId, deadline);
-        await setFlowState(userId, null);
-        dataEvents.emit("refresh", userId);
-        await sendTelegramWithQuickActions(
-          botToken,
-          chatIdStr,
-          `Updated "${flowState.itemTitle}" — due ${fmtDateTime(deadline, timezone)} ✓`
-        );
-      }
+      const deadline = applyTimeToDate(flowState.date, hour, flowState.minute, timezone);
+      await handleAfterTime(botToken, chatIdStr, userId, flowState, deadline, timezone, msgId);
       return new Response("OK");
     }
 
@@ -745,6 +501,11 @@ export async function POST(req: Request) {
   }
 
   if (!text) return new Response("OK");
+
+  if (flowState?.s === "rs" && flowState.typing && msgId) {
+    await handleRescheduleText(ctx, text, flowState, msgId);
+    return new Response("OK");
+  }
 
   if (flowState?.s === "title") {
     const title = text.trim();
@@ -835,62 +596,7 @@ export async function POST(req: Request) {
     return new Response("OK");
   }
 
-  if (flowState?.s === "mg_edit_ctime") {
-    const parsed = parseTimeStringExtended(text);
-    if (!parsed) {
-      await sendOrEditButtons(
-        botToken,
-        chatIdStr,
-        msgId,
-        `Couldn't parse "${text}". Try "3pm", "15:30", or "9am":`,
-        [[{ text: "✖ Cancel", callback_data: "cancel" }]]
-      );
-      return new Response("OK");
-    }
-    if (parsed.ambiguous) {
-      const newMsgId = await sendOrEditButtons(
-        botToken,
-        chatIdStr,
-        msgId,
-        `${parsed.hour}:${String(parsed.minute).padStart(2, "0")} — AM or PM?`,
-        [
-          [
-            { text: "AM", callback_data: "ap:am" },
-            { text: "PM", callback_data: "ap:pm" },
-          ],
-          [{ text: "✖ Cancel", callback_data: "cancel" }],
-        ]
-      );
-      await setFlowState(
-        userId,
-        {
-          s: "mg_edit_ampm",
-          itemId: flowState.itemId,
-          itemTitle: flowState.itemTitle,
-          bucketId: flowState.bucketId,
-          bucketName: flowState.bucketName,
-          date: flowState.date,
-          hour: parsed.hour,
-          minute: parsed.minute,
-        },
-        newMsgId
-      );
-      return new Response("OK");
-    }
-    const deadline = applyTimeToDate(flowState.date, parsed.hour, parsed.minute, timezone);
-    if (msgId) await removeMessageButtons(botToken, chatIdStr, msgId);
-    await updateItemDeadline(userId, flowState.itemId, deadline);
-    await setFlowState(userId, null);
-    dataEvents.emit("refresh", userId);
-    await sendTelegramWithQuickActions(
-      botToken,
-      chatIdStr,
-      `Updated "${flowState.itemTitle}" — due ${fmtDateTime(deadline, timezone)} ✓`
-    );
-    return new Response("OK");
-  }
-
-  if (flowState?.s === "ctime_ampm" || flowState?.s === "mg_edit_ampm") {
+  if (flowState?.s === "ctime_ampm") {
     const newMsgId = await sendOrEditButtons(botToken, chatIdStr, msgId, "Please tap AM or PM:", [
       [
         { text: "AM", callback_data: "ap:am" },

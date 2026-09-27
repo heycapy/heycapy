@@ -43,7 +43,7 @@ export function itemAlertHtml(alert: ItemAlert, now: Date, timezone: string): st
   const when = formatWhen(alert.deadline, now, timezone);
   const bucket = alert.bucketName ? ` · ${escapeHtml(alert.bucketName)}` : "";
   const lines =
-    alert.kind === "overdue"
+    alert.kind === "overdue" || alert.deadline < now
       ? [`🔴 <b>${escapeHtml(alert.title)}</b>`, `overdue · was due ${when}${bucket}`]
       : [`⏰ <b>${escapeHtml(alert.title)}</b>`, `due ${when}${bucket}`];
   if (alert.note) lines.push("", `<i>${escapeHtml(alert.note)}</i>`);
@@ -56,4 +56,8 @@ export function itemDoneHtml(title: string, alreadyDone: boolean): string {
 
 export function itemMovedHtml(title: string, deadline: Date, now: Date, timezone: string): string {
   return `📅 <b>${escapeHtml(title)}</b>\nmoved to ${formatWhen(deadline, now, timezone)}`;
+}
+
+export function remindAgainHtml(title: string, at: Date, now: Date, timezone: string): string {
+  return `⏰ <b>${escapeHtml(title)}</b>\nI'll remind you again ${formatWhen(at, now, timezone)}`;
 }

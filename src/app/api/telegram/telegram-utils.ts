@@ -17,6 +17,16 @@ export type TelegramUpdate = {
   };
 };
 
+export type RescheduleState = {
+  s: "rs";
+  itemId: number;
+  origin: "reminder" | "list";
+  date?: string;
+  month?: string;
+  typing?: boolean;
+  pending?: { hour: number; minute: number };
+};
+
 export type FlowState =
   | { s: "title"; bucketId: number; bucketName: string }
   | { s: "deadline"; bucketId: number; bucketName: string; title: string }
@@ -40,47 +50,12 @@ export type FlowState =
       hour: number;
       minute: number;
     }
-  | {
-      s: "mg_edit_ampm";
-      itemId: number;
-      itemTitle: string;
-      bucketId: number;
-      bucketName: string;
-      date: string;
-      hour: number;
-      minute: number;
-    }
   // list / item management flow
   | { s: "lb_items"; bucketId: number; bucketName: string; page: number }
   | { s: "mg_edit"; itemId: number; itemTitle: string; bucketId: number; bucketName: string }
   | { s: "mg_confirm"; itemId: number; itemTitle: string; bucketId: number; bucketName: string }
   | { s: "mg_edit_title"; itemId: number; itemTitle: string; bucketId: number; bucketName: string }
-  | { s: "mg_edit_dl"; itemId: number; itemTitle: string; bucketId: number; bucketName: string }
-  | {
-      s: "mg_edit_cal";
-      itemId: number;
-      itemTitle: string;
-      bucketId: number;
-      bucketName: string;
-      month: string;
-    }
-  | {
-      s: "mg_edit_time";
-      itemId: number;
-      itemTitle: string;
-      bucketId: number;
-      bucketName: string;
-      date: string;
-      isToday: boolean;
-    }
-  | {
-      s: "mg_edit_ctime";
-      itemId: number;
-      itemTitle: string;
-      bucketId: number;
-      bucketName: string;
-      date: string;
-    }
+  | RescheduleState
   | null;
 
 export function getFlowState(raw: string | null): FlowState {

@@ -89,3 +89,18 @@ export function nextOverdueAlert(i: ReminderInputs): Date | null {
 
   return notBefore(due, i.remindNotBefore);
 }
+
+export function remindAgainAt(
+  i: ReminderInputs,
+  at: Date,
+  now: Date
+): { remindNotBefore: Date; notifiedAt?: Date | null; overdueNotifiedAt?: null } {
+  const firstAlertMs = (i.overdueFirstAlertMins ?? OVERDUE_FIRST_ALERT_DEFAULT_MINS) * 60_000;
+  const overdueByThen =
+    i.notifyWhenOverdue &&
+    i.deadline !== null &&
+    i.deadline.getTime() + firstAlertMs <= at.getTime();
+  return overdueByThen
+    ? { remindNotBefore: at, overdueNotifiedAt: null, notifiedAt: i.notifiedAt ?? now }
+    : { remindNotBefore: at, notifiedAt: null };
+}

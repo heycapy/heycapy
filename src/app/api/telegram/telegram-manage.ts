@@ -1,24 +1,8 @@
 import { sendTelegramWithQuickActions, sendOrEditButtons } from "@/lib/notifications/telegram";
 import type { InlineButton } from "@/lib/notifications/telegram";
-import type { TelegramDeadlinePreset } from "@/components/buckets/constants";
-import {
-  getActiveItemsForBucket,
-  getBucketTelegramConfig,
-  getCurrentTimeInTz,
-  formatSlot,
-  fmtDateTimeShort,
-} from "./telegram-utils";
+import { getActiveItemsForBucket, fmtDateTimeShort } from "./telegram-utils";
 
 const ITEMS_PER_PAGE = 8;
-
-const PRESET_LABELS: Record<TelegramDeadlinePreset, string> = {
-  today: "Today",
-  tomorrow: "Tomorrow",
-  this_week: "This week",
-  end_of_month: "End of month",
-  pick_date: "Pick date…",
-  no_deadline: "No deadline",
-};
 
 export async function showListBucketPicker(
   botToken: string,
@@ -115,89 +99,7 @@ export async function showDeleteConfirm(
   ]);
 }
 
-export async function showEditDeadlinePicker(
-  botToken: string,
-  chatId: string,
-  itemTitle: string,
-  bucketId: number,
-  messageId?: number | null
-): Promise<number> {
-  const config = await getBucketTelegramConfig(bucketId);
-  const presets = config.deadlinePresets.filter((p) => p !== "no_deadline");
-  const buttons: InlineButton[] = presets.map((p) => ({
-    text: PRESET_LABELS[p],
-    callback_data: `eq:${p}`,
-  }));
-  const rows: InlineButton[][] = [];
-  for (let i = 0; i < buttons.length; i += 2) {
-    const first = buttons[i];
-    if (!first) continue;
-    const row: InlineButton[] = [first];
-    const second = buttons[i + 1];
-    if (second) row.push(second);
-    rows.push(row);
-  }
-  rows.push([{ text: "✕ Remove deadline", callback_data: "eq:no_deadline" }]);
-  rows.push([{ text: "✖ Cancel", callback_data: "cancel" }]);
-  return sendOrEditButtons(
-    botToken,
-    chatId,
-    messageId,
-    `"${itemTitle.slice(0, 40)}"\n\nNew deadline?`,
-    rows
-  );
-}
-
-export async function showEditTimePicker(
-  botToken: string,
-  chatId: string,
-  itemTitle: string,
-  bucketId: number,
-  timezone: string,
-  isToday: boolean,
-  messageId?: number | null
-): Promise<number> {
-  const config = await getBucketTelegramConfig(bucketId);
-  const sorted = [...config.timeSlots].sort();
-  const filtered = isToday
-    ? (() => {
-        const { hour: nowH, minute: nowM } = getCurrentTimeInTz(timezone);
-        return sorted.filter((s) => {
-          const [hStr, mStr] = s.split(":");
-          const h = parseInt(hStr ?? "0");
-          const m = parseInt(mStr ?? "0");
-          return h * 60 + m > nowH * 60 + nowM;
-        });
-      })()
-    : sorted;
-  const rows: InlineButton[][] = [];
-  for (let i = 0; i < filtered.length; i += 2) {
-    const row: InlineButton[] = [
-      { text: formatSlot(filtered[i] ?? ""), callback_data: `et:${filtered[i]}` },
-    ];
-    if (filtered[i + 1] !== undefined)
-      row.push({
-        text: formatSlot(filtered[i + 1] ?? ""),
-        callback_data: `et:${filtered[i + 1]}`,
-      });
-    rows.push(row);
-  }
-  rows.push([
-    { text: "No time", callback_data: "et:none" },
-    { text: "Custom…", callback_data: "et:custom" },
-  ]);
-  rows.push([{ text: "✖ Cancel", callback_data: "cancel" }]);
-  const when = isToday ? "today" : "tomorrow";
-  return sendOrEditButtons(
-    botToken,
-    chatId,
-    messageId,
-    `"${itemTitle.slice(0, 40)}" (${when})\n\nWhat time?`,
-    rows
-  );
-}
-
-export function buildEditCalendarRows(monthStr: string): InlineButton[][] {
+export function buildCalendarRows(monthStr: string, footer: InlineButton[][]): InlineButton[][] {
   const [yearStr, monthPart] = monthStr.split("-");
   const year = Number(yearStr);
   const month = Number(monthPart);
@@ -243,22 +145,5 @@ export function buildEditCalendarRows(monthStr: string): InlineButton[][] {
   }
   while (week.length > 0 && week.length < 7) week.push({ text: " ", callback_data: "_" });
   if (week.length > 0) rows.push(week);
-  rows.push([{ text: "✖ Cancel", callback_data: "cancel" }]);
-  return rows;
-}
-
-export async function showEditCalendar(
-  botToken: string,
-  chatId: string,
-  monthStr: string,
-  itemTitle: string,
-  messageId?: number | null
-): Promise<number> {
-  return sendOrEditButtons(
-    botToken,
-    chatId,
-    messageId,
-    `"${itemTitle.slice(0, 40)}"\n\nPick a new date:`,
-    buildEditCalendarRows(monthStr)
-  );
+  return [...rows, ...footer];
 }

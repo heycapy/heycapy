@@ -13,4 +13,18 @@ export const RELATIVE_DAY_NAMES: Record<number, string> = {
   1: "tomorrow",
 };
 
-export const POSTPONE_DAYS = [1, 2] as const;
+export const QUICK_REMIND_OPTIONS = [
+  { value: "15", label: "15 min" },
+  { value: "30", label: "30 min" },
+  { value: "60", label: "1 hour" },
+  { value: "tomorrow", label: "Tomorrow" },
+] as const;
+
+export type QuickRemindChoice = (typeof QUICK_REMIND_OPTIONS)[number]["value"];
+
+export const RESCHEDULE_DAY_LABELS = {
+  today: "Today",
+  tomorrow: "Tomorrow",
+  this_week: "Next week",
+  end_of_month: "End of month",
+} as const;

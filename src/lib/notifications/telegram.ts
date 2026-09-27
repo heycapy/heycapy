@@ -1,5 +1,5 @@
 import { TELEGRAM_API_BASE } from "@/constants";
-import { POSTPONE_DAYS } from "./constants";
+import { QUICK_REMIND_OPTIONS } from "./constants";
 
 export type InlineButton = { text: string; callback_data: string };
 
@@ -140,16 +140,7 @@ export async function sendTelegramItemNotification(
       text: html,
       parse_mode: "HTML",
       reply_markup: {
-        inline_keyboard: [
-          [{ text: "✓ Done", callback_data: `qc:${itemId}` }],
-          [
-            ...POSTPONE_DAYS.map((days) => ({
-              text: days === 1 ? "+1 day" : `+${days} days`,
-              callback_data: `pp:${itemId}:${days}`,
-            })),
-            { text: "📅 Pick date", callback_data: `qu:${itemId}` },
-          ],
-        ],
+        inline_keyboard: reminderButtons(itemId),
       },
     }),
   });
@@ -162,11 +153,22 @@ export async function sendTelegramItemNotification(
   return data.result.message_id;
 }
 
+export function reminderButtons(itemId: number): InlineButton[][] {
+  return [
+    [
+      { text: "✓ Done", callback_data: `qc:${itemId}` },
+      { text: "🕐 Reschedule", callback_data: `rs:${itemId}` },
+    ],
+    QUICK_REMIND_OPTIONS.map((o) => ({ text: o.label, callback_data: `rq:${itemId}:${o.value}` })),
+  ];
+}
+
 export async function editTelegramHtml(
   botToken: string,
   chatId: string,
   messageId: number,
-  html: string
+  html: string,
+  rows: InlineButton[][] = []
 ): Promise<void> {
   const res = await fetch(`${TELEGRAM_API_BASE}/bot${botToken}/editMessageText`, {
     method: "POST",
@@ -176,7 +178,7 @@ export async function editTelegramHtml(
       message_id: messageId,
       text: html,
       parse_mode: "HTML",
-      reply_markup: { inline_keyboard: [] },
+      reply_markup: { inline_keyboard: rows },
     }),
   });
   if (!res.ok) {
