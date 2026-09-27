@@ -13,7 +13,7 @@ export type TelegramUpdate = {
   callback_query?: {
     id: string;
     data?: string;
-    message?: { chat?: { id: number } };
+    message?: { message_id?: number; chat?: { id: number } };
   };
 };
 

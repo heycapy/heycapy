@@ -6,3 +6,9 @@ export const CHANNEL_FAILURE_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
 
 export const WEBHOOK_RATE_LIMIT_MAX = 120;
 export const WEBHOOK_RATE_LIMIT_WINDOW_MS = 60_000;
+
+export const RELATIVE_DAY_NAMES: Record<number, string> = {
+  [-1]: "yesterday",
+  0: "today",
+  1: "tomorrow",
+};

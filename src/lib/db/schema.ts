@@ -216,6 +216,7 @@ export const notificationQueue = sqliteTable("notification_queue", {
     .default(sql`(unixepoch())`),
   sentAt: integer("sent_at", { mode: "timestamp" }),
   dismissedAt: integer("dismissed_at", { mode: "timestamp" }),
+  telegramMessageId: integer("telegram_message_id"),
 });
 
 // notification_log — immutable audit trail

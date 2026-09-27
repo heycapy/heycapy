@@ -4,7 +4,7 @@ import { notificationQueue, notificationLog, users, userSettings } from "@/lib/d
 import { sendEmail } from "./email";
 import { buildNotificationEmail } from "@/lib/auth/notificationEmail";
 import { sendNtfy } from "./ntfy";
-import { sendTelegram, sendTelegramItemNotification } from "./telegram";
+import { sendTelegramAlert } from "./telegram-alert";
 import { errorMessage } from "@/lib/errors";
 import { decryptValue } from "@/lib/crypto";
 import { isE2ETestMode } from "@/lib/e2e";
@@ -97,6 +97,9 @@ export async function processPending(): Promise<void> {
         ntfyTopic: userSettings.ntfyTopic,
         telegramChatId: userSettings.telegramChatId,
         notificationsTelegram: userSettings.notificationsTelegram,
+        timezone: userSettings.timezone,
+        aiNotifyMessages: userSettings.aiNotifyMessages,
+        aiProvider: userSettings.aiProvider,
         emailProvider: userSettings.emailProvider,
         smtpHost: userSettings.smtpHost,
         smtpPort: userSettings.smtpPort,
@@ -144,6 +147,7 @@ export async function processPending(): Promise<void> {
     }
 
     let deliveryError: string | null = null;
+    let telegramMessageId: number | null = null;
 
     try {
       switch (job.medium) {
@@ -185,12 +189,11 @@ export async function processPending(): Promise<void> {
           const botToken = process.env.TELEGRAM_BOT_TOKEN;
           if (!userRow.notificationsTelegram || !botToken || !userRow.telegramChatId)
             throw new Error("Telegram not configured");
-          const text = `${job.title}\n${job.message}`;
-          if (job.itemId) {
-            await sendTelegramItemNotification(botToken, userRow.telegramChatId, text, job.itemId);
-          } else {
-            await sendTelegram(botToken, userRow.telegramChatId, text);
-          }
+          telegramMessageId = await sendTelegramAlert(botToken, userRow.telegramChatId, job, {
+            timezone: userRow.timezone,
+            aiNote: userRow.aiNotifyMessages && !!userRow.aiProvider,
+            now,
+          });
           break;
         }
       }
@@ -210,7 +213,7 @@ export async function processPending(): Promise<void> {
     if (!deliveryError) {
       await db
         .update(notificationQueue)
-        .set({ status: "sent", sentAt: now })
+        .set({ status: "sent", sentAt: now, telegramMessageId })
         .where(eq(notificationQueue.id, job.id));
       dataEvents.emit("refresh", job.userId);
     } else {

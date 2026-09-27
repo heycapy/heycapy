@@ -7,6 +7,7 @@ import { refreshItemReminders } from "@/lib/reminders/refresh";
 
 export const MINUTE = 60 * 1000;
 export const HOUR = 60 * MINUTE;
+const TELEGRAM_OK = JSON.stringify({ ok: true, result: { message_id: 1 } });
 
 let userCount = 0;
 
@@ -99,7 +100,7 @@ export function useSchedulerEnvironment(start: Date): void {
   process.env.TELEGRAM_BOT_TOKEN = "test-token";
   vi.stubGlobal(
     "fetch",
-    vi.fn(async () => new Response("{}", { status: 200 }))
+    vi.fn(async () => new Response(TELEGRAM_OK, { status: 200 }))
   );
   vi.spyOn(process.stderr, "write").mockImplementation(() => true);
 }

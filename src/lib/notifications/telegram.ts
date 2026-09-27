@@ -128,15 +128,16 @@ export async function sendTelegramWithQuickActions(
 export async function sendTelegramItemNotification(
   botToken: string,
   chatId: string,
-  text: string,
+  html: string,
   itemId: number
-): Promise<void> {
+): Promise<number> {
   const res = await fetch(`${TELEGRAM_API_BASE}/bot${botToken}/sendMessage`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       chat_id: chatId,
-      text,
+      text: html,
+      parse_mode: "HTML",
       reply_markup: {
         inline_keyboard: [
           [
@@ -152,6 +153,44 @@ export async function sendTelegramItemNotification(
     const body = await res.text();
     throw new Error(`Telegram API error ${res.status}: ${body}`);
   }
+  const data = (await res.json()) as { result: { message_id: number } };
+  return data.result.message_id;
+}
+
+export async function editTelegramHtml(
+  botToken: string,
+  chatId: string,
+  messageId: number,
+  html: string
+): Promise<void> {
+  const res = await fetch(`${TELEGRAM_API_BASE}/bot${botToken}/editMessageText`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      chat_id: chatId,
+      message_id: messageId,
+      text: html,
+      parse_mode: "HTML",
+      reply_markup: { inline_keyboard: [] },
+    }),
+  });
+  if (!res.ok) {
+    const body = await res.text();
+    if (body.includes("message is not modified")) return;
+    throw new Error(`Telegram editMessageText error ${res.status}: ${body}`);
+  }
+}
+
+export async function deleteTelegramMessage(
+  botToken: string,
+  chatId: string,
+  messageId: number
+): Promise<void> {
+  await fetch(`${TELEGRAM_API_BASE}/bot${botToken}/deleteMessage`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ chat_id: chatId, message_id: messageId }),
+  }).catch(() => {});
 }
 
 export async function answerCallbackQuery(

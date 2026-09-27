@@ -153,6 +153,7 @@ export const notificationQueue = pgTable("notification_queue", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
   sentAt: timestamp("sent_at"),
   dismissedAt: timestamp("dismissed_at"),
+  telegramMessageId: integer("telegram_message_id"),
 });
 
 // notification_log — immutable audit trail

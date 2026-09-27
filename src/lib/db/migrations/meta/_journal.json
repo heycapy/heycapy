@@ -50,6 +50,13 @@
       "when": 1793160000000,
       "tag": "0006_delivery_failure_dismissed",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1793170000000,
+      "tag": "0007_telegram_message_id",
+      "breakpoints": true
     }
   ]
 }

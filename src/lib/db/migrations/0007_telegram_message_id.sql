@@ -1,0 +1,1 @@
+ALTER TABLE `notification_queue` ADD `telegram_message_id` integer;
