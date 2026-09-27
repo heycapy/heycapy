@@ -46,6 +46,15 @@ const TelegramBotConfigInput = z.object({
     .max(24),
 }) satisfies z.ZodType<TelegramBotConfig>;
 
+function parseStoredRules(json: string): Record<string, unknown> {
+  try {
+    const parsed = JSON.parse(json) as unknown;
+    return parsed && typeof parsed === "object" ? (parsed as Record<string, unknown>) : {};
+  } catch {
+    return {};
+  }
+}
+
 export async function createBucketAction(
   templateId: number,
   name: string
@@ -155,7 +164,10 @@ export async function updateBucketSettingsAction(
     .set({
       name: trimmed,
       itemsRules: JSON.stringify(itemsRules),
-      notificationsRules: JSON.stringify(notificationsRules),
+      notificationsRules: JSON.stringify({
+        ...parseStoredRules(bucket.notificationsRules),
+        ...notificationsRules,
+      }),
       ...(telegramConfig !== undefined
         ? { telegramConfig: telegramConfig ? JSON.stringify(telegramConfig) : null }
         : {}),
