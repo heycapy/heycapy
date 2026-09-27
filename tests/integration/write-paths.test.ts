@@ -84,7 +84,7 @@ describe("items closed outside the web UI stop reminding", () => {
 });
 
 describe("recurring items", () => {
-  it("the next occurrence is scheduled and reminded in turn", async () => {
+  it("completing creates the next occurrence, which is reminded in turn", async () => {
     const userId = await seedUser();
     const bucketId = await seedBucket(userId);
     await tool(userId, "add_item", {
@@ -97,6 +97,7 @@ describe("recurring items", () => {
 
     await runSchedulerAt(new Date(T0.getTime() + MINUTE));
     expect(await remindersQueued(first.id)).toBe(1);
+    await tool(userId, "complete_item", { item_id: first.id });
 
     const [next] = await db
       .select()

@@ -2,7 +2,6 @@ import { schedule } from "node-cron";
 import { asc, eq, lte } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { items, buckets, users, userSettings } from "@/lib/db/schema";
-import { RecurringConfig } from "@/types/rules";
 import { APP_NAME } from "@/constants";
 import { errorMessage } from "@/lib/errors";
 import { dataEvents } from "@/lib/events";
@@ -11,12 +10,7 @@ import { getAIProvider } from "@/lib/ai";
 import { enqueue, processPending } from "@/lib/notifications/queue";
 import type { NotificationMedium } from "@/lib/notifications/queue";
 import { nextDeadlineReminder, nextOverdueAlert } from "@/lib/reminders/schedule";
-import {
-  reconcile,
-  refreshItemReminders,
-  reminderRowFields,
-  toReminderInputs,
-} from "@/lib/reminders/refresh";
+import { reconcile, reminderRowFields, toReminderInputs } from "@/lib/reminders/refresh";
 import {
   REMINDER_BATCH_SIZE,
   REMINDER_MAX_BATCHES_PER_RUN,
@@ -24,26 +18,6 @@ import {
 } from "@/lib/reminders/constants";
 import { SCHEDULER_AI_TIMEOUT_MS } from "./constants";
 import type { AgentMessage } from "@/lib/ai/types";
-
-function getNextDeadline(deadline: Date, config: RecurringConfig): Date {
-  const next = new Date(deadline);
-  const n = config.interval;
-  switch (config.frequency) {
-    case "daily":
-      next.setDate(next.getDate() + n);
-      break;
-    case "weekly":
-      next.setDate(next.getDate() + n * 7);
-      break;
-    case "monthly":
-      next.setMonth(next.getMonth() + n);
-      break;
-    case "yearly":
-      next.setFullYear(next.getFullYear() + n);
-      break;
-  }
-  return next;
-}
 
 type PersonalityRow = {
   aiProvider: string | null;
@@ -249,35 +223,6 @@ async function sendDeadlineReminder(row: DueRow, now: Date): Promise<void> {
     })
     .where(eq(items.id, row.item.id));
   dataEvents.emit("refresh", row.userId);
-
-  if (mediums.length > 0 && row.item.recurring) {
-    await spawnNextOccurrence(row.item, deadline, now);
-  }
-}
-
-async function spawnNextOccurrence(item: DueRow["item"], deadline: Date, now: Date): Promise<void> {
-  const recurringConfig = RecurringConfig.parse(JSON.parse(item.recurring ?? "null"));
-  if (!recurringConfig.enabled) return;
-  let nextDeadline = getNextDeadline(deadline, recurringConfig);
-  while (nextDeadline <= now) {
-    nextDeadline = getNextDeadline(nextDeadline, recurringConfig);
-  }
-  if (recurringConfig.endDate && nextDeadline > new Date(recurringConfig.endDate)) return;
-
-  const [created] = await db
-    .insert(items)
-    .values({
-      bucketId: item.bucketId,
-      userId: item.userId,
-      title: item.title,
-      deadline: nextDeadline,
-      status: "active",
-      notificationOffsetMins: item.notificationOffsetMins,
-      recurring: item.recurring,
-      source: item.source,
-    })
-    .returning({ id: items.id });
-  if (created) await refreshItemReminders([created.id]);
 }
 
 async function sendOverdueAlert(row: DueRow, now: Date): Promise<void> {

@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { findBucketByName } from "@/lib/db/buckets";
 import { reminderResetForDeadline } from "@/lib/items/reminders";
 import { refreshItemReminders } from "@/lib/reminders/refresh";
+import { createNextOccurrence } from "@/lib/items/recurrence";
 import { encryptValue, generateWebhookKey } from "@/lib/crypto";
 import { BUCKET_NAME_MAX_LENGTH } from "@/constants";
 import { buckets, items } from "@/lib/db/schema";
@@ -389,6 +390,7 @@ async function executeToolCallInner(
         .set(updates)
         .where(and(eq(items.id, itemId), eq(items.userId, userId)));
       await refreshItemReminders([itemId]);
+      if (updates.status === "completed") await createNextOccurrence(itemId);
 
       revalidatePath("/");
       return JSON.stringify({ ok: true });
@@ -411,6 +413,7 @@ async function executeToolCallInner(
         })
         .where(and(eq(items.id, itemId), eq(items.userId, userId)));
       await refreshItemReminders([itemId]);
+      if (newStatus === "completed") await createNextOccurrence(itemId);
 
       revalidatePath("/");
       return JSON.stringify({ ok: true, newStatus });

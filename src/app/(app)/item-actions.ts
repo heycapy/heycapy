@@ -10,6 +10,7 @@ import type { RecurringConfig } from "@/types/rules";
 import { parseDeadlineString } from "@/lib/time";
 import { reminderResetForDeadline } from "@/lib/items/reminders";
 import { refreshItemReminders } from "@/lib/reminders/refresh";
+import { createNextOccurrence } from "@/lib/items/recurrence";
 
 export async function getItemsForBucketAction(
   bucketId: number
@@ -151,6 +152,7 @@ export async function updateItemAction(
     })
     .where(and(eq(items.id, itemId), eq(items.userId, session.userId)));
   await refreshItemReminders([itemId]);
+  if (nowCompleted) await createNextOccurrence(itemId);
 
   revalidatePath("/");
   return { ok: true };
@@ -177,6 +179,7 @@ export async function completeItemAction(
     })
     .where(and(eq(items.id, itemId), eq(items.userId, session.userId)));
   await refreshItemReminders([itemId]);
+  if (newStatus === "completed") await createNextOccurrence(itemId);
 
   revalidatePath("/");
   return { ok: true };

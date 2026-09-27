@@ -4,6 +4,7 @@ import { buckets, items, userSettings } from "@/lib/db/schema";
 import { parseDeadlineInTimezone } from "@/lib/ai/capyTools";
 import { reminderResetForDeadline } from "@/lib/items/reminders";
 import { refreshItemReminders } from "@/lib/reminders/refresh";
+import { createNextOccurrence } from "@/lib/items/recurrence";
 import type { TelegramBotConfig } from "@/components/buckets/constants";
 import { DEFAULT_TELEGRAM_BOT_CONFIG } from "@/components/buckets/constants";
 
@@ -364,6 +365,7 @@ export async function completeItemById(userId: number, itemId: number): Promise<
     .set({ status: "completed", completedAt: new Date(), updatedAt: new Date() })
     .where(and(eq(items.id, itemId), eq(items.userId, userId)));
   await refreshItemReminders([itemId]);
+  await createNextOccurrence(itemId);
 }
 
 export async function updateItemTitle(
