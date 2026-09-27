@@ -9,7 +9,6 @@ import { BracketButton } from "@/components/ui/BracketButton";
 import {
   getUserSettingsAction,
   updateUserSettingsAction,
-  setupTelegramAction,
   disconnectTelegramAction,
 } from "@/app/(app)/actions";
 import { AppearanceTab, NotificationsTab, AITab, PersonalityTab } from "./SettingsTabs";
@@ -112,6 +111,7 @@ export function SettingsSheet({ open, initialTab, onClose }: SettingsSheetProps)
           populate(result.settings);
           setUserEmail(result.userEmail);
           setSmtpPassSaved(result.smtpPassSaved);
+          setTelegramBotConfigured(result.telegramBotConfigured);
           if (!result.settings.notificationEmailTo) {
             setNotificationEmailTo(result.userEmail);
           }
@@ -121,17 +121,6 @@ export function SettingsSheet({ open, initialTab, onClose }: SettingsSheetProps)
     }, 0);
     return () => clearTimeout(id);
   }, [open, initialTab]);
-
-  useEffect(() => {
-    if (!open || tab !== "notifications") return;
-    setupTelegramAction().then((result) => {
-      if (result.ok) {
-        setTelegramBotConfigured(true);
-      } else {
-        setTelegramBotConfigured(false);
-      }
-    });
-  }, [open, tab]);
 
   async function handleDisconnectTelegram() {
     startTelegramTransition(async () => {

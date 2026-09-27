@@ -3,7 +3,7 @@ import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { userSettings } from "@/lib/db/schema";
 import { POST } from "@/app/api/telegram/route";
-import { createTelegramLinkAction } from "@/app/(app)/user-settings-actions";
+import { createTelegramLinkAction, getUserSettingsAction } from "@/app/(app)/user-settings-actions";
 import { createTelegramLinkCode } from "@/lib/notifications/telegram-link";
 import { MINUTE, resetSchedulerEnvironment, seedUser, useSchedulerEnvironment } from "./helpers";
 
@@ -127,4 +127,29 @@ it("the connect action returns a t.me link carrying a fresh code", async () => {
   const code = result.ok ? new URL(result.url).searchParams.get("start") : null;
   const chatId = await sendStart(`/start ${code}`);
   expect(await chatOf(session.userId)).toBe(chatId);
+});
+
+it("opening settings reports the bot without calling Telegram or exposing the link code", async () => {
+  session.userId = await unconnectedUser();
+  await createTelegramLinkCode(session.userId, T0);
+  vi.mocked(fetch).mockClear();
+
+  const result = await getUserSettingsAction();
+
+  expect(fetch).not.toHaveBeenCalled();
+  expect(result).toMatchObject({
+    ok: true,
+    telegramBotConfigured: true,
+    settings: { telegramLinkCodeHash: null },
+  });
+});
+
+it("connecting in test mode never calls the real Telegram API", async () => {
+  process.env.E2E_TEST_MODE = "1";
+  session.userId = await unconnectedUser();
+  vi.mocked(fetch).mockClear();
+
+  await createTelegramLinkAction();
+
+  expect(fetch).not.toHaveBeenCalled();
 });

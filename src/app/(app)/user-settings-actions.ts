@@ -57,6 +57,7 @@ export async function getUserSettingsAction(): Promise<
       settings: typeof userSettings.$inferSelect;
       userEmail: string;
       smtpPassSaved: boolean;
+      telegramBotConfigured: boolean;
     }
   | { ok: false; error: string }
 > {
@@ -75,6 +76,7 @@ export async function getUserSettingsAction(): Promise<
     ok: true,
     userEmail: user?.email ?? session.email,
     smtpPassSaved: !!settings.smtpPass,
+    telegramBotConfigured: !!process.env.TELEGRAM_BOT_TOKEN,
     settings: {
       ...settings,
       aiApiKey: settings.aiApiKey ? decryptValue(settings.aiApiKey) : null,
@@ -82,6 +84,7 @@ export async function getUserSettingsAction(): Promise<
         ? decryptValue(settings.transcriptionApiKey)
         : null,
       smtpPass: null, // never expose — write-only
+      telegramLinkCodeHash: null,
     },
   };
 }
@@ -147,6 +150,8 @@ export async function setupTelegramAction(): Promise<
 
   const botToken = process.env.TELEGRAM_BOT_TOKEN;
   if (!botToken) return { ok: false, error: "TELEGRAM_BOT_TOKEN is not set in .env" };
+  // Tests must never repoint the real bot
+  if (isE2ETestMode()) return { ok: true, botUsername: "heycapy_test_bot" };
 
   const h = await headers();
   const proto = h.get("x-forwarded-proto") ?? "http";
@@ -186,14 +191,10 @@ export async function createTelegramLinkAction(): Promise<
   const session = await getSession();
   if (!session) return { ok: false, error: "Unauthorized" };
 
-  let botUsername = "heycapy_test_bot";
-  if (!isE2ETestMode()) {
-    const setup = await setupTelegramAction();
-    if (!setup.ok) return setup;
-    botUsername = setup.botUsername;
-  }
+  const setup = await setupTelegramAction();
+  if (!setup.ok) return setup;
   const code = await createTelegramLinkCode(session.userId);
-  return { ok: true, url: `${TELEGRAM_LINK_BASE}/${botUsername}?start=${code}` };
+  return { ok: true, url: `${TELEGRAM_LINK_BASE}/${setup.botUsername}?start=${code}` };
 }
 
 export async function disconnectTelegramAction(): Promise<
@@ -237,34 +238,6 @@ export async function saveTimezoneIfDefaultAction(timezone: string): Promise<voi
     .where(and(eq(userSettings.userId, session.userId), eq(userSettings.timezone, "UTC")))
     .returning({ userId: userSettings.userId });
   if (updated.length > 0) await refreshUserReminders(session.userId);
-}
-
-export async function registerTelegramWebhookAction(
-  botToken: string
-): Promise<{ ok: true } | { ok: false; error: string }> {
-  const session = await getSession();
-  if (!session) return { ok: false, error: "Unauthorized" };
-
-  if (!botToken.trim()) return { ok: false, error: "Bot token is required" };
-
-  const h = await headers();
-  const proto = h.get("x-forwarded-proto") ?? "http";
-  const host = h.get("host") ?? "localhost:3000";
-  const appUrl = process.env.APP_URL ?? `${proto}://${host}`;
-  const webhookUrl = `${appUrl}/api/telegram?secret=${encodeURIComponent(botToken)}`;
-
-  try {
-    const res = await fetch(`${TELEGRAM_API_BASE}/bot${botToken}/setWebhook`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ url: webhookUrl }),
-    });
-    const data = (await res.json()) as { ok: boolean; description?: string };
-    if (!data.ok) return { ok: false, error: data.description ?? "Telegram rejected the request" };
-    return { ok: true };
-  } catch (err) {
-    return { ok: false, error: err instanceof Error ? err.message : "Unknown error" };
-  }
 }
 
 export async function testSmtpAction(config: {

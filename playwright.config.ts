@@ -47,8 +47,13 @@ export default defineConfig({
     command:
       "pnpm build && cp -r public .next/standalone/ && cp -r .next/static .next/standalone/.next/ && cp -r src/lib/db/migrations .next/standalone/migrations && node .next/standalone/server.js",
     url: BASE_URL,
-    // Dummy key: email counts as configured; test mode never sends
-    env: { E2E_TEST_MODE: "1", RESEND_API_KEY: "e2e-not-used", PORT: String(E2E_PORT) },
+    // Dummy keys override .env: channels count as configured, and nothing reaches real services
+    env: {
+      E2E_TEST_MODE: "1",
+      RESEND_API_KEY: "e2e-not-used",
+      TELEGRAM_BOT_TOKEN: "e2e-not-used",
+      PORT: String(E2E_PORT),
+    },
     reuseExistingServer: !process.env.CI,
     timeout: 120000,
   },
