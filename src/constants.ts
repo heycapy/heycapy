@@ -1,6 +1,13 @@
 export const APP_NAME = "HeyCapy";
 export const APP_DOMAIN = "heycapy.xyz";
 export const APP_EMAIL_FROM = `${APP_NAME} <noreply@${APP_DOMAIN}>`;
+export const APP_TAGLINE = "a capy to help you with your day.";
+
+export const OG_COLORS = {
+  background: "#1d1816",
+  foreground: "#d6c7a9",
+  muted: "#bda675",
+} as const;
 
 // External API base URLs
 export const TELEGRAM_API_BASE = "https://api.telegram.org";

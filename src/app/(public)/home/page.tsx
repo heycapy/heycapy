@@ -1,10 +1,11 @@
 import { Sprite } from "@/components/capy/Sprite";
 import { ExternalLink } from "lucide-react";
 import type { Metadata } from "next";
+import { APP_TAGLINE } from "@/constants";
 
 export const metadata: Metadata = {
   title: "heycapy",
-  description: "a capy to help you with your day.",
+  description: APP_TAGLINE,
 };
 
 const NAV_LINKS = [
@@ -20,9 +21,7 @@ export default function HomePage() {
         <Sprite id="capy-idle-blink" size={96} bob />
         <div className="flex flex-col items-center gap-1.5">
           <h1 className="font-pixel text-3xl tracking-wide">heycapy</h1>
-          <p className="text-muted-foreground font-mono text-sm">
-            a capy to help you with your day.
-          </p>
+          <p className="text-muted-foreground font-mono text-sm">{APP_TAGLINE}</p>
         </div>
       </div>
 
