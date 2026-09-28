@@ -1,5 +1,6 @@
 import { APP_NAME, USELESS_FACTS_API_URL } from "@/constants";
 import { OTP_TTL_MINUTES } from "./constants";
+import { escapeHtml } from "@/lib/notifications/telegram-message";
 
 async function fetchRandomFact(): Promise<string | null> {
   try {
@@ -15,22 +16,38 @@ async function fetchRandomFact(): Promise<string | null> {
   }
 }
 
-export async function buildOtpEmail(
-  code: string
-): Promise<{ subject: string; text: string; html: string }> {
-  const fact = await fetchRandomFact();
+export type OtpPurpose = "sign-in" | "delete-account";
 
-  const subject = `[${APP_NAME}] your sign-in code`;
+const PURPOSE_COPY: Record<OtpPurpose, { label: string; ignore: string }> = {
+  "sign-in": {
+    label: "sign-in",
+    ignore: "didn't request this? ignore it — your account is safe.",
+  },
+  "delete-account": {
+    label: "account deletion",
+    ignore:
+      "didn't ask to delete your account? don't share this code, and use \"log out everywhere\".",
+  },
+};
+
+export async function buildOtpEmail(
+  code: string,
+  purpose: OtpPurpose = "sign-in"
+): Promise<{ subject: string; text: string; html: string }> {
+  const copy = PURPOSE_COPY[purpose];
+  const fact = purpose === "sign-in" ? await fetchRandomFact() : null;
+
+  const subject = `[${APP_NAME}] your ${copy.label} code`;
 
   const factText = fact ? `\n\n[did you know] ${fact}\n[please check yourself, please :| ]` : "";
 
   const text = [
-    `[ ${APP_NAME} ] — sign-in code`,
+    `[ ${APP_NAME} ] — ${copy.label} code`,
     ``,
     `  ${code}`,
     ``,
     `expires in ${OTP_TTL_MINUTES} minutes.`,
-    `if you didn't request this, ignore it.`,
+    copy.ignore,
     factText,
     ``,
     `your capy — sent while relaxing`,
@@ -65,7 +82,7 @@ export async function buildOtpEmail(
   <title>${subject}</title>
 </head>
 <body style="margin:0;padding:0;background:${bg};font-family:${mono};">
-  <span style="display:none;max-height:0;overflow:hidden;mso-hide:all;">sign-in code for ${APP_NAME} &nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;</span>
+  <span style="display:none;max-height:0;overflow:hidden;mso-hide:all;">${copy.label} code for ${APP_NAME} &nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;</span>
   <table width="100%" cellpadding="0" cellspacing="0" style="background:${bg};padding:40px 16px;">
     <tr>
       <td align="center">
@@ -74,7 +91,7 @@ export async function buildOtpEmail(
           <tr>
             <td style="padding:20px 32px 16px;border-bottom:1px solid ${border};">
               <p style="margin:0;font-family:${mono};font-size:18px;font-weight:700;color:${accent};letter-spacing:0.05em;">heycapy</p>
-              <p style="margin:4px 0 0;font-family:${mono};font-size:11px;color:${muted};letter-spacing:0.05em;">sign-in request</p>
+              <p style="margin:4px 0 0;font-family:${mono};font-size:11px;color:${muted};letter-spacing:0.05em;">${copy.label} request</p>
             </td>
           </tr>
 
@@ -84,7 +101,7 @@ export async function buildOtpEmail(
               <div style="background:${bg};padding:20px;text-align:center;">
                 <span style="font-family:${mono};font-size:40px;font-weight:900;letter-spacing:0.25em;color:${fg};">${code}</span>
               </div>
-              <p style="margin:12px 0 0;font-family:${mono};font-size:11px;color:${muted};">didn&rsquo;t request this? ignore it — your account is safe.</p>
+              <p style="margin:12px 0 0;font-family:${mono};font-size:11px;color:${muted};">${escapeHtml(copy.ignore)}</p>
             </td>
           </tr>
 

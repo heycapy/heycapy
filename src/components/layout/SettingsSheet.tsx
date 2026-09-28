@@ -10,11 +10,12 @@ import {
   disconnectTelegramAction,
 } from "@/app/(app)/actions";
 import { AppearanceTab, NotificationsTab, AITab, PersonalityTab } from "./SettingsTabs";
+import { AccountTab } from "./AccountTab";
 import type { UserTone, AIProvider, TranscriptionProvider } from "./settings-constants";
 import type { userSettings } from "@/lib/db/schema";
 
 type Settings = typeof userSettings.$inferSelect;
-export type SettingsTab = "appearance" | "notifications" | "ai" | "personality";
+export type SettingsTab = "appearance" | "notifications" | "ai" | "personality" | "account";
 
 type SettingsSheetProps = {
   open: boolean;
@@ -213,17 +214,21 @@ export function SettingsSheet({ open, initialTab, onClose }: SettingsSheetProps)
             </div>
 
             <div className="border-border scrollbar-hide flex overflow-x-auto border-b">
-              {(["appearance", "notifications", "ai", "personality"] as SettingsTab[]).map((t) => (
+              {(
+                ["appearance", "notifications", "ai", "personality", "account"] as SettingsTab[]
+              ).map((t) => (
                 <button key={t} onClick={() => setTab(t)} className={tabBtn(t)}>
                   {t}
                 </button>
               ))}
             </div>
-            <div className="border-border flex justify-end border-b px-3 py-1.5">
-              <BracketButton onClick={handleSave} disabled={pending || !loaded}>
-                save
-              </BracketButton>
-            </div>
+            {tab !== "account" && (
+              <div className="border-border flex justify-end border-b px-3 py-1.5">
+                <BracketButton onClick={handleSave} disabled={pending || !loaded}>
+                  save
+                </BracketButton>
+              </div>
+            )}
 
             <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-4 py-4">
               {!loaded ? (
@@ -308,6 +313,7 @@ export function SettingsSheet({ open, initialTab, onClose }: SettingsSheetProps)
                       pending={pending}
                     />
                   )}
+                  {tab === "account" && <AccountTab email={userEmail} />}
                   {error && <span className="text-destructive font-mono text-[10px]">{error}</span>}
                 </>
               )}
