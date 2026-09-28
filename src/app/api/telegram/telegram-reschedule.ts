@@ -1,3 +1,4 @@
+import { bucketReminderButtons } from "@/lib/rules";
 import { formatSlot, formatWhen } from "@/lib/format-date";
 import { isClosedStatus } from "@/constants";
 import { and, eq } from "drizzle-orm";
@@ -37,6 +38,7 @@ type Item = {
   deadline: Date | null;
   bucketId: number;
   bucketName: string;
+  rules: string;
 };
 
 const CANCEL: InlineButton = { text: "✖ Cancel", callback_data: "rx" };
@@ -50,6 +52,7 @@ async function loadItem(ctx: Ctx, itemId: number): Promise<Item | null> {
       deadline: items.deadline,
       bucketId: items.bucketId,
       bucketName: buckets.name,
+      rules: buckets.notificationsRules,
       status: items.status,
       deletedAt: items.deletedAt,
     })
@@ -199,7 +202,7 @@ export async function abandonReschedule(
       ctx.chatId,
       messageId,
       heading(item, new Date(), ctx.timezone),
-      reminderButtons(item.id)
+      reminderButtons(item.id, bucketReminderButtons(item.rules))
     );
   } else {
     await removeMessageButtons(ctx.botToken, ctx.chatId, messageId);
@@ -272,7 +275,7 @@ export async function handleRescheduleCallback(
         ctx.chatId,
         messageId,
         heading(item, now, ctx.timezone),
-        reminderButtons(item.id)
+        reminderButtons(item.id, bucketReminderButtons(item.rules))
       );
     }
     return;

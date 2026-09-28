@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { buckets, items, notificationQueue } from "@/lib/db/schema";
 import { deleteTelegramMessage, sendTelegram, sendTelegramItemNotification } from "./telegram";
 import { itemAlertHtml } from "./telegram-message";
+import { bucketReminderButtons } from "@/lib/rules";
 
 type AlertJob = typeof notificationQueue.$inferSelect;
 
@@ -17,7 +18,12 @@ export async function sendTelegramAlert(
   const item =
     itemId && (kind === "reminder" || kind === "overdue")
       ? await db
-          .select({ title: items.title, deadline: items.deadline, bucketName: buckets.name })
+          .select({
+            title: items.title,
+            deadline: items.deadline,
+            bucketName: buckets.name,
+            rules: buckets.notificationsRules,
+          })
           .from(items)
           .innerJoin(buckets, eq(buckets.id, items.bucketId))
           .where(eq(items.id, itemId))
@@ -41,7 +47,13 @@ export async function sendTelegramAlert(
     opts.now,
     opts.timezone
   );
-  const messageId = await sendTelegramItemNotification(botToken, chatId, html, itemId);
+  const messageId = await sendTelegramItemNotification(
+    botToken,
+    chatId,
+    html,
+    itemId,
+    bucketReminderButtons(item.rules)
+  );
 
   if (kind === "overdue") {
     const [previous] = await db

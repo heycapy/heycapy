@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { itemActions, items, userSettings } from "@/lib/db/schema";
 import { dataEvents } from "@/lib/events";
 import { formatWhen } from "@/lib/format-date";
+import { syncTelegramReminder } from "@/lib/notifications/telegram-sync";
 import { createNextOccurrence } from "@/lib/items/recurrence";
 import type { QuickRemindChoice } from "@/lib/notifications/constants";
 import { refreshItemReminders, selectReminderRows, toReminderInputs } from "./refresh";
@@ -128,6 +129,13 @@ export async function applyReminderAction(
   if (claim.action === "done") {
     await completeItem(claim.userId, item.id, claim.channel, now);
     dataEvents.emit("refresh", claim.userId);
+    await syncTelegramReminder(claim.userId, item.id, {
+      action: "done",
+      title: item.title,
+      channel: claim.channel,
+      now,
+      timezone: row?.timezone ?? "UTC",
+    });
     return { ok: true, message: `✓ ${title} done`, ...at };
   }
   const timezone = row?.timezone ?? "UTC";
@@ -140,6 +148,16 @@ export async function applyReminderAction(
     now
   );
   dataEvents.emit("refresh", claim.userId);
+  if (next) {
+    await syncTelegramReminder(claim.userId, item.id, {
+      action: "remindAgain",
+      at: next,
+      title: item.title,
+      channel: claim.channel,
+      now,
+      timezone,
+    });
+  }
   const when = formatWhen(next ?? now, now, timezone);
   return { ok: true, message: `⏰ ${title} — I'll remind you again ${when}`, ...at };
 }

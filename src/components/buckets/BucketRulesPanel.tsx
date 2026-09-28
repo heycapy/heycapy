@@ -194,7 +194,7 @@ export function BucketRulesPanel({
         <label className={LABEL}>reminder buttons</label>
         <span className={HINT}>
           done is always there; pick when to be reminded again. push (android, desktop) shows done +
-          the first one, ntfy done + two, email all of them
+          the first one, ntfy done + two, email and telegram all of them
         </span>
         <OptionGroup
           options={QUICK_REMIND_VALUES.map((v) => ({ value: v, label: reminderButtonLabel(v) }))}
