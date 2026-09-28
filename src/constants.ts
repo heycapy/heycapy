@@ -13,8 +13,12 @@ export const GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta
 export const OLLAMA_DEFAULT_URL = "https://ollama.yourdomain.com";
 export const NTFY_DEFAULT_URL = "https://ntfy.sh";
 
-// Built-in status that pauses an item's reminders until changed
-export const ON_HOLD_STATUS = "on hold";
+// Built-in item statuses; "on hold" pauses reminders until changed
+export const ITEM_STATUS = {
+  active: "active",
+  completed: "completed",
+  onHold: "on hold",
+} as const;
 
 export const WEBHOOK_KEY_PREFIX = "hc_live_";
 // Telegram command limit
@@ -54,3 +58,24 @@ export const TELEGRAM_CHAT_ID_MAX_LENGTH = 50;
 
 // One-time link that connects a Telegram chat to an account
 export const TELEGRAM_LINK_TTL_MS = 15 * 60 * 1000;
+
+export const RELATIVE_DAY_NAMES: Record<number, string> = {
+  [-1]: "yesterday",
+  0: "today",
+  1: "tomorrow",
+};
+
+export const MONTH_SHORT_NAMES = [
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
+];

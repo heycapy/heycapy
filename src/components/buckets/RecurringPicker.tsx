@@ -1,5 +1,3 @@
-"use client";
-
 import { useState } from "react";
 import { DatePicker } from "@/components/ui/DatePicker";
 import { OptionButton } from "@/components/ui/OptionButton";
@@ -14,12 +12,12 @@ function describeRecurring(config: RecurringConfig): string {
   return n === 1 ? `every ${unitStr}` : `every ${n} ${unitStr}`;
 }
 
-interface RecurringPickerProps {
+type RecurringPickerProps = {
   recurring: RecurringConfig | null | undefined;
   initialShowEndDate?: boolean;
   disabled?: boolean;
   onChange: (v: RecurringConfig | null) => void;
-}
+};
 
 export function RecurringPicker({
   recurring,

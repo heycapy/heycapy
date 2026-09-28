@@ -1,33 +1,40 @@
+import { mkdirSync, readdirSync, rmSync } from "node:fs";
+import path from "node:path";
 import Database from "better-sqlite3";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import * as schema from "./schema";
 import type { BetterSQLite3Database } from "drizzle-orm/better-sqlite3";
+import { DATABASE_BACKUPS_KEPT, DEFAULT_DATABASE_URL } from "./constants";
 
 export type Schema = typeof schema;
 export type DB = BetterSQLite3Database<Schema>;
 
-function createDb(): DB {
-  const url = process.env.DATABASE_URL ?? "file:heycapy.db";
-
-  if (url.startsWith("postgres")) {
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const { Pool } = require("pg");
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const { drizzle: drizzlePg } = require("drizzle-orm/node-postgres");
-      const pool = new Pool({ connectionString: url });
-      return drizzlePg(pool, { schema }) as unknown as DB;
-    } catch {
-      throw new Error("Postgres mode requires the 'pg' package. Run: pnpm add pg");
-    }
-  }
-
-  const path = url.startsWith("file:") ? url.slice(5) : url;
-  const sqlite = new Database(path);
-  sqlite.pragma("journal_mode = WAL");
-  sqlite.pragma("foreign_keys = ON");
-
-  return drizzle(sqlite, { schema });
+export function databaseFilePath(): string {
+  const url = process.env.DATABASE_URL ?? DEFAULT_DATABASE_URL;
+  return url.startsWith("file:") ? url.slice("file:".length) : url;
 }
 
-export const db = createDb();
+const sqlite = new Database(databaseFilePath());
+sqlite.pragma("journal_mode = WAL");
+sqlite.pragma("foreign_keys = ON");
+
+export const db: DB = drizzle(sqlite, { schema });
+
+// Daily copy next to the database; keeps the newest few
+export async function backupDatabase(now = new Date()): Promise<string> {
+  const dir = path.join(path.dirname(path.resolve(databaseFilePath())), "backups");
+  mkdirSync(dir, { recursive: true });
+  const file = path.join(dir, `heycapy-${now.toISOString().slice(0, 10)}.db`);
+  await sqlite.backup(file);
+  // A single self-contained file is what a restore copies back
+  const copy = new Database(file);
+  copy.pragma("journal_mode = DELETE");
+  copy.close();
+
+  const backups = readdirSync(dir)
+    .filter((f) => /^heycapy-\d{4}-\d{2}-\d{2}\.db$/.test(f))
+    .sort()
+    .reverse();
+  for (const old of backups.slice(DATABASE_BACKUPS_KEPT)) rmSync(path.join(dir, old));
+  return file;
+}

@@ -3,12 +3,12 @@
 import { cn } from "@/lib/utils";
 import { SPRITES, SPRITE_SIZE, type SpriteId } from "./sprites";
 
-interface SpriteProps {
+type SpriteProps = {
   id: SpriteId;
   size?: number;
   bob?: boolean;
   className?: string;
-}
+};
 
 export function Sprite({ id, size = SPRITE_SIZE, bob = false, className }: SpriteProps) {
   const { src, frameW, frameH, frameCount, fps } = SPRITES[id];

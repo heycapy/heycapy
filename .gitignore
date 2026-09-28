@@ -12,6 +12,7 @@
 # testing
 /coverage
 /test-results
+/.e2e
 /playwright-report
 /tests/e2e/.auth
 

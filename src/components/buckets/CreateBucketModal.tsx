@@ -17,9 +17,9 @@ import type { templates } from "@/lib/db/schema";
 
 type TemplateRow = typeof templates.$inferSelect;
 
-interface CreateBucketModalProps {
+type CreateBucketModalProps = {
   templates: TemplateRow[];
-}
+};
 
 type Step = "pick" | "name";
 

@@ -1,24 +1,14 @@
-"use client";
-
+import { bucketChannels } from "@/lib/rules";
 import { useEffect, useState } from "react";
 import { BracketButton } from "@/components/ui/BracketButton";
 import { getNotifAvailabilityAction } from "@/app/(app)/actions";
 import type { NotificationMedium } from "./constants";
 
-interface RemindersOffNoticeProps {
+type RemindersOffNoticeProps = {
   notificationsRules: string;
   hasDatedItems: boolean;
   onSetUp: () => void;
-}
-
-function bucketChannels(notificationsRules: string): NotificationMedium[] {
-  try {
-    const medium = (JSON.parse(notificationsRules) as { medium?: unknown }).medium;
-    return Array.isArray(medium) ? (medium as NotificationMedium[]) : [];
-  } catch {
-    return [];
-  }
-}
+};
 
 export function RemindersOffNotice({
   notificationsRules,
@@ -38,7 +28,7 @@ export function RemindersOffNotice({
     };
   }, [notificationsRules]);
 
-  if (!hasDatedItems || working === null) return null;
+  if (!hasDatedItems || working === null || working.length === 0) return null;
   if (bucketChannels(notificationsRules).some((m) => working.includes(m))) return null;
 
   return (

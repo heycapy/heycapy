@@ -1,8 +1,8 @@
+import { bucketChannels } from "@/lib/rules";
+import { ITEM_STATUS } from "@/constants";
 import { and, desc, eq, inArray } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { buckets, items, notificationQueue, userSettings } from "@/lib/db/schema";
-import { NotificationRules } from "@/types/rules";
-import { ON_HOLD_STATUS } from "@/constants";
 import { ALL_CHANNELS, channelDecisions, type ChannelDecision } from "@/lib/notifications/channels";
 import type { NotificationMedium } from "@/lib/notifications/queue";
 
@@ -33,15 +33,6 @@ export type ItemReminderInfo = {
 };
 
 const HISTORY_LIMIT = 10;
-
-function bucketChannels(notificationsRules: string): string[] {
-  try {
-    const parsed = NotificationRules.safeParse(JSON.parse(notificationsRules));
-    return parsed.success ? parsed.data.medium : [];
-  } catch {
-    return [];
-  }
-}
 
 async function currentDecisions(userId: number, notificationsRules: string) {
   const settings = await db.query.userSettings.findFirst({
@@ -100,7 +91,7 @@ export async function getReminderBadges(
 ): Promise<Record<number, ReminderBadge>> {
   const dated = bucketItems.filter((i) => i.deadline && !i.deletedAt);
   if (dated.length === 0) return {};
-  const open = dated.filter((i) => i.status !== "completed");
+  const open = dated.filter((i) => i.status !== ITEM_STATUS.completed);
 
   const jobs =
     open.length === 0
@@ -132,7 +123,7 @@ export async function getReminderBadges(
   );
   const badges: Record<number, ReminderBadge> = {};
   for (const item of dated) {
-    const isOpen = item.status !== "completed";
+    const isOpen = item.status !== ITEM_STATUS.completed;
     if (isOpen && failed.has(item.id)) badges[item.id] = "failed";
     else if (isOpen && !hasChannel) badges[item.id] = "noChannel";
     else if (isOpen && item.nextReminderAt) badges[item.id] = "upcoming";
@@ -162,9 +153,9 @@ export async function getItemReminderInfo(
     .limit(HISTORY_LIMIT * decisions.length);
 
   const reason =
-    item.status === "completed"
+    item.status === ITEM_STATUS.completed
       ? "completed"
-      : item.status === ON_HOLD_STATUS
+      : item.status === ITEM_STATUS.onHold
         ? "onHold"
         : !decisions.some((c) => c.state === "send")
           ? "noChannel"
@@ -175,7 +166,7 @@ export async function getItemReminderInfo(
   return {
     next: reason ? null : item.nextReminderAt,
     nextChannels: reason ? null : decisions,
-    completedAt: item.status === "completed" ? item.completedAt : null,
+    completedAt: item.status === ITEM_STATUS.completed ? item.completedAt : null,
     reason,
     history: groupIntoEvents(jobs).slice(0, HISTORY_LIMIT),
   };

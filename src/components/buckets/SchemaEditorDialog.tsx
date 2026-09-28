@@ -1,5 +1,3 @@
-"use client";
-
 import { useRef, useState, useTransition } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { BracketButton } from "@/components/ui/BracketButton";
@@ -32,11 +30,11 @@ function parseSavedSchema(raw: unknown): BucketSchema {
   }
 }
 
-interface SchemaEditorDialogProps {
+type SchemaEditorDialogProps = {
   open: boolean;
   bucket: BucketRow;
   onClose: () => void;
-}
+};
 
 export function SchemaEditorDialog({ open, bucket, onClose }: SchemaEditorDialogProps) {
   return (

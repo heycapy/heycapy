@@ -1,3 +1,5 @@
+import { bucketChannels, parseItemsRules } from "@/lib/rules";
+import { toLocal, utcOffset } from "@/lib/reminders/zoned";
 import type { UpcomingItem } from "./capyTools";
 
 type PersonalitySettings = {
@@ -44,73 +46,23 @@ export function buildSystemPrompt(
       ? buckets
           .map((b) => {
             const tags: string[] = [];
-            if (b.itemsRules) {
-              try {
-                const ir = JSON.parse(b.itemsRules) as {
-                  readonly?: boolean;
-                  defaultDeadlineOffsetDays?: number | null;
-                };
-                if (
-                  ir.defaultDeadlineOffsetDays !== null &&
-                  ir.defaultDeadlineOffsetDays !== undefined &&
-                  ir.defaultDeadlineOffsetDays > 0
-                ) {
-                  if (ir.readonly) tags.push("readonly");
-                  tags.push(`default deadline: ${ir.defaultDeadlineOffsetDays}d from today`);
-                }
-              } catch {
-                // ignore malformed rules
-              }
+            const items = parseItemsRules(b.itemsRules);
+            if (items.readonly) tags.push("readonly");
+            if (items.defaultDeadlineOffsetDays) {
+              tags.push(`default deadline: ${items.defaultDeadlineOffsetDays}d from today`);
             }
-            if (b.notificationsRules) {
-              try {
-                const nr = JSON.parse(b.notificationsRules) as {
-                  medium?: string[];
-                };
-                if (nr.medium && nr.medium.length > 0) {
-                  tags.push(`notifications: ${nr.medium.join("+")}`);
-                }
-              } catch {
-                // ignore malformed rules
-              }
-            }
+            const channels = bucketChannels(b.notificationsRules);
+            if (channels.length > 0) tags.push(`notifications: ${channels.join("+")}`);
             const suffix = tags.length > 0 ? ` [${tags.join(", ")}]` : "";
             return `- "${b.name}" (id: ${b.id})${suffix}`;
           })
           .join("\n")
       : "No buckets yet.";
 
-  const tzParts = new Intl.DateTimeFormat("en-US", {
-    timeZone: timezone,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: false,
-  }).formatToParts(now);
-  const yr = tzParts.find((p) => p.type === "year")?.value ?? "";
-  const mo = tzParts.find((p) => p.type === "month")?.value ?? "";
-  const dy = tzParts.find((p) => p.type === "day")?.value ?? "";
-  const hr = tzParts.find((p) => p.type === "hour")?.value ?? "";
-  const mn = tzParts.find((p) => p.type === "minute")?.value ?? "";
-  const sc = tzParts.find((p) => p.type === "second")?.value ?? "";
-  const isoDate = `${yr}-${mo}-${dy}`;
-
-  const naiveMs = Date.UTC(
-    Number(yr),
-    Number(mo) - 1,
-    Number(dy),
-    Number(hr),
-    Number(mn),
-    Number(sc)
-  );
-  const offsetTotalMins = Math.round((now.getTime() - naiveMs) / 60000);
-  const offsetSign = offsetTotalMins >= 0 ? "+" : "-";
-  const absMin = Math.abs(offsetTotalMins);
-  const offsetStr = `${offsetSign}${String(Math.floor(absMin / 60)).padStart(2, "0")}:${String(absMin % 60).padStart(2, "0")}`;
-  const nowWithOffset = `${isoDate}T${hr}:${mn}:${sc}${offsetStr}`;
+  const local = toLocal(now, timezone);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const isoDate = `${local.year}-${pad(local.month)}-${pad(local.day)}`;
+  const nowWithOffset = `${isoDate}T${pad(local.hour)}:${pad(local.minute)}:00${utcOffset(now, timezone)}`;
 
   const timeStr = new Intl.DateTimeFormat("en-US", {
     timeZone: timezone,

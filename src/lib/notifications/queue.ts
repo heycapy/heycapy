@@ -1,3 +1,4 @@
+import { ITEM_STATUS } from "@/constants";
 import { and, eq, inArray, isNull, lte, or } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { notificationQueue, notificationLog, users, userSettings } from "@/lib/db/schema";
@@ -128,7 +129,7 @@ export async function processPending(): Promise<void> {
         where: (i, { eq: qeq }) => qeq(i.id, itemId),
         columns: { status: true, deletedAt: true },
       });
-      if (!itemRow || itemRow.deletedAt || itemRow.status === "completed") {
+      if (!itemRow || itemRow.deletedAt || itemRow.status === ITEM_STATUS.completed) {
         await db
           .update(notificationQueue)
           .set({ status: "cancelled" })

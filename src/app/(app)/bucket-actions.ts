@@ -1,5 +1,6 @@
 "use server";
 
+import type { ActionResult } from "@/types/result";
 import { revalidatePath } from "next/cache";
 import { and, desc, eq, isNotNull, isNull, sql } from "drizzle-orm";
 import { getSession } from "@/lib/auth/session";
@@ -58,7 +59,7 @@ function parseStoredRules(json: string): Record<string, unknown> {
 export async function createBucketAction(
   templateId: number,
   name: string
-): Promise<{ ok: true; bucketId: number } | { ok: false; error: string }> {
+): Promise<ActionResult<{ bucketId: number }>> {
   const session = await requireSession();
 
   const trimmed = name.trim();
@@ -121,7 +122,7 @@ export async function updateBucketSettingsAction(
   notificationsRules: NotificationsRulesConfig,
   telegramConfig?: TelegramBotConfig | null,
   notificationTriggers?: NotificationTriggers
-): Promise<{ ok: true } | { ok: false; error: string }> {
+): Promise<ActionResult> {
   const session = await requireSession();
 
   const trimmed = name.trim();
@@ -190,7 +191,7 @@ export async function updateBucketSettingsAction(
 export async function updateBucketTelegramConfigAction(
   bucketId: number,
   config: TelegramBotConfig
-): Promise<{ ok: true } | { ok: false; error: string }> {
+): Promise<ActionResult> {
   const session = await requireSession();
   const bucket = await db.query.buckets.findFirst({
     where: (b, { eq: qeq, and: qand }) => qand(qeq(b.id, bucketId), qeq(b.userId, session.userId)),
@@ -230,9 +231,7 @@ export async function updateBucketTelegramConfigAction(
   return { ok: true };
 }
 
-export async function archiveBucketAction(
-  bucketId: number
-): Promise<{ ok: true } | { ok: false; error: string }> {
+export async function archiveBucketAction(bucketId: number): Promise<ActionResult> {
   const session = await requireSession();
 
   await db
@@ -244,9 +243,7 @@ export async function archiveBucketAction(
   return { ok: true };
 }
 
-export async function restoreBucketAction(
-  bucketId: number
-): Promise<{ ok: true } | { ok: false; error: string }> {
+export async function restoreBucketAction(bucketId: number): Promise<ActionResult> {
   const session = await requireSession();
 
   await db
@@ -258,9 +255,7 @@ export async function restoreBucketAction(
   return { ok: true };
 }
 
-export async function deleteBucketAction(
-  bucketId: number
-): Promise<{ ok: true } | { ok: false; error: string }> {
+export async function deleteBucketAction(bucketId: number): Promise<ActionResult> {
   const session = await requireSession();
 
   await db
@@ -272,9 +267,7 @@ export async function deleteBucketAction(
   return { ok: true };
 }
 
-export async function restoreDeletedBucketAction(
-  bucketId: number
-): Promise<{ ok: true } | { ok: false; error: string }> {
+export async function restoreDeletedBucketAction(bucketId: number): Promise<ActionResult> {
   const session = await requireSession();
 
   const bucket = await db.query.buckets.findFirst({
@@ -297,9 +290,7 @@ export async function restoreDeletedBucketAction(
   return { ok: true };
 }
 
-export async function permanentlyDeleteBucketAction(
-  bucketId: number
-): Promise<{ ok: true } | { ok: false; error: string }> {
+export async function permanentlyDeleteBucketAction(bucketId: number): Promise<ActionResult> {
   const session = await requireSession();
 
   await db.delete(buckets).where(and(eq(buckets.id, bucketId), eq(buckets.userId, session.userId)));
@@ -309,7 +300,7 @@ export async function permanentlyDeleteBucketAction(
 }
 
 export async function getDeletedBucketsAction(): Promise<
-  { ok: true; buckets: (typeof buckets.$inferSelect)[] } | { ok: false; error: string }
+  ActionResult<{ buckets: (typeof buckets.$inferSelect)[] }>
 > {
   const session = await getSession();
   if (!session) return { ok: false, error: "Unauthorized" };
@@ -324,7 +315,7 @@ export async function getDeletedBucketsAction(): Promise<
 }
 
 export async function getArchivedBucketsAction(): Promise<
-  { ok: true; buckets: (typeof buckets.$inferSelect)[] } | { ok: false; error: string }
+  ActionResult<{ buckets: (typeof buckets.$inferSelect)[] }>
 > {
   const session = await getSession();
   if (!session) return { ok: false, error: "Unauthorized" };
@@ -347,7 +338,7 @@ export async function getArchivedBucketsAction(): Promise<
 export async function updateBucketSchemaAction(
   bucketId: number,
   schema: unknown
-): Promise<{ ok: true } | { ok: false; error: string }> {
+): Promise<ActionResult> {
   const session = await requireSession();
 
   const bucket = await db.query.buckets.findFirst({
@@ -406,7 +397,7 @@ export async function updateBucketSchemaAction(
 
 export async function rotateWebhookKeyAction(
   bucketId: number
-): Promise<{ ok: true; key: string } | { ok: false; error: string }> {
+): Promise<ActionResult<{ key: string }>> {
   const session = await requireSession();
 
   const bucket = await db.query.buckets.findFirst({
@@ -426,7 +417,7 @@ export async function rotateWebhookKeyAction(
 
 export async function getWebhookKeyAction(
   bucketId: number
-): Promise<{ ok: true; key: string } | { ok: false; error: string }> {
+): Promise<ActionResult<{ key: string }>> {
   const session = await requireSession();
 
   const bucket = await db.query.buckets.findFirst({

@@ -1,5 +1,3 @@
-"use client";
-
 import { useState, useTransition } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import { Toggle } from "@/components/ui/Toggle";
@@ -7,7 +5,7 @@ import { createTelegramLinkAction, sendTestNotificationAction } from "@/app/(app
 import { BOX, INPUT, LABEL, SECTION, TELEGRAM_QR_SIZE } from "./settings-constants";
 import { TestSendButton } from "./TestSendButton";
 
-interface TelegramSettingsProps {
+type TelegramSettingsProps = {
   notificationsTelegram: boolean;
   setNotificationsTelegram: (v: boolean) => void;
   telegramChatId: string | null;
@@ -16,7 +14,7 @@ interface TelegramSettingsProps {
   onRecheckTelegram: () => Promise<void>;
   telegramActionPending: boolean;
   pending: boolean;
-}
+};
 
 export function TelegramSettings({
   notificationsTelegram,

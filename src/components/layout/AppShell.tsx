@@ -5,6 +5,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { Header } from "./Header";
 import { SettingsSheet, type SettingsTab } from "./SettingsSheet";
 import { DeliveryFailureBanner } from "./DeliveryFailureBanner";
+import { NoChannelBanner } from "./NoChannelBanner";
 import { ArchivedBucketsSheet } from "@/components/buckets/ArchivedBucketsSheet";
 import { TrashSheet } from "@/components/buckets/TrashSheet";
 import { useUIStore } from "@/store/ui";
@@ -16,13 +17,14 @@ const CapyChat = dynamic(() => import("@/components/capy/CapyChat").then((m) => 
   ssr: false,
 });
 
-interface AppShellProps {
+type AppShellProps = {
   children: ReactNode;
   email: string;
   failures: ChannelFailure[];
-}
+  hasWorkingChannel: boolean;
+};
 
-export function AppShell({ children, email, failures }: AppShellProps) {
+export function AppShell({ children, email, failures, hasWorkingChannel }: AppShellProps) {
   const [settingsTab, setSettingsTab] = useState<SettingsTab | null>(null);
   const [archivedOpen, setArchivedOpen] = useState(false);
   const [trashOpen, setTrashOpen] = useState(false);
@@ -42,6 +44,7 @@ export function AppShell({ children, email, failures }: AppShellProps) {
         onArchiveOpen={() => setArchivedOpen(true)}
         onTrashOpen={() => setTrashOpen(true)}
       />
+      {!hasWorkingChannel && <NoChannelBanner onSetUp={() => setSettingsTab("notifications")} />}
       <DeliveryFailureBanner failures={failures} onFix={() => setSettingsTab("notifications")} />
       <main className="flex flex-1 flex-col overflow-y-auto">{children}</main>
       <SettingsSheet

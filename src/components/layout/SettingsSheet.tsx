@@ -1,5 +1,3 @@
-"use client";
-
 import { useEffect, useState, useTransition } from "react";
 import { useScrollLock } from "@/hooks/useScrollLock";
 import { useTheme } from "next-themes";
@@ -18,11 +16,11 @@ import type { userSettings } from "@/lib/db/schema";
 type Settings = typeof userSettings.$inferSelect;
 export type SettingsTab = "appearance" | "notifications" | "ai" | "personality";
 
-interface SettingsSheetProps {
+type SettingsSheetProps = {
   open: boolean;
   initialTab: SettingsTab;
   onClose: () => void;
-}
+};
 
 export function SettingsSheet({ open, initialTab, onClose }: SettingsSheetProps) {
   useScrollLock(open);

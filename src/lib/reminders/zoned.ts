@@ -77,3 +77,62 @@ export function atLocalClock(date: Date, minutes: number, timezone: string, dayO
     timezone
   );
 }
+
+// An all-day item is stored as midnight in the user's timezone
+export function isAllDay(date: Date, timezone: string): boolean {
+  const l = toLocal(date, timezone);
+  return l.hour === 0 && l.minute === 0;
+}
+
+// "YYYY-MM-DD" → midnight of that day in the timezone
+export function localDateToDate(date: string, timezone: string): Date {
+  const [year, month, day] = date.split("-").map(Number);
+  return fromLocal(
+    { year: year ?? 0, month: month ?? 1, day: day ?? 1, hour: 0, minute: 0 },
+    timezone
+  );
+}
+
+export function localDateString(date: Date, timezone: string): string {
+  const l = toLocal(date, timezone);
+  return `${l.year}-${String(l.month).padStart(2, "0")}-${String(l.day).padStart(2, "0")}`;
+}
+
+// When an item starts counting as overdue: its time, or the end of its day if it has none
+export function overdueFrom(deadline: Date, timezone: string): Date {
+  return isAllDay(deadline, timezone) ? addLocalDays(deadline, 1, timezone) : deadline;
+}
+
+// "YYYY-MM-DD" at hour:minute in the timezone
+export function localDateTimeToDate(
+  date: string,
+  hour: number,
+  minute: number,
+  timezone: string
+): Date {
+  const [year, month, day] = date.split("-").map(Number);
+  return fromLocal({ year: year ?? 0, month: month ?? 1, day: day ?? 1, hour, minute }, timezone);
+}
+
+// Date-only is all day; a naive datetime is local time; anything with Z or an offset is exact
+export function parseLocalDateTime(value: string, timezone: string): Date {
+  const s = value.trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return localDateToDate(s, timezone);
+  const naive = s.match(/^(\d{4}-\d{2}-\d{2})[T ](\d{2}):(\d{2})(?::\d{2}(?:\.\d+)?)?$/);
+  if (naive)
+    return localDateTimeToDate(naive[1] ?? "", Number(naive[2]), Number(naive[3]), timezone);
+  return new Date(s);
+}
+
+export function endOfMonthDateString(date: Date, timezone: string): string {
+  const l = toLocal(date, timezone);
+  const lastDay = new Date(Date.UTC(l.year, l.month, 0)).getUTCDate();
+  return `${l.year}-${String(l.month).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
+}
+
+// e.g. "+05:30"
+export function utcOffset(date: Date, timezone: string): string {
+  const mins = Math.round(offsetMs(date, timezone) / 60_000);
+  const abs = Math.abs(mins);
+  return `${mins >= 0 ? "+" : "-"}${String(Math.floor(abs / 60)).padStart(2, "0")}:${String(abs % 60).padStart(2, "0")}`;
+}

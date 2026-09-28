@@ -1,5 +1,3 @@
-"use client";
-
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { charCountColor } from "@/components/ui/input";
@@ -9,7 +7,7 @@ import { sendTestNotificationAction } from "@/app/(app)/actions";
 import { BOX, INPUT, LABEL, SECTION } from "./settings-constants";
 import { TestSendButton } from "./TestSendButton";
 
-interface NtfySettingsProps {
+type NtfySettingsProps = {
   notificationsPush: boolean;
   setNotificationsPush: (v: boolean) => void;
   ntfyUrl: string;
@@ -17,7 +15,7 @@ interface NtfySettingsProps {
   ntfyTopic: string;
   setNtfyTopic: (v: string) => void;
   pending: boolean;
-}
+};
 
 export function NtfySettings({
   notificationsPush,

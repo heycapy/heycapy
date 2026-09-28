@@ -1,13 +1,11 @@
-"use client";
-
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 
-interface TimePickerProps {
+type TimePickerProps = {
   value: string; // stored as "HH:MM"
   onChange: (value: string) => void;
   disabled?: boolean;
-}
+};
 
 function parseInput(str: string): string | null {
   const s = str.trim().toLowerCase();

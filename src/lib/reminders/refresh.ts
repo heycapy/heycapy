@@ -1,3 +1,4 @@
+import { parseNotificationRules } from "@/lib/rules";
 import { and, asc, eq, gt, inArray, type SQL } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { buckets, items, userSettings } from "@/lib/db/schema";
@@ -49,17 +50,22 @@ function parseTriggers(raw: unknown): {
   }
 }
 
-export async function bucketDefaultOffsetMins(bucketId: number): Promise<number> {
-  const bucket = await db.query.buckets.findFirst({
-    where: eq(buckets.id, bucketId),
-    columns: { notificationsRules: true },
-  });
-  if (!bucket) return 0;
-  try {
-    return NotificationRules.parse(JSON.parse(bucket.notificationsRules)).defaultOffsetMins;
-  } catch {
-    return 0;
-  }
+export type ReminderContext = { defaultOffsetMins: number; notifyAt: string; timezone: string };
+
+// What deadline rules need to know about an item's bucket and its owner
+export async function reminderContext(bucketId: number): Promise<ReminderContext> {
+  const [row] = await db
+    .select({ rules: buckets.notificationsRules, timezone: userSettings.timezone })
+    .from(buckets)
+    .leftJoin(userSettings, eq(userSettings.userId, buckets.userId))
+    .where(eq(buckets.id, bucketId))
+    .limit(1);
+  const rules = parseNotificationRules(row?.rules);
+  return {
+    defaultOffsetMins: rules.defaultOffsetMins,
+    notifyAt: rules.notifyAt,
+    timezone: row?.timezone ?? "UTC",
+  };
 }
 
 // Throws on invalid stored rules

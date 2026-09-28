@@ -36,6 +36,8 @@ export const RecurringConfig = z.object({
   frequency: z.enum(["daily", "weekly", "monthly", "yearly"]),
   interval: z.number().int().positive().default(1),
   endDate: z.iso.date().nullable().default(null),
+  // Day of month a monthly/yearly series was set on, so short months don't shift it
+  anchorDay: z.number().int().min(1).max(31).optional(),
 });
 
 export type NotificationRules = z.infer<typeof NotificationRules>;

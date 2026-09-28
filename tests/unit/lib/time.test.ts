@@ -69,22 +69,15 @@ describe("buildDeadline", () => {
 });
 
 describe("parseDeadlineString", () => {
-  it("parses ISO datetime string", () => {
-    const d = parseDeadlineString("2026-09-27T09:00:00");
-    expect(d.getFullYear()).toBe(2026);
-    expect(d.getMonth()).toBe(8);
-    expect(d.getDate()).toBe(27);
+  it("parses an ISO datetime as is", () => {
+    const d = parseDeadlineString("2026-09-27T09:00:00.000Z", "Asia/Kolkata");
+    expect(d.toISOString()).toBe("2026-09-27T09:00:00.000Z");
   });
 
-  it("parses date-only string and defaults time to noon UTC", () => {
-    const d = parseDeadlineString("2026-09-27");
-    expect(d.getUTCHours()).toBe(12);
-    expect(d.getUTCMinutes()).toBe(0);
-  });
-
-  it("returns a valid Date for ISO string", () => {
-    const d = parseDeadlineString("2026-01-15T14:30:00");
-    expect(d).toBeInstanceOf(Date);
-    expect(isNaN(d.getTime())).toBe(false);
+  it("reads a date without a time as all day: midnight in the user's timezone", () => {
+    expect(parseDeadlineString("2026-09-27", "Asia/Kolkata").toISOString()).toBe(
+      "2026-09-26T18:30:00.000Z"
+    );
+    expect(parseDeadlineString("2026-09-27", "UTC").toISOString()).toBe("2026-09-27T00:00:00.000Z");
   });
 });

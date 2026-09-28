@@ -1,5 +1,3 @@
-"use client";
-
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useScrollLock } from "@/hooks/useScrollLock";
@@ -11,12 +9,12 @@ import type { buckets } from "@/lib/db/schema";
 
 type BucketRow = typeof buckets.$inferSelect;
 
-interface BucketSettingsProps {
+type BucketSettingsProps = {
   open: boolean;
   bucket: BucketRow;
   onClose: () => void;
   initialTab?: SettingsTab;
-}
+};
 
 export function BucketSettings({ open, bucket, onClose, initialTab }: BucketSettingsProps) {
   useScrollLock(open);

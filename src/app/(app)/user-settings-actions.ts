@@ -1,5 +1,6 @@
 "use server";
 
+import type { ActionResult } from "@/types/result";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
@@ -16,6 +17,7 @@ import { sendNtfy } from "@/lib/notifications/ntfy";
 import { sendTelegram } from "@/lib/notifications/telegram";
 import { dismissChannelFailures } from "@/lib/notifications/failures";
 import { createTelegramLinkCode } from "@/lib/notifications/telegram-link";
+import { telegramWebhookSecret } from "@/lib/notifications/telegram-webhook";
 import type { NotificationMedium } from "@/lib/notifications/queue";
 import { isE2ETestMode } from "@/lib/e2e";
 import { errorMessage } from "@/lib/errors";
@@ -52,14 +54,12 @@ type UserSettingsUpdate = {
 };
 
 export async function getUserSettingsAction(): Promise<
-  | {
-      ok: true;
-      settings: typeof userSettings.$inferSelect;
-      userEmail: string;
-      smtpPassSaved: boolean;
-      telegramBotConfigured: boolean;
-    }
-  | { ok: false; error: string }
+  ActionResult<{
+    settings: typeof userSettings.$inferSelect;
+    userEmail: string;
+    smtpPassSaved: boolean;
+    telegramBotConfigured: boolean;
+  }>
 > {
   const session = await getSession();
   if (!session) return { ok: false, error: "Unauthorized" };
@@ -89,9 +89,7 @@ export async function getUserSettingsAction(): Promise<
   };
 }
 
-export async function updateUserSettingsAction(
-  data: UserSettingsUpdate
-): Promise<{ ok: true } | { ok: false; error: string }> {
+export async function updateUserSettingsAction(data: UserSettingsUpdate): Promise<ActionResult> {
   const session = await getSession();
   if (!session) return { ok: false, error: "Unauthorized" };
 
@@ -133,6 +131,7 @@ export async function updateUserSettingsAction(
     })
     .where(eq(userSettings.userId, session.userId));
   await refreshUserReminders(session.userId);
+  revalidatePath("/");
 
   return { ok: true };
 }
@@ -142,9 +141,7 @@ export async function logoutAction() {
   redirect("/login");
 }
 
-export async function setupTelegramAction(): Promise<
-  { ok: true; botUsername: string } | { ok: false; error: string }
-> {
+export async function setupTelegramAction(): Promise<ActionResult<{ botUsername: string }>> {
   const session = await getSession();
   if (!session) return { ok: false, error: "Unauthorized" };
 
@@ -157,14 +154,14 @@ export async function setupTelegramAction(): Promise<
   const proto = h.get("x-forwarded-proto") ?? "http";
   const host = h.get("host") ?? "localhost:3000";
   const appUrl = process.env.APP_URL ?? `${proto}://${host}`;
-  const webhookUrl = `${appUrl}/api/telegram?secret=${encodeURIComponent(botToken)}`;
+  const webhookUrl = `${appUrl}/api/telegram`;
 
   try {
     const [webhookRes, meRes] = await Promise.all([
       fetch(`${TELEGRAM_API_BASE}/bot${botToken}/setWebhook`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: webhookUrl }),
+        body: JSON.stringify({ url: webhookUrl, secret_token: telegramWebhookSecret(botToken) }),
       }),
       fetch(`${TELEGRAM_API_BASE}/bot${botToken}/getMe`),
     ]);
@@ -185,9 +182,7 @@ export async function setupTelegramAction(): Promise<
   }
 }
 
-export async function createTelegramLinkAction(): Promise<
-  { ok: true; url: string } | { ok: false; error: string }
-> {
+export async function createTelegramLinkAction(): Promise<ActionResult<{ url: string }>> {
   const session = await getSession();
   if (!session) return { ok: false, error: "Unauthorized" };
 
@@ -197,9 +192,7 @@ export async function createTelegramLinkAction(): Promise<
   return { ok: true, url: `${TELEGRAM_LINK_BASE}/${setup.botUsername}?start=${code}` };
 }
 
-export async function disconnectTelegramAction(): Promise<
-  { ok: true } | { ok: false; error: string }
-> {
+export async function disconnectTelegramAction(): Promise<ActionResult> {
   const session = await getSession();
   if (!session) return { ok: false, error: "Unauthorized" };
 
@@ -247,7 +240,7 @@ export async function testSmtpAction(config: {
   smtpPass: string | null; // null = use saved encrypted value from DB
   smtpSecure: boolean;
   sendTo: string;
-}): Promise<{ ok: true } | { ok: false; error: string }> {
+}): Promise<ActionResult> {
   const session = await getSession();
   if (!session) return { ok: false, error: "Unauthorized" };
 
@@ -292,7 +285,7 @@ export async function testSmtpAction(config: {
 export async function sendTestNotificationAction(
   channel: "ntfy" | "telegram",
   ntfy?: { url: string; topic: string }
-): Promise<{ ok: true } | { ok: false; error: string }> {
+): Promise<ActionResult> {
   const session = await getSession();
   if (!session) return { ok: false, error: "Unauthorized" };
 

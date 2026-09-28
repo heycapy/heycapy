@@ -1,5 +1,3 @@
-"use client";
-
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState, createElement } from "react";
 import { ArrowUp, Mic } from "lucide-react";
 import { toast } from "sonner";

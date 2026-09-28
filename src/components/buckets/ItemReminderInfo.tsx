@@ -1,5 +1,3 @@
-"use client";
-
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { getItemReminderInfoAction } from "@/app/(app)/actions";
@@ -8,7 +6,7 @@ import type {
   ItemReminderInfo as Info,
   NotificationEvent,
 } from "@/lib/reminders/status";
-import { formatDeadline } from "./ItemRow";
+import { formatShort } from "@/lib/format-date";
 
 const REASONS: Record<NonNullable<Info["reason"]>, string> = {
   completed: "completed",
@@ -34,9 +32,9 @@ const OUTCOMES: Record<ChannelOutcome["outcome"], { text: string; className: str
 };
 
 function statusLine(info: Info): string {
-  if (info.next) return `next ${formatDeadline(info.next)}`;
+  if (info.next) return `next ${formatShort(info.next)}`;
   if (info.reason === "completed" && info.completedAt) {
-    return `completed ${formatDeadline(info.completedAt)}`;
+    return `completed ${formatShort(info.completedAt)}`;
   }
   return info.reason ? REASONS[info.reason] : "";
 }
@@ -52,7 +50,7 @@ function goesTo(info: Info): string | null {
 
 function outcomeText(c: ChannelOutcome): string {
   const base = OUTCOMES[c.outcome].text;
-  const retry = c.retryAt ? ` at ${formatDeadline(c.retryAt)}` : "";
+  const retry = c.retryAt ? ` at ${formatShort(c.retryAt)}` : "";
   return `${base}${retry}${c.error ? ` — ${c.error}` : ""}`;
 }
 
@@ -89,7 +87,7 @@ export function ItemReminderInfo({ itemId }: { itemId: number }) {
             {info.history.map((event, i) => (
               <li key={i}>
                 <p>
-                  {formatDeadline(event.at)} · {event.kind ? KINDS[event.kind] : "notification"}
+                  {formatShort(event.at)} · {event.kind ? KINDS[event.kind] : "notification"}
                 </p>
                 {event.channels.map((c) => (
                   <p

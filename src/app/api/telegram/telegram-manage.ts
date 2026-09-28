@@ -1,9 +1,10 @@
+import { formatWhen } from "@/lib/format-date";
 import {
   editTelegramHtml,
   sendOrEditButtons,
   sendTelegramWithQuickActions,
 } from "@/lib/notifications/telegram";
-import { escapeHtml, formatWhen } from "@/lib/notifications/telegram-message";
+import { escapeHtml } from "@/lib/notifications/telegram-message";
 import type { InlineButton } from "@/lib/notifications/telegram";
 
 export async function showListBucketPicker(
@@ -23,7 +24,7 @@ export async function showListBucketPicker(
   const buttonRows: InlineButton[][] = buckets.map((b) => [
     {
       text: `${b.icon ? b.icon + " " : ""}${b.name}`,
-      callback_data: `lb:${b.id}:${b.name.slice(0, 20)}`,
+      callback_data: `lb:${b.id}`,
     },
   ]);
   buttonRows.push([{ text: "✖ Cancel", callback_data: "cancel" }]);

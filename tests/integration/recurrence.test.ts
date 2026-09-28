@@ -26,6 +26,14 @@ vi.mock("@/lib/auth/session", () => ({ getSession: async () => session }));
 const T0 = new Date("2026-03-10T12:00:00Z");
 const DAY = 24 * HOUR;
 const MONTHLY = JSON.stringify({ enabled: true, frequency: "monthly", interval: 1, endDate: null });
+// The series remembers its day of month once it repeats
+const MONTHLY_ON_13 = JSON.stringify({
+  enabled: true,
+  frequency: "monthly",
+  interval: 1,
+  endDate: null,
+  anchorDay: 13,
+});
 
 beforeEach(() => useSchedulerEnvironment(T0));
 afterEach(() => resetSchedulerEnvironment());
@@ -112,7 +120,7 @@ describe("the next occurrence", () => {
     const [, next] = await bucketItems(bucketId);
     expect(next.title).toBe("pay rent");
     expect(next.notificationOffsetMins).toBe(60);
-    expect(next.recurring).toBe(MONTHLY);
+    expect(next.recurring).toBe(MONTHLY_ON_13);
     expect(next.properties).toBe(JSON.stringify({ amount: 1200 }));
   });
 
@@ -174,7 +182,7 @@ describe("skipping one occurrence", () => {
     expect(all).toHaveLength(1);
     expect(all[0].status).toBe("active");
     expect(all[0].deadline?.toISOString()).toBe("2026-04-13T12:00:00.000Z");
-    expect(all[0].recurring).toBe(MONTHLY);
+    expect(all[0].recurring).toBe(MONTHLY_ON_13);
   });
 
   it("re-arms the reminder for the new date", async () => {

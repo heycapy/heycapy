@@ -1,5 +1,4 @@
-"use client";
-
+import { ITEM_STATUS } from "@/constants";
 import { useState, useTransition } from "react";
 import {
   addItemAction,
@@ -24,13 +23,13 @@ function toLocalDatetimeStr(d: Date): string {
   return `${y}-${mo}-${dy}T${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
 }
 
-interface ItemEditorOptions {
+type ItemEditorOptions = {
   bucketId: number;
   items: Item[];
   defaultStatus: ItemStatus;
   defaultDeadline: () => string;
   onSaved: () => Promise<void>;
-}
+};
 
 export function useItemEditor({
   bucketId,
@@ -155,10 +154,14 @@ export function useItemEditor({
   const editingItem = items.find((i) => i.id === editingItemId);
   const editingRecurring = parseRecurring(editingItem?.recurring ?? null);
   const canSkip =
-    editingItem?.status !== "completed" &&
+    editingItem?.status !== ITEM_STATUS.completed &&
     !!editingItem?.deadline &&
     !!editingRecurring &&
-    nextOccurrenceDate(editingItem.deadline, editingRecurring) !== null;
+    nextOccurrenceDate(
+      editingItem.deadline,
+      editingRecurring,
+      Intl.DateTimeFormat().resolvedOptions().timeZone
+    ) !== null;
 
   return {
     editingItemId,

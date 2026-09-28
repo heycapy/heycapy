@@ -1,16 +1,14 @@
-"use client";
-
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { CalendarDays, ChevronLeft, ChevronRight, X } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 
-interface DatePickerProps {
+type DatePickerProps = {
   value: string;
   onChange: (value: string) => void;
   disabled?: boolean;
-}
+};
 
 const MONTHS = [
   "January",

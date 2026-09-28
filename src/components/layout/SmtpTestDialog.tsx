@@ -1,11 +1,9 @@
-"use client";
-
 import { useState, useTransition } from "react";
 import { cn } from "@/lib/utils";
 import { INPUT, LABEL } from "./settings-constants";
 import { testSmtpAction } from "@/app/(app)/actions";
 
-interface SmtpTestDialogProps {
+type SmtpTestDialogProps = {
   open: boolean;
   onClose: () => void;
   from: string;
@@ -15,7 +13,7 @@ interface SmtpTestDialogProps {
   smtpUser: string;
   smtpPass: string | null;
   smtpSecure: boolean;
-}
+};
 
 export function SmtpTestDialog({
   open,

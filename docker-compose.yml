@@ -4,7 +4,7 @@ services:
     restart: unless-stopped
     environment:
       - NODE_ENV=production
-      - DATABASE_PATH=/data/heycapy.db
+      - DATABASE_URL=file:/data/heycapy.db
       - JWT_SECRET=${JWT_SECRET}
       - ENCRYPTION_KEY=${ENCRYPTION_KEY}
       - RESEND_API_KEY=${RESEND_API_KEY}

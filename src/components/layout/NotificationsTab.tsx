@@ -1,5 +1,3 @@
-"use client";
-
 import { useState } from "react";
 import { Toggle } from "@/components/ui/Toggle";
 import { LABEL, INPUT, SECTION, BOX } from "./settings-constants";
@@ -7,7 +5,7 @@ import { NtfySettings } from "./NtfySettings";
 import { TelegramSettings } from "./TelegramSettings";
 import { SmtpTestDialog } from "./SmtpTestDialog";
 
-interface NotificationsTabProps {
+type NotificationsTabProps = {
   notificationsEmail: boolean;
   setNotificationsEmail: (v: boolean) => void;
   notificationEmailTo: string;
@@ -37,7 +35,7 @@ interface NotificationsTabProps {
   onRecheckTelegram: () => Promise<void>;
   telegramActionPending: boolean;
   pending: boolean;
-}
+};
 
 export function NotificationsTab({
   notificationsEmail,

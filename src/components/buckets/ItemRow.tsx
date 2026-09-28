@@ -1,5 +1,5 @@
-"use client";
-
+import { formatShort } from "@/lib/format-date";
+import { ITEM_STATUS } from "@/constants";
 import { useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Bell, BellOff, GripVertical, TriangleAlert } from "lucide-react";
@@ -12,7 +12,7 @@ import { ReminderInfoDialog } from "./ReminderInfoDialog";
 
 type ItemRow = typeof items.$inferSelect;
 
-interface ItemRowProps {
+type ItemRowProps = {
   item: ItemRow;
   statuses: StatusDef[];
   fields?: FieldDef[];
@@ -21,7 +21,7 @@ interface ItemRowProps {
   onEditStart?: () => void;
   onStatusChange?: (status: string) => void;
   reminderBadge?: ReminderBadge;
-}
+};
 
 function StatusPicker({
   current,
@@ -68,8 +68,6 @@ function StatusPicker({
   );
 }
 
-const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-
 function getRecurringFrequency(raw: string | null): string | null {
   if (!raw) return null;
   try {
@@ -80,25 +78,14 @@ function getRecurringFrequency(raw: string | null): string | null {
   }
 }
 
-export function formatDeadline(d: Date): string {
-  const date = `${MONTHS[d.getMonth()]} ${d.getDate()}`;
-  const hasTime = d.getHours() !== 0 || d.getMinutes() !== 0;
-  if (!hasTime) return date;
-  const h = d.getHours();
-  const m = d.getMinutes();
-  const ampm = h >= 12 ? "pm" : "am";
-  const hour = h % 12 === 0 ? 12 : h % 12;
-  const min = m > 0 ? `:${String(m).padStart(2, "0")}` : "";
-  return `${date} ${hour}${min}${ampm}`;
-}
-
 function relativeTime(deadline: Date): string {
   const now = new Date();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const deadlineDay = new Date(deadline.getFullYear(), deadline.getMonth(), deadline.getDate());
   const diffDays = Math.round((deadlineDay.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
   if (diffDays < 0) return "overdue";
-  if (diffDays === 0) return deadline < now ? "overdue" : "today";
+  const allDay = deadline.getHours() === 0 && deadline.getMinutes() === 0;
+  if (diffDays === 0) return !allDay && deadline < now ? "overdue" : "today";
   return `${diffDays}d`;
 }
 
@@ -152,7 +139,7 @@ function reminderLabel(badge: ReminderBadge, next: Date | null): string {
   if (badge === "failed") return "reminder failed";
   if (badge === "noChannel") return "no reminder";
   if (badge === "history") return "reminder history";
-  return next ? `reminder ${formatDeadline(next)}` : "reminder";
+  return next ? `reminder ${formatShort(next)}` : "reminder";
 }
 
 export function ItemRow({
@@ -170,7 +157,7 @@ export function ItemRow({
   const ReminderIcon = reminderBadge ? REMINDER_ICON[reminderBadge].Icon : null;
   const dotRef = useRef<HTMLButtonElement>(null);
   const rel = item.deadline ? relativeTime(item.deadline) : null;
-  const isCompleted = item.status === "completed";
+  const isCompleted = item.status === ITEM_STATUS.completed;
   const recurringFreq = getRecurringFrequency(item.recurring);
   const dotColor = statuses.find((s) => s.name === item.status)?.color ?? "var(--muted-foreground)";
   const badges = fields ? getShowInRowBadges(fields, item.properties) : [];
@@ -270,7 +257,7 @@ export function ItemRow({
                   )}
                 >
                   {recurringFreq ? "next " : ""}
-                  {formatDeadline(item.deadline)}
+                  {formatShort(item.deadline)}
                   {rel === "today" ? " · today" : rel === "overdue" ? " · overdue" : ""}
                 </span>
               )}

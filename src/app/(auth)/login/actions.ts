@@ -1,5 +1,6 @@
 "use server";
 
+import type { ActionResult } from "@/types/result";
 import { Resend } from "resend";
 import { z } from "zod";
 import { createOtp, verifyOtp } from "@/lib/auth/otp";
@@ -12,8 +13,8 @@ import { eq } from "drizzle-orm";
 import { seed } from "@/lib/db/seed";
 import { isE2ETestMode } from "@/lib/e2e";
 
-type SendOtpResult = { ok: true; devCode?: string } | { ok: false; error: string };
-type VerifyOtpResult = { ok: true } | { ok: false; error: string };
+type SendOtpResult = ActionResult<{ devCode?: string }>;
+type VerifyOtpResult = ActionResult;
 
 const OTP_SEND_MAX = 3;
 const OTP_SEND_WINDOW_MS = 5 * 60 * 1000;

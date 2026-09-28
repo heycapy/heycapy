@@ -83,10 +83,15 @@ caddy handles HTTPS automatically. data lives in a docker volume at `/data/heyca
 | `ENCRYPTION_KEY` | yes | `openssl rand -hex 32` |
 | `RESEND_API_KEY` | yes | resend.com api key — used for OTP login emails |
 | `EMAIL_FROM` | yes | must match a verified domain in resend (e.g. `HeyCapy <noreply@yourdomain.com>`) |
-| `TELEGRAM_BOT_TOKEN` | no | telegram bot token — only needed if you want telegram |
+| `DATABASE_URL` | yes in production | sqlite file, e.g. `file:/data/heycapy.db` — must be on persistent storage (the docker volume / fly mount); the app refuses to start in production without it |
+| `TELEGRAM_BOT_TOKEN` | no | telegram bot token — only needed if you want telegram. use a separate bot for local development, never the production one |
 | `APP_URL` | no | your app's public url — required for telegram webhooks to work |
 
 everything else (ntfy, ai provider, smtp, notifications) is configured per-user inside the app.
+
+### backups
+
+every night at 03:40 (server time) the app copies the database to a `backups/` folder next to it (e.g. `/data/backups/heycapy-2026-09-28.db`) and keeps the last 7. to restore, stop the app and copy a backup over the database file. copy the folder off the server too — a backup on the same disk won't survive losing that disk.
 
 ---
 

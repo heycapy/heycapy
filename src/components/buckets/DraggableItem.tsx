@@ -1,5 +1,3 @@
-"use client";
-
 import type { RefObject } from "react";
 import { Reorder, useDragControls } from "framer-motion";
 import { ItemRow } from "./ItemRow";
@@ -11,7 +9,7 @@ import type { StatusDef, FieldDef } from "@/types/rules";
 
 type Item = typeof items.$inferSelect;
 
-interface DraggableItemProps {
+type DraggableItemProps = {
   item: Item;
   statuses: StatusDef[];
   fields: FieldDef[];
@@ -21,7 +19,7 @@ interface DraggableItemProps {
   onStatusChange?: (status: string) => void;
   onDelete?: () => void;
   reminderBadge?: ReminderBadge;
-}
+};
 
 export function DraggableItem({
   item,

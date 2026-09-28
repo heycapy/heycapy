@@ -1,5 +1,3 @@
-"use client";
-
 import type { RefObject } from "react";
 import { Reorder } from "framer-motion";
 import { ItemRow } from "./ItemRow";
@@ -11,7 +9,7 @@ import type { StatusDef, FieldDef } from "@/types/rules";
 
 type Item = typeof items.$inferSelect;
 
-interface ItemListProps {
+type ItemListProps = {
   loading: boolean;
   items: Item[];
   orderedItemsRef: RefObject<Item[]>;
@@ -25,7 +23,7 @@ interface ItemListProps {
   onEdit: (item: Item) => void;
   onStatusChange: (item: Item, status: string) => void;
   onDelete: (itemId: number) => void;
-}
+};
 
 export function ItemList({
   loading,

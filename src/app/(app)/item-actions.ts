@@ -1,16 +1,19 @@
 "use server";
 
+import type { ActionResult } from "@/types/result";
+import { parseItemsRules } from "@/lib/rules";
 import { revalidatePath } from "next/cache";
 import { and, asc, eq, isNull, sql } from "drizzle-orm";
 import { requireSession } from "./action-helpers";
 import { db } from "@/lib/db";
 import { items } from "@/lib/db/schema";
-import { ITEM_TITLE_MAX_LENGTH } from "@/constants";
+import { ITEM_STATUS, ITEM_TITLE_MAX_LENGTH } from "@/constants";
 import type { RecurringConfig } from "@/types/rules";
 import { parseDeadlineString } from "@/lib/time";
 import { initialReminderState, reminderResetForDeadline } from "@/lib/items/reminders";
-import { bucketDefaultOffsetMins, refreshItemReminders } from "@/lib/reminders/refresh";
+import { refreshItemReminders, reminderContext } from "@/lib/reminders/refresh";
 import { createNextOccurrence, skipOccurrence } from "@/lib/items/recurrence";
+import { parseRecurring } from "@/lib/items/occurrence";
 import {
   getItemReminderInfo,
   getReminderBadges,
@@ -19,12 +22,10 @@ import {
 } from "@/lib/reminders/status";
 
 export async function getItemsForBucketAction(bucketId: number): Promise<
-  | {
-      ok: true;
-      items: (typeof items.$inferSelect)[];
-      reminderBadges: Record<number, ReminderBadge>;
-    }
-  | { ok: false; error: string }
+  ActionResult<{
+    items: (typeof items.$inferSelect)[];
+    reminderBadges: Record<number, ReminderBadge>;
+  }>
 > {
   const session = await requireSession();
 
@@ -33,15 +34,7 @@ export async function getItemsForBucketAction(bucketId: number): Promise<
   });
   if (!bucket) return { ok: false, error: "Bucket not found" };
 
-  let sortBy = "manual";
-  try {
-    const parsed = JSON.parse(bucket.itemsRules) as { sortBy?: string; sort_by?: string };
-    sortBy = parsed.sortBy ?? parsed.sort_by ?? "manual";
-  } catch (err) {
-    process.stderr.write(
-      `[actions] bucket ${bucketId} has malformed itemsRules: ${err instanceof Error ? err.message : String(err)}\n`
-    );
-  }
+  const sortBy = parseItemsRules(bucket.itemsRules).sortBy ?? "manual";
 
   const condition = and(
     eq(items.bucketId, bucketId),
@@ -89,7 +82,7 @@ export async function addItemAction(
   status?: string,
   recurring?: RecurringConfig | null,
   properties?: Record<string, unknown> | null
-): Promise<{ ok: true } | { ok: false; error: string }> {
+): Promise<ActionResult> {
   const session = await requireSession();
 
   const trimmed = title.trim();
@@ -106,7 +99,8 @@ export async function addItemAction(
     .from(items)
     .where(eq(items.bucketId, bucketId));
 
-  const parsedDeadline = deadline ? parseDeadlineString(deadline) : null;
+  const ctx = await reminderContext(bucketId);
+  const parsedDeadline = deadline ? parseDeadlineString(deadline, ctx.timezone) : null;
   const [created] = await db
     .insert(items)
     .values({
@@ -114,8 +108,8 @@ export async function addItemAction(
       userId: session.userId,
       title: trimmed,
       deadline: parsedDeadline,
-      ...initialReminderState(parsedDeadline),
-      status: status ?? "active",
+      ...initialReminderState(parsedDeadline, ctx.timezone),
+      status: status ?? ITEM_STATUS.active,
       sortOrder: maxRow.max + 1,
       recurring: recurring?.enabled ? JSON.stringify(recurring) : null,
       properties: properties ? JSON.stringify(properties) : null,
@@ -127,6 +121,14 @@ export async function addItemAction(
   return { ok: true };
 }
 
+// The editor doesn't know the series anchor; keep it while the frequency stays the same
+function keepAnchor(config: RecurringConfig, saved: string | null): RecurringConfig {
+  const previous = parseRecurring(saved);
+  return previous?.frequency === config.frequency && previous.anchorDay
+    ? { ...config, anchorDay: previous.anchorDay }
+    : config;
+}
+
 export async function updateItemAction(
   itemId: number,
   title: string,
@@ -134,7 +136,7 @@ export async function updateItemAction(
   status?: string,
   recurring?: RecurringConfig | null,
   properties?: Record<string, unknown> | null
-): Promise<{ ok: true } | { ok: false; error: string }> {
+): Promise<ActionResult> {
   const session = await requireSession();
 
   const trimmed = title.trim();
@@ -146,23 +148,28 @@ export async function updateItemAction(
   });
   if (!item) return { ok: false, error: "Item not found" };
 
-  const newDeadline = deadline ? parseDeadlineString(deadline) : null;
+  const ctx = await reminderContext(item.bucketId);
+  const newDeadline = deadline ? parseDeadlineString(deadline, ctx.timezone) : null;
   const statusChanged = status !== undefined && status !== item.status;
 
-  const nowCompleted = statusChanged && status === "completed" && item.status !== "completed";
-  const nowUncompleted = statusChanged && status !== "completed" && item.status === "completed";
+  const nowCompleted =
+    statusChanged && status === ITEM_STATUS.completed && item.status !== ITEM_STATUS.completed;
+  const nowUncompleted =
+    statusChanged && status !== ITEM_STATUS.completed && item.status === ITEM_STATUS.completed;
 
   await db
     .update(items)
     .set({
       title: trimmed,
       deadline: newDeadline,
-      ...reminderResetForDeadline(item, newDeadline, await bucketDefaultOffsetMins(item.bucketId)),
+      ...reminderResetForDeadline(item, newDeadline, ctx),
       ...(status !== undefined && { status }),
       ...(nowCompleted && { completedAt: new Date() }),
       ...(nowUncompleted && { completedAt: null }),
       ...(recurring !== undefined && {
-        recurring: recurring?.enabled ? JSON.stringify(recurring) : null,
+        recurring: recurring?.enabled
+          ? JSON.stringify(keepAnchor(recurring, item.recurring))
+          : null,
       }),
       ...(properties !== undefined && {
         properties: properties ? JSON.stringify(properties) : null,
@@ -177,18 +184,14 @@ export async function updateItemAction(
   return { ok: true };
 }
 
-export async function skipOccurrenceAction(
-  itemId: number
-): Promise<{ ok: true } | { ok: false; error: string }> {
+export async function skipOccurrenceAction(itemId: number): Promise<ActionResult> {
   const session = await requireSession();
   const result = await skipOccurrence(session.userId, itemId);
   if (result.ok) revalidatePath("/");
   return result;
 }
 
-export async function completeItemAction(
-  itemId: number
-): Promise<{ ok: true } | { ok: false; error: string }> {
+export async function completeItemAction(itemId: number): Promise<ActionResult> {
   const session = await requireSession();
 
   const item = await db.query.items.findFirst({
@@ -196,18 +199,19 @@ export async function completeItemAction(
   });
   if (!item) return { ok: false, error: "Item not found" };
 
-  const newStatus = item.status === "completed" ? "active" : "completed";
+  const newStatus =
+    item.status === ITEM_STATUS.completed ? ITEM_STATUS.active : ITEM_STATUS.completed;
   await db
     .update(items)
     .set({
       status: newStatus,
-      completedAt: newStatus === "completed" ? new Date() : null,
-      ...(newStatus === "active" && { overdueNotifiedAt: null }),
+      completedAt: newStatus === ITEM_STATUS.completed ? new Date() : null,
+      ...(newStatus === ITEM_STATUS.active && { overdueNotifiedAt: null }),
       updatedAt: new Date(),
     })
     .where(and(eq(items.id, itemId), eq(items.userId, session.userId)));
   await refreshItemReminders([itemId]);
-  if (newStatus === "completed") await createNextOccurrence(itemId);
+  if (newStatus === ITEM_STATUS.completed) await createNextOccurrence(itemId);
 
   revalidatePath("/");
   return { ok: true };
@@ -216,7 +220,7 @@ export async function completeItemAction(
 export async function reorderItemsAction(
   bucketId: number,
   orderedIds: number[]
-): Promise<{ ok: true } | { ok: false; error: string }> {
+): Promise<ActionResult> {
   const session = await requireSession();
 
   const bucket = await db.query.buckets.findFirst({
@@ -237,9 +241,7 @@ export async function reorderItemsAction(
   return { ok: true };
 }
 
-export async function deleteItemAction(
-  itemId: number
-): Promise<{ ok: true } | { ok: false; error: string }> {
+export async function deleteItemAction(itemId: number): Promise<ActionResult> {
   const session = await requireSession();
 
   const item = await db.query.items.findFirst({

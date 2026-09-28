@@ -1,3 +1,4 @@
+import { ITEM_STATUS } from "@/constants";
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { items } from "@/lib/db/schema";
@@ -41,7 +42,7 @@ export async function handleReminderAction(
   const item = found && !found.deletedAt ? found : null;
   let html: string;
   if (!item) html = GONE;
-  else if (item.status === "completed") html = itemDoneHtml(item.title, true);
+  else if (item.status === ITEM_STATUS.completed) html = itemDoneHtml(item.title, true);
   else if (prefix === "qc") {
     await completeItemById(ctx.userId, itemId);
     html = itemDoneHtml(item.title, false);

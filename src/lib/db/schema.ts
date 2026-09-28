@@ -1,3 +1,4 @@
+import { ITEM_STATUS } from "@/constants";
 import { index, integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
 import { sql } from "drizzle-orm";
 import type { BucketSchema } from "@/types/rules";
@@ -161,7 +162,7 @@ export const items = sqliteTable(
     title: text("title").notNull(),
     description: text("description"),
     deadline: integer("deadline", { mode: "timestamp" }),
-    status: text("status").notNull().default("active"),
+    status: text("status").notNull().default(ITEM_STATUS.active),
     properties: text("properties"),
     externalId: text("external_id"),
     externalUrl: text("external_url"),

@@ -1,5 +1,4 @@
-"use client";
-
+import { formatSlot } from "@/lib/format-date";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { TELEGRAM_ALIAS_MAX_LENGTH } from "@/constants";
@@ -15,11 +14,11 @@ import type {
   TelegramRecurringDefault,
 } from "./constants";
 
-interface TelegramConfigPanelProps {
+type TelegramConfigPanelProps = {
   config: TelegramBotConfig;
   onChange: (config: TelegramBotConfig) => void;
   disabled?: boolean;
-}
+};
 
 const STANDARD_SLOT_VALUES = new Set(TELEGRAM_TIME_SLOT_OPTIONS.map((o) => o.value));
 
@@ -42,15 +41,6 @@ function parseCustomTimeToHHMM(input: string): string | null {
       return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
   }
   return null;
-}
-
-function formatSlotLabel(hhmm: string): string {
-  const [hStr, mStr] = hhmm.split(":");
-  const h = parseInt(hStr ?? "0");
-  const m = parseInt(mStr ?? "0");
-  const period = h < 12 ? "am" : "pm";
-  const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
-  return m === 0 ? `${h12}${period}` : `${h12}:${String(m).padStart(2, "0")}${period}`;
 }
 
 export function TelegramConfigPanel({ config, onChange, disabled }: TelegramConfigPanelProps) {
@@ -200,10 +190,10 @@ export function TelegramConfigPanel({ config, onChange, disabled }: TelegramConf
                 key={hhmm}
                 className="bg-foreground text-background border-foreground flex items-center gap-1 border px-2 py-0.5 font-mono text-[10px]"
               >
-                {formatSlotLabel(hhmm)}
+                {formatSlot(hhmm)}
                 <button
                   onClick={() => removeSlot(hhmm)}
-                  aria-label={`remove ${formatSlotLabel(hhmm)}`}
+                  aria-label={`remove ${formatSlot(hhmm)}`}
                   disabled={disabled || config.timeSlots.length === 1}
                   className="leading-none opacity-60 transition-opacity hover:opacity-100 disabled:cursor-not-allowed"
                 >

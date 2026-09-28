@@ -1,8 +1,11 @@
+import { mkdirSync } from "node:fs";
 import { defineConfig, devices } from "@playwright/test";
 
 // Not 3000, so tests can run alongside `pnpm dev`
 const E2E_PORT = 3100;
 const BASE_URL = `http://localhost:${E2E_PORT}`;
+// The server gets its own database, separate from dev; the build step keeps the default
+mkdirSync(".e2e", { recursive: true });
 
 export default defineConfig({
   testDir: "./tests/e2e",
@@ -45,7 +48,7 @@ export default defineConfig({
   ],
   webServer: {
     command:
-      "pnpm build && cp -r public .next/standalone/ && cp -r .next/static .next/standalone/.next/ && cp -r src/lib/db/migrations .next/standalone/migrations && node .next/standalone/server.js",
+      "pnpm build && cp -r public .next/standalone/ && cp -r .next/static .next/standalone/.next/ && cp -r src/lib/db/migrations .next/standalone/migrations && DATABASE_URL=file:$PWD/.e2e/heycapy.db node .next/standalone/server.js",
     url: BASE_URL,
     // Dummy keys override .env: channels count as configured, and nothing reaches real services
     env: {

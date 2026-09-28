@@ -1,5 +1,3 @@
-"use client";
-
 import { Toggle } from "@/components/ui/Toggle";
 import { OptionButton } from "@/components/ui/OptionButton";
 import { OptionGroup } from "@/components/ui/OptionGroup";
@@ -32,7 +30,7 @@ const OVERDUE_FIRST_ALERT_OPTIONS = [
 
 export type NotifAvailability = { email: boolean; ntfy: boolean; telegram: boolean };
 
-interface BucketRulesPanelProps {
+type BucketRulesPanelProps = {
   activeTab: "items" | "notifications";
   disabled?: boolean;
   sortBy: SortBy;
@@ -62,7 +60,7 @@ interface BucketRulesPanelProps {
   onOverdueRepeatHoursChange: (v: number | undefined) => void;
   onOverdueFirstAlertMinsChange: (v: number) => void;
   notifAvailability?: NotifAvailability;
-}
+};
 
 export function BucketRulesPanel({
   activeTab,

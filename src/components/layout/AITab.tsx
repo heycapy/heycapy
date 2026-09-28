@@ -1,5 +1,3 @@
-"use client";
-
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { charCountColor } from "@/components/ui/input";
@@ -21,7 +19,7 @@ import {
   AI_MODEL_MAX_LENGTH,
 } from "@/constants";
 
-interface AITabProps {
+type AITabProps = {
   aiProvider: AIProvider;
   setAiProvider: (v: AIProvider) => void;
   aiApiKey: string;
@@ -41,7 +39,7 @@ interface AITabProps {
   transcriptionModel: string;
   setTranscriptionModel: (v: string) => void;
   pending: boolean;
-}
+};
 
 export function AITab({
   aiProvider,

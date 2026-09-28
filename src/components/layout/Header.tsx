@@ -1,5 +1,3 @@
-"use client";
-
 import { useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Archive, LogOut, SlidersHorizontal, Trash2 } from "lucide-react";
@@ -7,12 +5,12 @@ import { BracketButton } from "@/components/ui/BracketButton";
 import { logoutAction } from "@/app/(app)/actions";
 import { useScrollLock } from "@/hooks/useScrollLock";
 
-interface HeaderProps {
+type HeaderProps = {
   email: string;
   onSettingsOpen: () => void;
   onArchiveOpen: () => void;
   onTrashOpen: () => void;
-}
+};
 
 function getGreeting() {
   const h = new Date().getHours();

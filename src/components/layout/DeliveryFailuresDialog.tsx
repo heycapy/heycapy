@@ -1,16 +1,14 @@
-"use client";
-
 import { createPortal } from "react-dom";
 import { motion } from "framer-motion";
 import { BracketButton } from "@/components/ui/BracketButton";
-import { formatDeadline } from "@/components/buckets/ItemRow";
+import { formatShort } from "@/lib/format-date";
 import { useScrollLock } from "@/hooks/useScrollLock";
 import type { ChannelFailure } from "@/lib/notifications/failures";
 
-interface DeliveryFailuresDialogProps {
+type DeliveryFailuresDialogProps = {
   failure: ChannelFailure;
   onClose: () => void;
-}
+};
 
 export function DeliveryFailuresDialog({ failure, onClose }: DeliveryFailuresDialogProps) {
   useScrollLock(true);
@@ -44,7 +42,7 @@ export function DeliveryFailuresDialog({ failure, onClose }: DeliveryFailuresDia
                 <span className="text-foreground truncate">{delivery.title}</span>
                 <span className="text-muted-foreground">
                   {delivery.bucketName && `${delivery.bucketName} · `}
-                  {formatDeadline(delivery.at)}
+                  {formatShort(delivery.at)}
                 </span>
                 {delivery.error && (
                   <span className="text-destructive break-words">{delivery.error}</span>

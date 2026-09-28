@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { type FormEvent } from "react";
+import { type SubmitEvent } from "react";
 import { useRouter } from "next/navigation";
 import { motion, type Transition } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -41,12 +41,6 @@ export default function LoginPage() {
     countdownRef.current = id;
   }
 
-  function applyDevCode(dc?: string) {
-    // eslint-disable-next-line no-console
-    if (dc) console.log(`[dev] OTP: ${dc}`);
-    setDevCode(dc ?? "");
-  }
-
   function handleCopyDevCode() {
     if (!devCode) return;
     void navigator.clipboard.writeText(devCode).then(() => {
@@ -55,7 +49,7 @@ export default function LoginPage() {
     });
   }
 
-  async function handleSendOtp(e: FormEvent<HTMLFormElement>) {
+  async function handleSendOtp(e: SubmitEvent<HTMLFormElement>) {
     e.preventDefault();
     setError("");
     setLoading(true);
@@ -65,7 +59,7 @@ export default function LoginPage() {
       setError(result.error);
       return;
     }
-    applyDevCode(result.devCode);
+    setDevCode(result.devCode ?? "");
     setStep("otp");
     startResendCountdown();
   }
@@ -80,11 +74,11 @@ export default function LoginPage() {
       setError(result.error);
       return;
     }
-    applyDevCode(result.devCode);
+    setDevCode(result.devCode ?? "");
     startResendCountdown();
   }
 
-  async function handleVerifyOtp(e: FormEvent<HTMLFormElement>) {
+  async function handleVerifyOtp(e: SubmitEvent<HTMLFormElement>) {
     e.preventDefault();
     setError("");
     setLoading(true);

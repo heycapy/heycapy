@@ -1,5 +1,3 @@
-"use client";
-
 import { useRef, useEffect, useState } from "react";
 import { ChevronUp, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -11,14 +9,14 @@ const AMPMS = ["am", "pm"] as const;
 
 export type Ampm = "am" | "pm";
 
-interface ColumnProps<T extends string> {
+type ColumnProps<T extends string> = {
   items: readonly T[];
   value: T;
   onChange: (v: T) => void;
   disabled?: boolean;
   width: number;
   normalize?: (raw: string) => T | null;
-}
+};
 
 function ScrollColumn<T extends string>({
   items,
@@ -277,7 +275,7 @@ function normalizeAmpm(raw: string): Ampm | null {
   return null;
 }
 
-interface TimeScrollPickerProps {
+type TimeScrollPickerProps = {
   hour: string;
   min: string;
   ampm: Ampm;
@@ -285,7 +283,7 @@ interface TimeScrollPickerProps {
   onMinChange: (m: string) => void;
   onAmpmChange: (a: Ampm) => void;
   disabled?: boolean;
-}
+};
 
 export function TimeScrollPicker({
   hour,

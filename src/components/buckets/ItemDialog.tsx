@@ -1,5 +1,3 @@
-"use client";
-
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Trash2, X } from "lucide-react";
@@ -25,7 +23,7 @@ function isEmpty(value: unknown): boolean {
   return false;
 }
 
-interface ItemDialogProps {
+type ItemDialogProps = {
   open: boolean;
   mode: "add" | "edit";
   title: string;
@@ -46,7 +44,7 @@ interface ItemDialogProps {
   onCancel: () => void;
   onDelete?: () => void;
   onSkip?: () => void;
-}
+};
 
 export function ItemDialog({
   open,

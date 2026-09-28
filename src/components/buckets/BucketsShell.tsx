@@ -14,9 +14,9 @@ import type { buckets } from "@/lib/db/schema";
 
 type BucketRow = typeof buckets.$inferSelect;
 
-interface BucketsShellProps {
+type BucketsShellProps = {
   buckets: BucketRow[];
-}
+};
 
 function MobileBucketPicker({
   buckets,

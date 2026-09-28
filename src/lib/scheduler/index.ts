@@ -1,6 +1,7 @@
+import { formatWhen } from "@/lib/format-date";
 import { schedule } from "node-cron";
 import { asc, eq, lte } from "drizzle-orm";
-import { db } from "@/lib/db";
+import { backupDatabase, db } from "@/lib/db";
 import { items, buckets, users, userSettings } from "@/lib/db/schema";
 import { APP_NAME } from "@/constants";
 import { errorMessage } from "@/lib/errors";
@@ -83,17 +84,6 @@ async function generateNotificationText(
   }
 }
 
-function formatDeadline(deadline: Date, timezone: string): string {
-  return new Intl.DateTimeFormat("en-US", {
-    timeZone: timezone,
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  }).format(deadline);
-}
-
 const shortTitle = (title: string) => (title.length > 60 ? `${title.slice(0, 60)}…` : title);
 
 const dueRowFields = {
@@ -169,7 +159,7 @@ async function sendDeadlineReminder(row: DueRow, now: Date): Promise<void> {
 
   const channels = channelDecisions(inputs.rules.medium, row);
   const sending = channels.some((c) => c.state === "send");
-  const deadlineStr = formatDeadline(deadline, inputs.timezone);
+  const deadlineStr = formatWhen(deadline, now, inputs.timezone);
   const message =
     sending && row.aiNotifyMessages
       ? await generateNotificationText(row.item.title, deadlineStr, row)
@@ -210,7 +200,7 @@ async function sendOverdueAlert(row: DueRow, now: Date): Promise<void> {
     itemId: row.item.id,
     kind: "overdue",
     title: `[${APP_NAME}] Overdue: ${shortTitle(row.item.title)}`,
-    message: `overdue — was due ${formatDeadline(deadline, inputs.timezone)}`,
+    message: `overdue — was due ${formatWhen(deadline, now, inputs.timezone)}`,
     channels: channelDecisions(inputs.rules.medium, row),
   });
 
@@ -248,6 +238,12 @@ async function reconcileReminders(): Promise<void> {
   });
 }
 
+async function runBackup(): Promise<void> {
+  await backupDatabase().catch((err) => {
+    process.stderr.write(`[scheduler] backup failed: ${errorMessage(err)}\n`);
+  });
+}
+
 export function startScheduler(): void {
   if (started) return;
   started = true;
@@ -256,5 +252,6 @@ export function startScheduler(): void {
   void reconcileReminders().then(() => {
     schedule("* * * * *", () => void runNotifications(), { noOverlap: true });
     schedule("17 * * * *", () => void reconcileReminders(), { noOverlap: true });
+    schedule("40 3 * * *", () => void runBackup(), { noOverlap: true });
   });
 }

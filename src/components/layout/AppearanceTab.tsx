@@ -1,17 +1,15 @@
-"use client";
-
 import { cn } from "@/lib/utils";
 import { charCountColor } from "@/components/ui/input";
 import { LABEL, INPUT, THEMES } from "./settings-constants";
 import { TIMEZONE_MAX_LENGTH } from "@/constants";
 
-interface AppearanceTabProps {
+type AppearanceTabProps = {
   theme: string | undefined;
   setTheme: (t: string) => void;
   timezone: string;
   setTimezone: (v: string) => void;
   pending: boolean;
-}
+};
 
 export function AppearanceTab({
   theme,

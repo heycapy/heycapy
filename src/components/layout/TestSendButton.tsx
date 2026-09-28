@@ -1,14 +1,13 @@
-"use client";
-
+import type { ActionResult } from "@/types/result";
 import { useState, useTransition } from "react";
 
-interface TestSendButtonProps {
-  onSend: () => Promise<{ ok: true } | { ok: false; error: string }>;
+type TestSendButtonProps = {
+  onSend: () => Promise<ActionResult>;
   disabled?: boolean;
-}
+};
 
 export function TestSendButton({ onSend, disabled }: TestSendButtonProps) {
-  const [result, setResult] = useState<{ ok: true } | { ok: false; error: string } | null>(null);
+  const [result, setResult] = useState<ActionResult | null>(null);
   const [pending, startTransition] = useTransition();
 
   function handleClick() {

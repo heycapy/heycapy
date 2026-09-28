@@ -1,16 +1,14 @@
-"use client";
-
 import { createPortal } from "react-dom";
 import { motion } from "framer-motion";
 import { BracketButton } from "@/components/ui/BracketButton";
 import { useScrollLock } from "@/hooks/useScrollLock";
 import { ItemReminderInfo } from "./ItemReminderInfo";
 
-interface ReminderInfoDialogProps {
+type ReminderInfoDialogProps = {
   itemId: number;
   title: string;
   onClose: () => void;
-}
+};
 
 // Portalled: rows sit inside transformed containers, which break `position: fixed`
 export function ReminderInfoDialog({ itemId, title, onClose }: ReminderInfoDialogProps) {

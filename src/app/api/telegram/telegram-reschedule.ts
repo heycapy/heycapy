@@ -1,3 +1,5 @@
+import { formatSlot, formatWhen } from "@/lib/format-date";
+import { ITEM_STATUS } from "@/constants";
 import { and, eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { buckets, items } from "@/lib/db/schema";
@@ -10,13 +12,16 @@ import {
   type InlineButton,
 } from "@/lib/notifications/telegram";
 import { escapeHtml, itemAlertHtml, itemMovedHtml } from "@/lib/notifications/telegram-message";
-import { addLocalDays, toLocal } from "@/lib/reminders/zoned";
 import {
-  applyTimeToDate,
-  formatSlot,
+  addLocalDays,
+  endOfMonthDateString,
+  localDateString,
+  localDateTimeToDate,
+  localDateToDate,
+  toLocal,
+} from "@/lib/reminders/zoned";
+import {
   getBucketTelegramConfig,
-  getEndOfMonthDateStr,
-  getLocalDateStr,
   parseTimeStringExtended,
   setFlowState,
   updateItemDeadline,
@@ -52,7 +57,7 @@ async function loadItem(ctx: Ctx, itemId: number): Promise<Item | null> {
     .innerJoin(buckets, eq(buckets.id, items.bucketId))
     .where(and(eq(items.id, itemId), eq(items.userId, ctx.userId)))
     .limit(1);
-  return row && !row.deletedAt && row.status !== "completed" ? row : null;
+  return row && !row.deletedAt && row.status !== ITEM_STATUS.completed ? row : null;
 }
 
 function heading(item: Item, now: Date, timezone: string): string {
@@ -74,19 +79,6 @@ function pairs(buttons: InlineButton[], size: number): InlineButton[][] {
   const rows: InlineButton[][] = [];
   for (let i = 0; i < buttons.length; i += size) rows.push(buttons.slice(i, i + size));
   return rows;
-}
-
-function dayLabel(date: string, now: Date, timezone: string): string {
-  const today = getLocalDateStr(now, timezone);
-  if (date === today) return "today";
-  if (date === getLocalDateStr(addLocalDays(now, 1, timezone), timezone)) return "tomorrow";
-  const [y, m, d] = date.split("-").map(Number);
-  return new Intl.DateTimeFormat("en-US", {
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-    timeZone: "UTC",
-  }).format(new Date(Date.UTC(y ?? 0, (m ?? 1) - 1, d ?? 1)));
 }
 
 async function showDays(ctx: Ctx, item: Item, messageId: number, now: Date): Promise<void> {
@@ -117,7 +109,7 @@ async function showDays(ctx: Ctx, item: Item, messageId: number, now: Date): Pro
 
 async function showTimes(ctx: Ctx, item: Item, date: string, messageId: number, now: Date) {
   const config = await getBucketTelegramConfig(item.bucketId);
-  const isToday = date === getLocalDateStr(now, ctx.timezone);
+  const isToday = date === localDateString(now, ctx.timezone);
   const current = toLocal(now, ctx.timezone);
   const stillAhead = (hhmm: string) => {
     const [h, m] = hhmm.split(":").map(Number);
@@ -152,7 +144,7 @@ async function showTimes(ctx: Ctx, item: Item, date: string, messageId: number, 
     ctx.botToken,
     ctx.chatId,
     messageId,
-    `${heading(item, now, ctx.timezone)}\n\n→ ${dayLabel(date, now, ctx.timezone)}\nWhat time?`,
+    `${heading(item, now, ctx.timezone)}\n\n→ ${formatWhen(localDateToDate(date, ctx.timezone), now, ctx.timezone)}\nWhat time?`,
     rows
   );
 }
@@ -179,7 +171,7 @@ async function applyTime(
   now: Date
 ): Promise<void> {
   if (!state.date) return;
-  const deadline = applyTimeToDate(state.date, hour, minute, ctx.timezone);
+  const deadline = localDateTimeToDate(state.date, hour, minute, ctx.timezone);
   if (deadline <= now) {
     await editTelegramHtml(
       ctx.botToken,
@@ -295,21 +287,21 @@ export async function handleRescheduleCallback(
   if (data.startsWith("rd:")) {
     const choice = data.slice(3);
     if (choice === "pick") {
-      const month = getLocalDateStr(now, ctx.timezone).slice(0, 7);
+      const month = localDateString(now, ctx.timezone).slice(0, 7);
       await showCalendar(ctx, item, month, messageId, now);
       await setFlowState(ctx.userId, { ...state, month }, messageId);
       return;
     }
     const date =
       choice === "today"
-        ? getLocalDateStr(now, ctx.timezone)
+        ? localDateString(now, ctx.timezone)
         : choice === "tomorrow"
-          ? getLocalDateStr(addLocalDays(now, 1, ctx.timezone), ctx.timezone)
+          ? localDateString(addLocalDays(now, 1, ctx.timezone), ctx.timezone)
           : choice === "this_week"
-            ? getLocalDateStr(addLocalDays(now, 7, ctx.timezone), ctx.timezone)
+            ? localDateString(addLocalDays(now, 7, ctx.timezone), ctx.timezone)
             : choice === "end_of_month"
-              ? getEndOfMonthDateStr(ctx.timezone)
-              : getLocalDateStr(item.deadline ?? now, ctx.timezone);
+              ? endOfMonthDateString(now, ctx.timezone)
+              : localDateString(item.deadline ?? now, ctx.timezone);
     await showTimes(ctx, item, date, messageId, now);
     await setFlowState(ctx.userId, { ...state, date }, messageId);
     return;

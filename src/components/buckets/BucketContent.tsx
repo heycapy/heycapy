@@ -1,5 +1,5 @@
-"use client";
-
+import { parseItemsRules } from "@/lib/rules";
+import { ITEM_STATUS } from "@/constants";
 import { useState } from "react";
 import { ItemDialog } from "./ItemDialog";
 import { ItemList } from "./ItemList";
@@ -10,7 +10,6 @@ import { useBucketItems } from "./useBucketItems";
 import { useItemEditor } from "./useItemEditor";
 import { BracketButton } from "@/components/ui/BracketButton";
 import { daysToDisplayStr, parseDurationToDate } from "@/lib/duration";
-import type { ItemsRulesConfig } from "./constants";
 import { DEFAULT_BUCKET_STATUSES } from "./constants";
 import type { buckets } from "@/lib/db/schema";
 import { BucketSchema } from "@/types/rules";
@@ -18,18 +17,10 @@ import type { FieldDef } from "@/types/rules";
 
 type BucketRow = typeof buckets.$inferSelect;
 
-interface BucketContentProps {
+type BucketContentProps = {
   bucket: BucketRow;
   accentColor: string;
-}
-
-function parseItemsRules(json: string): ItemsRulesConfig {
-  try {
-    return JSON.parse(json) as ItemsRulesConfig;
-  } catch {
-    return {};
-  }
-}
+};
 
 function parseFields(fieldSchema: unknown): FieldDef[] {
   try {
@@ -45,7 +36,8 @@ export function BucketContent({ bucket, accentColor }: BucketContentProps) {
   const rules = parseItemsRules(bucket.itemsRules);
   const statuses = DEFAULT_BUCKET_STATUSES;
   const fields = parseFields(bucket.fieldSchema);
-  const defaultStatus = statuses.find((s) => s.isDefault)?.name ?? statuses[0]?.name ?? "active";
+  const defaultStatus =
+    statuses.find((s) => s.isDefault)?.name ?? statuses[0]?.name ?? ITEM_STATUS.active;
   const readonly = rules.readonly === true;
 
   const [settingsTab, setSettingsTab] = useState<SettingsTab | null>(null);
@@ -90,7 +82,7 @@ export function BucketContent({ bucket, accentColor }: BucketContentProps) {
 
       <RemindersOffNotice
         notificationsRules={bucket.notificationsRules}
-        hasDatedItems={list.items.some((i) => i.deadline && i.status !== "completed")}
+        hasDatedItems={list.items.some((i) => i.deadline && i.status !== ITEM_STATUS.completed)}
         onSetUp={() => setSettingsTab("notifications")}
       />
 

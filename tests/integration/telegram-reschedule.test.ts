@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { and, eq, ne } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { items, notificationQueue, userSettings } from "@/lib/db/schema";
 import { getFlowState, setFlowState } from "@/app/api/telegram/telegram-utils";
@@ -47,11 +47,12 @@ async function deadlineOf(itemId: number) {
   return (await db.query.items.findFirst({ where: eq(items.id, itemId) }))?.deadline;
 }
 
+// Delivered, not just queued: a queued-then-cancelled alert must not count
 async function kindsSent(itemId: number) {
   const rows = await db
     .select({ kind: notificationQueue.kind })
     .from(notificationQueue)
-    .where(and(eq(notificationQueue.itemId, itemId), ne(notificationQueue.status, "skipped")));
+    .where(and(eq(notificationQueue.itemId, itemId), eq(notificationQueue.status, "sent")));
   return rows.map((r) => r.kind);
 }
 

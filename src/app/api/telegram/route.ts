@@ -27,10 +27,7 @@ import {
   getFlowMessageId,
   setFlowState,
   getBucketTelegramConfig,
-  getLocalDateStr,
-  getEndOfMonthDateStr,
   getUserBuckets,
-  applyTimeToDate,
   parseTimeStringExtended,
   parseNaturalDeadline,
   completeItemById,
@@ -39,7 +36,14 @@ import {
 } from "./telegram-utils";
 import type { TelegramUpdate } from "./telegram-utils";
 import { redeemTelegramLinkCode } from "@/lib/notifications/telegram-link";
+import { isTelegramWebhookSecret } from "@/lib/notifications/telegram-webhook";
 import { handleReminderAction } from "./telegram-quick-actions";
+import {
+  endOfMonthDateString,
+  localDateString,
+  localDateTimeToDate,
+  localDateToDate,
+} from "@/lib/reminders/zoned";
 import { parseListKind, showItemListPage } from "./telegram-lists";
 import {
   abandonReschedule,
@@ -64,9 +68,10 @@ export async function POST(req: Request) {
   const botToken = process.env.TELEGRAM_BOT_TOKEN;
   if (!botToken) return new Response("Not configured", { status: 503 });
 
-  const url = new URL(req.url);
-  const secret = url.searchParams.get("secret");
-  if (!secret || secret !== botToken) return new Response("Forbidden", { status: 403 });
+  const secret = req.headers.get("x-telegram-bot-api-secret-token") ?? "";
+  if (!isTelegramWebhookSecret(botToken, secret)) {
+    return new Response("Forbidden", { status: 403 });
+  }
 
   let body: TelegramUpdate;
   try {
@@ -75,6 +80,16 @@ export async function POST(req: Request) {
     return new Response("Bad request", { status: 400 });
   }
 
+  // A failed update would be retried by Telegram and hold back every update after it
+  try {
+    return await handleUpdate(botToken, body);
+  } catch (err) {
+    process.stderr.write(`[telegram] update failed: ${errorMessage(err)}\n`);
+    return new Response("OK");
+  }
+}
+
+async function handleUpdate(botToken: string, body: TelegramUpdate): Promise<Response> {
   const isCallback = !!body.callback_query;
   const chatId = isCallback ? body.callback_query?.message?.chat?.id : body.message?.chat?.id;
   const text = body.message?.text?.trim();
@@ -135,9 +150,13 @@ export async function POST(req: Request) {
     }
 
     if (callbackData.startsWith("ab:")) {
-      const parts = callbackData.slice(3).split(":");
-      const bucketId = Number(parts[0]);
-      const bucketName = parts.slice(1).join(":") || "Bucket";
+      const bucket = await db.query.buckets.findFirst({
+        where: (b, { eq: qeq, and: qand }) =>
+          qand(qeq(b.id, Number(callbackData.slice(3).split(":")[0])), qeq(b.userId, userId)),
+      });
+      if (!bucket) return new Response("OK");
+      const bucketId = bucket.id;
+      const bucketName = bucket.name;
       const newMsgId = await sendOrEditButtons(
         botToken,
         chatIdStr,
@@ -154,7 +173,7 @@ export async function POST(req: Request) {
 
       if (preset === "today" || preset === "tomorrow") {
         const offset = preset === "today" ? 0 : 1;
-        const dateStr = getLocalDateStr(new Date(Date.now() + offset * 86_400_000), timezone);
+        const dateStr = localDateString(new Date(Date.now() + offset * 86_400_000), timezone);
         const presetConfig = await getBucketTelegramConfig(flowState.bucketId);
         const newMsgId = await showTimePicker(
           botToken,
@@ -181,7 +200,7 @@ export async function POST(req: Request) {
       }
 
       if (preset === "end_of_month") {
-        const dateStr = getEndOfMonthDateStr(timezone);
+        const dateStr = endOfMonthDateString(new Date(), timezone);
         const eomConfig = await getBucketTelegramConfig(flowState.bucketId);
         const newMsgId = await showTimePicker(
           botToken,
@@ -253,7 +272,7 @@ export async function POST(req: Request) {
 
     if (callbackData.startsWith("cd:") && flowState?.s === "cal") {
       const dateStr = callbackData.slice(3);
-      const today = getLocalDateStr(new Date(), timezone);
+      const today = localDateString(new Date(), timezone);
       const calConfig = await getBucketTelegramConfig(flowState.bucketId);
       const newMsgId = await showTimePicker(
         botToken,
@@ -304,10 +323,10 @@ export async function POST(req: Request) {
       }
       let deadline: Date;
       if (when === "none") {
-        deadline = applyTimeToDate(flowState.date, 12, 0, timezone);
+        deadline = localDateToDate(flowState.date, timezone);
       } else {
         const [hStr, mStr] = when.split(":");
-        deadline = applyTimeToDate(
+        deadline = localDateTimeToDate(
           flowState.date,
           parseInt(hStr ?? "12"),
           parseInt(mStr ?? "0"),
@@ -480,7 +499,7 @@ export async function POST(req: Request) {
       let hour = flowState.hour;
       if (period === "pm" && hour !== 12) hour += 12;
       if (period === "am" && hour === 12) hour = 0;
-      const deadline = applyTimeToDate(flowState.date, hour, flowState.minute, timezone);
+      const deadline = localDateTimeToDate(flowState.date, hour, flowState.minute, timezone);
       await handleAfterTime(botToken, chatIdStr, userId, flowState, deadline, timezone, msgId);
       return new Response("OK");
     }
@@ -576,7 +595,7 @@ export async function POST(req: Request) {
       );
       return new Response("OK");
     }
-    const deadline = applyTimeToDate(flowState.date, parsed.hour, parsed.minute, timezone);
+    const deadline = localDateTimeToDate(flowState.date, parsed.hour, parsed.minute, timezone);
     await handleAfterTime(botToken, chatIdStr, userId, flowState, deadline, timezone, msgId);
     return new Response("OK");
   }

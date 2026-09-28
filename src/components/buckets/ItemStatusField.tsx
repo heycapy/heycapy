@@ -1,14 +1,12 @@
-"use client";
-
 import { OptionButton } from "@/components/ui/OptionButton";
 import type { StatusDef } from "@/types/rules";
 
-interface ItemStatusFieldProps {
+type ItemStatusFieldProps = {
   status: string;
   statuses: StatusDef[];
   onChange: (status: string) => void;
   disabled?: boolean;
-}
+};
 
 export function ItemStatusField({ status, statuses, onChange, disabled }: ItemStatusFieldProps) {
   return (

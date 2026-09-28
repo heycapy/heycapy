@@ -1,5 +1,14 @@
 import { describe, it, expect } from "vitest";
-import { addLocalDays, atLocalClock, fromLocal, parseClock, toLocal } from "@/lib/reminders/zoned";
+import {
+  addLocalDays,
+  atLocalClock,
+  endOfMonthDateString,
+  fromLocal,
+  parseClock,
+  parseLocalDateTime,
+  toLocal,
+  utcOffset,
+} from "@/lib/reminders/zoned";
 
 const NY = "America/New_York";
 
@@ -63,5 +72,36 @@ describe("parseClock", () => {
     expect(parseClock("24:00")).toBeNull();
     expect(parseClock("9am")).toBeNull();
     expect(parseClock("")).toBeNull();
+  });
+});
+
+describe("shared date helpers", () => {
+  it("utcOffset has the right sign east and west of UTC", () => {
+    const at = new Date("2026-03-10T12:00:00Z");
+    expect(utcOffset(at, "Asia/Kolkata")).toBe("+05:30");
+    expect(utcOffset(at, NY)).toBe("-04:00");
+    expect(utcOffset(new Date("2026-01-10T12:00:00Z"), NY)).toBe("-05:00");
+    expect(utcOffset(at, "UTC")).toBe("+00:00");
+  });
+
+  it("parseLocalDateTime reads dates as all day, naive times as local, offsets as exact", () => {
+    expect(parseLocalDateTime("2026-03-11", "Asia/Kolkata").toISOString()).toBe(
+      "2026-03-10T18:30:00.000Z"
+    );
+    expect(parseLocalDateTime("2026-03-11T09:30:00", "Asia/Kolkata").toISOString()).toBe(
+      "2026-03-11T04:00:00.000Z"
+    );
+    expect(parseLocalDateTime("2026-03-11T09:30:00+05:30", NY).toISOString()).toBe(
+      "2026-03-11T04:00:00.000Z"
+    );
+    expect(parseLocalDateTime("2026-03-11T04:00:00Z", NY).toISOString()).toBe(
+      "2026-03-11T04:00:00.000Z"
+    );
+  });
+
+  it("endOfMonthDateString uses the user's calendar", () => {
+    // Still Feb 28 in New York, already Mar 1 in UTC
+    expect(endOfMonthDateString(new Date("2027-03-01T03:00:00Z"), NY)).toBe("2027-02-28");
+    expect(endOfMonthDateString(new Date("2028-02-10T12:00:00Z"), "UTC")).toBe("2028-02-29");
   });
 });

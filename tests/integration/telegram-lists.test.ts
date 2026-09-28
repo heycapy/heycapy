@@ -193,3 +193,18 @@ describe("opening an item from a list", () => {
     expect(callsTo(api, "sendMessage")).toHaveLength(1);
   });
 });
+
+describe("bucket buttons", () => {
+  it("ignore a bucket that belongs to someone else", async () => {
+    const { api, chat } = await setup();
+    const stranger = await seedUser();
+    const theirBucket = await seedBucket(stranger);
+
+    await tap(`ab:${theirBucket}`, chat, 100);
+    await tap(`lb:${theirBucket}`, chat, 100);
+
+    expect(callsTo(api, "editMessageText").map((e) => e.text)).not.toContainEqual(
+      expect.stringMatching(/Adding to|Bucket 0\./)
+    );
+  });
+});

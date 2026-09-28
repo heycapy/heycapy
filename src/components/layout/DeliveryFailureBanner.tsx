@@ -1,5 +1,3 @@
-"use client";
-
 import { useState, useTransition } from "react";
 import { BracketButton } from "@/components/ui/BracketButton";
 import { dismissDeliveryFailuresAction } from "@/app/(app)/actions";
@@ -7,10 +5,10 @@ import type { ChannelFailure } from "@/lib/notifications/failures";
 import type { NotificationMedium } from "@/lib/notifications/queue";
 import { DeliveryFailuresDialog } from "./DeliveryFailuresDialog";
 
-interface DeliveryFailureBannerProps {
+type DeliveryFailureBannerProps = {
   failures: ChannelFailure[];
   onFix: () => void;
-}
+};
 
 export function DeliveryFailureBanner({ failures, onFix }: DeliveryFailureBannerProps) {
   const [details, setDetails] = useState<ChannelFailure | null>(null);

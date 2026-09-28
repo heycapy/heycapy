@@ -1,6 +1,6 @@
+import { ITEM_STATUS } from "@/constants";
 import type { LucideIcon } from "lucide-react";
 import { Activity, Bell, Briefcase, CreditCard, ListTodo, Square } from "lucide-react";
-import { ON_HOLD_STATUS } from "@/constants";
 import type { StatusDef } from "@/types/rules";
 
 export type SortBy = "deadline" | "created_at" | "manual";
@@ -35,9 +35,9 @@ export const TEMPLATE_ICONS: Record<string, LucideIcon> = {
 export type ItemStatus = string;
 
 export const DEFAULT_BUCKET_STATUSES: StatusDef[] = [
-  { name: "active", color: "#22c55e", isDefault: true },
-  { name: "completed", color: "#3b82f6" },
-  { name: ON_HOLD_STATUS, color: "#f59e0b" },
+  { name: ITEM_STATUS.active, color: "#22c55e", isDefault: true },
+  { name: ITEM_STATUS.completed, color: "#3b82f6" },
+  { name: ITEM_STATUS.onHold, color: "#f59e0b" },
 ];
 
 export const BUCKET_PALETTE = ["var(--p1)", "var(--p2)", "var(--p3)", "var(--p4)", "var(--p5)"];
@@ -122,3 +122,7 @@ export const CURRENCY_OPTIONS = [
 ] as const;
 
 export type CurrencySymbol = (typeof CURRENCY_OPTIONS)[number]["value"];
+
+export const FIELD_LABEL = "text-muted-foreground font-mono text-[10px]";
+export const FIELD_INPUT =
+  "border-b border-border w-full bg-transparent py-1.5 font-mono text-xs outline-none placeholder:text-muted-foreground/50 focus:border-foreground disabled:opacity-50";

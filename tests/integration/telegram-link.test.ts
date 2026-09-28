@@ -2,7 +2,7 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { userSettings } from "@/lib/db/schema";
-import { POST } from "@/app/api/telegram/route";
+import { say } from "./telegram-helpers";
 import { createTelegramLinkAction, getUserSettingsAction } from "@/app/(app)/user-settings-actions";
 import { createTelegramLinkCode } from "@/lib/notifications/telegram-link";
 import { MINUTE, resetSchedulerEnvironment, seedUser, useSchedulerEnvironment } from "./helpers";
@@ -29,12 +29,7 @@ async function unconnectedUser(): Promise<number> {
 }
 
 async function sendStart(text: string, chatId = ++chatCounter): Promise<string> {
-  await POST(
-    new Request("http://localhost/api/telegram?secret=test-token", {
-      method: "POST",
-      body: JSON.stringify({ message: { text, chat: { id: chatId } } }),
-    })
-  );
+  await say(text, chatId);
   return String(chatId);
 }
 

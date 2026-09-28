@@ -1,16 +1,14 @@
-"use client";
-
 import { useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 
 const REVEAL_WIDTH = 128;
 const SWIPE_THRESHOLD = 50;
 
-interface SwipeableRowProps {
+type SwipeableRowProps = {
   children: React.ReactNode;
   onDelete: () => void;
   disabled?: boolean;
-}
+};
 
 export function SwipeableRow({ children, onDelete, disabled }: SwipeableRowProps) {
   const [translateX, setTranslateX] = useState(0);

@@ -1,4 +1,6 @@
-import { and, asc, eq, gte, isNotNull, isNull, lt, lte, ne, type SQL } from "drizzle-orm";
+import { formatWhen } from "@/lib/format-date";
+import { ITEM_STATUS } from "@/constants";
+import { and, asc, eq, gte, isNull, lt, lte, ne, type SQL } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { buckets, items } from "@/lib/db/schema";
 import { TELEGRAM_LIST_PAGE_SIZE } from "@/lib/notifications/constants";
@@ -8,8 +10,8 @@ import {
   sendTelegramWithQuickActions,
   type InlineButton,
 } from "@/lib/notifications/telegram";
-import { escapeHtml, formatWhen } from "@/lib/notifications/telegram-message";
-import { addLocalDays, atLocalClock } from "@/lib/reminders/zoned";
+import { escapeHtml } from "@/lib/notifications/telegram-message";
+import { addLocalDays, atLocalClock, overdueFrom } from "@/lib/reminders/zoned";
 
 type Ctx = { botToken: string; chatId: string; userId: number; timezone: string };
 
@@ -37,7 +39,7 @@ async function loadList(
         and(
           eq(items.userId, ctx.userId),
           isNull(items.deletedAt),
-          ne(items.status, "completed"),
+          ne(items.status, ITEM_STATUS.completed),
           where
         )
       )
@@ -48,14 +50,15 @@ async function loadList(
       );
 
   if (kind === "up") {
-    const rows = await select(
-      and(
-        isNotNull(items.deadline),
-        gte(items.deadline, now),
-        lte(items.deadline, addLocalDays(now, 7, ctx.timezone))
-      ),
-      "deadline"
-    );
+    const rows = (
+      await select(
+        and(
+          gte(items.deadline, atLocalClock(now, 0, ctx.timezone)),
+          lte(items.deadline, addLocalDays(now, 7, ctx.timezone))
+        ),
+        "deadline"
+      )
+    ).filter((r) => r.deadline && overdueFrom(r.deadline, ctx.timezone) > now);
     return {
       heading: "Upcoming · next 7 days",
       empty: "Nothing due in the next 7 days.",
@@ -72,12 +75,17 @@ async function loadList(
     return { heading: "Due today", empty: "Nothing due today.", rows, perBucket: false };
   }
   if (kind === "od") {
-    const rows = await select(and(isNotNull(items.deadline), lt(items.deadline, now)), "deadline");
+    // Today's all-day items aren't overdue until the day ends
+    const rows = (await select(lt(items.deadline, now), "deadline")).filter(
+      (r) => r.deadline && overdueFrom(r.deadline, ctx.timezone) <= now
+    );
     return { heading: "Overdue", empty: "Nothing overdue.", rows, perBucket: false };
   }
   const bucketId = Number(kind.slice(1));
   const rows = await select(eq(items.bucketId, bucketId), "manual");
-  const bucket = await db.query.buckets.findFirst({ where: eq(buckets.id, bucketId) });
+  const bucket = await db.query.buckets.findFirst({
+    where: and(eq(buckets.id, bucketId), eq(buckets.userId, ctx.userId)),
+  });
   const name = bucket?.name ?? "Bucket";
   return { heading: name, empty: `No open items in ${name}.`, rows, perBucket: true };
 }

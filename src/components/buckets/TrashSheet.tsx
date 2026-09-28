@@ -1,5 +1,3 @@
-"use client";
-
 import { useEffect, useState, useTransition } from "react";
 import { useScrollLock } from "@/hooks/useScrollLock";
 import { useRouter } from "next/navigation";
@@ -14,10 +12,10 @@ import type { buckets } from "@/lib/db/schema";
 
 type BucketRow = typeof buckets.$inferSelect;
 
-interface TrashSheetProps {
+type TrashSheetProps = {
   open: boolean;
   onClose: () => void;
-}
+};
 
 export function TrashSheet({ open, onClose }: TrashSheetProps) {
   useScrollLock(open);

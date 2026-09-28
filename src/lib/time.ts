@@ -1,3 +1,5 @@
+import { localDateToDate } from "@/lib/reminders/zoned";
+
 export type Ampm = "am" | "pm";
 
 export function toH24(h12: number, ampm: Ampm): number {
@@ -20,7 +22,9 @@ export function buildDeadline(date: string, hour: string, min: string, ampm: Amp
   return isNaN(d.getTime()) ? date : d.toISOString();
 }
 
-/** Parses a deadline string (ISO or date-only) into a Date, defaulting time to noon UTC. */
-export function parseDeadlineString(deadline: string): Date {
-  return new Date(deadline.includes("T") ? deadline : deadline + "T12:00:00Z");
+// A date without a time is an all-day item: midnight in the user's timezone
+export function parseDeadlineString(deadline: string, timezone: string): Date {
+  return /^\d{4}-\d{2}-\d{2}$/.test(deadline)
+    ? localDateToDate(deadline, timezone)
+    : new Date(deadline);
 }

@@ -1,3 +1,5 @@
+import { formatWhen } from "@/lib/format-date";
+import { ITEM_STATUS } from "@/constants";
 import { and, eq, isNull, ne, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { items } from "@/lib/db/schema";
@@ -7,7 +9,6 @@ import {
   getUserBuckets,
   getBucketTelegramConfig,
   parseNaturalDeadline,
-  fmtDate,
   createItem,
 } from "./telegram-utils";
 import { dataEvents } from "@/lib/events";
@@ -25,7 +26,13 @@ export async function cmdBuckets(
   const counts = await db
     .select({ bucketId: items.bucketId, count: sql<number>`count(*)` })
     .from(items)
-    .where(and(eq(items.userId, userId), isNull(items.deletedAt), ne(items.status, "completed")))
+    .where(
+      and(
+        eq(items.userId, userId),
+        isNull(items.deletedAt),
+        ne(items.status, ITEM_STATUS.completed)
+      )
+    )
     .groupBy(items.bucketId);
   const countMap = new Map(counts.map((c) => [c.bucketId, c.count]));
   const buttonRows: InlineButton[][] = rows.map((b) => {
@@ -33,7 +40,7 @@ export async function cmdBuckets(
     return [
       {
         text: `${b.icon ? b.icon + " " : ""}${b.name}  ·  ${n} item${n === 1 ? "" : "s"}`,
-        callback_data: `lb:${b.id}:${b.name.slice(0, 20)}`,
+        callback_data: `lb:${b.id}`,
       },
     ];
   });
@@ -66,7 +73,7 @@ export async function cmdAddDirect(
   }
   await createItem(userId, bucket.id, title, deadline);
   dataEvents.emit("refresh", userId);
-  const note = deadline ? ` (due ${fmtDate(deadline, timezone)})` : "";
+  const note = deadline ? ` (due ${formatWhen(deadline, new Date(), timezone)})` : "";
   return `Added "${title}" to ${bucket.name}${note} ✓`;
 }
 

@@ -1,12 +1,10 @@
-"use client";
-
 import { useEffect, useState, useTransition } from "react";
 import { Eye, EyeOff, RefreshCw } from "lucide-react";
 import { BracketButton } from "@/components/ui/BracketButton";
 import { getWebhookKeyAction, rotateWebhookKeyAction } from "@/app/(app)/actions";
 import type { buckets } from "@/lib/db/schema";
 import { BucketSchema } from "@/types/rules";
-import { WEBHOOK_KEY_MASK } from "@/constants";
+import { ITEM_STATUS, WEBHOOK_KEY_MASK } from "@/constants";
 
 type BucketRow = typeof buckets.$inferSelect;
 
@@ -25,7 +23,7 @@ function buildCurlCommand(url: string, key: string, schema: BucketSchema | null)
 
 function buildExamplePayload(schema: BucketSchema | null): string {
   const payload: Record<string, unknown> = { title: "My item title" };
-  payload.status = "active";
+  payload.status = ITEM_STATUS.active;
   const sevenDaysFromNow = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
   payload.deadline = sevenDaysFromNow.toISOString().replace(/\.\d{3}Z$/, "Z");
   if (schema) {
@@ -67,9 +65,9 @@ function buildExamplePayload(schema: BucketSchema | null): string {
   return JSON.stringify(payload, null, 2);
 }
 
-interface WebhookPanelProps {
+type WebhookPanelProps = {
   bucket: BucketRow;
-}
+};
 
 export function WebhookPanel({ bucket }: WebhookPanelProps) {
   const [key, setKey] = useState<string | null>(null);

@@ -3,6 +3,7 @@ import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { userSettings } from "@/lib/db/schema";
 import { POST } from "@/app/api/telegram/route";
+import { telegramWebhookSecret } from "@/lib/notifications/telegram-webhook";
 
 export const ALERT_MESSAGE_ID = 7;
 
@@ -38,8 +39,9 @@ export async function connectOwnChat(userId: number): Promise<number> {
 
 async function post(update: unknown) {
   await POST(
-    new Request("http://localhost/api/telegram?secret=test-token", {
+    new Request("http://localhost/api/telegram", {
       method: "POST",
+      headers: { "X-Telegram-Bot-Api-Secret-Token": telegramWebhookSecret("test-token") },
       body: JSON.stringify(update),
     })
   );

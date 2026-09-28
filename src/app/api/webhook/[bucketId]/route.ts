@@ -1,18 +1,20 @@
+import { bucketChannels } from "@/lib/rules";
 import { db } from "@/lib/db";
 import { items } from "@/lib/db/schema";
 import { decryptValue } from "@/lib/crypto";
-import { BucketSchema, NotificationRules, buildPropertyValidator } from "@/types/rules";
+import { BucketSchema, buildPropertyValidator } from "@/types/rules";
 import { enqueueNotification, processPending } from "@/lib/notifications/queue";
 import {
   WEBHOOK_RATE_LIMIT_MAX,
   WEBHOOK_RATE_LIMIT_WINDOW_MS,
 } from "@/lib/notifications/constants";
 import { errorMessage } from "@/lib/errors";
-import { ITEM_TITLE_MAX_LENGTH, ON_HOLD_STATUS } from "@/constants";
+import { ITEM_STATUS, ITEM_TITLE_MAX_LENGTH } from "@/constants";
 import { channelDecisions } from "@/lib/notifications/channels";
 import { initialReminderState } from "@/lib/items/reminders";
 import { dataEvents } from "@/lib/events";
-import { refreshItemReminders } from "@/lib/reminders/refresh";
+import { refreshItemReminders, reminderContext } from "@/lib/reminders/refresh";
+import { parseDeadlineString } from "@/lib/time";
 
 const rateLimitMap = new Map<string, number[]>();
 
@@ -28,15 +30,6 @@ function checkRateLimit(key: string): boolean {
   recent.push(now);
   rateLimitMap.set(key, recent);
   return true;
-}
-
-function bucketChannels(notificationsRules: string): string[] {
-  try {
-    const parsed = NotificationRules.safeParse(JSON.parse(notificationsRules));
-    return parsed.success ? parsed.data.medium : [];
-  } catch {
-    return [];
-  }
 }
 
 export async function POST(
@@ -127,7 +120,7 @@ export async function POST(
   }
 
   // Optional status — must be one of the three built-in statuses
-  const VALID_STATUSES = ["active", "completed", ON_HOLD_STATUS] as const;
+  const VALID_STATUSES = [ITEM_STATUS.active, ITEM_STATUS.completed, ITEM_STATUS.onHold] as const;
   let status: string | undefined;
   if (raw.status !== undefined) {
     if (typeof raw.status !== "string") {
@@ -142,13 +135,14 @@ export async function POST(
     status = raw.status;
   }
 
-  // Optional deadline — must be an ISO datetime string
+  // Optional deadline — an ISO datetime, or YYYY-MM-DD for an all-day item
+  const ctx = await reminderContext(bucketId);
   let deadline: Date | undefined;
   if (raw.deadline !== undefined) {
     if (typeof raw.deadline !== "string") {
       return Response.json({ error: "deadline must be an ISO datetime string" }, { status: 400 });
     }
-    const d = new Date(raw.deadline);
+    const d = parseDeadlineString(raw.deadline, ctx.timezone);
     if (isNaN(d.getTime())) {
       return Response.json({ error: "deadline is not a valid datetime" }, { status: 400 });
     }
@@ -164,7 +158,10 @@ export async function POST(
       properties: properties ? JSON.stringify(properties) : null,
       source: "webhook",
       ...(status !== undefined && { status }),
-      ...(deadline !== undefined && { deadline, ...initialReminderState(deadline) }),
+      ...(deadline !== undefined && {
+        deadline,
+        ...initialReminderState(deadline, ctx.timezone),
+      }),
     })
     .returning();
   await refreshItemReminders([item.id]);

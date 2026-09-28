@@ -1,5 +1,3 @@
-"use client";
-
 import { useEffect, useId, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -26,14 +24,14 @@ const TABS: SettingsTab[] = ["items", "notifications", "advanced"];
 const tabCn = (active: boolean) =>
   `font-mono text-[10px] px-2 py-1 transition-colors shrink-0 whitespace-nowrap ${active ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"}`;
 
-interface BucketSettingsFormProps {
+type BucketSettingsFormProps = {
   bucket: BucketRow;
   onClose: () => void;
   onOpenSchema: () => void;
   onOpenTelegram: () => void;
   onOpenWebhook: () => void;
   initialTab?: SettingsTab;
-}
+};
 
 // Mounted fresh on every open, so the form always starts from the saved settings
 export function BucketSettingsForm({

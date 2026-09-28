@@ -1,5 +1,3 @@
-"use client";
-
 import { useState, useTransition } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { BracketButton } from "@/components/ui/BracketButton";
@@ -11,11 +9,11 @@ import type { buckets } from "@/lib/db/schema";
 
 type BucketRow = typeof buckets.$inferSelect;
 
-interface TelegramConfigDialogProps {
+type TelegramConfigDialogProps = {
   open: boolean;
   bucket: BucketRow;
   onClose: () => void;
-}
+};
 
 function parseTelegramConfig(raw: string | null): TelegramBotConfig {
   if (!raw) return DEFAULT_TELEGRAM_BOT_CONFIG;

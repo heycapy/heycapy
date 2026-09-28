@@ -1,13 +1,14 @@
+import { addLocalDays, localDateString, parseLocalDateTime } from "@/lib/reminders/zoned";
 import { revalidatePath } from "next/cache";
 import { and, eq, gte, isNull, lte, ne, or, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { findBucketByName } from "@/lib/db/buckets";
 import { withDefaultChannels } from "@/lib/notifications/channels";
 import { initialReminderState, reminderResetForDeadline } from "@/lib/items/reminders";
-import { bucketDefaultOffsetMins, refreshItemReminders } from "@/lib/reminders/refresh";
+import { refreshItemReminders, reminderContext } from "@/lib/reminders/refresh";
 import { createNextOccurrence } from "@/lib/items/recurrence";
 import { encryptValue, generateWebhookKey } from "@/lib/crypto";
-import { BUCKET_NAME_MAX_LENGTH } from "@/constants";
+import { BUCKET_NAME_MAX_LENGTH, ITEM_STATUS } from "@/constants";
 import { buckets, items } from "@/lib/db/schema";
 import { RecurringConfig, BucketSchema, buildPropertyValidator } from "@/types/rules";
 import type { ToolCall } from "./types";
@@ -22,72 +23,15 @@ export type UpcomingItem = {
   deadline: Date;
 };
 
-/**
- * Parse a deadline string from the AI in the context of the user's timezone.
- * - If the string already carries an offset (e.g. +05:30) or Z, parse as-is.
- * - If it's a naive datetime (no offset), interpret it as the user's local time
- *   and convert to the correct UTC instant.
- * - If it's a date-only string (YYYY-MM-DD), treat it as midnight in the user's TZ.
- */
-export function parseDeadlineInTimezone(str: string, timezone: string): Date {
-  const s = str.trim();
-
-  // Already has an offset or Z — parse directly
-  if (/Z$|[+-]\d{2}:\d{2}$/.test(s)) return new Date(s);
-
-  // Date-only: YYYY-MM-DD — treat as midnight in user's TZ by appending T00:00:00 and falling through
-  const normalized = /^\d{4}-\d{2}-\d{2}$/.test(s) ? `${s}T00:00:00` : s;
-
-  // Parse as if UTC to extract the numeric components
-  const naiveUtc = new Date(`${normalized}Z`);
-  if (isNaN(naiveUtc.getTime())) return new Date(s); // fallback for unparseable strings
-
-  // Get what the user's local time looks like at that UTC instant
-  const parts = new Intl.DateTimeFormat("en-US", {
-    timeZone: timezone,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: false,
-  }).formatToParts(naiveUtc);
-  const localMs = Date.UTC(
-    Number(parts.find((p) => p.type === "year")?.value ?? 0),
-    Number(parts.find((p) => p.type === "month")?.value ?? 1) - 1,
-    Number(parts.find((p) => p.type === "day")?.value ?? 1),
-    Number(parts.find((p) => p.type === "hour")?.value ?? 0),
-    Number(parts.find((p) => p.type === "minute")?.value ?? 0),
-    Number(parts.find((p) => p.type === "second")?.value ?? 0)
-  );
-  // offsetMs = UTC - local (positive for timezones east of UTC like IST)
-  const offsetMs = naiveUtc.getTime() - localMs;
-  return new Date(naiveUtc.getTime() + offsetMs);
-}
-
-function toDateStr(d: Date, tz: string): string {
-  const parts = new Intl.DateTimeFormat("en-US", {
-    timeZone: tz,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).formatToParts(d);
-  const y = parts.find((p) => p.type === "year")?.value ?? "";
-  const mo = parts.find((p) => p.type === "month")?.value ?? "";
-  const dy = parts.find((p) => p.type === "day")?.value ?? "";
-  return `${y}-${mo}-${dy}`;
-}
-
 function deadlineRelative(deadline: Date, timezone: string): string {
   const now = new Date();
-  const todayStr = toDateStr(now, timezone);
-  const deadlineStr = toDateStr(deadline, timezone);
+  const todayStr = localDateString(now, timezone);
+  const deadlineStr = localDateString(deadline, timezone);
 
   if (deadlineStr < todayStr) return "overdue";
   if (deadlineStr === todayStr) return "today";
 
-  const tomorrowStr = toDateStr(new Date(now.getTime() + 86_400_000), timezone);
+  const tomorrowStr = localDateString(addLocalDays(now, 1, timezone), timezone);
   if (deadlineStr === tomorrowStr) return "tomorrow";
 
   const diffDays = Math.round((deadline.getTime() - now.getTime()) / 86_400_000);
@@ -109,8 +53,8 @@ function parseRecurringArgs(args: Record<string, unknown>): string | null | unde
   return JSON.stringify(config);
 }
 
-const activeOnly = or(eq(items.status, "active"), isNull(items.status));
-const notCompleted = ne(items.status, "completed");
+const activeOnly = or(eq(items.status, ITEM_STATUS.active), isNull(items.status));
+const notCompleted = ne(items.status, ITEM_STATUS.completed);
 
 export async function executeToolCall(
   call: ToolCall,
@@ -251,9 +195,7 @@ async function executeToolCallInner(
         .from(items)
         .where(eq(items.bucketId, bucketId));
 
-      const deadline = args.deadline
-        ? parseDeadlineInTimezone(String(args.deadline), timezone)
-        : null;
+      const deadline = args.deadline ? parseLocalDateTime(String(args.deadline), timezone) : null;
       const notificationOffsetMins =
         args.notification_offset_mins !== null && args.notification_offset_mins !== undefined
           ? Number(args.notification_offset_mins)
@@ -267,8 +209,8 @@ async function executeToolCallInner(
         return JSON.stringify({ ok: false, error: "Invalid recurring configuration" });
       }
 
-      const statusArg = args.status ? String(args.status).trim() : "active";
-      const finalStatus = statusArg || "active";
+      const statusArg = args.status ? String(args.status).trim() : ITEM_STATUS.active;
+      const finalStatus = statusArg || ITEM_STATUS.active;
 
       let schemaParsed: ReturnType<typeof BucketSchema.safeParse> | null = null;
       if (bucket.fieldSchema) {
@@ -307,9 +249,9 @@ async function executeToolCallInner(
           userId,
           title,
           status: finalStatus,
-          completedAt: finalStatus === "completed" ? new Date() : null,
+          completedAt: finalStatus === ITEM_STATUS.completed ? new Date() : null,
           deadline,
-          ...initialReminderState(deadline),
+          ...initialReminderState(deadline, timezone),
           notificationOffsetMins,
           recurring: recurringJson,
           properties: propertiesJson,
@@ -351,12 +293,12 @@ async function executeToolCallInner(
       }
       if ("deadline" in args) {
         const newDeadline = args.deadline
-          ? parseDeadlineInTimezone(String(args.deadline), timezone)
+          ? parseLocalDateTime(String(args.deadline), timezone)
           : null;
         updates.deadline = newDeadline;
         Object.assign(
           updates,
-          reminderResetForDeadline(item, newDeadline, await bucketDefaultOffsetMins(item.bucketId))
+          reminderResetForDeadline(item, newDeadline, await reminderContext(item.bucketId))
         );
       }
       if ("notification_offset_mins" in args) {
@@ -377,9 +319,9 @@ async function executeToolCallInner(
         const statusName = String(args.status).trim();
         if (statusName) {
           updates.status = statusName;
-          if (statusName === "completed" && item.status !== "completed")
+          if (statusName === ITEM_STATUS.completed && item.status !== ITEM_STATUS.completed)
             updates.completedAt = new Date();
-          else if (statusName !== "completed" && item.status === "completed")
+          else if (statusName !== ITEM_STATUS.completed && item.status === ITEM_STATUS.completed)
             updates.completedAt = null;
         }
       }
@@ -397,7 +339,7 @@ async function executeToolCallInner(
         .set(updates)
         .where(and(eq(items.id, itemId), eq(items.userId, userId)));
       await refreshItemReminders([itemId]);
-      if (updates.status === "completed") await createNextOccurrence(itemId);
+      if (updates.status === ITEM_STATUS.completed) await createNextOccurrence(itemId);
 
       revalidatePath("/");
       return JSON.stringify({ ok: true });
@@ -410,17 +352,18 @@ async function executeToolCallInner(
       });
       if (!item) return JSON.stringify({ ok: false, error: "Item not found" });
 
-      const newStatus = item.status === "completed" ? "active" : "completed";
+      const newStatus =
+        item.status === ITEM_STATUS.completed ? ITEM_STATUS.active : ITEM_STATUS.completed;
       await db
         .update(items)
         .set({
           status: newStatus,
-          completedAt: newStatus === "completed" ? new Date() : null,
+          completedAt: newStatus === ITEM_STATUS.completed ? new Date() : null,
           updatedAt: new Date(),
         })
         .where(and(eq(items.id, itemId), eq(items.userId, userId)));
       await refreshItemReminders([itemId]);
-      if (newStatus === "completed") await createNextOccurrence(itemId);
+      if (newStatus === ITEM_STATUS.completed) await createNextOccurrence(itemId);
 
       revalidatePath("/");
       return JSON.stringify({ ok: true, newStatus });

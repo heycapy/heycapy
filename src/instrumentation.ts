@@ -1,5 +1,10 @@
 export async function register() {
   if (process.env.NEXT_RUNTIME === "nodejs") {
+    if (process.env.NODE_ENV === "production" && !process.env.DATABASE_URL) {
+      throw new Error(
+        "DATABASE_URL is not set — point it at persistent storage, e.g. file:/data/heycapy.db"
+      );
+    }
     const { findMigrationsFolder } = await import("@/lib/db/migrations-folder");
     const migrationsFolder = findMigrationsFolder();
     if (migrationsFolder) {

@@ -1,10 +1,6 @@
 import { describe, expect, it } from "vitest";
-import {
-  escapeHtml,
-  formatWhen,
-  itemAlertHtml,
-  itemDoneHtml,
-} from "@/lib/notifications/telegram-message";
+import { formatWhen } from "@/lib/format-date";
+import { escapeHtml, itemAlertHtml, itemDoneHtml } from "@/lib/notifications/telegram-message";
 
 const NOW = new Date("2026-03-10T12:00:00Z");
 

@@ -1,5 +1,3 @@
-"use client";
-
 export { AppearanceTab } from "./AppearanceTab";
 export { NotificationsTab } from "./NotificationsTab";
 export { AITab } from "./AITab";
