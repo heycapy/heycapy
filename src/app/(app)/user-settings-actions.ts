@@ -15,6 +15,7 @@ import { ALL_CHANNELS, getWorkingChannels } from "@/lib/notifications/channels";
 import { TELEGRAM_API_BASE, TELEGRAM_LINK_BASE } from "@/constants";
 import { sendEmail } from "@/lib/notifications/email";
 import { sendNtfy } from "@/lib/notifications/ntfy";
+import { sendWebPush } from "@/lib/notifications/web-push";
 import { sendTelegram } from "@/lib/notifications/telegram";
 import { dismissChannelFailures } from "@/lib/notifications/failures";
 import { createTelegramLinkCode } from "@/lib/notifications/telegram-link";
@@ -225,15 +226,17 @@ export async function getNotifAvailabilityAction(): Promise<{
   email: boolean;
   ntfy: boolean;
   telegram: boolean;
+  push: boolean;
 }> {
   const session = await getSession();
-  if (!session) return { email: false, ntfy: false, telegram: false };
+  if (!session) return { email: false, ntfy: false, telegram: false, push: false };
 
   const working = await getWorkingChannels(session.userId);
   return {
     email: working.includes("email"),
     ntfy: working.includes("ntfy"),
     telegram: working.includes("telegram"),
+    push: working.includes("push"),
   };
 }
 
@@ -299,7 +302,7 @@ export async function testSmtpAction(config: {
 }
 
 export async function sendTestNotificationAction(
-  channel: "ntfy" | "telegram",
+  channel: "ntfy" | "telegram" | "push",
   ntfy?: { url: string; topic: string }
 ): Promise<ActionResult> {
   const session = await getSession();
@@ -323,6 +326,9 @@ export async function sendTestNotificationAction(
       return { ok: false, error: "server url must start with http:// or https://" };
     }
     send = () => sendNtfy(url, topic, title, message);
+  } else if (channel === "push") {
+    const userId = session.userId;
+    send = () => sendWebPush(userId, { title, body: message });
   } else {
     const botToken = process.env.TELEGRAM_BOT_TOKEN;
     const settings = await db.query.userSettings.findFirst({

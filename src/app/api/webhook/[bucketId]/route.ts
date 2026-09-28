@@ -11,7 +11,7 @@ import {
 } from "@/lib/notifications/constants";
 import { errorMessage } from "@/lib/errors";
 import { ITEM_STATUS, ITEM_TITLE_MAX_LENGTH } from "@/constants";
-import { channelDecisions } from "@/lib/notifications/channels";
+import { channelDecisions, getChannelSettings } from "@/lib/notifications/channels";
 import { initialReminderState } from "@/lib/items/reminders";
 import { dataEvents } from "@/lib/events";
 import { refreshItemReminders, reminderContext } from "@/lib/reminders/refresh";
@@ -170,9 +170,7 @@ export async function POST(
   const hasArrivalTrigger = parsedSchema?.success && parsedSchema.data.notifyOnArrival === true;
 
   if (hasArrivalTrigger) {
-    const userRow = await db.query.userSettings.findFirst({
-      where: (s, { eq: qe }) => qe(s.userId, bucket.userId),
-    });
+    const userRow = await getChannelSettings(bucket.userId);
 
     if (userRow) {
       await enqueueNotification({

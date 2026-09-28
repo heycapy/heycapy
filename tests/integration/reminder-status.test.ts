@@ -97,6 +97,7 @@ describe("dialog details", () => {
       next: TOMORROW,
       nextChannels: [
         { medium: "email", state: "notSelected" },
+        { medium: "push", state: "notSelected" },
         { medium: "telegram", state: "send" },
         { medium: "ntfy", state: "notSelected" },
       ],
@@ -170,6 +171,7 @@ describe("history records each channel as it was at send time", () => {
     expect(info?.history[0].kind).toBe("reminder");
     expect(info?.history[0].channels.map((c) => [c.medium, c.outcome])).toEqual([
       ["email", "sent"],
+      ["push", "notSelected"],
       ["telegram", "notSetUp"],
       ["ntfy", "notSelected"],
     ]);

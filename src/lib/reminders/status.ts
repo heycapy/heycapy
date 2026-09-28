@@ -2,8 +2,13 @@ import { bucketChannels } from "@/lib/rules";
 import { ITEM_STATUS, isClosedStatus } from "@/constants";
 import { and, desc, eq, inArray } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { buckets, items, notificationQueue, userSettings } from "@/lib/db/schema";
-import { ALL_CHANNELS, channelDecisions, type ChannelDecision } from "@/lib/notifications/channels";
+import { buckets, items, notificationQueue } from "@/lib/db/schema";
+import {
+  ALL_CHANNELS,
+  channelDecisions,
+  getChannelSettings,
+  type ChannelDecision,
+} from "@/lib/notifications/channels";
 import type { NotificationMedium } from "@/lib/notifications/queue";
 
 type Item = typeof items.$inferSelect;
@@ -35,10 +40,7 @@ export type ItemReminderInfo = {
 const HISTORY_LIMIT = 10;
 
 async function currentDecisions(userId: number, notificationsRules: string) {
-  const settings = await db.query.userSettings.findFirst({
-    where: eq(userSettings.userId, userId),
-  });
-  return channelDecisions(bucketChannels(notificationsRules), settings);
+  return channelDecisions(bucketChannels(notificationsRules), await getChannelSettings(userId));
 }
 
 function toOutcome(job: Job): ChannelOutcome {

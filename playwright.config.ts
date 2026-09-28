@@ -50,9 +50,12 @@ export default defineConfig({
     command:
       "pnpm build && cp -r public .next/standalone/ && cp -r .next/static .next/standalone/.next/ && cp -r src/lib/db/migrations .next/standalone/migrations && DATABASE_URL=file:$PWD/.e2e/heycapy.db node .next/standalone/server.js",
     url: BASE_URL,
-    // Dummy keys override .env: channels count as configured, and nothing reaches real services
+    // Dummy keys override .env: channels count as configured, and nothing reaches real services.
+    // The build copies a local .env into the server but CI has none, so secrets are set here too
     env: {
       E2E_TEST_MODE: "1",
+      JWT_SECRET: "dummy-jwt-key-wow-pew-pew-pew",
+      ENCRYPTION_KEY: "e2e0".repeat(16),
       RESEND_API_KEY: "e2e-not-used",
       TELEGRAM_BOT_TOKEN: "e2e-not-used",
       ADMIN_EMAILS: "e2e-system@heycapy.test",

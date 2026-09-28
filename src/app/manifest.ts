@@ -1,0 +1,18 @@
+import type { MetadataRoute } from "next";
+import { APP_NAME } from "@/constants";
+
+export default function manifest(): MetadataRoute.Manifest {
+  return {
+    name: APP_NAME,
+    short_name: APP_NAME,
+    description: "a capy to help you with your day.",
+    start_url: "/",
+    display: "standalone",
+    background_color: "#fdf6e3",
+    theme_color: "#fdf6e3",
+    icons: [
+      { src: "/icon-192.png", sizes: "192x192", type: "image/png" },
+      { src: "/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
+  };
+}

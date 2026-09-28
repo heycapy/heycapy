@@ -6,6 +6,7 @@ import {
   chatSessions,
   items,
   notificationLog,
+  pushSubscriptions,
   templates,
   userSettings,
   users,
@@ -22,7 +23,7 @@ function parsed(raw: unknown): unknown {
 }
 
 export async function buildAccountExport(userId: number, now = new Date()) {
-  const [user, settings, bucketRows, itemRows, templateRows, history, sessions, messages] =
+  const [user, settings, bucketRows, itemRows, templateRows, history, sessions, messages, devices] =
     await Promise.all([
       db.query.users.findFirst({ where: eq(users.id, userId) }),
       db.query.userSettings.findFirst({ where: eq(userSettings.userId, userId) }),
@@ -44,6 +45,11 @@ export async function buildAccountExport(userId: number, now = new Date()) {
         .from(chatMessages)
         .where(eq(chatMessages.userId, userId))
         .orderBy(asc(chatMessages.id)),
+      db
+        .select({ name: pushSubscriptions.deviceName, addedAt: pushSubscriptions.createdAt })
+        .from(pushSubscriptions)
+        .where(eq(pushSubscriptions.userId, userId))
+        .orderBy(asc(pushSubscriptions.id)),
     ]);
 
   return {
@@ -72,6 +78,7 @@ export async function buildAccountExport(userId: number, now = new Date()) {
           enabled: settings.notificationsTelegram,
           connected: settings.telegramChatId !== null,
         },
+        pushDevices: devices,
       },
       personality: {
         name: settings.personalityName,

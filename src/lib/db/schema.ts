@@ -202,7 +202,7 @@ export const notificationQueue = sqliteTable("notification_queue", {
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
   itemId: integer("item_id").references(() => items.id, { onDelete: "set null" }),
-  medium: text("medium", { enum: ["email", "ntfy", "telegram"] }).notNull(),
+  medium: text("medium", { enum: ["email", "ntfy", "telegram", "push"] }).notNull(),
   title: text("title").notNull(),
   message: text("message").notNull(),
   status: text("status", {
@@ -232,7 +232,7 @@ export const notificationLog = sqliteTable("notification_log", {
   userId: integer("user_id")
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
-  medium: text("medium", { enum: ["email", "ntfy", "telegram"] }).notNull(),
+  medium: text("medium", { enum: ["email", "ntfy", "telegram", "push"] }).notNull(),
   message: text("message").notNull(),
   status: text("status", { enum: ["sent", "failed"] })
     .notNull()
@@ -318,3 +318,27 @@ export const systemErrors = sqliteTable(
   },
   (t) => [index("idx_system_errors_created_at").on(t.createdAt)]
 );
+
+export const pushSubscriptions = sqliteTable(
+  "push_subscriptions",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    userId: integer("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    endpoint: text("endpoint").notNull().unique(),
+    p256dh: text("p256dh").notNull(),
+    auth: text("auth").notNull(),
+    deviceName: text("device_name").notNull(),
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .default(sql`(unixepoch())`),
+  },
+  (t) => [index("idx_push_subscriptions_user_id").on(t.userId)]
+);
+
+// Server-wide values generated on first use, e.g. the web push (VAPID) keys
+export const serverSecrets = sqliteTable("server_secrets", {
+  name: text("name").primaryKey(),
+  value: text("value").notNull(),
+});

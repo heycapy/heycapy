@@ -4,7 +4,7 @@ import { Activity, Bell, Briefcase, CreditCard, ListTodo, Square } from "lucide-
 import type { RecurrenceMode, StatusDef } from "@/types/rules";
 
 export type SortBy = "deadline" | "created_at" | "manual";
-export type NotificationMedium = "ntfy" | "email" | "telegram";
+export type NotificationMedium = "ntfy" | "email" | "telegram" | "push";
 export type RepeatMode = "once" | "daily";
 
 export type ItemsRulesConfig = {
@@ -57,9 +57,10 @@ export const SORT_OPTIONS: { value: SortBy; label: string }[] = [
 ];
 
 export const MEDIUM_OPTIONS: { value: NotificationMedium; label: string }[] = [
-  { value: "ntfy", label: "ntfy" },
   { value: "email", label: "email" },
+  { value: "push", label: "push" },
   { value: "telegram", label: "telegram" },
+  { value: "ntfy", label: "ntfy" },
 ];
 
 export const REPEAT_OPTIONS: { value: RepeatMode; label: string }[] = [

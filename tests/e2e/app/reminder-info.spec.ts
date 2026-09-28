@@ -32,7 +32,9 @@ test("an upcoming reminder is an icon that opens its details", async ({ page }) 
   const dialog = reminderDialog(page, title);
   const details = dialog.getByRole("region", { name: "reminders" });
   await expect(details).toContainText(/next \w{3} \d+/);
-  await expect(details).toContainText("goes to email (telegram not selected · ntfy not selected)");
+  await expect(details).toContainText(
+    "goes to email (push not selected · telegram not selected · ntfy not selected)"
+  );
 
   await dialog.getByRole("button", { name: "[ x ]", exact: true }).click();
   await expect(dialog).toHaveCount(0);

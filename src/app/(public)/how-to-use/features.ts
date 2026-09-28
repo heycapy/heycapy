@@ -59,7 +59,7 @@ export const FEATURES: Feature[] = [
   },
   {
     title: "notifications",
-    desc: "email, ntfy push, or telegram per bucket. offsets, quiet hours, repeat.",
+    desc: "email, push, telegram or ntfy per bucket. offsets, quiet hours, repeat.",
     where: "bucket settings → notifications",
     detail: [
       { type: "text", text: "each bucket picks its own channels independently." },

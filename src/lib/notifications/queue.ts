@@ -5,6 +5,7 @@ import { notificationQueue, notificationLog, users, userSettings } from "@/lib/d
 import { sendEmail } from "./email";
 import { buildNotificationEmail } from "@/lib/auth/notificationEmail";
 import { sendNtfy } from "./ntfy";
+import { sendWebPush } from "./web-push";
 import { sendTelegramAlert } from "./telegram-alert";
 import { errorMessage } from "@/lib/errors";
 import { withTimeout } from "@/lib/async";
@@ -20,7 +21,7 @@ import {
   DELIVERY_TIMEOUT_MS,
 } from "./constants";
 
-export type NotificationMedium = "email" | "ntfy" | "telegram";
+export type NotificationMedium = "email" | "ntfy" | "telegram" | "push";
 
 export type NotificationJob = {
   userId: number;
@@ -190,6 +191,13 @@ export async function processPending(): Promise<void> {
               if (!userRow.notificationsPush || !userRow.ntfyUrl || !userRow.ntfyTopic)
                 throw new Error("ntfy not configured");
               await sendNtfy(userRow.ntfyUrl, userRow.ntfyTopic, job.title, job.message);
+              return null;
+            case "push":
+              await sendWebPush(job.userId, {
+                title: job.title,
+                body: job.message,
+                ...(job.itemId && { tag: `item-${job.itemId}` }),
+              });
               return null;
             case "telegram": {
               const botToken = process.env.TELEGRAM_BOT_TOKEN;

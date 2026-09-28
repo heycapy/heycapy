@@ -12,7 +12,7 @@ import { dataEvents } from "@/lib/events";
 import { decryptValue } from "@/lib/crypto";
 import { getAIProvider } from "@/lib/ai";
 import { enqueueNotification, processPending } from "@/lib/notifications/queue";
-import { channelDecisions } from "@/lib/notifications/channels";
+import { channelDecisions, hasPushDevice } from "@/lib/notifications/channels";
 import { nextDeadlineReminder, nextOverdueAlert } from "@/lib/reminders/schedule";
 import { reconcile, reminderRowFields, toReminderInputs } from "@/lib/reminders/refresh";
 import {
@@ -100,6 +100,7 @@ const dueRowFields = {
   ntfyTopic: userSettings.ntfyTopic,
   telegramChatId: userSettings.telegramChatId,
   notificationsTelegram: userSettings.notificationsTelegram,
+  hasPushDevice,
   aiProvider: userSettings.aiProvider,
   aiApiKey: userSettings.aiApiKey,
   aiModel: userSettings.aiModel,

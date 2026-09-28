@@ -90,6 +90,10 @@ caddy handles HTTPS automatically. data lives in a docker volume at `/data/heyca
 
 everything else (ntfy, ai provider, smtp, notifications) is configured per-user inside the app.
 
+### push notifications
+
+web push works out of the box: the server generates its keys on first use and keeps them in the database (`server_secrets`), so don't reset that table or every device has to turn push on again. it needs https (localhost is fine for development). on iphone, push only works after "add to home screen" (ios 16.4+).
+
 ### health checks
 
 - `GET /api/health` — the app and database are up (safe for your platform's health check)

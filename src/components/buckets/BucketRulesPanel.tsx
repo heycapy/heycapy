@@ -29,7 +29,7 @@ const OVERDUE_FIRST_ALERT_OPTIONS = [
   { value: 1440, label: "1 day" },
 ] as const;
 
-export type NotifAvailability = { email: boolean; ntfy: boolean; telegram: boolean };
+export type NotifAvailability = { email: boolean; ntfy: boolean; telegram: boolean; push: boolean };
 
 type BucketRulesPanelProps = {
   activeTab: "items" | "notifications";
@@ -171,6 +171,11 @@ export function BucketRulesPanel({
             {mediums.includes("telegram") && !notifAvailability.telegram && (
               <span className="text-warning font-mono text-[9px]">
                 ⚠ telegram not connected — set up in tweaks
+              </span>
+            )}
+            {mediums.includes("push") && !notifAvailability.push && (
+              <span className="text-warning font-mono text-[9px]">
+                ⚠ push is off on every device — turn it on in tweaks
               </span>
             )}
           </div>

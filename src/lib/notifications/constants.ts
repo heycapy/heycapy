@@ -3,6 +3,10 @@ export const QUEUE_PROCESS_BATCH_SIZE = 50;
 export const QUEUE_RETRY_DELAY_MINS = [1, 5, 15] as const;
 export const QUEUE_SENDING_LEASE_MS = 10 * 60 * 1000;
 export const DELIVERY_TIMEOUT_MS = 30_000;
+// a reminder older than a day is stale; the push service drops it instead of delivering late
+export const PUSH_TTL_SECONDS = 24 * 60 * 60;
+export const PUSH_DEVICE_NAME_MAX_LENGTH = 60;
+export const PUSH_DEVICES_MAX = 20;
 export const CHANNEL_FAILURE_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
 
 export const WEBHOOK_RATE_LIMIT_MAX = 120;
