@@ -20,6 +20,16 @@ export const QUICK_REMIND_OPTIONS = [
 ] as const;
 
 export type QuickRemindChoice = (typeof QUICK_REMIND_OPTIONS)[number]["value"];
+export const QUICK_REMIND_VALUES = [
+  "15",
+  "30",
+  "60",
+  "tomorrow",
+] as const satisfies readonly QuickRemindChoice[];
+export const DEFAULT_REMINDER_BUTTONS: QuickRemindChoice[] = ["60", "tomorrow"];
+
+export const PUSH_REMIND_BUTTONS = 1;
+export const REMINDER_ACTION_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
 export const RESCHEDULE_DAY_LABELS = {
   today: "Today",

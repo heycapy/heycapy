@@ -1,4 +1,5 @@
 import { ITEM_STATUS } from "@/constants";
+import type { QuickRemindChoice } from "@/lib/notifications/constants";
 import type { LucideIcon } from "lucide-react";
 import { Activity, Bell, Briefcase, CreditCard, ListTodo, Square } from "lucide-react";
 import type { RecurrenceMode, StatusDef } from "@/types/rules";
@@ -18,6 +19,7 @@ export type ItemsRulesConfig = {
 
 export type NotificationsRulesConfig = {
   medium?: NotificationMedium[];
+  reminderButtons?: QuickRemindChoice[];
   notifyAt?: string;
   defaultOffsetMins?: number;
   repeat?: RepeatMode;

@@ -6,6 +6,7 @@ import { sendEmail } from "./email";
 import { buildNotificationEmail } from "@/lib/auth/notificationEmail";
 import { sendNtfy } from "./ntfy";
 import { sendWebPush } from "./web-push";
+import { reminderLinks } from "@/lib/reminders/reminder-buttons";
 import { sendTelegramAlert } from "./telegram-alert";
 import { errorMessage } from "@/lib/errors";
 import { withTimeout } from "@/lib/async";
@@ -19,6 +20,7 @@ import {
   QUEUE_RETRY_DELAY_MINS,
   QUEUE_SENDING_LEASE_MS,
   DELIVERY_TIMEOUT_MS,
+  PUSH_REMIND_BUTTONS,
 } from "./constants";
 
 export type NotificationMedium = "email" | "ntfy" | "telegram" | "push";
@@ -192,13 +194,26 @@ export async function processPending(): Promise<void> {
                 throw new Error("ntfy not configured");
               await sendNtfy(userRow.ntfyUrl, userRow.ntfyTopic, job.title, job.message);
               return null;
-            case "push":
+            case "push": {
+              const links =
+                job.itemId && job.kind !== "arrival"
+                  ? await reminderLinks(job.userId, job.itemId, PUSH_REMIND_BUTTONS, now)
+                  : null;
               await sendWebPush(job.userId, {
                 title: job.title,
                 body: job.message,
                 ...(job.itemId && { tag: `item-${job.itemId}` }),
+                ...(links && {
+                  url: links.path,
+                  actions: links.buttons.map((b) => ({
+                    action: b.action,
+                    title: b.label,
+                    token: b.token,
+                  })),
+                }),
               });
               return null;
+            }
             case "telegram": {
               const botToken = process.env.TELEGRAM_BOT_TOKEN;
               if (!userRow.notificationsTelegram || !botToken || !userRow.telegramChatId)

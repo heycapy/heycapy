@@ -1,3 +1,4 @@
+import { QUICK_REMIND_OPTIONS, type QuickRemindChoice } from "@/lib/notifications/constants";
 import { Toggle } from "@/components/ui/Toggle";
 import { OptionButton } from "@/components/ui/OptionButton";
 import { OptionGroup } from "@/components/ui/OptionGroup";
@@ -41,6 +42,7 @@ type BucketRulesPanelProps = {
   readonly: boolean;
   defaultDeadlineOffset: string;
   mediums: NotificationMedium[];
+  reminderButtons: QuickRemindChoice[];
   notifyAt: string;
   defaultOffset: string;
   repeat: RepeatMode;
@@ -55,6 +57,7 @@ type BucketRulesPanelProps = {
   onReadonlyChange: (v: boolean) => void;
   onDefaultDeadlineOffsetChange: (v: string) => void;
   onMediumToggle: (m: NotificationMedium) => void;
+  onReminderButtonToggle: (b: QuickRemindChoice) => void;
   onNotifyAtChange: (v: string) => void;
   onDefaultOffsetChange: (v: string) => void;
   onRepeatChange: (v: RepeatMode) => void;
@@ -75,6 +78,7 @@ export function BucketRulesPanel({
   readonly,
   defaultDeadlineOffset,
   mediums,
+  reminderButtons,
   notifyAt,
   defaultOffset,
   repeat,
@@ -89,6 +93,7 @@ export function BucketRulesPanel({
   onReadonlyChange,
   onDefaultDeadlineOffsetChange,
   onMediumToggle,
+  onReminderButtonToggle,
   onNotifyAtChange,
   onDefaultOffsetChange,
   onRepeatChange,
@@ -180,6 +185,20 @@ export function BucketRulesPanel({
             )}
           </div>
         )}
+      </div>
+      <div className="flex flex-col gap-1.5">
+        <label className={LABEL}>reminder buttons</label>
+        <span className={HINT}>
+          done is always there; pick when to be reminded again. push on android and desktop shows
+          done + the first one
+        </span>
+        <OptionGroup
+          options={[...QUICK_REMIND_OPTIONS]}
+          value={reminderButtons}
+          onChange={onReminderButtonToggle}
+          multi
+          disabled={disabled}
+        />
       </div>
       <div className="flex flex-col gap-1.5">
         <label className={LABEL}>remind me before deadline</label>

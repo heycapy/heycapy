@@ -1,7 +1,5 @@
 import { ITEM_STATUS } from "@/constants";
-import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { items } from "@/lib/db/schema";
 import { dataEvents } from "@/lib/events";
 import { QUICK_REMIND_OPTIONS, type QuickRemindChoice } from "@/lib/notifications/constants";
 import { editTelegramHtml } from "@/lib/notifications/telegram";
@@ -10,14 +8,7 @@ import {
   itemMissedHtml,
   remindAgainHtml,
 } from "@/lib/notifications/telegram-message";
-import {
-  refreshItemReminders,
-  selectReminderRows,
-  toReminderInputs,
-} from "@/lib/reminders/refresh";
-import { remindAgainAt } from "@/lib/reminders/schedule";
-import { addLocalDays } from "@/lib/reminders/zoned";
-import { completeItemById } from "./telegram-utils";
+import { completeItem, remindItemAgain } from "@/lib/reminders/quick-actions";
 import { startReschedule } from "./telegram-reschedule";
 
 type Ctx = { botToken: string; chatId: string; userId: number; timezone: string };
@@ -49,7 +40,7 @@ export async function handleReminderAction(
   else if (item.status === ITEM_STATUS.completed) html = itemDoneHtml(item.title, true);
   else if (item.status === ITEM_STATUS.missed) html = itemMissedHtml(item.title);
   else if (prefix === "qc") {
-    await completeItemById(ctx.userId, itemId);
+    await completeItem(ctx.userId, itemId);
     html = itemDoneHtml(item.title, false);
   } else {
     const option = QUICK_REMIND_OPTIONS.find((o) => o.value === choice);
@@ -68,22 +59,6 @@ async function remindAgain(
   choice: QuickRemindChoice
 ): Promise<string> {
   const now = new Date();
-  const at =
-    choice === "tomorrow"
-      ? addLocalDays(now, 1, ctx.timezone)
-      : new Date(now.getTime() + Number(choice) * 60_000);
-  const [row] = await selectReminderRows(eq(items.id, itemId));
-  if (!row) return GONE;
-  await db
-    .update(items)
-    .set({ ...remindAgainAt(toReminderInputs(row), at, now), updatedAt: now })
-    .where(eq(items.id, itemId));
-  await refreshItemReminders([itemId]);
-
-  // Quiet hours or "notify at" can push the ping later than asked; show the real time
-  const refreshed = await db.query.items.findFirst({ where: eq(items.id, itemId) });
-  const next = [refreshed?.nextReminderAt, refreshed?.nextOverdueAt]
-    .filter((d): d is Date => d instanceof Date)
-    .sort((a, b) => a.getTime() - b.getTime())[0];
-  return remindAgainHtml(title, next ?? at, now, ctx.timezone);
+  const next = await remindItemAgain(itemId, choice, ctx.timezone, now);
+  return next ? remindAgainHtml(title, next, now, ctx.timezone) : GONE;
 }

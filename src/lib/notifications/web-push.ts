@@ -35,7 +35,13 @@ function vapidSubject(): string {
   return appUrl?.startsWith("https://") ? appUrl : `mailto:noreply@${APP_DOMAIN}`;
 }
 
-export type PushPayload = { title: string; body: string; tag?: string };
+export type PushPayload = {
+  title: string;
+  body: string;
+  tag?: string;
+  url?: string;
+  actions?: { action: string; title: string; token: string }[];
+};
 
 export async function sendWebPush(userId: number, payload: PushPayload): Promise<void> {
   const devices = await db

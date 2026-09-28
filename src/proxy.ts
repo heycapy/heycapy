@@ -52,6 +52,6 @@ function withoutStaleCookie(response: NextResponse, token: string | undefined): 
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|sw\\.js$|manifest\\.webmanifest$|opengraph-image|.*\\.png$|api/telegram|api/webhook|api/feedback|api/e2e|api/health).*)",
+    "/((?!_next/static|_next/image|favicon.ico|sw\\.js$|manifest\\.webmanifest$|opengraph-image|.*\\.png$|api/telegram|api/webhook|api/reminder-action|api/feedback|api/e2e|api/health).*)",
   ],
 };

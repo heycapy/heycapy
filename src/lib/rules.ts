@@ -1,4 +1,5 @@
 import { ItemsRules, NotificationRules } from "@/types/rules";
+import { QUICK_REMIND_VALUES, type QuickRemindChoice } from "@/lib/notifications/constants";
 
 function parseJson(raw: string | null | undefined): Record<string, unknown> {
   try {
@@ -16,6 +17,11 @@ export function parseNotificationRules(raw: string | null | undefined): Notifica
 
 export function bucketChannels(raw: string | null | undefined): NotificationRules["medium"] {
   return parseNotificationRules(raw).medium;
+}
+
+export function bucketReminderButtons(raw: string | null | undefined): QuickRemindChoice[] {
+  const picked = parseNotificationRules(raw).reminderButtons;
+  return QUICK_REMIND_VALUES.filter((v) => picked.includes(v));
 }
 
 export function parseItemsRules(raw: string | null | undefined): Partial<ItemsRules> {

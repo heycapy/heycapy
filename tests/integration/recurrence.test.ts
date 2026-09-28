@@ -3,7 +3,7 @@ import { asc, eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { items } from "@/lib/db/schema";
 import { executeToolCall } from "@/lib/ai/capyTools";
-import { completeItemById } from "@/app/api/telegram/telegram-utils";
+import { completeItem } from "@/lib/reminders/quick-actions";
 import {
   completeItemAction,
   skipOccurrenceAction,
@@ -99,7 +99,7 @@ describe("completing a recurring item creates the next occurrence", () => {
 
   it("from telegram's Done button", async () => {
     const { userId, bucketId, itemId } = await seedRecurring({});
-    await completeItemById(userId, itemId);
+    await completeItem(userId, itemId);
     expect(await bucketItems(bucketId)).toHaveLength(2);
   });
 

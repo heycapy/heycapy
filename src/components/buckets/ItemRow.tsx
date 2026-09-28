@@ -1,6 +1,6 @@
 import { formatShort } from "@/lib/format-date";
 import { ITEM_STATUS, isClosedStatus } from "@/constants";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Bell, BellOff, GripVertical, TriangleAlert } from "lucide-react";
 import type { DragControls } from "framer-motion";
@@ -156,6 +156,15 @@ export function ItemRow({
   const [reminderOpen, setReminderOpen] = useState(false);
   const ReminderIcon = reminderBadge ? REMINDER_ICON[reminderBadge].Icon : null;
   const dotRef = useRef<HTMLButtonElement>(null);
+  const rowRef = useRef<HTMLDivElement>(null);
+  const anchor = `item-${item.id}`;
+
+  // Opened from a notification: items load after the page, so the browser can't scroll there itself
+  useEffect(() => {
+    if (window.location.hash === `#${anchor}`) {
+      rowRef.current?.scrollIntoView({ block: "center" });
+    }
+  }, [anchor]);
   const rel = item.deadline && !isClosedStatus(item.status) ? relativeTime(item.deadline) : null;
   const isCompleted = item.status === ITEM_STATUS.completed;
   const isMissed = item.status === ITEM_STATUS.missed;
@@ -171,8 +180,10 @@ export function ItemRow({
 
   return (
     <div
+      ref={rowRef}
+      id={anchor}
       className={cn(
-        "flex items-stretch gap-0 px-3",
+        "target:bg-primary/10 flex items-stretch gap-0 px-3 transition-colors",
         isEditing && "bg-muted/20",
         (isCompleted || isMissed) && "opacity-60"
       )}

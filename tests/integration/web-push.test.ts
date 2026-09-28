@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type * as SessionModule from "@/lib/auth/session";
 import type * as WebPushModule from "web-push";
 import { WebPushError } from "web-push";
@@ -32,6 +32,15 @@ vi.mock("@/lib/auth/session", async (importOriginal) => ({
 }));
 
 const T0 = new Date("2026-03-10T12:00:00Z");
+
+// Reminder buttons on push notifications are signed with it
+const previousSecret = process.env.JWT_SECRET;
+beforeAll(() => {
+  process.env.JWT_SECRET = "test-secret-at-least-32-characters-long";
+});
+afterAll(() => {
+  process.env.JWT_SECRET = previousSecret;
+});
 
 beforeEach(() => {
   useSchedulerEnvironment(T0);

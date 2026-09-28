@@ -1,3 +1,4 @@
+import { completeItem } from "@/lib/reminders/quick-actions";
 import { recordSystemError } from "@/lib/system-errors";
 import { desc, eq } from "drizzle-orm";
 import { db } from "@/lib/db";
@@ -31,7 +32,6 @@ import {
   getUserBuckets,
   parseTimeStringExtended,
   parseNaturalDeadline,
-  completeItemById,
   updateItemTitle,
   softDeleteItemById,
 } from "./telegram-utils";
@@ -425,7 +425,7 @@ async function handleUpdate(botToken: string, body: TelegramUpdate): Promise<Res
       const action = callbackData.slice(3);
       if (action === "complete") {
         if (msgId) await removeMessageButtons(botToken, chatIdStr, msgId);
-        await completeItemById(userId, flowState.itemId);
+        await completeItem(userId, flowState.itemId);
         await setFlowState(userId, null);
         dataEvents.emit("refresh", userId);
         await sendTelegramWithQuickActions(

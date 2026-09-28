@@ -4,7 +4,6 @@ import { db } from "@/lib/db";
 import { buckets, items, userSettings } from "@/lib/db/schema";
 import { initialReminderState, reminderResetForDeadline } from "@/lib/items/reminders";
 import { refreshItemReminders, reminderContext } from "@/lib/reminders/refresh";
-import { createNextOccurrence } from "@/lib/items/recurrence";
 import {
   addLocalDays,
   atLocalClock,
@@ -227,15 +226,6 @@ export async function getUserBuckets(userId: number) {
     .from(buckets)
     .where(and(eq(buckets.userId, userId), isNull(buckets.deletedAt), isNull(buckets.archivedAt)))
     .orderBy(buckets.sortOrder);
-}
-
-export async function completeItemById(userId: number, itemId: number): Promise<void> {
-  await db
-    .update(items)
-    .set({ status: ITEM_STATUS.completed, completedAt: new Date(), updatedAt: new Date() })
-    .where(and(eq(items.id, itemId), eq(items.userId, userId)));
-  await refreshItemReminders([itemId]);
-  await createNextOccurrence(itemId);
 }
 
 export async function updateItemTitle(
