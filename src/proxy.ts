@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { getSessionFromToken } from "@/lib/auth/session";
+import { verifySessionToken } from "@/lib/auth/session";
 import { SESSION_COOKIE_NAME } from "@/lib/auth/constants";
 
 const PUBLIC_PATHS = ["/home", "/about", "/how-to-use"];
@@ -30,18 +30,24 @@ export async function proxy(request: NextRequest) {
   }
 
   const token = request.cookies.get(SESSION_COOKIE_NAME)?.value;
-  const session = token ? await getSessionFromToken(token) : null;
+  const session = token ? await verifySessionToken(token) : null;
 
   if (pathname.startsWith("/login")) {
     if (session) return NextResponse.redirect(new URL("/", request.url));
-    return NextResponse.next();
+    return withoutStaleCookie(NextResponse.next(), token);
   }
 
   if (!session) {
-    return NextResponse.redirect(new URL("/login", request.url));
+    return withoutStaleCookie(NextResponse.redirect(new URL("/login", request.url)), token);
   }
 
   return NextResponse.next();
+}
+
+// A revoked or expired session: drop it so the browser stops sending it
+function withoutStaleCookie(response: NextResponse, token: string | undefined): NextResponse {
+  if (token) response.cookies.delete(SESSION_COOKIE_NAME);
+  return response;
 }
 
 export const config = {

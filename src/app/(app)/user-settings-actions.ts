@@ -4,7 +4,7 @@ import type { ActionResult } from "@/types/result";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { getSession, deleteSession } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { users, userSettings } from "@/lib/db/schema";
@@ -137,6 +137,19 @@ export async function updateUserSettingsAction(data: UserSettingsUpdate): Promis
 }
 
 export async function logoutAction() {
+  await deleteSession();
+  redirect("/login");
+}
+
+// Ends every session of this user, on every device, including this one
+export async function logoutEverywhereAction() {
+  const session = await getSession();
+  if (session) {
+    await db
+      .update(users)
+      .set({ sessionVersion: sql`${users.sessionVersion} + 1` })
+      .where(eq(users.id, session.userId));
+  }
   await deleteSession();
   redirect("/login");
 }
