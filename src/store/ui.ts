@@ -16,6 +16,9 @@ type UIStore = {
 
   activeBucketId: number | null;
   setActiveBucketId: (id: number) => void;
+
+  todayOpen: boolean;
+  openToday: () => void;
 };
 
 export const useUIStore = create<UIStore>()(
@@ -34,12 +37,15 @@ export const useUIStore = create<UIStore>()(
       tickAiRefresh: () => set((s) => ({ aiRefreshTick: s.aiRefreshTick + 1 })),
 
       activeBucketId: null,
-      setActiveBucketId: (id) => set({ activeBucketId: id }),
+      setActiveBucketId: (id) => set({ activeBucketId: id, todayOpen: false }),
+
+      todayOpen: true,
+      openToday: () => set({ todayOpen: true }),
     }),
     {
       name: "heycapy-ui",
       storage: createJSONStorage(() => sessionStorage),
-      partialize: (s) => ({ activeBucketId: s.activeBucketId }),
+      partialize: (s) => ({ activeBucketId: s.activeBucketId, todayOpen: s.todayOpen }),
       skipHydration: true,
     }
   )

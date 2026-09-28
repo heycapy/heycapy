@@ -12,8 +12,7 @@ import { BracketButton } from "@/components/ui/BracketButton";
 import { daysToDisplayStr, parseDurationToDate } from "@/lib/duration";
 import { DEFAULT_BUCKET_STATUSES } from "./constants";
 import type { buckets } from "@/lib/db/schema";
-import { BucketSchema } from "@/types/rules";
-import type { FieldDef } from "@/types/rules";
+import { parseFields } from "./fields";
 
 type BucketRow = typeof buckets.$inferSelect;
 
@@ -21,16 +20,6 @@ type BucketContentProps = {
   bucket: BucketRow;
   accentColor: string;
 };
-
-function parseFields(fieldSchema: unknown): FieldDef[] {
-  try {
-    if (!fieldSchema) return [];
-    const raw = fieldSchema as string;
-    return BucketSchema.parse(typeof raw === "string" ? JSON.parse(raw) : raw).fields;
-  } catch {
-    return [];
-  }
-}
 
 export function BucketContent({ bucket, accentColor }: BucketContentProps) {
   const rules = parseItemsRules(bucket.itemsRules);

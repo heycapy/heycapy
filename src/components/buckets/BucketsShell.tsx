@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Drawer } from "vaul";
-import { Check, ChevronDown } from "lucide-react";
+import { Check, ChevronDown, Clock } from "lucide-react";
 import { BracketButton } from "@/components/ui/BracketButton";
 import { cn } from "@/lib/utils";
 import { BucketContent } from "./BucketContent";
+import { TodayView } from "@/components/today/TodayView";
 import { BUCKET_PALETTE } from "./constants";
 import { useUIStore } from "@/store/ui";
 import { saveTimezoneIfDefaultAction } from "@/app/(app)/user-settings-actions";
@@ -76,11 +77,46 @@ function MobileBucketPicker({
   );
 }
 
+function TodayButton({
+  active,
+  onClick,
+  className,
+}: {
+  active: boolean;
+  onClick: () => void;
+  className: string;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      aria-pressed={active}
+      className={cn(
+        "-mt-0.5 flex shrink-0 items-center gap-1.5 border-t-2 px-3 font-mono text-xs transition-colors",
+        active
+          ? "bg-card text-foreground border-t-foreground"
+          : "text-muted-foreground hover:text-foreground border-t-transparent",
+        className
+      )}
+    >
+      <Clock size={12} aria-hidden />
+      today
+    </button>
+  );
+}
+
 export function BucketsShell({ buckets: rawBuckets, focusBucketId = null }: BucketsShellProps) {
   const buckets = rawBuckets.filter((b, i, arr) => arr.findIndex((x) => x.id === b.id) === i);
   const openCreateBucket = useUIStore((s) => s.openCreateBucket);
   const activeBucketId = useUIStore((s) => s.activeBucketId);
   const setActiveBucketId = useUIStore((s) => s.setActiveBucketId);
+  const todayOpen = useUIStore((s) => s.todayOpen);
+  const openToday = useUIStore((s) => s.openToday);
+  // The open view is remembered per session; wait for it rather than flash the default
+  const hydrated = useSyncExternalStore(
+    (onChange) => useUIStore.persist.onFinishHydration(onChange),
+    () => useUIStore.persist.hasHydrated(),
+    () => false
+  );
   const prevBucketsRef = useRef<BucketRow[]>(buckets);
   const [pickerOpen, setPickerOpen] = useState(false);
 
@@ -109,7 +145,7 @@ export function BucketsShell({ buckets: rawBuckets, focusBucketId = null }: Buck
     const prevIndex = prevBucketsRef.current.findIndex((b) => b.id === activeBucketId);
     // prevIndex === -1 means the bucket was just created and hasn't arrived yet, not removed
     if (!stillExists && prevIndex !== -1 && buckets.length > 0) {
-      setActiveBucketId(buckets[Math.min(prevIndex, buckets.length - 1)].id);
+      useUIStore.setState({ activeBucketId: buckets[Math.min(prevIndex, buckets.length - 1)].id });
     }
     prevBucketsRef.current = buckets;
   }, [buckets, activeBucketId, setActiveBucketId]);
@@ -123,17 +159,23 @@ export function BucketsShell({ buckets: rawBuckets, focusBucketId = null }: Buck
   return (
     <div className="flex flex-1 flex-col">
       <div className="flex-1 overflow-y-auto pb-[420px]">
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={activeBucket.id}
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -6 }}
-            transition={{ duration: 0.15 }}
-          >
-            <BucketContent bucket={activeBucket} accentColor={accentColor} />
-          </motion.div>
-        </AnimatePresence>
+        {hydrated && (
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={todayOpen ? "today" : activeBucket.id}
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: 0.15 }}
+            >
+              {todayOpen ? (
+                <TodayView />
+              ) : (
+                <BucketContent bucket={activeBucket} accentColor={accentColor} />
+              )}
+            </motion.div>
+          </AnimatePresence>
+        )}
       </div>
 
       <div className="border-border bg-background sticky bottom-0 border-t-2">
@@ -142,19 +184,37 @@ export function BucketsShell({ buckets: rawBuckets, focusBucketId = null }: Buck
           <BracketButton onClick={openCreateBucket} className="shrink-0 px-3 py-3.5">
             add bucket
           </BracketButton>
-          <button onClick={() => setPickerOpen(true)} className="-mt-0.5 min-w-0 flex-1">
-            <div
-              className="bg-card flex items-center justify-between gap-2 border-t-2 px-3 py-3.5"
-              style={{ borderTopColor: accentColor }}
+          <TodayButton active={todayOpen} onClick={openToday} className="py-3.5" />
+          <div
+            className={cn(
+              "-mt-0.5 flex min-w-0 flex-1 items-stretch border-t-2",
+              todayOpen ? "border-t-transparent" : "bg-card"
+            )}
+            style={todayOpen ? undefined : { borderTopColor: accentColor }}
+          >
+            <button
+              onClick={() => (todayOpen ? setActiveBucketId(activeBucket.id) : setPickerOpen(true))}
+              className="min-w-0 flex-1 py-3.5 pl-3 text-left"
             >
-              <span className="font-pixel text-foreground block truncate text-xs">
+              <span
+                className={cn(
+                  "font-pixel block truncate text-xs",
+                  todayOpen ? "text-muted-foreground" : "text-foreground"
+                )}
+              >
                 {activeBucket.icon
                   ? `${activeBucket.icon} ${activeBucket.name}`
                   : activeBucket.name}
               </span>
-              <ChevronDown size={11} className="text-muted-foreground shrink-0" />
-            </div>
-          </button>
+            </button>
+            <button
+              onClick={() => setPickerOpen(true)}
+              aria-label="choose bucket"
+              className="text-muted-foreground shrink-0 px-3"
+            >
+              <ChevronDown size={11} aria-hidden />
+            </button>
+          </div>
         </div>
 
         {/* Desktop: tab bar */}
@@ -162,8 +222,10 @@ export function BucketsShell({ buckets: rawBuckets, focusBucketId = null }: Buck
           <BracketButton onClick={openCreateBucket} className="shrink-0 px-3 py-[13.8px]">
             add bucket
           </BracketButton>
+          <TodayButton active={todayOpen} onClick={openToday} className="py-[13.8px]" />
+          <span aria-hidden className="bg-border my-2.5 w-0.5 shrink-0" />
           {buckets.map((bucket, i) => {
-            const isActive = bucket.id === activeId;
+            const isActive = !todayOpen && bucket.id === activeId;
             const color = BUCKET_PALETTE[i % BUCKET_PALETTE.length];
 
             return (

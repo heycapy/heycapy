@@ -11,6 +11,7 @@ import type { StatusDef, FieldDef } from "@/types/rules";
 import type { ReminderBadge } from "@/lib/reminders/status";
 import { ReminderInfoDialog } from "./ReminderInfoDialog";
 import { pendingRemindAgainAt } from "@/lib/reminders/remind-again";
+import { relativeTime } from "@/lib/items/relative-day";
 import { parseRecurring } from "@/lib/items/occurrence";
 import { repeatLabel } from "@/lib/items/repeat-label";
 
@@ -25,6 +26,7 @@ type ItemRowProps = {
   onEditStart?: () => void;
   onStatusChange?: (status: string) => void;
   reminderBadge?: ReminderBadge;
+  bucket?: { name: string; color: string };
 };
 
 function StatusPicker({
@@ -75,17 +77,6 @@ function StatusPicker({
 function getRecurringFrequency(raw: string | null): string | null {
   const config = parseRecurring(raw);
   return config?.enabled ? repeatLabel(config) : null;
-}
-
-function relativeTime(deadline: Date): string {
-  const now = new Date();
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const deadlineDay = new Date(deadline.getFullYear(), deadline.getMonth(), deadline.getDate());
-  const diffDays = Math.round((deadlineDay.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-  if (diffDays < 0) return "overdue";
-  const allDay = deadline.getHours() === 0 && deadline.getMinutes() === 0;
-  if (diffDays === 0) return !allDay && deadline < now ? "overdue" : "today";
-  return `${diffDays}d`;
 }
 
 function daysLeftColor(rel: string): string {
@@ -156,6 +147,7 @@ export function ItemRow({
   onEditStart,
   onStatusChange,
   reminderBadge,
+  bucket,
 }: ItemRowProps) {
   const [pickerPos, setPickerPos] = useState<{ top: number; left: number } | null>(null);
   const [reminderOpen, setReminderOpen] = useState(false);
@@ -264,6 +256,17 @@ export function ItemRow({
         )}
         <span className="mt-0.5 flex flex-wrap items-center gap-x-1 gap-y-0.5 font-mono text-[10px] *:whitespace-nowrap">
           <span className="text-muted-foreground/30">#{item.id}</span>
+          {bucket && (
+            <span className="text-muted-foreground flex items-center gap-1">
+              ·
+              <span
+                className="h-1.5 w-1.5 rounded-full"
+                style={{ backgroundColor: bucket.color }}
+              />
+              {bucket.name}
+            </span>
+          )}
+          {bucket && !item.deadline && <span className="text-muted-foreground">· no date</span>}
           {isMissed && <span className="text-warning">· ⏭ missed</span>}
           {(item.deadline ?? item.notifiedAt) && (
             <>
