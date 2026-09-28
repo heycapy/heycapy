@@ -30,6 +30,23 @@ function shiftMonths(deadline: Date, months: number, anchorDay: number, timezone
   return fromLocal({ year, month, day, hour: l.hour, minute: l.minute }, timezone);
 }
 
+// Weeks run Monday to Sunday: the next picked day this week, else the first one `interval` weeks on
+function nextPickedWeekday(
+  deadline: Date,
+  weekdays: number[],
+  interval: number,
+  timezone: string
+): Date {
+  const l = toLocal(deadline, timezone);
+  const fromMonday = (day: number) => (day + 6) % 7;
+  const today = fromMonday(new Date(Date.UTC(l.year, l.month - 1, l.day)).getUTCDay());
+  const picked = [...new Set(weekdays.map(fromMonday))].sort((a, b) => a - b);
+  const later = picked.find((d) => d > today);
+  const offset =
+    later !== undefined ? later - today : 7 - today + 7 * (interval - 1) + (picked[0] ?? today);
+  return addLocalDays(deadline, offset, timezone);
+}
+
 // Steps in the user's local calendar so the clock time survives DST changes
 function advance(deadline: Date, config: RecurringConfig, timezone: string): Date {
   const n = config.interval;
@@ -38,7 +55,9 @@ function advance(deadline: Date, config: RecurringConfig, timezone: string): Dat
     case "daily":
       return addLocalDays(deadline, n, timezone);
     case "weekly":
-      return addLocalDays(deadline, n * 7, timezone);
+      return config.weekdays?.length
+        ? nextPickedWeekday(deadline, config.weekdays, n, timezone)
+        : addLocalDays(deadline, n * 7, timezone);
     case "monthly":
       return shiftMonths(deadline, n, anchorDay, timezone);
     case "yearly":

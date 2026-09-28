@@ -196,6 +196,7 @@ export function ItemDialog({
       {hasDate && onRecurringChange && (
         <RecurringPicker
           recurring={recurring}
+          deadlineDay={Number(datePart.slice(8, 10))}
           initialShowEndDate={!!recurring?.endDate}
           disabled={pending}
           onChange={onRecurringChange}

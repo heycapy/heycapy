@@ -70,5 +70,8 @@ test("a notification link opens its item's bucket", async ({ page }) => {
 
   await expect(activeBucketTitle(page)).toHaveText(target);
   await expect(itemRow(page, title)).toBeInViewport();
-  await expect(page).toHaveURL(new RegExp(`/#item-${itemId}$`));
+  const row = page.locator(`#item-${itemId}`);
+  await expect(row).not.toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
+  await expect(page).toHaveURL(/\/$/);
+  await expect(row).toHaveCSS("background-color", "rgba(0, 0, 0, 0)", { timeout: 8000 });
 });

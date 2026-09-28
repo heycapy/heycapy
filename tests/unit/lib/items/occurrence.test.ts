@@ -140,3 +140,90 @@ describe("followingOccurrence and nextAfterCompletion", () => {
     expect(next?.toISOString()).toBe("2026-03-16T03:30:00.000Z");
   });
 });
+
+describe("weekly on picked days", () => {
+  const iso = (d: Date | null) => d?.toISOString();
+  const at = (date: string) => new Date(`${date}T12:00:00Z`);
+  const monWedFri: RecurringConfig = { ...monthly, frequency: "weekly", weekdays: [1, 3, 5] };
+  const weekdays: RecurringConfig = { ...monWedFri, weekdays: [1, 2, 3, 4, 5] };
+
+  it("goes to the next picked day, wrapping into next week", () => {
+    expect(iso(followingOccurrence(at("2026-03-13"), monWedFri, "UTC"))).toBe(
+      "2026-03-16T12:00:00.000Z"
+    );
+    expect(iso(followingOccurrence(at("2026-03-16"), monWedFri, "UTC"))).toBe(
+      "2026-03-18T12:00:00.000Z"
+    );
+  });
+
+  it("starts from a deadline that isn't on a picked day", () => {
+    expect(iso(followingOccurrence(at("2026-03-17"), monWedFri, "UTC"))).toBe(
+      "2026-03-18T12:00:00.000Z"
+    );
+  });
+
+  it("every weekday skips the weekend", () => {
+    expect(iso(followingOccurrence(at("2026-03-13"), weekdays, "UTC"))).toBe(
+      "2026-03-16T12:00:00.000Z"
+    );
+    expect(iso(followingOccurrence(at("2026-03-16"), weekdays, "UTC"))).toBe(
+      "2026-03-17T12:00:00.000Z"
+    );
+  });
+
+  it("every 2 weeks finishes the week's picked days, then skips a week", () => {
+    const biweekly: RecurringConfig = { ...monWedFri, weekdays: [1, 5], interval: 2 };
+    expect(iso(followingOccurrence(at("2026-03-16"), biweekly, "UTC"))).toBe(
+      "2026-03-20T12:00:00.000Z"
+    );
+    expect(iso(followingOccurrence(at("2026-03-20"), biweekly, "UTC"))).toBe(
+      "2026-03-30T12:00:00.000Z"
+    );
+  });
+
+  it("uses the user's local day and keeps the clock time across daylight saving", () => {
+    const mondays: RecurringConfig = { ...monWedFri, weekdays: [1] };
+    const friday = new Date("2026-03-06T14:00:00Z");
+    expect(iso(followingOccurrence(friday, mondays, "America/New_York"))).toBe(
+      "2026-03-09T13:00:00.000Z"
+    );
+    const tokyoMonday = new Date("2026-03-15T16:00:00Z");
+    expect(iso(followingOccurrence(tokyoMonday, monWedFri, "Asia/Tokyo"))).toBe(
+      "2026-03-17T16:00:00.000Z"
+    );
+  });
+
+  it("after completion, the next picked day after the day it was done", () => {
+    const next = nextAfterCompletion(
+      at("2026-03-13"),
+      monWedFri,
+      "UTC",
+      new Date("2026-03-17T08:00:00Z")
+    );
+    expect(iso(next)).toBe("2026-03-18T12:00:00.000Z");
+  });
+
+  it("skips past picked days to the next one that's still ahead", () => {
+    const next = nextOccurrenceDate(at("2026-03-02"), monWedFri, "UTC", now);
+    expect(iso(next)).toBe("2026-03-11T12:00:00.000Z");
+  });
+});
+
+describe("monthly on the last day", () => {
+  it("follows each month's last day", () => {
+    const lastDay: RecurringConfig = { ...monthly, anchorDay: 31 };
+    const may = followingOccurrence(new Date("2026-04-30T12:00:00Z"), lastDay, "UTC");
+    expect(may?.toISOString()).toBe("2026-05-31T12:00:00.000Z");
+    const june = may && followingOccurrence(may, lastDay, "UTC");
+    expect(june?.toISOString()).toBe("2026-06-30T12:00:00.000Z");
+  });
+});
+
+describe("parseRecurring with picked days", () => {
+  it("keeps valid days and rejects impossible ones", () => {
+    const stored = JSON.stringify({ ...monthly, frequency: "weekly", weekdays: [1, 3] });
+    expect(parseRecurring(stored)?.weekdays).toEqual([1, 3]);
+    const broken = JSON.stringify({ ...monthly, frequency: "weekly", weekdays: [9] });
+    expect(parseRecurring(broken)).toBeNull();
+  });
+});

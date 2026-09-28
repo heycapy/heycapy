@@ -43,6 +43,8 @@ export const RecurringConfig = z.object({
   endDate: z.iso.date().nullable().default(null),
   // Day of month a monthly/yearly series was set on, so short months don't shift it
   anchorDay: z.number().int().min(1).max(31).optional(),
+  // Weekly on these days (0 = Sunday); without it, the deadline's own weekday
+  weekdays: z.array(z.number().int().min(0).max(6)).min(1).max(7).optional(),
 });
 
 export type NotificationRules = z.infer<typeof NotificationRules>;

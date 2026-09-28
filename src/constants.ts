@@ -3,6 +3,11 @@ export const APP_DOMAIN = "heycapy.xyz";
 export const APP_EMAIL_FROM = `${APP_NAME} <noreply@${APP_DOMAIN}>`;
 export const APP_TAGLINE = "a capy to help you with your day.";
 
+// Indexed like Date.getDay(): 0 = Sunday
+export const WEEKDAY_NAMES = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"] as const;
+export const WORK_WEEK = [1, 2, 3, 4, 5];
+export const LAST_DAY_OF_MONTH = 31;
+
 export const OG_COLORS = {
   background: "#1d1816",
   foreground: "#d6c7a9",

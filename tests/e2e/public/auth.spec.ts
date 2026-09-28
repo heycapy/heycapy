@@ -75,6 +75,15 @@ test.describe("login page", () => {
     await expect(page).toHaveURL("/");
   });
 
+  test("over plain http the login cookie isn't https-only, so every browser keeps it", async ({
+    page,
+    context,
+  }) => {
+    await login(page, uniqueEmail("e2e-http-cookie"));
+    const session = (await context.cookies()).find((c) => c.name === "heycapy_session");
+    expect(session).toMatchObject({ httpOnly: true, sameSite: "Lax", secure: false });
+  });
+
   test("redirects to login when accessing app unauthenticated", async ({ page }) => {
     await page.goto("/");
     await expect(page).toHaveURL(/\/login/);

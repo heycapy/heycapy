@@ -1,5 +1,6 @@
 import { formatShort, formatShortTime } from "@/lib/format-date";
 import { ITEM_STATUS, isClosedStatus } from "@/constants";
+import { ITEM_HIGHLIGHT_MS } from "./constants";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Bell, BellOff, GripVertical, TriangleAlert } from "lucide-react";
@@ -10,6 +11,8 @@ import type { StatusDef, FieldDef } from "@/types/rules";
 import type { ReminderBadge } from "@/lib/reminders/status";
 import { ReminderInfoDialog } from "./ReminderInfoDialog";
 import { pendingRemindAgainAt } from "@/lib/reminders/remind-again";
+import { parseRecurring } from "@/lib/items/occurrence";
+import { repeatLabel } from "@/lib/items/repeat-label";
 
 type ItemRow = typeof items.$inferSelect;
 
@@ -70,13 +73,8 @@ function StatusPicker({
 }
 
 function getRecurringFrequency(raw: string | null): string | null {
-  if (!raw) return null;
-  try {
-    const obj = JSON.parse(raw) as { enabled?: boolean; frequency?: string };
-    return obj.enabled ? (obj.frequency ?? "monthly") : null;
-  } catch {
-    return null;
-  }
+  const config = parseRecurring(raw);
+  return config?.enabled ? repeatLabel(config) : null;
 }
 
 function relativeTime(deadline: Date): string {
@@ -165,13 +163,15 @@ export function ItemRow({
   const dotRef = useRef<HTMLButtonElement>(null);
   const rowRef = useRef<HTMLDivElement>(null);
   const anchor = `item-${item.id}`;
+  const [highlighted, setHighlighted] = useState(() => window.location.hash === `#${anchor}`);
 
-  // Opened from a notification: items load after the page, so the browser can't scroll there itself
   useEffect(() => {
-    if (window.location.hash === `#${anchor}`) {
-      rowRef.current?.scrollIntoView({ block: "center" });
-    }
-  }, [anchor]);
+    if (!highlighted) return;
+    rowRef.current?.scrollIntoView({ block: "center" });
+    window.history.replaceState(null, "", window.location.pathname + window.location.search);
+    const fade = setTimeout(() => setHighlighted(false), ITEM_HIGHLIGHT_MS);
+    return () => clearTimeout(fade);
+  }, [highlighted]);
   const rel = item.deadline && !isClosedStatus(item.status) ? relativeTime(item.deadline) : null;
   const isCompleted = item.status === ITEM_STATUS.completed;
   const isMissed = item.status === ITEM_STATUS.missed;
@@ -191,7 +191,8 @@ export function ItemRow({
       ref={rowRef}
       id={anchor}
       className={cn(
-        "target:bg-primary/10 flex items-stretch gap-0 px-3 transition-colors",
+        "flex items-stretch gap-0 px-3 transition-colors duration-1000",
+        highlighted && "bg-primary/15",
         isEditing && "bg-muted/20",
         (isCompleted || isMissed) && "opacity-60"
       )}

@@ -56,3 +56,33 @@ test("skip is not offered for items that do not repeat", async ({ page }) => {
   await expect(itemDialog(page).getByText("edit item", { exact: true })).toBeVisible();
   await expect(itemDialog(page).getByRole("button", { name: "[ skip ]" })).toHaveCount(0);
 });
+
+test("repeats on picked weekdays, then on the last day of the month", async ({ page }) => {
+  const title = uniqueName("gym");
+  await addMonthlyItemDueToday(page, title);
+
+  await itemRow(page, title).click();
+  const dialog = itemDialog(page);
+  await dialog.getByRole("button", { name: "week", exact: true }).click();
+  await expect(dialog.getByText("↺ every week · on the deadline's day")).toBeVisible();
+  for (const day of ["mon", "wed", "fri"]) {
+    await dialog.getByRole("button", { name: day, exact: true }).click();
+  }
+  await expect(dialog.getByText("↺ every week on mon, wed, fri")).toBeVisible();
+  await dialog.getByRole("button", { name: "[ update ]", exact: true }).click();
+  await expect(dialog).not.toBeVisible();
+  await expect(itemRow(page, title)).toContainText("↺ mon, wed, fri");
+
+  await itemRow(page, title).click();
+  await expect(dialog.getByRole("button", { name: "wed", exact: true })).toHaveAttribute(
+    "aria-pressed",
+    "true"
+  );
+  await dialog.getByRole("button", { name: "weekdays", exact: true }).click();
+  await expect(dialog.getByText("↺ every weekday")).toBeVisible();
+  await dialog.getByRole("button", { name: "month", exact: true }).click();
+  await dialog.getByRole("button", { name: "last day", exact: true }).click();
+  await expect(dialog.getByText("↺ every month on the last day")).toBeVisible();
+  await dialog.getByRole("button", { name: "[ update ]", exact: true }).click();
+  await expect(itemRow(page, title)).toContainText("↺ monthly · last day");
+});

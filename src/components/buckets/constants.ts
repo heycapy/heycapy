@@ -43,6 +43,8 @@ export const DEFAULT_BUCKET_STATUSES: StatusDef[] = [
   { name: ITEM_STATUS.onHold, color: "#f59e0b" },
 ];
 
+export const ITEM_HIGHLIGHT_MS = 3000;
+
 export const BUCKET_PALETTE = ["var(--p1)", "var(--p2)", "var(--p3)", "var(--p4)", "var(--p5)"];
 
 export const RECURRING_FREQUENCIES = [

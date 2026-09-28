@@ -1,5 +1,6 @@
 import { SignJWT, jwtVerify } from "jose";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
+import { servedOverHttps } from "./https";
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";
@@ -44,7 +45,7 @@ export async function createSession(payload: SessionPayload) {
   const cookieStore = await cookies();
   cookieStore.set(SESSION_COOKIE_NAME, token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    secure: servedOverHttps(await headers()),
     sameSite: "lax",
     path: "/",
     maxAge: SESSION_DURATION_DAYS * 24 * 60 * 60,

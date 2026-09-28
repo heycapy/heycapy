@@ -8,7 +8,7 @@ import { requireSession } from "./action-helpers";
 import { db } from "@/lib/db";
 import { items } from "@/lib/db/schema";
 import { ITEM_STATUS, ITEM_TITLE_MAX_LENGTH } from "@/constants";
-import type { RecurringConfig } from "@/types/rules";
+import { RecurringConfig } from "@/types/rules";
 import { parseDeadlineString } from "@/lib/time";
 import { initialReminderState, reminderResetForDeadline } from "@/lib/items/reminders";
 import { refreshItemReminders, reminderContext } from "@/lib/reminders/refresh";
@@ -100,6 +100,9 @@ export async function addItemAction(
   const trimmed = title.trim();
   if (!trimmed) return { ok: false, error: "Title is required" };
   if (trimmed.length > ITEM_TITLE_MAX_LENGTH) return { ok: false, error: "Title too long" };
+  if (recurring && !RecurringConfig.safeParse(recurring).success) {
+    return { ok: false, error: "Invalid repeat settings" };
+  }
 
   const bucket = await db.query.buckets.findFirst({
     where: (b, { eq: qeq, and: qand }) => qand(qeq(b.id, bucketId), qeq(b.userId, session.userId)),
@@ -135,6 +138,7 @@ export async function addItemAction(
 
 // The editor doesn't know the series anchor; keep it while the frequency stays the same
 function keepAnchor(config: RecurringConfig, saved: string | null): RecurringConfig {
+  if (config.anchorDay) return config;
   const previous = parseRecurring(saved);
   return previous?.frequency === config.frequency && previous.anchorDay
     ? { ...config, anchorDay: previous.anchorDay }
@@ -154,6 +158,9 @@ export async function updateItemAction(
   const trimmed = title.trim();
   if (!trimmed) return { ok: false, error: "Title is required" };
   if (trimmed.length > ITEM_TITLE_MAX_LENGTH) return { ok: false, error: "Title too long" };
+  if (recurring && !RecurringConfig.safeParse(recurring).success) {
+    return { ok: false, error: "Invalid repeat settings" };
+  }
 
   const item = await db.query.items.findFirst({
     where: (i, { eq: qeq, and: qand }) => qand(qeq(i.id, itemId), qeq(i.userId, session.userId)),

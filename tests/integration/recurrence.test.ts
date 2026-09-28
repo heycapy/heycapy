@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { asc, eq } from "drizzle-orm";
+import { and, asc, eq, ne } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { items } from "@/lib/db/schema";
 import { executeToolCall } from "@/lib/ai/capyTools";
@@ -238,5 +238,37 @@ describe("stopping a repeat", () => {
     await updateItemAction(itemId, "pay rent", "2026-03-13T12:00:00.000Z", "active", null);
     await completeItemAction(itemId);
     expect(await bucketItems(bucketId)).toHaveLength(1);
+  });
+});
+
+describe("repeating on picked weekdays", () => {
+  it("completing a Mon/Wed/Fri item brings the next one on the next picked day", async () => {
+    const userId = await seedUser();
+    const bucketId = await seedBucket(userId);
+    const friday = new Date("2026-03-13T09:00:00Z");
+    const [item] = await db
+      .insert(items)
+      .values({
+        userId,
+        bucketId,
+        title: "gym",
+        deadline: friday,
+        recurring: JSON.stringify({
+          enabled: true,
+          frequency: "weekly",
+          interval: 1,
+          endDate: null,
+          weekdays: [1, 3, 5],
+        }),
+      })
+      .returning();
+
+    await completeItem(userId, item.id, "app");
+
+    const next = await db.query.items.findFirst({
+      where: and(eq(items.userId, userId), ne(items.id, item.id)),
+    });
+    expect(next?.deadline).toEqual(new Date("2026-03-16T09:00:00Z"));
+    expect(JSON.parse(next?.recurring ?? "{}")).toMatchObject({ weekdays: [1, 3, 5] });
   });
 });
