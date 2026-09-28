@@ -3,7 +3,12 @@ import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { buckets, items, notificationQueue, userSettings } from "@/lib/db/schema";
 import { enqueueNotification, processPending } from "@/lib/notifications/queue";
-import { getItemReminderInfo, getReminderBadges } from "@/lib/reminders/status";
+import {
+  getItemReminderInfo,
+  getReminderBadges,
+  type HistoryEvent,
+  type NotificationEvent,
+} from "@/lib/reminders/status";
 import { refreshItemReminders } from "@/lib/reminders/refresh";
 import {
   HOUR,
@@ -14,6 +19,10 @@ import {
   seedUser,
   useSchedulerEnvironment,
 } from "./helpers";
+
+function sentEvents(history: HistoryEvent[] | undefined): NotificationEvent[] {
+  return (history ?? []).filter((e): e is NotificationEvent => e.type === "sent");
+}
 
 const T0 = new Date("2026-03-10T12:00:00Z");
 const TOMORROW = new Date(T0.getTime() + 24 * HOUR);
@@ -97,11 +106,13 @@ describe("dialog details", () => {
       next: TOMORROW,
       nextChannels: [
         { medium: "email", state: "notSelected" },
+        { medium: "push", state: "notSelected" },
         { medium: "telegram", state: "send" },
         { medium: "ntfy", state: "notSelected" },
       ],
       completedAt: null,
       reason: null,
+      remindAgain: null,
       history: [],
     });
   });
@@ -167,9 +178,11 @@ describe("history records each channel as it was at send time", () => {
 
     const info = await getItemReminderInfo(userId, itemId);
     expect(info?.history).toHaveLength(1);
-    expect(info?.history[0].kind).toBe("reminder");
-    expect(info?.history[0].channels.map((c) => [c.medium, c.outcome])).toEqual([
+    const [sent] = sentEvents(info?.history);
+    expect(sent?.kind).toBe("reminder");
+    expect(sent?.channels.map((c) => [c.medium, c.outcome])).toEqual([
       ["email", "sent"],
+      ["push", "notSelected"],
       ["telegram", "notSetUp"],
       ["ntfy", "notSelected"],
     ]);
@@ -198,9 +211,9 @@ describe("history records each channel as it was at send time", () => {
         ],
       });
     }
-    const history = (await getItemReminderInfo(userId, itemId))?.history ?? [];
+    const history = sentEvents((await getItemReminderInfo(userId, itemId))?.history);
     expect(history.map((e) => e.kind)).toEqual(["overdue", "reminder"]);
-    expect(history[0].channels.map((c) => c.outcome)).toEqual([
+    expect(history[0]?.channels.map((c) => c.outcome)).toEqual([
       "notSelected",
       "sending",
       "notSetUp",
@@ -213,7 +226,7 @@ describe("history records each channel as it was at send time", () => {
     for (let i = 0; i < 2; i++) {
       await addJob(userId, itemId, { medium: "email", createdAt: T0, status: "sent", sentAt: T0 });
     }
-    const history = (await getItemReminderInfo(userId, itemId))?.history ?? [];
+    const history = sentEvents((await getItemReminderInfo(userId, itemId))?.history);
     expect(history.map((e) => e.channels.map((c) => c.medium))).toEqual([["email"], ["email"]]);
   });
 
@@ -237,8 +250,8 @@ describe("history records each channel as it was at send time", () => {
       lastError: "timeout",
     });
 
-    const [event] = (await getItemReminderInfo(userId, itemId))?.history ?? [];
-    expect(event.channels).toEqual([
+    const [event] = sentEvents((await getItemReminderInfo(userId, itemId))?.history);
+    expect(event?.channels).toEqual([
       { medium: "email", outcome: "failed", error: "SMTP auth failed", retryAt: null },
       { medium: "telegram", outcome: "retrying", error: "timeout", retryAt },
     ]);
@@ -277,7 +290,7 @@ describe("a reminder for an item closed before it was sent", () => {
     await db.update(items).set({ status: "completed" }).where(eq(items.id, itemId));
     await processPending();
 
-    const [event] = (await getItemReminderInfo(userId, itemId))?.history ?? [];
-    expect(event.channels.map((c) => c.outcome)).toEqual(["closed"]);
+    const [event] = sentEvents((await getItemReminderInfo(userId, itemId))?.history);
+    expect(event?.channels.map((c) => c.outcome)).toEqual(["closed"]);
   });
 });

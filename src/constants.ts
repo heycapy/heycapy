@@ -1,6 +1,24 @@
 export const APP_NAME = "HeyCapy";
 export const APP_DOMAIN = "heycapy.xyz";
 export const APP_EMAIL_FROM = `${APP_NAME} <noreply@${APP_DOMAIN}>`;
+export const APP_TAGLINE = "a capy to help you with your day.";
+
+export const OG_COLORS = {
+  background: "#1d1816",
+  foreground: "#d6c7a9",
+  muted: "#bda675",
+} as const;
+
+// Emails; the capy theme, as hex because mail clients ignore CSS variables
+export const EMAIL_COLORS = {
+  page: "#fdf6e3",
+  card: "#fffcf4",
+  border: "#e8dcc0",
+  text: "#2c1f0e",
+  muted: "#8a7a63",
+  accent: "#7c4b2a",
+  panel: "#f5ecd6",
+} as const;
 
 // External API base URLs
 export const TELEGRAM_API_BASE = "https://api.telegram.org";

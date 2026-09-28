@@ -1,11 +1,14 @@
 import { z } from "zod";
+import { DEFAULT_REMINDER_BUTTONS, QUICK_REMIND_VALUES } from "@/lib/notifications/constants";
 
 export const NotificationRules = z.object({
-  medium: z.array(z.enum(["ntfy", "email", "telegram"])).default([]),
+  medium: z.array(z.enum(["ntfy", "email", "telegram", "push"])).default([]),
   notifyAt: z.string().default(""),
   quietHours: z.object({ from: z.string(), to: z.string() }).nullable().default(null),
   defaultOffsetMins: z.number().int().nonnegative().default(0),
   repeat: z.enum(["once", "daily"]).default("once"),
+  // "Remind again" buttons shown next to Done on every channel, as much as each has room for
+  reminderButtons: z.array(z.enum(QUICK_REMIND_VALUES)).default(DEFAULT_REMINDER_BUTTONS),
 });
 
 export const ItemsRules = z.object({

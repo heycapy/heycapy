@@ -1,6 +1,6 @@
 import { TELEGRAM_API_BASE } from "@/constants";
 import { errorMessage } from "@/lib/errors";
-import { QUICK_REMIND_OPTIONS, TELEGRAM_KEYBOARD } from "./constants";
+import { QUICK_REMIND_OPTIONS, TELEGRAM_KEYBOARD, type QuickRemindChoice } from "./constants";
 
 export type InlineButton = { text: string; callback_data: string };
 
@@ -66,9 +66,10 @@ export function sendTelegramItemNotification(
   botToken: string,
   chatId: string,
   html: string,
-  itemId: number
+  itemId: number,
+  picks: QuickRemindChoice[]
 ): Promise<number> {
-  return sendTelegramHtml(botToken, chatId, html, reminderButtons(itemId));
+  return sendTelegramHtml(botToken, chatId, html, reminderButtons(itemId, picks));
 }
 
 export async function sendTelegramWithQuickActions(botToken: string, chatId: string, text: string) {
@@ -124,13 +125,17 @@ export async function sendOrEditButtons(
   return sendTelegramButtons(botToken, chatId, text, rows);
 }
 
-export function reminderButtons(itemId: number): InlineButton[][] {
+export function reminderButtons(itemId: number, picks: QuickRemindChoice[]): InlineButton[][] {
+  const remind = QUICK_REMIND_OPTIONS.filter((o) => picks.includes(o.value)).map((o) => ({
+    text: o.label,
+    callback_data: `rq:${itemId}:${o.value}`,
+  }));
   return [
     [
       { text: "✓ Done", callback_data: `qc:${itemId}` },
       { text: "🕐 Reschedule", callback_data: `rs:${itemId}` },
     ],
-    QUICK_REMIND_OPTIONS.map((o) => ({ text: o.label, callback_data: `rq:${itemId}:${o.value}` })),
+    ...(remind.length > 0 ? [remind] : []),
   ];
 }
 

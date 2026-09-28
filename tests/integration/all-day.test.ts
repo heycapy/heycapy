@@ -4,11 +4,8 @@ import { db } from "@/lib/db";
 import { buckets, items } from "@/lib/db/schema";
 import { encryptValue } from "@/lib/crypto";
 import { addItemAction, updateItemAction } from "@/app/(app)/item-actions";
-import {
-  completeItemById,
-  createItem,
-  parseNaturalDeadline,
-} from "@/app/api/telegram/telegram-utils";
+import { createItem, parseNaturalDeadline } from "@/app/api/telegram/telegram-utils";
+import { completeItem } from "@/lib/reminders/quick-actions";
 import { POST as postWebhook } from "@/app/api/webhook/[bucketId]/route";
 import {
   resetSchedulerEnvironment,
@@ -137,11 +134,11 @@ describe("a monthly series on the 31st", () => {
     const first = await seedItem(userId, bucketId, { deadline: new Date("2027-01-31T09:00:00Z") });
     await db.update(items).set({ recurring }).where(eq(items.id, first));
 
-    await completeItemById(userId, first);
+    await completeItem(userId, first, "app");
     const feb = await latest(bucketId);
     expect(feb.deadline).toEqual(new Date("2027-02-28T09:00:00Z"));
 
-    await completeItemById(userId, feb.id);
+    await completeItem(userId, feb.id, "app");
     expect((await latest(bucketId)).deadline).toEqual(new Date("2027-03-31T09:00:00Z"));
   });
 });

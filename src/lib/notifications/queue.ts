@@ -5,6 +5,9 @@ import { notificationQueue, notificationLog, users, userSettings } from "@/lib/d
 import { sendEmail } from "./email";
 import { buildNotificationEmail } from "@/lib/auth/notificationEmail";
 import { sendNtfy } from "./ntfy";
+import { sendWebPush } from "./web-push";
+import { reminderLinks } from "@/lib/reminders/reminder-buttons";
+import { publicAppUrl } from "@/lib/app-url";
 import { sendTelegramAlert } from "./telegram-alert";
 import { errorMessage } from "@/lib/errors";
 import { withTimeout } from "@/lib/async";
@@ -18,9 +21,12 @@ import {
   QUEUE_RETRY_DELAY_MINS,
   QUEUE_SENDING_LEASE_MS,
   DELIVERY_TIMEOUT_MS,
+  EMAIL_REMIND_BUTTONS,
+  NTFY_REMIND_BUTTONS,
+  PUSH_REMIND_BUTTONS,
 } from "./constants";
 
-export type NotificationMedium = "email" | "ntfy" | "telegram";
+export type NotificationMedium = "email" | "ntfy" | "telegram" | "push";
 
 export type NotificationJob = {
   userId: number;
@@ -64,6 +70,18 @@ export async function enqueueNotification(notification: {
       createdAt,
     }))
   );
+}
+
+async function externalLinks(
+  job: typeof notificationQueue.$inferSelect,
+  slots: number,
+  channel: "email" | "ntfy",
+  now: Date
+) {
+  const base = publicAppUrl();
+  if (!base || !job.itemId || job.kind === "arrival") return null;
+  const links = await reminderLinks(job.userId, job.itemId, slots, channel, now);
+  return links && { base, ...links };
 }
 
 export async function processPending(): Promise<void> {
@@ -171,9 +189,19 @@ export async function processPending(): Promise<void> {
                       smtpFrom: userRow.smtpFrom,
                     }
                   : undefined;
+              const links = await externalLinks(job, EMAIL_REMIND_BUTTONS, "email", now);
               const { text: emailText, html: emailHtml } = buildNotificationEmail(
                 job.title,
-                job.message
+                job.message,
+                links
+                  ? [
+                      ...links.buttons.map((b) => ({
+                        label: b.label,
+                        url: `${links.base}/r/${b.token}`,
+                      })),
+                      { label: "open in heycapy", url: `${links.base}${links.path}` },
+                    ]
+                  : []
               );
               await sendEmail(
                 {
@@ -186,11 +214,48 @@ export async function processPending(): Promise<void> {
               );
               return null;
             }
-            case "ntfy":
+            case "ntfy": {
               if (!userRow.notificationsPush || !userRow.ntfyUrl || !userRow.ntfyTopic)
                 throw new Error("ntfy not configured");
-              await sendNtfy(userRow.ntfyUrl, userRow.ntfyTopic, job.title, job.message);
+              const links = await externalLinks(job, NTFY_REMIND_BUTTONS, "ntfy", now);
+              await sendNtfy(
+                userRow.ntfyUrl,
+                userRow.ntfyTopic,
+                job.title,
+                job.message,
+                links
+                  ? {
+                      click: `${links.base}${links.path}`,
+                      actions: links.buttons.map((b) => ({
+                        label: b.label,
+                        url: `${links.base}/api/reminder-action`,
+                        body: JSON.stringify({ token: b.token }),
+                      })),
+                    }
+                  : {}
+              );
               return null;
+            }
+            case "push": {
+              const links =
+                job.itemId && job.kind !== "arrival"
+                  ? await reminderLinks(job.userId, job.itemId, PUSH_REMIND_BUTTONS, "push", now)
+                  : null;
+              await sendWebPush(job.userId, {
+                title: job.title,
+                body: job.message,
+                ...(job.itemId && { tag: `item-${job.itemId}` }),
+                ...(links && {
+                  url: links.path,
+                  actions: links.buttons.map((b) => ({
+                    action: b.action,
+                    title: b.label,
+                    token: b.token,
+                  })),
+                }),
+              });
+              return null;
+            }
             case "telegram": {
               const botToken = process.env.TELEGRAM_BOT_TOKEN;
               if (!userRow.notificationsTelegram || !botToken || !userRow.telegramChatId)

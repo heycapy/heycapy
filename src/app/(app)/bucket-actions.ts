@@ -1,5 +1,6 @@
 "use server";
 
+import { QUICK_REMIND_VALUES } from "@/lib/notifications/constants";
 import type { ActionResult } from "@/types/result";
 import { revalidatePath } from "next/cache";
 import { and, desc, eq, isNotNull, isNull, sql } from "drizzle-orm";
@@ -172,6 +173,11 @@ export async function updateBucketSettingsAction(
       notificationsRules: JSON.stringify({
         ...parseStoredRules(bucket.notificationsRules),
         ...notificationsRules,
+        ...(notificationsRules.reminderButtons && {
+          reminderButtons: QUICK_REMIND_VALUES.filter((v) =>
+            notificationsRules.reminderButtons?.includes(v)
+          ),
+        }),
       }),
       ...(telegramConfig !== undefined
         ? { telegramConfig: telegramConfig ? JSON.stringify(telegramConfig) : null }

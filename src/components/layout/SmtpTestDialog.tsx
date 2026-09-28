@@ -1,3 +1,4 @@
+import { APP_TAGLINE } from "@/constants";
 import { useState, useTransition } from "react";
 import { cn } from "@/lib/utils";
 import { INPUT, LABEL } from "./settings-constants";
@@ -97,14 +98,16 @@ export function SmtpTestDialog({
               className="border-border flex flex-col border text-[11px]"
             >
               <div className="border-border border-b px-3 py-2">
-                <p className="text-foreground text-sm font-bold">[ HeyCapy ]</p>
-                <p className="text-muted-foreground text-[10px]">smtp test</p>
+                <p className="text-[11px]">
+                  <span className="font-bold">heycapy</span>
+                  <span className="text-muted-foreground"> · smtp test</span>
+                </p>
               </div>
               <div className="px-3 py-3">
                 <p className="text-foreground text-[12px]">your smtp is working correctly.</p>
               </div>
               <div className="border-border border-t px-3 py-2">
-                <p className="text-muted-foreground text-[10px]">your capy — sent while relaxing</p>
+                <p className="text-muted-foreground text-[10px]">{APP_TAGLINE}</p>
               </div>
             </div>
           </div>

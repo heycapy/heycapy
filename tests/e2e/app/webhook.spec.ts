@@ -73,8 +73,10 @@ test("rotating the key invalidates the old one", async ({ page, request }) => {
   const old = await postItem(request, webhook, { title: "with old key" });
   expect(old.status()).toBe(401);
 
-  const current = await postItem(request, rotated, { title: uniqueName("with new key") });
+  const title = uniqueName("with new key");
+  const current = await postItem(request, rotated, { title });
   expect(current.status()).toBe(201);
+  await expect(itemRow(page, title)).toBeVisible();
 });
 
 test("validates the payload", async ({ request }) => {

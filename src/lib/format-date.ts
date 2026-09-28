@@ -42,11 +42,19 @@ export function formatSlot(hhmm: string): string {
 export function formatShort(d: Date): string {
   const date = `${MONTH_SHORT_NAMES[d.getMonth()]} ${d.getDate()}`;
   const hasTime = d.getHours() !== 0 || d.getMinutes() !== 0;
-  if (!hasTime) return date;
+  return hasTime ? `${date} ${clockTime(d)}` : date;
+}
+
+// Just the time when it's today
+export function formatShortTime(d: Date, now: Date): string {
+  return d.toDateString() === now.toDateString() ? clockTime(d) : formatShort(d);
+}
+
+function clockTime(d: Date): string {
   const h = d.getHours();
   const m = d.getMinutes();
   const ampm = h >= 12 ? "pm" : "am";
   const hour = h % 12 === 0 ? 12 : h % 12;
   const min = m > 0 ? `:${String(m).padStart(2, "0")}` : "";
-  return `${date} ${hour}${min}${ampm}`;
+  return `${hour}${min}${ampm}`;
 }

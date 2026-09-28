@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Toggle } from "@/components/ui/Toggle";
 import { LABEL, INPUT, SECTION, BOX } from "./settings-constants";
 import { NtfySettings } from "./NtfySettings";
+import { PushSettings } from "./PushSettings";
 import { TelegramSettings } from "./TelegramSettings";
 import { SmtpTestDialog } from "./SmtpTestDialog";
 
@@ -168,6 +169,7 @@ export function NotificationsTab({
         </button>
       </div>
 
+      <PushSettings pending={pending} />
       <NtfySettings
         notificationsPush={notificationsPush}
         setNotificationsPush={setNotificationsPush}

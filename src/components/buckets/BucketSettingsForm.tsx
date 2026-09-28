@@ -82,6 +82,7 @@ export function BucketSettingsForm({
         },
         {
           medium: values.mediums,
+          reminderButtons: values.reminderButtons,
           notifyAt: values.notifyAt || undefined,
           defaultOffsetMins: parseDurationToMins(values.defaultOffset) ?? undefined,
           repeat: values.repeat,
@@ -175,6 +176,7 @@ export function BucketSettingsForm({
             readonly={values.readonly}
             defaultDeadlineOffset={values.defaultDeadlineOffset}
             mediums={values.mediums}
+            reminderButtons={values.reminderButtons}
             notifyAt={values.notifyAt}
             defaultOffset={values.defaultOffset}
             repeat={values.repeat}
@@ -194,6 +196,14 @@ export function BucketSettingsForm({
                 mediums: prev.mediums.includes(m)
                   ? prev.mediums.filter((x) => x !== m)
                   : [...prev.mediums, m],
+              }))
+            }
+            onReminderButtonToggle={(b) =>
+              setValues((prev) => ({
+                ...prev,
+                reminderButtons: prev.reminderButtons.includes(b)
+                  ? prev.reminderButtons.filter((x) => x !== b)
+                  : [...prev.reminderButtons, b],
               }))
             }
             onNotifyAtChange={(v) => set("notifyAt", v)}

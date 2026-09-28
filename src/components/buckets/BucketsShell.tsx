@@ -16,6 +16,8 @@ type BucketRow = typeof buckets.$inferSelect;
 
 type BucketsShellProps = {
   buckets: BucketRow[];
+  // From a notification link: show this bucket first
+  focusBucketId?: number | null;
 };
 
 function MobileBucketPicker({
@@ -74,7 +76,7 @@ function MobileBucketPicker({
   );
 }
 
-export function BucketsShell({ buckets: rawBuckets }: BucketsShellProps) {
+export function BucketsShell({ buckets: rawBuckets, focusBucketId = null }: BucketsShellProps) {
   const buckets = rawBuckets.filter((b, i, arr) => arr.findIndex((x) => x.id === b.id) === i);
   const openCreateBucket = useUIStore((s) => s.openCreateBucket);
   const activeBucketId = useUIStore((s) => s.activeBucketId);
@@ -85,6 +87,15 @@ export function BucketsShell({ buckets: rawBuckets }: BucketsShellProps) {
   useEffect(() => {
     const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
     void saveTimezoneIfDefaultAction(tz);
+  }, []);
+
+  useEffect(() => {
+    if (focusBucketId === null) return;
+    setActiveBucketId(focusBucketId);
+    // Keep the #item anchor, drop ?bucket so a reload doesn't jump back
+    window.history.replaceState(null, "", `/${window.location.hash}`);
+    // Only on arrival; the rest of the visit uses the normal bucket switcher
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const activeId =

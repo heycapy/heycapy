@@ -3,7 +3,7 @@ import type { NextRequest } from "next/server";
 import { verifySessionToken } from "@/lib/auth/session";
 import { SESSION_COOKIE_NAME } from "@/lib/auth/constants";
 
-const PUBLIC_PATHS = ["/home", "/about", "/how-to-use"];
+const PUBLIC_PATHS = ["/home", "/about", "/how-to-use", "/r"];
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -52,6 +52,6 @@ function withoutStaleCookie(response: NextResponse, token: string | undefined): 
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.png$|api/telegram|api/webhook|api/feedback|api/e2e|api/health).*)",
+    "/((?!_next/static|_next/image|favicon.ico|sw\\.js$|manifest\\.webmanifest$|opengraph-image|.*\\.png$|api/telegram|api/webhook|api/reminder-action|api/feedback|api/e2e|api/health).*)",
   ],
 };

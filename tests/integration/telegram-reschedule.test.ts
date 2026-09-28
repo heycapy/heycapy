@@ -56,12 +56,19 @@ async function kindsSent(itemId: number) {
   return rows.map((r) => r.kind);
 }
 
-async function setup(opts: { overdueAlerts?: boolean; defaultOffsetMins?: number } = {}) {
+async function setup(
+  opts: { overdueAlerts?: boolean; defaultOffsetMins?: number; reminderButtons?: string[] } = {}
+) {
   const api = stubTelegram();
   const userId = await seedUser();
   const bucketId = await seedBucket(
     userId,
-    { medium: ["telegram"], repeat: "once", defaultOffsetMins: opts.defaultOffsetMins ?? 0 },
+    {
+      medium: ["telegram"],
+      repeat: "once",
+      defaultOffsetMins: opts.defaultOffsetMins ?? 0,
+      ...(opts.reminderButtons && { reminderButtons: opts.reminderButtons }),
+    },
     { fields: [], notifyWhenOverdue: opts.overdueAlerts ?? false, overdueRepeatHours: 1 }
   );
   const chat = await connectOwnChat(userId);
@@ -69,7 +76,7 @@ async function setup(opts: { overdueAlerts?: boolean; defaultOffsetMins?: number
 }
 
 describe("reminder buttons", () => {
-  it("offer done, reschedule and quick remind-again times", async () => {
+  it("offer done, reschedule and the bucket's default remind-again times", async () => {
     const { api, userId, bucketId } = await setup();
     const itemId = await seedItem(userId, bucketId, { deadline: T0 });
 
@@ -83,13 +90,30 @@ describe("reminder buttons", () => {
           { text: "🕐 Reschedule", callback_data: `rs:${itemId}` },
         ],
         [
-          { text: "15 min", callback_data: `rq:${itemId}:15` },
-          { text: "30 min", callback_data: `rq:${itemId}:30` },
           { text: "1 hour", callback_data: `rq:${itemId}:60` },
           { text: "Tomorrow", callback_data: `rq:${itemId}:tomorrow` },
         ],
       ],
     });
+  });
+
+  it("follow the bucket's picks, and drop the row when it picked none", async () => {
+    const picked = await setup({ reminderButtons: ["15", "30"] });
+    await seedItem(picked.userId, picked.bucketId, { deadline: T0 });
+    const none = await setup({ reminderButtons: [] });
+    await seedItem(none.userId, none.bucketId, { deadline: T0 });
+
+    await runSchedulerAt(T0);
+
+    const keyboards = [
+      ...callsTo(picked.api, "sendMessage"),
+      ...callsTo(none.api, "sendMessage"),
+    ].map((m) => labels((m.reply_markup as { inline_keyboard: never }).inline_keyboard));
+    expect(keyboards).toContainEqual([
+      ["✓ Done", "🕐 Reschedule"],
+      ["15 min", "30 min"],
+    ]);
+    expect(keyboards).toContainEqual([["✓ Done", "🕐 Reschedule"]]);
   });
 });
 
@@ -251,7 +275,7 @@ describe("reschedule", () => {
     expect(restored.text).toMatch(/^⏰ <b>pay rent<\/b>\ndue today, 12:00 PM · Bucket /);
     expect(labels(restored.keyboard)).toEqual([
       ["✓ Done", "🕐 Reschedule"],
-      ["15 min", "30 min", "1 hour", "Tomorrow"],
+      ["1 hour", "Tomorrow"],
     ]);
     expect(await deadlineOf(itemId)).toEqual(T0);
   });

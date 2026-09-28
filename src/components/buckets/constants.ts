@@ -1,10 +1,11 @@
 import { ITEM_STATUS } from "@/constants";
+import type { QuickRemindChoice } from "@/lib/notifications/constants";
 import type { LucideIcon } from "lucide-react";
 import { Activity, Bell, Briefcase, CreditCard, ListTodo, Square } from "lucide-react";
 import type { RecurrenceMode, StatusDef } from "@/types/rules";
 
 export type SortBy = "deadline" | "created_at" | "manual";
-export type NotificationMedium = "ntfy" | "email" | "telegram";
+export type NotificationMedium = "ntfy" | "email" | "telegram" | "push";
 export type RepeatMode = "once" | "daily";
 
 export type ItemsRulesConfig = {
@@ -18,6 +19,7 @@ export type ItemsRulesConfig = {
 
 export type NotificationsRulesConfig = {
   medium?: NotificationMedium[];
+  reminderButtons?: QuickRemindChoice[];
   notifyAt?: string;
   defaultOffsetMins?: number;
   repeat?: RepeatMode;
@@ -57,9 +59,10 @@ export const SORT_OPTIONS: { value: SortBy; label: string }[] = [
 ];
 
 export const MEDIUM_OPTIONS: { value: NotificationMedium; label: string }[] = [
-  { value: "ntfy", label: "ntfy" },
   { value: "email", label: "email" },
+  { value: "push", label: "push" },
   { value: "telegram", label: "telegram" },
+  { value: "ntfy", label: "ntfy" },
 ];
 
 export const REPEAT_OPTIONS: { value: RepeatMode; label: string }[] = [

@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import { buckets, items } from "@/lib/db/schema";
 import { ITEM_STATUS } from "@/constants";
 import type { RecurrenceMode } from "@/types/rules";
-import { completeItemById } from "@/app/api/telegram/telegram-utils";
+import { completeItem } from "@/lib/reminders/quick-actions";
 import {
   resetSchedulerEnvironment,
   runSchedulerAt,
@@ -122,7 +122,7 @@ describe("after completion", () => {
     const { userId, bucketId, itemId } = await setup("afterCompletion", EVERY_3_DAYS);
     vi.setSystemTime(new Date("2026-03-12T18:00:00Z"));
 
-    await completeItemById(userId, itemId);
+    await completeItem(userId, itemId, "app");
 
     const [, next] = await series(bucketId);
     expect(next.deadline).toEqual(new Date("2026-03-15T09:00:00Z"));
@@ -132,7 +132,7 @@ describe("after completion", () => {
     const { userId, bucketId, itemId } = await setup("wait", EVERY_3_DAYS);
     vi.setSystemTime(new Date("2026-03-12T18:00:00Z"));
 
-    await completeItemById(userId, itemId);
+    await completeItem(userId, itemId, "app");
 
     const [, next] = await series(bucketId);
     expect(next.deadline).toEqual(new Date("2026-03-13T09:00:00Z"));

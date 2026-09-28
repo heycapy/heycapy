@@ -1,7 +1,9 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState, useTransition } from "react";
 import { cn } from "@/lib/utils";
-import { getItemReminderInfoAction } from "@/app/(app)/actions";
+import { BracketButton } from "@/components/ui/BracketButton";
+import { cancelRemindAgainAction, getItemReminderInfoAction } from "@/app/(app)/actions";
 import type {
+  ActionEvent,
   ChannelOutcome,
   ItemReminderInfo as Info,
   NotificationEvent,
@@ -49,6 +51,16 @@ function goesTo(info: Info): string | null {
   return `goes to ${sends.join(", ")}${others.length ? ` (${others.join(" · ")})` : ""}`;
 }
 
+function actionText(e: ActionEvent): string {
+  const what =
+    e.action === "done"
+      ? "done"
+      : e.action === "cancelRemindAgain"
+        ? "cancelled remind again"
+        : `remind again${e.remindAt ? ` at ${formatShort(e.remindAt)}` : ""}`;
+  return `you: ${what} (from ${e.source})`;
+}
+
 function outcomeText(c: ChannelOutcome): string {
   const base = OUTCOMES[c.outcome].text;
   const retry = c.retryAt ? ` at ${formatShort(c.retryAt)}` : "";
@@ -57,16 +69,29 @@ function outcomeText(c: ChannelOutcome): string {
 
 export function ItemReminderInfo({ itemId }: { itemId: number }) {
   const [info, setInfo] = useState<Info | null>(null);
+  const [cancelError, setCancelError] = useState("");
+  const [cancelling, startCancel] = useTransition();
+
+  const load = useCallback(() => getItemReminderInfoAction(itemId), [itemId]);
 
   useEffect(() => {
     let cancelled = false;
-    void getItemReminderInfoAction(itemId).then((result) => {
+    void load().then((result) => {
       if (!cancelled) setInfo(result);
     });
     return () => {
       cancelled = true;
     };
-  }, [itemId]);
+  }, [load]);
+
+  function cancelRemindAgain() {
+    setCancelError("");
+    startCancel(async () => {
+      const result = await cancelRemindAgainAction(itemId);
+      if (!result.ok) setCancelError(result.error);
+      setInfo(await load());
+    });
+  }
 
   if (!info) return null;
   const route = goesTo(info);
@@ -75,7 +100,23 @@ export function ItemReminderInfo({ itemId }: { itemId: number }) {
     <section aria-label="reminders" className="flex flex-col gap-3 font-mono text-[10px]">
       <div>
         <p className="text-muted-foreground">status</p>
-        <p>{statusLine(info)}</p>
+        {!info.remindAgain && <p>{statusLine(info)}</p>}
+        {info.remindAgain && (
+          <p className="flex flex-wrap items-center gap-x-2">
+            <span>
+              ⏰ reminding again {formatShort(info.remindAgain.at)} · asked from{" "}
+              {info.remindAgain.source}
+            </span>
+            <BracketButton
+              onClick={cancelRemindAgain}
+              disabled={cancelling}
+              className="text-[10px]"
+            >
+              cancel
+            </BracketButton>
+          </p>
+        )}
+        {cancelError && <p className="text-destructive">{cancelError}</p>}
         {route && <p className="text-muted-foreground">{route}</p>}
       </div>
 
@@ -85,21 +126,29 @@ export function ItemReminderInfo({ itemId }: { itemId: number }) {
           <p className="text-muted-foreground">nothing sent yet</p>
         ) : (
           <ul className="flex flex-col gap-2">
-            {info.history.map((event, i) => (
-              <li key={i}>
-                <p>
-                  {formatShort(event.at)} · {event.kind ? KINDS[event.kind] : "notification"}
-                </p>
-                {event.channels.map((c) => (
-                  <p
-                    key={c.medium}
-                    className={cn("pl-3 break-words", OUTCOMES[c.outcome].className)}
-                  >
-                    {c.medium} {outcomeText(c)}
+            {info.history.map((event, i) =>
+              event.type === "action" ? (
+                <li key={i}>
+                  <p>
+                    {formatShort(event.at)} · {actionText(event)}
                   </p>
-                ))}
-              </li>
-            ))}
+                </li>
+              ) : (
+                <li key={i}>
+                  <p>
+                    {formatShort(event.at)} · {event.kind ? KINDS[event.kind] : "notification"}
+                  </p>
+                  {event.channels.map((c) => (
+                    <p
+                      key={c.medium}
+                      className={cn("pl-3 break-words", OUTCOMES[c.outcome].className)}
+                    >
+                      {c.medium} {outcomeText(c)}
+                    </p>
+                  ))}
+                </li>
+              )
+            )}
           </ul>
         )}
       </div>

@@ -1,3 +1,8 @@
+import {
+  QUICK_REMIND_VALUES,
+  reminderButtonLabel,
+  type QuickRemindChoice,
+} from "@/lib/notifications/constants";
 import { Toggle } from "@/components/ui/Toggle";
 import { OptionButton } from "@/components/ui/OptionButton";
 import { OptionGroup } from "@/components/ui/OptionGroup";
@@ -29,7 +34,7 @@ const OVERDUE_FIRST_ALERT_OPTIONS = [
   { value: 1440, label: "1 day" },
 ] as const;
 
-export type NotifAvailability = { email: boolean; ntfy: boolean; telegram: boolean };
+export type NotifAvailability = { email: boolean; ntfy: boolean; telegram: boolean; push: boolean };
 
 type BucketRulesPanelProps = {
   activeTab: "items" | "notifications";
@@ -41,6 +46,7 @@ type BucketRulesPanelProps = {
   readonly: boolean;
   defaultDeadlineOffset: string;
   mediums: NotificationMedium[];
+  reminderButtons: QuickRemindChoice[];
   notifyAt: string;
   defaultOffset: string;
   repeat: RepeatMode;
@@ -55,6 +61,7 @@ type BucketRulesPanelProps = {
   onReadonlyChange: (v: boolean) => void;
   onDefaultDeadlineOffsetChange: (v: string) => void;
   onMediumToggle: (m: NotificationMedium) => void;
+  onReminderButtonToggle: (b: QuickRemindChoice) => void;
   onNotifyAtChange: (v: string) => void;
   onDefaultOffsetChange: (v: string) => void;
   onRepeatChange: (v: RepeatMode) => void;
@@ -75,6 +82,7 @@ export function BucketRulesPanel({
   readonly,
   defaultDeadlineOffset,
   mediums,
+  reminderButtons,
   notifyAt,
   defaultOffset,
   repeat,
@@ -89,6 +97,7 @@ export function BucketRulesPanel({
   onReadonlyChange,
   onDefaultDeadlineOffsetChange,
   onMediumToggle,
+  onReminderButtonToggle,
   onNotifyAtChange,
   onDefaultOffsetChange,
   onRepeatChange,
@@ -173,8 +182,27 @@ export function BucketRulesPanel({
                 ⚠ telegram not connected — set up in tweaks
               </span>
             )}
+            {mediums.includes("push") && !notifAvailability.push && (
+              <span className="text-warning font-mono text-[9px]">
+                ⚠ push is off on every device — turn it on in tweaks
+              </span>
+            )}
           </div>
         )}
+      </div>
+      <div className="flex flex-col gap-1.5">
+        <label className={LABEL}>reminder buttons</label>
+        <span className={HINT}>
+          done is always there; pick when to be reminded again. push (android, desktop) shows done +
+          the first one, ntfy done + two, email and telegram all of them
+        </span>
+        <OptionGroup
+          options={QUICK_REMIND_VALUES.map((v) => ({ value: v, label: reminderButtonLabel(v) }))}
+          value={reminderButtons}
+          onChange={onReminderButtonToggle}
+          multi
+          disabled={disabled}
+        />
       </div>
       <div className="flex flex-col gap-1.5">
         <label className={LABEL}>remind me before deadline</label>

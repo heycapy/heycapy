@@ -17,6 +17,7 @@ type NotificationRulesInput = {
   notifyAt?: string;
   defaultOffsetMins?: number;
   quietHours?: { from: string; to: string } | null;
+  reminderButtons?: string[];
 };
 
 // Only telegram is enabled

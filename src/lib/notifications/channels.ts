@@ -1,6 +1,6 @@
-import { eq } from "drizzle-orm";
+import { eq, getTableColumns, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { userSettings } from "@/lib/db/schema";
+import { pushSubscriptions, userSettings } from "@/lib/db/schema";
 import type { NotificationMedium } from "./queue";
 
 export type ChannelSettings = Pick<
@@ -13,7 +13,21 @@ export type ChannelSettings = Pick<
   | "ntfyTopic"
   | "notificationsTelegram"
   | "telegramChatId"
->;
+> & { hasPushDevice: boolean };
+
+export const hasPushDevice =
+  sql<boolean>`exists (select 1 from ${pushSubscriptions} where ${pushSubscriptions.userId} = ${userSettings.userId})`.mapWith(
+    Boolean
+  );
+
+export async function getChannelSettings(userId: number) {
+  const [row] = await db
+    .select({ ...getTableColumns(userSettings), hasPushDevice })
+    .from(userSettings)
+    .where(eq(userSettings.userId, userId))
+    .limit(1);
+  return row;
+}
 
 export function workingChannels(settings: ChannelSettings): NotificationMedium[] {
   const emailConfigured =
@@ -27,17 +41,16 @@ export function workingChannels(settings: ChannelSettings): NotificationMedium[]
   if (settings.notificationsTelegram && settings.telegramChatId && process.env.TELEGRAM_BOT_TOKEN) {
     channels.push("telegram");
   }
+  if (settings.hasPushDevice) channels.push("push");
   return channels;
 }
 
 export async function getWorkingChannels(userId: number): Promise<NotificationMedium[]> {
-  const settings = await db.query.userSettings.findFirst({
-    where: eq(userSettings.userId, userId),
-  });
+  const settings = await getChannelSettings(userId);
   return settings ? workingChannels(settings) : [];
 }
 
-export const ALL_CHANNELS: NotificationMedium[] = ["email", "telegram", "ntfy"];
+export const ALL_CHANNELS: NotificationMedium[] = ["email", "push", "telegram", "ntfy"];
 
 export type ChannelDecision = {
   medium: NotificationMedium;
