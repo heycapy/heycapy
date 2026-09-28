@@ -2,7 +2,7 @@ import { bucketChannels } from "@/lib/rules";
 import { ITEM_STATUS, isClosedStatus } from "@/constants";
 import { and, desc, eq, inArray } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { buckets, items, notificationQueue } from "@/lib/db/schema";
+import { buckets, itemActions, items, notificationQueue } from "@/lib/db/schema";
 import {
   ALL_CHANNELS,
   channelDecisions,
@@ -10,6 +10,7 @@ import {
   type ChannelDecision,
 } from "@/lib/notifications/channels";
 import type { NotificationMedium } from "@/lib/notifications/queue";
+import { pendingRemindAgainAt } from "./remind-again";
 
 type Item = typeof items.$inferSelect;
 type Job = typeof notificationQueue.$inferSelect;
@@ -24,17 +25,31 @@ export type ChannelOutcome = {
 };
 
 export type NotificationEvent = {
+  type: "sent";
   kind: Job["kind"];
   at: Date;
   channels: ChannelOutcome[];
 };
+
+type Action = typeof itemActions.$inferSelect;
+
+export type ActionEvent = {
+  type: "action";
+  at: Date;
+  action: Action["action"];
+  source: Action["source"];
+  remindAt: Date | null;
+};
+
+export type HistoryEvent = NotificationEvent | ActionEvent;
 
 export type ItemReminderInfo = {
   next: Date | null;
   nextChannels: ChannelDecision[] | null;
   completedAt: Date | null;
   reason: "completed" | "missed" | "onHold" | "noChannel" | "alreadyReminded" | null;
-  history: NotificationEvent[];
+  remindAgain: { at: Date; source: Action["source"] } | null;
+  history: HistoryEvent[];
 };
 
 const HISTORY_LIMIT = 10;
@@ -77,7 +92,7 @@ function groupIntoEvents(jobs: Job[]): NotificationEvent[] {
     ) {
       last.channels.push(toOutcome(job));
     } else {
-      events.push({ kind: job.kind, at: job.createdAt, channels: [toOutcome(job)] });
+      events.push({ type: "sent", kind: job.kind, at: job.createdAt, channels: [toOutcome(job)] });
     }
   }
   for (const event of events) {
@@ -145,6 +160,7 @@ export async function getItemReminderInfo(
     .where(and(eq(items.id, itemId), eq(items.userId, userId)));
   if (!row?.item.deadline) return null;
   const { item } = row;
+  const now = new Date();
 
   const decisions = await currentDecisions(userId, row.notificationsRules);
   const jobs = await db
@@ -153,6 +169,12 @@ export async function getItemReminderInfo(
     .where(eq(notificationQueue.itemId, itemId))
     .orderBy(desc(notificationQueue.id))
     .limit(HISTORY_LIMIT * decisions.length);
+  const actions = await db
+    .select()
+    .from(itemActions)
+    .where(eq(itemActions.itemId, itemId))
+    .orderBy(desc(itemActions.id))
+    .limit(HISTORY_LIMIT);
 
   const reason =
     item.status === ITEM_STATUS.completed
@@ -167,11 +189,27 @@ export async function getItemReminderInfo(
               ? null
               : "alreadyReminded";
 
+  const remindAgainAt = pendingRemindAgainAt(item, now);
+  const askedFrom = actions.find((a) => a.action === "remindAgain");
+  const history: HistoryEvent[] = [
+    ...groupIntoEvents(jobs),
+    ...actions.map((a) => ({
+      type: "action" as const,
+      at: a.createdAt,
+      action: a.action,
+      source: a.source,
+      remindAt: a.remindAt,
+    })),
+  ]
+    .sort((a, b) => b.at.getTime() - a.at.getTime())
+    .slice(0, HISTORY_LIMIT);
+
   return {
     next: reason ? null : item.nextReminderAt,
     nextChannels: reason ? null : decisions,
     completedAt: item.status === ITEM_STATUS.completed ? item.completedAt : null,
     reason,
-    history: groupIntoEvents(jobs).slice(0, HISTORY_LIMIT),
+    remindAgain: remindAgainAt ? { at: remindAgainAt, source: askedFrom?.source ?? "app" } : null,
+    history,
   };
 }

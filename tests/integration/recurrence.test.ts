@@ -99,7 +99,7 @@ describe("completing a recurring item creates the next occurrence", () => {
 
   it("from telegram's Done button", async () => {
     const { userId, bucketId, itemId } = await seedRecurring({});
-    await completeItem(userId, itemId);
+    await completeItem(userId, itemId, "app");
     expect(await bucketItems(bucketId)).toHaveLength(2);
   });
 

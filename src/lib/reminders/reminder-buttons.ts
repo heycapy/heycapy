@@ -1,9 +1,9 @@
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { buckets, items } from "@/lib/db/schema";
-import { QUICK_REMIND_OPTIONS } from "@/lib/notifications/constants";
+import { reminderButtonLabel } from "@/lib/notifications/constants";
 import { bucketReminderButtons } from "@/lib/rules";
-import { signReminderAction, type ReminderAction } from "./action-token";
+import { signReminderAction, type ReminderAction, type ReminderChannel } from "./action-token";
 
 export type ReminderButton = { action: ReminderAction; label: string; token: string };
 
@@ -16,6 +16,7 @@ export async function reminderLinks(
   userId: number,
   itemId: number,
   remindSlots: number,
+  channel: ReminderChannel,
   now = new Date()
 ): Promise<ReminderLinks | null> {
   const [row] = await db
@@ -30,7 +31,7 @@ export async function reminderLinks(
     .limit(1);
   if (!row) return null;
 
-  const claim = { userId, itemId, deadline: row.deadline?.getTime() ?? null };
+  const claim = { userId, itemId, channel, deadline: row.deadline?.getTime() ?? null };
   const picks = bucketReminderButtons(row.rules).slice(0, remindSlots);
   const button = (action: ReminderAction, label: string): ReminderButton => ({
     action,
@@ -41,9 +42,7 @@ export async function reminderLinks(
     path: `/?bucket=${row.bucketId}#item-${itemId}`,
     buttons: [
       button("done", "✓ done"),
-      ...picks.map((p) =>
-        button(p, `⏰ ${QUICK_REMIND_OPTIONS.find((o) => o.value === p)?.label ?? p}`)
-      ),
+      ...picks.map((p) => button(p, `⏰ ${reminderButtonLabel(p)}`)),
     ],
   };
 }

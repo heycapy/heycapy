@@ -1,5 +1,6 @@
 const RESULT_SHOWN_MS = 4000;
 
+self.addEventListener("install", () => self.skipWaiting());
 self.addEventListener("activate", (event) => event.waitUntil(self.clients.claim()));
 
 self.addEventListener("push", (event) => {

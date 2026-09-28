@@ -14,6 +14,8 @@ import { initialReminderState, reminderResetForDeadline } from "@/lib/items/remi
 import { refreshItemReminders, reminderContext } from "@/lib/reminders/refresh";
 import { createNextOccurrence, skipOccurrence } from "@/lib/items/recurrence";
 import { parseRecurring } from "@/lib/items/occurrence";
+import { cancelRemindAgain } from "@/lib/reminders/quick-actions";
+import { dataEvents } from "@/lib/events";
 import {
   getItemReminderInfo,
   getReminderBadges,
@@ -73,6 +75,16 @@ export async function getItemsForBucketAction(bucketId: number): Promise<
 export async function getItemReminderInfoAction(itemId: number): Promise<ItemReminderInfo | null> {
   const session = await requireSession();
   return getItemReminderInfo(session.userId, itemId);
+}
+
+export async function cancelRemindAgainAction(itemId: number): Promise<ActionResult> {
+  const session = await requireSession();
+  if (!(await cancelRemindAgain(session.userId, itemId, "app"))) {
+    return { ok: false, error: "nothing to cancel — it may have already gone out" };
+  }
+  dataEvents.emit("refresh", session.userId);
+  revalidatePath("/");
+  return { ok: true };
 }
 
 export async function addItemAction(

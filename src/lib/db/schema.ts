@@ -342,3 +342,23 @@ export const serverSecrets = sqliteTable("server_secrets", {
   name: text("name").primaryKey(),
   value: text("value").notNull(),
 });
+
+export const itemActions = sqliteTable(
+  "item_actions",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    userId: integer("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    itemId: integer("item_id")
+      .notNull()
+      .references(() => items.id, { onDelete: "cascade" }),
+    action: text("action", { enum: ["done", "remindAgain", "cancelRemindAgain"] }).notNull(),
+    source: text("source", { enum: ["app", "telegram", "email", "ntfy", "push"] }).notNull(),
+    remindAt: integer("remind_at", { mode: "timestamp" }),
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .default(sql`(unixepoch())`),
+  },
+  (t) => [index("idx_item_actions_item_id").on(t.itemId)]
+);

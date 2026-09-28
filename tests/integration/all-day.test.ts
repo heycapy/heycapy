@@ -134,11 +134,11 @@ describe("a monthly series on the 31st", () => {
     const first = await seedItem(userId, bucketId, { deadline: new Date("2027-01-31T09:00:00Z") });
     await db.update(items).set({ recurring }).where(eq(items.id, first));
 
-    await completeItem(userId, first);
+    await completeItem(userId, first, "app");
     const feb = await latest(bucketId);
     expect(feb.deadline).toEqual(new Date("2027-02-28T09:00:00Z"));
 
-    await completeItem(userId, feb.id);
+    await completeItem(userId, feb.id, "app");
     expect((await latest(bucketId)).deadline).toEqual(new Date("2027-03-31T09:00:00Z"));
   });
 });

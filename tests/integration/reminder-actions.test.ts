@@ -70,7 +70,13 @@ async function itemById(id: number) {
 }
 
 describe("signed action links", () => {
-  const claim = { userId: 1, itemId: 2, action: "done" as const, deadline: DEADLINE.getTime() };
+  const claim = {
+    userId: 1,
+    itemId: 2,
+    action: "done" as const,
+    channel: "push" as const,
+    deadline: DEADLINE.getTime(),
+  };
 
   it("carry exactly what they were made for", () => {
     expect(verifyReminderAction(signReminderAction(claim))).toEqual(claim);
@@ -94,7 +100,13 @@ describe("tapping a reminder button", () => {
   it("done completes the item", async () => {
     const { userId, itemId } = await setup();
     const res = await tap(
-      signReminderAction({ userId, itemId, action: "done", deadline: DEADLINE.getTime() })
+      signReminderAction({
+        userId,
+        itemId,
+        action: "done",
+        channel: "push",
+        deadline: DEADLINE.getTime(),
+      })
     );
 
     expect(await res.json()).toMatchObject({ ok: true, message: '✓ "pay rent" done' });
@@ -104,7 +116,13 @@ describe("tapping a reminder button", () => {
   it("remind again pings later without moving the deadline", async () => {
     const { userId, itemId } = await setup();
     const res = await tap(
-      signReminderAction({ userId, itemId, action: "60", deadline: DEADLINE.getTime() })
+      signReminderAction({
+        userId,
+        itemId,
+        action: "60",
+        channel: "push",
+        deadline: DEADLINE.getTime(),
+      })
     );
 
     expect((await res.json()).ok).toBe(true);
@@ -119,6 +137,7 @@ describe("tapping a reminder button", () => {
       userId,
       itemId,
       action: "done",
+      channel: "push",
       deadline: DEADLINE.getTime(),
     });
     await db
@@ -136,6 +155,7 @@ describe("tapping a reminder button", () => {
       userId,
       itemId,
       action: "done",
+      channel: "push",
       deadline: DEADLINE.getTime(),
     });
     await tap(token);
@@ -152,6 +172,7 @@ describe("tapping a reminder button", () => {
       userId: stranger,
       itemId,
       action: "done",
+      channel: "push",
       deadline: DEADLINE.getTime(),
     });
 

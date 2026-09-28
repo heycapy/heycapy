@@ -425,7 +425,7 @@ async function handleUpdate(botToken: string, body: TelegramUpdate): Promise<Res
       const action = callbackData.slice(3);
       if (action === "complete") {
         if (msgId) await removeMessageButtons(botToken, chatIdStr, msgId);
-        await completeItem(userId, flowState.itemId);
+        await completeItem(userId, flowState.itemId, "telegram");
         await setFlowState(userId, null);
         dataEvents.emit("refresh", userId);
         await sendTelegramWithQuickActions(

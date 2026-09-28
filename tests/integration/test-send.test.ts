@@ -29,7 +29,9 @@ it("ntfy test posts to the entered server and topic", async () => {
     topic: "capy",
   });
   expect(result).toEqual({ ok: true });
-  expect(fetchMock).toHaveBeenCalledWith("https://ntfy.example.com/capy", expect.anything());
+  const [url, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
+  expect(url).toBe("https://ntfy.example.com/");
+  expect(JSON.parse(String(init.body))).toMatchObject({ topic: "capy" });
 });
 
 it("ntfy test reports the server's rejection", async () => {

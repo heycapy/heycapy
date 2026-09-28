@@ -1,4 +1,4 @@
-import { formatShort } from "@/lib/format-date";
+import { formatShort, formatShortTime } from "@/lib/format-date";
 import { ITEM_STATUS, isClosedStatus } from "@/constants";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -9,6 +9,7 @@ import type { items } from "@/lib/db/schema";
 import type { StatusDef, FieldDef } from "@/types/rules";
 import type { ReminderBadge } from "@/lib/reminders/status";
 import { ReminderInfoDialog } from "./ReminderInfoDialog";
+import { pendingRemindAgainAt } from "@/lib/reminders/remind-again";
 
 type ItemRow = typeof items.$inferSelect;
 
@@ -135,6 +136,12 @@ const REMINDER_ICON: Record<ReminderBadge, { Icon: typeof Bell; className: strin
   history: { Icon: Bell, className: "text-muted-foreground/30" },
 };
 
+function remindAgainLabel(item: ItemRow): string | null {
+  const now = new Date();
+  const at = pendingRemindAgainAt(item, now);
+  return at ? `⏰ again ${formatShortTime(at, now)}` : null;
+}
+
 function reminderLabel(badge: ReminderBadge, next: Date | null): string {
   if (badge === "failed") return "reminder failed";
   if (badge === "noChannel") return "no reminder";
@@ -168,6 +175,7 @@ export function ItemRow({
   const rel = item.deadline && !isClosedStatus(item.status) ? relativeTime(item.deadline) : null;
   const isCompleted = item.status === ITEM_STATUS.completed;
   const isMissed = item.status === ITEM_STATUS.missed;
+  const remindAgain = remindAgainLabel(item);
   const recurringFreq = getRecurringFrequency(item.recurring);
   const dotColor = statuses.find((s) => s.name === item.status)?.color ?? "var(--muted-foreground)";
   const badges = fields ? getShowInRowBadges(fields, item.properties) : [];
@@ -253,7 +261,7 @@ export function ItemRow({
             ))}
           </span>
         )}
-        <span className="mt-0.5 flex items-center gap-1 font-mono text-[10px]">
+        <span className="mt-0.5 flex flex-wrap items-center gap-x-1 gap-y-0.5 font-mono text-[10px] *:whitespace-nowrap">
           <span className="text-muted-foreground/30">#{item.id}</span>
           {isMissed && <span className="text-warning">· ⏭ missed</span>}
           {(item.deadline ?? item.notifiedAt) && (
@@ -278,6 +286,11 @@ export function ItemRow({
             </>
           )}
         </span>
+        {remindAgain && (
+          <span className="text-foreground/80 mt-0.5 block font-mono text-[10px]">
+            {remindAgain}
+          </span>
+        )}
       </button>
 
       {rel && rel !== "overdue" && rel !== "today" && (

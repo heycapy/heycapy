@@ -34,16 +34,16 @@ test("reminder buttons default to 1 hour + tomorrow and are saved per bucket", a
   await expectSelected(option(buttons, "15 min"), false);
   await expectSelected(option(buttons, "30 min"), false);
   await expectSelected(option(buttons, "1 hour"));
-  await expectSelected(option(buttons, "Tomorrow"));
+  await expectSelected(option(buttons, "tomorrow"));
 
   await option(buttons, "15 min").click();
-  await option(buttons, "Tomorrow").click();
+  await option(buttons, "tomorrow").click();
   await saveSettings(dialog);
 
   const reopened = await reminderButtons(page);
   await expectSelected(option(reopened.buttons, "15 min"));
   await expectSelected(option(reopened.buttons, "1 hour"));
-  await expectSelected(option(reopened.buttons, "Tomorrow"), false);
+  await expectSelected(option(reopened.buttons, "tomorrow"), false);
 });
 
 test("a notification link opens its item's bucket", async ({ page }) => {

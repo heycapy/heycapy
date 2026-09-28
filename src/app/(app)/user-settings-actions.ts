@@ -23,7 +23,8 @@ import { telegramWebhookSecret } from "@/lib/notifications/telegram-webhook";
 import type { NotificationMedium } from "@/lib/notifications/queue";
 import { isE2ETestMode } from "@/lib/e2e";
 import { errorMessage } from "@/lib/errors";
-import { APP_NAME } from "@/constants";
+import { APP_NAME, EMAIL_COLORS } from "@/constants";
+import { emailLayout } from "@/lib/email/layout";
 
 type UserSettingsUpdate = {
   personalityName: string;
@@ -281,8 +282,12 @@ export async function testSmtpAction(config: {
       {
         to: config.sendTo,
         subject: `[${APP_NAME}] smtp test`,
-        text: `your smtp is working correctly — sent while relaxing`,
-        html: `<!DOCTYPE html><html><body style="margin:0;padding:40px 16px;background:#fdf6e3;font-family:'Courier New',Courier,monospace;"><table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center"><table width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;background:#fdf6e3;border:2px solid #2c1f0e;"><tr><td style="padding:20px 32px 16px;border-bottom:1px solid #2c1f0e;"><p style="margin:0;font-size:18px;font-weight:700;color:#2c1f0e;">[ ${APP_NAME} ]</p><p style="margin:4px 0 0;font-size:11px;color:#7a6a55;letter-spacing:0.05em;">smtp test</p></td></tr><tr><td style="padding:24px 32px 24px;"><p style="margin:0;font-size:14px;color:#2c1f0e;line-height:1.6;">your smtp is working correctly.</p></td></tr><tr><td style="padding:16px 32px 20px;border-top:1px solid #2c1f0e;"><p style="margin:0;font-size:11px;color:#7a6a55;">your capy &mdash; sent while relaxing</p></td></tr></table></td></tr></table></body></html>`,
+        text: "your smtp is working correctly.",
+        html: emailLayout({
+          label: "smtp test",
+          preheader: "your smtp is working correctly",
+          body: `<p style="margin:0;font-size:14px;line-height:1.6;color:${EMAIL_COLORS.text};">your smtp is working correctly.</p>`,
+        }),
       },
       {
         emailProvider: "smtp",
@@ -309,7 +314,7 @@ export async function sendTestNotificationAction(
   if (!session) return { ok: false, error: "Unauthorized" };
 
   const title = `[${APP_NAME}] test`;
-  const message = "your notifications are working — sent while relaxing";
+  const message = "your notifications are working";
 
   let send: () => Promise<void>;
   if (channel === "ntfy") {

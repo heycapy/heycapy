@@ -1,4 +1,8 @@
-import { QUICK_REMIND_OPTIONS, type QuickRemindChoice } from "@/lib/notifications/constants";
+import {
+  QUICK_REMIND_VALUES,
+  reminderButtonLabel,
+  type QuickRemindChoice,
+} from "@/lib/notifications/constants";
 import { Toggle } from "@/components/ui/Toggle";
 import { OptionButton } from "@/components/ui/OptionButton";
 import { OptionGroup } from "@/components/ui/OptionGroup";
@@ -189,11 +193,11 @@ export function BucketRulesPanel({
       <div className="flex flex-col gap-1.5">
         <label className={LABEL}>reminder buttons</label>
         <span className={HINT}>
-          done is always there; pick when to be reminded again. push on android and desktop shows
-          done + the first one
+          done is always there; pick when to be reminded again. push (android, desktop) shows done +
+          the first one, ntfy done + two, email all of them
         </span>
         <OptionGroup
-          options={[...QUICK_REMIND_OPTIONS]}
+          options={QUICK_REMIND_VALUES.map((v) => ({ value: v, label: reminderButtonLabel(v) }))}
           value={reminderButtons}
           onChange={onReminderButtonToggle}
           multi

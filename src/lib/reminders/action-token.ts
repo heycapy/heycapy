@@ -3,16 +3,26 @@ import { QUICK_REMIND_VALUES, REMINDER_ACTION_TTL_MS } from "@/lib/notifications
 import type { QuickRemindChoice } from "@/lib/notifications/constants";
 
 export type ReminderAction = "done" | QuickRemindChoice;
+export type ReminderChannel = "email" | "ntfy" | "push";
+const CHANNELS: readonly ReminderChannel[] = ["email", "ntfy", "push"];
 
 export type ReminderActionClaim = {
   userId: number;
   itemId: number;
   action: ReminderAction;
+  channel: ReminderChannel;
   // The deadline the reminder was about; a later occurrence or a moved date makes the button outdated
   deadline: number | null;
 };
 
-type Payload = { u: number; i: number; a: ReminderAction; d: number | null; e: number };
+type Payload = {
+  u: number;
+  i: number;
+  a: ReminderAction;
+  c: ReminderChannel;
+  d: number | null;
+  e: number;
+};
 
 function signature(body: string): Buffer {
   const secret = process.env.JWT_SECRET;
@@ -26,6 +36,7 @@ export function signReminderAction(claim: ReminderActionClaim, now = new Date())
     u: claim.userId,
     i: claim.itemId,
     a: claim.action,
+    c: claim.channel,
     d: claim.deadline,
     e: now.getTime() + REMINDER_ACTION_TTL_MS,
   };
@@ -42,8 +53,9 @@ export function verifyReminderAction(token: string, now = new Date()): ReminderA
   try {
     const p = JSON.parse(Buffer.from(body, "base64url").toString()) as Payload;
     const knownAction = p.a === "done" || QUICK_REMIND_VALUES.includes(p.a);
-    if (!knownAction || typeof p.e !== "number" || p.e < now.getTime()) return null;
-    return { userId: p.u, itemId: p.i, action: p.a, deadline: p.d };
+    if (!knownAction || !CHANNELS.includes(p.c)) return null;
+    if (typeof p.e !== "number" || p.e < now.getTime()) return null;
+    return { userId: p.u, itemId: p.i, action: p.a, channel: p.c, deadline: p.d };
   } catch {
     return null;
   }

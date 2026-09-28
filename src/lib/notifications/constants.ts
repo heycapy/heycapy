@@ -20,6 +20,9 @@ export const QUICK_REMIND_OPTIONS = [
 ] as const;
 
 export type QuickRemindChoice = (typeof QUICK_REMIND_OPTIONS)[number]["value"];
+export function reminderButtonLabel(choice: QuickRemindChoice): string {
+  return QUICK_REMIND_OPTIONS.find((o) => o.value === choice)?.label.toLowerCase() ?? choice;
+}
 export const QUICK_REMIND_VALUES = [
   "15",
   "30",
@@ -29,6 +32,8 @@ export const QUICK_REMIND_VALUES = [
 export const DEFAULT_REMINDER_BUTTONS: QuickRemindChoice[] = ["60", "tomorrow"];
 
 export const PUSH_REMIND_BUTTONS = 1;
+export const NTFY_REMIND_BUTTONS = 2;
+export const EMAIL_REMIND_BUTTONS = QUICK_REMIND_VALUES.length;
 export const REMINDER_ACTION_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
 export const RESCHEDULE_DAY_LABELS = {

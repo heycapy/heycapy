@@ -40,7 +40,7 @@ export async function handleReminderAction(
   else if (item.status === ITEM_STATUS.completed) html = itemDoneHtml(item.title, true);
   else if (item.status === ITEM_STATUS.missed) html = itemMissedHtml(item.title);
   else if (prefix === "qc") {
-    await completeItem(ctx.userId, itemId);
+    await completeItem(ctx.userId, itemId, "telegram");
     html = itemDoneHtml(item.title, false);
   } else {
     const option = QUICK_REMIND_OPTIONS.find((o) => o.value === choice);
@@ -59,6 +59,6 @@ async function remindAgain(
   choice: QuickRemindChoice
 ): Promise<string> {
   const now = new Date();
-  const next = await remindItemAgain(itemId, choice, ctx.timezone, now);
+  const next = await remindItemAgain(ctx.userId, itemId, choice, ctx.timezone, "telegram", now);
   return next ? remindAgainHtml(title, next, now, ctx.timezone) : GONE;
 }

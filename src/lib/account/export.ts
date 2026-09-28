@@ -4,6 +4,7 @@ import {
   buckets,
   chatMessages,
   chatSessions,
+  itemActions,
   items,
   notificationLog,
   pushSubscriptions,
@@ -23,34 +24,49 @@ function parsed(raw: unknown): unknown {
 }
 
 export async function buildAccountExport(userId: number, now = new Date()) {
-  const [user, settings, bucketRows, itemRows, templateRows, history, sessions, messages, devices] =
-    await Promise.all([
-      db.query.users.findFirst({ where: eq(users.id, userId) }),
-      db.query.userSettings.findFirst({ where: eq(userSettings.userId, userId) }),
-      db.select().from(buckets).where(eq(buckets.userId, userId)).orderBy(asc(buckets.id)),
-      db.select().from(items).where(eq(items.userId, userId)).orderBy(asc(items.id)),
-      db.select().from(templates).where(eq(templates.userId, userId)).orderBy(asc(templates.id)),
-      db
-        .select()
-        .from(notificationLog)
-        .where(eq(notificationLog.userId, userId))
-        .orderBy(asc(notificationLog.id)),
-      db
-        .select()
-        .from(chatSessions)
-        .where(eq(chatSessions.userId, userId))
-        .orderBy(asc(chatSessions.id)),
-      db
-        .select()
-        .from(chatMessages)
-        .where(eq(chatMessages.userId, userId))
-        .orderBy(asc(chatMessages.id)),
-      db
-        .select({ name: pushSubscriptions.deviceName, addedAt: pushSubscriptions.createdAt })
-        .from(pushSubscriptions)
-        .where(eq(pushSubscriptions.userId, userId))
-        .orderBy(asc(pushSubscriptions.id)),
-    ]);
+  const [
+    user,
+    settings,
+    bucketRows,
+    itemRows,
+    templateRows,
+    history,
+    sessions,
+    messages,
+    devices,
+    actions,
+  ] = await Promise.all([
+    db.query.users.findFirst({ where: eq(users.id, userId) }),
+    db.query.userSettings.findFirst({ where: eq(userSettings.userId, userId) }),
+    db.select().from(buckets).where(eq(buckets.userId, userId)).orderBy(asc(buckets.id)),
+    db.select().from(items).where(eq(items.userId, userId)).orderBy(asc(items.id)),
+    db.select().from(templates).where(eq(templates.userId, userId)).orderBy(asc(templates.id)),
+    db
+      .select()
+      .from(notificationLog)
+      .where(eq(notificationLog.userId, userId))
+      .orderBy(asc(notificationLog.id)),
+    db
+      .select()
+      .from(chatSessions)
+      .where(eq(chatSessions.userId, userId))
+      .orderBy(asc(chatSessions.id)),
+    db
+      .select()
+      .from(chatMessages)
+      .where(eq(chatMessages.userId, userId))
+      .orderBy(asc(chatMessages.id)),
+    db
+      .select({ name: pushSubscriptions.deviceName, addedAt: pushSubscriptions.createdAt })
+      .from(pushSubscriptions)
+      .where(eq(pushSubscriptions.userId, userId))
+      .orderBy(asc(pushSubscriptions.id)),
+    db
+      .select()
+      .from(itemActions)
+      .where(eq(itemActions.userId, userId))
+      .orderBy(asc(itemActions.id)),
+  ]);
 
   return {
     exportedAt: now.toISOString(),
@@ -137,6 +153,13 @@ export async function buildAccountExport(userId: number, now = new Date()) {
       status: n.status,
       error: n.error,
       sentAt: n.sentAt,
+    })),
+    reminderActions: actions.map((a) => ({
+      itemId: a.itemId,
+      action: a.action,
+      from: a.source,
+      remindAt: a.remindAt,
+      at: a.createdAt,
     })),
     chats: sessions.map((s) => ({
       title: s.title,

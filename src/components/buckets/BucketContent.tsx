@@ -86,10 +86,7 @@ export function BucketContent({ bucket, accentColor }: BucketContentProps) {
         onSetUp={() => setSettingsTab("notifications")}
       />
 
-      <div
-        className="border-border mx-4 overflow-hidden border-2"
-        style={{ boxShadow: "2px 2px 0 var(--border)" }}
-      >
+      <div className="border-border overflow-hidden border-y-2 sm:mx-4 sm:border-x-2 sm:shadow-[2px_2px_0_var(--border)]">
         <ItemList
           loading={list.loading}
           items={list.orderedItems}
