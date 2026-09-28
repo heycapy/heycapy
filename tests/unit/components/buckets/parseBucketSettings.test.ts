@@ -18,6 +18,7 @@ describe("parseBucketSettings", () => {
   it("falls back to defaults for empty rules", () => {
     expect(parseBucketSettings(bucket({}))).toEqual({
       name: "Bills",
+      recurrenceMode: "wait",
       sortBy: "created_at",
       drag: false,
       showCompleted: true,
@@ -100,5 +101,12 @@ describe("parseBucketSettings", () => {
     expect(values.sortBy).toBe("created_at");
     expect(values.mediums).toEqual([]);
     expect(values.notifyOnArrival).toBe(false);
+  });
+
+  it("reads the repeating items mode", () => {
+    const values = parseBucketSettings(
+      bucket({ itemsRules: JSON.stringify({ recurrenceMode: "moveOn" }) })
+    );
+    expect(values.recurrenceMode).toBe("moveOn");
   });
 });

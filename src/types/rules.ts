@@ -14,6 +14,8 @@ export const ItemsRules = z.object({
   readonly: z.boolean().default(false),
   showCompleted: z.boolean().default(true),
   defaultDeadlineOffsetDays: z.number().int().nonnegative().nullable().default(null),
+  // How a repeating item's next occurrence comes about
+  recurrenceMode: z.enum(["wait", "moveOn", "afterCompletion"]).default("wait"),
 });
 
 export const McpRules = z.object({
@@ -42,6 +44,7 @@ export const RecurringConfig = z.object({
 
 export type NotificationRules = z.infer<typeof NotificationRules>;
 export type ItemsRules = z.infer<typeof ItemsRules>;
+export type RecurrenceMode = ItemsRules["recurrenceMode"];
 export type McpRules = z.infer<typeof McpRules>;
 export type PersonalityRules = z.infer<typeof PersonalityRules>;
 export type RecurringConfig = z.infer<typeof RecurringConfig>;

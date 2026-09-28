@@ -1,4 +1,4 @@
-import { ITEM_STATUS } from "@/constants";
+import { isClosedStatus } from "@/constants";
 import { useEffect, useRef, useState } from "react";
 import { deleteItemAction, getItemsForBucketAction, updateItemAction } from "@/app/(app)/actions";
 import type { ReminderBadge } from "@/lib/reminders/status";
@@ -33,7 +33,7 @@ export function useBucketItems(bucketId: number, itemsRules: string, showComplet
   useEffect(() => {
     const next = showCompleted
       ? fetchedItems
-      : fetchedItems.filter((i) => i.status !== ITEM_STATUS.completed);
+      : fetchedItems.filter((i) => !isClosedStatus(i.status));
     const id = setTimeout(() => {
       setOrderedItems(next);
       orderedItemsRef.current = next;

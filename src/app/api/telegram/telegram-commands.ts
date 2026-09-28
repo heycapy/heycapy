@@ -1,6 +1,6 @@
 import { formatWhen } from "@/lib/format-date";
-import { ITEM_STATUS } from "@/constants";
-import { and, eq, isNull, ne, sql } from "drizzle-orm";
+import { CLOSED_ITEM_STATUSES } from "@/constants";
+import { and, eq, isNull, sql, notInArray } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { items } from "@/lib/db/schema";
 import { sendTelegramButtons, sendTelegramWithQuickActions } from "@/lib/notifications/telegram";
@@ -30,7 +30,7 @@ export async function cmdBuckets(
       and(
         eq(items.userId, userId),
         isNull(items.deletedAt),
-        ne(items.status, ITEM_STATUS.completed)
+        notInArray(items.status, CLOSED_ITEM_STATUSES as string[])
       )
     )
     .groupBy(items.bucketId);

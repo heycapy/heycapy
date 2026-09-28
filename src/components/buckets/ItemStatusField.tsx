@@ -1,3 +1,4 @@
+import { ITEM_STATUS } from "@/constants";
 import { OptionButton } from "@/components/ui/OptionButton";
 import type { StatusDef } from "@/types/rules";
 
@@ -26,7 +27,12 @@ export function ItemStatusField({ status, statuses, onChange, disabled }: ItemSt
           </OptionButton>
         ))}
       </div>
-      {status && !statuses.find((s) => s.name === status) && (
+      {status === ITEM_STATUS.missed && (
+        <p className="text-warning font-mono text-[10px]">
+          ⏭ this occurrence was missed — pick a status to reopen it
+        </p>
+      )}
+      {status && status !== ITEM_STATUS.missed && !statuses.find((s) => s.name === status) && (
         <p className="text-destructive font-mono text-[10px]">
           &quot;{status}&quot; is not a valid status — pick one above to fix it
         </p>

@@ -1,5 +1,5 @@
 import { parseItemsRules } from "@/lib/rules";
-import { ITEM_STATUS } from "@/constants";
+import { ITEM_STATUS, isClosedStatus } from "@/constants";
 import { useState } from "react";
 import { ItemDialog } from "./ItemDialog";
 import { ItemList } from "./ItemList";
@@ -82,7 +82,7 @@ export function BucketContent({ bucket, accentColor }: BucketContentProps) {
 
       <RemindersOffNotice
         notificationsRules={bucket.notificationsRules}
-        hasDatedItems={list.items.some((i) => i.deadline && i.status !== ITEM_STATUS.completed)}
+        hasDatedItems={list.items.some((i) => i.deadline && !isClosedStatus(i.status))}
         onSetUp={() => setSettingsTab("notifications")}
       />
 

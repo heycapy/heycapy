@@ -1,5 +1,5 @@
 import { formatShort } from "@/lib/format-date";
-import { ITEM_STATUS } from "@/constants";
+import { ITEM_STATUS, isClosedStatus } from "@/constants";
 import { useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Bell, BellOff, GripVertical, TriangleAlert } from "lucide-react";
@@ -156,8 +156,9 @@ export function ItemRow({
   const [reminderOpen, setReminderOpen] = useState(false);
   const ReminderIcon = reminderBadge ? REMINDER_ICON[reminderBadge].Icon : null;
   const dotRef = useRef<HTMLButtonElement>(null);
-  const rel = item.deadline ? relativeTime(item.deadline) : null;
+  const rel = item.deadline && !isClosedStatus(item.status) ? relativeTime(item.deadline) : null;
   const isCompleted = item.status === ITEM_STATUS.completed;
+  const isMissed = item.status === ITEM_STATUS.missed;
   const recurringFreq = getRecurringFrequency(item.recurring);
   const dotColor = statuses.find((s) => s.name === item.status)?.color ?? "var(--muted-foreground)";
   const badges = fields ? getShowInRowBadges(fields, item.properties) : [];
@@ -173,7 +174,7 @@ export function ItemRow({
       className={cn(
         "flex items-stretch gap-0 px-3",
         isEditing && "bg-muted/20",
-        isCompleted && "opacity-60"
+        (isCompleted || isMissed) && "opacity-60"
       )}
     >
       {dragControls && (
@@ -243,6 +244,7 @@ export function ItemRow({
         )}
         <span className="mt-0.5 flex items-center gap-1 font-mono text-[10px]">
           <span className="text-muted-foreground/30">#{item.id}</span>
+          {isMissed && <span className="text-warning">· ⏭ missed</span>}
           {(item.deadline ?? item.notifiedAt) && (
             <>
               {recurringFreq && <span className="text-muted-foreground">· ↺ {recurringFreq}</span>}

@@ -18,7 +18,15 @@ export const ITEM_STATUS = {
   active: "active",
   completed: "completed",
   onHold: "on hold",
+  missed: "missed",
 } as const;
+
+// No longer open: done, or a repeating occurrence that passed without being done
+export const CLOSED_ITEM_STATUSES: readonly string[] = [ITEM_STATUS.completed, ITEM_STATUS.missed];
+
+export function isClosedStatus(status: string): boolean {
+  return CLOSED_ITEM_STATUSES.includes(status);
+}
 
 export const WEBHOOK_KEY_PREFIX = "hc_live_";
 // Telegram command limit

@@ -1,13 +1,14 @@
 import { ITEM_STATUS } from "@/constants";
 import type { LucideIcon } from "lucide-react";
 import { Activity, Bell, Briefcase, CreditCard, ListTodo, Square } from "lucide-react";
-import type { StatusDef } from "@/types/rules";
+import type { RecurrenceMode, StatusDef } from "@/types/rules";
 
 export type SortBy = "deadline" | "created_at" | "manual";
 export type NotificationMedium = "ntfy" | "email" | "telegram";
 export type RepeatMode = "once" | "daily";
 
 export type ItemsRulesConfig = {
+  recurrenceMode?: RecurrenceMode;
   sortBy?: SortBy;
   drag?: boolean;
   readonly?: boolean;
@@ -126,3 +127,21 @@ export type CurrencySymbol = (typeof CURRENCY_OPTIONS)[number]["value"];
 export const FIELD_LABEL = "text-muted-foreground font-mono text-[10px]";
 export const FIELD_INPUT =
   "border-b border-border w-full bg-transparent py-1.5 font-mono text-xs outline-none placeholder:text-muted-foreground/50 focus:border-foreground disabled:opacity-50";
+
+export const RECURRENCE_MODE_OPTIONS: { value: RecurrenceMode; label: string; hint: string }[] = [
+  {
+    value: "wait",
+    label: "wait for me",
+    hint: "the next one appears when you complete this one — for bills and to-dos you still owe",
+  },
+  {
+    value: "moveOn",
+    label: "move on if missed",
+    hint: "when the next date arrives, an unfinished one is marked missed — for habits",
+  },
+  {
+    value: "afterCompletion",
+    label: "after completion",
+    hint: "the next date counts from when you complete it — e.g. water plants 3 days after",
+  },
+];

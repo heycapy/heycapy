@@ -1,4 +1,4 @@
-import { ITEM_STATUS } from "@/constants";
+import { isClosedStatus } from "@/constants";
 import { useState, useTransition } from "react";
 import {
   addItemAction,
@@ -154,7 +154,8 @@ export function useItemEditor({
   const editingItem = items.find((i) => i.id === editingItemId);
   const editingRecurring = parseRecurring(editingItem?.recurring ?? null);
   const canSkip =
-    editingItem?.status !== ITEM_STATUS.completed &&
+    !!editingItem &&
+    !isClosedStatus(editingItem.status) &&
     !!editingItem?.deadline &&
     !!editingRecurring &&
     nextOccurrenceDate(

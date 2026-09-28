@@ -1,6 +1,6 @@
 import { formatWhen } from "@/lib/format-date";
-import { ITEM_STATUS } from "@/constants";
-import { and, asc, eq, gte, isNull, lt, lte, ne, type SQL } from "drizzle-orm";
+import { CLOSED_ITEM_STATUSES } from "@/constants";
+import { and, asc, eq, gte, isNull, lt, lte, type SQL, notInArray } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { buckets, items } from "@/lib/db/schema";
 import { TELEGRAM_LIST_PAGE_SIZE } from "@/lib/notifications/constants";
@@ -39,7 +39,7 @@ async function loadList(
         and(
           eq(items.userId, ctx.userId),
           isNull(items.deletedAt),
-          ne(items.status, ITEM_STATUS.completed),
+          notInArray(items.status, CLOSED_ITEM_STATUSES as string[]),
           where
         )
       )

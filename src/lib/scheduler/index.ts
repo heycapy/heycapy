@@ -1,3 +1,4 @@
+import { moveOnMissedOccurrences } from "@/lib/items/recurrence";
 import { formatWhen } from "@/lib/format-date";
 import { schedule } from "node-cron";
 import { asc, eq, lte } from "drizzle-orm";
@@ -218,6 +219,7 @@ async function runNotifications(): Promise<void> {
   process.stderr.write(`[scheduler] run at ${now.toISOString()}\n`);
 
   try {
+    await moveOnMissedOccurrences(now);
     await drainDue("nextReminderAt", now, (row) => sendDeadlineReminder(row, now));
     await drainDue("nextOverdueAt", now, (row) => sendOverdueAlert(row, now));
   } catch (err) {
@@ -248,7 +250,6 @@ export function startScheduler(): void {
   if (started) return;
   started = true;
 
-  // Backfill on startup, then hourly as a safety net
   void reconcileReminders().then(() => {
     schedule("* * * * *", () => void runNotifications(), { noOverlap: true });
     schedule("17 * * * *", () => void reconcileReminders(), { noOverlap: true });

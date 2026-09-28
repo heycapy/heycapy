@@ -5,7 +5,11 @@ import { items } from "@/lib/db/schema";
 import { dataEvents } from "@/lib/events";
 import { QUICK_REMIND_OPTIONS, type QuickRemindChoice } from "@/lib/notifications/constants";
 import { editTelegramHtml } from "@/lib/notifications/telegram";
-import { itemDoneHtml, remindAgainHtml } from "@/lib/notifications/telegram-message";
+import {
+  itemDoneHtml,
+  itemMissedHtml,
+  remindAgainHtml,
+} from "@/lib/notifications/telegram-message";
 import {
   refreshItemReminders,
   selectReminderRows,
@@ -43,6 +47,7 @@ export async function handleReminderAction(
   let html: string;
   if (!item) html = GONE;
   else if (item.status === ITEM_STATUS.completed) html = itemDoneHtml(item.title, true);
+  else if (item.status === ITEM_STATUS.missed) html = itemMissedHtml(item.title);
   else if (prefix === "qc") {
     await completeItemById(ctx.userId, itemId);
     html = itemDoneHtml(item.title, false);

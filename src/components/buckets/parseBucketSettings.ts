@@ -1,10 +1,12 @@
 import { daysToDisplayStr, minsToDisplayStr } from "@/lib/duration";
 import type { NotificationMedium, RepeatMode, SortBy } from "./constants";
 import type { buckets } from "@/lib/db/schema";
+import type { RecurrenceMode } from "@/types/rules";
 
 type BucketRow = typeof buckets.$inferSelect;
 
 type RawItemsRules = {
+  recurrenceMode?: RecurrenceMode;
   sortBy?: string;
   sort_by?: string;
   drag?: boolean;
@@ -26,6 +28,7 @@ type RawNotifRules = {
 
 export type BucketSettingsValues = {
   name: string;
+  recurrenceMode: RecurrenceMode;
   sortBy: SortBy;
   drag: boolean;
   showCompleted: boolean;
@@ -68,6 +71,7 @@ export function parseBucketSettings(bucket: BucketRow): BucketSettingsValues {
 
   return {
     name: bucket.name,
+    recurrenceMode: ir.recurrenceMode ?? "wait",
     sortBy: ((ir.sortBy ?? ir.sort_by) as SortBy | undefined) ?? "created_at",
     drag: ir.drag ?? false,
     showCompleted: (ir.showCompleted ?? ir.show_completed) !== false,

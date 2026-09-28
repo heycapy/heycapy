@@ -256,6 +256,32 @@ test.describe("items settings", () => {
     await expectSelected(option(field(dialog, "allow drag"), "on"));
   });
 
+  test("repeating items default to wait for me, and each mode explains itself", async ({
+    page,
+  }) => {
+    const dialog = await openSettings(page);
+    const repeating = field(dialog, "repeating items");
+    await expectSelected(option(repeating, "wait for me"));
+    await expect(
+      repeating.getByText(/the next one appears when you complete this one/)
+    ).toBeVisible();
+
+    await option(repeating, "move on if missed").click();
+    await expectSelected(option(repeating, "move on if missed"));
+    await expectSelected(option(repeating, "wait for me"), false);
+    await expect(repeating.getByText(/an unfinished one is marked missed/)).toBeVisible();
+  });
+
+  test("repeating items mode persists", async ({ page }) => {
+    let dialog = await openSettings(page);
+    await option(field(dialog, "repeating items"), "after completion").click();
+    await saveSettings(dialog);
+
+    await page.reload();
+    dialog = await openSettings(page);
+    await expectSelected(option(field(dialog, "repeating items"), "after completion"));
+  });
+
   test("show completed off hides completed items from the list", async ({ page }) => {
     const active = uniqueName("still to do");
     const done = uniqueName("already done");

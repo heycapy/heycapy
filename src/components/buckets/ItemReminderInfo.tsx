@@ -11,6 +11,7 @@ import { formatShort } from "@/lib/format-date";
 const REASONS: Record<NonNullable<Info["reason"]>, string> = {
   completed: "completed",
   onHold: "no reminders — item is on hold",
+  missed: "missed — the next occurrence took its place",
   noChannel: "no reminder — this bucket has no working channel",
   alreadyReminded: "no further reminders (repeat: once)",
 };

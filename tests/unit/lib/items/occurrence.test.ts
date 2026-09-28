@@ -1,5 +1,11 @@
 import { describe, it, expect } from "vitest";
-import { nextOccurrenceDate, parseRecurring, withAnchor } from "@/lib/items/occurrence";
+import {
+  followingOccurrence,
+  nextAfterCompletion,
+  nextOccurrenceDate,
+  parseRecurring,
+  withAnchor,
+} from "@/lib/items/occurrence";
 import type { RecurringConfig } from "@/types/rules";
 
 const now = new Date("2026-03-10T12:00:00Z");
@@ -102,5 +108,35 @@ describe("parseRecurring", () => {
     expect(parseRecurring(null)).toBeNull();
     expect(parseRecurring("{nope")).toBeNull();
     expect(parseRecurring(JSON.stringify({ frequency: "hourly" }))).toBeNull();
+  });
+});
+
+describe("followingOccurrence and nextAfterCompletion", () => {
+  const every3Days: RecurringConfig = { ...monthly, frequency: "daily", interval: 3 };
+
+  it("followingOccurrence gives the very next date even when it's already past", () => {
+    const next = followingOccurrence(new Date("2026-01-01T09:00:00Z"), monthly, "UTC");
+    expect(next?.toISOString()).toBe("2026-02-01T09:00:00.000Z");
+  });
+
+  it("nextAfterCompletion counts from the completion day and keeps the item's time", () => {
+    const next = nextAfterCompletion(
+      new Date("2026-03-10T09:00:00Z"),
+      every3Days,
+      "UTC",
+      new Date("2026-03-12T18:00:00Z")
+    );
+    expect(next?.toISOString()).toBe("2026-03-15T09:00:00.000Z");
+  });
+
+  it("nextAfterCompletion uses the user's local day", () => {
+    // Completed at 00:30 on Mar 13 in Kolkata (still Mar 12 in UTC)
+    const next = nextAfterCompletion(
+      new Date("2026-03-10T03:30:00Z"),
+      every3Days,
+      "Asia/Kolkata",
+      new Date("2026-03-12T19:00:00Z")
+    );
+    expect(next?.toISOString()).toBe("2026-03-16T03:30:00.000Z");
   });
 });

@@ -1,6 +1,6 @@
 import { addLocalDays, localDateString, parseLocalDateTime } from "@/lib/reminders/zoned";
 import { revalidatePath } from "next/cache";
-import { and, eq, gte, isNull, lte, ne, or, sql } from "drizzle-orm";
+import { and, eq, gte, isNull, lte, or, sql, notInArray } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { findBucketByName } from "@/lib/db/buckets";
 import { withDefaultChannels } from "@/lib/notifications/channels";
@@ -8,7 +8,7 @@ import { initialReminderState, reminderResetForDeadline } from "@/lib/items/remi
 import { refreshItemReminders, reminderContext } from "@/lib/reminders/refresh";
 import { createNextOccurrence } from "@/lib/items/recurrence";
 import { encryptValue, generateWebhookKey } from "@/lib/crypto";
-import { BUCKET_NAME_MAX_LENGTH, ITEM_STATUS } from "@/constants";
+import { BUCKET_NAME_MAX_LENGTH, CLOSED_ITEM_STATUSES, ITEM_STATUS } from "@/constants";
 import { buckets, items } from "@/lib/db/schema";
 import { RecurringConfig, BucketSchema, buildPropertyValidator } from "@/types/rules";
 import type { ToolCall } from "./types";
@@ -54,7 +54,7 @@ function parseRecurringArgs(args: Record<string, unknown>): string | null | unde
 }
 
 const activeOnly = or(eq(items.status, ITEM_STATUS.active), isNull(items.status));
-const notCompleted = ne(items.status, ITEM_STATUS.completed);
+const notCompleted = notInArray(items.status, CLOSED_ITEM_STATUSES as string[]);
 
 export async function executeToolCall(
   call: ToolCall,

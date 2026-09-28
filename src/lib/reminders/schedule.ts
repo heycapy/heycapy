@@ -1,4 +1,4 @@
-import { ITEM_STATUS } from "@/constants";
+import { ITEM_STATUS, isClosedStatus } from "@/constants";
 import type { NotificationRules } from "@/types/rules";
 import { ALL_DAY_REMINDER_MINS, OVERDUE_FIRST_ALERT_DEFAULT_MINS } from "./constants";
 import {
@@ -30,7 +30,7 @@ function canRemind(i: ReminderInputs): i is ReminderInputs & { deadline: Date } 
   return (
     i.deadline !== null &&
     i.deletedAt === null &&
-    i.status !== ITEM_STATUS.completed &&
+    !isClosedStatus(i.status) &&
     i.status !== ITEM_STATUS.onHold
   );
 }

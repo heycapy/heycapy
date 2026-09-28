@@ -35,3 +35,7 @@ export function itemMovedHtml(title: string, deadline: Date, now: Date, timezone
 export function remindAgainHtml(title: string, at: Date, now: Date, timezone: string): string {
   return `⏰ <b>${escapeHtml(title)}</b>\nI'll remind you again ${formatWhen(at, now, timezone)}`;
 }
+
+export function itemMissedHtml(title: string): string {
+  return `⏭ <b>${escapeHtml(title)}</b>\nmissed — the next one is on its way`;
+}

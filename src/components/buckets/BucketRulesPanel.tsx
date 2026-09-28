@@ -4,7 +4,8 @@ import { OptionGroup } from "@/components/ui/OptionGroup";
 import { TimePicker } from "@/components/ui/TimePicker";
 import { DurationInput } from "@/components/ui/DurationInput";
 import type { SortBy, NotificationMedium, RepeatMode } from "./constants";
-import { SORT_OPTIONS, MEDIUM_OPTIONS, REPEAT_OPTIONS } from "./constants";
+import { SORT_OPTIONS, MEDIUM_OPTIONS, REPEAT_OPTIONS, RECURRENCE_MODE_OPTIONS } from "./constants";
+import type { RecurrenceMode } from "@/types/rules";
 import { OVERDUE_FIRST_ALERT_DEFAULT_MINS } from "@/lib/reminders/constants";
 
 const LABEL = "text-muted-foreground font-mono text-[10px]";
@@ -36,6 +37,7 @@ type BucketRulesPanelProps = {
   sortBy: SortBy;
   drag: boolean;
   showCompleted: boolean;
+  recurrenceMode: RecurrenceMode;
   readonly: boolean;
   defaultDeadlineOffset: string;
   mediums: NotificationMedium[];
@@ -49,6 +51,7 @@ type BucketRulesPanelProps = {
   onSortByChange: (v: SortBy) => void;
   onDragChange: (v: boolean) => void;
   onShowCompletedChange: (v: boolean) => void;
+  onRecurrenceModeChange: (v: RecurrenceMode) => void;
   onReadonlyChange: (v: boolean) => void;
   onDefaultDeadlineOffsetChange: (v: string) => void;
   onMediumToggle: (m: NotificationMedium) => void;
@@ -68,6 +71,7 @@ export function BucketRulesPanel({
   sortBy,
   drag,
   showCompleted,
+  recurrenceMode,
   readonly,
   defaultDeadlineOffset,
   mediums,
@@ -81,6 +85,7 @@ export function BucketRulesPanel({
   onSortByChange,
   onDragChange,
   onShowCompletedChange,
+  onRecurrenceModeChange,
   onReadonlyChange,
   onDefaultDeadlineOffsetChange,
   onMediumToggle,
@@ -112,6 +117,17 @@ export function BucketRulesPanel({
           <label className={LABEL}>show completed</label>
           <span className={HINT}>keep completed items visible in the list</span>
           <Toggle value={showCompleted} onChange={onShowCompletedChange} />
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <label className={LABEL}>repeating items</label>
+          <span className={HINT}>
+            {RECURRENCE_MODE_OPTIONS.find((o) => o.value === recurrenceMode)?.hint}
+          </span>
+          <OptionGroup
+            options={RECURRENCE_MODE_OPTIONS}
+            value={recurrenceMode}
+            onChange={onRecurrenceModeChange}
+          />
         </div>
         <div className="flex flex-col gap-1.5">
           <label className={LABEL}>read only</label>

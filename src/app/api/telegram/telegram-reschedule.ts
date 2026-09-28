@@ -1,5 +1,5 @@
 import { formatSlot, formatWhen } from "@/lib/format-date";
-import { ITEM_STATUS } from "@/constants";
+import { isClosedStatus } from "@/constants";
 import { and, eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { buckets, items } from "@/lib/db/schema";
@@ -57,7 +57,7 @@ async function loadItem(ctx: Ctx, itemId: number): Promise<Item | null> {
     .innerJoin(buckets, eq(buckets.id, items.bucketId))
     .where(and(eq(items.id, itemId), eq(items.userId, ctx.userId)))
     .limit(1);
-  return row && !row.deletedAt && row.status !== ITEM_STATUS.completed ? row : null;
+  return row && !row.deletedAt && !isClosedStatus(row.status) ? row : null;
 }
 
 function heading(item: Item, now: Date, timezone: string): string {

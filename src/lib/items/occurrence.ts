@@ -1,5 +1,12 @@
 import { RecurringConfig } from "@/types/rules";
-import { addLocalDays, fromLocal, localDateToDate, toLocal } from "@/lib/reminders/zoned";
+import {
+  addLocalDays,
+  fromLocal,
+  localDateString,
+  localDateTimeToDate,
+  localDateToDate,
+  toLocal,
+} from "@/lib/reminders/zoned";
 
 export function parseRecurring(raw: string | null): RecurringConfig | null {
   if (!raw) return null;
@@ -39,6 +46,12 @@ function advance(deadline: Date, config: RecurringConfig, timezone: string): Dat
   }
 }
 
+function withinEnd(next: Date, config: RecurringConfig, timezone: string): Date | null {
+  if (!config.endDate) return next;
+  const endsAfter = addLocalDays(localDateToDate(config.endDate, timezone), 1, timezone);
+  return next < endsAfter ? next : null;
+}
+
 // Skips past dates; null once the series has ended (the end date counts as a whole day)
 export function nextOccurrenceDate(
   deadline: Date,
@@ -49,9 +62,34 @@ export function nextOccurrenceDate(
   if (!config.enabled) return null;
   let next = advance(deadline, config, timezone);
   while (next <= now) next = advance(next, config, timezone);
-  if (!config.endDate) return next;
-  const endsAfter = addLocalDays(localDateToDate(config.endDate, timezone), 1, timezone);
-  return next < endsAfter ? next : null;
+  return withinEnd(next, config, timezone);
+}
+
+export function followingOccurrence(
+  deadline: Date,
+  config: RecurringConfig,
+  timezone: string
+): Date | null {
+  if (!config.enabled) return null;
+  return withinEnd(advance(deadline, config, timezone), config, timezone);
+}
+
+export function nextAfterCompletion(
+  deadline: Date,
+  config: RecurringConfig,
+  timezone: string,
+  completedAt: Date
+): Date | null {
+  if (!config.enabled) return null;
+  const time = toLocal(deadline, timezone);
+  const base = localDateTimeToDate(
+    localDateString(completedAt, timezone),
+    time.hour,
+    time.minute,
+    timezone
+  );
+  const next = advance(base, { ...config, anchorDay: undefined }, timezone);
+  return withinEnd(next, config, timezone);
 }
 
 // Pins the series' day of month the first time it repeats

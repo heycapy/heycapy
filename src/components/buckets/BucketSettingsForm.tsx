@@ -77,6 +77,7 @@ export function BucketSettingsForm({
           drag: values.drag,
           readonly: values.readonly,
           showCompleted: values.showCompleted,
+          recurrenceMode: values.recurrenceMode,
           defaultDeadlineOffsetDays: parseDurationToDays(values.defaultDeadlineOffset),
         },
         {
@@ -170,6 +171,7 @@ export function BucketSettingsForm({
             sortBy={values.sortBy}
             drag={values.drag}
             showCompleted={values.showCompleted}
+            recurrenceMode={values.recurrenceMode}
             readonly={values.readonly}
             defaultDeadlineOffset={values.defaultDeadlineOffset}
             mediums={values.mediums}
@@ -183,6 +185,7 @@ export function BucketSettingsForm({
             onSortByChange={(v) => set("sortBy", v)}
             onDragChange={(v) => set("drag", v)}
             onShowCompletedChange={(v) => set("showCompleted", v)}
+            onRecurrenceModeChange={(v) => set("recurrenceMode", v)}
             onReadonlyChange={(v) => set("readonly", v)}
             onDefaultDeadlineOffsetChange={(v) => set("defaultDeadlineOffset", v)}
             onMediumToggle={(m) =>
