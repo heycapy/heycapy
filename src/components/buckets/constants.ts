@@ -44,6 +44,7 @@ export const DEFAULT_BUCKET_STATUSES: StatusDef[] = [
 ];
 
 export const ITEM_HIGHLIGHT_MS = 3000;
+export const UNDO_DELETE_MS = 6000;
 
 export const BUCKET_PALETTE = ["var(--p1)", "var(--p2)", "var(--p3)", "var(--p4)", "var(--p5)"];
 

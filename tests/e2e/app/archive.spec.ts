@@ -114,7 +114,7 @@ test.describe("trash", () => {
 
     const sheet = await openSheet(page, "trash");
     const row = sheetRow(sheet, name);
-    await expect(row.getByText(/^deleted /)).toBeVisible();
+    await expect(row.getByText(/^0 items · deleted /)).toBeVisible();
     await option(row, "[ restore ]").click();
     await expect(row).not.toBeVisible();
 

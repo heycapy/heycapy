@@ -1,5 +1,6 @@
 import { isClosedStatus } from "@/constants";
 import { useState, useTransition } from "react";
+import { offerUndoDelete } from "./undoDelete";
 import {
   addItemAction,
   deleteItemAction,
@@ -133,10 +134,13 @@ export function useItemEditor({
 
   function handleDelete() {
     if (!editingItemId || editPending) return;
+    const itemId = editingItemId;
+    const title = editTitle;
     startEditTransition(async () => {
-      await deleteItemAction(editingItemId);
+      await deleteItemAction(itemId);
       cancelEditing();
       await onSaved();
+      offerUndoDelete(itemId, title, onSaved);
     });
   }
 

@@ -4,6 +4,7 @@ import { deleteItemAction, getItemsForBucketAction, updateItemAction } from "@/a
 import type { ReminderBadge } from "@/lib/reminders/status";
 import type { items } from "@/lib/db/schema";
 import { useUIStore } from "@/store/ui";
+import { offerUndoDelete } from "./undoDelete";
 
 type Item = typeof items.$inferSelect;
 
@@ -59,8 +60,10 @@ export function useBucketItems(bucketId: number, itemsRules: string, showComplet
   }
 
   async function deleteItem(itemId: number) {
+    const title = fetchedItems.find((i) => i.id === itemId)?.title ?? "item";
     await deleteItemAction(itemId);
     await refetch();
+    offerUndoDelete(itemId, title, refetch);
   }
 
   function reorder(newOrder: Item[]) {

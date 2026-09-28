@@ -306,6 +306,7 @@ export function ItemDialog({
                   <button
                     onClick={onDelete}
                     disabled={pending}
+                    aria-label="delete item"
                     className="text-foreground/60 hover:text-destructive transition-colors disabled:opacity-25"
                   >
                     <Trash2 size={12} />

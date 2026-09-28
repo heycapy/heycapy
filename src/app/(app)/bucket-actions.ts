@@ -305,21 +305,6 @@ export async function permanentlyDeleteBucketAction(bucketId: number): Promise<A
   return { ok: true };
 }
 
-export async function getDeletedBucketsAction(): Promise<
-  ActionResult<{ buckets: (typeof buckets.$inferSelect)[] }>
-> {
-  const session = await getSession();
-  if (!session) return { ok: false, error: "Unauthorized" };
-
-  const result = await db
-    .select()
-    .from(buckets)
-    .where(and(eq(buckets.userId, session.userId), isNotNull(buckets.deletedAt)))
-    .orderBy(desc(buckets.deletedAt));
-
-  return { ok: true, buckets: result };
-}
-
 export async function getArchivedBucketsAction(): Promise<
   ActionResult<{ buckets: (typeof buckets.$inferSelect)[] }>
 > {

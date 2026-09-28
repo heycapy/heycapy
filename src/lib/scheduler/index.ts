@@ -1,4 +1,5 @@
 import { pruneSystemErrors, recordSystemError } from "@/lib/system-errors";
+import { purgeOldTrash } from "@/lib/items/trash";
 import { moveOnMissedOccurrences } from "@/lib/items/recurrence";
 import { formatWhen } from "@/lib/format-date";
 import { schedule } from "node-cron";
@@ -291,6 +292,12 @@ async function sendDigest(): Promise<void> {
   });
 }
 
+async function runTrashCleanup(): Promise<void> {
+  await purgeOldTrash().catch((err) => {
+    recordSystemError("trash", `cleanup failed: ${errorMessage(err)}`, { err });
+  });
+}
+
 async function runBackup(): Promise<void> {
   await backupDatabase().catch((err) => {
     recordSystemError("backup", `backup failed: ${errorMessage(err)}`, {
@@ -328,6 +335,7 @@ export function startScheduler(): void {
     schedule("* * * * *", () => void runNotifications(), { noOverlap: true });
     schedule("17 * * * *", () => void reconcileReminders(), { noOverlap: true });
     schedule("40 3 * * *", () => void runBackup(), { noOverlap: true });
+    schedule("50 3 * * *", () => void runTrashCleanup(), { noOverlap: true });
     schedule("5 * * * *", () => void sendDigest(), { noOverlap: true });
   });
 }
