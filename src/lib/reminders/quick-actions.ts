@@ -63,7 +63,7 @@ export async function remindItemAgain(
     .where(eq(items.id, itemId));
   await refreshItemReminders([itemId]);
 
-  // Quiet hours or "notify at" can push the ping later than asked
+  // Quiet hours or "remind at" can push the ping later than asked
   const refreshed = await db.query.items.findFirst({ where: eq(items.id, itemId) });
   const next =
     [refreshed?.nextReminderAt, refreshed?.nextOverdueAt]

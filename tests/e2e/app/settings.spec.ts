@@ -415,8 +415,8 @@ test.describe("notifications settings", () => {
     await expect(remind.getByText("unrecognized format", { exact: true })).not.toBeVisible();
   });
 
-  test("notify at accepts 12h and 24h formats and rejects invalid times", async () => {
-    const notifyAt = field(dialog, "notify at");
+  test("remind at accepts 12h and 24h formats and rejects invalid times", async () => {
+    const notifyAt = field(dialog, "remind at");
     const input = notifyAt.getByRole("textbox");
 
     await input.fill("14:30");
@@ -464,7 +464,7 @@ test.describe("notifications settings", () => {
   test("all notification settings persist after save and reload", async ({ page }) => {
     await option(field(dialog, "channels"), "telegram").click();
     await field(dialog, "remind me before deadline").getByRole("textbox").fill("3 hours");
-    const notifyAt = field(dialog, "notify at").getByRole("textbox");
+    const notifyAt = field(dialog, "remind at").getByRole("textbox");
     await notifyAt.fill("8:15 am");
     await notifyAt.blur();
     await option(field(dialog, "deadline repeat"), "daily").click();
@@ -484,7 +484,7 @@ test.describe("notifications settings", () => {
     await expect(field(reopened, "remind me before deadline").getByRole("textbox")).toHaveValue(
       "3 hours"
     );
-    await expect(field(reopened, "notify at").getByRole("textbox")).toHaveValue("8:15 am");
+    await expect(field(reopened, "remind at").getByRole("textbox")).toHaveValue("8:15 am");
     await expectSelected(option(field(reopened, "deadline repeat"), "daily"));
     await expectSelected(option(field(reopened, "notify on arrival"), "on"));
     await expectSelected(option(field(reopened, "notify when overdue"), "on"));

@@ -66,3 +66,6 @@ export const TRANSCRIPTION_DEFAULT_MODELS: Record<TranscriptionProvider, string>
 };
 
 export const TELEGRAM_QR_SIZE = 144;
+
+export const DEFAULT_QUIET_FROM = "22:00";
+export const DEFAULT_QUIET_TO = "07:00";

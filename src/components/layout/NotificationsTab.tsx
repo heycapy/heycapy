@@ -3,6 +3,7 @@ import { Toggle } from "@/components/ui/Toggle";
 import { LABEL, INPUT, SECTION, BOX } from "./settings-constants";
 import { NtfySettings } from "./NtfySettings";
 import { PushSettings } from "./PushSettings";
+import { QuietHoursSettings } from "./QuietHoursSettings";
 import { TelegramSettings } from "./TelegramSettings";
 import { SmtpTestDialog } from "./SmtpTestDialog";
 
@@ -76,6 +77,7 @@ export function NotificationsTab({
 
   return (
     <div className="flex flex-col gap-3">
+      <QuietHoursSettings />
       <div className={BOX}>
         <span className={SECTION}>email</span>
 

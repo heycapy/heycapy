@@ -1,5 +1,6 @@
 import { recordSystemError } from "@/lib/system-errors";
-import { bucketChannels } from "@/lib/rules";
+import { bucketChannels, parseNotificationRules } from "@/lib/rules";
+import { afterQuietHours } from "@/lib/reminders/schedule";
 import { db } from "@/lib/db";
 import { items } from "@/lib/db/schema";
 import { decryptValue } from "@/lib/crypto";
@@ -180,6 +181,16 @@ export async function POST(
         title: `New item in ${bucket.name}`,
         message: `"${title}" was added via webhook.`,
         channels: channelDecisions(bucketChannels(bucket.notificationsRules), userRow),
+        notBefore: afterQuietHours(
+          new Date(),
+          [
+            parseNotificationRules(bucket.notificationsRules).quietHours,
+            userRow.quietHoursFrom && userRow.quietHoursTo
+              ? { from: userRow.quietHoursFrom, to: userRow.quietHoursTo }
+              : null,
+          ],
+          userRow.timezone
+        ),
       });
 
       void processPending().catch((err) => {

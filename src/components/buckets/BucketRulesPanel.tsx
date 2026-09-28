@@ -217,9 +217,9 @@ export function BucketRulesPanel({
         />
       </div>
       <div className="flex flex-col gap-1.5">
-        <label className={LABEL}>notify at</label>
+        <label className={LABEL}>remind at</label>
         <span className={HINT}>
-          send no earlier than this time — delays reminders that would otherwise fire at odd hours
+          the time of day for items without a time; this bucket also never reminds earlier than it
         </span>
         <TimePicker value={notifyAt} onChange={onNotifyAtChange} disabled={disabled} />
       </div>

@@ -55,6 +55,7 @@ export async function enqueueNotification(notification: {
   title: string;
   message: string;
   channels: ChannelDecision[];
+  notBefore?: Date;
 }): Promise<void> {
   const createdAt = new Date();
   await db.insert(notificationQueue).values(
@@ -67,6 +68,10 @@ export async function enqueueNotification(notification: {
       message: notification.message,
       status: c.state === "send" ? ("pending" as const) : ("skipped" as const),
       skipReason: c.state === "send" ? null : c.state,
+      nextRetryAt:
+        notification.notBefore && notification.notBefore > createdAt
+          ? notification.notBefore
+          : null,
       createdAt,
     }))
   );

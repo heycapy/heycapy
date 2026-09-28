@@ -11,6 +11,7 @@ import { db } from "@/lib/db";
 import { users, userSettings } from "@/lib/db/schema";
 import { encryptValue, decryptValue } from "@/lib/crypto";
 import { refreshUserReminders } from "@/lib/reminders/refresh";
+import { parseClock } from "@/lib/reminders/zoned";
 import { ALL_CHANNELS, getWorkingChannels } from "@/lib/notifications/channels";
 import { TELEGRAM_API_BASE, TELEGRAM_LINK_BASE } from "@/constants";
 import { sendEmail } from "@/lib/notifications/email";
@@ -364,4 +365,39 @@ export async function dismissDeliveryFailuresAction(medium: NotificationMedium):
   if (!session || !ALL_CHANNELS.includes(medium)) return;
   await dismissChannelFailures(session.userId, medium);
   revalidatePath("/");
+}
+
+export async function getQuietHoursAction(): Promise<
+  ActionResult<{ from: string | null; to: string | null }>
+> {
+  const session = await getSession();
+  if (!session) return { ok: false, error: "Unauthorized" };
+  const settings = await db.query.userSettings.findFirst({
+    where: eq(userSettings.userId, session.userId),
+    columns: { quietHoursFrom: true, quietHoursTo: true },
+  });
+  return { ok: true, from: settings?.quietHoursFrom ?? null, to: settings?.quietHoursTo ?? null };
+}
+
+export async function saveQuietHoursAction(
+  from: string | null,
+  to: string | null
+): Promise<ActionResult> {
+  const session = await getSession();
+  if (!session) return { ok: false, error: "Unauthorized" };
+  const off = from === null && to === null;
+  const valid =
+    from !== null && to !== null && parseClock(from) !== null && parseClock(to) !== null;
+  if (!off && !valid) return { ok: false, error: "quiet hours need a start and an end time" };
+  if (valid && parseClock(from) === parseClock(to)) {
+    return { ok: false, error: "start and end can't be the same time" };
+  }
+
+  await db
+    .update(userSettings)
+    .set({ quietHoursFrom: from, quietHoursTo: to, updatedAt: new Date() })
+    .where(eq(userSettings.userId, session.userId));
+  await refreshUserReminders(session.userId);
+  revalidatePath("/");
+  return { ok: true };
 }

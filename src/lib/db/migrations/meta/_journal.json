@@ -99,6 +99,13 @@
       "when": 1793230000000,
       "tag": "0013_item_actions",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "6",
+      "when": 1793240000000,
+      "tag": "0014_user_quiet_hours",
+      "breakpoints": true
     }
   ]
 }

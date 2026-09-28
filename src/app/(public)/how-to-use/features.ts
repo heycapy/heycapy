@@ -69,7 +69,7 @@ export const FEATURES: Feature[] = [
       },
       {
         type: "step",
-        text: "notify at: notifications won't fire before this time even if the trigger already passed.",
+        text: "remind at: the time of day for items without a time; reminders never fire earlier than it.",
       },
       {
         type: "step",
