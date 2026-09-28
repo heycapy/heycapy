@@ -18,7 +18,7 @@ import {
   REMINDER_MAX_BATCHES_PER_RUN,
   REMINDER_RETRY_DELAY_MS,
 } from "@/lib/reminders/constants";
-import { SCHEDULER_AI_TIMEOUT_MS } from "./constants";
+import { SCHEDULER_AI_TIMEOUT_MS, SCHEDULER_STALE_MS, SCHEDULER_WATCHDOG_MS } from "./constants";
 import type { AgentMessage } from "@/lib/ai/types";
 
 type PersonalityRow = {
@@ -228,11 +228,35 @@ async function runNotifications(): Promise<void> {
   await processPending().catch((err) => {
     process.stderr.write(`[scheduler] processPending error: ${errorMessage(err)}\n`);
   });
+  state.lastRunAt = new Date();
 }
 
 export { runNotifications };
 
-let started = false;
+// On globalThis: Next bundles instrumentation and route handlers separately, and both need this
+type RunState = { startedAt: Date | null; lastRunAt: Date | null };
+declare global {
+  var __heycapyScheduler: RunState | undefined;
+}
+const state: RunState = (globalThis.__heycapyScheduler ??= { startedAt: null, lastRunAt: null });
+
+export type SchedulerHealth = {
+  started: boolean;
+  lastRunAt: Date | null;
+  stale: boolean;
+};
+
+export function schedulerHealth(
+  now = new Date(),
+  staleAfterMs = SCHEDULER_STALE_MS
+): SchedulerHealth {
+  const since = state.lastRunAt ?? state.startedAt;
+  return {
+    started: state.startedAt !== null,
+    lastRunAt: state.lastRunAt,
+    stale: !since || now.getTime() - since.getTime() > staleAfterMs,
+  };
+}
 
 async function reconcileReminders(): Promise<void> {
   await reconcile().catch((err) => {
@@ -247,8 +271,19 @@ async function runBackup(): Promise<void> {
 }
 
 export function startScheduler(): void {
-  if (started) return;
-  started = true;
+  if (state.startedAt) return;
+  state.startedAt = new Date();
+
+  // Backstop for anything the delivery timeouts don't catch: the platform restarts a failed process
+  if (process.env.NODE_ENV === "production") {
+    setInterval(() => {
+      if (!schedulerHealth(new Date(), SCHEDULER_WATCHDOG_MS).stale) return;
+      process.stderr.write(
+        `[scheduler] no finished run since ${(state.lastRunAt ?? state.startedAt)?.toISOString()} — exiting so the app restarts\n`
+      );
+      process.exit(1);
+    }, 60_000).unref();
+  }
 
   void reconcileReminders().then(() => {
     schedule("* * * * *", () => void runNotifications(), { noOverlap: true });

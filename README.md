@@ -89,6 +89,12 @@ caddy handles HTTPS automatically. data lives in a docker volume at `/data/heyca
 
 everything else (ntfy, ai provider, smtp, notifications) is configured per-user inside the app.
 
+### health checks
+
+- `GET /api/health` — the app and database are up (safe for your platform's health check)
+- `GET /api/health/scheduler` — `503` when no reminder run has finished in 5 minutes. point an uptime monitor (e.g. uptimerobot, better stack) at it so you get alerted. don't use it for platform routing checks: a stuck scheduler shouldn't take the site down
+- in production, if the scheduler is stuck for 10 minutes the app exits so the platform restarts it (fly's default restart policy does this)
+
 ### backups
 
 every night at 03:40 (server time) the app copies the database to a `backups/` folder next to it (e.g. `/data/backups/heycapy-2026-09-28.db`) and keeps the last 7. to restore, stop the app and copy a backup over the database file. copy the folder off the server too — a backup on the same disk won't survive losing that disk.

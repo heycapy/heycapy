@@ -7,6 +7,7 @@ import { buildNotificationEmail } from "@/lib/auth/notificationEmail";
 import { sendNtfy } from "./ntfy";
 import { sendTelegramAlert } from "./telegram-alert";
 import { errorMessage } from "@/lib/errors";
+import { withTimeout } from "@/lib/async";
 import { decryptValue } from "@/lib/crypto";
 import { isE2ETestMode } from "@/lib/e2e";
 import { dataEvents } from "@/lib/events";
@@ -16,6 +17,7 @@ import {
   QUEUE_PROCESS_BATCH_SIZE,
   QUEUE_RETRY_DELAY_MINS,
   QUEUE_SENDING_LEASE_MS,
+  DELIVERY_TIMEOUT_MS,
 } from "./constants";
 
 export type NotificationMedium = "email" | "ntfy" | "telegram";
@@ -151,53 +153,59 @@ export async function processPending(): Promise<void> {
     let telegramMessageId: number | null = null;
 
     try {
-      switch (job.medium) {
-        case "email": {
-          if (!userRow.notificationsEmail) throw new Error("Email notifications disabled");
-          const userEmailConfig =
-            userRow.emailProvider === "smtp" && userRow.smtpHost
-              ? {
-                  emailProvider: userRow.emailProvider,
-                  smtpHost: userRow.smtpHost,
-                  smtpPort: userRow.smtpPort,
-                  smtpUser: userRow.smtpUser,
-                  smtpPass: userRow.smtpPass ? decryptValue(userRow.smtpPass) : null,
-                  smtpSecure: userRow.smtpSecure,
-                  smtpFrom: userRow.smtpFrom,
-                }
-              : undefined;
-          const { text: emailText, html: emailHtml } = buildNotificationEmail(
-            job.title,
-            job.message
-          );
-          await sendEmail(
-            {
-              to: userRow.notificationEmailTo ?? userRow.email,
-              subject: job.title,
-              text: emailText,
-              html: emailHtml,
-            },
-            userEmailConfig
-          );
-          break;
-        }
-        case "ntfy":
-          if (!userRow.notificationsPush || !userRow.ntfyUrl || !userRow.ntfyTopic)
-            throw new Error("ntfy not configured");
-          await sendNtfy(userRow.ntfyUrl, userRow.ntfyTopic, job.title, job.message);
-          break;
-        case "telegram": {
-          const botToken = process.env.TELEGRAM_BOT_TOKEN;
-          if (!userRow.notificationsTelegram || !botToken || !userRow.telegramChatId)
-            throw new Error("Telegram not configured");
-          telegramMessageId = await sendTelegramAlert(botToken, userRow.telegramChatId, job, {
-            timezone: userRow.timezone,
-            aiNote: userRow.aiNotifyMessages && !!userRow.aiProvider,
-            now,
-          });
-          break;
-        }
-      }
+      // A hung delivery would hold up every later reminder, so each one gets a deadline
+      telegramMessageId = await withTimeout(
+        (async (): Promise<number | null> => {
+          switch (job.medium) {
+            case "email": {
+              if (!userRow.notificationsEmail) throw new Error("Email notifications disabled");
+              const userEmailConfig =
+                userRow.emailProvider === "smtp" && userRow.smtpHost
+                  ? {
+                      emailProvider: userRow.emailProvider,
+                      smtpHost: userRow.smtpHost,
+                      smtpPort: userRow.smtpPort,
+                      smtpUser: userRow.smtpUser,
+                      smtpPass: userRow.smtpPass ? decryptValue(userRow.smtpPass) : null,
+                      smtpSecure: userRow.smtpSecure,
+                      smtpFrom: userRow.smtpFrom,
+                    }
+                  : undefined;
+              const { text: emailText, html: emailHtml } = buildNotificationEmail(
+                job.title,
+                job.message
+              );
+              await sendEmail(
+                {
+                  to: userRow.notificationEmailTo ?? userRow.email,
+                  subject: job.title,
+                  text: emailText,
+                  html: emailHtml,
+                },
+                userEmailConfig
+              );
+              return null;
+            }
+            case "ntfy":
+              if (!userRow.notificationsPush || !userRow.ntfyUrl || !userRow.ntfyTopic)
+                throw new Error("ntfy not configured");
+              await sendNtfy(userRow.ntfyUrl, userRow.ntfyTopic, job.title, job.message);
+              return null;
+            case "telegram": {
+              const botToken = process.env.TELEGRAM_BOT_TOKEN;
+              if (!userRow.notificationsTelegram || !botToken || !userRow.telegramChatId)
+                throw new Error("Telegram not configured");
+              return sendTelegramAlert(botToken, userRow.telegramChatId, job, {
+                timezone: userRow.timezone,
+                aiNote: userRow.aiNotifyMessages && !!userRow.aiProvider,
+                now,
+              });
+            }
+          }
+        })(),
+        DELIVERY_TIMEOUT_MS,
+        `${job.medium} delivery`
+      );
     } catch (err) {
       deliveryError = errorMessage(err);
     }
