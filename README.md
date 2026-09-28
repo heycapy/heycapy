@@ -85,6 +85,7 @@ caddy handles HTTPS automatically. data lives in a docker volume at `/data/heyca
 | `EMAIL_FROM` | yes | must match a verified domain in resend (e.g. `HeyCapy <noreply@yourdomain.com>`) |
 | `DATABASE_URL` | yes in production | sqlite file, e.g. `file:/data/heycapy.db` — must be on persistent storage (the docker volume / fly mount); the app refuses to start in production without it |
 | `TELEGRAM_BOT_TOKEN` | no | telegram bot token — only needed if you want telegram. use a separate bot for local development, never the production one |
+| `ADMIN_EMAILS` | no | comma-separated emails that see the **system** tab in tweaks (scheduler status, failed deliveries, recent server errors with stack traces) and get alerts: critical errors (app restarted by the watchdog, backup failed) right away, everything else in an hourly digest — by email and telegram, whichever each admin has set up |
 | `APP_URL` | no | your app's public url — required for telegram webhooks to work |
 
 everything else (ntfy, ai provider, smtp, notifications) is configured per-user inside the app.

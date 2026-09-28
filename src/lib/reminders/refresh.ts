@@ -1,3 +1,4 @@
+import { recordSystemError } from "@/lib/system-errors";
 import { parseNotificationRules } from "@/lib/rules";
 import { and, asc, eq, gt, inArray, type SQL } from "drizzle-orm";
 import { db } from "@/lib/db";
@@ -100,8 +101,18 @@ async function storeSchedules(rows: ReminderRow[]): Promise<void> {
     try {
       schedule = computeSchedule(toReminderInputs(row));
     } catch (err) {
-      process.stderr.write(
-        `[reminders] item ${row.item.id}: invalid notification rules — ${errorMessage(err)}\n`
+      recordSystemError(
+        "reminders",
+        `item ${row.item.id}: invalid notification rules — ${errorMessage(err)}`,
+        {
+          userId: row.item.userId,
+          err,
+          context: {
+            itemId: row.item.id,
+            bucketId: row.item.bucketId,
+            notificationsRules: row.notificationsRules.slice(0, 500),
+          },
+        }
       );
       schedule = { nextReminderAt: null, nextOverdueAt: null };
     }

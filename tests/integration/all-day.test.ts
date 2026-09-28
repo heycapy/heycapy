@@ -18,7 +18,7 @@ import {
   useSchedulerEnvironment,
 } from "./helpers";
 
-const session = vi.hoisted(() => ({ userId: 0 }));
+const session = vi.hoisted(() => ({ userId: 0, email: "" }));
 vi.mock("@/lib/auth/session", () => ({ getSession: async () => session }));
 
 // 17:30 on Mar 10 in Kolkata

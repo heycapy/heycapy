@@ -29,6 +29,11 @@ test("download my data gives a JSON file with the account in it", async ({ page 
   expect(Array.isArray(data.buckets)).toBe(true);
 });
 
+test("the system tab is only for admins", async ({ page }) => {
+  await openAccountTab(page);
+  await expect(page.getByRole("button", { name: "system", exact: true })).toHaveCount(0);
+});
+
 test("deleting the account needs the emailed code, then ends at the login page", async ({
   page,
 }) => {

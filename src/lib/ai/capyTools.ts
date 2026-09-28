@@ -1,3 +1,5 @@
+import { recordSystemError } from "@/lib/system-errors";
+import { errorMessage } from "@/lib/errors";
 import { addLocalDays, localDateString, parseLocalDateTime } from "@/lib/reminders/zoned";
 import { revalidatePath } from "next/cache";
 import { and, eq, gte, isNull, lte, or, sql, notInArray } from "drizzle-orm";
@@ -64,9 +66,11 @@ export async function executeToolCall(
   try {
     return await executeToolCallInner(call, userId, timezone);
   } catch (err) {
-    process.stderr.write(
-      `[ai-tools] tool ${call.name} failed: ${err instanceof Error ? err.message : String(err)}\n`
-    );
+    recordSystemError("ai-tools", `tool ${call.name} failed: ${errorMessage(err)}`, {
+      userId,
+      err,
+      context: { tool: call.name, argumentNames: Object.keys(call.arguments ?? {}) },
+    });
     return JSON.stringify({ ok: false, error: "Tool execution failed" });
   }
 }

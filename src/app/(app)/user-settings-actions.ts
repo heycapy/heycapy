@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { and, eq, sql } from "drizzle-orm";
 import { getSession, deleteSession } from "@/lib/auth/session";
+import { isAdmin } from "@/lib/auth/admin";
 import { db } from "@/lib/db";
 import { users, userSettings } from "@/lib/db/schema";
 import { encryptValue, decryptValue } from "@/lib/crypto";
@@ -59,6 +60,7 @@ export async function getUserSettingsAction(): Promise<
     userEmail: string;
     smtpPassSaved: boolean;
     telegramBotConfigured: boolean;
+    isAdmin: boolean;
   }>
 > {
   const session = await getSession();
@@ -77,6 +79,7 @@ export async function getUserSettingsAction(): Promise<
     userEmail: user?.email ?? session.email,
     smtpPassSaved: !!settings.smtpPass,
     telegramBotConfigured: !!process.env.TELEGRAM_BOT_TOKEN,
+    isAdmin: isAdmin(session.email),
     settings: {
       ...settings,
       aiApiKey: settings.aiApiKey ? decryptValue(settings.aiApiKey) : null,

@@ -11,11 +11,13 @@ import {
 } from "@/app/(app)/actions";
 import { AppearanceTab, NotificationsTab, AITab, PersonalityTab } from "./SettingsTabs";
 import { AccountTab } from "./AccountTab";
+import { SystemTab } from "./SystemTab";
 import type { UserTone, AIProvider, TranscriptionProvider } from "./settings-constants";
 import type { userSettings } from "@/lib/db/schema";
 
 type Settings = typeof userSettings.$inferSelect;
-export type SettingsTab = "appearance" | "notifications" | "ai" | "personality" | "account";
+export type SettingsTab =
+  "appearance" | "notifications" | "ai" | "personality" | "account" | "system";
 
 type SettingsSheetProps = {
   open: boolean;
@@ -53,6 +55,7 @@ export function SettingsSheet({ open, initialTab, onClose }: SettingsSheetProps)
   const [notificationsEmail, setNotificationsEmail] = useState(true);
   const [notificationEmailTo, setNotificationEmailTo] = useState("");
   const [userEmail, setUserEmail] = useState("");
+  const [adminUser, setAdminUser] = useState(false);
   const [smtpHost, setSmtpHost] = useState("");
   const [smtpPort, setSmtpPort] = useState("");
   const [smtpUser, setSmtpUser] = useState("");
@@ -109,6 +112,7 @@ export function SettingsSheet({ open, initialTab, onClose }: SettingsSheetProps)
         if (result.ok) {
           populate(result.settings);
           setUserEmail(result.userEmail);
+          setAdminUser(result.isAdmin);
           setSmtpPassSaved(result.smtpPassSaved);
           setTelegramBotConfigured(result.telegramBotConfigured);
           if (!result.settings.notificationEmailTo) {
@@ -215,14 +219,21 @@ export function SettingsSheet({ open, initialTab, onClose }: SettingsSheetProps)
 
             <div className="border-border scrollbar-hide flex overflow-x-auto border-b">
               {(
-                ["appearance", "notifications", "ai", "personality", "account"] as SettingsTab[]
+                [
+                  "appearance",
+                  "notifications",
+                  "ai",
+                  "personality",
+                  "account",
+                  ...(adminUser ? ["system"] : []),
+                ] as SettingsTab[]
               ).map((t) => (
                 <button key={t} onClick={() => setTab(t)} className={tabBtn(t)}>
                   {t}
                 </button>
               ))}
             </div>
-            {tab !== "account" && (
+            {tab !== "account" && tab !== "system" && (
               <div className="border-border flex justify-end border-b px-3 py-1.5">
                 <BracketButton onClick={handleSave} disabled={pending || !loaded}>
                   save
@@ -314,6 +325,7 @@ export function SettingsSheet({ open, initialTab, onClose }: SettingsSheetProps)
                     />
                   )}
                   {tab === "account" && <AccountTab email={userEmail} />}
+                  {tab === "system" && adminUser && <SystemTab />}
                   {error && <span className="text-destructive font-mono text-[10px]">{error}</span>}
                 </>
               )}

@@ -1,3 +1,4 @@
+import { recordSystemError } from "@/lib/system-errors";
 import { bucketChannels } from "@/lib/rules";
 import { db } from "@/lib/db";
 import { items } from "@/lib/db/schema";
@@ -184,7 +185,11 @@ export async function POST(
       });
 
       void processPending().catch((err) => {
-        process.stderr.write(`[webhook] processPending error: ${errorMessage(err)}\n`);
+        recordSystemError("queue", `delivery after webhook failed: ${errorMessage(err)}`, {
+          err,
+          userId: bucket.userId,
+          context: { bucketId, itemId: item.id },
+        });
       });
     }
   }

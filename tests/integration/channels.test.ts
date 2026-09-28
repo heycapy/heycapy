@@ -9,7 +9,7 @@ import { refreshItemReminders } from "@/lib/reminders/refresh";
 import { getWorkingChannels } from "@/lib/notifications/channels";
 import { resetSchedulerEnvironment, seedUser, useSchedulerEnvironment } from "./helpers";
 
-const session = vi.hoisted(() => ({ userId: 0 }));
+const session = vi.hoisted(() => ({ userId: 0, email: "" }));
 vi.mock("@/lib/auth/session", () => ({ getSession: async () => session }));
 
 beforeEach(() => {

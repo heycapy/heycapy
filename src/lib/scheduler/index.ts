@@ -1,8 +1,10 @@
+import { pruneSystemErrors, recordSystemError } from "@/lib/system-errors";
 import { moveOnMissedOccurrences } from "@/lib/items/recurrence";
 import { formatWhen } from "@/lib/format-date";
 import { schedule } from "node-cron";
 import { asc, eq, lte } from "drizzle-orm";
-import { backupDatabase, db } from "@/lib/db";
+import { backupDatabase, databaseFilePath, db } from "@/lib/db";
+import { alertAdminsNow, sendErrorDigest } from "@/lib/admin-alerts";
 import { items, buckets, users, userSettings } from "@/lib/db/schema";
 import { APP_NAME } from "@/constants";
 import { errorMessage } from "@/lib/errors";
@@ -137,7 +139,17 @@ async function drainDue(
       try {
         await handle(row);
       } catch (err) {
-        process.stderr.write(`[scheduler] item ${row.item.id} failed: ${errorMessage(err)}\n`);
+        recordSystemError("scheduler", `item ${row.item.id} failed: ${errorMessage(err)}`, {
+          userId: row.userId,
+          err,
+          context: {
+            step: key === "nextReminderAt" ? "reminder" : "overdue alert",
+            itemId: row.item.id,
+            bucketId: row.item.bucketId,
+            deadline: row.item.deadline,
+            retryInMin: REMINDER_RETRY_DELAY_MS / 60_000,
+          },
+        });
         await db
           .update(items)
           .set({ [key]: new Date(now.getTime() + REMINDER_RETRY_DELAY_MS) })
@@ -145,7 +157,10 @@ async function drainDue(
       }
     }
   }
-  process.stderr.write(`[scheduler] ${key}: more due items than one run handles\n`);
+  recordSystemError("scheduler", `${key}: more due items than one run handles`, {
+    level: "warning",
+    context: { batches: REMINDER_MAX_BATCHES_PER_RUN, batchSize: REMINDER_BATCH_SIZE },
+  });
 }
 
 async function sendDeadlineReminder(row: DueRow, now: Date): Promise<void> {
@@ -223,10 +238,13 @@ async function runNotifications(): Promise<void> {
     await drainDue("nextReminderAt", now, (row) => sendDeadlineReminder(row, now));
     await drainDue("nextOverdueAt", now, (row) => sendOverdueAlert(row, now));
   } catch (err) {
-    process.stderr.write(`[scheduler] run failed: ${errorMessage(err)}\n`);
+    recordSystemError("scheduler", `run failed: ${errorMessage(err)}`, {
+      err,
+      context: { runStartedAt: now },
+    });
   }
   await processPending().catch((err) => {
-    process.stderr.write(`[scheduler] processPending error: ${errorMessage(err)}\n`);
+    recordSystemError("queue", `delivery run failed: ${errorMessage(err)}`, { err });
   });
   state.lastRunAt = new Date();
 }
@@ -260,13 +278,25 @@ export function schedulerHealth(
 
 async function reconcileReminders(): Promise<void> {
   await reconcile().catch((err) => {
-    process.stderr.write(`[scheduler] reconcile error: ${errorMessage(err)}\n`);
+    recordSystemError("scheduler", `reconcile failed: ${errorMessage(err)}`, { err });
+  });
+  await pruneSystemErrors().catch(() => {});
+}
+
+async function sendDigest(): Promise<void> {
+  // Not recorded as a system error: that would alert about alerting heheheh
+  await sendErrorDigest().catch((err) => {
+    process.stderr.write(`[admin-alerts] digest failed: ${errorMessage(err)}\n`);
   });
 }
 
 async function runBackup(): Promise<void> {
   await backupDatabase().catch((err) => {
-    process.stderr.write(`[scheduler] backup failed: ${errorMessage(err)}\n`);
+    recordSystemError("backup", `backup failed: ${errorMessage(err)}`, {
+      level: "critical",
+      err,
+      context: { database: databaseFilePath() },
+    });
   });
 }
 
@@ -276,11 +306,19 @@ export function startScheduler(): void {
 
   // Backstop for anything the delivery timeouts don't catch: the platform restarts a failed process
   if (process.env.NODE_ENV === "production") {
-    setInterval(() => {
+    setInterval(async () => {
       if (!schedulerHealth(new Date(), SCHEDULER_WATCHDOG_MS).stale) return;
-      process.stderr.write(
-        `[scheduler] no finished run since ${(state.lastRunAt ?? state.startedAt)?.toISOString()} — exiting so the app restarts\n`
+      const error = recordSystemError(
+        "watchdog",
+        `no finished run since ${(state.lastRunAt ?? state.startedAt)?.toISOString()} — restarting the app`,
+        {
+          level: "critical",
+          alert: false,
+          context: { startedAt: state.startedAt, lastRunAt: state.lastRunAt },
+        }
       );
+      // tell the admins before the process is gone
+      if (error) await alertAdminsNow(error);
       process.exit(1);
     }, 60_000).unref();
   }
@@ -289,5 +327,6 @@ export function startScheduler(): void {
     schedule("* * * * *", () => void runNotifications(), { noOverlap: true });
     schedule("17 * * * *", () => void reconcileReminders(), { noOverlap: true });
     schedule("40 3 * * *", () => void runBackup(), { noOverlap: true });
+    schedule("5 * * * *", () => void sendDigest(), { noOverlap: true });
   });
 }

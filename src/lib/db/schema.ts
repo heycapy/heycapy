@@ -296,3 +296,25 @@ export const templates = sqliteTable("templates", {
     .notNull()
     .default(sql`(unixepoch())`),
 });
+
+// Server-side problems for the admin view; kept for a couple of weeks
+export const systemErrors = sqliteTable(
+  "system_errors",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    userId: integer("user_id").references(() => users.id, { onDelete: "set null" }),
+    level: text("level", { enum: ["critical", "error", "warning"] })
+      .notNull()
+      .default("error"),
+    source: text("source").notNull(),
+    message: text("message").notNull(),
+    // JSON: stack trace, what was being worked on, and where the app ran
+    details: text("details"),
+    // Set once an admin has been told, so the hourly digest never repeats it
+    alertedAt: integer("alerted_at", { mode: "timestamp" }),
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .default(sql`(unixepoch())`),
+  },
+  (t) => [index("idx_system_errors_created_at").on(t.createdAt)]
+);

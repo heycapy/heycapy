@@ -1,4 +1,7 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import { eq } from "drizzle-orm";
+import { db } from "@/lib/db";
+import { systemErrors } from "@/lib/db/schema";
 import { POST } from "@/app/api/telegram/route";
 import { createTelegramLinkAction } from "@/app/(app)/user-settings-actions";
 import { telegramWebhookSecret } from "@/lib/notifications/telegram-webhook";
@@ -11,7 +14,7 @@ import {
 } from "./helpers";
 import { callsTo, connectOwnChat, stubTelegram } from "./telegram-helpers";
 
-const session = vi.hoisted(() => ({ userId: 0 }));
+const session = vi.hoisted(() => ({ userId: 0, email: "" }));
 vi.mock("@/lib/auth/session", () => ({ getSession: async () => session }));
 vi.mock("next/headers", () => ({ headers: async () => new Headers({ host: "app.example.com" }) }));
 
@@ -63,6 +66,10 @@ it("answers 200 even when handling an update fails, so later updates aren't held
 
   expect(res.status).toBe(200);
   expect(callsTo(api, "editMessageText")).toHaveLength(1);
+  const [logged] = await db.select().from(systemErrors).where(eq(systemErrors.source, "telegram"));
+  expect(JSON.parse(logged.details ?? "{}")).toMatchObject({
+    context: { kind: "button", button: `qc:${itemId}`, chatId: chat, messageId: 7 },
+  });
 });
 
 it("connect registers the webhook with a header secret and no secret in the URL", async () => {

@@ -6,7 +6,7 @@ import { sendTestNotificationAction } from "@/app/(app)/user-settings-actions";
 import { getChannelFailures } from "@/lib/notifications/failures";
 import { resetSchedulerEnvironment, seedUser, useSchedulerEnvironment } from "./helpers";
 
-const session = vi.hoisted(() => ({ userId: 0 }));
+const session = vi.hoisted(() => ({ userId: 0, email: "" }));
 vi.mock("@/lib/auth/session", () => ({ getSession: async () => session }));
 
 beforeEach(async () => {

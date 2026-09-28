@@ -1,3 +1,4 @@
+import { recordSystemError } from "@/lib/system-errors";
 import { desc, eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { buckets, chatMessages, chatSessions, users } from "@/lib/db/schema";
@@ -84,9 +85,24 @@ export async function POST(req: Request) {
   try {
     return await handleUpdate(botToken, body);
   } catch (err) {
-    process.stderr.write(`[telegram] update failed: ${errorMessage(err)}\n`);
+    recordSystemError("telegram", `update failed: ${errorMessage(err)}`, {
+      err,
+      context: describeUpdate(body),
+    });
     return new Response("OK");
   }
+}
+
+// Enough to reproduce a failure without storing what the user typed
+function describeUpdate(body: TelegramUpdate): Record<string, unknown> {
+  const text = body.message?.text?.trim();
+  return {
+    kind: body.callback_query ? "button" : "message",
+    button: body.callback_query?.data,
+    command: text?.startsWith("/") ? text.split(/\s+/)[0] : text ? "(text)" : undefined,
+    chatId: body.callback_query?.message?.chat?.id ?? body.message?.chat?.id,
+    messageId: body.callback_query?.message?.message_id,
+  };
 }
 
 async function handleUpdate(botToken: string, body: TelegramUpdate): Promise<Response> {
@@ -886,7 +902,11 @@ async function handleUpdate(botToken: string, body: TelegramUpdate): Promise<Res
       .where(eq(chatSessions.id, session.id));
     void compactSessionIfNeeded(session.id, provider, threshold);
   } catch (err) {
-    process.stderr.write(`[telegram] DB error: ${errorMessage(err)}\n`);
+    recordSystemError("telegram", `saving chat failed: ${errorMessage(err)}`, {
+      userId,
+      err,
+      context: { chatSessionId: session.id },
+    });
   }
 
   dataEvents.emit("refresh", userId);

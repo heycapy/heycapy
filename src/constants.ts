@@ -87,3 +87,11 @@ export const MONTH_SHORT_NAMES = [
   "Nov",
   "Dec",
 ];
+
+export const SYSTEM_ERRORS_KEPT_MS = 14 * 24 * 60 * 60 * 1000;
+export const SYSTEM_ERROR_MESSAGE_MAX = 2000;
+export const SYSTEM_ERRORS_SHOWN = 50;
+export const ADMIN_ALERT_TIMEOUT_MS = 15_000;
+export const ADMIN_DIGEST_MAX_ERRORS = 30;
+export const STACK_LINES_IN_ALERT = 12;
+export const TELEGRAM_MESSAGE_MAX = 4000;

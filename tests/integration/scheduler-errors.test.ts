@@ -13,6 +13,6 @@ it("a failing database query is logged, not thrown as an unhandled rejection", a
 
   await expect(runNotifications()).resolves.toBeUndefined();
   expect(process.stderr.write).toHaveBeenCalledWith(
-    expect.stringContaining("[scheduler] run failed: no such column: items.next_reminder_at")
+    expect.stringContaining("[scheduler] error: run failed: no such column: items.next_reminder_at")
   );
 });
