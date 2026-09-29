@@ -167,6 +167,7 @@ export const items = sqliteTable(
     title: text("title").notNull(),
     description: text("description"),
     deadline: integer("deadline", { mode: "timestamp" }),
+    scheduledAt: integer("scheduled_at", { mode: "timestamp" }),
     status: text("status").notNull().default(ITEM_STATUS.active),
     properties: text("properties"),
     externalId: text("external_id"),

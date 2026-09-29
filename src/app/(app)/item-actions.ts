@@ -12,7 +12,7 @@ import { RecurringConfig } from "@/types/rules";
 import { parseLocalDateTime } from "@/lib/reminders/zoned";
 import { initialReminderState, reminderResetForDeadline } from "@/lib/items/reminders";
 import { refreshItemReminders, reminderContext } from "@/lib/reminders/refresh";
-import { createNextOccurrence, skipOccurrence } from "@/lib/items/recurrence";
+import { createNextOccurrence, moveOccurrence, skipOccurrence } from "@/lib/items/recurrence";
 import { onLastDayIfAnchored, parseRecurring } from "@/lib/items/occurrence";
 import { cancelRemindAgain } from "@/lib/reminders/quick-actions";
 import { dataEvents } from "@/lib/events";
@@ -180,9 +180,15 @@ export async function updateItemAction(
       : recurring?.enabled
         ? keepAnchor(recurring, item.recurring)
         : null;
-  const newDeadline = deadline
-    ? onLastDayIfAnchored(parseLocalDateTime(deadline, ctx.timezone), savedRecurring, ctx.timezone)
-    : null;
+  const parsedDeadline = deadline ? parseLocalDateTime(deadline, ctx.timezone) : null;
+  const keepsMovedDate =
+    !!item.scheduledAt &&
+    !!savedRecurring &&
+    parsedDeadline?.getTime() === item.deadline?.getTime();
+  const newDeadline =
+    parsedDeadline && !keepsMovedDate
+      ? onLastDayIfAnchored(parsedDeadline, savedRecurring, ctx.timezone)
+      : parsedDeadline;
   const statusChanged = status !== undefined && status !== item.status;
 
   const nowCompleted =
@@ -195,6 +201,7 @@ export async function updateItemAction(
     .set({
       title: trimmed,
       deadline: newDeadline,
+      ...(!keepsMovedDate && { scheduledAt: null }),
       ...reminderResetForDeadline(item, newDeadline, ctx),
       ...(status !== undefined && { status }),
       ...(nowCompleted && { completedAt: new Date() }),
@@ -220,6 +227,25 @@ export async function skipOccurrenceAction(itemId: number): Promise<ActionResult
   const result = await skipOccurrence(session.userId, itemId);
   if (result.ok) revalidatePath("/");
   return result;
+}
+
+export async function moveItemAction(itemId: number, deadline: string): Promise<ActionResult> {
+  const session = await requireSession();
+
+  const item = await db.query.items.findFirst({
+    where: (i, { eq: qeq, and: qand }) => qand(qeq(i.id, itemId), qeq(i.userId, session.userId)),
+    columns: { bucketId: true },
+  });
+  if (!item) return { ok: false, error: "Item not found" };
+
+  const ctx = await reminderContext(item.bucketId);
+  const parsed = parseLocalDateTime(deadline, ctx.timezone);
+  if (isNaN(parsed.getTime())) return { ok: false, error: "Invalid date" };
+
+  const result = await moveOccurrence(session.userId, itemId, parsed);
+  if (!result.ok) return result;
+  revalidatePath("/");
+  return { ok: true };
 }
 
 export async function completeItemAction(itemId: number): Promise<ActionResult> {

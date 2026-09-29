@@ -2,7 +2,7 @@ import { ITEM_STATUS } from "@/constants";
 import { and, eq, isNull, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { buckets, items, userSettings } from "@/lib/db/schema";
-import { initialReminderState, reminderResetForDeadline } from "@/lib/items/reminders";
+import { initialReminderState } from "@/lib/items/reminders";
 import { refreshItemReminders, reminderContext } from "@/lib/reminders/refresh";
 import {
   addLocalDays,
@@ -237,28 +237,6 @@ export async function updateItemTitle(
     .update(items)
     .set({ title, updatedAt: new Date() })
     .where(and(eq(items.id, itemId), eq(items.userId, userId)));
-}
-
-export async function updateItemDeadline(
-  userId: number,
-  itemId: number,
-  deadline: Date | null
-): Promise<void> {
-  const item = await db.query.items.findFirst({
-    where: and(eq(items.id, itemId), eq(items.userId, userId)),
-    columns: { deadline: true, notifiedAt: true, notificationOffsetMins: true, bucketId: true },
-  });
-  if (!item) return;
-  const ctx = await reminderContext(item.bucketId);
-  await db
-    .update(items)
-    .set({
-      deadline,
-      ...reminderResetForDeadline(item, deadline, ctx),
-      updatedAt: new Date(),
-    })
-    .where(and(eq(items.id, itemId), eq(items.userId, userId)));
-  await refreshItemReminders([itemId]);
 }
 
 export async function softDeleteItemById(userId: number, itemId: number): Promise<void> {

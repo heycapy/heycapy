@@ -3,7 +3,7 @@ import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { items } from "@/lib/db/schema";
 import { executeToolCall } from "@/lib/ai/capyTools";
-import { updateItemDeadline } from "@/app/api/telegram/telegram-utils";
+import { moveOccurrence } from "@/lib/items/recurrence";
 import {
   HOUR,
   remindersQueued,
@@ -40,7 +40,7 @@ describe("rescheduling from telegram", () => {
     expect(await remindersQueued(itemId)).toBe(1);
 
     const newDeadline = new Date(T0.getTime() + 24 * HOUR);
-    await updateItemDeadline(userId, itemId, newDeadline);
+    await moveOccurrence(userId, itemId, newDeadline);
 
     await runSchedulerAt(new Date(T0.getTime() + 2 * HOUR));
     expect(await remindersQueued(itemId)).toBe(1);
@@ -56,7 +56,7 @@ describe("rescheduling from telegram", () => {
       .set({ overdueNotifiedAt: new Date(T0.getTime() + HOUR) })
       .where(eq(items.id, itemId));
 
-    await updateItemDeadline(userId, itemId, new Date(T0.getTime() + 24 * HOUR));
+    await moveOccurrence(userId, itemId, new Date(T0.getTime() + 24 * HOUR));
 
     const item = await db.query.items.findFirst({ where: eq(items.id, itemId) });
     expect(item?.overdueNotifiedAt).toBeNull();
@@ -67,7 +67,7 @@ describe("rescheduling from telegram", () => {
     await runSchedulerAt(new Date(T0.getTime() + 2 * HOUR));
     expect(await remindersQueued(itemId)).toBe(1);
 
-    await updateItemDeadline(userId, itemId, new Date(T0.getTime() + HOUR));
+    await moveOccurrence(userId, itemId, new Date(T0.getTime() + HOUR));
     await runSchedulerAt(new Date(T0.getTime() + 3 * HOUR));
     expect(await remindersQueued(itemId)).toBe(1);
   });

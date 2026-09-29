@@ -47,6 +47,8 @@ export const ITEM_HIGHLIGHT_MS = 3000;
 export const MENU_GAP = 6;
 export const SCREEN_MARGIN = 8;
 export const UNDO_DELETE_MS = 6000;
+export const LONG_PRESS_MS = 500;
+export const LONG_PRESS_SLOP = 8;
 
 export const BUCKET_PALETTE = ["var(--p1)", "var(--p2)", "var(--p3)", "var(--p4)", "var(--p5)"];
 

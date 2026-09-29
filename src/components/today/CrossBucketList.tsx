@@ -1,8 +1,11 @@
+import { useState } from "react";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { ItemRow } from "@/components/buckets/ItemRow";
 import { parseFields } from "@/components/buckets/fields";
 import { BUCKET_PALETTE, DEFAULT_BUCKET_STATUSES } from "@/components/buckets/constants";
-import { deleteItemAction, updateItemAction } from "@/app/(app)/actions";
+import { deleteItemAction, moveItemAction, updateItemAction } from "@/app/(app)/actions";
+import { ItemMenu, type MenuAt } from "@/components/buckets/ItemMenu";
 import { SwipeableRow } from "@/components/buckets/SwipeableRow";
 import { completionToggle } from "@/components/buckets/completion";
 import { offerUndoDelete } from "@/components/buckets/undoDelete";
@@ -32,6 +35,7 @@ export function CrossBucketList({
   onEdit,
   onChanged,
 }: CrossBucketListProps) {
+  const [menu, setMenu] = useState<{ item: Item; at: MenuAt } | null>(null);
   const statuses = DEFAULT_BUCKET_STATUSES;
   const bucketOf = (item: Item) => data?.buckets.find((b) => b.id === item.bucketId);
 
@@ -42,6 +46,12 @@ export function CrossBucketList({
       item.deadline ? item.deadline.toISOString() : null,
       status
     );
+    await onChanged();
+  }
+
+  async function moveItem(item: Item, deadline: string) {
+    const result = await moveItemAction(item.id, deadline);
+    if (!result.ok) toast.error(result.error);
     await onChanged();
   }
 
@@ -62,15 +72,18 @@ export function CrossBucketList({
         onComplete={() => void changeStatus(item, toggle.next)}
         completeLabel={toggle.label}
         disabled={readonly}
+        onMenu={(at) => setMenu({ item, at })}
       >
         <ItemRow
           item={item}
           statuses={statuses}
           fields={bucket ? parseFields(bucket.fieldSchema) : []}
           isEditing={editingItemId === item.id}
+          menuOpen={menu?.item.id === item.id}
           onEditStart={readonly ? undefined : () => onEdit(item)}
           onStatusChange={readonly ? undefined : (status) => void changeStatus(item, status)}
           reminderBadge={data?.reminderBadges[item.id]}
+          onMenu={(at) => setMenu({ item, at })}
           bucket={
             bucket && {
               name: bucket.icon ? `${bucket.icon} ${bucket.name}` : bucket.name,
@@ -103,6 +116,16 @@ export function CrossBucketList({
             <div className="divide-border divide-y divide-dashed">{section.items.map(row)}</div>
           </section>
         ))
+      )}
+      {menu && (
+        <ItemMenu
+          item={menu.item}
+          at={menu.at}
+          readonly={bucketOf(menu.item)?.readonly === true}
+          onMove={(deadline) => void moveItem(menu.item, deadline)}
+          onDelete={() => void deleteItem(menu.item)}
+          onClose={() => setMenu(null)}
+        />
       )}
     </div>
   );

@@ -94,6 +94,22 @@ export function followingOccurrence(
   return withinEnd(advance(deadline, config, timezone), config, timezone);
 }
 
+export type Occurrence = { deadline: Date; scheduledAt: Date | null };
+
+export function seriesDate(occurrence: Occurrence): Date {
+  return occurrence.scheduledAt ?? occurrence.deadline;
+}
+
+export function nextInSeries(
+  occurrence: Occurrence,
+  config: RecurringConfig,
+  timezone: string,
+  now = new Date()
+): Date | null {
+  const after = occurrence.deadline > now ? occurrence.deadline : now;
+  return nextOccurrenceDate(seriesDate(occurrence), config, timezone, after);
+}
+
 export function nextAfterCompletion(
   deadline: Date,
   config: RecurringConfig,

@@ -3,13 +3,14 @@ import { ITEM_STATUS, isClosedStatus } from "@/constants";
 import { ITEM_HIGHLIGHT_MS } from "./constants";
 import { StatusPicker, type StatusAnchor } from "./StatusPicker";
 import { useEffect, useRef, useState } from "react";
-import { Bell, BellOff, GripVertical, TriangleAlert } from "lucide-react";
+import { Bell, BellOff, Ellipsis, GripVertical, TriangleAlert } from "lucide-react";
 import type { DragControls } from "framer-motion";
 import { cn } from "@/lib/utils";
 import type { items } from "@/lib/db/schema";
 import type { StatusDef, FieldDef } from "@/types/rules";
 import type { ReminderBadge } from "@/lib/reminders/status";
 import { ReminderInfoDialog } from "./ReminderInfoDialog";
+import type { MenuAt } from "./ItemMenu";
 import { pendingRemindAgainAt } from "@/lib/reminders/remind-again";
 import { relativeTime } from "@/lib/items/relative-day";
 import { parseRecurring } from "@/lib/items/occurrence";
@@ -23,10 +24,12 @@ type ItemRowProps = {
   fields?: FieldDef[];
   dragControls?: DragControls;
   isEditing?: boolean;
+  menuOpen?: boolean;
   onEditStart?: () => void;
   onStatusChange?: (status: string) => void;
   reminderBadge?: ReminderBadge;
   bucket?: { name: string; color: string };
+  onMenu?: (at: MenuAt) => void;
 };
 
 function getRecurringFrequency(raw: string | null): string | null {
@@ -99,10 +102,12 @@ export function ItemRow({
   fields,
   dragControls,
   isEditing,
+  menuOpen,
   onEditStart,
   onStatusChange,
   reminderBadge,
   bucket,
+  onMenu,
 }: ItemRowProps) {
   const [pickerAnchor, setPickerAnchor] = useState<StatusAnchor | null>(null);
   const [reminderOpen, setReminderOpen] = useState(false);
@@ -141,6 +146,7 @@ export function ItemRow({
         "flex items-stretch gap-0 px-3 transition-colors duration-1000",
         highlighted && "bg-primary/15",
         isEditing && "bg-muted/20",
+        menuOpen && "bg-card duration-0",
         (isCompleted || isMissed) && "opacity-60"
       )}
     >
@@ -272,6 +278,19 @@ export function ItemRow({
           )}
         >
           <ReminderIcon size={11} aria-hidden />
+        </button>
+      )}
+      {onMenu && (
+        <button
+          type="button"
+          onClick={(e) => {
+            const rect = e.currentTarget.getBoundingClientRect();
+            onMenu({ x: rect.left, top: rect.top, bottom: rect.bottom });
+          }}
+          aria-label="item menu"
+          className="text-muted-foreground hover:text-foreground -mr-3 flex shrink-0 items-center px-3 transition-colors"
+        >
+          <Ellipsis size={14} aria-hidden />
         </button>
       )}
       {reminderOpen && (

@@ -6,6 +6,7 @@ import { enableWebhook, postItem } from "../helpers/webhook";
 test.use({ storageState: authState("swipe") });
 
 async function swipe(page: Page, row: Locator, dx: number) {
+  await row.scrollIntoViewIfNeeded();
   const box = await row.boundingBox();
   if (!box) throw new Error("row has no box");
   const y = box.y + box.height / 2;
