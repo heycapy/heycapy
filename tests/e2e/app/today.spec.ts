@@ -113,6 +113,7 @@ test("adding from today goes into the bucket viewed last, due today; a picked bu
   const bucket = dialog.getByLabel("bucket");
   await expect(bucket.locator("option:checked")).toHaveText(second);
   await expect(dialog.getByRole("button", { name: /pick date/ })).toHaveCount(0);
+  await expect(dialog.getByRole("button", { name: "time: all day" })).toBeVisible();
 
   const inWork = uniqueName("standup notes");
   await dialog.locator("textarea").first().fill(inWork);

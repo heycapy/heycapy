@@ -11,15 +11,18 @@ export type Ampm = "am" | "pm";
 
 const HOURS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"];
 const QUARTERS = ["00", "15", "30", "45"];
-const PANEL = { width: 252, height: 272 };
+const PANEL = { width: 252, height: 310 };
 const LABEL = "text-muted-foreground font-mono text-[11px]";
 
+// An empty hour means no time: the item is due all day
 export type TimeValue = { hour: string; min: string; ampm: Ampm };
 
 type TimeFieldProps = {
   value: TimeValue;
   onChange: (value: TimeValue) => void;
   disabled?: boolean;
+  // Offers "all day" (an empty hour); only where a date without a time means something
+  allowAllDay?: boolean;
 };
 
 function Cell({
@@ -49,13 +52,14 @@ function Cell({
   );
 }
 
-export function TimeField({ value, onChange, disabled }: TimeFieldProps) {
+export function TimeField({ value, onChange, disabled, allowAllDay = false }: TimeFieldProps) {
   const { hour, min, ampm } = value;
   const { open, setOpen, toggle, pos, portalTarget, triggerRef, popoverRef } = usePopover(PANEL);
   const [typed, setTyped] = useState("");
   const [typedInvalid, setTypedInvalid] = useState(false);
   const minutes = QUARTERS.includes(min) ? QUARTERS : [...QUARTERS, min].sort();
-  const display = min === "00" ? `${hour} ${ampm}` : `${hour}:${min} ${ampm}`;
+  const allDay = !hour;
+  const display = allDay ? "all day" : min === "00" ? `${hour} ${ampm}` : `${hour}:${min} ${ampm}`;
 
   function applyTyped() {
     const parsed = parseTimeInput(typed);
@@ -91,6 +95,17 @@ export function TimeField({ value, onChange, disabled }: TimeFieldProps) {
           style={{ top: pos.top, left: pos.left, width: PANEL.width }}
           className="border-border bg-card fixed z-[65] flex flex-col gap-2.5 border-2 p-3 shadow-[3px_3px_0_var(--border)] select-none"
         >
+          {allowAllDay && (
+            <Cell
+              selected={allDay}
+              onClick={() => {
+                onChange({ ...value, hour: "" });
+                setOpen(false);
+              }}
+            >
+              all day
+            </Cell>
+          )}
           <div role="group" aria-label="hour" className="flex flex-col gap-1">
             <span className={LABEL}>hour</span>
             <div className="grid grid-cols-6 gap-0.5">
@@ -110,8 +125,8 @@ export function TimeField({ value, onChange, disabled }: TimeFieldProps) {
               {minutes.map((m) => (
                 <Cell
                   key={m}
-                  selected={m === min}
-                  onClick={() => onChange({ ...value, min: m })}
+                  selected={!allDay && m === min}
+                  onClick={() => onChange({ ...value, min: m, hour: hour || "9" })}
                   label={`:${m}`}
                 >
                   :{m}
@@ -121,7 +136,11 @@ export function TimeField({ value, onChange, disabled }: TimeFieldProps) {
           </div>
           <div className="grid grid-cols-2 gap-0.5">
             {(["am", "pm"] as const).map((a) => (
-              <Cell key={a} selected={a === ampm} onClick={() => onChange({ ...value, ampm: a })}>
+              <Cell
+                key={a}
+                selected={!allDay && a === ampm}
+                onClick={() => onChange({ ...value, ampm: a, hour: hour || "9" })}
+              >
                 {a}
               </Cell>
             ))}
@@ -170,7 +189,10 @@ export function TimeField({ value, onChange, disabled }: TimeFieldProps) {
         onClick={() => !disabled && toggle()}
         disabled={disabled}
         aria-label={`time: ${display}`}
-        className="border-foreground text-foreground flex items-center gap-2 border-b py-1.5 font-mono text-sm transition-all active:translate-y-[1px] disabled:opacity-50"
+        className={cn(
+          "flex items-center gap-2 border-b py-1.5 font-mono text-sm transition-all active:translate-y-[1px] disabled:opacity-50",
+          allDay ? "border-border text-muted-foreground" : "border-foreground text-foreground"
+        )}
       >
         <span>{display}</span>
         <Clock size={13} className="opacity-60" aria-hidden />

@@ -117,7 +117,8 @@ export function ItemDialog({
         setTimeMin(String(d.getMinutes()).padStart(2, "0"));
         setTimeAmpm(h24 >= 12 ? "pm" : "am");
       } else {
-        setTimeHour("9");
+        // A date without a time is all day
+        setTimeHour(deadline ? "" : "9");
         setTimeMin("00");
         setTimeAmpm("am");
       }
@@ -141,10 +142,7 @@ export function ItemDialog({
   function handleRecurringChange(next: RecurringConfig | null) {
     onRecurringChange?.(next);
     if (!datePart || !isLastDayRepeat(next)) return;
-    const lastDay = lastDayOfMonth(datePart);
-    onDeadlineChange(
-      deadline.includes("T") ? buildDeadline(lastDay, timeHour, timeMin, timeAmpm) : lastDay
-    );
+    onDeadlineChange(buildDeadline(lastDayOfMonth(datePart), timeHour, timeMin, timeAmpm));
   }
 
   function handleTimeChange({ hour, min, ampm }: TimeValue) {
@@ -184,6 +182,7 @@ export function ItemDialog({
             <TimeField
               value={{ hour: timeHour, min: timeMin, ampm: timeAmpm }}
               onChange={handleTimeChange}
+              allowAllDay
               disabled={pending}
             />
           )}
