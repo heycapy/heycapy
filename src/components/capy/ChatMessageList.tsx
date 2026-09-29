@@ -30,16 +30,21 @@ function BouncingDots() {
 }
 
 export function ChatMessageList({ messages, streaming, fullscreen }: Props) {
-  const bottomRef = useRef<HTMLDivElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
 
+  // Scrolls only the list: scrollIntoView also scrolled the phone drawer around it
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    const list = listRef.current;
+    list?.scrollTo({ top: list.scrollHeight, behavior: "smooth" });
   }, [messages]);
 
   const isLastStreaming = (msg: ChatMessage) => streaming && msg.id === messages.at(-1)?.id;
 
   return (
-    <div className="scrollbar-hide flex flex-1 flex-col gap-3 overflow-y-auto overscroll-contain p-3">
+    <div
+      ref={listRef}
+      className="scrollbar-hide flex flex-1 flex-col gap-3 overflow-y-auto overscroll-contain p-3"
+    >
       {messages.map((msg) => (
         <div
           key={msg.id}
@@ -106,7 +111,6 @@ export function ChatMessageList({ messages, streaming, fullscreen }: Props) {
           </div>
         </div>
       ))}
-      <div ref={bottomRef} />
     </div>
   );
 }

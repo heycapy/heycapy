@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from "react";
-import { Trash2, X } from "lucide-react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { X } from "lucide-react";
 import { DatePicker } from "@/components/ui/DatePicker";
 import { BracketButton } from "@/components/ui/BracketButton";
 import { TimeField, type Ampm, type TimeValue } from "@/components/ui/TimeField";
@@ -7,7 +7,7 @@ import { RecurringPicker } from "./RecurringPicker";
 import { ItemFieldsForm } from "./ItemFieldsForm";
 import { ItemStatusField } from "./ItemStatusField";
 import { ItemDialogFrame } from "./ItemDialogFrame";
-import { ItemDrawerFrame } from "./ItemDrawerFrame";
+import { ItemPageFrame } from "./ItemPageFrame";
 import type { RecurringConfig, StatusDef, FieldDef } from "@/types/rules";
 import { cn } from "@/lib/utils";
 import { useScrollLock } from "@/hooks/useScrollLock";
@@ -90,19 +90,23 @@ export function ItemDialog({
     (f) => f.validation?.required && isEmpty(properties?.[f.key])
   );
 
+  // Runs in the commit of the tap that opened it: iOS raises the keyboard only for a focus
+  // inside the tap, so a timeout or a plain effect would focus without a keyboard
+  useLayoutEffect(() => {
+    if (!open) return;
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight}px`;
+    el.focus();
+    el.setSelectionRange(el.value.length, el.value.length);
+  }, [open]);
+
   useEffect(() => {
     const didJustOpen = open && !wasOpenRef.current;
     wasOpenRef.current = open;
     if (!didJustOpen) return;
-    // Deferred: the drawer's portal renders the textarea one render after opening
     const id = setTimeout(() => {
-      const el = textareaRef.current;
-      if (el) {
-        el.style.height = "auto";
-        el.style.height = `${el.scrollHeight}px`;
-        // On a phone the keyboard would cover the drawer; only a new item needs typing right away
-        if (!isMobile || mode === "add") el.focus();
-      }
       setValidationAttempted(false);
       if (deadline.includes("T")) {
         const d = new Date(deadline);
@@ -117,7 +121,7 @@ export function ItemDialog({
       }
     }, 0);
     return () => clearTimeout(id);
-  }, [open, deadline, isMobile, mode]);
+  }, [open, deadline]);
 
   function handleTitleChange(e: React.ChangeEvent<HTMLTextAreaElement>) {
     onTitleChange(e.target.value);
@@ -202,42 +206,33 @@ export function ItemDialog({
     </>
   );
 
-  const Frame = isMobile ? ItemDrawerFrame : ItemDialogFrame;
-
-  return (
-    <Frame
-      open={open}
-      heading={mode === "add" ? "new item" : "edit item"}
-      wide={hasFields}
-      scrollBodyRef={scrollBodyRef}
-      onCancel={onCancel}
-      footer={
-        <>
-          {onDelete ? (
-            <button
-              onClick={onDelete}
-              disabled={pending}
-              aria-label="delete item"
-              className="text-foreground/60 hover:text-destructive transition-colors disabled:opacity-25"
-            >
-              <Trash2 size={12} />
-            </button>
-          ) : (
-            <span />
-          )}
-          <div className="flex items-center gap-2">
-            {onSkip && (
-              <BracketButton onClick={onSkip} disabled={pending}>
-                skip
-              </BracketButton>
-            )}
-            <BracketButton onClick={handleConfirmClick} disabled={pending}>
-              {mode === "add" ? "add" : "update"}
-            </BracketButton>
-          </div>
-        </>
-      }
+  const confirmButton = (
+    <BracketButton
+      onClick={handleConfirmClick}
+      disabled={pending}
+      className="text-foreground px-2 py-3 text-base"
     >
+      {mode === "add" ? "add" : "update"}
+    </BracketButton>
+  );
+  const deleteButton = onDelete && (
+    <BracketButton
+      onClick={onDelete}
+      disabled={pending}
+      variant="destructive"
+      aria-label="delete item"
+    >
+      delete
+    </BracketButton>
+  );
+  const skipButton = onSkip && (
+    <BracketButton onClick={onSkip} disabled={pending}>
+      skip
+    </BracketButton>
+  );
+
+  const form = (
+    <>
       <div data-title-section className="flex flex-col gap-1.5 pb-5">
         <label className={cn(LABEL, titleHasError && "text-destructive")}>title</label>
         <textarea
@@ -256,7 +251,7 @@ export function ItemDialog({
           disabled={pending}
           rows={1}
           className={cn(
-            "focus:border-foreground w-full resize-none overflow-hidden border-b bg-transparent py-1.5 text-sm outline-none disabled:opacity-50",
+            "focus:border-foreground w-full resize-none overflow-hidden border-b bg-transparent py-1.5 text-base outline-none disabled:opacity-50 sm:text-sm",
             error || titleHasError
               ? "border-destructive placeholder:text-destructive"
               : "border-border placeholder:text-muted-foreground"
@@ -285,6 +280,49 @@ export function ItemDialog({
       ) : (
         <div className="flex flex-col gap-5">{whenAndStatus}</div>
       )}
-    </Frame>
+    </>
+  );
+
+  const heading = mode === "add" ? "new item" : "edit item";
+
+  if (isMobile) {
+    return (
+      <ItemPageFrame
+        open={open}
+        heading={heading}
+        scrollBodyRef={scrollBodyRef}
+        onCancel={onCancel}
+        confirm={confirmButton}
+        secondary={
+          (deleteButton || skipButton) && (
+            <div className="border-border mt-6 flex items-center justify-between border-t pt-4">
+              {deleteButton || <span />}
+              {skipButton}
+            </div>
+          )
+        }
+      >
+        {form}
+      </ItemPageFrame>
+    );
+  }
+
+  return (
+    <ItemDialogFrame
+      open={open}
+      heading={heading}
+      wide={hasFields}
+      scrollBodyRef={scrollBodyRef}
+      onCancel={onCancel}
+      footer={
+        <div className="grid w-full grid-cols-[1fr_auto_1fr] items-center">
+          <div className="justify-self-start">{deleteButton}</div>
+          {confirmButton}
+          <div className="justify-self-end">{skipButton}</div>
+        </div>
+      }
+    >
+      {form}
+    </ItemDialogFrame>
   );
 }

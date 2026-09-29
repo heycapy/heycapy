@@ -6,13 +6,15 @@ import { ChatMessageList } from "./ChatMessageList";
 import { ChatInputBar, type ChatInputBarHandle } from "./ChatInputBar";
 import { CapyChatHeader } from "./CapyChatHeader";
 import { ChatHistorySheet } from "./ChatHistorySheet";
+import { CapyChatDrawer } from "./CapyChatDrawer";
 import { Sprite } from "./Sprite";
 import { DEFAULT_H, HEADER_H } from "./chatTypes";
-
-type ChatState = "closed" | "open" | "minimized" | "fullscreen";
+import { useLayoutStore, type ChatState } from "@/store/layout";
 
 export function CapyChat() {
-  const [chatState, setChatState] = useState<ChatState>("closed");
+  const chatState = useLayoutStore((s) => s.chatState);
+  const setChatState = useLayoutStore((s) => s.setChatState);
+  const bottomBarShown = useLayoutStore((s) => s.bottomBarShown);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
 
@@ -39,12 +41,14 @@ export function CapyChat() {
   useEffect(() => {
     const prev = prevChatStateRef.current;
     prevChatStateRef.current = chatState;
+    // On phones the keyboard would cover the replies; the input is one tap away
+    if (isMobile) return;
     if (chatState === "open" && (prev === "closed" || prev === "minimized")) {
       const delay = prev === "minimized" ? 210 : 0;
       const timer = setTimeout(() => inputBarRef.current?.focus(), delay);
       return () => clearTimeout(timer);
     }
-  }, [chatState]);
+  }, [chatState, isMobile]);
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -58,30 +62,26 @@ export function CapyChat() {
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, []);
+  }, [setChatState]);
 
-  if (chatState === "closed") {
-    return (
-      <button
-        onClick={() => setChatState("open")}
-        className="fixed right-6 bottom-16 z-50 transition-transform hover:scale-110 active:scale-95 md:bottom-6"
-        aria-label="Open chat"
-      >
-        <Sprite id="capy-idle-blink" size={44} />
-      </button>
-    );
-  }
+  const trigger = (
+    <button
+      onClick={() => setChatState("open")}
+      className={cn(
+        "fixed right-6 bottom-6 z-50 transition-transform hover:scale-110 active:scale-95",
+        bottomBarShown && "max-md:hidden"
+      )}
+      aria-label="Open chat"
+    >
+      <Sprite id="capy-idle-blink" size={44} />
+    </button>
+  );
 
   const bodyH = DEFAULT_H - HEADER_H;
 
   const panelClassName = cn(
     "border-border bg-background flex flex-col border-2 fixed z-50",
-    chatState === "fullscreen"
-      ? "inset-2"
-      : cn(
-          "bottom-0 inset-x-0 md:inset-x-auto md:right-6 md:w-[308px]",
-          isMobile && chatState !== "minimized" && "h-[52svh] overflow-hidden"
-        )
+    chatState === "fullscreen" ? "inset-2" : "right-6 bottom-0 w-[308px]"
   );
 
   const body = (
@@ -102,6 +102,41 @@ export function CapyChat() {
     </>
   );
 
+  const history = (
+    <ChatHistorySheet
+      open={historyOpen}
+      onClose={() => setHistoryOpen(false)}
+      onLoadSession={loadSession}
+      onNewChat={clearChat}
+    />
+  );
+
+  if (isMobile) {
+    return (
+      <>
+        {chatState === "closed" && trigger}
+        <CapyChatDrawer
+          open={chatState !== "closed"}
+          onClose={() => setChatState("closed")}
+          header={
+            <CapyChatHeader
+              fullscreen={false}
+              minimized={false}
+              onClose={() => setChatState("closed")}
+              onHistoryOpen={() => setHistoryOpen(true)}
+              onNewChat={clearChat}
+            />
+          }
+        >
+          {body}
+          {history}
+        </CapyChatDrawer>
+      </>
+    );
+  }
+
+  if (chatState === "closed") return trigger;
+
   return (
     <>
       <motion.div style={{ boxShadow: "5px 5px 0 var(--border)" }} className={panelClassName}>
@@ -117,15 +152,6 @@ export function CapyChat() {
 
         {chatState === "fullscreen" ? (
           <div className="flex min-h-0 flex-1 flex-col overflow-hidden">{body}</div>
-        ) : isMobile ? (
-          <div
-            className={cn(
-              "flex flex-col overflow-hidden transition-[height] duration-200 ease-in-out",
-              chatState === "minimized" ? "h-0" : "min-h-0 flex-1"
-            )}
-          >
-            {body}
-          </div>
         ) : (
           <motion.div
             initial={false}
@@ -138,12 +164,7 @@ export function CapyChat() {
         )}
       </motion.div>
 
-      <ChatHistorySheet
-        open={historyOpen}
-        onClose={() => setHistoryOpen(false)}
-        onLoadSession={loadSession}
-        onNewChat={clearChat}
-      />
+      {history}
     </>
   );
 }

@@ -87,20 +87,3 @@ test("items can be edited from today", async ({ page }) => {
   await dialog.getByRole("button", { name: "[ update ]", exact: true }).click();
   await expect(itemRow(page, `${title} back`)).toBeVisible();
 });
-
-test("on a phone, tapping the shown bucket goes straight to it; the arrow opens the list", async ({
-  page,
-}) => {
-  await page.goto("/");
-  const name = await bucketWithItems(page, "Phone", []);
-  await page.setViewportSize({ width: 390, height: 760 });
-  await todayButton(page).click();
-  await expect(todayButton(page)).toHaveAttribute("aria-pressed", "true");
-
-  await page.getByRole("button", { name, exact: true }).click();
-  await expect(todayButton(page)).toHaveAttribute("aria-pressed", "false");
-  await expect(activeBucketTitle(page)).toHaveText(name);
-
-  await page.getByRole("button", { name: "choose bucket" }).click();
-  await expect(page.getByText("switch bucket", { exact: true })).toBeVisible();
-});

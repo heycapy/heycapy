@@ -1,3 +1,4 @@
+import { createPortal } from "react-dom";
 import type { ReactNode, RefObject } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { BracketButton } from "@/components/ui/BracketButton";
@@ -22,7 +23,7 @@ export function ItemDialogFrame({
   children,
   onCancel,
 }: ItemFrameProps) {
-  return (
+  return createPortal(
     <AnimatePresence>
       {open && (
         <>
@@ -70,6 +71,7 @@ export function ItemDialogFrame({
           </motion.div>
         </>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 }

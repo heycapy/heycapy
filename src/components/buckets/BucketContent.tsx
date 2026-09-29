@@ -3,7 +3,6 @@ import { ITEM_STATUS, isClosedStatus } from "@/constants";
 import { useEffect, useState, type RefObject } from "react";
 import { ItemDialog } from "./ItemDialog";
 import { ItemList } from "./ItemList";
-import { QuickAddSheet } from "./QuickAddSheet";
 import { BucketSettings } from "./BucketSettings";
 import type { SettingsTab } from "./BucketSettingsForm";
 import { RemindersOffNotice } from "./RemindersOffNotice";
@@ -14,15 +13,12 @@ import { daysToDisplayStr, parseDurationToDate } from "@/lib/duration";
 import { DEFAULT_BUCKET_STATUSES } from "./constants";
 import type { buckets } from "@/lib/db/schema";
 import { parseFields } from "./fields";
-import { useMediaQuery } from "@/hooks/useMediaQuery";
-import { MOBILE_MEDIA_QUERY } from "@/constants";
 
 type BucketRow = typeof buckets.$inferSelect;
 
 type BucketContentProps = {
   bucket: BucketRow;
   accentColor: string;
-  // Lets the bottom bar and empty-space taps start an add in this bucket
   addItemRef: RefObject<(() => void) | null>;
 };
 
@@ -46,12 +42,8 @@ export function BucketContent({ bucket, accentColor, addItemRef }: BucketContent
         : "",
     onSaved: list.refetch,
   });
-  const isMobile = useMediaQuery(MOBILE_MEDIA_QUERY);
-  // Fields the sheet can't fill have to go through the full form
-  const needsFullForm = fields.some((f) => f.validation?.required);
-
   useEffect(() => {
-    addItemRef.current = isMobile ? editor.startQuickAdding : editor.startAdding;
+    addItemRef.current = editor.startAdding;
     return () => {
       addItemRef.current = null;
     };
@@ -113,12 +105,6 @@ export function BucketContent({ bucket, accentColor, addItemRef }: BucketContent
         {...editor.dialogProps}
         statuses={statuses}
         fields={fields.length > 0 ? fields : undefined}
-      />
-
-      <QuickAddSheet
-        {...editor.quickAddProps}
-        accentColor={accentColor}
-        onSubmit={needsFullForm ? editor.quickAddProps.onExpand : editor.quickAddProps.onSubmit}
       />
 
       <BucketSettings

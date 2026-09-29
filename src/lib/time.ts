@@ -20,14 +20,6 @@ export function deadlineDate(deadline: string): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
-// Moves a deadline to another day at the same time; a new date gets 9am, like the item form
-export function withDeadlineDate(deadline: string, date: string): string {
-  if (!deadline.includes("T")) return buildDeadline(date, "9", "00", "am");
-  const d = new Date(deadline);
-  const { hour, ampm } = toH12(d.getHours());
-  return buildDeadline(date, hour, String(d.getMinutes()), ampm);
-}
-
 export function buildDeadline(date: string, hour: string, min: string, ampm: Ampm): string {
   if (!date) return "";
   const h = parseInt(hour, 10);
