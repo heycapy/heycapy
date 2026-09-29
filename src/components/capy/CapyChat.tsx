@@ -64,7 +64,7 @@ export function CapyChat() {
     return (
       <button
         onClick={() => setChatState("open")}
-        className="fixed right-6 bottom-6 z-50 transition-transform hover:scale-110 active:scale-95"
+        className="fixed right-6 bottom-16 z-50 transition-transform hover:scale-110 active:scale-95 md:bottom-6"
         aria-label="Open chat"
       >
         <Sprite id="capy-idle-blink" size={44} />

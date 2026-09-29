@@ -121,3 +121,8 @@ export const ADMIN_ALERT_TIMEOUT_MS = 15_000;
 export const ADMIN_DIGEST_MAX_ERRORS = 30;
 export const STACK_LINES_IN_ALERT = 12;
 export const TELEGRAM_MESSAGE_MAX = 4000;
+
+// Tailwind's `sm` breakpoint: below it is treated as a phone
+export const MOBILE_MEDIA_QUERY = "(max-width: 639px)";
+// Tailwind's `md` breakpoint: below it the buckets use the bottom bar instead of tabs
+export const BOTTOM_BAR_MEDIA_QUERY = "(max-width: 767px)";

@@ -39,7 +39,7 @@ export function useItemEditor({
   defaultDeadline,
   onSaved,
 }: ItemEditorOptions) {
-  const [addingItem, setAddingItem] = useState(false);
+  const [addMode, setAddMode] = useState<"quick" | "full" | null>(null);
   const [addTitle, setAddTitle] = useState("");
   const [addDeadline, setAddDeadline] = useState("");
   const [addStatus, setAddStatus] = useState<ItemStatus>(defaultStatus);
@@ -66,7 +66,7 @@ export function useItemEditor({
   }
 
   function cancelAdding() {
-    setAddingItem(false);
+    setAddMode(null);
     setAddTitle("");
     setAddDeadline("");
     setAddStatus(defaultStatus);
@@ -78,11 +78,17 @@ export function useItemEditor({
   function startAdding() {
     cancelEditing();
     setAddDeadline(defaultDeadline());
-    setAddingItem(true);
+    setAddMode("full");
+  }
+
+  function startQuickAdding() {
+    cancelEditing();
+    setAddDeadline(defaultDeadline());
+    setAddMode("quick");
   }
 
   function startEditing(item: Item) {
-    setAddingItem(false);
+    setAddMode(null);
     setEditingItemId(item.id);
     setEditTitle(item.title);
     setEditDeadline(item.deadline ? toLocalDatetimeStr(item.deadline) : "");
@@ -109,6 +115,29 @@ export function useItemEditor({
         cancelAdding();
         await onSaved();
       } else {
+        setAddError(result.error);
+      }
+    });
+  }
+
+  function handleQuickAdd() {
+    const title = addTitle;
+    if (!title.trim()) return;
+    setAddError("");
+    setAddTitle("");
+    startAddTransition(async () => {
+      const result = await addItemAction(
+        bucketId,
+        title,
+        addDeadline || null,
+        addStatus,
+        null,
+        null
+      );
+      if (result.ok) {
+        await onSaved();
+      } else {
+        setAddTitle((current) => current || title);
         setAddError(result.error);
       }
     });
@@ -155,6 +184,7 @@ export function useItemEditor({
     });
   }
 
+  const addingItem = addMode === "full";
   const editingItem = items.find((i) => i.id === editingItemId);
   const editingRecurring = parseRecurring(editingItem?.recurring ?? null);
   const canSkip =
@@ -171,7 +201,19 @@ export function useItemEditor({
   return {
     editingItemId,
     startAdding,
+    startQuickAdding,
     startEditing,
+    quickAddProps: {
+      open: addMode === "quick",
+      title: addTitle,
+      deadline: addDeadline,
+      error: addError,
+      onTitleChange: setAddTitle,
+      onDeadlineChange: setAddDeadline,
+      onSubmit: handleQuickAdd,
+      onExpand: () => setAddMode("full"),
+      onCancel: cancelAdding,
+    },
     dialogProps: {
       open: addingItem || editingItemId !== null,
       mode: addingItem ? ("add" as const) : ("edit" as const),

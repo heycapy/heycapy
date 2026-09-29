@@ -13,6 +13,21 @@ export function toH12(h24: number): { hour: string; ampm: Ampm } {
   return { hour: String(h), ampm: isPm ? "pm" : "am" };
 }
 
+// A deadline is an all-day "YYYY-MM-DD" or a datetime; this is its local calendar day
+export function deadlineDate(deadline: string): string {
+  if (!deadline.includes("T")) return deadline;
+  const d = new Date(deadline);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+// Moves a deadline to another day at the same time; a new date gets 9am, like the item form
+export function withDeadlineDate(deadline: string, date: string): string {
+  if (!deadline.includes("T")) return buildDeadline(date, "9", "00", "am");
+  const d = new Date(deadline);
+  const { hour, ampm } = toH12(d.getHours());
+  return buildDeadline(date, hour, String(d.getMinutes()), ampm);
+}
+
 export function buildDeadline(date: string, hour: string, min: string, ampm: Ampm): string {
   if (!date) return "";
   const h = parseInt(hour, 10);

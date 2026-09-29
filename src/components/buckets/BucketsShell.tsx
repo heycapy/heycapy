@@ -3,13 +3,16 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Drawer } from "vaul";
-import { Check, ChevronDown, Clock } from "lucide-react";
+import { Check, ChevronDown, Clock, Plus } from "lucide-react";
 import { BracketButton } from "@/components/ui/BracketButton";
 import { cn } from "@/lib/utils";
 import { BucketContent } from "./BucketContent";
 import { TodayView } from "@/components/today/TodayView";
 import { BUCKET_PALETTE } from "./constants";
 import { useUIStore } from "@/store/ui";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
+import { parseItemsRules } from "@/lib/rules";
+import { BOTTOM_BAR_MEDIA_QUERY, MOBILE_MEDIA_QUERY } from "@/constants";
 import { saveTimezoneIfDefaultAction } from "@/app/(app)/user-settings-actions";
 import type { buckets } from "@/lib/db/schema";
 
@@ -34,6 +37,8 @@ function MobileBucketPicker({
   onSelect: (id: number) => void;
   onClose: () => void;
 }) {
+  const openCreateBucket = useUIStore((s) => s.openCreateBucket);
+
   return (
     <Drawer.Root open={open} onOpenChange={(v) => !v && onClose()} shouldScaleBackground={false}>
       <Drawer.Portal>
@@ -70,6 +75,16 @@ function MobileBucketPicker({
                 </button>
               );
             })}
+            <button
+              onClick={() => {
+                onClose();
+                openCreateBucket();
+              }}
+              className="text-muted-foreground hover:bg-muted hover:text-foreground flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors"
+            >
+              <Plus size={12} className="shrink-0" aria-hidden />
+              <span className="font-mono text-xs">new bucket</span>
+            </button>
           </div>
         </Drawer.Content>
       </Drawer.Portal>
@@ -119,6 +134,10 @@ export function BucketsShell({ buckets: rawBuckets, focusBucketId = null }: Buck
   );
   const prevBucketsRef = useRef<BucketRow[]>(buckets);
   const [pickerOpen, setPickerOpen] = useState(false);
+  const addItemRef = useRef<(() => void) | null>(null);
+  const keyboardStandInRef = useRef<HTMLInputElement>(null);
+  const isMobile = useMediaQuery(MOBILE_MEDIA_QUERY);
+  const hasBottomBar = useMediaQuery(BOTTOM_BAR_MEDIA_QUERY);
 
   useEffect(() => {
     const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -156,9 +175,26 @@ export function BucketsShell({ buckets: rawBuckets, focusBucketId = null }: Buck
 
   if (!activeBucket) return null;
 
+  const canAddItem = !todayOpen && parseItemsRules(activeBucket.itemsRules).readonly !== true;
+
+  function addItem() {
+    const startAdding = addItemRef.current;
+    if (!startAdding) return;
+    // iOS raises the keyboard only for a focus() inside the tap itself, and the sheet's
+    // input doesn't exist yet: this input holds the keyboard until the sheet takes it over
+    if (isMobile) keyboardStandInRef.current?.focus();
+    startAdding();
+  }
+
   return (
     <div className="flex flex-1 flex-col">
-      <div className="flex-1 overflow-y-auto pb-[420px]">
+      <div
+        className="flex-1 overflow-y-auto pb-[420px]"
+        // Only the empty space under the list is the container itself
+        onClick={(e) => {
+          if (hasBottomBar && canAddItem && e.target === e.currentTarget) addItem();
+        }}
+      >
         {hydrated && (
           <AnimatePresence mode="wait">
             <motion.div
@@ -171,7 +207,11 @@ export function BucketsShell({ buckets: rawBuckets, focusBucketId = null }: Buck
               {todayOpen ? (
                 <TodayView />
               ) : (
-                <BucketContent bucket={activeBucket} accentColor={accentColor} />
+                <BucketContent
+                  bucket={activeBucket}
+                  accentColor={accentColor}
+                  addItemRef={addItemRef}
+                />
               )}
             </motion.div>
           </AnimatePresence>
@@ -180,10 +220,7 @@ export function BucketsShell({ buckets: rawBuckets, focusBucketId = null }: Buck
 
       <div className="border-border bg-background sticky bottom-0 border-t-2">
         {/* Mobile: custom picker */}
-        <div className="flex items-center md:hidden">
-          <BracketButton onClick={openCreateBucket} className="shrink-0 px-3 py-3.5">
-            add bucket
-          </BracketButton>
+        <div className="flex items-stretch md:hidden">
           <TodayButton active={todayOpen} onClick={openToday} className="py-3.5" />
           <div
             className={cn(
@@ -215,6 +252,15 @@ export function BucketsShell({ buckets: rawBuckets, focusBucketId = null }: Buck
               <ChevronDown size={11} aria-hidden />
             </button>
           </div>
+          {canAddItem && (
+            <BracketButton
+              onClick={addItem}
+              style={{ color: accentColor }}
+              className="shrink-0 px-4 py-3.5"
+            >
+              add +
+            </BracketButton>
+          )}
         </div>
 
         {/* Desktop: tab bar */}
@@ -248,6 +294,13 @@ export function BucketsShell({ buckets: rawBuckets, focusBucketId = null }: Buck
           })}
         </div>
       </div>
+
+      <input
+        ref={keyboardStandInRef}
+        aria-hidden
+        tabIndex={-1}
+        className="pointer-events-none fixed bottom-0 left-0 h-px w-px text-base opacity-0"
+      />
 
       <MobileBucketPicker
         open={pickerOpen}

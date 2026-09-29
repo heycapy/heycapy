@@ -51,7 +51,7 @@ function Cell({
 
 export function TimeField({ value, onChange, disabled }: TimeFieldProps) {
   const { hour, min, ampm } = value;
-  const { open, setOpen, toggle, pos, mounted, triggerRef, popoverRef } = usePopover(PANEL);
+  const { open, setOpen, toggle, pos, portalTarget, triggerRef, popoverRef } = usePopover(PANEL);
   const [typed, setTyped] = useState("");
   const [typedInvalid, setTypedInvalid] = useState(false);
   const minutes = QUARTERS.includes(min) ? QUARTERS : [...QUARTERS, min].sort();
@@ -175,7 +175,7 @@ export function TimeField({ value, onChange, disabled }: TimeFieldProps) {
         <span>{display}</span>
         <Clock size={13} className="opacity-60" aria-hidden />
       </button>
-      {mounted && createPortal(panel, document.body)}
+      {portalTarget && createPortal(panel, portalTarget)}
     </div>
   );
 }

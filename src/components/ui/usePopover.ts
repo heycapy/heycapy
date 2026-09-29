@@ -1,4 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { createContext, useContext, useEffect, useRef, useState } from "react";
+
+export const PopoverContainerContext = createContext<HTMLElement | null>(null);
 
 // A small panel under (or, near the bottom of the screen, above) its trigger, kept on screen
 export function usePopover(size: { width: number; height: number }) {
@@ -7,6 +9,7 @@ export function usePopover(size: { width: number; height: number }) {
   const [mounted, setMounted] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
+  const container = useContext(PopoverContainerContext);
 
   useEffect(() => {
     const id = setTimeout(() => setMounted(true), 0);
@@ -42,9 +45,17 @@ export function usePopover(size: { width: number; height: number }) {
     let top = rect.bottom + 6;
     if (left + size.width > window.innerWidth - 8) left = window.innerWidth - size.width - 8;
     if (top + size.height > window.innerHeight - 8) top = rect.top - size.height - 6;
-    setPos({ top: Math.max(8, top), left: Math.max(8, left) });
+    const origin = container
+      ? {
+          top: container.getBoundingClientRect().top + container.clientTop,
+          left: container.getBoundingClientRect().left + container.clientLeft,
+        }
+      : { top: 0, left: 0 };
+    setPos({ top: Math.max(8, top) - origin.top, left: Math.max(8, left) - origin.left });
     setOpen(true);
   }
 
-  return { open, setOpen, toggle, pos, mounted, triggerRef, popoverRef };
+  const portalTarget = container ?? (mounted ? document.body : null);
+
+  return { open, setOpen, toggle, pos, portalTarget, triggerRef, popoverRef };
 }

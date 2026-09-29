@@ -1,8 +1,9 @@
 import { parseItemsRules } from "@/lib/rules";
 import { ITEM_STATUS, isClosedStatus } from "@/constants";
-import { useState } from "react";
+import { useEffect, useState, type RefObject } from "react";
 import { ItemDialog } from "./ItemDialog";
 import { ItemList } from "./ItemList";
+import { QuickAddSheet } from "./QuickAddSheet";
 import { BucketSettings } from "./BucketSettings";
 import type { SettingsTab } from "./BucketSettingsForm";
 import { RemindersOffNotice } from "./RemindersOffNotice";
@@ -13,15 +14,19 @@ import { daysToDisplayStr, parseDurationToDate } from "@/lib/duration";
 import { DEFAULT_BUCKET_STATUSES } from "./constants";
 import type { buckets } from "@/lib/db/schema";
 import { parseFields } from "./fields";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
+import { MOBILE_MEDIA_QUERY } from "@/constants";
 
 type BucketRow = typeof buckets.$inferSelect;
 
 type BucketContentProps = {
   bucket: BucketRow;
   accentColor: string;
+  // Lets the bottom bar and empty-space taps start an add in this bucket
+  addItemRef: RefObject<(() => void) | null>;
 };
 
-export function BucketContent({ bucket, accentColor }: BucketContentProps) {
+export function BucketContent({ bucket, accentColor, addItemRef }: BucketContentProps) {
   const rules = parseItemsRules(bucket.itemsRules);
   const statuses = DEFAULT_BUCKET_STATUSES;
   const fields = parseFields(bucket.fieldSchema);
@@ -40,6 +45,16 @@ export function BucketContent({ bucket, accentColor }: BucketContentProps) {
         ? (parseDurationToDate(daysToDisplayStr(rules.defaultDeadlineOffsetDays)) ?? "")
         : "",
     onSaved: list.refetch,
+  });
+  const isMobile = useMediaQuery(MOBILE_MEDIA_QUERY);
+  // Fields the sheet can't fill have to go through the full form
+  const needsFullForm = fields.some((f) => f.validation?.required);
+
+  useEffect(() => {
+    addItemRef.current = isMobile ? editor.startQuickAdding : editor.startAdding;
+    return () => {
+      addItemRef.current = null;
+    };
   });
 
   return (
@@ -60,7 +75,10 @@ export function BucketContent({ bucket, accentColor }: BucketContentProps) {
             settings
           </BracketButton>
           {!readonly && (
-            <BracketButton onClick={editor.startAdding} className="px-1 py-1.5">
+            <BracketButton
+              onClick={editor.startAdding}
+              className="hidden px-1 py-1.5 md:inline-flex"
+            >
               add +
             </BracketButton>
           )}
@@ -95,6 +113,12 @@ export function BucketContent({ bucket, accentColor }: BucketContentProps) {
         {...editor.dialogProps}
         statuses={statuses}
         fields={fields.length > 0 ? fields : undefined}
+      />
+
+      <QuickAddSheet
+        {...editor.quickAddProps}
+        accentColor={accentColor}
+        onSubmit={needsFullForm ? editor.quickAddProps.onExpand : editor.quickAddProps.onSubmit}
       />
 
       <BucketSettings

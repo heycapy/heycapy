@@ -52,7 +52,7 @@ export function DatePicker({ value, onChange, disabled }: DatePickerProps) {
   const parsed = parseDate(value);
   const [viewYear, setViewYear] = useState(parsed?.year ?? today.getFullYear());
   const [viewMonth, setViewMonth] = useState(parsed?.month ?? today.getMonth());
-  const { open, setOpen, toggle, pos, mounted, triggerRef, popoverRef } = usePopover(CALENDAR);
+  const { open, setOpen, toggle, pos, portalTarget, triggerRef, popoverRef } = usePopover(CALENDAR);
 
   useEffect(() => {
     const p = parseDate(value);
@@ -189,7 +189,7 @@ export function DatePicker({ value, onChange, disabled }: DatePickerProps) {
         <span>{value ? formatDisplay(value) : "pick date"}</span>
         <CalendarDays size={13} className="opacity-60" aria-hidden />
       </button>
-      {mounted && createPortal(panel, document.body)}
+      {portalTarget && createPortal(panel, portalTarget)}
     </div>
   );
 }

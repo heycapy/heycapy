@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
 import { Trash2, X } from "lucide-react";
 import { DatePicker } from "@/components/ui/DatePicker";
 import { BracketButton } from "@/components/ui/BracketButton";
@@ -7,12 +6,15 @@ import { TimeField, type Ampm, type TimeValue } from "@/components/ui/TimeField"
 import { RecurringPicker } from "./RecurringPicker";
 import { ItemFieldsForm } from "./ItemFieldsForm";
 import { ItemStatusField } from "./ItemStatusField";
+import { ItemDialogFrame } from "./ItemDialogFrame";
+import { ItemDrawerFrame } from "./ItemDrawerFrame";
 import type { RecurringConfig, StatusDef, FieldDef } from "@/types/rules";
 import { cn } from "@/lib/utils";
 import { useScrollLock } from "@/hooks/useScrollLock";
 import { useScrollToFirst } from "@/hooks/useScrollToFirst";
-import { buildDeadline } from "@/lib/time";
-import { ITEM_TITLE_MAX_LENGTH } from "@/constants";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
+import { buildDeadline, deadlineDate } from "@/lib/time";
+import { ITEM_TITLE_MAX_LENGTH, MOBILE_MEDIA_QUERY } from "@/constants";
 
 const LABEL = "text-muted-foreground font-mono text-xs";
 
@@ -72,6 +74,7 @@ export function ItemDialog({
   const scrollBodyRef = useRef<HTMLDivElement>(null);
   const scrollToFirst = useScrollToFirst(scrollBodyRef);
   useScrollLock(open);
+  const isMobile = useMediaQuery(MOBILE_MEDIA_QUERY);
   const [timeHour, setTimeHour] = useState("9");
   const [timeMin, setTimeMin] = useState("00");
   const [timeAmpm, setTimeAmpm] = useState<Ampm>("am");
@@ -80,12 +83,7 @@ export function ItemDialog({
 
   const hasFields = !!(fields && fields.length > 0);
 
-  const datePart = deadline.includes("T")
-    ? (() => {
-        const d = new Date(deadline);
-        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-      })()
-    : deadline;
+  const datePart = deadlineDate(deadline);
   const hasDate = datePart.length > 0;
 
   const hasEmptyRequired = !!fields?.some(
@@ -96,13 +94,15 @@ export function ItemDialog({
     const didJustOpen = open && !wasOpenRef.current;
     wasOpenRef.current = open;
     if (!didJustOpen) return;
-    const el = textareaRef.current;
-    if (el) {
-      el.style.height = "auto";
-      el.style.height = `${el.scrollHeight}px`;
-      el.focus();
-    }
+    // Deferred: the drawer's portal renders the textarea one render after opening
     const id = setTimeout(() => {
+      const el = textareaRef.current;
+      if (el) {
+        el.style.height = "auto";
+        el.style.height = `${el.scrollHeight}px`;
+        // On a phone the keyboard would cover the drawer; only a new item needs typing right away
+        if (!isMobile || mode === "add") el.focus();
+      }
       setValidationAttempted(false);
       if (deadline.includes("T")) {
         const d = new Date(deadline);
@@ -117,7 +117,7 @@ export function ItemDialog({
       }
     }, 0);
     return () => clearTimeout(id);
-  }, [open, deadline]);
+  }, [open, deadline, isMobile, mode]);
 
   function handleTitleChange(e: React.ChangeEvent<HTMLTextAreaElement>) {
     onTitleChange(e.target.value);
@@ -202,123 +202,89 @@ export function ItemDialog({
     </>
   );
 
+  const Frame = isMobile ? ItemDrawerFrame : ItemDialogFrame;
+
   return (
-    <AnimatePresence>
-      {open && (
+    <Frame
+      open={open}
+      heading={mode === "add" ? "new item" : "edit item"}
+      wide={hasFields}
+      scrollBodyRef={scrollBodyRef}
+      onCancel={onCancel}
+      footer={
         <>
-          <motion.div
-            key="backdrop"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 0.45 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.12 }}
-            className="fixed inset-0 z-[55] bg-black"
-            onClick={onCancel}
-          />
-
-          <motion.div
-            key="dialog"
-            initial={{ opacity: 0, scale: 0.96, y: -10 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.96, y: -10 }}
-            transition={{ duration: 0.15, ease: "easeOut" }}
-            className={cn(
-              "fixed top-[5%] left-1/2 z-[60] w-[calc(100%-2rem)] -translate-x-1/2",
-              hasFields ? "max-w-md" : "max-w-sm"
+          {onDelete ? (
+            <button
+              onClick={onDelete}
+              disabled={pending}
+              aria-label="delete item"
+              className="text-foreground/60 hover:text-destructive transition-colors disabled:opacity-25"
+            >
+              <Trash2 size={12} />
+            </button>
+          ) : (
+            <span />
+          )}
+          <div className="flex items-center gap-2">
+            {onSkip && (
+              <BracketButton onClick={onSkip} disabled={pending}>
+                skip
+              </BracketButton>
             )}
-            style={{ boxShadow: "5px 5px 0 var(--border)" }}
-          >
-            <div className="border-border bg-background flex max-h-[78vh] flex-col overflow-hidden border-2">
-              <div className="bg-foreground text-background flex shrink-0 items-center justify-between px-3 py-1.5">
-                <span className="font-pixel text-xs">
-                  {mode === "add" ? "new item" : "edit item"}
-                </span>
-                <BracketButton variant="inverted" onClick={onCancel}>
-                  x
-                </BracketButton>
-              </div>
-
-              <div
-                ref={scrollBodyRef}
-                className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto px-5 py-4"
-              >
-                <div data-title-section className="flex flex-col gap-1.5 pb-5">
-                  <label className={cn(LABEL, titleHasError && "text-destructive")}>title</label>
-                  <textarea
-                    ref={textareaRef}
-                    value={title}
-                    onChange={handleTitleChange}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" && !e.shiftKey && title.trim()) {
-                        e.preventDefault();
-                        handleConfirmClick();
-                      }
-                      if (e.key === "Escape") onCancel();
-                    }}
-                    placeholder={error || "what needs doing?"}
-                    maxLength={ITEM_TITLE_MAX_LENGTH}
-                    disabled={pending}
-                    rows={1}
-                    className={cn(
-                      "focus:border-foreground w-full resize-none overflow-hidden border-b bg-transparent py-1.5 text-sm outline-none disabled:opacity-50",
-                      error || titleHasError
-                        ? "border-destructive placeholder:text-destructive"
-                        : "border-border placeholder:text-muted-foreground"
-                    )}
-                  />
-                  {titleHasError && (
-                    <p className="text-destructive font-mono text-[11px]">title is required</p>
-                  )}
-                </div>
-
-                {hasFields ? (
-                  <div className="flex flex-col gap-5">
-                    {onPropertiesChange && fields && (
-                      <div className="border-border border">
-                        <ItemFieldsForm
-                          fields={fields}
-                          values={properties ?? {}}
-                          disabled={pending}
-                          showErrors={validationAttempted}
-                          onChange={onPropertiesChange}
-                        />
-                      </div>
-                    )}
-                    {whenAndStatus}
-                  </div>
-                ) : (
-                  <div className="flex flex-col gap-5">{whenAndStatus}</div>
-                )}
-              </div>
-
-              <div className="border-border flex shrink-0 items-center justify-between border-t px-3 py-2.5">
-                {onDelete ? (
-                  <button
-                    onClick={onDelete}
-                    disabled={pending}
-                    aria-label="delete item"
-                    className="text-foreground/60 hover:text-destructive transition-colors disabled:opacity-25"
-                  >
-                    <Trash2 size={12} />
-                  </button>
-                ) : (
-                  <span />
-                )}
-                <div className="flex items-center gap-2">
-                  {onSkip && (
-                    <BracketButton onClick={onSkip} disabled={pending}>
-                      skip
-                    </BracketButton>
-                  )}
-                  <BracketButton onClick={handleConfirmClick} disabled={pending}>
-                    {mode === "add" ? "add" : "update"}
-                  </BracketButton>
-                </div>
-              </div>
-            </div>
-          </motion.div>
+            <BracketButton onClick={handleConfirmClick} disabled={pending}>
+              {mode === "add" ? "add" : "update"}
+            </BracketButton>
+          </div>
         </>
+      }
+    >
+      <div data-title-section className="flex flex-col gap-1.5 pb-5">
+        <label className={cn(LABEL, titleHasError && "text-destructive")}>title</label>
+        <textarea
+          ref={textareaRef}
+          value={title}
+          onChange={handleTitleChange}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.shiftKey && title.trim()) {
+              e.preventDefault();
+              handleConfirmClick();
+            }
+            if (e.key === "Escape") onCancel();
+          }}
+          placeholder={error || "what needs doing?"}
+          maxLength={ITEM_TITLE_MAX_LENGTH}
+          disabled={pending}
+          rows={1}
+          className={cn(
+            "focus:border-foreground w-full resize-none overflow-hidden border-b bg-transparent py-1.5 text-sm outline-none disabled:opacity-50",
+            error || titleHasError
+              ? "border-destructive placeholder:text-destructive"
+              : "border-border placeholder:text-muted-foreground"
+          )}
+        />
+        {titleHasError && (
+          <p className="text-destructive font-mono text-[11px]">title is required</p>
+        )}
+      </div>
+
+      {hasFields ? (
+        <div className="flex flex-col gap-5">
+          {onPropertiesChange && fields && (
+            <div className="border-border border">
+              <ItemFieldsForm
+                fields={fields}
+                values={properties ?? {}}
+                disabled={pending}
+                showErrors={validationAttempted}
+                onChange={onPropertiesChange}
+              />
+            </div>
+          )}
+          {whenAndStatus}
+        </div>
+      ) : (
+        <div className="flex flex-col gap-5">{whenAndStatus}</div>
       )}
-    </AnimatePresence>
+    </Frame>
   );
 }
