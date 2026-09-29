@@ -1,21 +1,8 @@
 import { test, expect, type Page } from "@playwright/test";
 import { authState } from "../helpers/auth";
-import { createAndSelectBucket, itemRow, uniqueName } from "../helpers/buckets";
+import { addItemButton, itemRow, openBucketOnPhone, uniqueName } from "../helpers/buckets";
 
 test.use({ storageState: authState("quick-add"), hasTouch: true });
-
-const PHONE = { width: 390, height: 844 };
-
-// Buckets are created through the desktop tabs; the rest runs at phone size
-async function openBucketOnPhone(page: Page, name: string): Promise<void> {
-  await page.goto("/");
-  await createAndSelectBucket(page, name);
-  await page.setViewportSize(PHONE);
-}
-
-function addButton(page: Page) {
-  return page.getByRole("button", { name: "[ add + ]", exact: true });
-}
 
 // The modal sheet hides the list from the accessibility tree, so rows are matched by text
 function rowBehindSheet(page: Page, title: string) {
@@ -30,9 +17,9 @@ function quickAddSheet(page: Page) {
 
 test("the bottom bar's add opens a sheet that stays open for the next item", async ({ page }) => {
   await openBucketOnPhone(page, uniqueName("Quick"));
-  await expect(addButton(page)).toHaveCount(1);
+  await expect(addItemButton(page)).toHaveCount(1);
 
-  await addButton(page).tap();
+  await addItemButton(page).tap();
   const sheet = quickAddSheet(page);
   const title = sheet.getByRole("textbox", { name: "title" });
   await expect(title).toBeFocused();
@@ -73,15 +60,4 @@ test("tapping the empty space under the list opens the sheet; more keeps the tit
   await expect(form.locator("textarea")).toHaveValue(title);
   await form.getByRole("button", { name: "[ add ]", exact: true }).tap();
   await expect(itemRow(page, title)).toBeVisible();
-});
-
-test("today has no add; new buckets start from the bucket switcher", async ({ page }) => {
-  await openBucketOnPhone(page, uniqueName("Switcher"));
-
-  await page.getByRole("button", { name: "today" }).tap();
-  await expect(addButton(page)).toHaveCount(0);
-
-  await page.getByRole("button", { name: "choose bucket" }).tap();
-  await page.getByRole("button", { name: "new bucket" }).tap();
-  await expect(page.getByRole("button", { name: /^Blank/ })).toBeVisible();
 });

@@ -552,8 +552,15 @@
   font-family: var(--font-geist-mono), monospace !important;
 }
 
-* {
-  border-color: var(--border);
+/* In a layer so border color utilities (border-destructive, focus:border-foreground, …) win */
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--border);
+  }
 }
 
 body {

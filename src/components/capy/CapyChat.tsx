@@ -8,11 +8,12 @@ import { CapyChatHeader } from "./CapyChatHeader";
 import { ChatHistorySheet } from "./ChatHistorySheet";
 import { Sprite } from "./Sprite";
 import { DEFAULT_H, HEADER_H } from "./chatTypes";
-
-type ChatState = "closed" | "open" | "minimized" | "fullscreen";
+import { useLayoutStore, type ChatState } from "@/store/layout";
 
 export function CapyChat() {
-  const [chatState, setChatState] = useState<ChatState>("closed");
+  const chatState = useLayoutStore((s) => s.chatState);
+  const setChatState = useLayoutStore((s) => s.setChatState);
+  const bottomBarShown = useLayoutStore((s) => s.bottomBarShown);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
 
@@ -58,13 +59,16 @@ export function CapyChat() {
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, []);
+  }, [setChatState]);
 
   if (chatState === "closed") {
     return (
       <button
         onClick={() => setChatState("open")}
-        className="fixed right-6 bottom-16 z-50 transition-transform hover:scale-110 active:scale-95 md:bottom-6"
+        className={cn(
+          "fixed right-6 bottom-6 z-50 transition-transform hover:scale-110 active:scale-95",
+          bottomBarShown && "max-md:hidden"
+        )}
         aria-label="Open chat"
       >
         <Sprite id="capy-idle-blink" size={44} />
