@@ -14,6 +14,10 @@ type UIStore = {
 
   todayOpen: boolean;
   openToday: () => void;
+
+  // Adding from today goes into this bucket until another is picked
+  todayAddBucketId: number | null;
+  setTodayAddBucketId: (id: number) => void;
 };
 
 export const useUIStore = create<UIStore>()(
@@ -31,11 +35,18 @@ export const useUIStore = create<UIStore>()(
 
       todayOpen: true,
       openToday: () => set({ todayOpen: true }),
+
+      todayAddBucketId: null,
+      setTodayAddBucketId: (id) => set({ todayAddBucketId: id }),
     }),
     {
       name: "heycapy-ui",
       storage: createJSONStorage(() => sessionStorage),
-      partialize: (s) => ({ activeBucketId: s.activeBucketId, todayOpen: s.todayOpen }),
+      partialize: (s) => ({
+        activeBucketId: s.activeBucketId,
+        todayOpen: s.todayOpen,
+        todayAddBucketId: s.todayAddBucketId,
+      }),
       skipHydration: true,
     }
   )

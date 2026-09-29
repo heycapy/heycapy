@@ -4,7 +4,7 @@ import { addItemButton, openBucketOnPhone, uniqueName } from "../helpers/buckets
 
 test.use({ storageState: authState("phone-bar"), hasTouch: true });
 
-test("the place switcher goes to today and starts new buckets; today has no add", async ({
+test("the place switcher goes to today and starts new buckets; add works in both", async ({
   page,
 }) => {
   const bucket = uniqueName("Switcher");
@@ -14,7 +14,8 @@ test("the place switcher goes to today and starts new buckets; today has no add"
   const picker = page.getByRole("dialog", { name: "go to" });
   await picker.getByRole("button", { name: "today", exact: true }).tap();
   await expect(picker).not.toBeVisible();
-  await expect(addItemButton(page)).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "today" })).toBeVisible();
+  await expect(addItemButton(page)).toHaveCount(1);
 
   await page.getByRole("button", { name: "today", exact: true }).tap();
   await picker.getByRole("button", { name: bucket, exact: true }).tap();

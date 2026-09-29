@@ -111,7 +111,9 @@ export function BucketsShell({ buckets: rawBuckets, focusBucketId = null }: Buck
 
   if (!activeBucket) return null;
 
-  const canAddItem = !todayOpen && parseItemsRules(activeBucket.itemsRules).readonly !== true;
+  const canAddItem = todayOpen
+    ? buckets.some((b) => parseItemsRules(b.itemsRules).readonly !== true)
+    : parseItemsRules(activeBucket.itemsRules).readonly !== true;
 
   function addItem() {
     addItemRef.current?.();
@@ -135,7 +137,7 @@ export function BucketsShell({ buckets: rawBuckets, focusBucketId = null }: Buck
               transition={{ duration: 0.15 }}
             >
               {todayOpen ? (
-                <TodayView />
+                <TodayView buckets={buckets} addItemRef={addItemRef} />
               ) : (
                 <BucketContent
                   bucket={activeBucket}

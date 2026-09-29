@@ -26,3 +26,9 @@ export function buildDeadline(date: string, hour: string, min: string, ampm: Amp
   const d = new Date(local);
   return isNaN(d.getTime()) ? date : d.toISOString();
 }
+
+export function lastDayOfMonth(date: string): string {
+  const [year = 0, month = 1] = date.split("-").map(Number);
+  const day = new Date(Date.UTC(year, month, 0)).getUTCDate();
+  return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+}

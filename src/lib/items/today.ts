@@ -1,5 +1,5 @@
 import { and, asc, eq, isNotNull, isNull, like, lt, notInArray, sql } from "drizzle-orm";
-import { CLOSED_ITEM_STATUSES, SEARCH_RESULTS_MAX, UPCOMING_DAYS } from "@/constants";
+import { CLOSED_ITEM_STATUSES, SEARCH_RESULTS_MAX, TODAY_FETCH_AHEAD_DAYS } from "@/constants";
 import { db } from "@/lib/db";
 import { buckets, items } from "@/lib/db/schema";
 import { getReminderBadges, type ReminderBadge } from "@/lib/reminders/status";
@@ -51,9 +51,8 @@ async function withBuckets(userId: number, rows: Item[]): Promise<CrossBucketIte
 
 const inLiveBucket = and(isNull(buckets.deletedAt), isNull(buckets.archivedAt));
 
-// A day of slack on top of the upcoming window, so every timezone's last day is covered
 export async function listToday(userId: number, now = new Date()): Promise<CrossBucketItems> {
-  const until = new Date(now.getTime() + (UPCOMING_DAYS + 1) * 24 * 60 * 60 * 1000);
+  const until = new Date(now.getTime() + (TODAY_FETCH_AHEAD_DAYS + 1) * 24 * 60 * 60 * 1000);
   const rows = await db
     .select({ item: items })
     .from(items)

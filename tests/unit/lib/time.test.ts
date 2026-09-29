@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { toH24, toH12, buildDeadline } from "@/lib/time";
+import { toH24, toH12, buildDeadline, lastDayOfMonth } from "@/lib/time";
 
 describe("toH24", () => {
   it("converts 12am to 0", () => expect(toH24(12, "am")).toBe(0));
@@ -65,5 +65,14 @@ describe("buildDeadline", () => {
   it("pads single-digit minutes", () => {
     const result = buildDeadline("2026-09-27", "9", "05", "am");
     expect(new Date(result).getTime()).toBe(new Date("2026-09-27T09:05:00").getTime());
+  });
+});
+
+describe("lastDayOfMonth", () => {
+  it("handles short months, leap years and December", () => {
+    expect(lastDayOfMonth("2026-09-21")).toBe("2026-09-30");
+    expect(lastDayOfMonth("2028-02-10")).toBe("2028-02-29");
+    expect(lastDayOfMonth("2026-02-10")).toBe("2026-02-28");
+    expect(lastDayOfMonth("2026-12-05")).toBe("2026-12-31");
   });
 });

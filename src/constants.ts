@@ -8,7 +8,8 @@ export const WEEKDAY_NAMES = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"] a
 export const WORK_WEEK = [1, 2, 3, 4, 5];
 export const LAST_DAY_OF_MONTH = 31;
 export const TRASH_RETENTION_DAYS = 30;
-export const UPCOMING_DAYS = 7;
+// Today shows overdue and due today; the end of "today" in any timezone is within a day of now
+export const TODAY_FETCH_AHEAD_DAYS = 1;
 export const SEARCH_RESULTS_MAX = 50;
 
 export const OG_COLORS = {

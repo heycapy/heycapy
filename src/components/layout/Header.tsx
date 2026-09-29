@@ -7,6 +7,7 @@ import { useScrollLock } from "@/hooks/useScrollLock";
 
 type HeaderProps = {
   email: string;
+  onSearchOpen: () => void;
   onSettingsOpen: () => void;
   onArchiveOpen: () => void;
   onTrashOpen: () => void;
@@ -179,7 +180,13 @@ function GlobalMenu({
   );
 }
 
-export function Header({ email, onSettingsOpen, onArchiveOpen, onTrashOpen }: HeaderProps) {
+export function Header({
+  email,
+  onSearchOpen,
+  onSettingsOpen,
+  onArchiveOpen,
+  onTrashOpen,
+}: HeaderProps) {
   const greeting = useMemo(() => getGreeting(), []);
   const date = useMemo(() => getDate(), []);
 
@@ -191,6 +198,9 @@ export function Header({ email, onSettingsOpen, onArchiveOpen, onTrashOpen }: He
       </div>
 
       <div className="flex items-center gap-3">
+        <BracketButton onClick={onSearchOpen} className="px-1 py-1.5">
+          search
+        </BracketButton>
         <GlobalMenu
           email={email}
           onSettings={onSettingsOpen}

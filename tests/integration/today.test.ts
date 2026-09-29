@@ -34,7 +34,7 @@ async function add(
 const titles = (list: { title: string }[]) => list.map((i) => i.title);
 
 describe("today", () => {
-  it("lists overdue and the coming week from every bucket, soonest first", async () => {
+  it("lists overdue and the next day or so from every bucket, soonest first", async () => {
     const userId = await seedUser();
     const bills = await seedBucket(userId);
     const work = await seedBucket(userId);
@@ -42,8 +42,9 @@ describe("today", () => {
     await add(userId, work, "standup", { deadline: new Date(T0.getTime() + HOUR) });
     await add(userId, bills, "water", { deadline: new Date(T0.getTime() + 6 * DAY) });
 
+    // The browser narrows this to its own "today"; the server only has to cover every timezone's
     const today = await listToday(userId, T0);
-    expect(titles(today.items)).toEqual(["rent", "standup", "water"]);
+    expect(titles(today.items)).toEqual(["rent", "standup"]);
     expect(today.buckets.map((b) => b.id).sort()).toEqual([bills, work].sort());
   });
 

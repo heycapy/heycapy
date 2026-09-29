@@ -6,6 +6,7 @@ import { TimeField, type Ampm, type TimeValue } from "@/components/ui/TimeField"
 import { RecurringPicker } from "./RecurringPicker";
 import { ItemFieldsForm } from "./ItemFieldsForm";
 import { ItemStatusField } from "./ItemStatusField";
+import { ItemBucketField, type BucketChoice } from "./ItemBucketField";
 import { ItemDialogFrame } from "./ItemDialogFrame";
 import { ItemPageFrame } from "./ItemPageFrame";
 import type { RecurringConfig, StatusDef, FieldDef } from "@/types/rules";
@@ -13,7 +14,8 @@ import { cn } from "@/lib/utils";
 import { useScrollLock } from "@/hooks/useScrollLock";
 import { useScrollToFirst } from "@/hooks/useScrollToFirst";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
-import { buildDeadline, deadlineDate } from "@/lib/time";
+import { buildDeadline, deadlineDate, lastDayOfMonth } from "@/lib/time";
+import { isLastDayRepeat } from "@/lib/items/occurrence";
 import { ITEM_TITLE_MAX_LENGTH, MOBILE_MEDIA_QUERY } from "@/constants";
 
 const LABEL = "text-muted-foreground font-mono text-xs";
@@ -45,6 +47,7 @@ type ItemDialogProps = {
   onConfirm: () => void;
   onCancel: () => void;
   onDelete?: () => void;
+  bucketChoice?: BucketChoice;
 };
 
 export function ItemDialog({
@@ -67,6 +70,7 @@ export function ItemDialog({
   onConfirm,
   onCancel,
   onDelete,
+  bucketChoice,
 }: ItemDialogProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const scrollBodyRef = useRef<HTMLDivElement>(null);
@@ -127,9 +131,20 @@ export function ItemDialog({
     e.target.style.height = `${e.target.scrollHeight}px`;
   }
 
+  // A "last day of the month" repeat keeps the date on its month's last day
   function handleDateChange(newDate: string) {
-    onDeadlineChange(buildDeadline(newDate, timeHour, timeMin, timeAmpm));
+    const date = newDate && isLastDayRepeat(recurring) ? lastDayOfMonth(newDate) : newDate;
+    onDeadlineChange(buildDeadline(date, timeHour, timeMin, timeAmpm));
     if (!newDate) onRecurringChange?.(null);
+  }
+
+  function handleRecurringChange(next: RecurringConfig | null) {
+    onRecurringChange?.(next);
+    if (!datePart || !isLastDayRepeat(next)) return;
+    const lastDay = lastDayOfMonth(datePart);
+    onDeadlineChange(
+      deadline.includes("T") ? buildDeadline(lastDay, timeHour, timeMin, timeAmpm) : lastDay
+    );
   }
 
   function handleTimeChange({ hour, min, ampm }: TimeValue) {
@@ -191,7 +206,7 @@ export function ItemDialog({
           deadlineDay={Number(datePart.slice(8, 10))}
           initialShowEndDate={!!recurring?.endDate}
           disabled={pending}
-          onChange={onRecurringChange}
+          onChange={handleRecurringChange}
         />
       )}
 
@@ -254,6 +269,8 @@ export function ItemDialog({
           <p className="text-destructive font-mono text-[11px]">title is required</p>
         )}
       </div>
+
+      {bucketChoice && <ItemBucketField choice={bucketChoice} disabled={pending} />}
 
       {hasFields ? (
         <div className="flex flex-col gap-5">

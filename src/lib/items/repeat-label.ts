@@ -1,4 +1,5 @@
-import { LAST_DAY_OF_MONTH, WEEKDAY_NAMES, WORK_WEEK } from "@/constants";
+import { WEEKDAY_NAMES, WORK_WEEK } from "@/constants";
+import { isLastDayRepeat } from "./occurrence";
 import type { RecurringConfig } from "@/types/rules";
 
 const UNITS: Record<RecurringConfig["frequency"], string> = {
@@ -15,10 +16,6 @@ function pickedDays(config: RecurringConfig): string | null {
   return days.map((d) => WEEKDAY_NAMES[d]).join(", ");
 }
 
-function onLastDay(config: RecurringConfig): boolean {
-  return config.frequency === "monthly" && config.anchorDay === LAST_DAY_OF_MONTH;
-}
-
 export function describeRepeat(config: RecurringConfig): string {
   const n = config.interval;
   const unit = UNITS[config.frequency];
@@ -26,13 +23,13 @@ export function describeRepeat(config: RecurringConfig): string {
   const days = pickedDays(config);
   if (days === "weekdays" && n === 1) return "every weekday";
   if (days) return `${every} on ${days}`;
-  if (onLastDay(config)) return `${every} on the last day`;
+  if (isLastDayRepeat(config)) return `${every} on the last day`;
   return every;
 }
 
 export function repeatLabel(config: RecurringConfig): string {
   const days = pickedDays(config);
   if (days) return config.interval === 1 ? days : `${days} · every ${config.interval} weeks`;
-  if (onLastDay(config)) return "monthly · last day";
+  if (isLastDayRepeat(config)) return "monthly · last day";
   return config.frequency;
 }

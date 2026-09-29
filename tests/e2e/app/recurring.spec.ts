@@ -60,3 +60,23 @@ test("repeats on picked weekdays, then on the last day of the month", async ({ p
   await dialog.getByRole("button", { name: "[ update ]", exact: true }).click();
   await expect(itemRow(page, title)).toContainText("↺ monthly · last day");
 });
+
+test("repeating on the last day moves the date to the month's last day", async ({ page }) => {
+  const now = new Date();
+  const last = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+  const lastLabel = `${last.toLocaleString("en-US", { month: "short" })} ${last.getDate()}`;
+
+  await page.getByRole("button", { name: "[ add + ]", exact: true }).click();
+  const dialog = itemDialog(page);
+  const title = uniqueName("pay rent");
+  await dialog.locator("textarea").first().fill(title);
+  await dialog.getByRole("button", { name: "pick date" }).click();
+  await page.getByRole("button", { name: "21", exact: true }).click();
+  await dialog.getByRole("button", { name: "on", exact: true }).click();
+  await dialog.getByRole("button", { name: "month", exact: true }).click();
+  await dialog.getByRole("button", { name: "last day", exact: true }).click();
+  await expect(dialog.getByRole("button", { name: lastLabel, exact: true })).toBeVisible();
+
+  await dialog.getByRole("button", { name: "[ add ]", exact: true }).click();
+  await expect(itemRow(page, title)).toContainText(`next ${lastLabel}`);
+});
