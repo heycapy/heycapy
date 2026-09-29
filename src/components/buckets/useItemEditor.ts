@@ -1,13 +1,7 @@
-import { isClosedStatus } from "@/constants";
 import { useState, useTransition } from "react";
 import { offerUndoDelete } from "./undoDelete";
-import {
-  addItemAction,
-  deleteItemAction,
-  skipOccurrenceAction,
-  updateItemAction,
-} from "@/app/(app)/actions";
-import { nextOccurrenceDate, parseRecurring } from "@/lib/items/occurrence";
+import { addItemAction, deleteItemAction, updateItemAction } from "@/app/(app)/actions";
+import { parseRecurring } from "@/lib/items/occurrence";
 import type { items } from "@/lib/db/schema";
 import type { RecurringConfig } from "@/types/rules";
 import type { ItemStatus } from "./constants";
@@ -26,7 +20,6 @@ function toLocalDatetimeStr(d: Date): string {
 
 type ItemEditorOptions = {
   bucketId: number;
-  items: Item[];
   defaultStatus: ItemStatus;
   defaultDeadline: () => string;
   onSaved: () => Promise<void>;
@@ -34,7 +27,6 @@ type ItemEditorOptions = {
 
 export function useItemEditor({
   bucketId,
-  items,
   defaultStatus,
   defaultDeadline,
   onSaved,
@@ -144,30 +136,6 @@ export function useItemEditor({
     });
   }
 
-  function handleSkip() {
-    if (!editingItemId || editPending) return;
-    startEditTransition(async () => {
-      const result = await skipOccurrenceAction(editingItemId);
-      if (result.ok) {
-        cancelEditing();
-        await onSaved();
-      }
-    });
-  }
-
-  const editingItem = items.find((i) => i.id === editingItemId);
-  const editingRecurring = parseRecurring(editingItem?.recurring ?? null);
-  const canSkip =
-    !!editingItem &&
-    !isClosedStatus(editingItem.status) &&
-    !!editingItem?.deadline &&
-    !!editingRecurring &&
-    nextOccurrenceDate(
-      editingItem.deadline,
-      editingRecurring,
-      Intl.DateTimeFormat().resolvedOptions().timeZone
-    ) !== null;
-
   return {
     editingItemId,
     startAdding,
@@ -190,7 +158,6 @@ export function useItemEditor({
       onConfirm: addingItem ? handleAdd : handleUpdate,
       onCancel: addingItem ? cancelAdding : cancelEditing,
       onDelete: editingItemId !== null ? handleDelete : undefined,
-      onSkip: canSkip ? handleSkip : undefined,
     },
   };
 }

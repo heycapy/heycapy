@@ -23,7 +23,6 @@ export function TodayView() {
   const statuses = DEFAULT_BUCKET_STATUSES;
   const editor = useItemEditor({
     bucketId: 0,
-    items: data?.items ?? [],
     defaultStatus: statuses.find((s) => s.isDefault)?.name ?? ITEM_STATUS.active,
     defaultDeadline: () => "",
     onSaved: refetch,

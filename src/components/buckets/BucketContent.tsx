@@ -34,7 +34,6 @@ export function BucketContent({ bucket, accentColor, addItemRef }: BucketContent
   const list = useBucketItems(bucket.id, bucket.itemsRules, rules.showCompleted !== false);
   const editor = useItemEditor({
     bucketId: bucket.id,
-    items: list.items,
     defaultStatus,
     defaultDeadline: () =>
       rules.defaultDeadlineOffsetDays !== null && rules.defaultDeadlineOffsetDays !== undefined

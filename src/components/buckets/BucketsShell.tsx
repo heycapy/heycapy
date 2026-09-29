@@ -39,7 +39,7 @@ function TodayButton({
       onClick={onClick}
       aria-pressed={active}
       className={cn(
-        "-mt-0.5 flex shrink-0 items-center gap-1.5 border-t-2 px-3 font-mono text-xs transition-colors",
+        "flex shrink-0 items-center gap-1.5 border-t-2 px-3 font-mono text-xs transition-colors",
         active
           ? "bg-card text-foreground border-t-foreground"
           : "text-muted-foreground hover:text-foreground border-t-transparent",
@@ -87,7 +87,6 @@ export function BucketsShell({ buckets: rawBuckets, focusBucketId = null }: Buck
     setActiveBucketId(focusBucketId);
     // Keep the #item anchor, drop ?bucket so a reload doesn't jump back
     window.history.replaceState(null, "", `/${window.location.hash}`);
-    // Only on arrival; the rest of the visit uses the normal bucket switcher
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -100,7 +99,6 @@ export function BucketsShell({ buckets: rawBuckets, focusBucketId = null }: Buck
     if (activeBucketId === null) return;
     const stillExists = buckets.some((b) => b.id === activeBucketId);
     const prevIndex = prevBucketsRef.current.findIndex((b) => b.id === activeBucketId);
-    // prevIndex === -1 means the bucket was just created and hasn't arrived yet, not removed
     if (!stillExists && prevIndex !== -1 && buckets.length > 0) {
       useUIStore.setState({ activeBucketId: buckets[Math.min(prevIndex, buckets.length - 1)].id });
     }
@@ -123,7 +121,6 @@ export function BucketsShell({ buckets: rawBuckets, focusBucketId = null }: Buck
     <div className="flex flex-1 flex-col">
       <div
         className="flex-1 overflow-y-auto pb-[420px]"
-        // Only the empty space under the list is the container itself
         onClick={(e) => {
           if (hasBottomBar && canAddItem && e.target === e.currentTarget) addItem();
         }}
@@ -151,7 +148,7 @@ export function BucketsShell({ buckets: rawBuckets, focusBucketId = null }: Buck
         )}
       </div>
 
-      <div className="border-border bg-background sticky bottom-0 border-t-2">
+      <div className="border-border bg-background sticky bottom-0 border-t-2 md:border-t-0">
         {/* Mobile: place switcher · add · capy */}
         <div className="grid grid-cols-[1fr_auto_1fr] items-stretch md:hidden">
           <button
@@ -202,8 +199,7 @@ export function BucketsShell({ buckets: rawBuckets, focusBucketId = null }: Buck
           </div>
         </div>
 
-        {/* Desktop: tab bar */}
-        <div className="scrollbar-hide hidden overflow-x-auto md:flex">
+        <div className="scrollbar-hide hidden overflow-x-auto shadow-[inset_0_2px_0_var(--border)] md:flex">
           <BracketButton onClick={openCreateBucket} className="shrink-0 px-3 py-[13.8px]">
             add bucket
           </BracketButton>
@@ -219,7 +215,7 @@ export function BucketsShell({ buckets: rawBuckets, focusBucketId = null }: Buck
                 onClick={() => setActiveBucketId(bucket.id)}
                 style={isActive ? { borderTopColor: color } : undefined}
                 className={cn(
-                  "-mt-0.5 max-w-[140px] shrink-0 border-t-2 px-3 py-[13.8px] text-left transition-colors",
+                  "max-w-[140px] shrink-0 border-t-2 px-3 py-[13.8px] text-left transition-colors",
                   isActive
                     ? "bg-card text-foreground"
                     : "text-muted-foreground hover:text-foreground border-t-transparent"

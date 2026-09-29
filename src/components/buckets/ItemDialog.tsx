@@ -45,7 +45,6 @@ type ItemDialogProps = {
   onConfirm: () => void;
   onCancel: () => void;
   onDelete?: () => void;
-  onSkip?: () => void;
 };
 
 export function ItemDialog({
@@ -68,7 +67,6 @@ export function ItemDialog({
   onConfirm,
   onCancel,
   onDelete,
-  onSkip,
 }: ItemDialogProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const scrollBodyRef = useRef<HTMLDivElement>(null);
@@ -225,11 +223,6 @@ export function ItemDialog({
       delete
     </BracketButton>
   );
-  const skipButton = onSkip && (
-    <BracketButton onClick={onSkip} disabled={pending}>
-      skip
-    </BracketButton>
-  );
 
   const form = (
     <>
@@ -294,12 +287,7 @@ export function ItemDialog({
         onCancel={onCancel}
         confirm={confirmButton}
         secondary={
-          (deleteButton || skipButton) && (
-            <div className="border-border mt-6 flex items-center justify-between border-t pt-4">
-              {deleteButton || <span />}
-              {skipButton}
-            </div>
-          )
+          deleteButton && <div className="border-border mt-6 border-t pt-4">{deleteButton}</div>
         }
       >
         {form}
@@ -315,10 +303,9 @@ export function ItemDialog({
       scrollBodyRef={scrollBodyRef}
       onCancel={onCancel}
       footer={
-        <div className="grid w-full grid-cols-[1fr_auto_1fr] items-center">
-          <div className="justify-self-start">{deleteButton}</div>
+        <div className="flex w-full items-center justify-between">
+          {deleteButton || <span />}
           {confirmButton}
-          <div className="justify-self-end">{skipButton}</div>
         </div>
       }
     >

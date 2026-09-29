@@ -1,3 +1,4 @@
+import { createPortal } from "react-dom";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useScrollLock } from "@/hooks/useScrollLock";
@@ -22,7 +23,7 @@ export function BucketSettings({ open, bucket, onClose, initialTab }: BucketSett
   const [telegramOpen, setTelegramOpen] = useState(false);
   const [webhookOpen, setWebhookOpen] = useState(false);
 
-  return (
+  return createPortal(
     <>
       <AnimatePresence>
         {open && (
@@ -65,6 +66,7 @@ export function BucketSettings({ open, bucket, onClose, initialTab }: BucketSett
         onClose={() => setTelegramOpen(false)}
       />
       <WebhookDialog open={webhookOpen} bucket={bucket} onClose={() => setWebhookOpen(false)} />
-    </>
+    </>,
+    document.body
   );
 }
