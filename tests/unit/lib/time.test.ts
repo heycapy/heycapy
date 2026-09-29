@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { toH24, toH12, buildDeadline, parseDeadlineString } from "@/lib/time";
+import { toH24, toH12, buildDeadline, defaultTimeFor, lastDayOfMonth } from "@/lib/time";
 
 describe("toH24", () => {
   it("converts 12am to 0", () => expect(toH24(12, "am")).toBe(0));
@@ -68,16 +68,32 @@ describe("buildDeadline", () => {
   });
 });
 
-describe("parseDeadlineString", () => {
-  it("parses an ISO datetime as is", () => {
-    const d = parseDeadlineString("2026-09-27T09:00:00.000Z", "Asia/Kolkata");
-    expect(d.toISOString()).toBe("2026-09-27T09:00:00.000Z");
+describe("lastDayOfMonth", () => {
+  it("handles short months, leap years and December", () => {
+    expect(lastDayOfMonth("2026-09-21")).toBe("2026-09-30");
+    expect(lastDayOfMonth("2028-02-10")).toBe("2028-02-29");
+    expect(lastDayOfMonth("2026-02-10")).toBe("2026-02-28");
+    expect(lastDayOfMonth("2026-12-05")).toBe("2026-12-31");
+  });
+});
+
+describe("defaultTimeFor", () => {
+  const at = (h: number, m: number) => new Date(2026, 8, 29, h, m);
+  const today = "2026-09-29";
+
+  it("starts at 9am on another day, or today before 9", () => {
+    expect(defaultTimeFor("2026-09-30", at(21, 12))).toEqual({ hour: "9", min: "00", ampm: "am" });
+    expect(defaultTimeFor(today, at(8, 59))).toEqual({ hour: "9", min: "00", ampm: "am" });
   });
 
-  it("reads a date without a time as all day: midnight in the user's timezone", () => {
-    expect(parseDeadlineString("2026-09-27", "Asia/Kolkata").toISOString()).toBe(
-      "2026-09-26T18:30:00.000Z"
-    );
-    expect(parseDeadlineString("2026-09-27", "UTC").toISOString()).toBe("2026-09-27T00:00:00.000Z");
+  it("starts at the next half hour once today's 9am has gone", () => {
+    expect(defaultTimeFor(today, at(21, 12))).toEqual({ hour: "9", min: "30", ampm: "pm" });
+    expect(defaultTimeFor(today, at(9, 0))).toEqual({ hour: "9", min: "30", ampm: "am" });
+    expect(defaultTimeFor(today, at(11, 45))).toEqual({ hour: "12", min: "00", ampm: "pm" });
+  });
+
+  it("is all day once no half hour is left today", () => {
+    expect(defaultTimeFor(today, at(23, 30)).hour).toBe("");
+    expect(defaultTimeFor(today, at(23, 29))).toEqual({ hour: "11", min: "30", ampm: "pm" });
   });
 });

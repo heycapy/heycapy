@@ -13,7 +13,7 @@ export function OptionButton({ active = false, className, ...props }: OptionButt
       type="button"
       aria-pressed={active}
       className={cn(
-        "border px-2 py-1 font-mono text-[10px] transition-[color,border-color,background-color,transform,box-shadow] disabled:opacity-40",
+        "border px-2.5 py-1.5 font-mono text-xs transition-[color,border-color,background-color,transform,box-shadow] disabled:opacity-40",
         active
           ? "border-foreground bg-foreground text-background translate-x-[2px] translate-y-[2px]"
           : cn(

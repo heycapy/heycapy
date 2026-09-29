@@ -121,7 +121,7 @@ export function AccountTab({ email }: { email: string }) {
         )}
 
         {error && (
-          <p role="alert" className="text-destructive font-mono text-[10px]">
+          <p role="alert" className="text-destructive font-mono text-xs">
             {error}
           </p>
         )}

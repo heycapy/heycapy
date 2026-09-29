@@ -6,11 +6,6 @@ type UIStore = {
   openCreateBucket: () => void;
   closeCreateBucket: () => void;
 
-  chatOpen: boolean;
-  openChat: () => void;
-  closeChat: () => void;
-  toggleChat: () => void;
-
   aiRefreshTick: number;
   tickAiRefresh: () => void;
 
@@ -19,6 +14,9 @@ type UIStore = {
 
   todayOpen: boolean;
   openToday: () => void;
+
+  todayAddBucketId: number | null;
+  setTodayAddBucketId: (id: number) => void;
 };
 
 export const useUIStore = create<UIStore>()(
@@ -28,11 +26,6 @@ export const useUIStore = create<UIStore>()(
       openCreateBucket: () => set({ createBucketOpen: true }),
       closeCreateBucket: () => set({ createBucketOpen: false }),
 
-      chatOpen: false,
-      openChat: () => set({ chatOpen: true }),
-      closeChat: () => set({ chatOpen: false }),
-      toggleChat: () => set((s) => ({ chatOpen: !s.chatOpen })),
-
       aiRefreshTick: 0,
       tickAiRefresh: () => set((s) => ({ aiRefreshTick: s.aiRefreshTick + 1 })),
 
@@ -41,11 +34,18 @@ export const useUIStore = create<UIStore>()(
 
       todayOpen: true,
       openToday: () => set({ todayOpen: true }),
+
+      todayAddBucketId: null,
+      setTodayAddBucketId: (id) => set({ todayAddBucketId: id }),
     }),
     {
       name: "heycapy-ui",
       storage: createJSONStorage(() => sessionStorage),
-      partialize: (s) => ({ activeBucketId: s.activeBucketId, todayOpen: s.todayOpen }),
+      partialize: (s) => ({
+        activeBucketId: s.activeBucketId,
+        todayOpen: s.todayOpen,
+        todayAddBucketId: s.todayAddBucketId,
+      }),
       skipHydration: true,
     }
   )

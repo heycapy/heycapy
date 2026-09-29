@@ -1,13 +1,14 @@
 import { useState } from "react";
 import { DatePicker } from "@/components/ui/DatePicker";
 import { OptionButton } from "@/components/ui/OptionButton";
+import { Toggle } from "@/components/ui/Toggle";
 import { LAST_DAY_OF_MONTH, WEEKDAY_NAMES, WORK_WEEK } from "@/constants";
 import { describeRepeat } from "@/lib/items/repeat-label";
 import { RECURRING_FREQUENCIES } from "./constants";
 import type { RecurringConfig } from "@/types/rules";
 
 const MONDAY_FIRST = [1, 2, 3, 4, 5, 6, 0];
-const LABEL = "text-muted-foreground font-mono text-[10px]";
+const LABEL = "text-muted-foreground font-mono text-xs";
 
 function toggleDay(config: RecurringConfig, day: number): RecurringConfig {
   const current = config.weekdays ?? [];
@@ -33,33 +34,22 @@ export function RecurringPicker({
   const [showEndDate, setShowEndDate] = useState(initialShowEndDate);
   const [intervalStr, setIntervalStr] = useState(String(recurring?.interval ?? 1));
 
-  function toggle() {
-    if (recurring?.enabled) {
-      onChange(null);
-    } else {
-      onChange({ enabled: true, frequency: "monthly", interval: 1, endDate: null });
-    }
+  function toggle(on: boolean) {
+    if (on === !!recurring?.enabled) return;
+    onChange(on ? { enabled: true, frequency: "monthly", interval: 1, endDate: null } : null);
   }
 
   return (
     <div className="flex flex-col gap-2">
       <div className="flex items-center justify-between">
-        <label className="text-muted-foreground font-mono text-[10px]">↺ repeats</label>
-        <button
-          onClick={toggle}
-          disabled={disabled}
-          className={`font-mono text-[10px] transition-colors disabled:opacity-50 ${
-            recurring?.enabled ? "text-foreground" : "text-muted-foreground hover:text-foreground"
-          }`}
-        >
-          [{recurring?.enabled ? "on" : "off"}]
-        </button>
+        <label className="text-muted-foreground font-mono text-xs">↺ repeats</label>
+        <Toggle value={!!recurring?.enabled} onChange={toggle} disabled={disabled} />
       </div>
 
       {recurring?.enabled && (
         <div className="flex flex-col gap-2">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-muted-foreground font-mono text-[10px]">every</span>
+            <span className="text-muted-foreground font-mono text-xs">every</span>
             <input
               type="text"
               inputMode="numeric"
@@ -147,7 +137,7 @@ export function RecurringPicker({
           </p>
           {showEndDate ? (
             <div className="flex items-center gap-2">
-              <span className="text-muted-foreground font-mono text-[10px]">ends</span>
+              <span className="text-muted-foreground font-mono text-xs">ends</span>
               <DatePicker
                 value={recurring.endDate ?? ""}
                 onChange={(v) => onChange({ ...recurring, endDate: v || null })}
@@ -158,7 +148,7 @@ export function RecurringPicker({
                   setShowEndDate(false);
                   onChange({ ...recurring, endDate: null });
                 }}
-                className="text-muted-foreground hover:text-foreground font-mono text-[10px] transition-colors"
+                className="text-muted-foreground hover:text-foreground font-mono text-xs transition-colors"
               >
                 ×
               </button>
@@ -166,7 +156,7 @@ export function RecurringPicker({
           ) : (
             <button
               onClick={() => setShowEndDate(true)}
-              className="text-muted-foreground hover:text-foreground w-fit font-mono text-[10px] transition-colors"
+              className="text-muted-foreground hover:text-foreground w-fit font-mono text-xs transition-colors"
             >
               + set end date
             </button>

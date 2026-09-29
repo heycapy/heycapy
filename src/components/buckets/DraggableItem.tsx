@@ -2,6 +2,7 @@ import type { RefObject } from "react";
 import { Reorder, useDragControls } from "framer-motion";
 import { ItemRow } from "./ItemRow";
 import { SwipeableRow } from "./SwipeableRow";
+import { completionToggle } from "./completion";
 import { reorderItemsAction } from "@/app/(app)/actions";
 import type { ReminderBadge } from "@/lib/reminders/status";
 import type { items } from "@/lib/db/schema";
@@ -47,7 +48,16 @@ export function DraggableItem({
       }}
       className="list-none"
     >
-      <SwipeableRow onDelete={onDelete ?? (() => undefined)} disabled={!onDelete}>
+      <SwipeableRow
+        onDelete={onDelete ?? (() => undefined)}
+        onComplete={
+          onStatusChange
+            ? () => onStatusChange(completionToggle(item.status, statuses).next)
+            : undefined
+        }
+        completeLabel={completionToggle(item.status, statuses).label}
+        disabled={!onDelete}
+      >
         <ItemRow
           item={item}
           statuses={statuses}

@@ -97,7 +97,7 @@ export function ItemReminderInfo({ itemId }: { itemId: number }) {
   const route = goesTo(info);
 
   return (
-    <section aria-label="reminders" className="flex flex-col gap-3 font-mono text-[10px]">
+    <section aria-label="reminders" className="flex flex-col gap-3 font-mono text-xs">
       <div>
         <p className="text-muted-foreground">status</p>
         {!info.remindAgain && <p>{statusLine(info)}</p>}
@@ -107,11 +107,7 @@ export function ItemReminderInfo({ itemId }: { itemId: number }) {
               ⏰ reminding again {formatShort(info.remindAgain.at)} · asked from{" "}
               {info.remindAgain.source}
             </span>
-            <BracketButton
-              onClick={cancelRemindAgain}
-              disabled={cancelling}
-              className="text-[10px]"
-            >
+            <BracketButton onClick={cancelRemindAgain} disabled={cancelling} className="text-xs">
               cancel
             </BracketButton>
           </p>

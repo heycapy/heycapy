@@ -13,6 +13,8 @@ export const reminderRowFields = {
   notificationsRules: buckets.notificationsRules,
   fieldSchema: buckets.fieldSchema,
   timezone: userSettings.timezone,
+  quietFrom: userSettings.quietHoursFrom,
+  quietTo: userSettings.quietHoursTo,
 };
 
 export type ReminderRow = {
@@ -20,6 +22,8 @@ export type ReminderRow = {
   notificationsRules: string;
   fieldSchema: unknown;
   timezone: string | null;
+  quietFrom: string | null;
+  quietTo: string | null;
 };
 
 export function selectReminderRows(where: SQL | undefined) {
@@ -85,6 +89,7 @@ export function toReminderInputs(row: ReminderRow): ReminderInputs {
     overdueRepeatHours: triggers.overdueRepeatHours,
     overdueFirstAlertMins: triggers.overdueFirstAlertMins,
     timezone: row.timezone ?? "UTC",
+    userQuietHours: row.quietFrom && row.quietTo ? { from: row.quietFrom, to: row.quietTo } : null,
   };
 }
 

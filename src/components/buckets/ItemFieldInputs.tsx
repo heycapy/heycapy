@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { X } from "lucide-react";
 import { DatePicker } from "@/components/ui/DatePicker";
-import { TimeScrollPicker, type Ampm } from "@/components/ui/TimeScrollPicker";
+import { TimeField, type Ampm } from "@/components/ui/TimeField";
 import { toH12, toH24 } from "@/lib/time";
 import type { FieldDef } from "@/types/rules";
 import { FIELD_INPUT } from "./constants";
@@ -48,7 +48,7 @@ export function NumberFieldInput({
         disabled={disabled}
         className={FIELD_INPUT}
       />
-      {errorMsg && <p className="text-destructive font-mono text-[9px]">{errorMsg}</p>}
+      {errorMsg && <p className="text-destructive font-mono text-[11px]">{errorMsg}</p>}
     </div>
   );
 }
@@ -87,7 +87,7 @@ export function CurrencyFieldInput({
           className={`${FIELD_INPUT} flex-1`}
         />
       </div>
-      {isInvalid && <p className="text-destructive font-mono text-[9px]">invalid amount</p>}
+      {isInvalid && <p className="text-destructive font-mono text-[11px]">invalid amount</p>}
     </div>
   );
 }
@@ -160,21 +160,13 @@ export function DatetimeFieldInput({
         )}
       </div>
       {date && (
-        <TimeScrollPicker
-          hour={hour}
-          min={min}
-          ampm={ampm}
-          onHourChange={(h) => {
-            setHour(h);
-            emit(date, h, min, ampm);
-          }}
-          onMinChange={(m) => {
-            setMin(m);
-            emit(date, hour, m, ampm);
-          }}
-          onAmpmChange={(a) => {
-            setAmpm(a);
-            emit(date, hour, min, a);
+        <TimeField
+          value={{ hour, min, ampm }}
+          onChange={(t) => {
+            setHour(t.hour);
+            setMin(t.min);
+            setAmpm(t.ampm);
+            emit(date, t.hour, t.min, t.ampm);
           }}
           disabled={disabled}
         />
@@ -217,7 +209,7 @@ export function UrlFieldInput({
         className={FIELD_INPUT}
       />
       {hasError && (
-        <p className="text-destructive font-mono text-[9px]">must be a valid URL (https://...)</p>
+        <p className="text-destructive font-mono text-[11px]">must be a valid URL (https://...)</p>
       )}
     </div>
   );

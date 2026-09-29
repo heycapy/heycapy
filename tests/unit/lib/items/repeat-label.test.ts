@@ -20,14 +20,27 @@ describe("repeat wording", () => {
   it("mentions the interval when it isn't every week", () => {
     const biweekly = { ...weekly, interval: 2, weekdays: [1, 5] };
     expect(describeRepeat(biweekly)).toBe("every 2 weeks on mon, fri");
-    expect(repeatLabel(biweekly)).toBe("mon, fri · every 2 weeks");
+    expect(repeatLabel(biweekly)).toBe("mon, fri, every 2 weeks");
   });
 
   it("says last day for monthly on day 31, and stays plain otherwise", () => {
     const lastDay: RecurringConfig = { ...weekly, frequency: "monthly", anchorDay: 31 };
     expect(describeRepeat(lastDay)).toBe("every month on the last day");
-    expect(repeatLabel(lastDay)).toBe("monthly · last day");
+    expect(repeatLabel(lastDay)).toBe("monthly, last day");
+    expect(repeatLabel({ ...lastDay, interval: 2 })).toBe("every 2 months, last day");
     expect(describeRepeat({ ...weekly, frequency: "daily", interval: 3 })).toBe("every 3 days");
     expect(repeatLabel(weekly)).toBe("weekly");
+  });
+
+  it("keeps the interval in the short form (every 3 days is not daily)", () => {
+    expect(repeatLabel({ ...weekly, frequency: "daily", interval: 3 })).toBe("every 3 days");
+  });
+
+  it("uses no · inside, since item rows separate their parts with it", () => {
+    const labels = [
+      repeatLabel({ ...weekly, interval: 2, weekdays: [1, 5] }),
+      repeatLabel({ ...weekly, frequency: "monthly", anchorDay: 31 }),
+    ];
+    for (const label of labels) expect(label).not.toContain("·");
   });
 });

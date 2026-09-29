@@ -13,8 +13,8 @@ import { SORT_OPTIONS, MEDIUM_OPTIONS, REPEAT_OPTIONS, RECURRENCE_MODE_OPTIONS }
 import type { RecurrenceMode } from "@/types/rules";
 import { OVERDUE_FIRST_ALERT_DEFAULT_MINS } from "@/lib/reminders/constants";
 
-const LABEL = "text-muted-foreground font-mono text-[10px]";
-const HINT = "text-muted-foreground/50 font-mono text-[9px] leading-tight";
+const LABEL = "text-muted-foreground font-mono text-xs";
+const HINT = "text-muted-foreground font-mono text-[11px] leading-tight";
 
 const OVERDUE_REPEAT_OPTIONS = [
   { value: "0.25", label: "15 min" },
@@ -168,22 +168,22 @@ export function BucketRulesPanel({
         {notifAvailability && mediums.length > 0 && (
           <div className="mt-0.5 flex flex-col gap-0.5">
             {mediums.includes("email") && !notifAvailability.email && (
-              <span className="text-warning font-mono text-[9px]">
+              <span className="text-warning font-mono text-[11px]">
                 ⚠ email not configured — set up in tweaks
               </span>
             )}
             {mediums.includes("ntfy") && !notifAvailability.ntfy && (
-              <span className="text-warning font-mono text-[9px]">
+              <span className="text-warning font-mono text-[11px]">
                 ⚠ ntfy not configured — add server url + topic in tweaks
               </span>
             )}
             {mediums.includes("telegram") && !notifAvailability.telegram && (
-              <span className="text-warning font-mono text-[9px]">
+              <span className="text-warning font-mono text-[11px]">
                 ⚠ telegram not connected — set up in tweaks
               </span>
             )}
             {mediums.includes("push") && !notifAvailability.push && (
-              <span className="text-warning font-mono text-[9px]">
+              <span className="text-warning font-mono text-[11px]">
                 ⚠ push is off on every device — turn it on in tweaks
               </span>
             )}
@@ -212,14 +212,14 @@ export function BucketRulesPanel({
         <DurationInput
           value={defaultOffset}
           onChange={onDefaultOffsetChange}
-          placeholder="e.g. 3 days, 1 hour — empty = at deadline"
+          placeholder="e.g. 3 days, 1 hour"
           disabled={disabled}
         />
       </div>
       <div className="flex flex-col gap-1.5">
-        <label className={LABEL}>notify at</label>
+        <label className={LABEL}>remind at</label>
         <span className={HINT}>
-          send no earlier than this time — delays reminders that would otherwise fire at odd hours
+          the time of day for items without a time; this bucket also never reminds earlier than it
         </span>
         <TimePicker value={notifyAt} onChange={onNotifyAtChange} disabled={disabled} />
       </div>

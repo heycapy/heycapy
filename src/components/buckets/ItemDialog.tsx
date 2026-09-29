@@ -1,20 +1,24 @@
-import { useEffect, useRef, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { Trash2, X } from "lucide-react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { X } from "lucide-react";
 import { DatePicker } from "@/components/ui/DatePicker";
 import { BracketButton } from "@/components/ui/BracketButton";
-import { TimeScrollPicker, type Ampm } from "@/components/ui/TimeScrollPicker";
+import { TimeField, type Ampm, type TimeValue } from "@/components/ui/TimeField";
 import { RecurringPicker } from "./RecurringPicker";
 import { ItemFieldsForm } from "./ItemFieldsForm";
 import { ItemStatusField } from "./ItemStatusField";
+import { ItemBucketField, type BucketChoice } from "./ItemBucketField";
+import { ItemDialogFrame } from "./ItemDialogFrame";
+import { ItemPageFrame } from "./ItemPageFrame";
 import type { RecurringConfig, StatusDef, FieldDef } from "@/types/rules";
 import { cn } from "@/lib/utils";
 import { useScrollLock } from "@/hooks/useScrollLock";
 import { useScrollToFirst } from "@/hooks/useScrollToFirst";
-import { buildDeadline } from "@/lib/time";
-import { ITEM_TITLE_MAX_LENGTH } from "@/constants";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
+import { buildDeadline, deadlineDate, defaultTimeFor, lastDayOfMonth } from "@/lib/time";
+import { isLastDayRepeat } from "@/lib/items/occurrence";
+import { ITEM_TITLE_MAX_LENGTH, MOBILE_MEDIA_QUERY } from "@/constants";
 
-const LABEL = "text-muted-foreground font-mono text-[10px]";
+const LABEL = "text-muted-foreground font-mono text-xs";
 
 function isEmpty(value: unknown): boolean {
   if (value === undefined || value === null) return true;
@@ -43,7 +47,7 @@ type ItemDialogProps = {
   onConfirm: () => void;
   onCancel: () => void;
   onDelete?: () => void;
-  onSkip?: () => void;
+  bucketChoice?: BucketChoice;
 };
 
 export function ItemDialog({
@@ -66,12 +70,13 @@ export function ItemDialog({
   onConfirm,
   onCancel,
   onDelete,
-  onSkip,
+  bucketChoice,
 }: ItemDialogProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const scrollBodyRef = useRef<HTMLDivElement>(null);
   const scrollToFirst = useScrollToFirst(scrollBodyRef);
   useScrollLock(open);
+  const isMobile = useMediaQuery(MOBILE_MEDIA_QUERY);
   const [timeHour, setTimeHour] = useState("9");
   const [timeMin, setTimeMin] = useState("00");
   const [timeAmpm, setTimeAmpm] = useState<Ampm>("am");
@@ -80,28 +85,27 @@ export function ItemDialog({
 
   const hasFields = !!(fields && fields.length > 0);
 
-  const datePart = deadline.includes("T")
-    ? (() => {
-        const d = new Date(deadline);
-        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-      })()
-    : deadline;
+  const datePart = deadlineDate(deadline);
   const hasDate = datePart.length > 0;
 
   const hasEmptyRequired = !!fields?.some(
     (f) => f.validation?.required && isEmpty(properties?.[f.key])
   );
 
+  useLayoutEffect(() => {
+    if (!open) return;
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight}px`;
+    el.focus();
+    el.setSelectionRange(el.value.length, el.value.length);
+  }, [open]);
+
   useEffect(() => {
     const didJustOpen = open && !wasOpenRef.current;
     wasOpenRef.current = open;
     if (!didJustOpen) return;
-    const el = textareaRef.current;
-    if (el) {
-      el.style.height = "auto";
-      el.style.height = `${el.scrollHeight}px`;
-      el.focus();
-    }
     const id = setTimeout(() => {
       setValidationAttempted(false);
       if (deadline.includes("T")) {
@@ -111,7 +115,7 @@ export function ItemDialog({
         setTimeMin(String(d.getMinutes()).padStart(2, "0"));
         setTimeAmpm(h24 >= 12 ? "pm" : "am");
       } else {
-        setTimeHour("9");
+        setTimeHour(deadline ? "" : "9");
         setTimeMin("00");
         setTimeAmpm("am");
       }
@@ -126,23 +130,28 @@ export function ItemDialog({
   }
 
   function handleDateChange(newDate: string) {
-    onDeadlineChange(buildDeadline(newDate, timeHour, timeMin, timeAmpm));
+    const date = newDate && isLastDayRepeat(recurring) ? lastDayOfMonth(newDate) : newDate;
+    const time = deadline ? { hour: timeHour, min: timeMin, ampm: timeAmpm } : defaultTimeFor(date);
+    if (!deadline) setTime(time);
+    onDeadlineChange(buildDeadline(date, time.hour, time.min, time.ampm));
     if (!newDate) onRecurringChange?.(null);
   }
 
-  function handleHourChange(h: string) {
-    setTimeHour(h);
-    if (datePart) onDeadlineChange(buildDeadline(datePart, h, timeMin, timeAmpm));
+  function setTime({ hour, min, ampm }: TimeValue) {
+    setTimeHour(hour);
+    setTimeMin(min);
+    setTimeAmpm(ampm);
   }
 
-  function handleMinChange(m: string) {
-    setTimeMin(m);
-    if (datePart) onDeadlineChange(buildDeadline(datePart, timeHour, m, timeAmpm));
+  function handleRecurringChange(next: RecurringConfig | null) {
+    onRecurringChange?.(next);
+    if (!datePart || !isLastDayRepeat(next)) return;
+    onDeadlineChange(buildDeadline(lastDayOfMonth(datePart), timeHour, timeMin, timeAmpm));
   }
 
-  function handleAmpmChange(a: Ampm) {
-    setTimeAmpm(a);
-    if (datePart) onDeadlineChange(buildDeadline(datePart, timeHour, timeMin, a));
+  function handleTimeChange(time: TimeValue) {
+    setTime(time);
+    if (datePart) onDeadlineChange(buildDeadline(datePart, time.hour, time.min, time.ampm));
   }
 
   function handleConfirmClick() {
@@ -167,30 +176,29 @@ export function ItemDialog({
     <>
       <div className="flex flex-col gap-1.5">
         <label className={LABEL}>when</label>
-        <div className="flex items-center gap-2">
-          <div className="flex-1">
+        <div className="flex items-center gap-3">
+          <div className="min-w-0 flex-1">
             <DatePicker value={datePart} onChange={handleDateChange} disabled={pending} />
           </div>
+          {hasDate && (
+            <TimeField
+              value={{ hour: timeHour, min: timeMin, ampm: timeAmpm }}
+              onChange={handleTimeChange}
+              allowAllDay
+              disabled={pending}
+            />
+          )}
           {hasDate && !pending && (
             <button
+              type="button"
               onClick={() => handleDateChange("")}
-              className="text-muted-foreground hover:text-destructive shrink-0 transition-colors"
+              aria-label="remove date"
+              className="text-muted-foreground hover:text-destructive -mr-1 shrink-0 p-1 transition-colors"
             >
-              <X size={11} />
+              <X size={13} />
             </button>
           )}
         </div>
-        {hasDate && (
-          <TimeScrollPicker
-            hour={timeHour}
-            min={timeMin}
-            ampm={timeAmpm}
-            onHourChange={handleHourChange}
-            onMinChange={handleMinChange}
-            onAmpmChange={handleAmpmChange}
-            disabled={pending}
-          />
-        )}
       </div>
 
       {hasDate && onRecurringChange && (
@@ -199,7 +207,7 @@ export function ItemDialog({
           deadlineDay={Number(datePart.slice(8, 10))}
           initialShowEndDate={!!recurring?.endDate}
           disabled={pending}
-          onChange={onRecurringChange}
+          onChange={handleRecurringChange}
         />
       )}
 
@@ -212,123 +220,114 @@ export function ItemDialog({
     </>
   );
 
-  return (
-    <AnimatePresence>
-      {open && (
-        <>
-          <motion.div
-            key="backdrop"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 0.45 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.12 }}
-            className="fixed inset-0 z-[55] bg-black"
-            onClick={onCancel}
-          />
+  const confirmButton = (
+    <BracketButton
+      onClick={handleConfirmClick}
+      disabled={pending}
+      className="text-foreground px-2 py-3 text-base"
+    >
+      {mode === "add" ? "add" : "update"}
+    </BracketButton>
+  );
+  const deleteButton = onDelete && (
+    <BracketButton
+      onClick={onDelete}
+      disabled={pending}
+      variant="destructive"
+      aria-label="delete item"
+    >
+      delete
+    </BracketButton>
+  );
 
-          <motion.div
-            key="dialog"
-            initial={{ opacity: 0, scale: 0.96, y: -10 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.96, y: -10 }}
-            transition={{ duration: 0.15, ease: "easeOut" }}
-            className={cn(
-              "fixed top-[5%] left-1/2 z-[60] w-[calc(100%-2rem)] -translate-x-1/2",
-              hasFields ? "max-w-md" : "max-w-sm"
-            )}
-            style={{ boxShadow: "5px 5px 0 var(--border)" }}
-          >
-            <div className="border-border bg-background flex max-h-[78vh] flex-col overflow-hidden border-2">
-              <div className="bg-foreground text-background flex shrink-0 items-center justify-between px-3 py-1.5">
-                <span className="font-pixel text-xs">
-                  {mode === "add" ? "new item" : "edit item"}
-                </span>
-                <BracketButton variant="inverted" onClick={onCancel}>
-                  x
-                </BracketButton>
-              </div>
+  const form = (
+    <>
+      <div data-title-section className="flex flex-col gap-1.5 pb-5">
+        <label className={cn(LABEL, titleHasError && "text-destructive")}>title</label>
+        <textarea
+          ref={textareaRef}
+          value={title}
+          onChange={handleTitleChange}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.shiftKey && title.trim()) {
+              e.preventDefault();
+              handleConfirmClick();
+            }
+            if (e.key === "Escape") onCancel();
+          }}
+          placeholder={error || "what needs doing?"}
+          maxLength={ITEM_TITLE_MAX_LENGTH}
+          disabled={pending}
+          rows={1}
+          className={cn(
+            "focus:border-foreground w-full resize-none overflow-hidden border-b bg-transparent py-1.5 text-base outline-none disabled:opacity-50 sm:text-sm",
+            error || titleHasError
+              ? "border-destructive placeholder:text-destructive"
+              : "border-border placeholder:text-muted-foreground"
+          )}
+        />
+        {titleHasError && (
+          <p className="text-destructive font-mono text-[11px]">title is required</p>
+        )}
+      </div>
 
-              <div
-                ref={scrollBodyRef}
-                className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto px-5 py-4"
-              >
-                <div data-title-section className="flex flex-col gap-1.5 pb-5">
-                  <label className={cn(LABEL, titleHasError && "text-destructive")}>title</label>
-                  <textarea
-                    ref={textareaRef}
-                    value={title}
-                    onChange={handleTitleChange}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" && !e.shiftKey && title.trim()) {
-                        e.preventDefault();
-                        handleConfirmClick();
-                      }
-                      if (e.key === "Escape") onCancel();
-                    }}
-                    placeholder={error || "what needs doing?"}
-                    maxLength={ITEM_TITLE_MAX_LENGTH}
-                    disabled={pending}
-                    rows={1}
-                    className={cn(
-                      "focus:border-foreground w-full resize-none overflow-hidden border-b bg-transparent py-1.5 text-sm outline-none disabled:opacity-50",
-                      error || titleHasError
-                        ? "border-destructive placeholder:text-destructive"
-                        : "border-border placeholder:text-muted-foreground"
-                    )}
-                  />
-                  {titleHasError && (
-                    <p className="text-destructive font-mono text-[9px]">title is required</p>
-                  )}
-                </div>
+      {bucketChoice && <ItemBucketField choice={bucketChoice} disabled={pending} />}
 
-                {hasFields ? (
-                  <div className="flex flex-col gap-5">
-                    {onPropertiesChange && fields && (
-                      <div className="border-border border">
-                        <ItemFieldsForm
-                          fields={fields}
-                          values={properties ?? {}}
-                          disabled={pending}
-                          showErrors={validationAttempted}
-                          onChange={onPropertiesChange}
-                        />
-                      </div>
-                    )}
-                    {whenAndStatus}
-                  </div>
-                ) : (
-                  <div className="flex flex-col gap-5">{whenAndStatus}</div>
-                )}
-              </div>
-
-              <div className="border-border flex shrink-0 items-center justify-between border-t px-3 py-2.5">
-                {onDelete ? (
-                  <button
-                    onClick={onDelete}
-                    disabled={pending}
-                    aria-label="delete item"
-                    className="text-foreground/60 hover:text-destructive transition-colors disabled:opacity-25"
-                  >
-                    <Trash2 size={12} />
-                  </button>
-                ) : (
-                  <span />
-                )}
-                <div className="flex items-center gap-2">
-                  {onSkip && (
-                    <BracketButton onClick={onSkip} disabled={pending}>
-                      skip
-                    </BracketButton>
-                  )}
-                  <BracketButton onClick={handleConfirmClick} disabled={pending}>
-                    {mode === "add" ? "add" : "update"}
-                  </BracketButton>
-                </div>
-              </div>
+      {hasFields ? (
+        <div className="flex flex-col gap-5">
+          {onPropertiesChange && fields && (
+            <div className="border-border border">
+              <ItemFieldsForm
+                fields={fields}
+                values={properties ?? {}}
+                disabled={pending}
+                showErrors={validationAttempted}
+                onChange={onPropertiesChange}
+              />
             </div>
-          </motion.div>
-        </>
+          )}
+          {whenAndStatus}
+        </div>
+      ) : (
+        <div className="flex flex-col gap-5">{whenAndStatus}</div>
       )}
-    </AnimatePresence>
+    </>
+  );
+
+  const heading = mode === "add" ? "new item" : "edit item";
+
+  if (isMobile) {
+    return (
+      <ItemPageFrame
+        open={open}
+        heading={heading}
+        scrollBodyRef={scrollBodyRef}
+        onCancel={onCancel}
+        confirm={confirmButton}
+        secondary={
+          deleteButton && <div className="border-border mt-6 border-t pt-4">{deleteButton}</div>
+        }
+      >
+        {form}
+      </ItemPageFrame>
+    );
+  }
+
+  return (
+    <ItemDialogFrame
+      open={open}
+      heading={heading}
+      wide={hasFields}
+      scrollBodyRef={scrollBodyRef}
+      onCancel={onCancel}
+      footer={
+        <div className="flex w-full items-center justify-between">
+          {deleteButton || <span />}
+          {confirmButton}
+        </div>
+      }
+    >
+      {form}
+    </ItemDialogFrame>
   );
 }

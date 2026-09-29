@@ -1,6 +1,6 @@
 import { parseItemsRules } from "@/lib/rules";
 import { ITEM_STATUS, isClosedStatus } from "@/constants";
-import { useState } from "react";
+import { useEffect, useState, type RefObject } from "react";
 import { ItemDialog } from "./ItemDialog";
 import { ItemList } from "./ItemList";
 import { BucketSettings } from "./BucketSettings";
@@ -19,9 +19,10 @@ type BucketRow = typeof buckets.$inferSelect;
 type BucketContentProps = {
   bucket: BucketRow;
   accentColor: string;
+  addItemRef: RefObject<(() => void) | null>;
 };
 
-export function BucketContent({ bucket, accentColor }: BucketContentProps) {
+export function BucketContent({ bucket, accentColor, addItemRef }: BucketContentProps) {
   const rules = parseItemsRules(bucket.itemsRules);
   const statuses = DEFAULT_BUCKET_STATUSES;
   const fields = parseFields(bucket.fieldSchema);
@@ -33,13 +34,18 @@ export function BucketContent({ bucket, accentColor }: BucketContentProps) {
   const list = useBucketItems(bucket.id, bucket.itemsRules, rules.showCompleted !== false);
   const editor = useItemEditor({
     bucketId: bucket.id,
-    items: list.items,
     defaultStatus,
     defaultDeadline: () =>
       rules.defaultDeadlineOffsetDays !== null && rules.defaultDeadlineOffsetDays !== undefined
         ? (parseDurationToDate(daysToDisplayStr(rules.defaultDeadlineOffsetDays)) ?? "")
         : "",
     onSaved: list.refetch,
+  });
+  useEffect(() => {
+    addItemRef.current = editor.startAdding;
+    return () => {
+      addItemRef.current = null;
+    };
   });
 
   return (
@@ -53,16 +59,17 @@ export function BucketContent({ bucket, accentColor }: BucketContentProps) {
           <span className="font-pixel min-w-0 truncate overflow-hidden text-sm leading-snug">
             {bucket.icon ? `${bucket.icon} ${bucket.name}` : bucket.name}
           </span>
-          <span className="text-muted-foreground/40 shrink-0 font-mono text-[10px]">
-            #{bucket.id}
-          </span>
+          <span className="text-muted-foreground shrink-0 font-mono text-xs">#{bucket.id}</span>
         </div>
         <div className="flex items-center gap-2">
           <BracketButton onClick={() => setSettingsTab("items")} className="px-1 py-1.5">
             settings
           </BracketButton>
           {!readonly && (
-            <BracketButton onClick={editor.startAdding} className="px-1 py-1.5">
+            <BracketButton
+              onClick={editor.startAdding}
+              className="hidden px-1 py-1.5 md:inline-flex"
+            >
               add +
             </BracketButton>
           )}

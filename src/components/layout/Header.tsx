@@ -7,6 +7,7 @@ import { useScrollLock } from "@/hooks/useScrollLock";
 
 type HeaderProps = {
   email: string;
+  onSearchOpen: () => void;
   onSettingsOpen: () => void;
   onArchiveOpen: () => void;
   onTrashOpen: () => void;
@@ -124,7 +125,7 @@ function GlobalMenu({
           <>
             <div className="fixed inset-0 z-30" onClick={() => setOpen(false)} />
             <div
-              className="bg-background border-border fixed z-40 border-2 py-1"
+              className="bg-background border-border fixed z-40 w-max max-w-[calc(100vw-2rem)] min-w-44 border-2 py-1 whitespace-nowrap"
               style={{
                 top: pos.top,
                 left: pos.left,
@@ -132,26 +133,26 @@ function GlobalMenu({
                 boxShadow: "2px 2px 0 var(--border)",
               }}
             >
-              <div className="text-muted-foreground border-border mb-1 border-b px-3 pt-0.5 pb-1.5 font-mono text-[10px]">
+              <div className="text-muted-foreground border-border mb-1 max-w-64 truncate border-b px-3 pt-0.5 pb-1.5 font-mono text-xs">
                 {email}
               </div>
               <button
                 onClick={() => pick(onSettings)}
-                className="text-foreground hover:bg-muted flex w-full items-center gap-2.5 px-3 py-1.5 font-mono text-xs transition-colors"
+                className="text-foreground hover:bg-muted flex w-full items-center gap-2.5 px-3 py-2 font-mono text-xs transition-colors"
               >
                 <SlidersHorizontal size={11} />
                 tweaks
               </button>
               <button
                 onClick={() => pick(onArchive)}
-                className="text-foreground hover:bg-muted flex w-full items-center gap-2.5 px-3 py-1.5 font-mono text-xs transition-colors"
+                className="text-foreground hover:bg-muted flex w-full items-center gap-2.5 px-3 py-2 font-mono text-xs transition-colors"
               >
                 <Archive size={11} />
                 archived
               </button>
               <button
                 onClick={() => pick(onTrash)}
-                className="text-foreground hover:bg-muted flex w-full items-center gap-2.5 px-3 py-1.5 font-mono text-xs transition-colors"
+                className="text-foreground hover:bg-muted flex w-full items-center gap-2.5 px-3 py-2 font-mono text-xs transition-colors"
               >
                 <Trash2 size={11} />
                 trash
@@ -159,14 +160,14 @@ function GlobalMenu({
               <div className="border-border my-1 border-t" />
               <button
                 onClick={() => pick(() => setConfirmLogout("here"))}
-                className="text-destructive hover:bg-muted flex w-full items-center gap-2.5 px-3 py-1.5 font-mono text-xs transition-colors"
+                className="text-destructive hover:bg-muted flex w-full items-center gap-2.5 px-3 py-2 font-mono text-xs transition-colors"
               >
                 <LogOut size={11} />
                 logout
               </button>
               <button
                 onClick={() => pick(() => setConfirmLogout("everywhere"))}
-                className="text-destructive hover:bg-muted flex w-full items-center gap-2.5 px-3 py-1.5 font-mono text-xs transition-colors"
+                className="text-destructive hover:bg-muted flex w-full items-center gap-2.5 px-3 py-2 font-mono text-xs transition-colors"
               >
                 <LogOut size={11} />
                 logout everywhere
@@ -179,7 +180,13 @@ function GlobalMenu({
   );
 }
 
-export function Header({ email, onSettingsOpen, onArchiveOpen, onTrashOpen }: HeaderProps) {
+export function Header({
+  email,
+  onSearchOpen,
+  onSettingsOpen,
+  onArchiveOpen,
+  onTrashOpen,
+}: HeaderProps) {
   const greeting = useMemo(() => getGreeting(), []);
   const date = useMemo(() => getDate(), []);
 
@@ -191,6 +198,9 @@ export function Header({ email, onSettingsOpen, onArchiveOpen, onTrashOpen }: He
       </div>
 
       <div className="flex items-center gap-3">
+        <BracketButton onClick={onSearchOpen} className="px-1 py-1.5">
+          search
+        </BracketButton>
         <GlobalMenu
           email={email}
           onSettings={onSettingsOpen}

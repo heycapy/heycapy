@@ -12,7 +12,7 @@ type ItemStatusFieldProps = {
 export function ItemStatusField({ status, statuses, onChange, disabled }: ItemStatusFieldProps) {
   return (
     <div className="flex flex-col gap-1.5">
-      <label className="text-muted-foreground font-mono text-[10px]">status</label>
+      <label className="text-muted-foreground font-mono text-xs">status</label>
       <div className="flex flex-wrap gap-1.5">
         {statuses.map((s) => (
           <OptionButton
@@ -28,12 +28,12 @@ export function ItemStatusField({ status, statuses, onChange, disabled }: ItemSt
         ))}
       </div>
       {status === ITEM_STATUS.missed && (
-        <p className="text-warning font-mono text-[10px]">
+        <p className="text-warning font-mono text-xs">
           ⏭ this occurrence was missed — pick a status to reopen it
         </p>
       )}
       {status && status !== ITEM_STATUS.missed && !statuses.find((s) => s.name === status) && (
-        <p className="text-destructive font-mono text-[10px]">
+        <p className="text-destructive font-mono text-xs">
           &quot;{status}&quot; is not a valid status — pick one above to fix it
         </p>
       )}

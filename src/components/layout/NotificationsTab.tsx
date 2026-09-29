@@ -3,6 +3,7 @@ import { Toggle } from "@/components/ui/Toggle";
 import { LABEL, INPUT, SECTION, BOX } from "./settings-constants";
 import { NtfySettings } from "./NtfySettings";
 import { PushSettings } from "./PushSettings";
+import { QuietHoursSettings } from "./QuietHoursSettings";
 import { TelegramSettings } from "./TelegramSettings";
 import { SmtpTestDialog } from "./SmtpTestDialog";
 
@@ -76,6 +77,7 @@ export function NotificationsTab({
 
   return (
     <div className="flex flex-col gap-3">
+      <QuietHoursSettings />
       <div className={BOX}>
         <span className={SECTION}>email</span>
 
@@ -122,7 +124,7 @@ export function NotificationsTab({
               />
             </div>
           </div>
-          <p className="text-muted-foreground/60 -mt-1 font-mono text-[9px]">
+          <p className="text-muted-foreground -mt-1 font-mono text-[11px]">
             port 587 = standard (gmail) · port 465 = ssl
           </p>
           <div className="flex flex-col gap-1.5">
@@ -154,7 +156,7 @@ export function NotificationsTab({
             disabled={pending}
             className={INPUT}
           />
-          <p className="text-muted-foreground/60 font-mono text-[9px]">
+          <p className="text-muted-foreground font-mono text-[11px]">
             where notifications are sent · defaults to your account email
           </p>
         </div>
@@ -163,7 +165,7 @@ export function NotificationsTab({
           type="button"
           onClick={() => setTestDialogOpen(true)}
           disabled={pending || !smtpHost}
-          className="text-muted-foreground hover:text-foreground self-start font-mono text-[10px] disabled:opacity-40"
+          className="text-muted-foreground hover:text-foreground self-start font-mono text-xs disabled:opacity-40"
         >
           [send test email]
         </button>

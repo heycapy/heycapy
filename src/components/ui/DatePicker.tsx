@@ -1,8 +1,9 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { CalendarDays, ChevronLeft, ChevronRight, X } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { usePopover } from "./usePopover";
 
 type DatePickerProps = {
   value: string;
@@ -25,12 +26,13 @@ const MONTHS = [
   "December",
 ];
 const DAYS_SHORT = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
+const CALENDAR = { width: 252, height: 300 };
 
 function parseDate(str: string): { year: number; month: number; day: number } | null {
   if (!str) return null;
   const parts = str.split("-").map(Number);
   if (parts.length !== 3) return null;
-  return { year: parts[0], month: parts[1] - 1, day: parts[2] };
+  return { year: parts[0] ?? 0, month: (parts[1] ?? 1) - 1, day: parts[2] ?? 1 };
 }
 
 function toDateStr(year: number, month: number, day: number): string {
@@ -40,7 +42,7 @@ function toDateStr(year: number, month: number, day: number): string {
 function formatDisplay(str: string): string {
   const parsed = parseDate(str);
   if (!parsed) return "";
-  return `${MONTHS[parsed.month].slice(0, 3)} ${parsed.day}`;
+  return `${MONTHS[parsed.month]?.slice(0, 3)} ${parsed.day}`;
 }
 
 export function DatePicker({ value, onChange, disabled }: DatePickerProps) {
@@ -50,20 +52,9 @@ export function DatePicker({ value, onChange, disabled }: DatePickerProps) {
   const parsed = parseDate(value);
   const [viewYear, setViewYear] = useState(parsed?.year ?? today.getFullYear());
   const [viewMonth, setViewMonth] = useState(parsed?.month ?? today.getMonth());
-  const [open, setOpen] = useState(false);
-  const [pos, setPos] = useState({ top: 0, left: 0 });
-  const [mounted, setMounted] = useState(false);
-
-  const triggerRef = useRef<HTMLButtonElement>(null);
-  const popoverRef = useRef<HTMLDivElement>(null);
+  const { open, setOpen, toggle, pos, portalTarget, triggerRef, popoverRef } = usePopover(CALENDAR);
 
   useEffect(() => {
-    const id = setTimeout(() => setMounted(true), 0);
-    return () => clearTimeout(id);
-  }, []);
-
-  useEffect(() => {
-    if (!value) return;
     const p = parseDate(value);
     if (!p) return;
     const id = setTimeout(() => {
@@ -73,67 +64,10 @@ export function DatePicker({ value, onChange, disabled }: DatePickerProps) {
     return () => clearTimeout(id);
   }, [value]);
 
-  useEffect(() => {
-    if (!open) return;
-
-    function onPointerDown(e: PointerEvent) {
-      if (
-        popoverRef.current?.contains(e.target as Node) ||
-        triggerRef.current?.contains(e.target as Node)
-      )
-        return;
-      setOpen(false);
-    }
-
-    function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") setOpen(false);
-    }
-
-    document.addEventListener("pointerdown", onPointerDown);
-    document.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("pointerdown", onPointerDown);
-      document.removeEventListener("keydown", onKey);
-    };
-  }, [open]);
-
-  function openPicker() {
-    if (disabled) return;
-    if (open) {
-      setOpen(false);
-      return;
-    }
-    const rect = triggerRef.current?.getBoundingClientRect();
-    if (!rect) return;
-
-    const calW = 236;
-    const calH = 260;
-    let left = rect.left;
-    let top = rect.bottom + 6;
-
-    if (left + calW > window.innerWidth - 8) left = window.innerWidth - calW - 8;
-    if (top + calH > window.innerHeight - 8) top = rect.top - calH - 6;
-
-    setPos({ top, left });
-    setOpen(true);
-  }
-
-  function prevMonth() {
-    if (viewMonth === 0) {
-      setViewMonth(11);
-      setViewYear((y) => y - 1);
-    } else {
-      setViewMonth((m) => m - 1);
-    }
-  }
-
-  function nextMonth() {
-    if (viewMonth === 11) {
-      setViewMonth(0);
-      setViewYear((y) => y + 1);
-    } else {
-      setViewMonth((m) => m + 1);
-    }
+  function shiftMonth(by: 1 | -1) {
+    const index = viewYear * 12 + viewMonth + by;
+    setViewYear(Math.floor(index / 12));
+    setViewMonth(((index % 12) + 12) % 12);
   }
 
   function selectDay(day: number) {
@@ -144,7 +78,7 @@ export function DatePicker({ value, onChange, disabled }: DatePickerProps) {
   const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
   const firstDay = new Date(viewYear, viewMonth, 1).getDay();
 
-  const popover = (
+  const panel = (
     <AnimatePresence>
       {open && (
         <motion.div
@@ -153,28 +87,28 @@ export function DatePicker({ value, onChange, disabled }: DatePickerProps) {
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: -4, scale: 0.97 }}
           transition={{ duration: 0.12 }}
-          style={{
-            top: pos.top,
-            left: pos.left,
-            boxShadow: "3px 3px 0 var(--border)",
-          }}
-          className="border-border bg-card fixed z-[65] w-[236px] border-2 p-3 select-none"
+          style={{ top: pos.top, left: pos.left, width: CALENDAR.width }}
+          className="border-border bg-card fixed z-[65] border-2 p-3 shadow-[3px_3px_0_var(--border)] select-none"
         >
-          <div className="mb-3 flex items-center justify-between">
+          <div className="mb-2 flex items-center justify-between">
             <button
-              onClick={prevMonth}
-              className="text-muted-foreground hover:text-foreground p-0.5 transition-colors"
+              type="button"
+              onClick={() => shiftMonth(-1)}
+              aria-label="previous month"
+              className="text-muted-foreground hover:text-foreground p-1.5 transition-colors"
             >
-              <ChevronLeft size={13} />
+              <ChevronLeft size={14} />
             </button>
-            <span className="font-pixel text-[11px]">
+            <span className="font-pixel text-xs">
               {MONTHS[viewMonth]} {viewYear}
             </span>
             <button
-              onClick={nextMonth}
-              className="text-muted-foreground hover:text-foreground p-0.5 transition-colors"
+              type="button"
+              onClick={() => shiftMonth(1)}
+              aria-label="next month"
+              className="text-muted-foreground hover:text-foreground p-1.5 transition-colors"
             >
-              <ChevronRight size={13} />
+              <ChevronRight size={14} />
             </button>
           </div>
 
@@ -182,7 +116,7 @@ export function DatePicker({ value, onChange, disabled }: DatePickerProps) {
             {DAYS_SHORT.map((d) => (
               <span
                 key={d}
-                className="text-muted-foreground py-1 text-center font-mono text-[10px]"
+                className="text-muted-foreground py-1 text-center font-mono text-[11px]"
               >
                 {d}
               </span>
@@ -198,13 +132,13 @@ export function DatePicker({ value, onChange, disabled }: DatePickerProps) {
               const dayStr = toDateStr(viewYear, viewMonth, day);
               const isSelected = dayStr === value;
               const isToday = dayStr === todayStr;
-
               return (
                 <button
+                  type="button"
                   key={day}
                   onClick={() => selectDay(day)}
                   className={cn(
-                    "mx-auto flex h-7 w-7 items-center justify-center font-mono text-xs transition-colors",
+                    "mx-auto flex h-8 w-8 items-center justify-center font-mono text-xs transition-colors",
                     isSelected && "bg-primary text-primary-foreground",
                     !isSelected && isToday && "border-border text-foreground border font-bold",
                     !isSelected && !isToday && "text-foreground hover:bg-muted"
@@ -218,17 +152,18 @@ export function DatePicker({ value, onChange, disabled }: DatePickerProps) {
 
           {value && (
             <div className="border-border mt-3 flex items-center justify-between border-t pt-2.5">
-              <span className="text-muted-foreground font-mono text-[11px]">
+              <span className="text-muted-foreground font-mono text-xs">
                 {formatDisplay(value)}
               </span>
               <button
+                type="button"
                 onClick={() => {
                   onChange("");
                   setOpen(false);
                 }}
-                className="text-muted-foreground hover:text-destructive flex items-center gap-1 font-mono text-[10px] transition-colors"
+                className="text-muted-foreground hover:text-destructive flex items-center gap-1 py-1 font-mono text-xs transition-colors"
               >
-                <X size={10} /> clear
+                <X size={11} /> clear
               </button>
             </div>
           )}
@@ -242,19 +177,19 @@ export function DatePicker({ value, onChange, disabled }: DatePickerProps) {
       <button
         ref={triggerRef}
         type="button"
-        onClick={openPicker}
+        onClick={() => !disabled && toggle()}
         disabled={disabled}
         className={cn(
-          "flex w-full items-center justify-between border-b py-1 font-mono text-xs transition-all active:translate-y-[1px] disabled:opacity-50",
+          "flex w-full items-center justify-between gap-2 border-b py-1.5 font-mono text-sm transition-all active:translate-y-[1px] disabled:opacity-50",
           value
             ? "border-foreground text-foreground"
             : "border-border text-muted-foreground hover:border-foreground/50 hover:text-foreground"
         )}
       >
         <span>{value ? formatDisplay(value) : "pick date"}</span>
-        <CalendarDays size={11} className="opacity-50" />
+        <CalendarDays size={13} className="opacity-60" aria-hidden />
       </button>
-      {mounted && createPortal(popover, document.body)}
+      {portalTarget && createPortal(panel, portalTarget)}
     </div>
   );
 }

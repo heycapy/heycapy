@@ -1,3 +1,4 @@
+import { LAST_DAY_OF_MONTH } from "@/constants";
 import { RecurringConfig } from "@/types/rules";
 import {
   addLocalDays,
@@ -109,6 +110,23 @@ export function nextAfterCompletion(
   );
   const next = advance(base, { ...config, anchorDay: undefined }, timezone);
   return withinEnd(next, config, timezone);
+}
+
+export function isLastDayRepeat(config: RecurringConfig | null | undefined): boolean {
+  return (
+    !!config?.enabled && config.frequency === "monthly" && config.anchorDay === LAST_DAY_OF_MONTH
+  );
+}
+
+export function onLastDayIfAnchored(
+  deadline: Date,
+  config: RecurringConfig | null,
+  timezone: string
+): Date {
+  if (!isLastDayRepeat(config)) return deadline;
+  const local = toLocal(deadline, timezone);
+  const lastDay = new Date(Date.UTC(local.year, local.month, 0)).getUTCDate();
+  return fromLocal({ ...local, day: lastDay }, timezone);
 }
 
 // Pins the series' day of month the first time it repeats

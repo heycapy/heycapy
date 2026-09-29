@@ -23,8 +23,8 @@ function FeatureDialog({ feature, onClose }: { feature: Feature; onClose: () => 
         </div>
 
         <div className="border-border border-b px-3 py-1.5">
-          <span className="text-muted-foreground font-mono text-[9px]">find it: </span>
-          <span className="font-mono text-[9px]">{feature.where}</span>
+          <span className="text-muted-foreground font-mono text-[11px]">find it: </span>
+          <span className="font-mono text-[11px]">{feature.where}</span>
         </div>
 
         <div className="flex max-h-[60vh] flex-col gap-2.5 overflow-y-auto p-4">
@@ -33,7 +33,7 @@ function FeatureDialog({ feature, onClose }: { feature: Feature; onClose: () => 
               return (
                 <pre
                   key={i}
-                  className="border-border bg-card border p-2.5 font-mono text-[9px] leading-relaxed break-all whitespace-pre-wrap"
+                  className="border-border bg-card border p-2.5 font-mono text-[11px] leading-relaxed break-all whitespace-pre-wrap"
                 >
                   {item.text}
                 </pre>
@@ -42,7 +42,7 @@ function FeatureDialog({ feature, onClose }: { feature: Feature; onClose: () => 
             if (item.type === "step") {
               return (
                 <div key={i} className="flex gap-2.5">
-                  <span className="text-muted-foreground/50 mt-[3px] shrink-0 font-mono text-[9px]">
+                  <span className="text-muted-foreground mt-[3px] shrink-0 font-mono text-[11px]">
                     ▸
                   </span>
                   <p className="text-muted-foreground font-mono text-[11px] leading-relaxed">
@@ -54,7 +54,7 @@ function FeatureDialog({ feature, onClose }: { feature: Feature; onClose: () => 
             if (item.type === "tip") {
               return (
                 <div key={i} className="border-border bg-card border-l-2 py-1.5 pr-2 pl-3">
-                  <p className="text-muted-foreground font-mono text-[10px] leading-relaxed">
+                  <p className="text-muted-foreground font-mono text-xs leading-relaxed">
                     {item.text}
                   </p>
                 </div>
@@ -92,13 +92,13 @@ export default function HowToUsePage() {
           {FEATURES.map((f) => (
             <div key={f.title} className="border-border flex flex-col gap-2 border p-3">
               <p className="font-pixel text-[11px]">{f.title}</p>
-              <p className="text-muted-foreground flex-1 font-mono text-[10px] leading-relaxed">
+              <p className="text-muted-foreground flex-1 font-mono text-xs leading-relaxed">
                 {f.desc}
               </p>
               <div className="flex justify-end">
                 <button
                   onClick={() => setActive(f)}
-                  className="text-muted-foreground hover:text-foreground font-mono text-[10px] transition-colors"
+                  className="text-muted-foreground hover:text-foreground font-mono text-xs transition-colors"
                 >
                   <span className="opacity-50">[</span>more<span className="opacity-50">]</span>
                 </button>

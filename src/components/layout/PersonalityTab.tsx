@@ -45,7 +45,7 @@ export function PersonalityTab({
         {personalityName.length > 0 && (
           <p
             className={cn(
-              "text-right font-mono text-[9px] transition-colors",
+              "text-right font-mono text-[11px] transition-colors",
               charCountColor(personalityName.length, PERSONALITY_NAME_MAX_LENGTH)
             )}
           >

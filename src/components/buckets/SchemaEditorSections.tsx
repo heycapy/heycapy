@@ -11,8 +11,8 @@ import { CURRENCY_OPTIONS } from "./constants";
 import { FIELD_LABEL_MAX_LENGTH } from "@/constants";
 import { cn } from "@/lib/utils";
 
-export const SCHEMA_LABEL = "text-muted-foreground font-mono text-[10px]";
-export const SCHEMA_HINT = "text-muted-foreground/50 font-mono text-[9px] leading-tight";
+export const SCHEMA_LABEL = "text-muted-foreground font-mono text-xs";
+export const SCHEMA_HINT = "text-muted-foreground font-mono text-[11px] leading-tight";
 const INPUT =
   "border-b border-border bg-transparent py-1 font-mono text-xs outline-none placeholder:text-muted-foreground/40 focus:border-foreground disabled:opacity-50";
 
@@ -81,7 +81,7 @@ function FieldRow({
           {field.label.length > 0 && (
             <p
               className={cn(
-                "mt-0.5 text-right font-mono text-[9px] transition-colors",
+                "mt-0.5 text-right font-mono text-[11px] transition-colors",
                 charCountColor(field.label.length, FIELD_LABEL_MAX_LENGTH)
               )}
             >
@@ -98,7 +98,7 @@ function FieldRow({
           <Trash2 size={11} />
         </button>
       </div>
-      {hasError && <p className="text-destructive font-mono text-[9px]">field name is required</p>}
+      {hasError && <p className="text-destructive font-mono text-[11px]">field name is required</p>}
 
       <div className="flex flex-col gap-1.5">
         <span className={SCHEMA_HINT}>type</span>

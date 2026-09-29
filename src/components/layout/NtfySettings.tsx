@@ -57,7 +57,7 @@ export function NtfySettings({
         {ntfyUrl.length > 0 && (
           <p
             className={cn(
-              "mt-0.5 text-right font-mono text-[9px] transition-colors",
+              "mt-0.5 text-right font-mono text-[11px] transition-colors",
               charCountColor(ntfyUrl.length, SETTINGS_URL_MAX_LENGTH)
             )}
           >
@@ -73,7 +73,7 @@ export function NtfySettings({
               <button
                 type="button"
                 onClick={handleCopyNtfy}
-                className="text-muted-foreground hover:text-foreground font-mono text-[9px]"
+                className="text-muted-foreground hover:text-foreground font-mono text-[11px]"
               >
                 {ntfyCopied ? "copied!" : "copy"}
               </button>
@@ -86,7 +86,7 @@ export function NtfySettings({
                   `heycapy-${Math.random().toString(36).slice(2, 10)}${Math.random().toString(36).slice(2, 10)}`
                 )
               }
-              className="text-muted-foreground hover:text-foreground font-mono text-[9px] disabled:opacity-50"
+              className="text-muted-foreground hover:text-foreground font-mono text-[11px] disabled:opacity-50"
             >
               generate
             </button>
@@ -104,7 +104,7 @@ export function NtfySettings({
         {ntfyTopic.length > 0 && (
           <p
             className={cn(
-              "mt-0.5 text-right font-mono text-[9px] transition-colors",
+              "mt-0.5 text-right font-mono text-[11px] transition-colors",
               charCountColor(ntfyTopic.length, NTFY_TOPIC_MAX_LENGTH)
             )}
           >

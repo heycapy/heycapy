@@ -40,10 +40,10 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
             toast:
               "!relative !bg-background !text-foreground !border-border !border-2 !rounded-none font-mono !text-xs !shadow-none",
             title: "!text-foreground font-mono !text-xs",
-            description: "!text-muted-foreground font-mono !text-[10px]",
+            description: "!text-muted-foreground font-mono !text-xs",
             error: "!border-destructive",
             closeButton:
-              "!bg-transparent !border-0 !shadow-none !text-muted-foreground hover:!text-foreground font-mono !text-[10px]",
+              "!bg-transparent !border-0 !shadow-none !text-muted-foreground hover:!text-foreground font-mono !text-xs",
           },
         }}
       />

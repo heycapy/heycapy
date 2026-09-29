@@ -61,3 +61,13 @@ export async function addItem(
 export function itemRow(page: Page, title: string) {
   return page.getByRole("button", { name: title });
 }
+
+export async function openBucketOnPhone(page: Page, name: string): Promise<void> {
+  await page.goto("/");
+  await createAndSelectBucket(page, name);
+  await page.setViewportSize({ width: 390, height: 844 });
+}
+
+export function addItemButton(page: Page) {
+  return page.getByRole("button", { name: "[ add + ]", exact: true });
+}

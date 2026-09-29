@@ -66,7 +66,7 @@ export function AITab({
 
   const subTabBtn = (t: "chat" | "voice") =>
     cn(
-      "font-mono text-[10px] px-2 py-0.5 transition-colors",
+      "font-mono text-xs px-2 py-0.5 transition-colors",
       aiSubTab === t
         ? "bg-foreground text-background"
         : "text-muted-foreground hover:text-foreground"
@@ -109,7 +109,7 @@ export function AITab({
               {aiOllamaUrl.length > 0 && (
                 <p
                   className={cn(
-                    "mt-0.5 text-right font-mono text-[9px] transition-colors",
+                    "mt-0.5 text-right font-mono text-[11px] transition-colors",
                     charCountColor(aiOllamaUrl.length, SETTINGS_URL_MAX_LENGTH)
                   )}
                 >
@@ -133,7 +133,7 @@ export function AITab({
               {aiApiKey.length > 0 && (
                 <p
                   className={cn(
-                    "mt-0.5 text-right font-mono text-[9px] transition-colors",
+                    "mt-0.5 text-right font-mono text-[11px] transition-colors",
                     charCountColor(aiApiKey.length, SETTINGS_API_KEY_MAX_LENGTH)
                   )}
                 >
@@ -156,7 +156,7 @@ export function AITab({
             {aiModel.length > 0 && (
               <p
                 className={cn(
-                  "mt-0.5 text-right font-mono text-[9px] transition-colors",
+                  "mt-0.5 text-right font-mono text-[11px] transition-colors",
                   charCountColor(aiModel.length, AI_MODEL_MAX_LENGTH)
                 )}
               >
@@ -176,14 +176,14 @@ export function AITab({
               disabled={pending}
               className={INPUT}
             />
-            <span className="text-muted-foreground/50 font-mono text-[9px]">
+            <span className="text-muted-foreground font-mono text-[11px]">
               messages before compacting chat history — increase for more powerful models
             </span>
           </div>
           <div className="flex flex-col gap-1.5">
             <label className={LABEL}>ai notification messages</label>
             <Toggle value={aiNotifyMessages} onChange={setAiNotifyMessages} disabled={pending} />
-            <span className="text-muted-foreground/50 font-mono text-[9px]">
+            <span className="text-muted-foreground font-mono text-[11px]">
               generate notification text with AI — may add delay depending on your model and
               provider
             </span>
@@ -210,7 +210,7 @@ export function AITab({
                 <label className={LABEL}>
                   api key
                   {transcriptionProvider === aiProvider && (
-                    <span className="text-muted-foreground/50 ml-1">
+                    <span className="text-muted-foreground ml-1">
                       (leave blank to reuse chat key)
                     </span>
                   )}
@@ -227,7 +227,7 @@ export function AITab({
                 {transcriptionApiKey.length > 0 && (
                   <p
                     className={cn(
-                      "mt-0.5 text-right font-mono text-[9px] transition-colors",
+                      "mt-0.5 text-right font-mono text-[11px] transition-colors",
                       charCountColor(transcriptionApiKey.length, SETTINGS_API_KEY_MAX_LENGTH)
                     )}
                   >
@@ -249,7 +249,7 @@ export function AITab({
                 {transcriptionModel.length > 0 && (
                   <p
                     className={cn(
-                      "mt-0.5 text-right font-mono text-[9px] transition-colors",
+                      "mt-0.5 text-right font-mono text-[11px] transition-colors",
                       charCountColor(transcriptionModel.length, AI_MODEL_MAX_LENGTH)
                     )}
                   >

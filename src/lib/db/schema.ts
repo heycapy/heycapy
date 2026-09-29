@@ -85,6 +85,9 @@ export const userSettings = sqliteTable("user_settings", {
   smtpPass: text("smtp_pass"),
   smtpSecure: integer("smtp_secure", { mode: "boolean" }).default(false),
   smtpFrom: text("smtp_from"),
+  // "HH:MM" in the user's timezone; nothing is sent in between, whatever the bucket
+  quietHoursFrom: text("quiet_hours_from"),
+  quietHoursTo: text("quiet_hours_to"),
   updatedAt: integer("updated_at", { mode: "timestamp" })
     .notNull()
     .default(sql`(unixepoch())`),

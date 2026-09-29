@@ -75,7 +75,7 @@ describe("nextDeadlineReminder", () => {
     );
   });
 
-  it("holds reminders until the 'notify at' time of that day", () => {
+  it("holds reminders until the 'remind at' time of that day", () => {
     const early = inputs({
       deadline: new Date("2026-06-10T10:00:00Z"),
       rules: { notifyAt: "09:00" },
@@ -107,7 +107,7 @@ describe("nextDeadlineReminder", () => {
     expect(iso(nextDeadlineReminder(lunch))).toBe("2026-06-10T17:00:00.000Z");
   });
 
-  it("satisfies 'notify at' and quiet hours together", () => {
+  it("satisfies 'remind at' and quiet hours together", () => {
     const both = inputs({
       deadline: new Date("2026-06-10T10:00:00Z"), // 06:00 local
       rules: { notifyAt: "08:00", quietHours: { from: "22:00", to: "09:30" } },
@@ -157,5 +157,43 @@ describe("nextOverdueAlert", () => {
       remindNotBefore.toISOString()
     );
     expect(nextOverdueAlert(inputs({ notifyWhenOverdue: true, status: "completed" }))).toBeNull();
+  });
+});
+
+describe("your own quiet hours", () => {
+  const night = { from: "22:00", to: "07:00" };
+
+  it("hold every bucket's reminders until they end", () => {
+    // 23:30 local
+    const late = inputs({ deadline: new Date("2026-06-11T03:30:00Z"), userQuietHours: night });
+    expect(iso(nextDeadlineReminder(late))).toBe("2026-06-11T11:00:00.000Z");
+  });
+
+  it("stack with a bucket's own quiet hours", () => {
+    // 06:30 local: held to 07:00 by yours, then to 08:00 by the bucket's
+    const early = inputs({
+      deadline: new Date("2026-06-10T10:30:00Z"),
+      userQuietHours: night,
+      rules: { quietHours: { from: "07:00", to: "08:00" } },
+    });
+    expect(iso(nextDeadlineReminder(early))).toBe("2026-06-10T12:00:00.000Z");
+  });
+
+  it("hold overdue alerts too, but 'remind at' stays a reminder-only rule", () => {
+    // due 22:00 local, overdue alert straight away → held to 07:00, not to "remind at" 09:00
+    const overdue = inputs({
+      deadline: new Date("2026-06-11T02:00:00Z"),
+      notifyWhenOverdue: true,
+      overdueFirstAlertMins: 0,
+      userQuietHours: night,
+      rules: { notifyAt: "09:00" },
+    });
+    expect(iso(nextOverdueAlert(overdue))).toBe("2026-06-11T11:00:00.000Z");
+  });
+
+  it("change nothing when they're off", () => {
+    expect(iso(nextDeadlineReminder(inputs({ userQuietHours: null })))).toBe(
+      "2026-06-10T13:00:00.000Z"
+    );
   });
 });

@@ -9,11 +9,11 @@ import { db } from "@/lib/db";
 import { items } from "@/lib/db/schema";
 import { ITEM_STATUS, ITEM_TITLE_MAX_LENGTH } from "@/constants";
 import { RecurringConfig } from "@/types/rules";
-import { parseDeadlineString } from "@/lib/time";
+import { parseLocalDateTime } from "@/lib/reminders/zoned";
 import { initialReminderState, reminderResetForDeadline } from "@/lib/items/reminders";
 import { refreshItemReminders, reminderContext } from "@/lib/reminders/refresh";
 import { createNextOccurrence, skipOccurrence } from "@/lib/items/recurrence";
-import { parseRecurring } from "@/lib/items/occurrence";
+import { onLastDayIfAnchored, parseRecurring } from "@/lib/items/occurrence";
 import { cancelRemindAgain } from "@/lib/reminders/quick-actions";
 import { dataEvents } from "@/lib/events";
 import {
@@ -115,7 +115,13 @@ export async function addItemAction(
     .where(eq(items.bucketId, bucketId));
 
   const ctx = await reminderContext(bucketId);
-  const parsedDeadline = deadline ? parseDeadlineString(deadline, ctx.timezone) : null;
+  const parsedDeadline = deadline
+    ? onLastDayIfAnchored(
+        parseLocalDateTime(deadline, ctx.timezone),
+        recurring ?? null,
+        ctx.timezone
+      )
+    : null;
   const [created] = await db
     .insert(items)
     .values({
@@ -168,7 +174,15 @@ export async function updateItemAction(
   if (!item) return { ok: false, error: "Item not found" };
 
   const ctx = await reminderContext(item.bucketId);
-  const newDeadline = deadline ? parseDeadlineString(deadline, ctx.timezone) : null;
+  const savedRecurring =
+    recurring === undefined
+      ? parseRecurring(item.recurring)
+      : recurring?.enabled
+        ? keepAnchor(recurring, item.recurring)
+        : null;
+  const newDeadline = deadline
+    ? onLastDayIfAnchored(parseLocalDateTime(deadline, ctx.timezone), savedRecurring, ctx.timezone)
+    : null;
   const statusChanged = status !== undefined && status !== item.status;
 
   const nowCompleted =
@@ -186,9 +200,7 @@ export async function updateItemAction(
       ...(nowCompleted && { completedAt: new Date() }),
       ...(nowUncompleted && { completedAt: null }),
       ...(recurring !== undefined && {
-        recurring: recurring?.enabled
-          ? JSON.stringify(keepAnchor(recurring, item.recurring))
-          : null,
+        recurring: savedRecurring ? JSON.stringify(savedRecurring) : null,
       }),
       ...(properties !== undefined && {
         properties: properties ? JSON.stringify(properties) : null,

@@ -1,5 +1,6 @@
 import { recordSystemError } from "@/lib/system-errors";
-import { bucketChannels } from "@/lib/rules";
+import { bucketChannels, parseNotificationRules } from "@/lib/rules";
+import { afterQuietHours } from "@/lib/reminders/schedule";
 import { db } from "@/lib/db";
 import { items } from "@/lib/db/schema";
 import { decryptValue } from "@/lib/crypto";
@@ -15,7 +16,7 @@ import { channelDecisions, getChannelSettings } from "@/lib/notifications/channe
 import { initialReminderState } from "@/lib/items/reminders";
 import { dataEvents } from "@/lib/events";
 import { refreshItemReminders, reminderContext } from "@/lib/reminders/refresh";
-import { parseDeadlineString } from "@/lib/time";
+import { parseLocalDateTime } from "@/lib/reminders/zoned";
 
 const rateLimitMap = new Map<string, number[]>();
 
@@ -143,7 +144,7 @@ export async function POST(
     if (typeof raw.deadline !== "string") {
       return Response.json({ error: "deadline must be an ISO datetime string" }, { status: 400 });
     }
-    const d = parseDeadlineString(raw.deadline, ctx.timezone);
+    const d = parseLocalDateTime(raw.deadline, ctx.timezone);
     if (isNaN(d.getTime())) {
       return Response.json({ error: "deadline is not a valid datetime" }, { status: 400 });
     }
@@ -180,6 +181,16 @@ export async function POST(
         title: `New item in ${bucket.name}`,
         message: `"${title}" was added via webhook.`,
         channels: channelDecisions(bucketChannels(bucket.notificationsRules), userRow),
+        notBefore: afterQuietHours(
+          new Date(),
+          [
+            parseNotificationRules(bucket.notificationsRules).quietHours,
+            userRow.quietHoursFrom && userRow.quietHoursTo
+              ? { from: userRow.quietHoursFrom, to: userRow.quietHoursTo }
+              : null,
+          ],
+          userRow.timezone
+        ),
       });
 
       void processPending().catch((err) => {

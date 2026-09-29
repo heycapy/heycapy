@@ -3,6 +3,7 @@ import {
   followingOccurrence,
   nextAfterCompletion,
   nextOccurrenceDate,
+  onLastDayIfAnchored,
   parseRecurring,
   withAnchor,
 } from "@/lib/items/occurrence";
@@ -216,6 +217,34 @@ describe("monthly on the last day", () => {
     expect(may?.toISOString()).toBe("2026-05-31T12:00:00.000Z");
     const june = may && followingOccurrence(may, lastDay, "UTC");
     expect(june?.toISOString()).toBe("2026-06-30T12:00:00.000Z");
+  });
+});
+
+describe("onLastDayIfAnchored", () => {
+  const lastDay: RecurringConfig = { ...monthly, anchorDay: 31 };
+
+  it("moves the date to its month's last day, keeping the time", () => {
+    const oct21 = new Date("2026-10-21T15:30:00Z");
+    expect(onLastDayIfAnchored(oct21, lastDay, "Asia/Kolkata").toISOString()).toBe(
+      "2026-10-31T15:30:00.000Z"
+    );
+    expect(
+      onLastDayIfAnchored(new Date("2028-02-10T09:00:00Z"), lastDay, "UTC").toISOString()
+    ).toBe("2028-02-29T09:00:00.000Z");
+  });
+
+  it("judges the month in the user's timezone", () => {
+    const date = new Date("2026-03-31T20:00:00Z");
+    expect(onLastDayIfAnchored(date, lastDay, "Asia/Kolkata").toISOString()).toBe(
+      "2026-04-29T20:00:00.000Z"
+    );
+  });
+
+  it("leaves other repeats and no repeat alone", () => {
+    const date = new Date("2026-10-21T09:00:00Z");
+    expect(onLastDayIfAnchored(date, { ...monthly, anchorDay: 21 }, "UTC")).toBe(date);
+    expect(onLastDayIfAnchored(date, { ...lastDay, enabled: false }, "UTC")).toBe(date);
+    expect(onLastDayIfAnchored(date, null, "UTC")).toBe(date);
   });
 });
 

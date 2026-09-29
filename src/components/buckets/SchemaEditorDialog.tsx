@@ -130,7 +130,7 @@ function SchemaEditorForm({ bucket, onClose }: Omit<SchemaEditorDialogProps, "op
           }}
           disabled={pending}
         />
-        {error && <p className="text-destructive font-mono text-[10px]">{error}</p>}
+        {error && <p className="text-destructive font-mono text-xs">{error}</p>}
       </div>
 
       <div className="border-border flex shrink-0 items-center justify-end border-t px-3 py-2.5">

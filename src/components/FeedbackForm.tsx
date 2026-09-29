@@ -66,7 +66,7 @@ export function FeedbackForm({ fallbackEmail }: { fallbackEmail?: string }) {
       <div className="border-border border p-4">
         <p className="font-pixel mb-2 text-[11px]">feedback</p>
         <p className="text-muted-foreground font-mono text-[11px]">got it. thanks.</p>
-        <p className="text-muted-foreground/40 mt-1 font-mono text-[8px] leading-relaxed break-all">
+        <p className="text-muted-foreground mt-1 font-mono text-[11px] leading-relaxed break-all">
           {boxes}
         </p>
       </div>
@@ -103,12 +103,12 @@ export function FeedbackForm({ fallbackEmail }: { fallbackEmail?: string }) {
           className="border-border text-foreground placeholder:text-muted-foreground/40 w-full border-b bg-transparent py-1.5 font-mono text-[11px] outline-none"
         />
         {error && (
-          <p className="text-muted-foreground font-mono text-[10px] leading-relaxed">{error}</p>
+          <p className="text-muted-foreground font-mono text-xs leading-relaxed">{error}</p>
         )}
         <div className="flex justify-end pt-1">
           <button
             type="submit"
-            className={`text-muted-foreground font-mono text-[10px] transition-colors ${message.trim() && !sending ? "hover:text-foreground" : "pointer-events-none opacity-30"}`}
+            className={`text-muted-foreground font-mono text-xs transition-colors ${message.trim() && !sending ? "hover:text-foreground" : "pointer-events-none opacity-30"}`}
           >
             <span className="opacity-50">[</span>
             {sending ? "sending..." : "send ↵"}

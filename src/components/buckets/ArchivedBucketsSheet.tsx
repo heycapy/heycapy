@@ -100,7 +100,7 @@ export function ArchivedBucketsSheet({ open, onClose }: ArchivedBucketsSheetProp
                       <div className="min-w-0 flex-1">
                         <p className="font-pixel truncate text-xs">{bucket.name}</p>
                         {bucket.archivedAt && (
-                          <p className="text-muted-foreground/60 mt-0.5 font-mono text-[10px]">
+                          <p className="text-muted-foreground mt-0.5 font-mono text-xs">
                             archived{" "}
                             {bucket.archivedAt.toLocaleDateString("en-US", {
                               month: "short",

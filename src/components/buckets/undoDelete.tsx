@@ -28,7 +28,7 @@ function UndoToast({
     <div className="bg-background border-border text-foreground relative w-[356px] max-w-[calc(100vw-2rem)] overflow-hidden border-2 font-mono text-xs">
       <div className="flex items-center gap-3 px-4 py-3">
         <span className="min-w-0 flex-1 truncate">deleted &quot;{title}&quot;</span>
-        <span className="text-muted-foreground w-5 text-right text-[10px] tabular-nums">
+        <span className="text-muted-foreground w-5 text-right text-xs tabular-nums">
           {Math.max(secondsLeft, 0)}s
         </span>
         <BracketButton

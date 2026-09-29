@@ -1,6 +1,10 @@
 import { ITEM_STATUS, isClosedStatus } from "@/constants";
 import type { NotificationRules } from "@/types/rules";
-import { ALL_DAY_REMINDER_MINS, OVERDUE_FIRST_ALERT_DEFAULT_MINS } from "./constants";
+import {
+  ALL_DAY_REMINDER_MINS,
+  MAX_DELIVERY_WINDOW_JUMPS,
+  OVERDUE_FIRST_ALERT_DEFAULT_MINS,
+} from "./constants";
 import {
   addLocalDays,
   atLocalClock,
@@ -24,7 +28,10 @@ export type ReminderInputs = {
   overdueRepeatHours: number | undefined;
   overdueFirstAlertMins?: number;
   timezone: string;
+  userQuietHours?: QuietHours | null;
 };
+
+export type QuietHours = { from: string; to: string };
 
 function canRemind(i: ReminderInputs): i is ReminderInputs & { deadline: Date } {
   return (
@@ -39,28 +46,51 @@ function notBefore(date: Date, floor: Date | null): Date {
   return floor && floor > date ? floor : date;
 }
 
-// Applies "notify at" and quiet hours
-function applyDeliveryWindow(date: Date, rules: NotificationRules, timezone: string): Date {
-  const notifyAt = rules.notifyAt ? parseClock(rules.notifyAt) : null;
-  const quietFrom = rules.quietHours ? parseClock(rules.quietHours.from) : null;
-  const quietTo = rules.quietHours ? parseClock(rules.quietHours.to) : null;
-
+function outsideQuietHours(date: Date, windows: QuietHours[], timezone: string): Date {
   let result = date;
-  // Converges within a few passes
-  for (let pass = 0; pass < 3; pass++) {
+  for (const window of windows) {
+    const from = parseClock(window.from);
+    const to = parseClock(window.to);
+    if (from === null || to === null || from === to) continue;
+    const mins = minutesOfDay(toLocal(result, timezone));
+    const overnight = from > to;
+    if (overnight && mins >= from) result = atLocalClock(result, to, timezone, 1);
+    else if (overnight && mins < to) result = atLocalClock(result, to, timezone);
+    else if (!overnight && mins >= from && mins < to) result = atLocalClock(result, to, timezone);
+  }
+  return result;
+}
+
+// When something sent right now may go out, given the user's and the bucket's quiet hours
+export function afterQuietHours(
+  now: Date,
+  windows: (QuietHours | null | undefined)[],
+  timezone: string
+): Date {
+  const set = windows.filter((w): w is QuietHours => !!w);
+  let result = now;
+  for (let jump = 0; jump < MAX_DELIVERY_WINDOW_JUMPS; jump++) {
+    const next = outsideQuietHours(result, set, timezone);
+    if (next.getTime() === result.getTime()) break;
+    result = next;
+  }
+  return result;
+}
+
+function quietWindows(i: ReminderInputs): QuietHours[] {
+  return [i.rules.quietHours, i.userQuietHours].filter((w): w is QuietHours => !!w);
+}
+
+// "Notify at" and every quiet window, until none of them moves the time any more
+function applyDeliveryWindow(date: Date, i: ReminderInputs, useNotifyAt: boolean): Date {
+  const notifyAt = useNotifyAt && i.rules.notifyAt ? parseClock(i.rules.notifyAt) : null;
+  let result = date;
+  for (let jump = 0; jump < MAX_DELIVERY_WINDOW_JUMPS; jump++) {
     const start = result.getTime();
-    if (notifyAt !== null && minutesOfDay(toLocal(result, timezone)) < notifyAt) {
-      result = atLocalClock(result, notifyAt, timezone);
+    if (notifyAt !== null && minutesOfDay(toLocal(result, i.timezone)) < notifyAt) {
+      result = atLocalClock(result, notifyAt, i.timezone);
     }
-    if (quietFrom !== null && quietTo !== null && quietFrom !== quietTo) {
-      const mins = minutesOfDay(toLocal(result, timezone));
-      const overnight = quietFrom > quietTo;
-      if (overnight && mins >= quietFrom) result = atLocalClock(result, quietTo, timezone, 1);
-      else if (overnight && mins < quietTo) result = atLocalClock(result, quietTo, timezone);
-      else if (!overnight && mins >= quietFrom && mins < quietTo) {
-        result = atLocalClock(result, quietTo, timezone);
-      }
-    }
+    result = outsideQuietHours(result, quietWindows(i), i.timezone);
     if (result.getTime() === start) break;
   }
   return result;
@@ -91,7 +121,7 @@ export function nextDeadlineReminder(i: ReminderInputs): Date | null {
     return null;
   }
 
-  return applyDeliveryWindow(notBefore(due, i.remindNotBefore), i.rules, i.timezone);
+  return applyDeliveryWindow(notBefore(due, i.remindNotBefore), i, true);
 }
 
 export function nextOverdueAlert(i: ReminderInputs): Date | null {
@@ -107,7 +137,7 @@ export function nextOverdueAlert(i: ReminderInputs): Date | null {
     return null;
   }
 
-  return notBefore(due, i.remindNotBefore);
+  return applyDeliveryWindow(notBefore(due, i.remindNotBefore), i, false);
 }
 
 export function remindAgainAt(

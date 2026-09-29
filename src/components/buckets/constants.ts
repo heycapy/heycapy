@@ -44,6 +44,8 @@ export const DEFAULT_BUCKET_STATUSES: StatusDef[] = [
 ];
 
 export const ITEM_HIGHLIGHT_MS = 3000;
+export const MENU_GAP = 6;
+export const SCREEN_MARGIN = 8;
 export const UNDO_DELETE_MS = 6000;
 
 export const BUCKET_PALETTE = ["var(--p1)", "var(--p2)", "var(--p3)", "var(--p4)", "var(--p5)"];
@@ -130,7 +132,7 @@ export const CURRENCY_OPTIONS = [
 
 export type CurrencySymbol = (typeof CURRENCY_OPTIONS)[number]["value"];
 
-export const FIELD_LABEL = "text-muted-foreground font-mono text-[10px]";
+export const FIELD_LABEL = "text-muted-foreground font-mono text-xs";
 export const FIELD_INPUT =
   "border-b border-border w-full bg-transparent py-1.5 font-mono text-xs outline-none placeholder:text-muted-foreground/50 focus:border-foreground disabled:opacity-50";
 

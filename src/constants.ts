@@ -8,7 +8,7 @@ export const WEEKDAY_NAMES = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"] a
 export const WORK_WEEK = [1, 2, 3, 4, 5];
 export const LAST_DAY_OF_MONTH = 31;
 export const TRASH_RETENTION_DAYS = 30;
-export const UPCOMING_DAYS = 7;
+export const TODAY_FETCH_AHEAD_DAYS = 1;
 export const SEARCH_RESULTS_MAX = 50;
 
 export const OG_COLORS = {
@@ -121,3 +121,6 @@ export const ADMIN_ALERT_TIMEOUT_MS = 15_000;
 export const ADMIN_DIGEST_MAX_ERRORS = 30;
 export const STACK_LINES_IN_ALERT = 12;
 export const TELEGRAM_MESSAGE_MAX = 4000;
+
+export const MOBILE_MEDIA_QUERY = "(max-width: 639px)";
+export const BOTTOM_BAR_MEDIA_QUERY = "(max-width: 767px)";

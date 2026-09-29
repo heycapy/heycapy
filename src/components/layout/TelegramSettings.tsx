@@ -61,7 +61,7 @@ export function TelegramSettings({
       <span className={SECTION}>telegram</span>
 
       {!telegramBotConfigured ? (
-        <p className="text-muted-foreground/60 font-mono text-[9px]">
+        <p className="text-muted-foreground font-mono text-[11px]">
           set <code className="font-mono">TELEGRAM_BOT_TOKEN</code> in .env to enable telegram
         </p>
       ) : telegramConnected ? (
@@ -69,7 +69,7 @@ export function TelegramSettings({
           <div className="flex items-center justify-between">
             <div className="flex flex-col gap-0.5">
               <span className={LABEL}>status</span>
-              <span className="text-muted-foreground/60 font-mono text-[9px]">
+              <span className="text-muted-foreground font-mono text-[11px]">
                 connected · chat id: {telegramChatId}
               </span>
             </div>
@@ -77,7 +77,7 @@ export function TelegramSettings({
               type="button"
               onClick={() => void onDisconnectTelegram()}
               disabled={telegramActionPending || pending}
-              className="text-muted-foreground hover:text-foreground font-mono text-[9px] disabled:opacity-40"
+              className="text-muted-foreground hover:text-foreground font-mono text-[11px] disabled:opacity-40"
             >
               [disconnect]
             </button>
@@ -100,14 +100,14 @@ export function TelegramSettings({
           <div className="flex items-center justify-between">
             <div className="flex flex-col gap-0.5">
               <span className={LABEL}>status</span>
-              <span className="text-muted-foreground/60 font-mono text-[9px]">not connected</span>
+              <span className="text-muted-foreground font-mono text-[11px]">not connected</span>
             </div>
             <div className="flex items-center gap-2">
               <button
                 type="button"
                 onClick={() => void onRecheckTelegram()}
                 disabled={telegramActionPending || pending}
-                className="text-muted-foreground hover:text-foreground font-mono text-[9px] disabled:opacity-40"
+                className="text-muted-foreground hover:text-foreground font-mono text-[11px] disabled:opacity-40"
               >
                 [recheck]
               </button>
@@ -115,7 +115,7 @@ export function TelegramSettings({
                 type="button"
                 onClick={handleConnect}
                 disabled={connecting || telegramActionPending || pending}
-                className="text-muted-foreground hover:text-foreground font-mono text-[9px] disabled:opacity-40"
+                className="text-muted-foreground hover:text-foreground font-mono text-[11px] disabled:opacity-40"
               >
                 {connecting ? "[connecting...]" : "[connect]"}
               </button>
@@ -134,7 +134,7 @@ export function TelegramSettings({
                 <button
                   type="button"
                   onClick={handleCopyLink}
-                  className="text-muted-foreground hover:text-foreground shrink-0 font-mono text-[9px]"
+                  className="text-muted-foreground hover:text-foreground shrink-0 font-mono text-[11px]"
                 >
                   {copyState === "copied" ? "[copied]" : "[copy]"}
                 </button>
@@ -147,7 +147,7 @@ export function TelegramSettings({
                 role="img"
                 className="self-start"
               />
-              <p className="text-muted-foreground/60 font-mono text-[9px]">
+              <p className="text-muted-foreground font-mono text-[11px]">
                 <a
                   href={link}
                   target="_blank"
@@ -160,13 +160,13 @@ export function TelegramSettings({
                 [recheck]
               </p>
               {copyState === "failed" && (
-                <p className="text-destructive font-mono text-[9px]">
+                <p className="text-destructive font-mono text-[11px]">
                   couldn&apos;t copy — select the link and copy it
                 </p>
               )}
             </div>
           )}
-          {connectError && <p className="text-destructive font-mono text-[9px]">{connectError}</p>}
+          {connectError && <p className="text-destructive font-mono text-[11px]">{connectError}</p>}
         </>
       )}
     </div>
