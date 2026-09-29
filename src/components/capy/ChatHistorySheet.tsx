@@ -126,7 +126,7 @@ export function ChatHistorySheet({ open, onClose, onLoadSession, onNewChat }: Pr
                     <div key={s.id} className="flex items-center gap-3 px-4 py-3">
                       <div className="min-w-0 flex-1">
                         <p className="truncate font-mono text-xs">{s.title}</p>
-                        <p className="text-muted-foreground/60 mt-0.5 font-mono text-[10px]">
+                        <p className="text-muted-foreground mt-0.5 font-mono text-xs">
                           {relativeDate(s.updatedAt)}
                         </p>
                       </div>

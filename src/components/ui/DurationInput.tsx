@@ -34,7 +34,7 @@ export function DurationInput({
       {value && preview.text && (
         <span
           className={cn(
-            "font-mono text-[10px]",
+            "font-mono text-xs",
             preview.valid ? "text-muted-foreground" : "text-destructive"
           )}
         >

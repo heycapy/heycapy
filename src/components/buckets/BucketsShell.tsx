@@ -40,7 +40,7 @@ function MobileBucketPicker({
         <Drawer.Overlay className="fixed inset-0 z-50 bg-black/50" />
         <Drawer.Content className="bg-background border-border fixed inset-x-0 bottom-0 z-50 flex flex-col border-t-2 outline-none">
           <div className="mx-auto mt-2 mb-1 h-1 w-8 shrink-0 rounded-full bg-zinc-300 dark:bg-zinc-600" />
-          <Drawer.Title className="font-pixel text-muted-foreground px-4 pt-1 pb-3 text-[10px]">
+          <Drawer.Title className="font-pixel text-muted-foreground px-4 pt-1 pb-3 text-xs">
             switch bucket
           </Drawer.Title>
           <div className="border-border max-h-[60vh] overflow-y-auto border-t">

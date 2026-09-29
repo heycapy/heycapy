@@ -6,7 +6,7 @@ import { getQuietHoursAction, saveQuietHoursAction } from "@/app/(app)/actions";
 import { formatSlot } from "@/lib/format-date";
 import { BOX, DEFAULT_QUIET_FROM, DEFAULT_QUIET_TO, LABEL, SECTION } from "./settings-constants";
 
-const HINT = "text-muted-foreground/60 font-mono text-[9px]";
+const HINT = "text-muted-foreground font-mono text-[11px]";
 
 type Saved = { from: string | null; to: string | null };
 
@@ -82,7 +82,7 @@ export function QuietHoursSettings() {
       {message && (!message.ok || !dirty) && (
         <p
           role="status"
-          className={`font-mono text-[9px] ${message.ok ? "text-muted-foreground" : "text-destructive"}`}
+          className={`font-mono text-[11px] ${message.ok ? "text-muted-foreground" : "text-destructive"}`}
         >
           {message.text}
         </p>

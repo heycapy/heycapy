@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Trash2, X } from "lucide-react";
 import { DatePicker } from "@/components/ui/DatePicker";
 import { BracketButton } from "@/components/ui/BracketButton";
-import { TimeScrollPicker, type Ampm } from "@/components/ui/TimeScrollPicker";
+import { TimeField, type Ampm, type TimeValue } from "@/components/ui/TimeField";
 import { RecurringPicker } from "./RecurringPicker";
 import { ItemFieldsForm } from "./ItemFieldsForm";
 import { ItemStatusField } from "./ItemStatusField";
@@ -14,7 +14,7 @@ import { useScrollToFirst } from "@/hooks/useScrollToFirst";
 import { buildDeadline } from "@/lib/time";
 import { ITEM_TITLE_MAX_LENGTH } from "@/constants";
 
-const LABEL = "text-muted-foreground font-mono text-[10px]";
+const LABEL = "text-muted-foreground font-mono text-xs";
 
 function isEmpty(value: unknown): boolean {
   if (value === undefined || value === null) return true;
@@ -130,19 +130,11 @@ export function ItemDialog({
     if (!newDate) onRecurringChange?.(null);
   }
 
-  function handleHourChange(h: string) {
-    setTimeHour(h);
-    if (datePart) onDeadlineChange(buildDeadline(datePart, h, timeMin, timeAmpm));
-  }
-
-  function handleMinChange(m: string) {
-    setTimeMin(m);
-    if (datePart) onDeadlineChange(buildDeadline(datePart, timeHour, m, timeAmpm));
-  }
-
-  function handleAmpmChange(a: Ampm) {
-    setTimeAmpm(a);
-    if (datePart) onDeadlineChange(buildDeadline(datePart, timeHour, timeMin, a));
+  function handleTimeChange({ hour, min, ampm }: TimeValue) {
+    setTimeHour(hour);
+    setTimeMin(min);
+    setTimeAmpm(ampm);
+    if (datePart) onDeadlineChange(buildDeadline(datePart, hour, min, ampm));
   }
 
   function handleConfirmClick() {
@@ -167,30 +159,28 @@ export function ItemDialog({
     <>
       <div className="flex flex-col gap-1.5">
         <label className={LABEL}>when</label>
-        <div className="flex items-center gap-2">
-          <div className="flex-1">
+        <div className="flex items-center gap-3">
+          <div className="min-w-0 flex-1">
             <DatePicker value={datePart} onChange={handleDateChange} disabled={pending} />
           </div>
+          {hasDate && (
+            <TimeField
+              value={{ hour: timeHour, min: timeMin, ampm: timeAmpm }}
+              onChange={handleTimeChange}
+              disabled={pending}
+            />
+          )}
           {hasDate && !pending && (
             <button
+              type="button"
               onClick={() => handleDateChange("")}
-              className="text-muted-foreground hover:text-destructive shrink-0 transition-colors"
+              aria-label="remove date"
+              className="text-muted-foreground hover:text-destructive -mr-1 shrink-0 p-1 transition-colors"
             >
-              <X size={11} />
+              <X size={13} />
             </button>
           )}
         </div>
-        {hasDate && (
-          <TimeScrollPicker
-            hour={timeHour}
-            min={timeMin}
-            ampm={timeAmpm}
-            onHourChange={handleHourChange}
-            onMinChange={handleMinChange}
-            onAmpmChange={handleAmpmChange}
-            disabled={pending}
-          />
-        )}
       </div>
 
       {hasDate && onRecurringChange && (
@@ -277,7 +267,7 @@ export function ItemDialog({
                     )}
                   />
                   {titleHasError && (
-                    <p className="text-destructive font-mono text-[9px]">title is required</p>
+                    <p className="text-destructive font-mono text-[11px]">title is required</p>
                   )}
                 </div>
 

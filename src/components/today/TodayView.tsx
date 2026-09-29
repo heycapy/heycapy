@@ -14,7 +14,7 @@ import { useTodayItems } from "./useTodayItems";
 
 type Item = typeof items.$inferSelect;
 
-const HINT = "text-muted-foreground font-mono text-[10px]";
+const HINT = "text-muted-foreground font-mono text-xs";
 
 export function TodayView() {
   const [query, setQuery] = useState("");

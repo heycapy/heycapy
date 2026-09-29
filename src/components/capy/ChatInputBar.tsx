@@ -154,15 +154,15 @@ export const ChatInputBar = forwardRef<ChatInputBarHandle, Props>(function ChatI
           <div className="flex flex-1 items-center gap-2">
             {recording ? (
               <>
-                <span className="text-destructive font-pixel animate-[pulse_0.8s_ease-in-out_infinite] text-[10px]">
+                <span className="text-destructive font-pixel animate-[pulse_0.8s_ease-in-out_infinite] text-xs">
                   ●
                 </span>
-                <span className="text-destructive font-pixel text-[10px]">
+                <span className="text-destructive font-pixel text-xs">
                   rec {formatTime(recSeconds)}
                 </span>
               </>
             ) : (
-              <span className="text-muted-foreground font-pixel animate-pulse text-[10px]">
+              <span className="text-muted-foreground font-pixel animate-pulse text-xs">
                 transcribing...
               </span>
             )}
@@ -171,7 +171,7 @@ export const ChatInputBar = forwardRef<ChatInputBarHandle, Props>(function ChatI
           {recording && (
             <button
               onClick={() => mediaRecorderRef.current?.stop()}
-              className="border-destructive text-destructive font-pixel shrink-0 border px-1.5 py-0.5 text-[9px] transition-opacity hover:opacity-70"
+              className="border-destructive text-destructive font-pixel shrink-0 border px-1.5 py-0.5 text-[11px] transition-opacity hover:opacity-70"
             >
               ■ stop
             </button>
@@ -207,7 +207,7 @@ export const ChatInputBar = forwardRef<ChatInputBarHandle, Props>(function ChatI
           {streaming ? (
             <button
               onClick={onStop}
-              className="text-destructive border-destructive font-pixel mb-0.5 shrink-0 border px-2.5 py-2.5 text-[11px] transition-opacity hover:opacity-70 md:px-1.5 md:py-0.5 md:text-[9px]"
+              className="text-destructive border-destructive font-pixel mb-0.5 shrink-0 border px-2.5 py-2.5 text-[11px] transition-opacity hover:opacity-70 md:px-1.5 md:py-0.5 md:text-[11px]"
               aria-label="Stop"
             >
               stop

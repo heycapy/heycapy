@@ -41,7 +41,7 @@ export function SystemTab() {
 
   useEffect(load, []);
 
-  if (error) return <p className="text-destructive font-mono text-[10px]">{error}</p>;
+  if (error) return <p className="text-destructive font-mono text-xs">{error}</p>;
   if (!status) return <p className="text-muted-foreground font-mono text-xs">loading...</p>;
 
   const { scheduler } = status;
@@ -73,7 +73,7 @@ export function SystemTab() {
         ) : (
           <ul className="divide-border/50 flex flex-col divide-y divide-dotted">
             {status.errors.map((e) => (
-              <li key={e.id} className="flex flex-col gap-0.5 py-1.5 font-mono text-[10px]">
+              <li key={e.id} className="flex flex-col gap-0.5 py-1.5 font-mono text-xs">
                 <span className="text-muted-foreground">
                   {formatShort(new Date(e.createdAt))} · {e.level} · {e.source}
                   {e.userId !== null && ` · user ${e.userId}`}
@@ -84,7 +84,7 @@ export function SystemTab() {
                     <summary className="text-muted-foreground hover:text-foreground cursor-pointer">
                       details
                     </summary>
-                    <pre className="text-muted-foreground mt-1 max-h-60 overflow-auto text-[9px] whitespace-pre-wrap">
+                    <pre className="text-muted-foreground mt-1 max-h-60 overflow-auto text-[11px] whitespace-pre-wrap">
                       {formatDetails(e.details)}
                     </pre>
                   </details>

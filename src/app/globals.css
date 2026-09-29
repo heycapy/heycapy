@@ -619,7 +619,7 @@ body {
 [data-sonner-toast] [data-close-button]::before {
   content: "[x]";
   font-family: var(--font-geist-mono);
-  font-size: 10px;
+  font-size: 12px;
   line-height: 1;
 }
 

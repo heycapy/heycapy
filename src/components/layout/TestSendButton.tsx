@@ -21,14 +21,14 @@ export function TestSendButton({ onSend, disabled }: TestSendButtonProps) {
         type="button"
         onClick={handleClick}
         disabled={disabled || pending}
-        className="text-muted-foreground hover:text-foreground self-start font-mono text-[10px] disabled:opacity-40"
+        className="text-muted-foreground hover:text-foreground self-start font-mono text-xs disabled:opacity-40"
       >
         {pending ? "[sending...]" : "[send test]"}
       </button>
       {result && (
         <p
           role="status"
-          className={`font-mono text-[9px] ${result.ok ? "text-muted-foreground" : "text-destructive"}`}
+          className={`font-mono text-[11px] ${result.ok ? "text-muted-foreground" : "text-destructive"}`}
         >
           {result.ok ? "sent ✓ — check that it arrived" : result.error}
         </p>

@@ -60,11 +60,7 @@ export function SmtpTestDialog({
       <div className="bg-background border-border relative z-10 flex w-full max-w-md flex-col gap-0 border-2">
         <div className="bg-foreground text-background flex items-center justify-between px-3 py-1.5">
           <span className="font-pixel text-xs">send test email</span>
-          <button
-            type="button"
-            onClick={onClose}
-            className="font-mono text-[10px] hover:opacity-70"
-          >
+          <button type="button" onClick={onClose} className="font-mono text-xs hover:opacity-70">
             [x]
           </button>
         </div>
@@ -90,7 +86,7 @@ export function SmtpTestDialog({
           </div>
 
           <div className="border-border flex flex-col gap-2 border p-3">
-            <span className="text-muted-foreground font-mono text-[9px] tracking-widest uppercase">
+            <span className="text-muted-foreground font-mono text-[11px] tracking-widest uppercase">
               preview
             </span>
             <div
@@ -107,7 +103,7 @@ export function SmtpTestDialog({
                 <p className="text-foreground text-[12px]">your smtp is working correctly.</p>
               </div>
               <div className="border-border border-t px-3 py-2">
-                <p className="text-muted-foreground text-[10px]">{APP_TAGLINE}</p>
+                <p className="text-muted-foreground text-xs">{APP_TAGLINE}</p>
               </div>
             </div>
           </div>
@@ -115,7 +111,7 @@ export function SmtpTestDialog({
           {result && (
             <p
               className={cn(
-                "font-mono text-[10px]",
+                "font-mono text-xs",
                 result.ok ? "text-green-600 dark:text-green-400" : "text-destructive"
               )}
             >
@@ -128,7 +124,7 @@ export function SmtpTestDialog({
               type="button"
               onClick={handleSend}
               disabled={pending || !sendTo || !smtpHost}
-              className="text-muted-foreground hover:text-foreground font-mono text-[10px] disabled:opacity-40"
+              className="text-muted-foreground hover:text-foreground font-mono text-xs disabled:opacity-40"
             >
               {pending ? "[sending...]" : "[send]"}
             </button>

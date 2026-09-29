@@ -83,7 +83,7 @@ export function ChatMessageList({ messages, streaming, fullscreen }: Props) {
                     ),
                     li: ({ children }) => <li className="mb-0.5">{children}</li>,
                     pre: ({ children }) => (
-                      <pre className="bg-muted my-1.5 overflow-x-auto rounded p-1.5 text-[10px]">
+                      <pre className="bg-muted my-1.5 overflow-x-auto rounded p-1.5 text-xs">
                         {children}
                       </pre>
                     ),
@@ -101,7 +101,7 @@ export function ChatMessageList({ messages, streaming, fullscreen }: Props) {
               )}
             </div>
             {msg.stopped && (
-              <span className="text-muted-foreground font-mono text-[9px]">— stopped</span>
+              <span className="text-muted-foreground font-mono text-[11px]">— stopped</span>
             )}
           </div>
         </div>

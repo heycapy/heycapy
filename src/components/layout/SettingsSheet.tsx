@@ -184,7 +184,7 @@ export function SettingsSheet({ open, initialTab, onClose }: SettingsSheetProps)
 
   const tabBtn = (t: SettingsTab) =>
     cn(
-      "font-mono text-[10px] px-1.5 py-1 whitespace-nowrap transition-colors shrink-0",
+      "font-mono text-xs px-2 py-1.5 whitespace-nowrap transition-colors shrink-0",
       tab === t ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"
     );
 
@@ -217,7 +217,7 @@ export function SettingsSheet({ open, initialTab, onClose }: SettingsSheetProps)
               </BracketButton>
             </div>
 
-            <div className="border-border scrollbar-hide flex overflow-x-auto border-b">
+            <div className="border-border flex flex-wrap gap-0.5 border-b px-2 py-1">
               {(
                 [
                   "appearance",
@@ -326,7 +326,7 @@ export function SettingsSheet({ open, initialTab, onClose }: SettingsSheetProps)
                   )}
                   {tab === "account" && <AccountTab email={userEmail} />}
                   {tab === "system" && adminUser && <SystemTab />}
-                  {error && <span className="text-destructive font-mono text-[10px]">{error}</span>}
+                  {error && <span className="text-destructive font-mono text-xs">{error}</span>}
                 </>
               )}
             </div>

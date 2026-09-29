@@ -1,52 +1,12 @@
 import { useState } from "react";
 import { cn } from "@/lib/utils";
+import { parseTimeInput } from "@/lib/time-input";
 
 type TimePickerProps = {
   value: string; // stored as "HH:MM"
   onChange: (value: string) => void;
   disabled?: boolean;
 };
-
-function parseInput(str: string): string | null {
-  const s = str.trim().toLowerCase();
-  if (!s) return "";
-
-  const withColon = s.match(/^(\d{1,2}):(\d{2})\s*(am|pm)?$/);
-  if (withColon) {
-    let h = parseInt(withColon[1], 10);
-    const m = parseInt(withColon[2], 10);
-    const mer = withColon[3];
-    if (h > 23 || m > 59) return null;
-    if (mer === "pm" && h < 12) h += 12;
-    if (mer === "am" && h === 12) h = 0;
-    return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
-  }
-
-  const withMer = s.match(/^(\d{1,2})\s*(am|pm)$/);
-  if (withMer) {
-    let h = parseInt(withMer[1], 10);
-    const mer = withMer[2];
-    if (h > 12) return null;
-    if (mer === "pm" && h < 12) h += 12;
-    if (mer === "am" && h === 12) h = 0;
-    return `${String(h).padStart(2, "0")}:00`;
-  }
-
-  if (/^\d{4}$/.test(s)) {
-    const h = parseInt(s.slice(0, 2), 10);
-    const m = parseInt(s.slice(2), 10);
-    if (h > 23 || m > 59) return null;
-    return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
-  }
-
-  if (/^\d{1,2}$/.test(s)) {
-    const h = parseInt(s, 10);
-    if (h > 23) return null;
-    return `${String(h).padStart(2, "0")}:00`;
-  }
-
-  return null;
-}
 
 function toDisplay(value: string): string {
   const [hStr, mStr] = value.split(":");
@@ -75,7 +35,7 @@ export function TimePicker({ value, onChange, disabled }: TimePickerProps) {
       setInvalid(false);
       return;
     }
-    const parsed = parseInput(draft);
+    const parsed = parseTimeInput(draft);
     if (parsed === null) {
       setInvalid(true);
     } else {
@@ -99,9 +59,7 @@ export function TimePicker({ value, onChange, disabled }: TimePickerProps) {
           invalid ? "border-destructive text-destructive" : "border-border focus:border-foreground"
         )}
       />
-      {invalid && (
-        <span className="text-destructive font-mono text-[10px]">unrecognized format</span>
-      )}
+      {invalid && <span className="text-destructive font-mono text-xs">unrecognized format</span>}
     </div>
   );
 }

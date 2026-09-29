@@ -21,7 +21,7 @@ type TrashSheetProps = {
 
 type ConfirmTarget = `bucket:${number}` | `item:${number}` | "all";
 
-const HINT = "text-muted-foreground/60 font-mono text-[10px]";
+const HINT = "text-muted-foreground font-mono text-xs";
 
 function deletedOn(date: Date): string {
   return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
@@ -197,7 +197,7 @@ export function TrashSheet({ open, onClose }: TrashSheetProps) {
                 ))}
             </div>
             {error && (
-              <p className="text-destructive border-border border-b px-4 py-2 font-mono text-[10px]">
+              <p className="text-destructive border-border border-b px-4 py-2 font-mono text-xs">
                 {error}
               </p>
             )}

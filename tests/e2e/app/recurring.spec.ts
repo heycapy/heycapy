@@ -20,8 +20,11 @@ async function addMonthlyItemDueToday(page: Page, title: string): Promise<void> 
   await dialog.locator("textarea").first().fill(title);
   await dialog.getByRole("button", { name: "pick date" }).click();
   await page.getByRole("button", { name: String(new Date().getDate()), exact: true }).click();
-  await dialog.getByRole("button", { name: "[off]", exact: true }).click();
-  await expect(dialog.getByRole("button", { name: "[on]", exact: true })).toBeVisible();
+  await dialog.getByRole("button", { name: "on", exact: true }).click();
+  await expect(dialog.getByRole("button", { name: "on", exact: true })).toHaveAttribute(
+    "aria-pressed",
+    "true"
+  );
   await dialog.getByRole("button", { name: "[ add ]", exact: true }).click();
   await expect(dialog).not.toBeVisible();
   await expect(itemRow(page, title)).toBeVisible();

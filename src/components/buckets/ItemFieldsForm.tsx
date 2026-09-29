@@ -63,7 +63,7 @@ export function ItemFieldsForm({
               onChange={(v) => set(field.key, v)}
             />
             {hasError && (
-              <p className="text-destructive font-mono text-[9px]">{field.label} is required</p>
+              <p className="text-destructive font-mono text-[11px]">{field.label} is required</p>
             )}
           </div>
         );

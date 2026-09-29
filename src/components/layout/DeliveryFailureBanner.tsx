@@ -38,7 +38,7 @@ export function DeliveryFailureBanner({ failures, onFix }: DeliveryFailureBanner
           <div
             key={failure.medium}
             role="alert"
-            className="border-border text-destructive flex items-center gap-3 border border-dashed px-3 py-2 font-mono text-[10px]"
+            className="border-border text-destructive flex items-center gap-3 border border-dashed px-3 py-2 font-mono text-xs"
           >
             <span className="min-w-0 flex-1 truncate">
               ⚠ {failure.medium}: {count} {count === 1 ? "notification" : "notifications"} failed

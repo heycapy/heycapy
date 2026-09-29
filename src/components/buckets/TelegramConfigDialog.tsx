@@ -90,7 +90,7 @@ function TelegramConfigForm({ bucket, onClose }: Omit<TelegramConfigDialogProps,
       </div>
       {error && (
         <div className="border-border shrink-0 border-t px-4 py-2">
-          <span className="text-destructive font-mono text-[10px]">{error}</span>
+          <span className="text-destructive font-mono text-xs">{error}</span>
         </div>
       )}
       <div className="border-border flex shrink-0 justify-end border-t px-3 py-2.5">

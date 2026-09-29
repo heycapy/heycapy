@@ -22,7 +22,7 @@ export type SettingsTab = "items" | "notifications" | "advanced";
 const TABS: SettingsTab[] = ["items", "notifications", "advanced"];
 
 const tabCn = (active: boolean) =>
-  `font-mono text-[10px] px-2 py-1 transition-colors shrink-0 whitespace-nowrap ${active ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"}`;
+  `font-mono text-xs px-2 py-1 transition-colors shrink-0 whitespace-nowrap ${active ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"}`;
 
 type BucketSettingsFormProps = {
   bucket: BucketRow;
@@ -131,7 +131,7 @@ export function BucketSettingsForm({
 
       <div className="flex shrink-0 flex-col gap-4 px-4 pt-4 pb-0">
         <div className="flex flex-col gap-1.5">
-          <label htmlFor={nameId} className="text-muted-foreground font-mono text-[10px]">
+          <label htmlFor={nameId} className="text-muted-foreground font-mono text-xs">
             name
           </label>
           <input
@@ -146,14 +146,14 @@ export function BucketSettingsForm({
           {values.name.length > 0 && (
             <p
               className={cn(
-                "text-right font-mono text-[9px] transition-colors",
+                "text-right font-mono text-[11px] transition-colors",
                 charCountColor(values.name.length, BUCKET_NAME_MAX_LENGTH)
               )}
             >
               {values.name.length}/{BUCKET_NAME_MAX_LENGTH}
             </p>
           )}
-          {error && <span className="text-destructive font-mono text-[10px]">{error}</span>}
+          {error && <span className="text-destructive font-mono text-xs">{error}</span>}
         </div>
         <div className="border-border flex overflow-x-auto border-b">
           {TABS.map((t) => (
@@ -219,8 +219,8 @@ export function BucketSettingsForm({
 
         {tab === "notifications" && (
           <div className="border-border flex flex-col gap-1.5 border-t pt-4">
-            <p className="text-muted-foreground font-mono text-[10px]">telegram bot</p>
-            <p className="text-muted-foreground/50 font-mono text-[9px] leading-tight">
+            <p className="text-muted-foreground font-mono text-xs">telegram bot</p>
+            <p className="text-muted-foreground font-mono text-[11px] leading-tight">
               set an alias shortcut, deadline buttons, time slots, and recurring options
             </p>
             <BracketButton onClick={onOpenTelegram} className="w-fit">
@@ -232,8 +232,8 @@ export function BucketSettingsForm({
         {tab === "advanced" && (
           <div className="flex flex-col gap-5">
             <div className="flex flex-col gap-1.5">
-              <p className="text-muted-foreground font-mono text-[10px]">schema</p>
-              <p className="text-muted-foreground/50 font-mono text-[9px] leading-tight">
+              <p className="text-muted-foreground font-mono text-xs">schema</p>
+              <p className="text-muted-foreground font-mono text-[11px] leading-tight">
                 define custom fields and notification rules for this bucket
               </p>
               <BracketButton onClick={onOpenSchema} className="w-fit">
@@ -244,8 +244,8 @@ export function BucketSettingsForm({
             <div className="border-border border-t" />
 
             <div className="flex flex-col gap-1.5">
-              <p className="text-muted-foreground font-mono text-[10px]">webhook</p>
-              <p className="text-muted-foreground/50 font-mono text-[9px] leading-tight">
+              <p className="text-muted-foreground font-mono text-xs">webhook</p>
+              <p className="text-muted-foreground font-mono text-[11px] leading-tight">
                 receive items from external services via HTTP
               </p>
               <BracketButton onClick={onOpenWebhook} className="w-fit">
@@ -256,8 +256,8 @@ export function BucketSettingsForm({
             <div className="border-border border-t" />
 
             <div className="flex flex-col gap-3">
-              <p className="text-muted-foreground font-mono text-[10px]">danger zone</p>
-              <p className="text-muted-foreground/50 font-mono text-[9px] leading-relaxed">
+              <p className="text-muted-foreground font-mono text-xs">danger zone</p>
+              <p className="text-muted-foreground font-mono text-[11px] leading-relaxed">
                 archived and deleted buckets can be accessed via the header — use archive to hide a
                 bucket, or delete to move it to trash.
               </p>
@@ -267,7 +267,7 @@ export function BucketSettingsForm({
                 </BracketButton>
                 {confirmDelete ? (
                   <>
-                    <span className="text-destructive font-mono text-[10px]">sure?</span>
+                    <span className="text-destructive font-mono text-xs">sure?</span>
                     <BracketButton variant="destructive" onClick={handleDelete} disabled={pending}>
                       confirm
                     </BracketButton>
