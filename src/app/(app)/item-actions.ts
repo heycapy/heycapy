@@ -9,7 +9,7 @@ import { db } from "@/lib/db";
 import { items } from "@/lib/db/schema";
 import { ITEM_STATUS, ITEM_TITLE_MAX_LENGTH } from "@/constants";
 import { RecurringConfig } from "@/types/rules";
-import { parseDeadlineString } from "@/lib/time";
+import { parseLocalDateTime } from "@/lib/reminders/zoned";
 import { initialReminderState, reminderResetForDeadline } from "@/lib/items/reminders";
 import { refreshItemReminders, reminderContext } from "@/lib/reminders/refresh";
 import { createNextOccurrence, skipOccurrence } from "@/lib/items/recurrence";
@@ -115,7 +115,7 @@ export async function addItemAction(
     .where(eq(items.bucketId, bucketId));
 
   const ctx = await reminderContext(bucketId);
-  const parsedDeadline = deadline ? parseDeadlineString(deadline, ctx.timezone) : null;
+  const parsedDeadline = deadline ? parseLocalDateTime(deadline, ctx.timezone) : null;
   const [created] = await db
     .insert(items)
     .values({
@@ -168,7 +168,7 @@ export async function updateItemAction(
   if (!item) return { ok: false, error: "Item not found" };
 
   const ctx = await reminderContext(item.bucketId);
-  const newDeadline = deadline ? parseDeadlineString(deadline, ctx.timezone) : null;
+  const newDeadline = deadline ? parseLocalDateTime(deadline, ctx.timezone) : null;
   const statusChanged = status !== undefined && status !== item.status;
 
   const nowCompleted =

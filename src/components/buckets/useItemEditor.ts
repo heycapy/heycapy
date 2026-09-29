@@ -8,14 +8,11 @@ import type { ItemStatus } from "./constants";
 
 type Item = typeof items.$inferSelect;
 
-function toLocalDatetimeStr(d: Date): string {
-  const y = d.getFullYear();
+function toDeadlineStr(d: Date): string {
+  if (d.getHours() !== 0 || d.getMinutes() !== 0) return d.toISOString();
   const mo = String(d.getMonth() + 1).padStart(2, "0");
   const dy = String(d.getDate()).padStart(2, "0");
-  const h = d.getHours();
-  const m = d.getMinutes();
-  if (h === 0 && m === 0) return `${y}-${mo}-${dy}`;
-  return `${y}-${mo}-${dy}T${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+  return `${d.getFullYear()}-${mo}-${dy}`;
 }
 
 type ItemEditorOptions = {
@@ -77,7 +74,7 @@ export function useItemEditor({
     setAddingItem(false);
     setEditingItemId(item.id);
     setEditTitle(item.title);
-    setEditDeadline(item.deadline ? toLocalDatetimeStr(item.deadline) : "");
+    setEditDeadline(item.deadline ? toDeadlineStr(item.deadline) : "");
     setEditStatus((item.status as ItemStatus) || defaultStatus);
     setEditRecurring(parseRecurring(item.recurring));
     setEditProperties(

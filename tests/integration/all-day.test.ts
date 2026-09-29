@@ -142,3 +142,33 @@ describe("a monthly series on the 31st", () => {
     expect((await latest(bucketId)).deadline).toEqual(new Date("2027-03-31T09:00:00Z"));
   });
 });
+
+describe("a time without a zone is the user's local time, not the server's", () => {
+  // A zone other than the machine's, so reading the time in the server's own zone shows up.
+  // 21:00 on Mar 11 in New York (EDT, UTC-4)
+  const NY = "America/New_York";
+  const MAR_11_9PM = new Date("2026-03-12T01:00:00Z");
+
+  it("web add and update", async () => {
+    const { bucketId } = await setup(NY);
+    await addItemAction(bucketId, "call mom", "2026-03-11T21:00");
+    const added = await latest(bucketId);
+    expect(added.deadline).toEqual(MAR_11_9PM);
+    await updateItemAction(added.id, "call mom", "2026-03-11T21:00", added.status);
+    expect((await latest(bucketId)).deadline).toEqual(MAR_11_9PM);
+  });
+
+  it("webhook", async () => {
+    const { bucketId } = await setup(NY);
+    const res = await postWebhook(
+      new Request(`http://localhost/api/webhook/${bucketId}`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${KEY}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ title: "call mom", deadline: "2026-03-11T21:00:00" }),
+      }),
+      { params: Promise.resolve({ bucketId: String(bucketId) }) }
+    );
+    expect(res.status).toBe(201);
+    expect((await latest(bucketId)).deadline).toEqual(MAR_11_9PM);
+  });
+});

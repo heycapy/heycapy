@@ -16,7 +16,7 @@ import { channelDecisions, getChannelSettings } from "@/lib/notifications/channe
 import { initialReminderState } from "@/lib/items/reminders";
 import { dataEvents } from "@/lib/events";
 import { refreshItemReminders, reminderContext } from "@/lib/reminders/refresh";
-import { parseDeadlineString } from "@/lib/time";
+import { parseLocalDateTime } from "@/lib/reminders/zoned";
 
 const rateLimitMap = new Map<string, number[]>();
 
@@ -144,7 +144,7 @@ export async function POST(
     if (typeof raw.deadline !== "string") {
       return Response.json({ error: "deadline must be an ISO datetime string" }, { status: 400 });
     }
-    const d = parseDeadlineString(raw.deadline, ctx.timezone);
+    const d = parseLocalDateTime(raw.deadline, ctx.timezone);
     if (isNaN(d.getTime())) {
       return Response.json({ error: "deadline is not a valid datetime" }, { status: 400 });
     }

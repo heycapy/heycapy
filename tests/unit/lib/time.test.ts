@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { toH24, toH12, buildDeadline, parseDeadlineString } from "@/lib/time";
+import { toH24, toH12, buildDeadline } from "@/lib/time";
 
 describe("toH24", () => {
   it("converts 12am to 0", () => expect(toH24(12, "am")).toBe(0));
@@ -65,19 +65,5 @@ describe("buildDeadline", () => {
   it("pads single-digit minutes", () => {
     const result = buildDeadline("2026-09-27", "9", "05", "am");
     expect(new Date(result).getTime()).toBe(new Date("2026-09-27T09:05:00").getTime());
-  });
-});
-
-describe("parseDeadlineString", () => {
-  it("parses an ISO datetime as is", () => {
-    const d = parseDeadlineString("2026-09-27T09:00:00.000Z", "Asia/Kolkata");
-    expect(d.toISOString()).toBe("2026-09-27T09:00:00.000Z");
-  });
-
-  it("reads a date without a time as all day: midnight in the user's timezone", () => {
-    expect(parseDeadlineString("2026-09-27", "Asia/Kolkata").toISOString()).toBe(
-      "2026-09-26T18:30:00.000Z"
-    );
-    expect(parseDeadlineString("2026-09-27", "UTC").toISOString()).toBe("2026-09-27T00:00:00.000Z");
   });
 });
