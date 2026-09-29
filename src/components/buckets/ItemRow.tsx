@@ -270,22 +270,24 @@ export function ItemRow({
           {isMissed && <span className="text-warning">· ⏭ missed</span>}
           {(item.deadline ?? item.notifiedAt) && (
             <>
-              {recurringFreq && <span className="text-muted-foreground">· ↺ {recurringFreq}</span>}
               {item.deadline && (
-                <span
-                  className={cn(
-                    rel === "overdue"
-                      ? "bg-destructive/15 text-destructive px-1"
-                      : rel === "today"
-                        ? "font-medium text-(--status-on-hold)"
-                        : "text-muted-foreground"
-                  )}
-                >
-                  {recurringFreq ? "next " : ""}
-                  {formatShort(item.deadline)}
-                  {rel === "today" ? " · today" : rel === "overdue" ? " · overdue" : ""}
-                </span>
+                <>
+                  <span className="text-muted-foreground">·</span>
+                  <span
+                    className={cn(
+                      rel === "overdue"
+                        ? "bg-destructive/15 text-destructive px-1"
+                        : rel === "today"
+                          ? "font-medium text-(--status-on-hold)"
+                          : "text-muted-foreground"
+                    )}
+                  >
+                    {formatShort(item.deadline)}
+                    {rel === "today" ? " · today" : rel === "overdue" ? " · overdue" : ""}
+                  </span>
+                </>
               )}
+              {recurringFreq && <span className="text-muted-foreground">· ↺ {recurringFreq}</span>}
               {item.notifiedAt && <span className="text-muted-foreground">· notified</span>}
             </>
           )}

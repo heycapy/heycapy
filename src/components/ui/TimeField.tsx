@@ -11,7 +11,7 @@ export type Ampm = "am" | "pm";
 
 const HOURS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"];
 const QUARTERS = ["00", "15", "30", "45"];
-const PANEL = { width: 252, height: 310 };
+const PANEL = { width: 252, height: 272 };
 const LABEL = "text-muted-foreground font-mono text-[11px]";
 
 // An empty hour means no time: the item is due all day
@@ -95,17 +95,6 @@ export function TimeField({ value, onChange, disabled, allowAllDay = false }: Ti
           style={{ top: pos.top, left: pos.left, width: PANEL.width }}
           className="border-border bg-card fixed z-[65] flex flex-col gap-2.5 border-2 p-3 shadow-[3px_3px_0_var(--border)] select-none"
         >
-          {allowAllDay && (
-            <Cell
-              selected={allDay}
-              onClick={() => {
-                onChange({ ...value, hour: "" });
-                setOpen(false);
-              }}
-            >
-              all day
-            </Cell>
-          )}
           <div role="group" aria-label="hour" className="flex flex-col gap-1">
             <span className={LABEL}>hour</span>
             <div className="grid grid-cols-6 gap-0.5">
@@ -134,7 +123,7 @@ export function TimeField({ value, onChange, disabled, allowAllDay = false }: Ti
               ))}
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-0.5">
+          <div className={cn("grid gap-0.5", allowAllDay ? "grid-cols-3" : "grid-cols-2")}>
             {(["am", "pm"] as const).map((a) => (
               <Cell
                 key={a}
@@ -144,6 +133,17 @@ export function TimeField({ value, onChange, disabled, allowAllDay = false }: Ti
                 {a}
               </Cell>
             ))}
+            {allowAllDay && (
+              <Cell
+                selected={allDay}
+                onClick={() => {
+                  onChange({ ...value, hour: "" });
+                  setOpen(false);
+                }}
+              >
+                all day
+              </Cell>
+            )}
           </div>
           <div className="border-border flex items-center gap-2 border-t pt-2.5">
             <input

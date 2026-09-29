@@ -58,7 +58,7 @@ test("repeats on picked weekdays, then on the last day of the month", async ({ p
   await dialog.getByRole("button", { name: "last day", exact: true }).click();
   await expect(dialog.getByText("↺ every month on the last day")).toBeVisible();
   await dialog.getByRole("button", { name: "[ update ]", exact: true }).click();
-  await expect(itemRow(page, title)).toContainText("↺ monthly · last day");
+  await expect(itemRow(page, title)).toContainText("↺ monthly, last day");
 });
 
 test("repeating on the last day moves the date to the month's last day", async ({ page }) => {
@@ -78,5 +78,8 @@ test("repeating on the last day moves the date to the month's last day", async (
   await expect(dialog.getByRole("button", { name: lastLabel, exact: true })).toBeVisible();
 
   await dialog.getByRole("button", { name: "[ add ]", exact: true }).click();
-  await expect(itemRow(page, title)).toContainText(`next ${lastLabel}`);
+  // Date first, then the repeat, each on its own side of a "·"
+  await expect(itemRow(page, title)).toContainText(lastLabel);
+  await expect(itemRow(page, title)).toContainText("↺ monthly, last day");
+  await expect(itemRow(page, title)).not.toContainText("next");
 });

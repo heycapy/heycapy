@@ -27,6 +27,20 @@ export function buildDeadline(date: string, hour: string, min: string, ampm: Amp
   return isNaN(d.getTime()) ? date : d.toISOString();
 }
 
+// Where a freshly picked date starts: 9am, unless that's already gone today, then the next
+// :00 or :30; an empty hour (all day) once no half hour is left today
+export function defaultTimeFor(
+  date: string,
+  now = new Date()
+): { hour: string; min: string; ampm: Ampm } {
+  const nineAm = { hour: "9", min: "00", ampm: "am" as Ampm };
+  if (date !== deadlineDate(now.toISOString()) || now.getHours() < 9) return nineAm;
+  const next = (Math.floor((now.getHours() * 60 + now.getMinutes()) / 30) + 1) * 30;
+  if (next >= 24 * 60) return { ...nineAm, hour: "" };
+  const { hour, ampm } = toH12(Math.floor(next / 60));
+  return { hour, min: String(next % 60).padStart(2, "0"), ampm };
+}
+
 export function lastDayOfMonth(date: string): string {
   const [year = 0, month = 1] = date.split("-").map(Number);
   const day = new Date(Date.UTC(year, month, 0)).getUTCDate();

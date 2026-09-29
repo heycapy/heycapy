@@ -14,7 +14,7 @@ import { cn } from "@/lib/utils";
 import { useScrollLock } from "@/hooks/useScrollLock";
 import { useScrollToFirst } from "@/hooks/useScrollToFirst";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
-import { buildDeadline, deadlineDate, lastDayOfMonth } from "@/lib/time";
+import { buildDeadline, deadlineDate, defaultTimeFor, lastDayOfMonth } from "@/lib/time";
 import { isLastDayRepeat } from "@/lib/items/occurrence";
 import { ITEM_TITLE_MAX_LENGTH, MOBILE_MEDIA_QUERY } from "@/constants";
 
@@ -135,8 +135,16 @@ export function ItemDialog({
   // A "last day of the month" repeat keeps the date on its month's last day
   function handleDateChange(newDate: string) {
     const date = newDate && isLastDayRepeat(recurring) ? lastDayOfMonth(newDate) : newDate;
-    onDeadlineChange(buildDeadline(date, timeHour, timeMin, timeAmpm));
+    const time = deadline ? { hour: timeHour, min: timeMin, ampm: timeAmpm } : defaultTimeFor(date);
+    if (!deadline) setTime(time);
+    onDeadlineChange(buildDeadline(date, time.hour, time.min, time.ampm));
     if (!newDate) onRecurringChange?.(null);
+  }
+
+  function setTime({ hour, min, ampm }: TimeValue) {
+    setTimeHour(hour);
+    setTimeMin(min);
+    setTimeAmpm(ampm);
   }
 
   function handleRecurringChange(next: RecurringConfig | null) {
@@ -145,11 +153,9 @@ export function ItemDialog({
     onDeadlineChange(buildDeadline(lastDayOfMonth(datePart), timeHour, timeMin, timeAmpm));
   }
 
-  function handleTimeChange({ hour, min, ampm }: TimeValue) {
-    setTimeHour(hour);
-    setTimeMin(min);
-    setTimeAmpm(ampm);
-    if (datePart) onDeadlineChange(buildDeadline(datePart, hour, min, ampm));
+  function handleTimeChange(time: TimeValue) {
+    setTime(time);
+    if (datePart) onDeadlineChange(buildDeadline(datePart, time.hour, time.min, time.ampm));
   }
 
   function handleConfirmClick() {

@@ -29,7 +29,10 @@ export function describeRepeat(config: RecurringConfig): string {
 
 export function repeatLabel(config: RecurringConfig): string {
   const days = pickedDays(config);
-  if (days) return config.interval === 1 ? days : `${days} · every ${config.interval} weeks`;
-  if (isLastDayRepeat(config)) return "monthly · last day";
-  return config.frequency;
+  if (days) return config.interval === 1 ? days : `${days}, every ${config.interval} weeks`;
+  const plain =
+    config.interval === 1
+      ? config.frequency
+      : `every ${config.interval} ${UNITS[config.frequency]}s`;
+  return isLastDayRepeat(config) ? `${plain}, last day` : plain;
 }
