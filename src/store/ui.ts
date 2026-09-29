@@ -15,7 +15,6 @@ type UIStore = {
   todayOpen: boolean;
   openToday: () => void;
 
-  // Adding from today goes into this bucket until another is picked
   todayAddBucketId: number | null;
   setTodayAddBucketId: (id: number) => void;
 };

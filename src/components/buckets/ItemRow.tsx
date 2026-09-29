@@ -1,8 +1,8 @@
 import { formatShort, formatShortTime } from "@/lib/format-date";
 import { ITEM_STATUS, isClosedStatus } from "@/constants";
 import { ITEM_HIGHLIGHT_MS } from "./constants";
+import { StatusPicker, type StatusAnchor } from "./StatusPicker";
 import { useEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
 import { Bell, BellOff, GripVertical, TriangleAlert } from "lucide-react";
 import type { DragControls } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -28,51 +28,6 @@ type ItemRowProps = {
   reminderBadge?: ReminderBadge;
   bucket?: { name: string; color: string };
 };
-
-function StatusPicker({
-  current,
-  statuses,
-  position,
-  onSelect,
-  onClose,
-}: {
-  current: string;
-  statuses: StatusDef[];
-  position: { top: number; left: number };
-  onSelect: (s: string) => void;
-  onClose: () => void;
-}) {
-  return createPortal(
-    <>
-      <div className="fixed inset-0 z-30" onClick={onClose} />
-      <div
-        className="bg-background border-border fixed z-40 border-2 py-1"
-        style={{
-          top: position.top,
-          left: position.left,
-          boxShadow: "2px 2px 0 var(--border)",
-        }}
-      >
-        {statuses.map((s) => (
-          <button
-            key={s.name}
-            onClick={() => onSelect(s.name)}
-            className={cn(
-              "flex w-full items-center gap-2 px-3 py-1.5 font-mono text-xs transition-colors",
-              s.name === current
-                ? "bg-foreground text-background"
-                : "text-foreground hover:bg-muted"
-            )}
-          >
-            <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: s.color }} />
-            {s.name}
-          </button>
-        ))}
-      </div>
-    </>,
-    document.body
-  );
-}
 
 function getRecurringFrequency(raw: string | null): string | null {
   const config = parseRecurring(raw);
@@ -149,7 +104,7 @@ export function ItemRow({
   reminderBadge,
   bucket,
 }: ItemRowProps) {
-  const [pickerPos, setPickerPos] = useState<{ top: number; left: number } | null>(null);
+  const [pickerAnchor, setPickerAnchor] = useState<StatusAnchor | null>(null);
   const [reminderOpen, setReminderOpen] = useState(false);
   const ReminderIcon = reminderBadge ? REMINDER_ICON[reminderBadge].Icon : null;
   const dotRef = useRef<HTMLButtonElement>(null);
@@ -175,7 +130,7 @@ export function ItemRow({
   function openPicker() {
     if (!dotRef.current) return;
     const rect = dotRef.current.getBoundingClientRect();
-    setPickerPos({ top: rect.bottom + 6, left: rect.left });
+    setPickerAnchor({ top: rect.top, bottom: rect.bottom, left: rect.left });
   }
 
   return (
@@ -217,16 +172,16 @@ export function ItemRow({
         />
       </button>
 
-      {pickerPos && onStatusChange && (
+      {pickerAnchor && onStatusChange && (
         <StatusPicker
           current={item.status}
           statuses={statuses}
-          position={pickerPos}
+          anchor={pickerAnchor}
           onSelect={(s) => {
             onStatusChange(s);
-            setPickerPos(null);
+            setPickerAnchor(null);
           }}
-          onClose={() => setPickerPos(null)}
+          onClose={() => setPickerAnchor(null)}
         />
       )}
 

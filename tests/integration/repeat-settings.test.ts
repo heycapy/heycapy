@@ -84,7 +84,6 @@ it("a last-day repeat moves the date to the month's last day, keeping the time",
   await save(itemId, { ...monthly, anchorDay: 31 });
   expect(await deadline()).toBe("2026-03-31T09:00:00.000Z");
 
-  // A status change sends no repeat; the saved one still applies
   await updateItemAction(itemId, "rent", "2026-03-15T09:00:00.000Z", "active");
   expect(await deadline()).toBe("2026-03-31T09:00:00.000Z");
 });

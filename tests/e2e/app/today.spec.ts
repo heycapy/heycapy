@@ -36,11 +36,9 @@ test("a new session opens on today, and choosing a bucket leaves it", async ({ p
 
   await todayButton(page).click();
   await expect(page.getByRole("heading", { name: "today" })).toBeVisible();
-  // Search is global now, in the header, not part of today
   await expect(page.getByRole("textbox", { name: "search all items" })).toHaveCount(0);
 });
 
-// All day today, in the browser's (and so the user's) timezone
 function todayDate(): string {
   return new Date().toLocaleDateString("en-CA");
 }

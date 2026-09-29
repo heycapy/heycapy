@@ -92,8 +92,6 @@ export function ItemDialog({
     (f) => f.validation?.required && isEmpty(properties?.[f.key])
   );
 
-  // Runs in the commit of the tap that opened it: iOS raises the keyboard only for a focus
-  // inside the tap, so a timeout or a plain effect would focus without a keyboard
   useLayoutEffect(() => {
     if (!open) return;
     const el = textareaRef.current;
@@ -117,7 +115,6 @@ export function ItemDialog({
         setTimeMin(String(d.getMinutes()).padStart(2, "0"));
         setTimeAmpm(h24 >= 12 ? "pm" : "am");
       } else {
-        // A date without a time is all day
         setTimeHour(deadline ? "" : "9");
         setTimeMin("00");
         setTimeAmpm("am");
@@ -132,7 +129,6 @@ export function ItemDialog({
     e.target.style.height = `${e.target.scrollHeight}px`;
   }
 
-  // A "last day of the month" repeat keeps the date on its month's last day
   function handleDateChange(newDate: string) {
     const date = newDate && isLastDayRepeat(recurring) ? lastDayOfMonth(newDate) : newDate;
     const time = deadline ? { hour: timeHour, min: timeMin, ampm: timeAmpm } : defaultTimeFor(date);

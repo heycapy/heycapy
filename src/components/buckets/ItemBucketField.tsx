@@ -6,7 +6,6 @@ export type BucketChoice = {
   onChange: (id: number) => void;
 };
 
-// A native select: stays one line with any number of buckets, and phones show their own picker
 export function ItemBucketField({
   choice,
   disabled,
@@ -32,7 +31,6 @@ export function ItemBucketField({
           value={choice.value}
           onChange={(e) => choice.onChange(Number(e.target.value))}
           disabled={disabled}
-          // 16px on phones: iOS zooms the page into any smaller control
           className="min-w-0 flex-1 appearance-none truncate bg-transparent py-1.5 pr-6 font-mono text-base outline-none disabled:opacity-50 sm:text-sm"
         >
           {choice.options.map((b) => (

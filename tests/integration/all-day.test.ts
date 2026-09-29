@@ -144,8 +144,6 @@ describe("a monthly series on the 31st", () => {
 });
 
 describe("a time without a zone is the user's local time, not the server's", () => {
-  // A zone other than the machine's, so reading the time in the server's own zone shows up.
-  // 21:00 on Mar 11 in New York (EDT, UTC-4)
   const NY = "America/New_York";
   const MAR_11_9PM = new Date("2026-03-12T01:00:00Z");
 

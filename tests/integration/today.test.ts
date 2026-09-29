@@ -42,7 +42,6 @@ describe("today", () => {
     await add(userId, work, "standup", { deadline: new Date(T0.getTime() + HOUR) });
     await add(userId, bills, "water", { deadline: new Date(T0.getTime() + 6 * DAY) });
 
-    // The browser narrows this to its own "today"; the server only has to cover every timezone's
     const today = await listToday(userId, T0);
     expect(titles(today.items)).toEqual(["rent", "standup"]);
     expect(today.buckets.map((b) => b.id).sort()).toEqual([bills, work].sort());

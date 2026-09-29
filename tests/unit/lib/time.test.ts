@@ -78,7 +78,6 @@ describe("lastDayOfMonth", () => {
 });
 
 describe("defaultTimeFor", () => {
-  // Local times, like the browser sees them
   const at = (h: number, m: number) => new Date(2026, 8, 29, h, m);
   const today = "2026-09-29";
 

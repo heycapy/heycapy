@@ -8,7 +8,6 @@ export const WEEKDAY_NAMES = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"] a
 export const WORK_WEEK = [1, 2, 3, 4, 5];
 export const LAST_DAY_OF_MONTH = 31;
 export const TRASH_RETENTION_DAYS = 30;
-// Today shows overdue and due today; the end of "today" in any timezone is within a day of now
 export const TODAY_FETCH_AHEAD_DAYS = 1;
 export const SEARCH_RESULTS_MAX = 50;
 
@@ -123,7 +122,5 @@ export const ADMIN_DIGEST_MAX_ERRORS = 30;
 export const STACK_LINES_IN_ALERT = 12;
 export const TELEGRAM_MESSAGE_MAX = 4000;
 
-// Tailwind's `sm` breakpoint: below it is treated as a phone
 export const MOBILE_MEDIA_QUERY = "(max-width: 639px)";
-// Tailwind's `md` breakpoint: below it the buckets use the bottom bar instead of tabs
 export const BOTTOM_BAR_MEDIA_QUERY = "(max-width: 767px)";

@@ -32,7 +32,6 @@ function BouncingDots() {
 export function ChatMessageList({ messages, streaming, fullscreen }: Props) {
   const listRef = useRef<HTMLDivElement>(null);
 
-  // Scrolls only the list: scrollIntoView also scrolled the phone drawer around it
   useEffect(() => {
     const list = listRef.current;
     list?.scrollTo({ top: list.scrollHeight, behavior: "smooth" });

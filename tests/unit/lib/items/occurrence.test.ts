@@ -224,7 +224,6 @@ describe("onLastDayIfAnchored", () => {
   const lastDay: RecurringConfig = { ...monthly, anchorDay: 31 };
 
   it("moves the date to its month's last day, keeping the time", () => {
-    // 21:00 on Oct 21 in Kolkata
     const oct21 = new Date("2026-10-21T15:30:00Z");
     expect(onLastDayIfAnchored(oct21, lastDay, "Asia/Kolkata").toISOString()).toBe(
       "2026-10-31T15:30:00.000Z"
@@ -235,7 +234,6 @@ describe("onLastDayIfAnchored", () => {
   });
 
   it("judges the month in the user's timezone", () => {
-    // Mar 31 in UTC, already Apr 1 01:30 in Kolkata: April's last day
     const date = new Date("2026-03-31T20:00:00Z");
     expect(onLastDayIfAnchored(date, lastDay, "Asia/Kolkata").toISOString()).toBe(
       "2026-04-29T20:00:00.000Z"

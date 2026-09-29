@@ -38,7 +38,6 @@ function SearchBody({ onClose }: { onClose: () => void }) {
   );
   useScrollLock(true);
 
-  // In the commit of the tap that opened it, so iOS raises the keyboard too
   useLayoutEffect(() => {
     inputRef.current?.focus();
   }, []);
@@ -64,7 +63,6 @@ function SearchBody({ onClose }: { onClose: () => void }) {
           placeholder="search all items…"
           aria-label="search all items"
           maxLength={200}
-          // 16px on phones: iOS zooms the page into any smaller input
           className="placeholder:text-muted-foreground/50 min-w-0 flex-1 bg-transparent py-2 font-mono text-base outline-none sm:text-sm"
         />
         <BracketButton onClick={onClose} className="py-2 text-base">

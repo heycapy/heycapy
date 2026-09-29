@@ -8,8 +8,6 @@ function addPage(page: Page) {
   return page.getByRole("dialog", { name: "new item" });
 }
 
-// iOS raises the keyboard only when focus happens inside the tap. A window listener runs
-// after React's handler, at the end of the same click, so this reads what the tap focused
 async function tapAndReadFocus(page: Page, tap: () => Promise<void>): Promise<string> {
   await page.evaluate(() => {
     window.addEventListener(
@@ -35,7 +33,6 @@ test("the bottom bar's add opens a full screen page with cancel and add at the b
   const title = addForm.locator("textarea");
   const add = addForm.getByRole("button", { name: "[ add ]", exact: true });
   await expect(title).toBeFocused();
-  // Cancel and add sit at the bottom of the screen, under the form
   await expect(add).toBeVisible();
   await expect(title).toBeVisible();
   const addBox = await add.boundingBox();
@@ -55,7 +52,6 @@ test("the bottom bar's add opens a full screen page with cancel and add at the b
   expect(await tapAndReadFocus(page, () => itemRow(page, name).tap())).toBe("TEXTAREA");
   const editTitle = page.getByRole("dialog", { name: "edit item" }).locator("textarea");
   await expect(editTitle).toBeFocused();
-  // Cursor at the end of the existing title, ready to keep typing
   expect(await editTitle.evaluate((el: HTMLTextAreaElement) => el.selectionStart)).toBe(
     name.length
   );

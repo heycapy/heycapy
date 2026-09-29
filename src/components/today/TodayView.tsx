@@ -98,7 +98,6 @@ export function TodayView({ buckets, addItemRef }: TodayViewProps) {
                 value: addTo.bucket.id,
                 onChange: (id) => {
                   setTodayAddBucketId(id);
-                  // Field values belong to the bucket they were typed for
                   editor.dialogProps.onPropertiesChange({});
                 },
               }

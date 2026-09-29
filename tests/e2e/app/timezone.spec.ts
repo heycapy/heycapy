@@ -4,7 +4,6 @@ import { createAndSelectBucket, itemRow, uniqueName } from "../helpers/buckets";
 import { modal } from "../helpers/settings";
 import { enableWebhook, postItem } from "../helpers/webhook";
 
-// A zone other than the test server's, so a time sent without a zone would land elsewhere
 test.use({ storageState: authState("timezone"), timezoneId: "America/New_York" });
 
 test("updating an item without changes keeps its date and time", async ({ page }) => {

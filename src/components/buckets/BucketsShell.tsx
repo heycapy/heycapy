@@ -151,7 +151,6 @@ export function BucketsShell({ buckets: rawBuckets, focusBucketId = null }: Buck
       </div>
 
       <div className="border-border bg-background sticky bottom-0 border-t-2 md:border-t-0">
-        {/* Mobile: place switcher · add · capy */}
         <div className="grid grid-cols-[1fr_auto_1fr] items-stretch md:hidden">
           <button
             onClick={() => setPickerOpen(true)}

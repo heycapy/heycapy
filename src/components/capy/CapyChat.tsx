@@ -41,7 +41,6 @@ export function CapyChat() {
   useEffect(() => {
     const prev = prevChatStateRef.current;
     prevChatStateRef.current = chatState;
-    // On phones the keyboard would cover the replies; the input is one tap away
     if (isMobile) return;
     if (chatState === "open" && (prev === "closed" || prev === "minimized")) {
       const delay = prev === "minimized" ? 210 : 0;

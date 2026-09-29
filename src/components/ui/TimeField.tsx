@@ -14,14 +14,12 @@ const QUARTERS = ["00", "15", "30", "45"];
 const PANEL = { width: 252, height: 272 };
 const LABEL = "text-muted-foreground font-mono text-[11px]";
 
-// An empty hour means no time: the item is due all day
 export type TimeValue = { hour: string; min: string; ampm: Ampm };
 
 type TimeFieldProps = {
   value: TimeValue;
   onChange: (value: TimeValue) => void;
   disabled?: boolean;
-  // Offers "all day" (an empty hour); only where a date without a time means something
   allowAllDay?: boolean;
 };
 

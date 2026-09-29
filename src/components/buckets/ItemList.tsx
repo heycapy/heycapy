@@ -2,6 +2,7 @@ import type { RefObject } from "react";
 import { Reorder } from "framer-motion";
 import { ItemRow } from "./ItemRow";
 import { SwipeableRow } from "./SwipeableRow";
+import { completionToggle } from "./completion";
 import { DraggableItem } from "./DraggableItem";
 import type { ReminderBadge } from "@/lib/reminders/status";
 import type { items } from "@/lib/db/schema";
@@ -81,7 +82,13 @@ export function ItemList({
   return (
     <div className="divide-border/50 divide-y divide-dotted">
       {items.map((item) => (
-        <SwipeableRow key={item.id} onDelete={() => onDelete(item.id)} disabled={readonly}>
+        <SwipeableRow
+          key={item.id}
+          onDelete={() => onDelete(item.id)}
+          onComplete={() => onStatusChange(item, completionToggle(item.status, statuses).next)}
+          completeLabel={completionToggle(item.status, statuses).label}
+          disabled={readonly}
+        >
           <ItemRow {...rowProps(item)} />
         </SwipeableRow>
       ))}

@@ -52,7 +52,6 @@ test("a time can be picked from the grid or typed, and is saved", async ({ page 
 test("a date without a time shows as all day, and a time can be taken off again", async ({
   page,
 }) => {
-  // Morning, so a fresh date starts at 9am whichever day of the month this runs
   const morning = new Date();
   morning.setHours(8, 0, 0, 0);
   await page.clock.setFixedTime(morning);
@@ -65,7 +64,6 @@ test("a date without a time shows as all day, and a time can be taken off again"
   await dialog.locator("textarea").first().fill(title);
   await dialog.getByRole("button", { name: "pick date" }).click();
   await page.getByRole("button", { name: "28", exact: true }).click();
-  // A date picked fresh starts at 9am, as before
   await expect(dialog.getByRole("button", { name: "time: 9 am" })).toBeVisible();
 
   await dialog.getByRole("button", { name: /^time: / }).click();
@@ -76,7 +74,6 @@ test("a date without a time shows as all day, and a time can be taken off again"
   await dialog.getByRole("button", { name: "[ add ]", exact: true }).click();
   await expect(itemRow(page, title)).not.toContainText("9am");
 
-  // Opening an all-day item shows all day, not a made-up 9 am
   await itemRow(page, title).click();
   await expect(dialog.getByRole("button", { name: "time: all day" })).toBeVisible();
   await dialog.getByRole("button", { name: /^time: / }).click();

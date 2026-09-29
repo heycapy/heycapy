@@ -552,7 +552,6 @@
   font-family: var(--font-geist-mono), monospace !important;
 }
 
-/* In a layer so border color utilities (border-destructive, focus:border-foreground, …) win */
 @layer base {
   *,
   ::after,
@@ -613,7 +612,6 @@ body {
   }
 }
 
-/* Sonner sizes the button for its 20px icon; "[x]" is wider and wrapped its "]" */
 [data-sonner-toast] [data-close-button] {
   position: absolute !important;
   top: 2px !important;

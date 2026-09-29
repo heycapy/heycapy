@@ -2,7 +2,10 @@ import { cn } from "@/lib/utils";
 import { ItemRow } from "@/components/buckets/ItemRow";
 import { parseFields } from "@/components/buckets/fields";
 import { BUCKET_PALETTE, DEFAULT_BUCKET_STATUSES } from "@/components/buckets/constants";
-import { updateItemAction } from "@/app/(app)/actions";
+import { deleteItemAction, updateItemAction } from "@/app/(app)/actions";
+import { SwipeableRow } from "@/components/buckets/SwipeableRow";
+import { completionToggle } from "@/components/buckets/completion";
+import { offerUndoDelete } from "@/components/buckets/undoDelete";
 import type { CrossBucketItems } from "@/lib/items/today";
 import type { items } from "@/lib/db/schema";
 
@@ -42,25 +45,40 @@ export function CrossBucketList({
     await onChanged();
   }
 
+  async function deleteItem(item: Item) {
+    await deleteItemAction(item.id);
+    await onChanged();
+    offerUndoDelete(item.id, item.title, onChanged);
+  }
+
   function row(item: Item) {
     const bucket = bucketOf(item);
+    const readonly = bucket?.readonly === true;
+    const toggle = completionToggle(item.status, statuses);
     return (
-      <ItemRow
+      <SwipeableRow
         key={item.id}
-        item={item}
-        statuses={statuses}
-        fields={bucket ? parseFields(bucket.fieldSchema) : []}
-        isEditing={editingItemId === item.id}
-        onEditStart={() => onEdit(item)}
-        onStatusChange={(status) => void changeStatus(item, status)}
-        reminderBadge={data?.reminderBadges[item.id]}
-        bucket={
-          bucket && {
-            name: bucket.icon ? `${bucket.icon} ${bucket.name}` : bucket.name,
-            color: BUCKET_PALETTE[bucket.index % BUCKET_PALETTE.length] ?? "",
+        onDelete={() => void deleteItem(item)}
+        onComplete={() => void changeStatus(item, toggle.next)}
+        completeLabel={toggle.label}
+        disabled={readonly}
+      >
+        <ItemRow
+          item={item}
+          statuses={statuses}
+          fields={bucket ? parseFields(bucket.fieldSchema) : []}
+          isEditing={editingItemId === item.id}
+          onEditStart={readonly ? undefined : () => onEdit(item)}
+          onStatusChange={readonly ? undefined : (status) => void changeStatus(item, status)}
+          reminderBadge={data?.reminderBadges[item.id]}
+          bucket={
+            bucket && {
+              name: bucket.icon ? `${bucket.icon} ${bucket.name}` : bucket.name,
+              color: BUCKET_PALETTE[bucket.index % BUCKET_PALETTE.length] ?? "",
+            }
           }
-        }
-      />
+        />
+      </SwipeableRow>
     );
   }
 

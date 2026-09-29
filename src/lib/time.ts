@@ -11,7 +11,6 @@ export function toH12(h24: number): { hour: string; ampm: Ampm } {
   return { hour: String(h), ampm: isPm ? "pm" : "am" };
 }
 
-// A deadline is an all-day "YYYY-MM-DD" or a datetime; this is its local calendar day
 export function deadlineDate(deadline: string): string {
   if (!deadline.includes("T")) return deadline;
   const d = new Date(deadline);
@@ -27,8 +26,6 @@ export function buildDeadline(date: string, hour: string, min: string, ampm: Amp
   return isNaN(d.getTime()) ? date : d.toISOString();
 }
 
-// Where a freshly picked date starts: 9am, unless that's already gone today, then the next
-// :00 or :30; an empty hour (all day) once no half hour is left today
 export function defaultTimeFor(
   date: string,
   now = new Date()

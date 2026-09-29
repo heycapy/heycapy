@@ -34,7 +34,6 @@ test("capy in the bottom bar opens the chat as a drawer on phones", async ({ pag
   const chat = page.getByRole("dialog", { name: "chat with capy" });
   await expect(chat.getByText("am capy")).toBeVisible();
   await expect(chat.getByPlaceholder("ask capy...")).not.toBeFocused();
-  // Scrolling to the latest message used to scroll the drawer itself, pushing its header off
   await expect.poll(() => chat.evaluate((el) => el.scrollTop)).toBe(0);
 
   await chat.getByRole("button", { name: "[ history ]", exact: true }).tap();

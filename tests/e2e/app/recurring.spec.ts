@@ -78,7 +78,6 @@ test("repeating on the last day moves the date to the month's last day", async (
   await expect(dialog.getByRole("button", { name: lastLabel, exact: true })).toBeVisible();
 
   await dialog.getByRole("button", { name: "[ add ]", exact: true }).click();
-  // Date first, then the repeat, each on its own side of a "·"
   await expect(itemRow(page, title)).toContainText(lastLabel);
   await expect(itemRow(page, title)).toContainText("↺ monthly, last day");
   await expect(itemRow(page, title)).not.toContainText("next");

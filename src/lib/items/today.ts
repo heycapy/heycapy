@@ -3,6 +3,7 @@ import { CLOSED_ITEM_STATUSES, SEARCH_RESULTS_MAX, TODAY_FETCH_AHEAD_DAYS } from
 import { db } from "@/lib/db";
 import { buckets, items } from "@/lib/db/schema";
 import { getReminderBadges, type ReminderBadge } from "@/lib/reminders/status";
+import { parseItemsRules } from "@/lib/rules";
 
 type Item = typeof items.$inferSelect;
 
@@ -12,6 +13,7 @@ export type ItemBucket = {
   icon: string | null;
   fieldSchema: unknown;
   index: number;
+  readonly: boolean;
 };
 
 export type CrossBucketItems = {
@@ -42,7 +44,16 @@ async function withBuckets(userId: number, rows: Item[]): Promise<CrossBucketIte
     items: rows,
     buckets: all.flatMap((b, index) =>
       used.has(b.id)
-        ? [{ id: b.id, name: b.name, icon: b.icon, fieldSchema: b.fieldSchema, index }]
+        ? [
+            {
+              id: b.id,
+              name: b.name,
+              icon: b.icon,
+              fieldSchema: b.fieldSchema,
+              index,
+              readonly: parseItemsRules(b.itemsRules).readonly === true,
+            },
+          ]
         : []
     ),
     reminderBadges: badges,
