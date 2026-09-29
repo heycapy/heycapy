@@ -280,6 +280,7 @@ async function executeToolCallInner(
         updatedAt: Date;
         title?: string;
         deadline?: Date | null;
+        scheduledAt?: null;
         notifiedAt?: Date | null;
         overdueNotifiedAt?: Date | null;
         remindNotBefore?: Date | null;
@@ -300,6 +301,7 @@ async function executeToolCallInner(
           ? parseLocalDateTime(String(args.deadline), timezone)
           : null;
         updates.deadline = newDeadline;
+        if (newDeadline?.getTime() !== item.deadline?.getTime()) updates.scheduledAt = null;
         Object.assign(
           updates,
           reminderResetForDeadline(item, newDeadline, await reminderContext(item.bucketId))
@@ -315,6 +317,7 @@ async function executeToolCallInner(
       try {
         const parsed = parseRecurringArgs(args);
         if (parsed !== undefined) updates.recurring = parsed;
+        if (parsed === null) updates.scheduledAt = null;
       } catch {
         return JSON.stringify({ ok: false, error: "Invalid recurring configuration" });
       }

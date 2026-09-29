@@ -1,4 +1,4 @@
-import { RELATIVE_DAY_NAMES, MONTH_SHORT_NAMES } from "@/constants";
+import { RELATIVE_DAY_NAMES, MONTH_SHORT_NAMES, WEEKDAY_SHORT_NAMES } from "@/constants";
 import { toLocal } from "@/lib/reminders/zoned";
 
 function localDayNumber(date: Date, timezone: string): number {
@@ -50,7 +50,11 @@ export function formatShortTime(d: Date, now: Date): string {
   return d.toDateString() === now.toDateString() ? clockTime(d) : formatShort(d);
 }
 
-function clockTime(d: Date): string {
+export function formatWeekdayDate(d: Date): string {
+  return `${WEEKDAY_SHORT_NAMES[d.getDay()]} ${MONTH_SHORT_NAMES[d.getMonth()]} ${d.getDate()}`;
+}
+
+export function clockTime(d: Date): string {
   const h = d.getHours();
   const m = d.getMinutes();
   const ampm = h >= 12 ? "pm" : "am";

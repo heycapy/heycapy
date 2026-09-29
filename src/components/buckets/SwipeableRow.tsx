@@ -1,5 +1,7 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
+import { LONG_PRESS_MS, LONG_PRESS_SLOP } from "./constants";
+import type { MenuAt } from "./ItemMenu";
 
 const REVEAL_WIDTH = 128;
 const SWIPE_THRESHOLD = 50;
@@ -12,6 +14,7 @@ type SwipeableRowProps = {
   onComplete?: () => void;
   completeLabel?: string;
   disabled?: boolean;
+  onMenu?: (at: MenuAt) => void;
 };
 
 export function SwipeableRow({
@@ -20,6 +23,7 @@ export function SwipeableRow({
   onComplete,
   completeLabel = "done",
   disabled,
+  onMenu,
 }: SwipeableRowProps) {
   const [translateX, setTranslateX] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
@@ -30,6 +34,33 @@ export function SwipeableRow({
   const isDraggingHRef = useRef(false);
   const directionLockedRef = useRef(false);
   const didSwipeRef = useRef(false);
+
+  const pointerTypeRef = useRef("mouse");
+  const pressStartRef = useRef<{ x: number; y: number } | null>(null);
+  const pressAnchorRef = useRef<MenuAt | null>(null);
+  const pressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pressMovedRef = useRef(false);
+  const pressFiredRef = useRef(false);
+
+  function cancelPressTimer() {
+    if (pressTimerRef.current) clearTimeout(pressTimerRef.current);
+    pressTimerRef.current = null;
+  }
+
+  useEffect(() => cancelPressTimer, []);
+
+  function openMenuByPress() {
+    cancelPressTimer();
+    if (!onMenu || pressFiredRef.current || pressMovedRef.current) return;
+    pressFiredRef.current = true;
+    startXRef.current = null;
+    startYRef.current = null;
+    isDraggingHRef.current = false;
+    directionLockedRef.current = false;
+    if (isOpen) snapOpen();
+    else snapClose();
+    if (pressAnchorRef.current) onMenu(pressAnchorRef.current);
+  }
 
   function snapClose() {
     setIsAnimating(true);
@@ -44,6 +75,16 @@ export function SwipeableRow({
   }
 
   function onPointerDown(e: React.PointerEvent) {
+    pointerTypeRef.current = e.pointerType;
+    pressStartRef.current = { x: e.clientX, y: e.clientY };
+    const row = e.currentTarget.getBoundingClientRect();
+    pressAnchorRef.current = { x: e.clientX, top: row.top, bottom: row.bottom };
+    pressMovedRef.current = false;
+    pressFiredRef.current = false;
+    cancelPressTimer();
+    if (onMenu && e.pointerType !== "mouse" && !isOpen) {
+      pressTimerRef.current = setTimeout(openMenuByPress, LONG_PRESS_MS);
+    }
     if (disabled) return;
     startXRef.current = e.clientX;
     startYRef.current = e.clientY;
@@ -53,6 +94,11 @@ export function SwipeableRow({
   }
 
   function onPointerMove(e: React.PointerEvent) {
+    const press = pressStartRef.current;
+    if (press && Math.hypot(e.clientX - press.x, e.clientY - press.y) > LONG_PRESS_SLOP) {
+      pressMovedRef.current = true;
+      cancelPressTimer();
+    }
     if (startXRef.current === null || startYRef.current === null) return;
     const dx = e.clientX - startXRef.current;
     const dy = e.clientY - startYRef.current;
@@ -69,6 +115,8 @@ export function SwipeableRow({
   }
 
   function onPointerUp() {
+    cancelPressTimer();
+    pressStartRef.current = null;
     if (startXRef.current === null) return;
     startXRef.current = null;
     startYRef.current = null;
@@ -95,6 +143,7 @@ export function SwipeableRow({
   }
 
   function onPointerCancel() {
+    cancelPressTimer();
     startXRef.current = null;
     startYRef.current = null;
     isDraggingHRef.current = false;
@@ -103,8 +152,17 @@ export function SwipeableRow({
     else snapClose();
   }
 
+  function onContextMenu(e: React.MouseEvent) {
+    if (!onMenu) return;
+    e.preventDefault();
+    if (pointerTypeRef.current === "mouse") {
+      onMenu({ x: e.clientX, top: e.clientY, bottom: e.clientY });
+    } else openMenuByPress();
+  }
+
   function onClickCapture(e: React.MouseEvent) {
-    if (didSwipeRef.current) {
+    if (didSwipeRef.current || pressFiredRef.current) {
+      pressFiredRef.current = false;
       e.stopPropagation();
       e.preventDefault();
     }
@@ -150,7 +208,10 @@ export function SwipeableRow({
 
       {/* Swipeable content layer */}
       <div
-        className={cn("bg-background touch-pan-y", isOpen && "select-none")}
+        className={cn(
+          "bg-background touch-pan-y",
+          (isOpen || onMenu) && "select-none [-webkit-touch-callout:none]"
+        )}
         style={{
           transform: `translateX(${translateX}px)`,
           transition: isAnimating ? "transform 0.2s ease" : "none",
@@ -160,6 +221,7 @@ export function SwipeableRow({
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
         onPointerCancel={onPointerCancel}
+        onContextMenu={onContextMenu}
         onClickCapture={onClickCapture}
         onTransitionEnd={() => setIsAnimating(false)}
       >

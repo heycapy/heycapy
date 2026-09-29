@@ -25,10 +25,10 @@ import {
   getBucketTelegramConfig,
   parseTimeStringExtended,
   setFlowState,
-  updateItemDeadline,
   type RescheduleState,
 } from "./telegram-utils";
 import { buildCalendarRows, showItemActionMenu } from "./telegram-manage";
+import { moveOccurrence } from "@/lib/items/recurrence";
 
 type Ctx = { botToken: string; chatId: string; userId: number; timezone: string };
 
@@ -153,14 +153,16 @@ async function showTimes(ctx: Ctx, item: Item, date: string, messageId: number, 
 }
 
 async function finish(ctx: Ctx, item: Item, deadline: Date, messageId: number, now: Date) {
-  await updateItemDeadline(ctx.userId, item.id, deadline);
+  const moved = await moveOccurrence(ctx.userId, item.id, deadline, now);
   await setFlowState(ctx.userId, null);
   dataEvents.emit("refresh", ctx.userId);
   await editTelegramHtml(
     ctx.botToken,
     ctx.chatId,
     messageId,
-    itemMovedHtml(item.title, deadline, now, ctx.timezone)
+    moved.ok
+      ? itemMovedHtml(item.title, deadline, moved.next, now, ctx.timezone)
+      : "this item is done or no longer exists"
   );
 }
 

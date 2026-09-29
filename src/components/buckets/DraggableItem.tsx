@@ -2,6 +2,7 @@ import type { RefObject } from "react";
 import { Reorder, useDragControls } from "framer-motion";
 import { ItemRow } from "./ItemRow";
 import { SwipeableRow } from "./SwipeableRow";
+import type { MenuAt } from "./ItemMenu";
 import { completionToggle } from "./completion";
 import { reorderItemsAction } from "@/app/(app)/actions";
 import type { ReminderBadge } from "@/lib/reminders/status";
@@ -16,9 +17,11 @@ type DraggableItemProps = {
   fields: FieldDef[];
   orderedItemsRef: RefObject<Item[]>;
   isEditing?: boolean;
+  menuOpen?: boolean;
   onEditStart?: () => void;
   onStatusChange?: (status: string) => void;
   onDelete?: () => void;
+  onMenu: (at: MenuAt) => void;
   reminderBadge?: ReminderBadge;
 };
 
@@ -28,9 +31,11 @@ export function DraggableItem({
   fields,
   orderedItemsRef,
   isEditing,
+  menuOpen,
   onEditStart,
   onStatusChange,
   onDelete,
+  onMenu,
   reminderBadge,
 }: DraggableItemProps) {
   const controls = useDragControls();
@@ -57,6 +62,7 @@ export function DraggableItem({
         }
         completeLabel={completionToggle(item.status, statuses).label}
         disabled={!onDelete}
+        onMenu={onMenu}
       >
         <ItemRow
           item={item}
@@ -64,9 +70,11 @@ export function DraggableItem({
           fields={fields}
           dragControls={controls}
           isEditing={isEditing}
+          menuOpen={menuOpen}
           onEditStart={onEditStart}
           onStatusChange={onStatusChange}
           reminderBadge={reminderBadge}
+          onMenu={onMenu}
         />
       </SwipeableRow>
     </Reorder.Item>

@@ -15,8 +15,10 @@ import { reminderResetForDeadline } from "./reminders";
 import {
   followingOccurrence,
   nextAfterCompletion,
+  nextInSeries,
   nextOccurrenceDate,
   parseRecurring,
+  seriesDate,
   withAnchor,
 } from "./occurrence";
 
@@ -46,7 +48,7 @@ async function insertOccurrence(
       properties: from.properties,
       deadline,
       notificationOffsetMins: from.notificationOffsetMins,
-      recurring: JSON.stringify(withAnchor(config, from.deadline, ctx.timezone)),
+      recurring: JSON.stringify(withAnchor(config, seriesDate(from), ctx.timezone)),
       source: from.source,
     })
     .returning({ id: items.id });
@@ -61,11 +63,17 @@ export async function createNextOccurrence(itemId: number, now = new Date()): Pr
   const config = parseRecurring(completed.recurring);
   const ctx = await reminderContext(completed.bucketId);
   const mode = await recurrenceModeOf(completed.bucketId);
+  const occurrence = { deadline: completed.deadline, scheduledAt: completed.scheduledAt };
   const deadline =
     config &&
     (mode === "afterCompletion"
-      ? nextAfterCompletion(completed.deadline, config, ctx.timezone, completed.completedAt ?? now)
-      : nextOccurrenceDate(completed.deadline, config, ctx.timezone, now));
+      ? nextAfterCompletion(
+          seriesDate(occurrence),
+          config,
+          ctx.timezone,
+          completed.completedAt ?? now
+        )
+      : nextInSeries(occurrence, config, ctx.timezone, now));
   if (!config || !deadline) return;
 
   // Atomic: only the first completion creates the next occurrence
@@ -101,7 +109,8 @@ export async function moveOnMissedOccurrences(now = new Date()): Promise<void> {
     const ctx = await reminderContext(item.bucketId);
 
     // The latest occurrence that has already arrived becomes the current one
-    let current = followingOccurrence(item.deadline, config, ctx.timezone);
+    const occurrence = { deadline: item.deadline, scheduledAt: item.scheduledAt };
+    let current = nextOccurrenceDate(seriesDate(occurrence), config, ctx.timezone, item.deadline);
     if (!current || current > now) continue;
     for (;;) {
       const after = followingOccurrence(current, config, ctx.timezone);
@@ -143,7 +152,8 @@ export async function skipOccurrence(
   }
 
   const ctx = await reminderContext(item.bucketId);
-  const deadline = nextOccurrenceDate(item.deadline, config, ctx.timezone, now);
+  const occurrence = { deadline: item.deadline, scheduledAt: item.scheduledAt };
+  const deadline = nextInSeries(occurrence, config, ctx.timezone, now);
   if (!deadline) {
     return { ok: false, error: "This is the last occurrence — complete or delete it instead" };
   }
@@ -152,11 +162,46 @@ export async function skipOccurrence(
     .update(items)
     .set({
       deadline,
-      recurring: JSON.stringify(withAnchor(config, item.deadline, ctx.timezone)),
+      scheduledAt: null,
+      recurring: JSON.stringify(withAnchor(config, seriesDate(occurrence), ctx.timezone)),
       ...reminderResetForDeadline(item, deadline, ctx, now),
       updatedAt: now,
     })
     .where(eq(items.id, itemId));
   await refreshItemReminders([itemId]);
   return { ok: true };
+}
+
+export async function moveOccurrence(
+  userId: number,
+  itemId: number,
+  deadline: Date,
+  now = new Date()
+): Promise<ActionResult<{ next: Date | null }>> {
+  const item = await db.query.items.findFirst({
+    where: and(eq(items.id, itemId), eq(items.userId, userId), isNull(items.deletedAt)),
+  });
+  if (!item) return { ok: false, error: "Item not found" };
+
+  const config = parseRecurring(item.recurring);
+  const scheduled = config?.enabled && item.deadline ? (item.scheduledAt ?? item.deadline) : null;
+  const ctx = await reminderContext(item.bucketId);
+
+  await db
+    .update(items)
+    .set({
+      deadline,
+      scheduledAt: scheduled && scheduled.getTime() !== deadline.getTime() ? scheduled : null,
+      ...reminderResetForDeadline(item, deadline, ctx, now),
+      updatedAt: now,
+    })
+    .where(eq(items.id, itemId));
+  await refreshItemReminders([itemId]);
+
+  const mode = scheduled ? await recurrenceModeOf(item.bucketId) : null;
+  const next =
+    config && scheduled && mode !== "afterCompletion"
+      ? nextInSeries({ deadline, scheduledAt: scheduled }, config, ctx.timezone, now)
+      : null;
+  return { ok: true, next };
 }

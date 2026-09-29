@@ -1,6 +1,12 @@
 import { isClosedStatus } from "@/constants";
 import { useEffect, useRef, useState } from "react";
-import { deleteItemAction, getItemsForBucketAction, updateItemAction } from "@/app/(app)/actions";
+import { toast } from "sonner";
+import {
+  deleteItemAction,
+  getItemsForBucketAction,
+  moveItemAction,
+  updateItemAction,
+} from "@/app/(app)/actions";
 import type { ReminderBadge } from "@/lib/reminders/status";
 import type { items } from "@/lib/db/schema";
 import { useUIStore } from "@/store/ui";
@@ -59,6 +65,12 @@ export function useBucketItems(bucketId: number, itemsRules: string, showComplet
     await refetch();
   }
 
+  async function moveItem(item: Item, deadline: string) {
+    const result = await moveItemAction(item.id, deadline);
+    if (!result.ok) toast.error(result.error);
+    await refetch();
+  }
+
   async function deleteItem(itemId: number) {
     const title = fetchedItems.find((i) => i.id === itemId)?.title ?? "item";
     await deleteItemAction(itemId);
@@ -79,6 +91,7 @@ export function useBucketItems(bucketId: number, itemsRules: string, showComplet
     loading,
     refetch,
     changeStatus,
+    moveItem,
     deleteItem,
     reorder,
   };

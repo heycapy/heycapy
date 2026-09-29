@@ -96,6 +96,7 @@ export function BucketContent({ bucket, accentColor, addItemRef }: BucketContent
           onReorder={list.reorder}
           onEdit={editor.startEditing}
           onStatusChange={(item, status) => void list.changeStatus(item, status)}
+          onMove={(item, deadline) => void list.moveItem(item, deadline)}
           onDelete={(itemId) => void list.deleteItem(itemId)}
         />
       </div>

@@ -28,8 +28,15 @@ export function itemDoneHtml(title: string, alreadyDone: boolean): string {
   return `✓ <s>${escapeHtml(title)}</s>\n${alreadyDone ? "already done" : "done"}`;
 }
 
-export function itemMovedHtml(title: string, deadline: Date, now: Date, timezone: string): string {
-  return `📅 <b>${escapeHtml(title)}</b>\nmoved to ${formatWhen(deadline, now, timezone)}`;
+export function itemMovedHtml(
+  title: string,
+  deadline: Date,
+  next: Date | null,
+  now: Date,
+  timezone: string
+): string {
+  const moved = `📅 <b>${escapeHtml(title)}</b>\nmoved to ${formatWhen(deadline, now, timezone)}`;
+  return next ? `${moved}\n↺ next one stays ${formatWhen(next, now, timezone)}` : moved;
 }
 
 export function remindAgainHtml(title: string, at: Date, now: Date, timezone: string): string {

@@ -5,7 +5,8 @@ import { buckets, items, notificationQueue } from "@/lib/db/schema";
 import { encryptValue } from "@/lib/crypto";
 import { executeToolCall } from "@/lib/ai/capyTools";
 import { addItemAction, updateItemAction } from "@/app/(app)/item-actions";
-import { createItem, updateItemDeadline } from "@/app/api/telegram/telegram-utils";
+import { createItem } from "@/app/api/telegram/telegram-utils";
+import { moveOccurrence } from "@/lib/items/recurrence";
 import { POST as postWebhook } from "@/app/api/webhook/[bucketId]/route";
 import {
   HOUR,
@@ -106,7 +107,7 @@ describe("a deadline that is already past sends only the overdue alert", () => {
     expect(await sentKinds(await latestItemId(bucketId))).toEqual(["overdue"]);
 
     const itemId = await seedItem(userId, bucketId, { deadline: FUTURE });
-    await updateItemDeadline(userId, itemId, PAST);
+    await moveOccurrence(userId, itemId, PAST);
     expect(await sentKinds(itemId)).toEqual(["overdue"]);
   });
 

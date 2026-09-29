@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   followingOccurrence,
   nextAfterCompletion,
+  nextInSeries,
   nextOccurrenceDate,
   onLastDayIfAnchored,
   parseRecurring,
@@ -254,5 +255,31 @@ describe("parseRecurring with picked days", () => {
     expect(parseRecurring(stored)?.weekdays).toEqual([1, 3]);
     const broken = JSON.stringify({ ...monthly, frequency: "weekly", weekdays: [9] });
     expect(parseRecurring(broken)).toBeNull();
+  });
+});
+
+describe("nextInSeries", () => {
+  const weekly: RecurringConfig = { ...monthly, frequency: "weekly" };
+  const monday = new Date("2026-03-09T09:00:00Z");
+
+  it("matches nextOccurrenceDate for an occurrence on its schedule", () => {
+    const occurrence = { deadline: monday, scheduledAt: null };
+    expect(nextInSeries(occurrence, weekly, "UTC", now)).toEqual(
+      nextOccurrenceDate(monday, weekly, "UTC", now)
+    );
+  });
+
+  it("counts from the scheduled date, not the moved one", () => {
+    const occurrence = { deadline: new Date("2026-03-11T15:00:00Z"), scheduledAt: monday };
+    expect(nextInSeries(occurrence, weekly, "UTC", now)?.toISOString()).toBe(
+      "2026-03-16T09:00:00.000Z"
+    );
+  });
+
+  it("comes after the moved date when it was moved past the next one", () => {
+    const occurrence = { deadline: new Date("2026-03-18T09:00:00Z"), scheduledAt: monday };
+    expect(nextInSeries(occurrence, weekly, "UTC", now)?.toISOString()).toBe(
+      "2026-03-23T09:00:00.000Z"
+    );
   });
 });
