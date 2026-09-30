@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { X } from "lucide-react";
 import { DatePicker } from "@/components/ui/DatePicker";
 import { BracketButton } from "@/components/ui/BracketButton";
@@ -10,14 +10,21 @@ import { ItemStatusField } from "./ItemStatusField";
 import { ItemBucketField, type BucketChoice } from "./ItemBucketField";
 import { ItemDialogFrame } from "./ItemDialogFrame";
 import { ItemPageFrame } from "./ItemPageFrame";
+import { ItemTitleField } from "./ItemTitleField";
+import { useTitleDate } from "./useTitleDate";
 import type { RecurringConfig, StatusDef, FieldDef } from "@/types/rules";
-import { cn } from "@/lib/utils";
 import { useScrollLock } from "@/hooks/useScrollLock";
 import { useScrollToFirst } from "@/hooks/useScrollToFirst";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
-import { buildDeadline, deadlineDate, defaultTimeFor, lastDayOfMonth } from "@/lib/time";
+import {
+  buildDeadline,
+  deadlineDate,
+  defaultTimeFor,
+  lastDayOfMonth,
+  timeOfDeadline,
+} from "@/lib/time";
 import { isLastDayRepeat } from "@/lib/items/occurrence";
-import { ITEM_TITLE_MAX_LENGTH, MOBILE_MEDIA_QUERY } from "@/constants";
+import { MOBILE_MEDIA_QUERY } from "@/constants";
 
 const LABEL = "text-muted-foreground font-mono text-xs";
 
@@ -48,7 +55,7 @@ type ItemDialogProps = {
   onPropertiesChange?: (v: Record<string, unknown>) => void;
   onRecurringChange?: (v: RecurringConfig | null) => void;
   onRemindersChange?: (v: number[]) => void;
-  onConfirm: () => void;
+  onConfirm: (title?: string) => void;
   onCancel: () => void;
   onDelete?: () => void;
   bucketChoice?: BucketChoice;
@@ -79,7 +86,6 @@ export function ItemDialog({
   onDelete,
   bucketChoice,
 }: ItemDialogProps) {
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const scrollBodyRef = useRef<HTMLDivElement>(null);
   const scrollToFirst = useScrollToFirst(scrollBodyRef);
   useScrollLock(open);
@@ -89,6 +95,16 @@ export function ItemDialog({
   const [timeAmpm, setTimeAmpm] = useState<Ampm>("am");
   const wasOpenRef = useRef(false);
   const [validationAttempted, setValidationAttempted] = useState(false);
+  const titleDate = useTitleDate({
+    active: mode === "add",
+    title,
+    deadline,
+    onDeadlineChange: (next) => {
+      onDeadlineChange(next);
+      setTime(timeOfDeadline(next));
+    },
+  });
+  const resetTitleDate = titleDate.reset;
 
   const hasFields = !!(fields && fields.length > 0);
 
@@ -99,44 +115,25 @@ export function ItemDialog({
     (f) => f.validation?.required && isEmpty(properties?.[f.key])
   );
 
-  useLayoutEffect(() => {
-    if (!open) return;
-    const el = textareaRef.current;
-    if (!el) return;
-    el.style.height = "auto";
-    el.style.height = `${el.scrollHeight}px`;
-    el.focus();
-    el.setSelectionRange(el.value.length, el.value.length);
-  }, [open]);
-
   useEffect(() => {
     const didJustOpen = open && !wasOpenRef.current;
     wasOpenRef.current = open;
     if (!didJustOpen) return;
     const id = setTimeout(() => {
       setValidationAttempted(false);
-      if (deadline.includes("T")) {
-        const d = new Date(deadline);
-        const h24 = d.getHours();
-        setTimeHour(String(h24 === 0 ? 12 : h24 > 12 ? h24 - 12 : h24));
-        setTimeMin(String(d.getMinutes()).padStart(2, "0"));
-        setTimeAmpm(h24 >= 12 ? "pm" : "am");
-      } else {
-        setTimeHour(deadline ? "" : "9");
-        setTimeMin("00");
-        setTimeAmpm("am");
-      }
+      resetTitleDate();
+      setTime(timeOfDeadline(deadline));
     }, 0);
     return () => clearTimeout(id);
-  }, [open, deadline]);
+  }, [open, deadline, resetTitleDate]);
 
-  function handleTitleChange(e: React.ChangeEvent<HTMLTextAreaElement>) {
-    onTitleChange(e.target.value);
-    e.target.style.height = "auto";
-    e.target.style.height = `${e.target.scrollHeight}px`;
+  function handleTitleChange(next: string) {
+    onTitleChange(next);
+    titleDate.typed(next);
   }
 
   function handleDateChange(newDate: string) {
+    titleDate.pickByHand();
     const date = newDate && isLastDayRepeat(recurring) ? lastDayOfMonth(newDate) : newDate;
     const time = deadline ? { hour: timeHour, min: timeMin, ampm: timeAmpm } : defaultTimeFor(date);
     if (!deadline) setTime(time);
@@ -157,6 +154,7 @@ export function ItemDialog({
   }
 
   function handleTimeChange(time: TimeValue) {
+    titleDate.pickByHand();
     setTime(time);
     if (datePart) onDeadlineChange(buildDeadline(datePart, time.hour, time.min, time.ampm));
   }
@@ -174,7 +172,7 @@ export function ItemDialog({
       if (firstEmpty) scrollToFirst(`[data-field-key="${firstEmpty.key}"]`);
       return;
     }
-    onConfirm();
+    onConfirm(titleDate.match?.title);
   }
 
   const titleHasError = validationAttempted && !title.trim();
@@ -259,34 +257,18 @@ export function ItemDialog({
 
   const form = (
     <>
-      <div data-title-section className="flex flex-col gap-1.5 pb-5">
-        <label className={cn(LABEL, titleHasError && "text-destructive")}>title</label>
-        <textarea
-          ref={textareaRef}
-          value={title}
-          onChange={handleTitleChange}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.shiftKey && title.trim()) {
-              e.preventDefault();
-              handleConfirmClick();
-            }
-            if (e.key === "Escape") onCancel();
-          }}
-          placeholder={error || "what needs doing?"}
-          maxLength={ITEM_TITLE_MAX_LENGTH}
-          disabled={pending}
-          rows={1}
-          className={cn(
-            "focus:border-foreground w-full resize-none overflow-hidden border-b bg-transparent py-1.5 text-base outline-none disabled:opacity-50 sm:text-sm",
-            error || titleHasError
-              ? "border-destructive placeholder:text-destructive"
-              : "border-border placeholder:text-muted-foreground"
-          )}
-        />
-        {titleHasError && (
-          <p className="text-destructive font-mono text-[11px]">title is required</p>
-        )}
-      </div>
+      <ItemTitleField
+        open={open}
+        value={title}
+        error={error}
+        showRequired={titleHasError}
+        disabled={pending}
+        typedDate={titleDate.match}
+        onChange={handleTitleChange}
+        onEnter={handleConfirmClick}
+        onEscape={onCancel}
+        onDismissDate={titleDate.dismiss}
+      />
 
       {bucketChoice && <ItemBucketField choice={bucketChoice} disabled={pending} />}
 
