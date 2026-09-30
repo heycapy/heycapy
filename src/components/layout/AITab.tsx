@@ -17,6 +17,8 @@ import {
   SETTINGS_URL_MAX_LENGTH,
   SETTINGS_API_KEY_MAX_LENGTH,
   AI_MODEL_MAX_LENGTH,
+  AI_COMPACT_THRESHOLD_MIN,
+  AI_COMPACT_THRESHOLD_MAX,
 } from "@/constants";
 
 type AITabProps = {
@@ -169,10 +171,14 @@ export function AITab({
             <input
               type="number"
               value={aiCompactThreshold}
-              onChange={(e) => setAiCompactThreshold(Math.max(10, parseInt(e.target.value) || 40))}
+              onChange={(e) =>
+                setAiCompactThreshold(
+                  Math.max(AI_COMPACT_THRESHOLD_MIN, parseInt(e.target.value) || 40)
+                )
+              }
               placeholder="40"
-              min={10}
-              max={500}
+              min={AI_COMPACT_THRESHOLD_MIN}
+              max={AI_COMPACT_THRESHOLD_MAX}
               disabled={pending}
               className={INPUT}
             />

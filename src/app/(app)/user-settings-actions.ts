@@ -24,7 +24,12 @@ import { telegramWebhookSecret } from "@/lib/notifications/telegram-webhook";
 import type { NotificationMedium } from "@/lib/notifications/queue";
 import { isE2ETestMode } from "@/lib/e2e";
 import { errorMessage } from "@/lib/errors";
-import { APP_NAME, EMAIL_COLORS } from "@/constants";
+import {
+  AI_COMPACT_THRESHOLD_MAX,
+  AI_COMPACT_THRESHOLD_MIN,
+  APP_NAME,
+  EMAIL_COLORS,
+} from "@/constants";
 import { emailLayout } from "@/lib/email/layout";
 
 type UserSettingsUpdate = {
@@ -102,6 +107,16 @@ export async function updateUserSettingsAction(data: UserSettingsUpdate): Promis
   const trimmedName = data.personalityName.trim();
   if (!trimmedName) return { ok: false, error: "Name is required" };
   if (trimmedName.length > 50) return { ok: false, error: "Name too long" };
+  if (
+    !Number.isInteger(data.aiCompactThreshold) ||
+    data.aiCompactThreshold < AI_COMPACT_THRESHOLD_MIN ||
+    data.aiCompactThreshold > AI_COMPACT_THRESHOLD_MAX
+  ) {
+    return {
+      ok: false,
+      error: `Autocompact must be a whole number from ${AI_COMPACT_THRESHOLD_MIN} to ${AI_COMPACT_THRESHOLD_MAX}`,
+    };
+  }
 
   await db
     .update(userSettings)

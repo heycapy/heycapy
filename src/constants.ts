@@ -54,6 +54,9 @@ export const AI_REQUEST_TIMEOUT_MS = 30_000;
 export const OLLAMA_REQUEST_TIMEOUT_MS = 120_000;
 export const AI_TIMEOUT_ERROR = "The AI provider didn't answer in time. Try again.";
 export const AGENT_MAX_ROUNDS = 8;
+// How many chat messages may follow the summary before older ones are folded into it
+export const AI_COMPACT_THRESHOLD_MIN = 10;
+export const AI_COMPACT_THRESHOLD_MAX = 500;
 // Safari holds back the first 1 KB of a streamed response, which would hide the first status lines
 export const CHAT_STREAM_PADDING = " ".repeat(1024) + "\n";
 export const GROQ_API_BASE = "https://api.groq.com/openai/v1";
