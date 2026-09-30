@@ -151,39 +151,39 @@ export function BucketsShell({ buckets: rawBuckets, focusBucketId = null }: Buck
       </div>
 
       <div className="border-border bg-background sticky bottom-0 border-t-2 md:border-t-0">
-        <div className="grid grid-cols-[1fr_auto_1fr] items-stretch md:hidden">
+        <div className="grid grid-cols-[1fr_auto_1fr] items-stretch pb-[max(0.5rem,env(safe-area-inset-bottom))] md:hidden">
           <button
             onClick={() => setPickerOpen(true)}
             aria-haspopup="dialog"
             style={{ borderTopColor: todayOpen ? undefined : accentColor }}
             className={cn(
-              "bg-card -mt-0.5 flex min-w-0 items-center gap-2 border-t-2 py-3.5 pr-2 pl-3 text-left",
+              "bg-card -mt-0.5 flex min-h-14 min-w-0 items-center gap-2.5 border-t-2 pr-2 pl-5 text-left",
               todayOpen && "border-t-foreground"
             )}
           >
             {todayOpen ? (
-              <Clock size={12} className="text-foreground shrink-0" aria-hidden />
+              <Clock size={14} className="text-foreground shrink-0" aria-hidden />
             ) : (
               <span
-                className="h-2 w-2 shrink-0 rounded-full"
+                className="h-2.5 w-2.5 shrink-0 rounded-full"
                 style={{ backgroundColor: accentColor }}
               />
             )}
-            <span className="font-pixel text-foreground truncate text-xs">
+            <span className="font-pixel text-foreground truncate text-sm">
               {todayOpen
                 ? "today"
                 : activeBucket.icon
                   ? `${activeBucket.icon} ${activeBucket.name}`
                   : activeBucket.name}
             </span>
-            <ChevronDown size={11} className="text-muted-foreground shrink-0" aria-hidden />
+            <ChevronDown size={14} className="text-muted-foreground shrink-0" aria-hidden />
           </button>
           <div className="flex justify-center">
             {canAddItem && (
               <BracketButton
                 onClick={addItem}
                 style={{ color: accentColor }}
-                className="px-4 py-3 text-sm"
+                className="min-h-14 px-5 text-base"
               >
                 add +
               </BracketButton>
@@ -193,9 +193,9 @@ export function BucketsShell({ buckets: rawBuckets, focusBucketId = null }: Buck
             <button
               onClick={() => setChatState("open")}
               aria-label="chat with capy"
-              className="flex items-center px-3 transition-transform active:scale-95"
+              className="flex min-h-14 items-center pr-5 pl-3 transition-transform active:scale-95"
             >
-              <Sprite id="capy-idle-blink" size={44} />
+              <Sprite id="capy-idle-blink" size={52} />
             </button>
           </div>
         </div>

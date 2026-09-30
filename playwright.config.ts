@@ -1,6 +1,6 @@
 import { mkdirSync } from "node:fs";
 import { defineConfig, devices } from "@playwright/test";
-import { E2E_DATABASE_FILE, E2E_JWT_SECRET } from "./tests/e2e/helpers/env";
+import { E2E_DATABASE_FILE, E2E_JWT_SECRET, E2E_SERVER_OLLAMA_PORT } from "./tests/e2e/helpers/env";
 
 // Not 3000, so tests can run alongside `pnpm dev`
 const E2E_PORT = 3100;
@@ -60,6 +60,9 @@ export default defineConfig({
       TELEGRAM_BOT_TOKEN: "e2e-not-used",
       ADMIN_EMAILS: "e2e-system@heycapy.test",
       HOSTED: "true",
+      AI_PROVIDER: "ollama",
+      AI_MODEL: "e2e",
+      OLLAMA_URL: `http://127.0.0.1:${E2E_SERVER_OLLAMA_PORT}`,
       PORT: String(E2E_PORT),
     },
     reuseExistingServer: !process.env.CI,

@@ -27,7 +27,9 @@ function requireKey(config: AIConfig | undefined, provider: string): string {
 export function hasOwnAI(config?: AIConfig): boolean {
   if (!config?.provider) return false;
   if (isHosted() && config.useOwnKey === false) return false;
-  return config.provider === "ollama" ? !!config.ollamaUrl : !!config.apiKey;
+  // a hosted server never fetches a url a user typed in since it could reach our internal network
+  if (config.provider === "ollama") return !isHosted() && !!config.ollamaUrl;
+  return !!config.apiKey;
 }
 
 export function getAIProvider(requested?: AIConfig): MeteredProvider {

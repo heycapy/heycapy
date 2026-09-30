@@ -29,7 +29,7 @@ export function BucketsEmptyState() {
         </Button>
       </div>
 
-      <div className="border-border bg-background sticky bottom-0 border-t-2">
+      <div className="border-border bg-background sticky bottom-0 border-t-2 pb-[env(safe-area-inset-bottom)]">
         <div className="flex">
           <button
             onClick={openCreateBucket}

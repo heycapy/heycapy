@@ -6,15 +6,21 @@ import {
   getUserCreditsAction,
   type UserCredits,
 } from "@/app/(app)/actions";
+import type { CreditRow } from "@/lib/credits";
 import { formatShort } from "@/lib/format-date";
 import { CREDITS_NOTE_MAX_LENGTH } from "@/constants";
 import { BOX, INPUT, LABEL, SECTION } from "./settings-constants";
+
+function activityDetail(row: CreditRow): string {
+  return [row.note, row.actor && `by ${row.actor}`].filter(Boolean).join(" · ");
+}
 
 export function SystemCredits() {
   const [email, setEmail] = useState("");
   const [amount, setAmount] = useState("");
   const [note, setNote] = useState("");
   const [credits, setCredits] = useState<UserCredits | null>(null);
+  const [showActivity, setShowActivity] = useState(false);
   const [error, setError] = useState("");
   const [pending, startTransition] = useTransition();
 
@@ -22,8 +28,10 @@ export function SystemCredits() {
     setError("");
     startTransition(async () => {
       const result = await getUserCreditsAction(email);
-      if (result.ok) setCredits(result.credits);
-      else {
+      if (result.ok) {
+        setCredits(result.credits);
+        setShowActivity(false);
+      } else {
         setCredits(null);
         setError(result.error);
       }
@@ -64,18 +72,28 @@ export function SystemCredits() {
           onChange={(e) => setEmail(e.target.value)}
           placeholder="user's email"
           disabled={pending}
-          className={INPUT}
+          className={cn(INPUT, "min-w-0 flex-1")}
         />
-        <BracketButton type="submit" disabled={pending || !email.trim()}>
+        <BracketButton
+          type="submit"
+          disabled={pending || !email.trim()}
+          className="shrink-0 whitespace-nowrap"
+        >
           look up
         </BracketButton>
       </form>
 
       {credits && (
         <>
-          <p className="font-mono text-xs">
-            {credits.email} · {credits.balance} credits
-          </p>
+          <div className="flex flex-col gap-0.5">
+            <p className={cn(LABEL, "break-all")}>{credits.email}</p>
+            <p className="font-mono text-xs">{credits.balance} credits</p>
+            <p className={LABEL}>
+              {credits.totals.grant + credits.totals.purchase} granted ·{" "}
+              {-(credits.totals.message + credits.totals.refund)} used · {credits.totals.refund}{" "}
+              refunded · {credits.totals.admin} by admins
+            </p>
+          </div>
           <form
             className="flex flex-col gap-2"
             onSubmit={(e) => {
@@ -108,20 +126,34 @@ export function SystemCredits() {
               {Number(amount) < 0 ? "take" : "give"}
             </BracketButton>
           </form>
-          <ul className="divide-border/50 flex flex-col divide-y divide-dotted">
-            {credits.rows.map((row) => (
-              <li key={row.id} className={cn(LABEL, "flex justify-between gap-2 py-1")}>
-                <span className="min-w-0 break-words">
-                  {formatShort(new Date(row.createdAt))} · {row.kind}
-                  {row.note && ` · ${row.note}`}
-                  {row.actor && ` · by ${row.actor}`}
-                </span>
-                <span className={row.amount > 0 ? "text-foreground" : ""}>
-                  {row.amount > 0 ? `+${row.amount}` : row.amount}
-                </span>
-              </li>
-            ))}
-          </ul>
+          <BracketButton
+            type="button"
+            onClick={() => setShowActivity((v) => !v)}
+            className="self-start"
+          >
+            {showActivity ? "hide activity" : "show activity"}
+          </BracketButton>
+          {showActivity && (
+            <ul className="divide-border/50 border-border flex max-h-48 flex-col divide-y divide-dotted overflow-y-auto border px-2">
+              {credits.rows.map((row) => (
+                <li key={row.id} className={cn(LABEL, "flex flex-col py-1")}>
+                  <span className="flex justify-between gap-2">
+                    <span>
+                      {formatShort(new Date(row.createdAt))} · {row.kind}
+                    </span>
+                    <span className={cn("shrink-0", row.amount > 0 && "text-foreground")}>
+                      {row.amount > 0 ? `+${row.amount}` : row.amount}
+                    </span>
+                  </span>
+                  {(row.note || row.actor) && (
+                    <span className="truncate text-[11px]" title={activityDetail(row)}>
+                      {activityDetail(row)}
+                    </span>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
         </>
       )}
       {error && <p className="text-destructive font-mono text-xs">{error}</p>}

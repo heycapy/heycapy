@@ -21,7 +21,7 @@ test("admins give a user credits from the system tab", async ({ page }) => {
 
   await page.getByLabel("user email").fill(specUserEmail("system"));
   await page.getByRole("button", { name: "look up" }).click();
-  const balance = page.getByText(/^e2e-system@heycapy\.test · \d+ credits$/);
+  const balance = page.getByText(/^\d+ credits$/);
   await expect(balance).toBeVisible();
   const before = Number((await balance.textContent())?.match(/(\d+) credits/)?.[1]);
 
@@ -29,8 +29,13 @@ test("admins give a user credits from the system tab", async ({ page }) => {
   await page.getByLabel("note").fill("e2e thanks");
   await page.getByRole("button", { name: "give" }).click();
 
-  await expect(page.getByText(`e2e-system@heycapy.test · ${before + 5} credits`)).toBeVisible();
+  await expect(page.getByText(`${before + 5} credits`, { exact: true })).toBeVisible();
   await expect(
-    page.getByText(/admin · e2e thanks · by e2e-system@heycapy\.test/).first()
+    page.getByText(/\d+ granted · \d+ used · \d+ refunded · \d+ by admins/)
   ).toBeVisible();
+
+  const activity = page.getByText("e2e thanks · by e2e-system@heycapy.test").first();
+  await expect(activity).toBeHidden();
+  await page.getByRole("button", { name: "show activity" }).click();
+  await expect(activity).toBeVisible();
 });

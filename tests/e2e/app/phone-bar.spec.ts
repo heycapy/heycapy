@@ -48,3 +48,19 @@ test("capy in the bottom bar opens the chat as a drawer on phones", async ({ pag
   await page.setViewportSize({ width: 1280, height: 800 });
   await expect(page.getByRole("button", { name: "chat with capy" })).toBeHidden();
 });
+
+test("the bottom bar is easy to tap and clear of the screen's rounded bottom", async ({ page }) => {
+  const bucket = uniqueName("Sizes");
+  await openBucketOnPhone(page, bucket);
+  const screenHeight = page.viewportSize()?.height ?? 0;
+
+  for (const control of [
+    page.getByRole("button", { name: bucket, exact: true }),
+    addItemButton(page),
+    page.getByRole("button", { name: "chat with capy" }),
+  ]) {
+    const box = await control.boundingBox();
+    expect(box?.height).toBeGreaterThanOrEqual(48);
+    expect((box?.y ?? 0) + (box?.height ?? 0)).toBeLessThanOrEqual(screenHeight - 8);
+  }
+});

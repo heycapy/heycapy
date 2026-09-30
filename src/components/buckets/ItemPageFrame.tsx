@@ -56,7 +56,7 @@ export function ItemPageFrame({
             {secondary}
           </div>
 
-          <div className="border-border flex shrink-0 items-center justify-between border-t-2 px-2 pb-[env(safe-area-inset-bottom)]">
+          <div className="border-border flex shrink-0 items-center justify-between border-t-2 px-4 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
             <BracketButton onClick={onCancel} className="px-2 py-3 text-base">
               cancel
             </BracketButton>

@@ -63,9 +63,9 @@ export const CREDITS_FREE_GRANT = 50;
 export const CREDITS_PER_MESSAGE = 1;
 export const CREDITS_ADMIN_MAX_CHANGE = 100_000;
 export const CREDITS_NOTE_MAX_LENGTH = 200;
-export const CREDITS_ROWS_SHOWN = 10;
+export const CREDITS_ROWS_SHOWN = 30;
 export const OUT_OF_CREDITS_ERROR =
-  "You're out of capy credits. Add your own AI key in tweaks → ai to keep chatting (Gemini has a free tier).";
+  "You're out of capy credits. Add your own AI key in tweaks → ai to keep chatting.";
 // Safari holds back the first 1 KB of a streamed response, which would hide the first status lines
 export const CHAT_STREAM_PADDING = " ".repeat(1024) + "\n";
 export const GROQ_API_BASE = "https://api.groq.com/openai/v1";

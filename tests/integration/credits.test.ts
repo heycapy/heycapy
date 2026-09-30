@@ -26,7 +26,7 @@ vi.mock("@/lib/auth/session", () => ({
 }));
 
 const SERVER_OLLAMA = "http://server-ollama.test";
-const OWN_OLLAMA = "http://own-ollama.test";
+const OWN_GROQ = "https://api.groq.com/openai/v1/chat/completions";
 
 let aiReplies: (Record<string, unknown> | "fail")[] = [];
 let aiCalls: string[] = [];
@@ -45,7 +45,27 @@ beforeEach(() => {
     "fetch",
     vi.fn(async (url: string | URL | Request, init?: RequestInit) => {
       const target = String(url);
-      if (target.startsWith(SERVER_OLLAMA) || target.startsWith(OWN_OLLAMA)) {
+      if (target === OWN_GROQ) {
+        aiCalls.push(target);
+        const reply = aiReplies.shift();
+        if (!reply || reply === "fail") {
+          return new Response(JSON.stringify({ error: { message: "Invalid API Key" } }), {
+            status: 401,
+            headers: { "content-type": "application/json" },
+          });
+        }
+        return new Response(
+          JSON.stringify({
+            id: "r",
+            object: "chat.completion",
+            choices: [
+              { index: 0, message: { role: "assistant", content: "done" }, finish_reason: "stop" },
+            ],
+          }),
+          { status: 200, headers: { "content-type": "application/json" } }
+        );
+      }
+      if (target.startsWith(SERVER_OLLAMA)) {
         aiCalls.push(target);
         const reply = aiReplies.shift();
         if (!reply || reply === "fail") {
@@ -80,10 +100,10 @@ function ledger(userId: number) {
     .all();
 }
 
-async function useOwnOllama(userId: number) {
+async function useOwnGroq(userId: number) {
   await db
     .update(userSettings)
-    .set({ aiProvider: "ollama", aiOllamaUrl: OWN_OLLAMA })
+    .set({ aiProvider: "groq", aiApiKey: encryptValue("user-groq-key") })
     .where(eq(userSettings.userId, userId));
 }
 
@@ -160,11 +180,11 @@ it("web chat charges an answer and refunds a failed one", async () => {
 it("the user's own AI costs no credits and its status is recorded", async () => {
   const userId = await seedUser();
   const chat = await connectOwnChat(userId);
-  await useOwnOllama(userId);
+  await useOwnGroq(userId);
 
   aiReplies = [answer];
   await say("hello", chat);
-  expect(aiCalls).toEqual([`${OWN_OLLAMA}/api/chat`]);
+  expect(aiCalls).toEqual([OWN_GROQ]);
   expect(await getAIStatus(userId)).toMatchObject({
     kind: "own",
     status: "working",
@@ -262,6 +282,13 @@ it("admins give and take credits, never below zero", async () => {
   });
 
   const looked = await getUserCreditsAction(user.email);
+  expect(looked.ok && looked.credits.totals).toEqual({
+    grant: CREDITS_FREE_GRANT,
+    purchase: 0,
+    message: 0,
+    refund: 0,
+    admin: 25,
+  });
   expect(looked.ok && looked.credits.rows[0]).toMatchObject({
     amount: 25,
     kind: "admin",

@@ -91,7 +91,7 @@ test("picking heycapy ai describes it at once, not the saved key", async ({ page
   setBalance(50);
   const db = new Database(E2E_DATABASE_FILE);
   db.prepare(
-    `update user_settings set ai_provider = 'ollama', ai_ollama_url = 'http://127.0.0.1:9',
+    `update user_settings set ai_provider = 'groq', ai_api_key = 'e2e-groq-key',
        ai_use_own_key = 1,
        ai_key_status = 'working', ai_key_checked_at = unixepoch()
      where user_id = (select id from users where email = ?)`
@@ -103,7 +103,7 @@ test("picking heycapy ai describes it at once, not the saved key", async ({ page
   await page.getByRole("button", { name: "tweaks" }).click();
   await page.getByRole("button", { name: "ai", exact: true }).click();
   const status = page.getByRole("status", { name: "capy's ai" });
-  await expect(status).toHaveText("your ollama server · working");
+  await expect(status).toHaveText("your groq key · working");
   await expect(page.getByText(/last checked/)).toBeVisible();
 
   await page.getByRole("button", { name: "heycapy ai" }).click();

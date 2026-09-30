@@ -119,7 +119,11 @@ export function AITab({ ai, pending }: AITabProps) {
               <div className="flex flex-col gap-1.5">
                 <label className={LABEL}>provider</label>
                 <OptionGroup
-                  options={PROVIDER_OPTIONS}
+                  options={
+                    ai.hosted
+                      ? PROVIDER_OPTIONS.filter((o) => o.value !== "ollama")
+                      : PROVIDER_OPTIONS
+                  }
                   value={ai.provider}
                   onChange={ai.setProvider}
                   disabled={pending}

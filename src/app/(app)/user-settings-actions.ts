@@ -124,6 +124,10 @@ export async function updateUserSettingsAction(
     };
   }
 
+  if (isHosted() && data.aiProvider === "ollama") {
+    return { ok: false, error: "Ollama isn't available here. Pick another provider." };
+  }
+
   const saved = await db.query.userSettings.findFirst({
     where: eq(userSettings.userId, session.userId),
   });

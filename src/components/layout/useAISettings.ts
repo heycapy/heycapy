@@ -22,7 +22,13 @@ export function useAISettings() {
   const populate = useCallback((s: Settings, hostedServer: boolean) => {
     setHosted(hostedServer);
     setUseOwnKey(!hostedServer || (s.aiUseOwnKey && s.aiProvider !== null));
-    setProvider(s.aiProvider ?? (hostedServer ? "gemini" : "ollama"));
+    setProvider(
+      s.aiProvider && !(hostedServer && s.aiProvider === "ollama")
+        ? s.aiProvider
+        : hostedServer
+          ? "gemini"
+          : "ollama"
+    );
     setApiKey(s.aiApiKey ?? "");
     setModel(s.aiModel ?? "");
     setOllamaUrl(s.aiOllamaUrl ?? "");

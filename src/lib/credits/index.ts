@@ -86,6 +86,20 @@ export function adjustCredits(
   });
 }
 
+export type CreditTotals = Record<CreditRow["kind"], number>;
+
+export function creditTotals(userId: number): CreditTotals {
+  const totals: CreditTotals = { grant: 0, purchase: 0, message: 0, refund: 0, admin: 0 };
+  const rows = db
+    .select({ kind: creditLedger.kind, total: sql<number>`sum(${creditLedger.amount})` })
+    .from(creditLedger)
+    .where(eq(creditLedger.userId, userId))
+    .groupBy(creditLedger.kind)
+    .all();
+  for (const row of rows) totals[row.kind] = row.total;
+  return totals;
+}
+
 export function recentCreditRows(userId: number, limit: number): CreditRow[] {
   return db
     .select()

@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { headers } from "next/headers";
 import { Geist, Geist_Mono, Silkscreen } from "next/font/google";
 import "./globals.css";
@@ -22,6 +22,12 @@ const silkscreen = Silkscreen({
   variable: "--font-pixel",
 });
 
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+};
+
 export async function generateMetadata(): Promise<Metadata> {
   const h = await headers();
   const proto = h.get("x-forwarded-proto") ?? "http";
@@ -42,7 +48,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       className={`${geistSans.variable} ${geistMono.variable} ${silkscreen.variable} h-full antialiased`}
       suppressHydrationWarning
     >
-      <body className="bg-background text-foreground h-full font-mono">
+      <body className="bg-background text-foreground h-full pr-[env(safe-area-inset-right)] pl-[env(safe-area-inset-left)] font-mono">
         <ThemeProvider>{children}</ThemeProvider>
       </body>
     </html>

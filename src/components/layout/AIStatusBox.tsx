@@ -69,8 +69,7 @@ export function AIStatusBox({ ownKeyPicked }: { ownKeyPicked: boolean }) {
         <p className={HINT}>
           capy answers on our ai: {CREDITS_PER_MESSAGE} credit{CREDITS_PER_MESSAGE === 1 ? "" : "s"}{" "}
           per message, and credits never expire. the mic in capy&apos;s chat is included. to use no
-          credits, pick &quot;your own key&quot; above (gemini has a free tier). reminders never use
-          credits.
+          credits, pick &quot;your own key&quot; above. reminders never use credits.
         </p>
       )}
 

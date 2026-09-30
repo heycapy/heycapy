@@ -10,9 +10,11 @@ import { notificationQueue, users } from "@/lib/db/schema";
 import {
   adjustCredits,
   creditBalance,
+  creditTotals,
   isHosted,
   recentCreditRows,
   type CreditRow,
+  type CreditTotals,
 } from "@/lib/credits";
 import { schedulerHealth } from "@/lib/scheduler";
 import { recentSystemErrors } from "@/lib/system-errors";
@@ -68,7 +70,12 @@ export async function getSystemStatusAction(): Promise<ActionResult<{ status: Sy
   };
 }
 
-export type UserCredits = { email: string; balance: number; rows: CreditRow[] };
+export type UserCredits = {
+  email: string;
+  balance: number;
+  totals: CreditTotals;
+  rows: CreditRow[];
+};
 
 const creditChangeSchema = z.object({
   email: z.email("enter the user's email"),
@@ -99,6 +106,7 @@ function creditsOf(user: { id: number; email: string }): UserCredits {
   return {
     email: user.email,
     balance: creditBalance(user.id),
+    totals: creditTotals(user.id),
     rows: recentCreditRows(user.id, CREDITS_ROWS_SHOWN),
   };
 }

@@ -1,16 +1,15 @@
 import { test, expect, type Page } from "@playwright/test";
 import { createServer, type Server } from "node:http";
-import type { AddressInfo } from "node:net";
 import Database from "better-sqlite3";
 import { authState, specUserEmail } from "../helpers/auth";
-import { E2E_DATABASE_FILE } from "../helpers/env";
+import { E2E_DATABASE_FILE, E2E_SERVER_OLLAMA_PORT } from "../helpers/env";
 
 test.use({ storageState: authState("chat-progress") });
 test.describe.configure({ mode: "default" });
 
 type Turn = { delayMs: number; status?: number; message?: Record<string, unknown> };
 
-// Stands in for Ollama: each request gets the next scripted turn, after its delay
+// stands in for the server ollama and each request gets the next scripted turn after its delay
 let turns: Turn[] = [];
 let server: Server;
 
@@ -23,14 +22,16 @@ test.beforeAll(async () => {
       res.end(JSON.stringify({ message: turn.message ?? {} }));
     }, turn.delayMs);
   });
-  await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
-  const { port } = server.address() as AddressInfo;
+  await new Promise<void>((resolve) => server.listen(E2E_SERVER_OLLAMA_PORT, "127.0.0.1", resolve));
 
   const db = new Database(E2E_DATABASE_FILE);
+  const { id } = db
+    .prepare("select id from users where email = ?")
+    .get(specUserEmail("chat-progress")) as { id: number };
   db.prepare(
-    `update user_settings set ai_provider = 'ollama', ai_model = 'e2e', ai_ollama_url = ?
-     where user_id = (select id from users where email = ?)`
-  ).run(`http://127.0.0.1:${port}`, specUserEmail("chat-progress"));
+    "update user_settings set ai_provider = null, ai_api_key = null, ai_ollama_url = null where user_id = ?"
+  ).run(id);
+  db.prepare("delete from credit_ledger where user_id = ?").run(id);
   db.close();
 });
 
