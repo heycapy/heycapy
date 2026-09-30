@@ -260,6 +260,8 @@ export const chatSessions = sqliteTable("chat_sessions", {
     .notNull()
     .default("web"),
   summary: text("summary"),
+  // Id of the last message the summary covers; every later message is given to the model as is
+  summaryThrough: integer("summary_through"),
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
     .default(sql`(unixepoch())`),
@@ -366,4 +368,29 @@ export const itemActions = sqliteTable(
       .default(sql`(unixepoch())`),
   },
   (t) => [index("idx_item_actions_item_id").on(t.itemId)]
+);
+
+// One row per capy answer or chat summary: what it cost in tokens and who paid for the model
+export const aiUsage = sqliteTable(
+  "ai_usage",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    userId: integer("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    sessionId: integer("session_id").references(() => chatSessions.id, { onDelete: "set null" }),
+    source: text("source", { enum: ["web", "telegram", "summary"] }).notNull(),
+    provider: text("provider").notNull(),
+    model: text("model").notNull(),
+    key: text("key", { enum: ["own", "server"] }).notNull(),
+    calls: integer("calls").notNull(),
+    inputTokens: integer("input_tokens").notNull(),
+    outputTokens: integer("output_tokens").notNull(),
+    // Calls whose provider didn't say how many tokens they used
+    unreportedCalls: integer("unreported_calls").notNull().default(0),
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .default(sql`(unixepoch())`),
+  },
+  (t) => [index("idx_ai_usage_user_id_created_at").on(t.userId, t.createdAt)]
 );

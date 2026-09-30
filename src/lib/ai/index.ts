@@ -5,6 +5,7 @@ import { createGroqProvider } from "./providers/groq";
 import { createGeminiProvider } from "./providers/gemini";
 import { OLLAMA_DEFAULT_URL } from "@/constants";
 import type { AIProvider } from "./types";
+import type { UsageMeta } from "./usage";
 
 type AIConfig = {
   provider?: string | null;
@@ -13,40 +14,56 @@ type AIConfig = {
   ollamaUrl?: string | null;
 };
 
-export function getAIProvider(config?: AIConfig): AIProvider {
+export type MeteredProvider = AIProvider & { meta: UsageMeta };
+
+function requireKey(config: AIConfig | undefined, provider: string): string {
+  const key = config?.apiKey ?? process.env.AI_API_KEY;
+  if (!key) throw new Error(`API key is required for ${provider} provider`);
+  return key;
+}
+
+export function getAIProvider(config?: AIConfig): MeteredProvider {
   const provider = config?.provider ?? process.env.AI_PROVIDER ?? "ollama";
+  const key = config?.apiKey ? "own" : "server";
 
   switch (provider) {
-    case "ollama":
-      return createOllamaProvider(
-        config?.ollamaUrl ?? process.env.OLLAMA_URL ?? OLLAMA_DEFAULT_URL,
-        config?.model ?? process.env.AI_MODEL ?? "llama3.2"
-      );
+    case "ollama": {
+      const model = config?.model ?? process.env.AI_MODEL ?? "llama3.2";
+      return {
+        ...createOllamaProvider(
+          config?.ollamaUrl ?? process.env.OLLAMA_URL ?? OLLAMA_DEFAULT_URL,
+          model
+        ),
+        meta: { provider, model, key: config?.ollamaUrl ? "own" : "server" },
+      };
+    }
     case "openai": {
-      const key = config?.apiKey ?? process.env.AI_API_KEY;
-      if (!key) throw new Error("API key is required for openai provider");
-      return createOpenAIProvider(key, config?.model ?? process.env.AI_MODEL ?? "gpt-4o");
+      const model = config?.model ?? process.env.AI_MODEL ?? "gpt-4o";
+      return {
+        ...createOpenAIProvider(requireKey(config, provider), model),
+        meta: { provider, model, key },
+      };
     }
     case "anthropic": {
-      const key = config?.apiKey ?? process.env.AI_API_KEY;
-      if (!key) throw new Error("API key is required for anthropic provider");
-      return createAnthropicProvider(
-        key,
-        config?.model ?? process.env.AI_MODEL ?? "claude-sonnet-4-6"
-      );
+      const model = config?.model ?? process.env.AI_MODEL ?? "claude-sonnet-4-6";
+      return {
+        ...createAnthropicProvider(requireKey(config, provider), model),
+        meta: { provider, model, key },
+      };
     }
     case "groq": {
-      const key = config?.apiKey ?? process.env.AI_API_KEY;
-      if (!key) throw new Error("API key is required for groq provider");
-      return createGroqProvider(
-        key,
-        config?.model ?? process.env.AI_MODEL ?? "openai/gpt-oss-120b"
-      );
+      const model = config?.model ?? process.env.AI_MODEL ?? "openai/gpt-oss-120b";
+      return {
+        ...createGroqProvider(requireKey(config, provider), model),
+        meta: { provider, model, key },
+      };
     }
     case "gemini": {
-      const key = config?.apiKey ?? process.env.AI_API_KEY;
-      if (!key) throw new Error("API key is required for gemini provider");
-      return createGeminiProvider(key, config?.model ?? process.env.AI_MODEL ?? "gemini-2.5-flash");
+      const model = config?.model ?? process.env.AI_MODEL ?? "gemini-2.5-flash";
+      return {
+        ...createGeminiProvider(requireKey(config, provider), model),
+        meta: { provider, model, key },
+      };
     }
     default:
       throw new Error(`Unknown AI provider: ${provider}`);

@@ -7,12 +7,13 @@ import { getAIProvider } from "@/lib/ai";
 import { decryptValue } from "@/lib/crypto";
 import { buildSystemPrompt } from "@/lib/ai/systemPrompt";
 import { getUpcomingItems } from "@/lib/ai/capyTools";
-import { compactSessionIfNeeded } from "@/lib/ai/compact";
+import { chatHistory, compactSessionIfNeeded } from "@/lib/ai/compact";
 import { runAgent, type AgentStep } from "@/lib/ai/runAgent";
 import { toolStatus } from "@/lib/ai/toolStatus";
 import { logAIError, parseProviderError } from "@/lib/errors";
 import { AI_REQUEST_TIMEOUT_MS, CHAT_STREAM_PADDING, OLLAMA_REQUEST_TIMEOUT_MS } from "@/constants";
-import type { AgentMessage } from "@/lib/ai/types";
+import { recordUsage } from "@/lib/ai/usage";
+import type { AgentMessage, TokenUsage } from "@/lib/ai/types";
 import type { ChatEvent } from "@/lib/ai/chatEvents";
 
 const bodySchema = z.object({
@@ -93,20 +94,15 @@ async function answer(userId: number, request: ChatRequest, send: (event: ChatEv
   const upcomingItems = await getUpcomingItems(userId, timezone);
 
   const threshold = settings?.aiCompactThreshold ?? 40;
-  const keepRecent = Math.max(10, Math.floor(threshold / 4));
 
-  const sessionSummary = sessionId
-    ? ((
-        await db.query.chatSessions.findFirst({
-          where: (s, { eq: qeq, and: qand }) => qand(qeq(s.id, sessionId), qeq(s.userId, userId)),
-        })
-      )?.summary ?? null)
-    : null;
-
-  const filtered = messages.filter(
-    (m): m is { role: "user" | "assistant"; content: string } => m.role !== "system"
-  );
-  const contextMessages = filtered.length > threshold ? filtered.slice(-keepRecent) : filtered;
+  const ownedSession = sessionId
+    ? await db.query.chatSessions.findFirst({
+        where: (s, { eq: qeq, and: qand }) => qand(qeq(s.id, sessionId), qeq(s.userId, userId)),
+      })
+    : undefined;
+  // Earlier messages come from the saved chat, not the browser, so they line up with its summary
+  const history = ownedSession ? await chatHistory(ownedSession.id) : [];
+  const lastUserMsg = [...messages].reverse().find((m) => m.role === "user");
 
   const agentMessages: AgentMessage[] = [
     {
@@ -119,15 +115,8 @@ async function answer(userId: number, request: ChatRequest, send: (event: ChatEv
         upcomingItems
       ),
     },
-    ...(sessionSummary
-      ? [
-          {
-            role: "system" as const,
-            content: `Summary of earlier conversation:\n${sessionSummary}`,
-          },
-        ]
-      : []),
-    ...contextMessages.map((m) => ({ role: m.role, content: m.content })),
+    ...history,
+    ...(lastUserMsg ? [{ role: "user" as const, content: lastUserMsg.content }] : []),
   ];
 
   const bucketNames = new Map(userBuckets.map((b) => [b.id, b.name]));
@@ -138,26 +127,42 @@ async function answer(userId: number, request: ChatRequest, send: (event: ChatEv
       text: step.kind === "thinking" ? "thinking" : toolStatus(step.call, bucketName),
     });
 
-  const reply = await runAgent({
-    provider,
-    messages: agentMessages,
-    userId,
-    timezone,
-    timeoutMs:
-      settings?.aiProvider === "ollama" ? OLLAMA_REQUEST_TIMEOUT_MS : AI_REQUEST_TIMEOUT_MS,
-    onStep,
-  });
+  const usage: TokenUsage[] = [];
+  let usageSessionId = ownedSession?.id ?? null;
+  let reply: string;
+  let savedSessionId: number | null;
+  try {
+    reply = await runAgent({
+      provider,
+      messages: agentMessages,
+      userId,
+      timezone,
+      timeoutMs:
+        settings?.aiProvider === "ollama" ? OLLAMA_REQUEST_TIMEOUT_MS : AI_REQUEST_TIMEOUT_MS,
+      onStep,
+      onUsage: (u) => usage.push(u),
+    });
 
-  const lastUserMsg = [...messages].reverse().find((m) => m.role === "user");
-  const savedSessionId =
-    lastUserMsg && reply
-      ? await saveExchange(userId, sessionId ?? null, lastUserMsg.content, reply)
-      : (sessionId ?? null);
+    savedSessionId =
+      lastUserMsg && reply
+        ? await saveExchange(userId, sessionId ?? null, lastUserMsg.content, reply)
+        : (sessionId ?? null);
+    if (!sessionId) usageSessionId = savedSessionId;
+  } finally {
+    // Also when the answer failed part way: the calls made before it still cost tokens
+    recordUsage({
+      userId,
+      sessionId: usageSessionId,
+      source: "web",
+      meta: provider.meta,
+      calls: usage,
+    });
+  }
 
   send({ type: "reply", text: reply || "Something went wrong. Please try again." });
   send({ type: "done", sessionId: savedSessionId });
 
-  if (savedSessionId) void compactSessionIfNeeded(savedSessionId, provider, threshold);
+  if (savedSessionId) void compactSessionIfNeeded(userId, savedSessionId, provider, threshold);
 }
 
 export async function POST(req: Request) {

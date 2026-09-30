@@ -1,9 +1,4 @@
-import type { AIProvider, AgentMessage, CompleteResult, Message, Tool } from "../types";
-
-type OllamaChunk = {
-  message?: { content: string };
-  done: boolean;
-};
+import type { AIProvider, AgentMessage, CompleteResult, Message, TokenUsage, Tool } from "../types";
 
 type OllamaToolCall = {
   function: { name: string; arguments: Record<string, unknown> };
@@ -20,7 +15,26 @@ type OllamaCompleteResponse = {
     content: string | null;
     tool_calls?: OllamaToolCall[];
   };
+  prompt_eval_count?: number;
+  eval_count?: number;
 };
+
+function ollamaUsage(data: OllamaCompleteResponse): TokenUsage {
+  if (data.prompt_eval_count === undefined && data.eval_count === undefined) return null;
+  return { inputTokens: data.prompt_eval_count ?? 0, outputTokens: data.eval_count ?? 0 };
+}
+
+async function postChat(baseUrl: string, body: object): Promise<OllamaCompleteResponse> {
+  const res = await fetch(`${baseUrl}/api/chat`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ ...body, stream: false }),
+  });
+  if (!res.ok) {
+    throw new Error(`Ollama error: ${res.status} ${res.statusText}`);
+  }
+  return (await res.json()) as OllamaCompleteResponse;
+}
 
 function toOllamaMessage(m: AgentMessage): OllamaMessage {
   if (m.role === "tool") {
@@ -43,39 +57,9 @@ function toOllamaMessage(m: AgentMessage): OllamaMessage {
 
 export function createOllamaProvider(baseUrl: string, model: string): AIProvider {
   return {
-    async *chat(messages: Message[]) {
-      const res = await fetch(`${baseUrl}/api/chat`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ model, messages, stream: true }),
-      });
-
-      if (!res.ok || !res.body) {
-        throw new Error(`Ollama error: ${res.status} ${res.statusText}`);
-      }
-
-      const reader = res.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = "";
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split("\n");
-        buffer = lines.pop() ?? "";
-
-        for (const line of lines) {
-          if (!line.trim()) continue;
-          try {
-            const chunk = JSON.parse(line) as OllamaChunk;
-            if (chunk.message?.content) yield chunk.message.content;
-          } catch {
-            // skip malformed lines
-          }
-        }
-      }
+    async chat(messages: Message[]) {
+      const data = await postChat(baseUrl, { model, messages });
+      return { text: data.message.content ?? "", usage: ollamaUsage(data) };
     },
 
     async complete(messages: AgentMessage[], tools: Tool[]): Promise<CompleteResult> {
@@ -85,22 +69,8 @@ export function createOllamaProvider(baseUrl: string, model: string): AIProvider
         function: { name: t.name, description: t.description, parameters: t.parameters },
       }));
 
-      const res = await fetch(`${baseUrl}/api/chat`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model,
-          messages: ollamaMessages,
-          tools: ollamaTools,
-          stream: false,
-        }),
-      });
-
-      if (!res.ok) {
-        throw new Error(`Ollama error: ${res.status} ${res.statusText}`);
-      }
-
-      const data = (await res.json()) as OllamaCompleteResponse;
+      const data = await postChat(baseUrl, { model, messages: ollamaMessages, tools: ollamaTools });
+      const usage = ollamaUsage(data);
       const msg = data.message;
 
       if (msg.tool_calls?.length) {
@@ -111,10 +81,11 @@ export function createOllamaProvider(baseUrl: string, model: string): AIProvider
             name: tc.function.name,
             arguments: tc.function.arguments,
           })),
+          usage,
         };
       }
 
-      return { content: msg.content, toolCalls: [] };
+      return { content: msg.content, toolCalls: [], usage };
     },
   };
 }

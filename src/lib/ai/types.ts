@@ -23,12 +23,21 @@ export type ToolCall = {
   extraContent?: unknown;
 };
 
+// Null when the provider didn't report it
+export type TokenUsage = { inputTokens: number; outputTokens: number } | null;
+
 export type CompleteResult = {
   content: string | null;
   toolCalls: ToolCall[];
+  usage: TokenUsage;
+};
+
+export type ChatResult = {
+  text: string;
+  usage: TokenUsage;
 };
 
 export type AIProvider = {
-  chat(messages: Message[]): AsyncIterable<string>;
+  chat(messages: Message[]): Promise<ChatResult>;
   complete(messages: AgentMessage[], tools: Tool[]): Promise<CompleteResult>;
 };

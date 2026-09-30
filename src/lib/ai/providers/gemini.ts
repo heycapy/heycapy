@@ -2,22 +2,18 @@ import OpenAI from "openai";
 import { GEMINI_API_BASE } from "@/constants";
 import type { AIProvider, AgentMessage, CompleteResult, Message, Tool } from "../types";
 import { AI_CLIENT_OPTIONS } from "./options";
+import { openAIUsage } from "./usage";
 
 export function createGeminiProvider(apiKey: string, model: string): AIProvider {
   const client = new OpenAI({ apiKey, baseURL: GEMINI_API_BASE, ...AI_CLIENT_OPTIONS });
 
   return {
-    async *chat(messages: Message[]) {
-      const stream = await client.chat.completions.create({
-        model,
-        messages,
-        stream: true,
-      });
-
-      for await (const chunk of stream) {
-        const content = chunk.choices[0]?.delta?.content;
-        if (content) yield content;
-      }
+    async chat(messages: Message[]) {
+      const response = await client.chat.completions.create({ model, messages });
+      return {
+        text: response.choices[0]?.message?.content ?? "",
+        usage: openAIUsage(response.usage),
+      };
     },
 
     async complete(messages: AgentMessage[], tools: Tool[]): Promise<CompleteResult> {
@@ -58,6 +54,7 @@ export function createGeminiProvider(apiKey: string, model: string): AIProvider 
       });
 
       const msg = response.choices[0]?.message;
+      const usage = openAIUsage(response.usage);
 
       const functionCalls = (msg?.tool_calls ?? []).filter(
         (
@@ -76,10 +73,11 @@ export function createGeminiProvider(apiKey: string, model: string): AIProvider 
             // Gemini 3 signs each call (extra_content.google.thought_signature) and wants it back
             extraContent: (tc as { extra_content?: unknown }).extra_content,
           })),
+          usage,
         };
       }
 
-      return { content: msg?.content ?? null, toolCalls: [] };
+      return { content: msg?.content ?? null, toolCalls: [], usage };
     },
   };
 }

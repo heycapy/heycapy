@@ -16,7 +16,7 @@ import {
   answerCallbackQuery,
   sendChatAction,
 } from "@/lib/notifications/telegram";
-import { compactSessionIfNeeded } from "@/lib/ai/compact";
+import { chatHistory, compactSessionIfNeeded } from "@/lib/ai/compact";
 import { dataEvents } from "@/lib/events";
 import { errorMessage, parseProviderError } from "@/lib/errors";
 import {
@@ -24,7 +24,8 @@ import {
   OLLAMA_REQUEST_TIMEOUT_MS,
   TELEGRAM_RESERVED_COMMANDS,
 } from "@/constants";
-import type { AgentMessage } from "@/lib/ai/types";
+import { recordUsage } from "@/lib/ai/usage";
+import type { AgentMessage, TokenUsage } from "@/lib/ai/types";
 import type {
   TelegramDeadlinePreset,
   TelegramRecurringDefault,
@@ -802,13 +803,7 @@ async function handleUpdate(botToken: string, body: TelegramUpdate): Promise<Res
   }
 
   const threshold = row.aiCompactThreshold ?? 40;
-  const history = await db
-    .select({ role: chatMessages.role, content: chatMessages.content })
-    .from(chatMessages)
-    .where(eq(chatMessages.sessionId, session.id))
-    .orderBy(desc(chatMessages.createdAt))
-    .limit(Math.max(10, Math.floor(threshold / 4)));
-  history.reverse();
+  const history = await chatHistory(session.id);
 
   const [upcomingItems, provider] = await Promise.all([
     getUpcomingItems(userId, timezone),
@@ -833,15 +828,7 @@ async function handleUpdate(botToken: string, body: TelegramUpdate): Promise<Res
         upcomingItems
       ),
     },
-    ...(session.summary
-      ? [
-          {
-            role: "system" as const,
-            content: `Summary of earlier conversation:\n${session.summary}`,
-          },
-        ]
-      : []),
-    ...history.map((m) => ({ role: m.role, content: m.content })),
+    ...history,
     { role: "user", content: text },
   ];
 
@@ -851,6 +838,7 @@ async function handleUpdate(botToken: string, body: TelegramUpdate): Promise<Res
   }, 4_000);
 
   let finalText = "";
+  const usage: TokenUsage[] = [];
   try {
     finalText = await runAgent({
       provider,
@@ -858,8 +846,16 @@ async function handleUpdate(botToken: string, body: TelegramUpdate): Promise<Res
       userId,
       timezone,
       timeoutMs: row.aiProvider === "ollama" ? OLLAMA_REQUEST_TIMEOUT_MS : AI_REQUEST_TIMEOUT_MS,
+      onUsage: (u) => usage.push(u),
     });
   } catch (err) {
+    recordUsage({
+      userId,
+      sessionId: session.id,
+      source: "telegram",
+      meta: provider.meta,
+      calls: usage,
+    });
     clearInterval(typingInterval);
     process.stderr.write(`[telegram] AI error: ${errorMessage(err)}\n`);
     await sendTelegramWithQuickActions(
@@ -871,6 +867,13 @@ async function handleUpdate(botToken: string, body: TelegramUpdate): Promise<Res
   }
 
   clearInterval(typingInterval);
+  recordUsage({
+    userId,
+    sessionId: session.id,
+    source: "telegram",
+    meta: provider.meta,
+    calls: usage,
+  });
   if (!finalText) return new Response("OK");
 
   try {
@@ -888,7 +891,7 @@ async function handleUpdate(botToken: string, body: TelegramUpdate): Promise<Res
       .update(chatSessions)
       .set({ updatedAt: new Date() })
       .where(eq(chatSessions.id, session.id));
-    void compactSessionIfNeeded(session.id, provider, threshold);
+    void compactSessionIfNeeded(userId, session.id, provider, threshold);
   } catch (err) {
     recordSystemError("telegram", `saving chat failed: ${errorMessage(err)}`, {
       userId,
