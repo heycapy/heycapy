@@ -16,7 +16,7 @@ export async function getAIStatusAction(): Promise<ActionResult<{ status: AIStat
   return { ok: true, status: await getAIStatus(session.userId) };
 }
 
-// One tiny call on the saved key, so a wrong key shows up before capy needs it
+// one tiny call so a wrong key shows up before capy needs it
 export async function checkAIKeyAction(): Promise<ActionResult<{ status: AIStatus }>> {
   const session = await getSession();
   if (!session) return { ok: false, error: "Unauthorized" };

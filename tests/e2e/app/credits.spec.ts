@@ -6,7 +6,7 @@ import { E2E_DATABASE_FILE } from "../helpers/env";
 test.use({ storageState: authState("credits") });
 test.describe.configure({ mode: "serial" });
 
-// Each test starts on heycapy ai with this many credits
+// each test starts on heycapy ai with this many credits
 function setBalance(balance: number) {
   const db = new Database(E2E_DATABASE_FILE);
   const { id } = db

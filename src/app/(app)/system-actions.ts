@@ -113,7 +113,7 @@ export async function getUserCreditsAction(
   return { ok: true, credits: creditsOf(user) };
 }
 
-// Positive gives credits, negative takes them back; never below zero
+// a positive amount gives credits and a negative one takes them back but never below zero
 export async function adjustUserCreditsAction(input: {
   email: string;
   amount: number;

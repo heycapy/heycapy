@@ -1,7 +1,8 @@
-import { and, eq, isNull } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { requireApiSession } from "@/lib/auth/session";
 import { db } from "@/lib/db";
-import { buckets, userSettings } from "@/lib/db/schema";
+import { userSettings } from "@/lib/db/schema";
+import { voiceContext } from "@/lib/transcription/hints";
 import { decryptValue } from "@/lib/crypto";
 import { hasOwnAI } from "@/lib/ai";
 import { recordUsage } from "@/lib/ai/usage";
@@ -10,18 +11,12 @@ import { serverVoice, transcribeAudio, type TranscriptionProvider } from "@/lib/
 import { aiErrorResponse } from "@/lib/errors";
 import {
   CREDITS_PER_MESSAGE,
-  GEMINI_DEFAULT_MODEL,
+  TRANSCRIPTION_DEFAULT_MODELS,
   OUT_OF_CREDITS_ERROR,
   VOICE_MAX_BYTES,
   VOICE_NO_SPEECH_ERROR,
   VOICE_TOO_LONG_ERROR,
 } from "@/constants";
-
-const DEFAULT_MODELS: Record<TranscriptionProvider, string> = {
-  groq: "whisper-large-v3-turbo",
-  openai: "whisper-1",
-  gemini: GEMINI_DEFAULT_MODEL,
-};
 
 async function readAudio(req: Request): Promise<File | Response> {
   try {
@@ -38,15 +33,6 @@ function transcriptResponse(text: string): Response {
   return Response.json({ text });
 }
 
-// So a spoken bucket name comes back spelled the way the user wrote it
-async function bucketNames(userId: number): Promise<string[]> {
-  const rows = await db
-    .select({ name: buckets.name })
-    .from(buckets)
-    .where(and(eq(buckets.userId, userId), isNull(buckets.deletedAt)));
-  return rows.map((r) => r.name);
-}
-
 export async function POST(req: Request) {
   const [session, authErr] = await requireApiSession();
   if (authErr) return authErr;
@@ -56,7 +42,7 @@ export async function POST(req: Request) {
     where: eq(userSettings.userId, userId),
   });
 
-  // Users on heycapy's AI get heycapy's voice; it's free, but only as a way into a paid message
+  // heycapy voice is free but only for users with credits left for the message it leads to
   const onHeycapyAI =
     isHosted() &&
     !hasOwnAI({
@@ -81,16 +67,16 @@ export async function POST(req: Request) {
     try {
       const { text, usage } = await transcribeAudio(
         audio,
-        "gemini",
+        voice.provider,
         voice.apiKey,
         voice.model,
-        await bucketNames(userId)
+        await voiceContext(userId, settings?.personalityName ?? "")
       );
       recordUsage({
         userId,
         sessionId: null,
         source: "voice",
-        meta: { provider: "gemini", model: voice.model, key: "server" },
+        meta: { provider: voice.provider, model: voice.model, key: "server" },
         calls: [usage],
       });
       return transcriptResponse(text);
@@ -121,7 +107,7 @@ export async function POST(req: Request) {
     );
   }
 
-  const model = settings?.transcriptionModel || DEFAULT_MODELS[provider];
+  const model = settings?.transcriptionModel || TRANSCRIPTION_DEFAULT_MODELS[provider];
   const audio = await readAudio(req);
   if (audio instanceof Response) return audio;
 
@@ -131,7 +117,7 @@ export async function POST(req: Request) {
       provider,
       apiKey,
       model,
-      await bucketNames(userId)
+      await voiceContext(userId, settings?.personalityName ?? "")
     );
     if (usage) {
       recordUsage({

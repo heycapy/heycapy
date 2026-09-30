@@ -19,12 +19,11 @@ export type AIConfig = {
 export type MeteredProvider = AIProvider & { meta: UsageMeta };
 
 function requireKey(config: AIConfig | undefined, provider: string): string {
-  const key = config?.apiKey ?? process.env.AI_API_KEY;
+  const key = config?.apiKey || process.env.AI_API_KEY;
   if (!key) throw new Error(`API key is required for ${provider} provider`);
   return key;
 }
 
-// The user's own API key or Ollama server, as opposed to the server's AI_* settings
 export function hasOwnAI(config?: AIConfig): boolean {
   if (!config?.provider) return false;
   if (isHosted() && config.useOwnKey === false) return false;
@@ -32,46 +31,45 @@ export function hasOwnAI(config?: AIConfig): boolean {
 }
 
 export function getAIProvider(requested?: AIConfig): MeteredProvider {
-  // On a hosted server users without a key of their own get our AI as configured, never another
-  // provider or model on our key
+  // hosted users without their own key always get our configured ai and never another provider on our key
   const config = isHosted() && !hasOwnAI(requested) ? undefined : requested;
-  const provider = config?.provider ?? process.env.AI_PROVIDER ?? "ollama";
+  const provider = config?.provider || process.env.AI_PROVIDER || "ollama";
   const key = config?.apiKey ? "own" : "server";
 
   switch (provider) {
     case "ollama": {
-      const model = config?.model ?? process.env.AI_MODEL ?? "llama3.2";
+      const model = config?.model || process.env.AI_MODEL || "llama3.2";
       return {
         ...createOllamaProvider(
-          config?.ollamaUrl ?? process.env.OLLAMA_URL ?? OLLAMA_DEFAULT_URL,
+          config?.ollamaUrl || process.env.OLLAMA_URL || OLLAMA_DEFAULT_URL,
           model
         ),
         meta: { provider, model, key: config?.ollamaUrl ? "own" : "server" },
       };
     }
     case "openai": {
-      const model = config?.model ?? process.env.AI_MODEL ?? "gpt-4o";
+      const model = config?.model || process.env.AI_MODEL || "gpt-4o";
       return {
         ...createOpenAIProvider(requireKey(config, provider), model),
         meta: { provider, model, key },
       };
     }
     case "anthropic": {
-      const model = config?.model ?? process.env.AI_MODEL ?? "claude-sonnet-4-6";
+      const model = config?.model || process.env.AI_MODEL || "claude-sonnet-4-6";
       return {
         ...createAnthropicProvider(requireKey(config, provider), model),
         meta: { provider, model, key },
       };
     }
     case "groq": {
-      const model = config?.model ?? process.env.AI_MODEL ?? "openai/gpt-oss-120b";
+      const model = config?.model || process.env.AI_MODEL || "openai/gpt-oss-120b";
       return {
         ...createGroqProvider(requireKey(config, provider), model),
         meta: { provider, model, key },
       };
     }
     case "gemini": {
-      const model = config?.model ?? process.env.AI_MODEL ?? GEMINI_DEFAULT_MODEL;
+      const model = config?.model || process.env.AI_MODEL || GEMINI_DEFAULT_MODEL;
       return {
         ...createGeminiProvider(requireKey(config, provider), model),
         meta: { provider, model, key },

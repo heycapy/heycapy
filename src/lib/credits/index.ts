@@ -7,7 +7,7 @@ import type { UsageMeta } from "@/lib/ai/usage";
 type Tx = Parameters<Parameters<DB["transaction"]>[0]>[0];
 export type CreditRow = typeof creditLedger.$inferSelect;
 
-// Self-hosted servers have no ledger: their own AI key is free for all their users
+// self hosted servers keep no ledger since their ai key is free for their own users
 export function isHosted(): boolean {
   return process.env.HOSTED === "true";
 }
@@ -25,7 +25,7 @@ function balanceIn(tx: Tx, userId: number): number {
   return row?.total ?? 0;
 }
 
-// The free credits come with a user's first look at the ledger, so accounts made before it get them too
+// free credits come with the first look at the ledger so older accounts get them too
 function grantIfNew(tx: Tx, userId: number): void {
   const any = tx
     .select({ id: creditLedger.id })
@@ -47,8 +47,7 @@ export function creditBalance(userId: number): number {
   });
 }
 
-// Takes the message's credit up front so two messages at once can't spend the same credit;
-// null when the balance can't cover it
+// taken before the call so two messages at once cannot spend the same credit and null when too low
 export function holdMessageCredit(userId: number): number | null {
   return db.transaction((tx) => {
     grantIfNew(tx, userId);
@@ -62,7 +61,6 @@ export function holdMessageCredit(userId: number): number | null {
   });
 }
 
-// No answer, no charge
 export function refundMessageCredit(holdId: number): void {
   const hold = db.select().from(creditLedger).where(eq(creditLedger.id, holdId)).get();
   if (!hold || hold.kind !== "message") return;
@@ -72,7 +70,7 @@ export function refundMessageCredit(holdId: number): void {
     .run();
 }
 
-// Refuses a change that would take the balance below zero
+// refuses a change that would take the balance below zero
 export function adjustCredits(
   userId: number,
   amount: number,

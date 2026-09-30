@@ -1,25 +1,40 @@
 import OpenAI from "openai";
 import {
   AI_REQUEST_TIMEOUT_MS,
-  GEMINI_DEFAULT_MODEL,
   GEMINI_NATIVE_API_BASE,
   GROQ_API_BASE,
+  TRANSCRIPTION_DEFAULT_MODELS,
+  TRANSCRIPTION_PROVIDERS,
+  WHISPER_PROMPT_MAX_LENGTH,
+  type TranscriptionProvider,
 } from "@/constants";
 import type { TokenUsage } from "@/lib/ai/types";
+import type { VoiceContext } from "./hints";
 
-export type TranscriptionProvider = "groq" | "openai" | "gemini";
+export type { TranscriptionProvider } from "@/constants";
 export type Transcript = { text: string; usage: TokenUsage };
 
-function geminiPrompt(hints: string[]): string {
-  const names = hints.length > 0 ? ` Names they may say: ${hints.join(", ")}.` : "";
+function geminiPrompt({ assistant, names }: VoiceContext): string {
   return (
-    "Transcribe this voice note for a reminders app. It is usually a quick request to add or change something, " +
-    "with titles, dates, times and amounts; keep them exactly as said. Keep the speaker's language and words, " +
-    `never translate or summarise.${names} If there is no speech, only noise or silence, set speech to false.`
+    `This is a voice note to ${assistant} (also "hey ${assistant}"), the assistant in the heycapy reminders app. ` +
+    "It is usually a quick request to add or change something, with titles, dates, times and amounts; " +
+    "keep them exactly as said. Keep the speaker's language and words, never translate or summarise. " +
+    `Names the user may say, spelled like this: ${names.join(", ")}. ` +
+    "If there is no speech, only noise or silence, set speech to false."
   );
 }
 
-// A forced shape: asked for plain text, Gemini labels a silent recording "<noise>" instead of leaving it empty
+// whisper takes a list of spellings not instructions and at most 224 tokens
+function whisperPrompt({ names }: VoiceContext): string {
+  let prompt = "";
+  for (const name of names) {
+    const next = prompt ? `${prompt}, ${name}` : name;
+    if (next.length > WHISPER_PROMPT_MAX_LENGTH) break;
+    prompt = next;
+  }
+  return prompt;
+}
+
 const GEMINI_TRANSCRIPT_SCHEMA = {
   type: "OBJECT",
   properties: { speech: { type: "BOOLEAN" }, text: { type: "STRING" } },
@@ -38,7 +53,7 @@ type GeminiResponse = {
   error?: { message?: string };
 };
 
-// Safari records MP4 audio, which Gemini knows as m4a; codec parameters aren't part of its types
+// safari records mp4 which gemini calls m4a and codec parameters are not part of its types
 function geminiMimeType(type: string): string {
   const base = type.split(";")[0].trim() || "audio/webm";
   return base === "audio/mp4" ? "audio/m4a" : base;
@@ -48,7 +63,7 @@ async function transcribeWithGemini(
   audio: File,
   apiKey: string,
   model: string,
-  hints: string[]
+  context: VoiceContext
 ): Promise<Transcript> {
   const res = await fetch(
     `${GEMINI_NATIVE_API_BASE}/models/${encodeURIComponent(model)}:generateContent`,
@@ -59,7 +74,7 @@ async function transcribeWithGemini(
         contents: [
           {
             parts: [
-              { text: geminiPrompt(hints) },
+              { text: geminiPrompt(context) },
               {
                 inline_data: {
                   mime_type: geminiMimeType(audio.type),
@@ -106,27 +121,38 @@ async function transcribeWithGemini(
   };
 }
 
-// hints: words the user is likely to say, such as their bucket names
 export async function transcribeAudio(
   audio: File,
   provider: TranscriptionProvider,
   apiKey: string,
   model: string,
-  hints: string[] = []
+  context: VoiceContext
 ): Promise<Transcript> {
-  if (provider === "gemini") return transcribeWithGemini(audio, apiKey, model, hints);
+  if (provider === "gemini") return transcribeWithGemini(audio, apiKey, model, context);
 
   const client =
     provider === "groq" ? new OpenAI({ apiKey, baseURL: GROQ_API_BASE }) : new OpenAI({ apiKey });
-  const response = await client.audio.transcriptions.create({ file: audio, model, language: "en" });
+  const response = await client.audio.transcriptions.create({
+    file: audio,
+    model,
+    language: "en",
+    prompt: whisperPrompt(context),
+  });
   return { text: response.text, usage: null };
 }
 
-// heycapy's own voice for users on heycapy ai: Gemini on the server's key
-export function serverVoice(): { apiKey: string; model: string } | null {
-  const apiKey =
-    process.env.GEMINI_API_KEY ??
-    (process.env.AI_PROVIDER === "gemini" ? process.env.AI_API_KEY : undefined);
-  if (!apiKey) return null;
-  return { apiKey, model: process.env.VOICE_MODEL ?? GEMINI_DEFAULT_MODEL };
+// set on its own and never taken from the chat ai so voice stays off until both are set
+export function serverVoice(): {
+  provider: TranscriptionProvider;
+  apiKey: string;
+  model: string;
+} | null {
+  const provider = TRANSCRIPTION_PROVIDERS.find((p) => p === process.env.VOICE_PROVIDER);
+  const apiKey = process.env.VOICE_API_KEY;
+  if (!provider || !apiKey) return null;
+  return {
+    provider,
+    apiKey,
+    model: process.env.VOICE_MODEL || TRANSCRIPTION_DEFAULT_MODELS[provider],
+  };
 }

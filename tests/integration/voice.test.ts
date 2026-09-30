@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { aiUsage, buckets, creditLedger, userSettings } from "@/lib/db/schema";
+import { aiUsage, buckets, creditLedger, items, userSettings } from "@/lib/db/schema";
 import { encryptValue } from "@/lib/crypto";
 import { creditBalance } from "@/lib/credits";
 import { POST } from "@/app/api/transcribe/route";
@@ -9,6 +9,7 @@ import {
   CREDITS_FREE_GRANT,
   GEMINI_NATIVE_API_BASE,
   OUT_OF_CREDITS_ERROR,
+  VOICE_HINT_MAX_LENGTH,
   VOICE_MAX_BYTES,
   VOICE_NO_SPEECH_ERROR,
   VOICE_TOO_LONG_ERROR,
@@ -31,19 +32,26 @@ const transcript = (text: string, speech = true) => ({
 
 beforeEach(() => {
   vi.stubEnv("HOSTED", "true");
-  vi.stubEnv("AI_PROVIDER", "gemini");
-  vi.stubEnv("AI_API_KEY", "server-gemini-key");
+  vi.stubEnv("VOICE_PROVIDER", "gemini");
+  vi.stubEnv("VOICE_API_KEY", "server-gemini-key");
   vi.spyOn(process.stderr, "write").mockImplementation(() => true);
   geminiReply = { status: 200, body: transcript("add dentist friday 5pm") };
   vi.stubGlobal(
     "fetch",
     vi.fn(async (url: string | URL | Request, init?: RequestInit) => {
+      if (String(url).startsWith("data:")) return new Response("");
+      const upload = init?.body instanceof FormData ? init.body : null;
       calls.push({
         url: String(url),
         headers: init?.headers as Record<string, string>,
-        body: JSON.parse(String(init?.body)) as Record<string, unknown>,
+        body: upload
+          ? Object.fromEntries([...upload.entries()].filter(([, v]) => typeof v === "string"))
+          : (JSON.parse(String(init?.body)) as Record<string, unknown>),
       });
-      return new Response(JSON.stringify(geminiReply.body), { status: geminiReply.status });
+      return new Response(JSON.stringify(geminiReply.body), {
+        status: geminiReply.status,
+        headers: { "content-type": "application/json" },
+      });
     })
   );
 });
@@ -103,7 +111,7 @@ it("voice needs credits left, stays short, and says so when the server has no vo
   await db.insert(creditLedger).values({ userId, amount: -CREDITS_FREE_GRANT, kind: "message" });
   expect(await speak(userId)).toEqual({ status: 402, body: { error: OUT_OF_CREDITS_ERROR } });
 
-  vi.stubEnv("AI_PROVIDER", "anthropic");
+  vi.stubEnv("VOICE_API_KEY", "");
   expect((await speak(await seedUser())).status).toBe(503);
   expect(calls).toEqual([]);
 });
@@ -149,9 +157,24 @@ it.each([
   expect(usageRows(userId)).toHaveLength(1);
 });
 
-it("asks Gemini for a set shape and gives it the user's bucket names", async () => {
+it("asks Gemini for a set shape, as a note to capy, with the names the user may say", async () => {
   const userId = await seedUser();
-  await db.insert(buckets).values({ userId, name: "Subscriptions" });
+  await db
+    .update(userSettings)
+    .set({ personalityName: "Bubbles" })
+    .where(eq(userSettings.userId, userId));
+  const [bucket] = await db
+    .insert(buckets)
+    .values({ userId, name: "Subscriptions" })
+    .returning({ id: buckets.id });
+  const day = 86_400_000;
+  await db.insert(items).values([
+    { userId, bucketId: bucket.id, title: "hotstar", deadline: new Date(Date.now() + 2 * day) },
+    { userId, bucketId: bucket.id, title: "Netflix", deadline: new Date(Date.now() + day) },
+    { userId, bucketId: bucket.id, title: "someday list" },
+    { userId, bucketId: bucket.id, title: "old gym plan", status: "completed" },
+    { userId, bucketId: bucket.id, title: "x".repeat(VOICE_HINT_MAX_LENGTH + 1) },
+  ]);
 
   await speak(userId);
 
@@ -159,9 +182,59 @@ it("asks Gemini for a set shape and gives it the user's bucket names", async () 
     contents: { parts: { text?: string }[] }[];
     generationConfig: Record<string, unknown>;
   };
-  expect(body.contents[0].parts[0].text).toContain("Names they may say: Subscriptions.");
+  const prompt = body.contents[0].parts[0].text ?? "";
+  expect(prompt).toContain('a voice note to Bubbles (also "hey Bubbles")');
+  expect(prompt).toContain(
+    "spelled like this: capy, hey capy, heycapy, Bubbles, hey Bubbles, Subscriptions, Netflix, hotstar, someday list."
+  );
   expect(body.generationConfig).toMatchObject({
     responseMimeType: "application/json",
     responseSchema: { required: ["speech", "text"] },
   });
+});
+
+it("gives Whisper the same names as a spelling list", async () => {
+  const userId = await seedUser();
+  await db
+    .update(userSettings)
+    .set({
+      aiProvider: "groq",
+      aiApiKey: encryptValue("user-groq-key"),
+      transcriptionProvider: "groq",
+    })
+    .where(eq(userSettings.userId, userId));
+  await db.insert(buckets).values({ userId, name: "Work" });
+  geminiReply = { status: 200, body: { text: "add standup notes to work" } };
+
+  expect((await speak(userId)).body).toEqual({ text: "add standup notes to work" });
+  expect(calls[0].url).toContain("/audio/transcriptions");
+  expect(calls[0].body.prompt).toBe("capy, hey capy, heycapy, Work");
+});
+
+it("heycapy's voice can move to another provider with env alone", async () => {
+  vi.stubEnv("VOICE_PROVIDER", "groq");
+  vi.stubEnv("VOICE_API_KEY", "server-groq-key");
+  vi.stubEnv("VOICE_MODEL", "");
+  geminiReply = { status: 200, body: { text: "add milk" } };
+  const userId = await seedUser();
+
+  expect((await speak(userId)).body).toEqual({ text: "add milk" });
+  expect(calls[0].url).toBe("https://api.groq.com/openai/v1/audio/transcriptions");
+  expect(calls[0].body.model).toBe("whisper-large-v3-turbo");
+
+  vi.stubEnv("VOICE_PROVIDER", "elevenlabs");
+  expect((await speak(userId)).status).toBe(503);
+});
+
+it("voice never falls back to the chat AI's provider or key", async () => {
+  vi.stubEnv("VOICE_PROVIDER", "");
+  vi.stubEnv("VOICE_API_KEY", "");
+  vi.stubEnv("AI_PROVIDER", "gemini");
+  vi.stubEnv("AI_API_KEY", "chat-gemini-key");
+
+  expect(await speak(await seedUser())).toEqual({
+    status: 503,
+    body: { error: "Voice isn't set up on this server." },
+  });
+  expect(calls).toEqual([]);
 });

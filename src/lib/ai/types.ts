@@ -24,7 +24,7 @@ export type ToolCall = {
 };
 
 // Null when the provider didn't report it
-// inputTokens counts every prompt token, including those read from or written to a cache
+// input tokens include those read from or written to a cache
 export type TokenUsage = {
   inputTokens: number;
   outputTokens: number;

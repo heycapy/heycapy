@@ -53,7 +53,7 @@ export async function getAIStatus(userId: number): Promise<AIStatus> {
   return aiStatusFor(userId, settings);
 }
 
-// Only the user's own key has a status to show; ours is watched through the system tab
+// only the users own key has a status here since ours is watched in the system tab
 export async function recordKeyResult(
   userId: number,
   meta: UsageMeta,

@@ -58,7 +58,7 @@ export const AGENT_MAX_ROUNDS = 8;
 // How many chat messages may follow the summary before older ones are folded into it
 export const AI_COMPACT_THRESHOLD_MIN = 10;
 export const AI_COMPACT_THRESHOLD_MAX = 500;
-// Credits, only on a hosted server (HOSTED=true) and only for answers on our AI; placeholders until real prices
+// only on a hosted server for answers on our ai and placeholder amounts until real prices exist
 export const CREDITS_FREE_GRANT = 50;
 export const CREDITS_PER_MESSAGE = 1;
 export const CREDITS_ADMIN_MAX_CHANGE = 100_000;
@@ -70,13 +70,25 @@ export const OUT_OF_CREDITS_ERROR =
 export const CHAT_STREAM_PADDING = " ".repeat(1024) + "\n";
 export const GROQ_API_BASE = "https://api.groq.com/openai/v1";
 export const GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta/openai/";
-// Gemini's own API: takes the browser's WebM / MP4 recordings as they are, unlike the OpenAI-compatible one
+// the gemini native api takes browser webm and mp4 recordings as they are unlike the openai compatible one
 export const GEMINI_NATIVE_API_BASE = "https://generativelanguage.googleapis.com/v1beta";
 export const GEMINI_DEFAULT_MODEL = "gemini-3.5-flash-lite";
+export const TRANSCRIPTION_PROVIDERS = ["groq", "openai", "gemini"] as const;
+export type TranscriptionProvider = (typeof TRANSCRIPTION_PROVIDERS)[number];
+export const TRANSCRIPTION_DEFAULT_MODELS: Record<TranscriptionProvider, string> = {
+  groq: "whisper-large-v3-turbo",
+  openai: "whisper-1",
+  gemini: GEMINI_DEFAULT_MODEL,
+};
 export const VOICE_MAX_SECONDS = 120;
-// Two minutes of Safari's AAC at 128 kbps with room to spare; Chrome's Opus is far smaller
+// two minutes of safari aac at 128 kbps with room to spare
 export const VOICE_MAX_BYTES = 3 * 1024 * 1024;
 export const VOICE_TOO_LONG_ERROR = "Recordings can be up to 2 minutes.";
+// titles longer than this are sentences not names
+export const VOICE_HINT_ITEMS = 20;
+export const VOICE_HINT_MAX_LENGTH = 60;
+
+export const WHISPER_PROMPT_MAX_LENGTH = 600;
 export const VOICE_NO_SPEECH_ERROR =
   "capy didn't hear anything. Try again a bit closer to the mic.";
 

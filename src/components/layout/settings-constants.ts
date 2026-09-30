@@ -1,4 +1,4 @@
-import { GEMINI_DEFAULT_MODEL } from "@/constants";
+import { GEMINI_DEFAULT_MODEL, type TranscriptionProvider } from "@/constants";
 
 export const LABEL = "text-muted-foreground font-mono text-xs";
 export const INPUT =
@@ -31,7 +31,7 @@ export const THEMES = [
 
 export type UserTone = "chill" | "professional" | "motivational" | "custom";
 export type AIProvider = "ollama" | "openai" | "anthropic" | "groq" | "gemini";
-// Hosted only: heycapy's AI on credits, or the user's own key; a saved key stays for switching back
+// a saved key stays when switching to heycapy ai
 export type AISource = "heycapy" | "own";
 export const AI_SOURCE_OPTIONS: { value: AISource; label: string }[] = [
   { value: "heycapy", label: "heycapy ai" },
@@ -61,19 +61,14 @@ export const PROVIDER_DEFAULT_MODELS: Record<AIProvider, string> = {
   gemini: GEMINI_DEFAULT_MODEL,
 };
 
-export type TranscriptionProvider = "groq" | "openai" | "gemini";
+export type { TranscriptionProvider } from "@/constants";
+export { TRANSCRIPTION_DEFAULT_MODELS } from "@/constants";
 
 export const TRANSCRIPTION_PROVIDER_OPTIONS: { value: TranscriptionProvider; label: string }[] = [
   { value: "groq", label: "groq" },
   { value: "openai", label: "openai" },
   { value: "gemini", label: "gemini" },
 ];
-
-export const TRANSCRIPTION_DEFAULT_MODELS: Record<TranscriptionProvider, string> = {
-  groq: "whisper-large-v3-turbo",
-  openai: "whisper-1",
-  gemini: GEMINI_DEFAULT_MODEL,
-};
 
 export const TELEGRAM_QR_SIZE = 144;
 

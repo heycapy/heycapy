@@ -84,8 +84,7 @@ export function createAnthropicProvider(apiKey: string, model: string): AIProvid
       const system = systemMessages.map((m) => m.content).join("\n") || undefined;
       const anthropicMessages = toAnthropicMessages(messages);
 
-      // The tools are the same for every user and message, so they get their own cache point;
-      // below the model's minimum cacheable length the API just skips it
+      // tools are the same for everyone so they get their own cache point which the api skips below its minimum length
       const anthropicTools: Anthropic.Tool[] = tools.map((t, i) => ({
         name: t.name,
         description: t.description,
@@ -96,7 +95,7 @@ export function createAnthropicProvider(apiKey: string, model: string): AIProvid
       const response = await client.messages.create({
         model,
         max_tokens: 2048,
-        // Caches the whole request, so each tool round of an answer reads the rounds before it
+        // later tool rounds of an answer read the earlier rounds from the cache
         cache_control: { type: "ephemeral" },
         system,
         messages: anthropicMessages,
