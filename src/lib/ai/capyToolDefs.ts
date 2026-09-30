@@ -1,6 +1,37 @@
 import type { Tool } from "./types";
-import { SETTABLE_ITEM_STATUSES } from "@/constants";
+import { SETTABLE_ITEM_STATUSES, WEEKDAY_NAMES } from "@/constants";
 import { MAX_REMINDER_OFFSET_MINS, MAX_REMINDERS_PER_ITEM } from "@/lib/reminders/constants";
+
+const REPEAT_PROPERTIES = {
+  recurring_frequency: {
+    type: "string",
+    enum: ["daily", "weekly", "monthly", "yearly"],
+    description: "How often the item repeats. Requires a deadline.",
+  },
+  recurring_interval: {
+    type: "integer",
+    minimum: 1,
+    description: "Units between repeats, default 1: weekly + 2 = every 2 weeks.",
+  },
+  recurring_weekdays: {
+    type: ["array", "null"],
+    items: { type: "string", enum: [...WEEKDAY_NAMES] },
+    description:
+      "Weekly repeats only: the days it falls on, e.g. ['mon', 'wed', 'fri'], or " +
+      "['mon', 'tue', 'wed', 'thu', 'fri'] for weekdays. Leave out to repeat on the deadline's weekday.",
+  },
+  recurring_last_day_of_month: {
+    type: "boolean",
+    description:
+      "Monthly repeats only: true = on the last day of every month (28th–31st), for 'month end' / " +
+      "'end of the month'. The deadline is moved to that month's last day. False = on the deadline's day.",
+  },
+  recurring_end_date: {
+    type: ["string", "null"],
+    description:
+      "Optional last date of the series as an ISO date, e.g. '2027-01-01', or null for no end.",
+  },
+};
 
 export const CAPY_TOOLS: Tool[] = [
   {
@@ -88,8 +119,8 @@ export const CAPY_TOOLS: Tool[] = [
     description:
       "Add a new item (task, reminder, or entry) to a bucket. " +
       "Use this when the user asks to add, create, or track something. " +
-      "If the user mentions a deadline without a time, ask what time before calling this. " +
-      "If recurring fields are included, the item will automatically reschedule after each notification.",
+      "A repeating item needs a deadline: its first date. " +
+      "The next date appears when the user completes it (how exactly is the bucket's repeating items setting).",
     parameters: {
       type: "object",
       properties: {
@@ -104,8 +135,8 @@ export const CAPY_TOOLS: Tool[] = [
         deadline: {
           type: "string",
           description:
-            "Optional deadline as an ISO 8601 datetime string, e.g. '2026-09-21T09:00:00Z'. " +
-            "Always include time — if the user only gave a date, ask for the time first.",
+            "Optional deadline as a local datetime without a timezone, e.g. '2026-09-21T09:00:00'. " +
+            "For a repeating item, the first date it's due.",
         },
         reminder_offsets_mins: {
           type: "array",
@@ -116,25 +147,7 @@ export const CAPY_TOOLS: Tool[] = [
             "Common values: 0 (at deadline), 30, 60, 1440 (1 day before), 10080 (1 week before). " +
             "Leave unset to use the bucket's default.",
         },
-        recurring_frequency: {
-          type: "string",
-          enum: ["daily", "weekly", "monthly", "yearly"],
-          description:
-            "How often the item repeats. When set, the deadline automatically advances " +
-            "to the next occurrence after each notification fires. Requires a deadline.",
-        },
-        recurring_interval: {
-          type: "number",
-          description:
-            "How many units between recurrences. Defaults to 1. " +
-            "E.g. frequency='weekly' + interval=2 means every 2 weeks.",
-        },
-        recurring_end_date: {
-          type: "string",
-          description:
-            "Optional end date for the recurring series in ISO 8601 date format, e.g. '2027-01-01'. " +
-            "After this date, the item stops rescheduling.",
-        },
+        ...REPEAT_PROPERTIES,
         status: {
           type: "string",
           enum: [...SETTABLE_ITEM_STATUSES],
@@ -156,9 +169,11 @@ export const CAPY_TOOLS: Tool[] = [
   {
     name: "update_item",
     description:
-      "Update an existing item's title, deadline, reminders, or recurring configuration. " +
-      "Only include fields you want to change — omitted fields are left as-is. " +
-      "To clear the deadline, pass null. To remove recurring, set clear_recurring to true. " +
+      "Update an existing item's title, deadline, reminders, or repeat. " +
+      "Only include fields you want to change — omitted fields are left as-is, including each repeat field " +
+      "(e.g. only recurring_interval: 2 makes a monthly item every 2 months). " +
+      "Changing recurring_frequency drops the old weekdays / last-day choice. " +
+      "To clear the deadline, pass null. To stop repeating, set clear_recurring to true. " +
       "When the user says 'remind me later', 'remind me tomorrow' or 'postpone', move the deadline.",
     parameters: {
       type: "object",
@@ -184,19 +199,7 @@ export const CAPY_TOOLS: Tool[] = [
             "The item's full new list of reminders, as minutes before the deadline " +
             "([] for none), or null to go back to the bucket's default.",
         },
-        recurring_frequency: {
-          type: "string",
-          enum: ["daily", "weekly", "monthly", "yearly"],
-          description: "New recurring frequency. Also set recurring_interval if needed.",
-        },
-        recurring_interval: {
-          type: "number",
-          description: "New recurring interval. Defaults to 1 if not provided.",
-        },
-        recurring_end_date: {
-          type: ["string", "null"],
-          description: "New recurring end date (ISO date), or null to remove it.",
-        },
+        ...REPEAT_PROPERTIES,
         clear_recurring: {
           type: "boolean",
           description:

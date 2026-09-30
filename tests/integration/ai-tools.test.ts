@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { eq } from "drizzle-orm";
+import { and, eq, ne } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { items } from "@/lib/db/schema";
 import { executeToolCall } from "@/lib/ai/capyTools";
@@ -17,8 +17,9 @@ const T0 = new Date("2026-03-10T12:00:00Z");
 beforeEach(() => useSchedulerEnvironment(T0));
 afterEach(() => resetSchedulerEnvironment());
 
-async function tool(userId: number, name: string, args: Record<string, unknown>) {
-  return JSON.parse(await executeToolCall({ id: "call", name, arguments: args }, userId)) as {
+async function tool(userId: number, name: string, args: Record<string, unknown>, timezone = "UTC") {
+  const call = { id: "call", name, arguments: args };
+  return JSON.parse(await executeToolCall(call, userId, timezone)) as {
     ok: boolean;
     itemId?: number;
     error?: string;
@@ -107,5 +108,127 @@ describe("item statuses", () => {
       { ok: true }
     );
     expect((await savedItem(itemId)).status).toBe("on hold");
+  });
+});
+
+describe("repeats", () => {
+  async function addRepeating(userId: number, args: Record<string, unknown>, timezone = "UTC") {
+    const bucketId = await seedBucket(userId);
+    const result = await tool(
+      userId,
+      "add_item",
+      { bucket_id: bucketId, title: "netflix", deadline: "2026-03-10T09:00:00", ...args },
+      timezone
+    );
+    expect(result).toMatchObject({ ok: true });
+    return savedItem(result.itemId ?? -1);
+  }
+
+  it("month end moves the deadline to the last day and repeats on each month's last day", async () => {
+    const userId = await seedUser("Asia/Kolkata");
+    const item = await addRepeating(
+      userId,
+      { recurring_frequency: "monthly", recurring_last_day_of_month: true },
+      "Asia/Kolkata"
+    );
+
+    expect(item.deadline?.toISOString()).toBe("2026-03-31T03:30:00.000Z");
+    expect(JSON.parse(item.recurring ?? "null")).toMatchObject({
+      frequency: "monthly",
+      anchorDay: 31,
+    });
+
+    await tool(userId, "complete_item", { item_id: item.id });
+    const [next] = await db
+      .select()
+      .from(items)
+      .where(and(eq(items.bucketId, item.bucketId), ne(items.id, item.id)));
+    expect(next?.deadline?.toISOString()).toBe("2026-04-30T03:30:00.000Z");
+  });
+
+  it("weekly on picked days", async () => {
+    const userId = await seedUser();
+    const item = await addRepeating(userId, {
+      recurring_frequency: "weekly",
+      recurring_weekdays: ["fri", "mon", "wed"],
+    });
+
+    expect(JSON.parse(item.recurring ?? "null")).toMatchObject({ weekdays: [1, 3, 5] });
+  });
+
+  it.each([
+    [
+      "weekdays on a monthly repeat",
+      { recurring_frequency: "monthly", recurring_weekdays: ["mon"] },
+    ],
+    [
+      "last day on a weekly repeat",
+      { recurring_frequency: "weekly", recurring_last_day_of_month: true },
+    ],
+    ["an unknown weekday", { recurring_frequency: "weekly", recurring_weekdays: ["someday"] }],
+    ["a repeat without a frequency", { recurring_interval: 2 }],
+  ])("refuses %s", async (_, args) => {
+    const userId = await seedUser();
+    const bucketId = await seedBucket(userId);
+    const result = await tool(userId, "add_item", {
+      bucket_id: bucketId,
+      title: "netflix",
+      deadline: "2026-03-10T09:00:00",
+      ...args,
+    });
+
+    expect(result.ok).toBe(false);
+  });
+
+  it("refuses a repeat without a deadline", async () => {
+    const userId = await seedUser();
+    const bucketId = await seedBucket(userId);
+    const result = await tool(userId, "add_item", {
+      bucket_id: bucketId,
+      title: "netflix",
+      recurring_frequency: "monthly",
+    });
+
+    expect(result.ok).toBe(false);
+  });
+
+  it("update_item keeps the parts of the repeat it isn't given", async () => {
+    const userId = await seedUser();
+    const item = await addRepeating(userId, {
+      recurring_frequency: "monthly",
+      recurring_last_day_of_month: true,
+    });
+
+    await tool(userId, "update_item", { item_id: item.id, recurring_interval: 2 });
+
+    expect(JSON.parse((await savedItem(item.id)).recurring ?? "null")).toMatchObject({
+      frequency: "monthly",
+      interval: 2,
+      anchorDay: 31,
+    });
+  });
+
+  it("update_item switching to last day moves the deadline", async () => {
+    const userId = await seedUser();
+    const item = await addRepeating(userId, { recurring_frequency: "monthly" });
+
+    await tool(userId, "update_item", { item_id: item.id, recurring_last_day_of_month: true });
+
+    expect((await savedItem(item.id)).deadline?.toISOString()).toBe("2026-03-31T09:00:00.000Z");
+  });
+
+  it("update_item with a new frequency drops the old weekdays", async () => {
+    const userId = await seedUser();
+    const item = await addRepeating(userId, {
+      recurring_frequency: "weekly",
+      recurring_weekdays: ["mon", "wed"],
+    });
+
+    await tool(userId, "update_item", { item_id: item.id, recurring_frequency: "daily" });
+
+    const recurring = JSON.parse((await savedItem(item.id)).recurring ?? "null") as {
+      weekdays?: number[];
+    };
+    expect(recurring.weekdays).toBeUndefined();
   });
 });

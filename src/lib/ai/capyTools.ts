@@ -9,6 +9,8 @@ import { withDefaultChannels } from "@/lib/notifications/channels";
 import { initialReminderState, reminderResetForDeadline } from "@/lib/items/reminders";
 import { refreshItemReminders, reminderContext } from "@/lib/reminders/refresh";
 import { createNextOccurrence } from "@/lib/items/recurrence";
+import { onLastDayIfAnchored, parseRecurring } from "@/lib/items/occurrence";
+import { repeatFromArgs } from "./repeatArgs";
 import { encryptValue, generateWebhookKey } from "@/lib/crypto";
 import {
   BUCKET_NAME_MAX_LENGTH,
@@ -17,12 +19,7 @@ import {
   SETTABLE_ITEM_STATUSES,
 } from "@/constants";
 import { buckets, items } from "@/lib/db/schema";
-import {
-  RecurringConfig,
-  BucketSchema,
-  ReminderOffsets,
-  buildPropertyValidator,
-} from "@/types/rules";
+import { BucketSchema, ReminderOffsets, buildPropertyValidator } from "@/types/rules";
 import type { ToolCall } from "./types";
 
 export { CAPY_TOOLS } from "./capyToolDefs";
@@ -52,17 +49,8 @@ function deadlineRelative(deadline: Date, timezone: string): string {
   return `in ${Math.round(diffDays / 30)} months`;
 }
 
-function parseRecurringArgs(args: Record<string, unknown>): string | null | undefined {
-  if (args.clear_recurring === true) return null;
-  if (args.recurring_frequency === undefined) return undefined;
-
-  const config = RecurringConfig.parse({
-    enabled: true,
-    frequency: args.recurring_frequency,
-    interval: args.recurring_interval ?? 1,
-    endDate: args.recurring_end_date ?? null,
-  });
-  return JSON.stringify(config);
+function repeatError(error: string): string {
+  return JSON.stringify({ ok: false, error });
 }
 
 // null follows the bucket's default
@@ -258,17 +246,17 @@ async function executeToolCallInner(
         .from(items)
         .where(eq(items.bucketId, bucketId));
 
-      const deadline = args.deadline ? parseLocalDateTime(String(args.deadline), timezone) : null;
       const reminders = parseReminderOffsetsArg(args.reminder_offsets_mins);
       if (!reminders.ok) return reminders.error;
 
-      let recurringJson: string | null = null;
-      try {
-        const parsed = parseRecurringArgs(args);
-        if (parsed !== undefined) recurringJson = parsed;
-      } catch {
-        return JSON.stringify({ ok: false, error: "Invalid recurring configuration" });
-      }
+      const repeat = repeatFromArgs(args, null);
+      if (repeat.kind === "error") return repeatError(repeat.error);
+      const recurring = repeat.kind === "set" ? repeat.config : null;
+      const parsedDeadline = args.deadline
+        ? parseLocalDateTime(String(args.deadline), timezone)
+        : null;
+      if (recurring && !parsedDeadline) return repeatError("A repeating item needs a deadline");
+      const deadline = parsedDeadline && onLastDayIfAnchored(parsedDeadline, recurring, timezone);
 
       const finalStatus = args.status ? String(args.status).trim() : ITEM_STATUS.active;
       if (!SETTABLE_ITEM_STATUSES.includes(finalStatus)) return invalidStatusError(finalStatus);
@@ -291,7 +279,7 @@ async function executeToolCallInner(
           deadline,
           ...initialReminderState(deadline, timezone),
           reminderOffsets: reminders.value,
-          recurring: recurringJson,
+          recurring: recurring ? JSON.stringify(recurring) : null,
           properties: propertiesJson,
           source: "ai",
           sortOrder: (maxRow?.max ?? -1) + 1,
@@ -330,10 +318,33 @@ async function executeToolCallInner(
         if (!title) return JSON.stringify({ ok: false, error: "Title cannot be empty" });
         updates.title = title;
       }
-      if ("deadline" in args) {
-        const newDeadline = args.deadline
-          ? parseLocalDateTime(String(args.deadline), timezone)
-          : null;
+
+      const repeat = repeatFromArgs(args, parseRecurring(item.recurring));
+      if (repeat.kind === "error") return repeatError(repeat.error);
+      const recurring =
+        repeat.kind === "none"
+          ? parseRecurring(item.recurring)
+          : repeat.kind === "set"
+            ? repeat.config
+            : null;
+      if (repeat.kind !== "none") updates.recurring = recurring ? JSON.stringify(recurring) : null;
+      if (repeat.kind === "clear") updates.scheduledAt = null;
+
+      const askedDeadline =
+        "deadline" in args
+          ? args.deadline
+            ? parseLocalDateTime(String(args.deadline), timezone)
+            : null
+          : item.deadline;
+      const touchesSchedule = "deadline" in args || repeat.kind === "set";
+      if (touchesSchedule && recurring && !askedDeadline) {
+        return repeatError("A repeating item needs a deadline");
+      }
+      const newDeadline =
+        askedDeadline && touchesSchedule
+          ? onLastDayIfAnchored(askedDeadline, recurring, timezone)
+          : askedDeadline;
+      if ("deadline" in args || newDeadline?.getTime() !== item.deadline?.getTime()) {
         updates.deadline = newDeadline;
         if (newDeadline?.getTime() !== item.deadline?.getTime()) updates.scheduledAt = null;
         Object.assign(
@@ -345,14 +356,6 @@ async function executeToolCallInner(
         const reminders = parseReminderOffsetsArg(args.reminder_offsets_mins);
         if (!reminders.ok) return reminders.error;
         updates.reminderOffsets = reminders.value;
-      }
-
-      try {
-        const parsed = parseRecurringArgs(args);
-        if (parsed !== undefined) updates.recurring = parsed;
-        if (parsed === null) updates.scheduledAt = null;
-      } catch {
-        return JSON.stringify({ ok: false, error: "Invalid recurring configuration" });
       }
 
       if (args.status !== undefined) {
