@@ -49,6 +49,10 @@ export const EMAIL_COLORS = {
 export const TELEGRAM_API_BASE = "https://api.telegram.org";
 export const TELEGRAM_LINK_BASE = "https://t.me";
 export const USELESS_FACTS_API_URL = "https://uselessfacts.jsph.pl/api/v2/facts/random?language=en";
+// Per AI call; the SDKs give up at the same time, so a rate limit shows as itself, not as a timeout
+export const AI_REQUEST_TIMEOUT_MS = 30_000;
+export const OLLAMA_REQUEST_TIMEOUT_MS = 120_000;
+export const AI_TIMEOUT_ERROR = "The AI provider didn't answer in time. Try again.";
 export const GROQ_API_BASE = "https://api.groq.com/openai/v1";
 export const GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta/openai/";
 

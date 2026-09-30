@@ -1,5 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import type { AIProvider, AgentMessage, CompleteResult, Message, Tool } from "../types";
+import { AI_CLIENT_OPTIONS } from "./options";
 
 function toAnthropicMessages(messages: AgentMessage[]): Anthropic.MessageParam[] {
   const result: Anthropic.MessageParam[] = [];
@@ -40,7 +41,7 @@ function toAnthropicMessages(messages: AgentMessage[]): Anthropic.MessageParam[]
 }
 
 export function createAnthropicProvider(apiKey: string, model: string): AIProvider {
-  const client = new Anthropic({ apiKey });
+  const client = new Anthropic({ apiKey, ...AI_CLIENT_OPTIONS });
 
   return {
     async *chat(messages: Message[]) {

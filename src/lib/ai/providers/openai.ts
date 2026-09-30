@@ -1,8 +1,9 @@
 import OpenAI from "openai";
 import type { AIProvider, AgentMessage, CompleteResult, Message, Tool } from "../types";
+import { AI_CLIENT_OPTIONS } from "./options";
 
 export function createOpenAIProvider(apiKey: string, model: string): AIProvider {
-  const client = new OpenAI({ apiKey });
+  const client = new OpenAI({ apiKey, ...AI_CLIENT_OPTIONS });
 
   return {
     async *chat(messages: Message[]) {

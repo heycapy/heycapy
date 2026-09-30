@@ -9,6 +9,7 @@ import { buildSystemPrompt } from "@/lib/ai/systemPrompt";
 import { CAPY_TOOLS, executeToolCall, getUpcomingItems } from "@/lib/ai/capyTools";
 import { compactSessionIfNeeded } from "@/lib/ai/compact";
 import { aiErrorResponse } from "@/lib/errors";
+import { AI_REQUEST_TIMEOUT_MS, AI_TIMEOUT_ERROR, OLLAMA_REQUEST_TIMEOUT_MS } from "@/constants";
 import type { AgentMessage } from "@/lib/ai/types";
 
 const bodySchema = z.object({
@@ -116,11 +117,12 @@ export async function POST(req: Request) {
   try {
     for (let round = 0; round < 8; round++) {
       let timer: ReturnType<typeof setTimeout> | undefined;
-      const timeoutMs = settings?.aiProvider === "ollama" ? 120_000 : 30_000;
+      const timeoutMs =
+        settings?.aiProvider === "ollama" ? OLLAMA_REQUEST_TIMEOUT_MS : AI_REQUEST_TIMEOUT_MS;
       const result = await Promise.race([
         provider.complete(agentMessages, CAPY_TOOLS),
         new Promise<never>((_, reject) => {
-          timer = setTimeout(() => reject(new Error("AI provider timeout")), timeoutMs);
+          timer = setTimeout(() => reject(new Error(AI_TIMEOUT_ERROR)), timeoutMs);
         }),
       ]).finally(() => clearTimeout(timer));
 

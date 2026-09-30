@@ -17,8 +17,13 @@ import {
 } from "@/lib/notifications/telegram";
 import { compactSessionIfNeeded } from "@/lib/ai/compact";
 import { dataEvents } from "@/lib/events";
-import { errorMessage } from "@/lib/errors";
-import { TELEGRAM_RESERVED_COMMANDS } from "@/constants";
+import { errorMessage, parseProviderError } from "@/lib/errors";
+import {
+  AI_REQUEST_TIMEOUT_MS,
+  AI_TIMEOUT_ERROR,
+  OLLAMA_REQUEST_TIMEOUT_MS,
+  TELEGRAM_RESERVED_COMMANDS,
+} from "@/constants";
 import type { AgentMessage } from "@/lib/ai/types";
 import type {
   TelegramDeadlinePreset,
@@ -853,7 +858,10 @@ async function handleUpdate(botToken: string, body: TelegramUpdate): Promise<Res
       const result = await Promise.race([
         provider.complete(agentMessages, CAPY_TOOLS),
         new Promise<never>((_, reject) => {
-          timer = setTimeout(() => reject(new Error("AI provider timeout")), 30_000);
+          timer = setTimeout(
+            () => reject(new Error(AI_TIMEOUT_ERROR)),
+            row.aiProvider === "ollama" ? OLLAMA_REQUEST_TIMEOUT_MS : AI_REQUEST_TIMEOUT_MS
+          );
         }),
       ]).finally(() => clearTimeout(timer));
       if (result.content) lastAssistantContent = result.content;
@@ -879,6 +887,11 @@ async function handleUpdate(botToken: string, body: TelegramUpdate): Promise<Res
   } catch (err) {
     clearInterval(typingInterval);
     process.stderr.write(`[telegram] AI error: ${errorMessage(err)}\n`);
+    await sendTelegramWithQuickActions(
+      botToken,
+      chatIdStr,
+      `capy couldn't answer: ${parseProviderError(err)}`
+    ).catch(() => {});
     return new Response("OK");
   }
 

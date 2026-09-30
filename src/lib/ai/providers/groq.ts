@@ -1,9 +1,10 @@
 import OpenAI from "openai";
 import { GROQ_API_BASE } from "@/constants";
 import type { AIProvider, AgentMessage, CompleteResult, Message, Tool } from "../types";
+import { AI_CLIENT_OPTIONS } from "./options";
 
 export function createGroqProvider(apiKey: string, model: string): AIProvider {
-  const client = new OpenAI({ apiKey, baseURL: GROQ_API_BASE });
+  const client = new OpenAI({ apiKey, baseURL: GROQ_API_BASE, ...AI_CLIENT_OPTIONS });
 
   return {
     async *chat(messages: Message[]) {
