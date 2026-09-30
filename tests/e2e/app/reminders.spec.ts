@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 import { authState } from "../helpers/auth";
 import { createAndSelectBucket, itemRow, uniqueName } from "../helpers/buckets";
-import { modal } from "../helpers/settings";
+import { modal, openSettings, saveSettings, switchTab } from "../helpers/settings";
 
 test.use({ storageState: authState("reminders") });
 
@@ -85,4 +85,25 @@ test("a typed reminder over 90 days is refused, and four is the limit", async ({
   await dialog.getByRole("button", { name: "remove reminder 15 min before" }).click();
   await expect(dialog.getByText("3 of 4", { exact: true })).toBeVisible();
   await expect(dialog.getByRole("button", { name: "[ + add ]", exact: true })).toBeVisible();
+});
+
+test("new items start with the bucket's default reminders", async ({ page }) => {
+  await page.goto("/");
+  await createAndSelectBucket(page, uniqueName("Bills"));
+  const settings = await openSettings(page);
+  await switchTab(settings, "notifications");
+  await settings.getByRole("button", { name: "[ + add ]", exact: true }).click();
+  await settings.getByRole("button", { name: "2 days before", exact: true }).click();
+  await saveSettings(settings);
+
+  await page.getByRole("button", { name: "[ add + ]", exact: true }).click();
+  const dialog = modal(page, /^(new|edit) item$/);
+  await dialog.locator("textarea").first().fill(uniqueName("electricity"));
+  await dialog.getByRole("button", { name: "pick date" }).click();
+  await page.getByRole("button", { name: "20", exact: true }).click();
+  await expect(dialog.getByText("bucket default · 2 of 4")).toBeVisible();
+  await expect(dialog.getByRole("button", { name: /^remove reminder / })).toHaveText([
+    "2 days before ×",
+    /^(at time|on the day) ×$/,
+  ]);
 });

@@ -404,15 +404,18 @@ test.describe("notifications settings", () => {
     await expectSelected(option(repeat, "daily"), false);
   });
 
-  test("remind before deadline previews and flags input", async () => {
-    const remind = field(dialog, "remind me before deadline");
-    const input = remind.getByRole("textbox");
+  test("default reminders start at the deadline and can be added and removed", async () => {
+    const chips = dialog.getByRole("button", { name: /^remove reminder / });
+    await expect(chips).toHaveText(["at time ×"]);
+    await expect(dialog.getByText("1 of 4", { exact: true })).toBeVisible();
 
-    await input.fill("nonsense");
-    await expect(remind.getByText("unrecognized format", { exact: true })).toBeVisible();
+    await dialog.getByRole("button", { name: "[ + add ]", exact: true }).click();
+    await dialog.getByRole("button", { name: "1 day before", exact: true }).click();
+    await expect(chips).toHaveText(["1 day before ×", "at time ×"]);
+    await expect(dialog.getByText("2 of 4", { exact: true })).toBeVisible();
 
-    await input.fill("3 hours");
-    await expect(remind.getByText("unrecognized format", { exact: true })).not.toBeVisible();
+    await dialog.getByRole("button", { name: "remove reminder at time" }).click();
+    await expect(chips).toHaveText(["1 day before ×"]);
   });
 
   test("remind at accepts 12h and 24h formats and rejects invalid times", async () => {
@@ -463,7 +466,9 @@ test.describe("notifications settings", () => {
 
   test("all notification settings persist after save and reload", async ({ page }) => {
     await option(field(dialog, "channels"), "telegram").click();
-    await field(dialog, "remind me before deadline").getByRole("textbox").fill("3 hours");
+    await dialog.getByRole("button", { name: "[ + add ]", exact: true }).click();
+    await dialog.getByRole("textbox", { name: "custom reminder amount" }).fill("3");
+    await dialog.getByRole("button", { name: "add custom reminder" }).click();
     const notifyAt = field(dialog, "remind at").getByRole("textbox");
     await notifyAt.fill("8:15 am");
     await notifyAt.blur();
@@ -481,9 +486,10 @@ test.describe("notifications settings", () => {
     await expectSelected(option(field(reopened, "channels"), "email"));
     await expectSelected(option(field(reopened, "channels"), "telegram"));
     await expectSelected(option(field(reopened, "channels"), "ntfy"), false);
-    await expect(field(reopened, "remind me before deadline").getByRole("textbox")).toHaveValue(
-      "3 hours"
-    );
+    await expect(reopened.getByRole("button", { name: /^remove reminder / })).toHaveText([
+      "3 hours before ×",
+      "at time ×",
+    ]);
     await expect(field(reopened, "remind at").getByRole("textbox")).toHaveValue("8:15 am");
     await expectSelected(option(field(reopened, "deadline repeat"), "daily"));
     await expectSelected(option(field(reopened, "notify on arrival"), "on"));

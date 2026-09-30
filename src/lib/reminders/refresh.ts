@@ -1,5 +1,5 @@
 import { recordSystemError } from "@/lib/system-errors";
-import { bucketDefaultReminders, parseNotificationRules } from "@/lib/rules";
+import { parseNotificationRules } from "@/lib/rules";
 import { and, asc, eq, gt, inArray, type SQL } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { buckets, items, userSettings } from "@/lib/db/schema";
@@ -67,7 +67,7 @@ export async function reminderContext(bucketId: number): Promise<ReminderContext
     .limit(1);
   const rules = parseNotificationRules(row?.rules);
   return {
-    defaultReminders: bucketDefaultReminders(rules),
+    defaultReminders: rules.defaultReminders,
     notifyAt: rules.notifyAt,
     timezone: row?.timezone ?? "UTC",
   };

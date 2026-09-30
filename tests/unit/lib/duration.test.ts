@@ -1,9 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   parseDurationToDate,
-  parseDurationToMins,
   parseDurationToDays,
-  minsToDisplayStr,
   daysToDisplayStr,
   durationPreview,
 } from "@/lib/duration";
@@ -48,42 +46,6 @@ describe("parseDurationToDate", () => {
   });
 });
 
-describe("parseDurationToMins", () => {
-  it("returns null for empty/null/undefined", () => {
-    expect(parseDurationToMins(null)).toBeNull();
-    expect(parseDurationToMins(undefined)).toBeNull();
-    expect(parseDurationToMins("")).toBeNull();
-  });
-
-  it("returns null for unrecognized input", () => {
-    expect(parseDurationToMins("xyz")).toBeNull();
-    expect(parseDurationToMins("0h")).toBeNull();
-  });
-
-  it("converts hours", () => {
-    expect(parseDurationToMins("1h")).toBe(60);
-    expect(parseDurationToMins("2hr")).toBe(120);
-    expect(parseDurationToMins("3hrs")).toBe(180);
-    expect(parseDurationToMins("1hour")).toBe(60);
-    expect(parseDurationToMins("2hours")).toBe(120);
-  });
-
-  it("converts days", () => {
-    expect(parseDurationToMins("1d")).toBe(1440);
-    expect(parseDurationToMins("3days")).toBe(4320);
-  });
-
-  it("converts weeks", () => {
-    expect(parseDurationToMins("1w")).toBe(10080);
-    expect(parseDurationToMins("2wks")).toBe(20160);
-  });
-
-  it("converts months as 30 days", () => {
-    expect(parseDurationToMins("1m")).toBe(30 * 24 * 60);
-    expect(parseDurationToMins("2mo")).toBe(2 * 30 * 24 * 60);
-  });
-});
-
 describe("parseDurationToDays", () => {
   it("returns null for empty/null/undefined", () => {
     expect(parseDurationToDays(null)).toBeNull();
@@ -113,38 +75,6 @@ describe("parseDurationToDays", () => {
   it("converts months to 30-day approximation", () => {
     expect(parseDurationToDays("1m")).toBe(30);
     expect(parseDurationToDays("2m")).toBe(60);
-  });
-});
-
-describe("minsToDisplayStr", () => {
-  it("returns empty string for zero and negative values", () => {
-    expect(minsToDisplayStr(0)).toBe("");
-    expect(minsToDisplayStr(-60)).toBe("");
-  });
-
-  it("displays minutes when not divisible by 60", () => {
-    expect(minsToDisplayStr(45)).toBe("45 minutes");
-    expect(minsToDisplayStr(1)).toBe("1 minute");
-  });
-
-  it("displays hours", () => {
-    expect(minsToDisplayStr(60)).toBe("1 hour");
-    expect(minsToDisplayStr(120)).toBe("2 hours");
-  });
-
-  it("displays days", () => {
-    expect(minsToDisplayStr(1440)).toBe("1 day");
-    expect(minsToDisplayStr(4320)).toBe("3 days");
-  });
-
-  it("displays weeks", () => {
-    expect(minsToDisplayStr(7 * 24 * 60)).toBe("1 week");
-    expect(minsToDisplayStr(14 * 24 * 60)).toBe("2 weeks");
-  });
-
-  it("displays months", () => {
-    expect(minsToDisplayStr(30 * 24 * 60)).toBe("1 month");
-    expect(minsToDisplayStr(60 * 24 * 60)).toBe("2 months");
   });
 });
 

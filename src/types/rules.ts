@@ -2,11 +2,18 @@ import { z } from "zod";
 import { DEFAULT_REMINDER_BUTTONS, QUICK_REMIND_VALUES } from "@/lib/notifications/constants";
 import { MAX_REMINDER_OFFSET_MINS, MAX_REMINDERS_PER_ITEM } from "@/lib/reminders/constants";
 
+// Minutes before the deadline, stored largest first without repeats
+export const ReminderOffsets = z
+  .array(z.number().int().min(0).max(MAX_REMINDER_OFFSET_MINS))
+  .max(MAX_REMINDERS_PER_ITEM)
+  .transform((offsets) => [...new Set(offsets)].sort((a, b) => b - a));
+
 export const NotificationRules = z.object({
   medium: z.array(z.enum(["ntfy", "email", "telegram", "push"])).default([]),
   notifyAt: z.string().default(""),
   quietHours: z.object({ from: z.string(), to: z.string() }).nullable().default(null),
-  defaultOffsetMins: z.number().int().nonnegative().default(0),
+  // For items that haven't picked their own
+  defaultReminders: ReminderOffsets.default([0]),
   repeat: z.enum(["once", "daily"]).default("once"),
   // "Remind again" buttons shown next to Done on every channel, as much as each has room for
   reminderButtons: z.array(z.enum(QUICK_REMIND_VALUES)).default(DEFAULT_REMINDER_BUTTONS),
@@ -36,12 +43,6 @@ export const PersonalityRules = z.object({
     .nullable()
     .default(null),
 });
-
-// Minutes before the deadline, stored largest first without repeats
-export const ReminderOffsets = z
-  .array(z.number().int().min(0).max(MAX_REMINDER_OFFSET_MINS))
-  .max(MAX_REMINDERS_PER_ITEM)
-  .transform((offsets) => [...new Set(offsets)].sort((a, b) => b - a));
 
 export const RecurringConfig = z.object({
   enabled: z.boolean().default(false),

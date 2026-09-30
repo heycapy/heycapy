@@ -15,7 +15,7 @@ type NotificationRulesInput = {
   medium?: string[];
   repeat?: "once" | "daily";
   notifyAt?: string;
-  defaultOffsetMins?: number;
+  defaultReminders?: number[];
   quietHours?: { from: string; to: string } | null;
   reminderButtons?: string[];
 };

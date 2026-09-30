@@ -39,33 +39,8 @@ export function parseDurationToDate(str: string | null | undefined): string | nu
   return toDateStr(apply(parsed.value, parsed.unit, new Date()));
 }
 
-/** Returns the number of minutes represented by a duration string, or null if unparseable. */
-export function parseDurationToMins(str: string | null | undefined): number | null {
-  if (!str?.trim()) return null;
-  const parsed = parse(str);
-  if (!parsed) return null;
-  if (parsed.unit === "hours") return parsed.value * 60;
-  if (parsed.unit === "days") return parsed.value * 24 * 60;
-  if (parsed.unit === "weeks") return parsed.value * 7 * 24 * 60;
-  if (parsed.unit === "months") return parsed.value * 30 * 24 * 60;
-  return null;
-}
-
 function plural(n: number, unit: string): string {
   return `${n} ${unit}${n === 1 ? "" : "s"}`;
-}
-
-/** Returns a display string for a number of minutes, e.g. 4320 → "3 days". */
-export function minsToDisplayStr(mins: number): string {
-  if (mins <= 0) return "";
-  const MONTH = 30 * 24 * 60;
-  const WEEK = 7 * 24 * 60;
-  const DAY = 24 * 60;
-  if (mins % MONTH === 0) return plural(mins / MONTH, "month");
-  if (mins % WEEK === 0) return plural(mins / WEEK, "week");
-  if (mins % DAY === 0) return plural(mins / DAY, "day");
-  if (mins % 60 === 0) return plural(mins / 60, "hour");
-  return plural(mins, "minute");
 }
 
 /** Returns the number of days represented by a duration string, or null if unparseable. */

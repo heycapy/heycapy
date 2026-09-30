@@ -1,5 +1,5 @@
 import { DEFAULT_REMINDER_BUTTONS, type QuickRemindChoice } from "@/lib/notifications/constants";
-import { daysToDisplayStr, minsToDisplayStr } from "@/lib/duration";
+import { daysToDisplayStr } from "@/lib/duration";
 import type { NotificationMedium, RepeatMode, SortBy } from "./constants";
 import type { buckets } from "@/lib/db/schema";
 import type { RecurrenceMode } from "@/types/rules";
@@ -23,8 +23,7 @@ type RawNotifRules = {
   reminderButtons?: QuickRemindChoice[];
   notifyAt?: string;
   notify_at?: string;
-  defaultOffsetMins?: number;
-  default_offset?: string;
+  defaultReminders?: number[];
   repeat?: RepeatMode;
 };
 
@@ -39,7 +38,7 @@ export type BucketSettingsValues = {
   mediums: NotificationMedium[];
   reminderButtons: QuickRemindChoice[];
   notifyAt: string;
-  defaultOffset: string;
+  defaultReminders: number[];
   repeat: RepeatMode;
   notifyOnArrival: boolean;
   notifyWhenOverdue: boolean;
@@ -86,10 +85,7 @@ export function parseBucketSettings(bucket: BucketRow): BucketSettingsValues {
     mediums: nr.medium ?? [],
     reminderButtons: nr.reminderButtons ?? DEFAULT_REMINDER_BUTTONS,
     notifyAt: nr.notifyAt ?? nr.notify_at ?? "",
-    defaultOffset:
-      nr.defaultOffsetMins !== undefined && nr.defaultOffsetMins !== null
-        ? minsToDisplayStr(nr.defaultOffsetMins)
-        : (nr.default_offset ?? ""),
+    defaultReminders: nr.defaultReminders ?? [0],
     repeat: nr.repeat ?? "once",
     notifyOnArrival: fs.notifyOnArrival === true,
     notifyWhenOverdue: fs.notifyWhenOverdue === true,

@@ -26,7 +26,7 @@ import {
   type NotificationsRulesConfig,
   type TelegramBotConfig,
 } from "@/components/buckets/constants";
-import { BucketSchema } from "@/types/rules";
+import { BucketSchema, ReminderOffsets } from "@/types/rules";
 import { buildPropertyValidator } from "@/types/rules";
 
 const TelegramBotConfigInput = z.object({
@@ -129,6 +129,12 @@ export async function updateBucketSettingsAction(
   const trimmed = name.trim();
   if (!trimmed) return { ok: false, error: "Name is required" };
   if (trimmed.length > BUCKET_NAME_MAX_LENGTH) return { ok: false, error: "Name too long" };
+  const defaultReminders =
+    notificationsRules.defaultReminders &&
+    ReminderOffsets.safeParse(notificationsRules.defaultReminders);
+  if (defaultReminders && !defaultReminders.success) {
+    return { ok: false, error: "Invalid reminders" };
+  }
 
   const bucket = await db.query.buckets.findFirst({
     where: (b, { eq: qeq, and: qand }) => qand(qeq(b.id, bucketId), qeq(b.userId, session.userId)),
@@ -173,6 +179,7 @@ export async function updateBucketSettingsAction(
       notificationsRules: JSON.stringify({
         ...parseStoredRules(bucket.notificationsRules),
         ...notificationsRules,
+        ...(defaultReminders && { defaultReminders: defaultReminders.data }),
         ...(notificationsRules.reminderButtons && {
           reminderButtons: QUICK_REMIND_VALUES.filter((v) =>
             notificationsRules.reminderButtons?.includes(v)

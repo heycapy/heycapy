@@ -120,6 +120,13 @@
       "when": 1793260000000,
       "tag": "0016_item_reminder_offsets",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "6",
+      "when": 1793270000000,
+      "tag": "0017_bucket_default_reminders",
+      "breakpoints": true
     }
   ]
 }

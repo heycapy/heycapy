@@ -27,7 +27,7 @@ describe("parseBucketSettings", () => {
       mediums: [],
       reminderButtons: ["60", "tomorrow"],
       notifyAt: "",
-      defaultOffset: "",
+      defaultReminders: [0],
       repeat: "once",
       notifyOnArrival: false,
       notifyWhenOverdue: false,
@@ -48,7 +48,7 @@ describe("parseBucketSettings", () => {
         notificationsRules: JSON.stringify({
           medium: ["email", "telegram"],
           notifyAt: "08:15",
-          defaultOffsetMins: 180,
+          defaultReminders: [1440, 180],
           repeat: "daily",
         }),
       })
@@ -61,7 +61,7 @@ describe("parseBucketSettings", () => {
       defaultDeadlineOffset: "2 weeks",
       mediums: ["email", "telegram"],
       notifyAt: "08:15",
-      defaultOffset: "3 hours",
+      defaultReminders: [1440, 180],
       repeat: "daily",
     });
   });
@@ -74,7 +74,7 @@ describe("parseBucketSettings", () => {
           show_completed: false,
           default_deadline_offset: "3 days",
         }),
-        notificationsRules: JSON.stringify({ notify_at: "09:00", default_offset: "1 day" }),
+        notificationsRules: JSON.stringify({ notify_at: "09:00" }),
       })
     );
     expect(values).toMatchObject({
@@ -82,7 +82,6 @@ describe("parseBucketSettings", () => {
       showCompleted: false,
       defaultDeadlineOffset: "3 days",
       notifyAt: "09:00",
-      defaultOffset: "1 day",
     });
   });
 

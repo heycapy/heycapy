@@ -125,4 +125,43 @@ describe("migrations", () => {
     expect(columns.map((c) => c.name)).not.toContain("notification_offset_mins");
     sqlite.close();
   });
+
+  it("turn a bucket's single default reminder into a list", () => {
+    const journal = JSON.parse(
+      readFileSync(path.join(MIGRATIONS, "meta/_journal.json"), "utf8")
+    ) as Journal;
+    const listMigration = journal.entries.findIndex(
+      (e) => e.tag === "0017_bucket_default_reminders"
+    );
+    const dbPath = path.join(mkdtempSync(path.join(tmpdir(), "heycapy-defaults-")), "db.sqlite");
+    const sqlite = new Database(dbPath);
+    const db = drizzle(sqlite);
+    migrate(db, { migrationsFolder: migrationsUpTo(listMigration) });
+
+    const template = JSON.stringify({ notifications: { defaultOffsetMins: 4320 }, items: {} });
+    sqlite.exec(`
+      INSERT INTO users (id, email) VALUES (1, 'a@heycapy.test');
+      INSERT INTO buckets (user_id, name, notifications_rules) VALUES
+        (1, 'Bills', '{"medium":["telegram"],"defaultOffsetMins":1440}'),
+        (1, 'Todo', '{}'),
+        (1, 'Old', '{"default_offset":"1 day"}'),
+        (1, 'Broken', 'not json');
+      INSERT INTO templates (name, rules_json) VALUES ('Subs', '${template}');
+    `);
+
+    migrate(db, { migrationsFolder: MIGRATIONS });
+
+    const rules = sqlite
+      .prepare("SELECT notifications_rules AS r FROM buckets ORDER BY id")
+      .all() as { r: string }[];
+    expect(rules.map((row) => row.r)).toEqual([
+      '{"medium":["telegram"],"defaultReminders":[1440]}',
+      '{"defaultReminders":[0]}',
+      '{"defaultReminders":[0]}',
+      "not json",
+    ]);
+    const saved = sqlite.prepare("SELECT rules_json AS r FROM templates").get() as { r: string };
+    expect(JSON.parse(saved.r)).toEqual({ notifications: { defaultReminders: [4320] }, items: {} });
+    sqlite.close();
+  });
 });

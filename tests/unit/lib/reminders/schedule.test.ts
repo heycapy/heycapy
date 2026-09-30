@@ -36,12 +36,12 @@ describe("nextDeadlineReminder", () => {
   });
 
   it("applies the bucket offset, with the item offset taking precedence", () => {
-    expect(iso(nextDeadlineReminder(inputs({ rules: { defaultOffsetMins: 60 } })))).toBe(
+    expect(iso(nextDeadlineReminder(inputs({ rules: { defaultReminders: [60] } })))).toBe(
       "2026-06-10T12:00:00.000Z"
     );
     expect(
       iso(
-        nextDeadlineReminder(inputs({ rules: { defaultOffsetMins: 60 }, reminderOffsets: [1440] }))
+        nextDeadlineReminder(inputs({ rules: { defaultReminders: [60] }, reminderOffsets: [1440] }))
       )
     ).toBe("2026-06-09T13:00:00.000Z");
   });
@@ -146,7 +146,7 @@ describe("nextDeadlineReminder with several reminders", () => {
 
   it("sends nothing for an empty list, whatever the bucket default", () => {
     expect(
-      nextDeadlineReminder(inputs({ rules: { defaultOffsetMins: 60 }, reminderOffsets: [] }))
+      nextDeadlineReminder(inputs({ rules: { defaultReminders: [60] }, reminderOffsets: [] }))
     ).toBeNull();
   });
 
@@ -156,6 +156,18 @@ describe("nextDeadlineReminder with several reminders", () => {
       rules: { quietHours: { from: "22:00", to: "08:00" } },
     });
     expect(iso(nextDeadlineReminder(quiet))).toBe("2026-06-10T12:00:00.000Z");
+  });
+});
+
+describe("NotificationRules defaultReminders", () => {
+  it("is 'at time' when a bucket has none saved", () => {
+    expect(NotificationRules.parse({}).defaultReminders).toEqual([0]);
+  });
+
+  it("keeps each once, largest first", () => {
+    expect(NotificationRules.parse({ defaultReminders: [0, 60, 60] }).defaultReminders).toEqual([
+      60, 0,
+    ]);
   });
 });
 

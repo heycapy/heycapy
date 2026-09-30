@@ -210,8 +210,8 @@ export function ItemDialog({
 
       {hasDate && onRemindersChange && bucketReminders && (
         <ReminderPicker
-          reminders={reminders ?? null}
-          bucketDefault={bucketReminders}
+          reminders={reminders ?? bucketReminders}
+          followsBucket={!reminders}
           allDay={!deadline.includes("T")}
           disabled={pending}
           onChange={onRemindersChange}

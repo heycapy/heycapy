@@ -8,6 +8,7 @@ import { OptionButton } from "@/components/ui/OptionButton";
 import { OptionGroup } from "@/components/ui/OptionGroup";
 import { TimePicker } from "@/components/ui/TimePicker";
 import { DurationInput } from "@/components/ui/DurationInput";
+import { ReminderPicker } from "./ReminderPicker";
 import type { SortBy, NotificationMedium, RepeatMode } from "./constants";
 import { SORT_OPTIONS, MEDIUM_OPTIONS, REPEAT_OPTIONS, RECURRENCE_MODE_OPTIONS } from "./constants";
 import type { RecurrenceMode } from "@/types/rules";
@@ -48,7 +49,7 @@ type BucketRulesPanelProps = {
   mediums: NotificationMedium[];
   reminderButtons: QuickRemindChoice[];
   notifyAt: string;
-  defaultOffset: string;
+  defaultReminders: number[];
   repeat: RepeatMode;
   notifyOnArrival: boolean;
   notifyWhenOverdue: boolean;
@@ -63,7 +64,7 @@ type BucketRulesPanelProps = {
   onMediumToggle: (m: NotificationMedium) => void;
   onReminderButtonToggle: (b: QuickRemindChoice) => void;
   onNotifyAtChange: (v: string) => void;
-  onDefaultOffsetChange: (v: string) => void;
+  onDefaultRemindersChange: (v: number[]) => void;
   onRepeatChange: (v: RepeatMode) => void;
   onNotifyOnArrivalChange: (v: boolean) => void;
   onNotifyWhenOverdueChange: (v: boolean) => void;
@@ -84,7 +85,7 @@ export function BucketRulesPanel({
   mediums,
   reminderButtons,
   notifyAt,
-  defaultOffset,
+  defaultReminders,
   repeat,
   notifyOnArrival,
   notifyWhenOverdue,
@@ -99,7 +100,7 @@ export function BucketRulesPanel({
   onMediumToggle,
   onReminderButtonToggle,
   onNotifyAtChange,
-  onDefaultOffsetChange,
+  onDefaultRemindersChange,
   onRepeatChange,
   onNotifyOnArrivalChange,
   onNotifyWhenOverdueChange,
@@ -204,18 +205,13 @@ export function BucketRulesPanel({
           disabled={disabled}
         />
       </div>
-      <div className="flex flex-col gap-1.5">
-        <label className={LABEL}>remind me before deadline</label>
-        <span className={HINT}>
-          how far in advance to notify — leave empty to notify at the deadline
-        </span>
-        <DurationInput
-          value={defaultOffset}
-          onChange={onDefaultOffsetChange}
-          placeholder="e.g. 3 days, 1 hour"
-          disabled={disabled}
-        />
-      </div>
+      <ReminderPicker
+        reminders={defaultReminders}
+        hint="new items start with these; items whose reminders you've changed keep their own"
+        allDay={false}
+        disabled={disabled}
+        onChange={onDefaultRemindersChange}
+      />
       <div className="flex flex-col gap-1.5">
         <label className={LABEL}>remind at</label>
         <span className={HINT}>

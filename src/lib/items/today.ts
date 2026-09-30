@@ -3,7 +3,7 @@ import { CLOSED_ITEM_STATUSES, SEARCH_RESULTS_MAX, TODAY_FETCH_AHEAD_DAYS } from
 import { db } from "@/lib/db";
 import { buckets, items } from "@/lib/db/schema";
 import { getReminderBadges, type ReminderBadge } from "@/lib/reminders/status";
-import { bucketDefaultReminders, parseItemsRules, parseNotificationRules } from "@/lib/rules";
+import { parseItemsRules, parseNotificationRules } from "@/lib/rules";
 
 type Item = typeof items.$inferSelect;
 
@@ -53,9 +53,7 @@ async function withBuckets(userId: number, rows: Item[]): Promise<CrossBucketIte
               fieldSchema: b.fieldSchema,
               index,
               readonly: parseItemsRules(b.itemsRules).readonly === true,
-              defaultReminders: bucketDefaultReminders(
-                parseNotificationRules(b.notificationsRules)
-              ),
+              defaultReminders: parseNotificationRules(b.notificationsRules).defaultReminders,
             },
           ]
         : []

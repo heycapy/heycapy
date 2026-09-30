@@ -1,5 +1,4 @@
 import { ITEM_STATUS, isClosedStatus } from "@/constants";
-import { bucketDefaultReminders } from "@/lib/rules";
 import type { NotificationRules } from "@/types/rules";
 import {
   ALL_DAY_REMINDER_MINS,
@@ -119,7 +118,7 @@ export function nextDeadlineReminder(i: ReminderInputs): Date | null {
   if (!canRemind(i) || i.rules.medium.length === 0) return null;
 
   const base = reminderBase(i.deadline, i.rules.notifyAt, i.timezone);
-  const times = reminderTimes(base, i.reminderOffsets ?? bucketDefaultReminders(i.rules));
+  const times = reminderTimes(base, i.reminderOffsets ?? i.rules.defaultReminders);
   const notifiedAt = i.notifiedAt;
   // Reminders that fell due before the last one went out are dropped: one ping, not a burst
   const pending = notifiedAt ? times.find((t) => t > notifiedAt) : times[0];

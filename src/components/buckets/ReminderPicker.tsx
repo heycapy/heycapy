@@ -6,11 +6,12 @@ import { MAX_REMINDER_OFFSET_MINS, MAX_REMINDERS_PER_ITEM } from "@/lib/reminder
 import { CUSTOM_REMINDER_UNITS, REMINDER_PRESETS } from "./constants";
 
 const LABEL = "text-muted-foreground font-mono text-xs";
+const HINT = "text-muted-foreground font-mono text-[11px] leading-tight";
 
 type ReminderPickerProps = {
-  // null follows the bucket's default
-  reminders: number[] | null;
-  bucketDefault: number[];
+  reminders: number[];
+  followsBucket?: boolean;
+  hint?: string;
   allDay: boolean;
   disabled?: boolean;
   onChange: (v: number[]) => void;
@@ -18,7 +19,8 @@ type ReminderPickerProps = {
 
 export function ReminderPicker({
   reminders,
-  bucketDefault,
+  followsBucket = false,
+  hint,
   allDay,
   disabled,
   onChange,
@@ -28,12 +30,11 @@ export function ReminderPicker({
   const [unitMins, setUnitMins] = useState<number>(60);
   const [customError, setCustomError] = useState("");
 
-  const current = reminders ?? bucketDefault;
-  const full = current.length >= MAX_REMINDERS_PER_ITEM;
-  const presets = REMINDER_PRESETS.filter((m) => !current.includes(m));
+  const full = reminders.length >= MAX_REMINDERS_PER_ITEM;
+  const presets = REMINDER_PRESETS.filter((m) => !reminders.includes(m));
 
   function add(mins: number) {
-    onChange([...new Set([...current, mins])].sort((a, b) => b - a));
+    onChange([...new Set([...reminders, mins])].sort((a, b) => b - a));
     closeAdding();
   }
 
@@ -61,19 +62,20 @@ export function ReminderPicker({
     <div className="flex flex-col gap-2">
       <div className="flex items-center justify-between">
         <label className={LABEL}>reminders</label>
-        <span className={LABEL}>
-          {reminders === null && "bucket default · "}
-          {current.length} of {MAX_REMINDERS_PER_ITEM}
+        <span className={`${LABEL} shrink-0`}>
+          {followsBucket && "bucket default · "}
+          {reminders.length} of {MAX_REMINDERS_PER_ITEM}
         </span>
       </div>
+      {hint && <span className={HINT}>{hint}</span>}
 
       <div className="flex flex-wrap items-center gap-1.5">
-        {current.map((mins) => {
+        {reminders.map((mins) => {
           const label = describeReminder(mins, allDay);
           return (
             <OptionButton
               key={mins}
-              onClick={() => onChange(current.filter((m) => m !== mins))}
+              onClick={() => onChange(reminders.filter((m) => m !== mins))}
               disabled={disabled}
               aria-label={`remove reminder ${label}`}
             >
@@ -81,7 +83,7 @@ export function ReminderPicker({
             </OptionButton>
           );
         })}
-        {current.length === 0 && <span className={LABEL}>none</span>}
+        {reminders.length === 0 && <span className={LABEL}>none</span>}
         {!full && !adding && (
           <BracketButton onClick={() => setAdding(true)} disabled={disabled} className="px-1">
             + add

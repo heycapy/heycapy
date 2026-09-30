@@ -5,7 +5,7 @@ import { ItemDialog } from "@/components/buckets/ItemDialog";
 import { useItemEditor } from "@/components/buckets/useItemEditor";
 import { parseFields } from "@/components/buckets/fields";
 import { BUCKET_PALETTE, DEFAULT_BUCKET_STATUSES } from "@/components/buckets/constants";
-import { bucketDefaultReminders, parseItemsRules, parseNotificationRules } from "@/lib/rules";
+import { parseItemsRules, parseNotificationRules } from "@/lib/rules";
 import { localDateString } from "@/lib/reminders/zoned";
 import { ITEM_STATUS } from "@/constants";
 import { useUIStore } from "@/store/ui";
@@ -85,8 +85,7 @@ export function TodayView({ buckets, addItemRef }: TodayViewProps) {
       <ItemDialog
         {...editor.dialogProps}
         bucketReminders={
-          formBucket &&
-          bucketDefaultReminders(parseNotificationRules(formBucket.notificationsRules))
+          formBucket && parseNotificationRules(formBucket.notificationsRules).defaultReminders
         }
         statuses={statuses}
         fields={fields.length > 0 ? fields : undefined}

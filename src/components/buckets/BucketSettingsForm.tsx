@@ -6,7 +6,7 @@ import { BracketButton } from "@/components/ui/BracketButton";
 import { BucketRulesPanel } from "./BucketRulesPanel";
 import type { NotifAvailability } from "./BucketRulesPanel";
 import { parseBucketSettings, type BucketSettingsValues } from "./parseBucketSettings";
-import { parseDurationToMins, parseDurationToDays } from "@/lib/duration";
+import { parseDurationToDays } from "@/lib/duration";
 import {
   updateBucketSettingsAction,
   archiveBucketAction,
@@ -84,7 +84,7 @@ export function BucketSettingsForm({
           medium: values.mediums,
           reminderButtons: values.reminderButtons,
           notifyAt: values.notifyAt || undefined,
-          defaultOffsetMins: parseDurationToMins(values.defaultOffset) ?? undefined,
+          defaultReminders: values.defaultReminders,
           repeat: values.repeat,
         },
         undefined,
@@ -178,7 +178,7 @@ export function BucketSettingsForm({
             mediums={values.mediums}
             reminderButtons={values.reminderButtons}
             notifyAt={values.notifyAt}
-            defaultOffset={values.defaultOffset}
+            defaultReminders={values.defaultReminders}
             repeat={values.repeat}
             notifyOnArrival={values.notifyOnArrival}
             notifyWhenOverdue={values.notifyWhenOverdue}
@@ -207,7 +207,7 @@ export function BucketSettingsForm({
               }))
             }
             onNotifyAtChange={(v) => set("notifyAt", v)}
-            onDefaultOffsetChange={(v) => set("defaultOffset", v)}
+            onDefaultRemindersChange={(v) => set("defaultReminders", v)}
             onRepeatChange={(v) => set("repeat", v)}
             onNotifyOnArrivalChange={(v) => set("notifyOnArrival", v)}
             onNotifyWhenOverdueChange={(v) => set("notifyWhenOverdue", v)}

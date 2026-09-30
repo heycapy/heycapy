@@ -115,3 +115,48 @@ describe("first overdue alert delay", () => {
     expect(JSON.parse(String(bucket?.fieldSchema))).toMatchObject({ overdueFirstAlertMins: 240 });
   });
 });
+
+describe("default reminders", () => {
+  const deadline = new Date("2026-03-13T15:00:00Z");
+
+  function saveReminders(bucketId: number, defaultReminders: number[]) {
+    return updateBucketSettingsAction(
+      bucketId,
+      `Bills ${Math.random()}`,
+      { sortBy: "deadline", drag: false, readonly: false, showCompleted: true },
+      { medium: ["telegram"], repeat: "once", defaultReminders },
+      undefined,
+      { notifyOnArrival: false, notifyWhenOverdue: false }
+    );
+  }
+
+  async function nextReminder(itemId: number) {
+    const item = await db.query.items.findFirst({ where: eq(items.id, itemId) });
+    return item?.nextReminderAt;
+  }
+
+  it("re-schedule items that follow the bucket, and leave the rest alone", async () => {
+    const userId = await seedUser();
+    session.userId = userId;
+    const bucketId = await seedBucket(userId, { medium: ["telegram"] });
+    const following = await seedItem(userId, bucketId, { deadline });
+    const own = await seedItem(userId, bucketId, { deadline, reminderOffsets: [60] });
+    expect(await nextReminder(following)).toEqual(deadline);
+
+    expect(await saveReminders(bucketId, [0, 2 * 24 * 60, 0])).toEqual({ ok: true });
+
+    expect((await storedRules(bucketId)).defaultReminders).toEqual([2 * 24 * 60, 0]);
+    expect(await nextReminder(following)).toEqual(new Date("2026-03-11T15:00:00Z"));
+    expect(await nextReminder(own)).toEqual(new Date("2026-03-13T14:00:00Z"));
+  });
+
+  it("are refused when invalid, keeping the saved ones", async () => {
+    const userId = await seedUser();
+    session.userId = userId;
+    const bucketId = await seedBucket(userId, { medium: ["telegram"], defaultReminders: [60] });
+
+    expect(await saveReminders(bucketId, [-5])).toEqual({ ok: false, error: "Invalid reminders" });
+    expect(await saveReminders(bucketId, [0, 5, 10, 15, 30])).toMatchObject({ ok: false });
+    expect((await storedRules(bucketId)).defaultReminders).toEqual([60]);
+  });
+});

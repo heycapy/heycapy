@@ -2,8 +2,8 @@ import { describe, it, expect } from "vitest";
 import { initialReminderState, reminderResetForDeadline } from "@/lib/items/reminders";
 
 const now = new Date("2026-03-10T12:00:00Z");
-const ctx = (defaultOffsetMins = 0) => ({
-  defaultReminders: [defaultOffsetMins],
+const ctx = (bucketReminder = 0) => ({
+  defaultReminders: [bucketReminder],
   notifyAt: "",
   timezone: "UTC",
 });

@@ -19,7 +19,7 @@ const BUILTIN_TEMPLATES: BuiltinTemplate[] = [
         medium: [],
         notifyAt: "",
         quietHours: null,
-        defaultOffsetMins: 0,
+        defaultReminders: [0],
         repeat: "once",
       },
       items: {
@@ -43,7 +43,7 @@ const BUILTIN_TEMPLATES: BuiltinTemplate[] = [
         medium: ["email", "telegram"],
         notifyAt: "",
         quietHours: null,
-        defaultOffsetMins: 0,
+        defaultReminders: [0],
         repeat: "once",
       },
       items: {
@@ -68,7 +68,7 @@ const BUILTIN_TEMPLATES: BuiltinTemplate[] = [
         medium: ["email", "telegram"],
         notifyAt: "09:00",
         quietHours: null,
-        defaultOffsetMins: 4320,
+        defaultReminders: [4320],
         repeat: "once",
       },
       items: {
@@ -110,7 +110,7 @@ const BUILTIN_TEMPLATES: BuiltinTemplate[] = [
         medium: [],
         notifyAt: "",
         quietHours: null,
-        defaultOffsetMins: 0,
+        defaultReminders: [0],
         repeat: "once",
       },
       items: {
@@ -143,7 +143,7 @@ const BUILTIN_TEMPLATES: BuiltinTemplate[] = [
         medium: ["email"],
         notifyAt: "09:00",
         quietHours: { from: "18:00", to: "09:00" },
-        defaultOffsetMins: 1440,
+        defaultReminders: [1440],
         repeat: "once",
       },
       items: {
@@ -178,7 +178,7 @@ const BUILTIN_TEMPLATES: BuiltinTemplate[] = [
         medium: ["email", "telegram"],
         notifyAt: "",
         quietHours: null,
-        defaultOffsetMins: 0,
+        defaultReminders: [0],
         repeat: "once",
       },
       items: {

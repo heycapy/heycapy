@@ -22,7 +22,7 @@ export type NotificationsRulesConfig = {
   medium?: NotificationMedium[];
   reminderButtons?: QuickRemindChoice[];
   notifyAt?: string;
-  defaultOffsetMins?: number;
+  defaultReminders?: number[];
   repeat?: RepeatMode;
   quietHours?: { from: string; to: string } | null;
 };

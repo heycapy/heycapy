@@ -57,7 +57,7 @@ async function kindsSent(itemId: number) {
 }
 
 async function setup(
-  opts: { overdueAlerts?: boolean; defaultOffsetMins?: number; reminderButtons?: string[] } = {}
+  opts: { overdueAlerts?: boolean; defaultReminders?: number[]; reminderButtons?: string[] } = {}
 ) {
   const api = stubTelegram();
   const userId = await seedUser();
@@ -66,7 +66,7 @@ async function setup(
     {
       medium: ["telegram"],
       repeat: "once",
-      defaultOffsetMins: opts.defaultOffsetMins ?? 0,
+      defaultReminders: opts.defaultReminders ?? [0],
       ...(opts.reminderButtons && { reminderButtons: opts.reminderButtons }),
     },
     { fields: [], notifyWhenOverdue: opts.overdueAlerts ?? false, overdueRepeatHours: 1 }
@@ -292,7 +292,7 @@ describe("reschedule", () => {
   });
 
   it("does not re-ping right away when the bucket reminds a day early", async () => {
-    const { userId, bucketId, chat } = await setup({ defaultOffsetMins: 24 * 60 });
+    const { userId, bucketId, chat } = await setup({ defaultReminders: [24 * 60] });
     // Reminded a day ahead, now two hours overdue
     const itemId = await seedItem(userId, bucketId, {
       deadline: new Date(T0.getTime() - 2 * HOUR),
