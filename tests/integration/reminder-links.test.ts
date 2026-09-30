@@ -14,6 +14,7 @@ import {
   seedUser,
   useSchedulerEnvironment,
 } from "./helpers";
+import { startNtfyServer, type NtfyServer } from "./ntfy-server";
 
 const sendEmail = vi.hoisted(() => vi.fn());
 vi.mock("@/lib/notifications/email", () => ({ sendEmail }));
@@ -28,14 +29,17 @@ beforeAll(() => {
 afterAll(() => {
   process.env.JWT_SECRET = saved.secret;
 });
-beforeEach(() => {
+let ntfy: NtfyServer;
+beforeEach(async () => {
   useSchedulerEnvironment(T0);
+  ntfy = await startNtfyServer();
   process.env.APP_URL = APP;
   process.env.RESEND_API_KEY = "re_test";
   sendEmail.mockReset();
 });
-afterEach(() => {
+afterEach(async () => {
   resetSchedulerEnvironment();
+  await ntfy.close();
   process.env.APP_URL = saved.appUrl;
   delete process.env.RESEND_API_KEY;
 });
@@ -46,7 +50,7 @@ async function setup(channel: "ntfy" | "email") {
     .update(userSettings)
     .set(
       channel === "ntfy"
-        ? { notificationsPush: true, ntfyUrl: "https://ntfy.example.com", ntfyTopic: "capy" }
+        ? { notificationsPush: true, ntfyUrl: ntfy.url, ntfyTopic: "capy" }
         : { notificationsEmail: true }
     )
     .where(eq(userSettings.userId, userId));
@@ -70,9 +74,7 @@ type NtfyBody = {
 };
 
 function ntfyBody(): NtfyBody {
-  const fetchMock = vi.mocked(fetch);
-  const call = fetchMock.mock.calls.find(([url]) => String(url).startsWith("https://ntfy"));
-  return JSON.parse(String(call?.[1]?.body)) as NtfyBody;
+  return ntfy.bodies[0] as NtfyBody;
 }
 
 describe("ntfy", () => {

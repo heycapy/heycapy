@@ -17,6 +17,7 @@ import { ALL_CHANNELS, getWorkingChannels } from "@/lib/notifications/channels";
 import { TELEGRAM_API_BASE, TELEGRAM_LINK_BASE } from "@/constants";
 import { sendEmail } from "@/lib/notifications/email";
 import { sendNtfy } from "@/lib/notifications/ntfy";
+import { publicAddress } from "@/lib/notifications/public-address";
 import { sendWebPush } from "@/lib/notifications/web-push";
 import { sendTelegram } from "@/lib/notifications/telegram";
 import { dismissChannelFailures } from "@/lib/notifications/failures";
@@ -138,6 +139,9 @@ export async function updateUserSettingsAction(
     saved.aiOllamaUrl !== (data.aiOllamaUrl || null) ||
     saved.aiUseOwnKey !== data.aiUseOwnKey;
 
+  const addressError = await userServerAddressError(data, saved);
+  if (addressError) return { ok: false, error: addressError };
+
   await db
     .update(userSettings)
     .set({
@@ -177,6 +181,29 @@ export async function updateUserSettingsAction(
   revalidatePath("/");
 
   return { ok: true, aiChanged };
+}
+
+async function userServerAddressError(
+  data: UserSettingsUpdate,
+  saved: { ntfyUrl: string | null; smtpHost: string | null } | undefined
+): Promise<string | null> {
+  const hosts: string[] = [];
+  if (data.ntfyUrl && data.ntfyUrl !== saved?.ntfyUrl) {
+    try {
+      hosts.push(new URL(data.ntfyUrl).hostname);
+    } catch {
+      return "ntfy server url is not valid";
+    }
+  }
+  if (data.emailProvider === "smtp" && data.smtpHost && data.smtpHost !== saved?.smtpHost) {
+    hosts.push(data.smtpHost);
+  }
+  try {
+    for (const host of hosts) await publicAddress(host);
+  } catch (err) {
+    return errorMessage(err);
+  }
+  return null;
 }
 
 export async function logoutAction() {

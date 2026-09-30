@@ -1,22 +1,27 @@
-import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { notificationQueue, userSettings } from "@/lib/db/schema";
 import { enqueue, processPending } from "@/lib/notifications/queue";
 import { resetSchedulerEnvironment, seedUser, useSchedulerEnvironment } from "./helpers";
+import { startNtfyServer, type NtfyServer } from "./ntfy-server";
 
-beforeEach(() => useSchedulerEnvironment(new Date("2026-03-10T12:00:00Z")));
-afterEach(() => resetSchedulerEnvironment());
+let ntfy: NtfyServer;
+beforeEach(async () => {
+  useSchedulerEnvironment(new Date("2026-03-10T12:00:00Z"));
+  ntfy = await startNtfyServer();
+});
+afterEach(async () => {
+  resetSchedulerEnvironment();
+  await ntfy.close();
+});
 
 it("an ntfy server that rejects the message is a failed delivery, not a sent one", async () => {
-  vi.stubGlobal(
-    "fetch",
-    vi.fn(async () => new Response("unauthorized", { status: 403 }))
-  );
+  ntfy.reply(403, "unauthorized");
   const userId = await seedUser();
   await db
     .update(userSettings)
-    .set({ notificationsPush: true, ntfyUrl: "https://ntfy.example.com", ntfyTopic: "heycapy" })
+    .set({ notificationsPush: true, ntfyUrl: ntfy.url, ntfyTopic: "heycapy" })
     .where(eq(userSettings.userId, userId));
 
   await enqueue({ userId, medium: "ntfy", title: "t", message: "m" });
