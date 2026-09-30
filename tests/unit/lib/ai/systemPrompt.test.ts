@@ -17,6 +17,11 @@ it("tells the assistant the current time with the right UTC offset", () => {
   expect(prompt).toContain("Now: 2026-03-10T17:30:00+05:30");
 });
 
+it("starts with today's date in words, year included", () => {
+  const prompt = buildSystemPrompt(null, [], "a@heycapy.test", new Date("2026-09-30T10:42:00Z"));
+  expect(prompt.startsWith("Today is Wednesday, September 30, 2026, 10:42 AM (UTC).")).toBe(true);
+});
+
 it("tells the assistant a bucket is read-only even without a default deadline", () => {
   const prompt = buildSystemPrompt(
     null,

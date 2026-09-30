@@ -6,7 +6,8 @@ import { buckets, chatMessages, chatSessions, users } from "@/lib/db/schema";
 import { getAIProvider } from "@/lib/ai";
 import { decryptValue } from "@/lib/crypto";
 import { buildSystemPrompt } from "@/lib/ai/systemPrompt";
-import { CAPY_TOOLS, executeToolCall, getUpcomingItems } from "@/lib/ai/capyTools";
+import { getUpcomingItems } from "@/lib/ai/capyTools";
+import { runAgent } from "@/lib/ai/runAgent";
 import {
   sendTelegram,
   sendTelegramWithQuickActions,
@@ -20,7 +21,6 @@ import { dataEvents } from "@/lib/events";
 import { errorMessage, parseProviderError } from "@/lib/errors";
 import {
   AI_REQUEST_TIMEOUT_MS,
-  AI_TIMEOUT_ERROR,
   OLLAMA_REQUEST_TIMEOUT_MS,
   TELEGRAM_RESERVED_COMMANDS,
 } from "@/constants";
@@ -851,39 +851,14 @@ async function handleUpdate(botToken: string, body: TelegramUpdate): Promise<Res
   }, 4_000);
 
   let finalText = "";
-  let lastAssistantContent = "";
   try {
-    for (let round = 0; round < 8; round++) {
-      let timer: ReturnType<typeof setTimeout> | undefined;
-      const result = await Promise.race([
-        provider.complete(agentMessages, CAPY_TOOLS),
-        new Promise<never>((_, reject) => {
-          timer = setTimeout(
-            () => reject(new Error(AI_TIMEOUT_ERROR)),
-            row.aiProvider === "ollama" ? OLLAMA_REQUEST_TIMEOUT_MS : AI_REQUEST_TIMEOUT_MS
-          );
-        }),
-      ]).finally(() => clearTimeout(timer));
-      if (result.content) lastAssistantContent = result.content;
-      if (result.toolCalls.length === 0) {
-        finalText = result.content ?? "";
-        break;
-      }
-      agentMessages.push({
-        role: "assistant",
-        content: result.content,
-        toolCalls: result.toolCalls,
-      });
-      for (const call of result.toolCalls) {
-        agentMessages.push({
-          role: "tool",
-          toolCallId: call.id,
-          toolName: call.name,
-          content: await executeToolCall(call, userId, timezone),
-        });
-      }
-    }
-    if (!finalText) finalText = lastAssistantContent;
+    finalText = await runAgent({
+      provider,
+      messages: agentMessages,
+      userId,
+      timezone,
+      timeoutMs: row.aiProvider === "ollama" ? OLLAMA_REQUEST_TIMEOUT_MS : AI_REQUEST_TIMEOUT_MS,
+    });
   } catch (err) {
     clearInterval(typingInterval);
     process.stderr.write(`[telegram] AI error: ${errorMessage(err)}\n`);

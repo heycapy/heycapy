@@ -53,6 +53,9 @@ export const USELESS_FACTS_API_URL = "https://uselessfacts.jsph.pl/api/v2/facts/
 export const AI_REQUEST_TIMEOUT_MS = 30_000;
 export const OLLAMA_REQUEST_TIMEOUT_MS = 120_000;
 export const AI_TIMEOUT_ERROR = "The AI provider didn't answer in time. Try again.";
+export const AGENT_MAX_ROUNDS = 8;
+// Safari holds back the first 1 KB of a streamed response, which would hide the first status lines
+export const CHAT_STREAM_PADDING = " ".repeat(1024) + "\n";
 export const GROQ_API_BASE = "https://api.groq.com/openai/v1";
 export const GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta/openai/";
 

@@ -38,7 +38,11 @@ export function parseProviderError(err: unknown): string {
   return raw;
 }
 
-export function aiErrorResponse(err: unknown, tag: string): Response {
+export function logAIError(err: unknown, tag: string): void {
   process.stderr.write(`[${tag}] AI error: ${errorMessage(err)}\n`);
+}
+
+export function aiErrorResponse(err: unknown, tag: string): Response {
+  logAIError(err, tag);
   return Response.json({ error: parseProviderError(err) }, { status: 502 });
 }

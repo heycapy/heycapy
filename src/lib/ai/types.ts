@@ -20,6 +20,7 @@ export type ToolCall = {
   id: string;
   name: string;
   arguments: Record<string, unknown>;
+  extraContent?: unknown;
 };
 
 export type CompleteResult = {

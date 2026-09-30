@@ -32,6 +32,7 @@ export function CapyChat() {
     input,
     setInput,
     streaming,
+    status,
     sendMessage,
     stopStreaming,
     clearChat,
@@ -88,6 +89,7 @@ export function CapyChat() {
       <ChatMessageList
         messages={messages}
         streaming={streaming}
+        status={status}
         fullscreen={chatState === "fullscreen"}
       />
       <ChatInputBar

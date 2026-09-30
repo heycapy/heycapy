@@ -232,3 +232,161 @@ describe("repeats", () => {
     expect(recurring.weekdays).toBeUndefined();
   });
 });
+
+describe("dates capy reads", () => {
+  // India is UTC+5:30: Oct 30 all day is Oct 29 18:30 UTC, Oct 29 9pm is Oct 29 15:30 UTC
+  const INDIA = "Asia/Kolkata";
+
+  async function seedIndianBucket() {
+    const userId = await seedUser(INDIA);
+    const bucketId = await seedBucket(userId);
+    await seedItem(userId, bucketId, {
+      title: "hotstar",
+      deadline: new Date("2026-10-29T18:30:00Z"),
+    });
+    await seedItem(userId, bucketId, {
+      title: "gym fees",
+      deadline: new Date("2026-10-29T15:30:00Z"),
+    });
+    return { userId, bucketId };
+  }
+
+  function byTitle(rows: { title: string; deadline: unknown }[]) {
+    return Object.fromEntries(rows.map((r) => [r.title, r.deadline]));
+  }
+
+  it("list_items gives deadlines in the user's own time", async () => {
+    const { userId, bucketId } = await seedIndianBucket();
+    const call = { id: "call", name: "list_items", arguments: { bucket_id: bucketId } };
+
+    const rows = JSON.parse(await executeToolCall(call, userId, INDIA)) as {
+      title: string;
+      deadline: unknown;
+    }[];
+
+    expect(byTitle(rows)).toEqual({
+      hotstar: "Fri 2026-10-30, all day",
+      "gym fees": "Thu 2026-10-29 21:00",
+    });
+  });
+
+  it("search_items gives deadlines in the user's own time", async () => {
+    const { userId } = await seedIndianBucket();
+    const call = { id: "call", name: "search_items", arguments: {} };
+
+    const rows = JSON.parse(await executeToolCall(call, userId, INDIA)) as {
+      title: string;
+      deadline: unknown;
+    }[];
+
+    expect(byTitle(rows)).toEqual({
+      hotstar: "Fri 2026-10-30, all day",
+      "gym fees": "Thu 2026-10-29 21:00",
+    });
+  });
+});
+
+describe("item details capy reads", () => {
+  it("search_items gives the same details as list_items", async () => {
+    const userId = await seedUser();
+    const bucketId = await seedBucket(userId, undefined, SUBSCRIPTION_SCHEMA);
+    await tool(userId, "add_item", {
+      bucket_id: bucketId,
+      title: "netflix",
+      deadline: "2026-03-31T09:00:00",
+      properties: { price: 15, plan: "premium" },
+      recurring_frequency: "monthly",
+      recurring_last_day_of_month: true,
+      reminder_offsets_mins: [1440],
+    });
+
+    const listed = JSON.parse(
+      await executeToolCall(
+        { id: "call", name: "list_items", arguments: { bucket_id: bucketId } },
+        userId
+      )
+    ) as Record<string, unknown>[];
+    const found = JSON.parse(
+      await executeToolCall(
+        { id: "call", name: "search_items", arguments: { keyword: "netflix" } },
+        userId
+      )
+    ) as Record<string, unknown>[];
+
+    expect(found[0]).toMatchObject({
+      properties: { price: 15, plan: "premium" },
+      recurring: { frequency: "monthly", anchorDay: 31 },
+      reminderOffsets: [1440],
+    });
+    expect(found[0]).toMatchObject(listed[0] ?? {});
+  });
+});
+
+describe("dates capy saves", () => {
+  // The suite's clock: Tue 2026-03-10 12:00 UTC
+  type Saved = { ok: boolean; error?: string; item?: { deadline: string | null } };
+
+  async function addWith(userId: number, args: Record<string, unknown>) {
+    const bucketId = await seedBucket(userId);
+    const call = {
+      id: "call",
+      name: "add_item",
+      arguments: { bucket_id: bucketId, title: "clean room", ...args },
+    };
+    return JSON.parse(await executeToolCall(call, userId)) as Saved;
+  }
+
+  it("refuses a day before today, saying what today is", async () => {
+    const userId = await seedUser();
+
+    const result = await addWith(userId, { deadline: "2025-05-19T22:30:00" });
+
+    expect(result.ok).toBe(false);
+    expect(result.error).toContain("Tue 2026-03-10");
+  });
+
+  it("takes a past day when told it's meant", async () => {
+    const userId = await seedUser();
+
+    const result = await addWith(userId, { deadline: "2026-03-01T09:00:00", allow_past: true });
+
+    expect(result).toMatchObject({ ok: true, item: { deadline: "Sun 2026-03-01 09:00" } });
+  });
+
+  it("takes earlier today", async () => {
+    const userId = await seedUser();
+
+    expect((await addWith(userId, { deadline: "2026-03-10T08:00:00" })).ok).toBe(true);
+  });
+
+  it("add_item and update_item say what was saved", async () => {
+    const userId = await seedUser();
+    const added = await addWith(userId, { deadline: "2026-03-11T22:30:00" });
+    expect(added.item?.deadline).toBe("Wed 2026-03-11 22:30");
+
+    const itemId = (added as { itemId?: number }).itemId;
+    const call = {
+      id: "call",
+      name: "update_item",
+      arguments: { item_id: itemId, deadline: "2026-03-12T22:30:00" },
+    };
+    const updated = JSON.parse(await executeToolCall(call, userId)) as Saved;
+
+    expect(updated).toMatchObject({ ok: true, item: { deadline: "Thu 2026-03-12 22:30" } });
+  });
+
+  it("update_item refuses a day before today too", async () => {
+    const userId = await seedUser();
+    const added = await addWith(userId, { deadline: "2026-03-11T22:30:00" });
+    const call = {
+      id: "call",
+      name: "update_item",
+      arguments: {
+        item_id: (added as { itemId?: number }).itemId,
+        deadline: "2025-05-19T22:30:00",
+      },
+    };
+
+    expect((JSON.parse(await executeToolCall(call, userId)) as Saved).ok).toBe(false);
+  });
+});

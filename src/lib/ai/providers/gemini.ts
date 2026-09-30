@@ -35,6 +35,7 @@ export function createGeminiProvider(apiKey: string, model: string): AIProvider 
                 id: tc.id,
                 type: "function" as const,
                 function: { name: tc.name, arguments: JSON.stringify(tc.arguments) },
+                ...(tc.extraContent !== undefined && { extra_content: tc.extraContent }),
               })),
             });
           } else {
@@ -72,6 +73,8 @@ export function createGeminiProvider(apiKey: string, model: string): AIProvider 
             id: tc.id,
             name: tc.function.name,
             arguments: JSON.parse(tc.function.arguments) as Record<string, unknown>,
+            // Gemini 3 signs each call (extra_content.google.thought_signature) and wants it back
+            extraContent: (tc as { extra_content?: unknown }).extra_content,
           })),
         };
       }

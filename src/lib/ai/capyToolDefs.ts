@@ -2,6 +2,11 @@ import type { Tool } from "./types";
 import { SETTABLE_ITEM_STATUSES, WEEKDAY_NAMES } from "@/constants";
 import { MAX_REMINDER_OFFSET_MINS, MAX_REMINDERS_PER_ITEM } from "@/lib/reminders/constants";
 
+const ITEM_RESULT =
+  "Each item comes with everything the item form shows: its custom field values (properties, " +
+  "keyed by the bucket's field keys), repeat (recurring), reminders (reminderOffsets, minutes before " +
+  "the deadline; null = the bucket's default reminders) and status. ";
+
 const REPEAT_PROPERTIES = {
   recurring_frequency: {
     type: "string",
@@ -148,12 +153,18 @@ export const ITEM_AND_BUCKET_TOOLS: Tool[] = [
             "Leave unset to use the bucket's default.",
         },
         ...REPEAT_PROPERTIES,
+        allow_past: {
+          type: "boolean",
+          description:
+            "Only when the user explicitly wants a date before today (e.g. logging something already done). " +
+            "Without it, a past day is refused.",
+        },
         status: {
           type: "string",
           enum: [...SETTABLE_ITEM_STATUSES],
           description:
             "Initial status for the item. Defaults to 'active'. " +
-            "'on hold' pauses the item's reminders until its status changes.",
+            "'on hold' pauses the item's reminders until its status changes; it's what the user means by snooze, pause or put on hold.",
         },
         properties: {
           type: "object",
@@ -205,11 +216,17 @@ export const ITEM_AND_BUCKET_TOOLS: Tool[] = [
           description:
             "Set to true to completely remove the recurring configuration from this item.",
         },
+        allow_past: {
+          type: "boolean",
+          description:
+            "Only when the user explicitly wants a date before today (e.g. logging something already done). " +
+            "Without it, a past day is refused.",
+        },
         status: {
           type: "string",
           enum: [...SETTABLE_ITEM_STATUSES],
           description:
-            "New status. 'on hold' pauses the item's reminders until its status changes.",
+            "New status. 'on hold' pauses the item's reminders until its status changes; it's what the user means by snooze, pause or put on hold.",
         },
         properties: {
           type: ["object", "null"],
@@ -279,6 +296,7 @@ export const ITEM_AND_BUCKET_TOOLS: Tool[] = [
     name: "list_items",
     description:
       "List items in a specific bucket. " +
+      ITEM_RESULT +
       "Use this when the user asks about the contents of a particular bucket, asks how many items are in it, " +
       "or when you need item IDs to perform follow-up operations. " +
       "By default only returns active (non-completed) items. " +
@@ -305,6 +323,7 @@ export const ITEM_AND_BUCKET_TOOLS: Tool[] = [
     name: "search_items",
     description:
       "Search for items across all buckets (or within one bucket) using a keyword and/or deadline filter. " +
+      ITEM_RESULT +
       "Use this to answer questions like 'what's due today?', 'what's overdue?', " +
       "'show me everything due this week', 'find my Netflix reminder', " +
       "'what did I complete in the last 2 days?', or 'what's coming up in the next 3 days?'. " +

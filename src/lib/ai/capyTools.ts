@@ -1,6 +1,12 @@
 import { recordSystemError } from "@/lib/system-errors";
 import { errorMessage } from "@/lib/errors";
-import { addLocalDays, localDateString, parseLocalDateTime } from "@/lib/reminders/zoned";
+import {
+  addLocalDays,
+  isAllDay,
+  localDateString,
+  parseLocalDateTime,
+  toLocal,
+} from "@/lib/reminders/zoned";
 import { revalidatePath } from "next/cache";
 import { and, eq, gte, isNull, lte, or, sql, notInArray } from "drizzle-orm";
 import { db } from "@/lib/db";
@@ -17,6 +23,7 @@ import {
   CLOSED_ITEM_STATUSES,
   ITEM_STATUS,
   SETTABLE_ITEM_STATUSES,
+  WEEKDAY_SHORT_NAMES,
 } from "@/constants";
 import { buckets, items } from "@/lib/db/schema";
 import { BucketSchema, ReminderOffsets, buildPropertyValidator } from "@/types/rules";
@@ -34,6 +41,20 @@ export type UpcomingItem = {
   deadlineRelative: string;
   deadline: Date;
 };
+
+// Times as the user sees them in the app, e.g. "Thu 2026-10-29 21:00"
+function localTime(date: Date, timezone: string): string {
+  const l = toLocal(date, timezone);
+  const weekday = WEEKDAY_SHORT_NAMES[new Date(Date.UTC(l.year, l.month - 1, l.day)).getUTCDay()];
+  const clock = `${String(l.hour).padStart(2, "0")}:${String(l.minute).padStart(2, "0")}`;
+  return `${weekday} ${localDateString(date, timezone)} ${clock}`;
+}
+
+// A deadline at local midnight has no time: "Fri 2026-10-30, all day"
+export function localDeadline(date: Date, timezone: string): string {
+  if (!isAllDay(date, timezone)) return localTime(date, timezone);
+  return `${localTime(date, timezone).slice(0, -" 00:00".length)}, all day`;
+}
 
 function deadlineRelative(deadline: Date, timezone: string): string {
   const now = new Date();
@@ -103,6 +124,68 @@ function validateProperties(
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   return !!value && typeof value === "object" && !Array.isArray(value);
+}
+
+const ITEM_DETAIL_COLUMNS = {
+  id: items.id,
+  title: items.title,
+  status: items.status,
+  bucketId: items.bucketId,
+  deadline: items.deadline,
+  reminderOffsets: items.reminderOffsets,
+  recurring: items.recurring,
+  properties: items.properties,
+  completedAt: items.completedAt,
+};
+
+type ItemDetailRow = {
+  id: number;
+  title: string;
+  status: string;
+  bucketId: number;
+  deadline: Date | null;
+  reminderOffsets: number[] | null;
+  recurring: string | null;
+  properties: string | null;
+  completedAt: Date | null;
+};
+
+// Everything the item form shows, so each tool that returns items answers the same questions
+function itemDetails(row: ItemDetailRow, timezone: string) {
+  return {
+    id: row.id,
+    title: row.title,
+    status: row.status,
+    bucketId: row.bucketId,
+    deadline: row.deadline ? localDeadline(row.deadline, timezone) : null,
+    deadlineRelative: row.deadline ? deadlineRelative(row.deadline, timezone) : null,
+    reminderOffsets: row.reminderOffsets,
+    recurring: parseRecurring(row.recurring),
+    properties: row.properties ? (JSON.parse(row.properties) as unknown) : null,
+    completedAt: row.completedAt ? localTime(row.completedAt, timezone) : null,
+  };
+}
+
+// Models sometimes invent "today" (e.g. from their training data); a past day is almost always that
+function pastDayError(
+  deadline: Date | null,
+  args: Record<string, unknown>,
+  timezone: string
+): string | null {
+  if (!deadline || args.allow_past === true) return null;
+  const now = new Date();
+  if (localDateString(deadline, timezone) >= localDateString(now, timezone)) return null;
+  return JSON.stringify({
+    ok: false,
+    error:
+      `${localDeadline(deadline, timezone)} is before today (now: ${localTime(now, timezone)}). ` +
+      "Pick a date from today on, or pass allow_past: true if the user really means that past date.",
+  });
+}
+
+async function savedItem(itemId: number, timezone: string) {
+  const [row] = await db.select(ITEM_DETAIL_COLUMNS).from(items).where(eq(items.id, itemId));
+  return row ? itemDetails(row, timezone) : null;
 }
 
 const activeOnly = or(eq(items.status, ITEM_STATUS.active), isNull(items.status));
@@ -263,6 +346,8 @@ async function executeToolCallInner(
         : null;
       if (recurring && !parsedDeadline) return repeatError("A repeating item needs a deadline");
       const deadline = parsedDeadline && onLastDayIfAnchored(parsedDeadline, recurring, timezone);
+      const pastDay = pastDayError(deadline, args, timezone);
+      if (pastDay) return pastDay;
 
       const finalStatus = args.status ? String(args.status).trim() : ITEM_STATUS.active;
       if (!SETTABLE_ITEM_STATUSES.includes(finalStatus)) return invalidStatusError(finalStatus);
@@ -294,7 +379,11 @@ async function executeToolCallInner(
       if (inserted) await refreshItemReminders([inserted.id]);
 
       revalidatePath("/");
-      return JSON.stringify({ ok: true, itemId: inserted?.id });
+      return JSON.stringify({
+        ok: true,
+        itemId: inserted?.id,
+        item: inserted ? await savedItem(inserted.id, timezone) : null,
+      });
     }
 
     case "update_item": {
@@ -350,6 +439,8 @@ async function executeToolCallInner(
         askedDeadline && touchesSchedule
           ? onLastDayIfAnchored(askedDeadline, recurring, timezone)
           : askedDeadline;
+      const pastDay = "deadline" in args ? pastDayError(newDeadline, args, timezone) : null;
+      if (pastDay) return pastDay;
       if ("deadline" in args || newDeadline?.getTime() !== item.deadline?.getTime()) {
         updates.deadline = newDeadline;
         if (newDeadline?.getTime() !== item.deadline?.getTime()) updates.scheduledAt = null;
@@ -402,7 +493,7 @@ async function executeToolCallInner(
       if (updates.status === ITEM_STATUS.completed) await createNextOccurrence(itemId);
 
       revalidatePath("/");
-      return JSON.stringify({ ok: true });
+      return JSON.stringify({ ok: true, item: await savedItem(itemId, timezone) });
     }
 
     case "complete_item": {
@@ -487,15 +578,7 @@ async function executeToolCallInner(
       if (!bucket) return JSON.stringify({ ok: false, error: "Bucket not found" });
 
       const rows = await db
-        .select({
-          id: items.id,
-          title: items.title,
-          deadline: items.deadline,
-          status: items.status,
-          reminderOffsets: items.reminderOffsets,
-          recurring: items.recurring,
-          properties: items.properties,
-        })
+        .select(ITEM_DETAIL_COLUMNS)
         .from(items)
         .where(
           includeCompleted
@@ -508,13 +591,7 @@ async function executeToolCallInner(
               )
         );
 
-      const enriched = rows.map((row) => ({
-        ...row,
-        recurring: row.recurring ? (JSON.parse(row.recurring) as unknown) : null,
-        properties: row.properties ? (JSON.parse(row.properties) as unknown) : null,
-        deadlineRelative: row.deadline ? deadlineRelative(row.deadline, timezone) : null,
-      }));
-      return JSON.stringify(enriched);
+      return JSON.stringify(rows.map((row) => itemDetails(row, timezone)));
     }
 
     case "search_items": {
@@ -545,15 +622,7 @@ async function executeToolCallInner(
 
       const [rows, bucketRows] = await Promise.all([
         db
-          .select({
-            id: items.id,
-            title: items.title,
-            deadline: items.deadline,
-            status: items.status,
-            bucketId: items.bucketId,
-            reminderOffsets: items.reminderOffsets,
-            completedAt: items.completedAt,
-          })
+          .select(ITEM_DETAIL_COLUMNS)
           .from(items)
           .where(and(...conditions)),
         db
@@ -572,14 +641,8 @@ async function executeToolCallInner(
           return keywordWords.every((w) => lower.includes(w));
         })
         .map((row) => ({
-          id: row.id,
-          title: row.title,
-          status: row.status,
+          ...itemDetails(row, timezone),
           bucket: bucketMap.get(row.bucketId) ?? "Unknown",
-          bucketId: row.bucketId,
-          deadline: row.deadline,
-          deadlineRelative: row.deadline ? deadlineRelative(row.deadline, timezone) : null,
-          completedAt: row.completedAt,
         }))
         .filter((row) => {
           if (deadlineFilter === "all") return true;
