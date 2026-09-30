@@ -10,7 +10,12 @@ import { initialReminderState, reminderResetForDeadline } from "@/lib/items/remi
 import { refreshItemReminders, reminderContext } from "@/lib/reminders/refresh";
 import { createNextOccurrence } from "@/lib/items/recurrence";
 import { encryptValue, generateWebhookKey } from "@/lib/crypto";
-import { BUCKET_NAME_MAX_LENGTH, CLOSED_ITEM_STATUSES, ITEM_STATUS } from "@/constants";
+import {
+  BUCKET_NAME_MAX_LENGTH,
+  CLOSED_ITEM_STATUSES,
+  ITEM_STATUS,
+  SETTABLE_ITEM_STATUSES,
+} from "@/constants";
 import { buckets, items } from "@/lib/db/schema";
 import {
   RecurringConfig,
@@ -71,6 +76,42 @@ function parseReminderOffsetsArg(
     ok: false,
     error: JSON.stringify({ ok: false, error: "Invalid reminders", issues: parsed.error.issues }),
   };
+}
+
+function invalidStatusError(status: string): string {
+  return JSON.stringify({
+    ok: false,
+    error: `Unknown status "${status}". Use one of: ${SETTABLE_ITEM_STATUSES.join(", ")}`,
+  });
+}
+
+// Checked against the bucket's fields; a bucket without fields keeps any values
+function validateProperties(
+  fieldSchema: unknown,
+  properties: Record<string, unknown>
+): { ok: true; json: string | null } | { ok: false; error: string } {
+  if (!fieldSchema) return { ok: true, json: JSON.stringify(properties) };
+  const schema = BucketSchema.safeParse(
+    typeof fieldSchema === "string" ? JSON.parse(fieldSchema) : fieldSchema
+  );
+  if (!schema.success || schema.data.fields.length === 0) return { ok: true, json: null };
+
+  const validated = buildPropertyValidator(schema.data.fields).safeParse(properties);
+  if (!validated.success) {
+    return {
+      ok: false,
+      error: JSON.stringify({
+        ok: false,
+        error: "Invalid properties",
+        issues: validated.error.issues,
+      }),
+    };
+  }
+  return { ok: true, json: JSON.stringify(validated.data) };
+}
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return !!value && typeof value === "object" && !Array.isArray(value);
 }
 
 const activeOnly = or(eq(items.status, ITEM_STATUS.active), isNull(items.status));
@@ -229,37 +270,14 @@ async function executeToolCallInner(
         return JSON.stringify({ ok: false, error: "Invalid recurring configuration" });
       }
 
-      const statusArg = args.status ? String(args.status).trim() : ITEM_STATUS.active;
-      const finalStatus = statusArg || ITEM_STATUS.active;
-
-      let schemaParsed: ReturnType<typeof BucketSchema.safeParse> | null = null;
-      if (bucket.fieldSchema) {
-        schemaParsed = BucketSchema.safeParse(
-          typeof bucket.fieldSchema === "string"
-            ? JSON.parse(bucket.fieldSchema)
-            : bucket.fieldSchema
-        );
-      }
+      const finalStatus = args.status ? String(args.status).trim() : ITEM_STATUS.active;
+      if (!SETTABLE_ITEM_STATUSES.includes(finalStatus)) return invalidStatusError(finalStatus);
 
       let propertiesJson: string | null = null;
-      if (
-        args.properties &&
-        typeof args.properties === "object" &&
-        !Array.isArray(args.properties)
-      ) {
-        if (schemaParsed?.success && schemaParsed.data.fields.length > 0) {
-          const validator = buildPropertyValidator(schemaParsed.data.fields);
-          const validated = validator.safeParse(args.properties);
-          if (!validated.success)
-            return JSON.stringify({
-              ok: false,
-              error: "Invalid properties",
-              issues: validated.error.issues,
-            });
-          propertiesJson = JSON.stringify(validated.data);
-        } else if (!bucket.fieldSchema) {
-          propertiesJson = JSON.stringify(args.properties);
-        }
+      if (isPlainObject(args.properties)) {
+        const validated = validateProperties(bucket.fieldSchema, args.properties);
+        if (!validated.ok) return validated.error;
+        propertiesJson = validated.json;
       }
 
       const [inserted] = await db
@@ -339,20 +357,31 @@ async function executeToolCallInner(
 
       if (args.status !== undefined) {
         const statusName = String(args.status).trim();
-        if (statusName) {
-          updates.status = statusName;
-          if (statusName === ITEM_STATUS.completed && item.status !== ITEM_STATUS.completed)
-            updates.completedAt = new Date();
-          else if (statusName !== ITEM_STATUS.completed && item.status === ITEM_STATUS.completed)
-            updates.completedAt = null;
-        }
+        if (!SETTABLE_ITEM_STATUSES.includes(statusName)) return invalidStatusError(statusName);
+        updates.status = statusName;
+        if (statusName === ITEM_STATUS.completed && item.status !== ITEM_STATUS.completed)
+          updates.completedAt = new Date();
+        else if (statusName !== ITEM_STATUS.completed && item.status === ITEM_STATUS.completed)
+          updates.completedAt = null;
       }
 
       if (args.properties !== undefined) {
         if (args.properties === null) {
           updates.properties = null;
-        } else if (typeof args.properties === "object" && !Array.isArray(args.properties)) {
-          updates.properties = JSON.stringify(args.properties);
+        } else if (isPlainObject(args.properties)) {
+          const bucket = await db.query.buckets.findFirst({
+            where: (b, { eq: qeq }) => qeq(b.id, item.bucketId),
+            columns: { fieldSchema: true },
+          });
+          const saved = item.properties
+            ? (JSON.parse(item.properties) as Record<string, unknown>)
+            : {};
+          const validated = validateProperties(bucket?.fieldSchema, {
+            ...saved,
+            ...args.properties,
+          });
+          if (!validated.ok) return validated.error;
+          updates.properties = validated.json;
         }
       }
 

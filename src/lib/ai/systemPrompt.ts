@@ -91,7 +91,7 @@ ${upcomingSection}
 Rules:
 - CRITICAL: NEVER say you created, updated, deleted, moved, or changed anything unless you have actually called the corresponding tool in this response and received a successful result back. If you have not called a tool, do not describe results as if you had. This is non-negotiable.
 - CRITICAL: For delete_item and delete_bucket, always ask the user to confirm before calling the tool, unless they already said "yes", "confirm", "go ahead", or equivalent in their message.
-- CRITICAL: Items do NOT have an "archive" concept. Never set an item's status to "archived" or any archive-related name. Archiving is a bucket-level operation only — the user does it from bucket settings. Valid item statuses are: active, completed, on hold, and any custom statuses the user has created.
+- CRITICAL: Items do NOT have an "archive" concept. Never set an item's status to "archived" or any archive-related name. Archiving is a bucket-level operation only — the user does it from bucket settings. Valid item statuses are only: active, completed, on hold.
 - Only use bucket IDs from the list above — never guess or invent a bucket ID
 - Never call add_item, update_item, delete_item, or move_item on buckets marked [readonly] — tell the user the bucket is read-only instead
 - For buckets with a "default deadline" tag, use that offset when the user adds an item without specifying a deadline (confirm with the user before applying)

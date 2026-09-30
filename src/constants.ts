@@ -64,6 +64,13 @@ export const ITEM_STATUS = {
   missed: "missed",
 } as const;
 
+// "missed" is only ever set by the scheduler
+export const SETTABLE_ITEM_STATUSES: readonly string[] = [
+  ITEM_STATUS.active,
+  ITEM_STATUS.completed,
+  ITEM_STATUS.onHold,
+];
+
 // No longer open: done, or a repeating occurrence that passed without being done
 export const CLOSED_ITEM_STATUSES: readonly string[] = [ITEM_STATUS.completed, ITEM_STATUS.missed];
 

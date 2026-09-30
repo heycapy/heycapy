@@ -1,4 +1,5 @@
 import type { Tool } from "./types";
+import { SETTABLE_ITEM_STATUSES } from "@/constants";
 import { MAX_REMINDER_OFFSET_MINS, MAX_REMINDERS_PER_ITEM } from "@/lib/reminders/constants";
 
 export const CAPY_TOOLS: Tool[] = [
@@ -68,9 +69,9 @@ export const CAPY_TOOLS: Tool[] = [
   {
     name: "delete_bucket",
     description:
-      "Permanently delete a bucket and all its items. " +
-      "Only do this when the user explicitly asks to delete or remove a bucket. " +
-      "This action cannot be undone — always confirm with the user before calling this.",
+      "Move a bucket and all its items to the trash. " +
+      "Only do this when the user explicitly asks to delete or remove a bucket, and confirm first. " +
+      "The user can restore it from the trash for 30 days; after that it is deleted for good.",
     parameters: {
       type: "object",
       properties: {
@@ -136,10 +137,10 @@ export const CAPY_TOOLS: Tool[] = [
         },
         status: {
           type: "string",
+          enum: [...SETTABLE_ITEM_STATUSES],
           description:
             "Initial status for the item. Defaults to 'active'. " +
-            "System statuses are 'active', 'completed', 'on hold'. " +
-            "Custom statuses are defined per-bucket in the bucket's schema.",
+            "'on hold' pauses the item's reminders until its status changes.",
         },
         properties: {
           type: "object",
@@ -203,13 +204,15 @@ export const CAPY_TOOLS: Tool[] = [
         },
         status: {
           type: "string",
+          enum: [...SETTABLE_ITEM_STATUSES],
           description:
-            "Set the item's status by name (e.g. 'active', 'completed', 'on hold', or any custom status defined in the bucket schema).",
+            "New status. 'on hold' pauses the item's reminders until its status changes.",
         },
         properties: {
           type: ["object", "null"],
           description:
-            "Update custom field values. Pass an object with field key-value pairs to update, or null to clear all properties.",
+            "Custom field values to change, as field key-value pairs; fields left out keep their value. " +
+            "Pass null to clear all of them.",
         },
       },
       required: ["item_id"],
@@ -235,9 +238,9 @@ export const CAPY_TOOLS: Tool[] = [
   {
     name: "delete_item",
     description:
-      "Permanently delete an item. " +
+      "Move an item to the trash. " +
       "Use this when the user asks to remove, delete, or get rid of an item. " +
-      "This cannot be undone.",
+      "The user can restore it from the trash for 30 days; after that it is deleted for good.",
     parameters: {
       type: "object",
       properties: {
