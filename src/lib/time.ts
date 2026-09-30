@@ -26,6 +26,14 @@ export function buildDeadline(date: string, hour: string, min: string, ampm: Amp
   return isNaN(d.getTime()) ? date : d.toISOString();
 }
 
+// What the time field shows for a deadline: its time, or blank (all day) for a date alone
+export function timeOfDeadline(deadline: string): { hour: string; min: string; ampm: Ampm } {
+  if (!deadline.includes("T")) return { hour: deadline ? "" : "9", min: "00", ampm: "am" };
+  const d = new Date(deadline);
+  const { hour, ampm } = toH12(d.getHours());
+  return { hour, min: String(d.getMinutes()).padStart(2, "0"), ampm };
+}
+
 export function defaultTimeFor(
   date: string,
   now = new Date()

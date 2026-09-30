@@ -87,13 +87,14 @@ export function useItemEditor({
     );
   }
 
-  function handleAdd() {
-    if (!addTitle.trim() || addPending) return;
+  // The dialog passes the title without a date typed into it
+  function handleAdd(title = addTitle) {
+    if (!title.trim() || addPending) return;
     setAddError("");
     startAddTransition(async () => {
       const result = await addItemAction(
         bucketId,
-        addTitle,
+        title,
         addDeadline || null,
         addStatus,
         addRecurring,

@@ -17,6 +17,17 @@ export const TRASH_RETENTION_DAYS = 30;
 export const TODAY_FETCH_AHEAD_DAYS = 1;
 export const SEARCH_RESULTS_MAX = 50;
 
+// Dates typed into an item's title
+// Short day names that are also everyday words ("sat exam", "sun cream"); typed alone they're left as text
+export const TITLE_DATE_AMBIGUOUS_WORDS = ["sat", "sun", "wed", "now"];
+// Removed with the date so "pay rent by friday" becomes "pay rent"
+export const TITLE_DATE_LEAD_WORDS = ["by", "on", "at", "due", "before"];
+// A time of day given in words; the date library's time for it is kept
+export const TITLE_DATE_TIME_WORDS = /\b(morning|afternoon|evening|tonight|night)\b/i;
+// The library's "morning" is 6am; ours matches the 9am a picked date starts at
+export const TITLE_DATE_MORNING = /\bmorning\b/i;
+export const TITLE_DATE_MORNING_HOUR = 9;
+
 export const OG_COLORS = {
   background: "#1d1816",
   foreground: "#d6c7a9",
