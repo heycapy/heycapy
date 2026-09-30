@@ -8,3 +8,12 @@ export const ALL_DAY_REMINDER_MINS = 9 * 60;
 // Moving a time out of one blocked window can land it in another, so it takes a few jumps;
 // real settings need 1–2, and the limit stops a day with no allowed time from looping forever
 export const MAX_DELIVERY_WINDOW_JUMPS = 4;
+export const MAX_REMINDERS_PER_ITEM = 4;
+export const MAX_REMINDER_OFFSET_MINS = 90 * 24 * 60;
+// Largest first, so a reminder is named in the biggest unit that fits exactly
+export const REMINDER_UNITS = [
+  { mins: 7 * 24 * 60, name: "week" },
+  { mins: 24 * 60, name: "day" },
+  { mins: 60, name: "hour" },
+  { mins: 1, name: "min" },
+] as const;

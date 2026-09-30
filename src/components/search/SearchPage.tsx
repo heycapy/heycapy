@@ -33,9 +33,8 @@ function SearchBody({ onClose }: { onClose: () => void }) {
     onSaved: refetch,
   });
   const editingItem = data?.items.find((i) => i.id === editor.editingItemId);
-  const fields = parseFields(
-    data?.buckets.find((b) => b.id === editingItem?.bucketId)?.fieldSchema
-  );
+  const editingBucket = data?.buckets.find((b) => b.id === editingItem?.bucketId);
+  const fields = parseFields(editingBucket?.fieldSchema);
   useScrollLock(true);
 
   useLayoutEffect(() => {
@@ -89,6 +88,7 @@ function SearchBody({ onClose }: { onClose: () => void }) {
 
       <ItemDialog
         {...editor.dialogProps}
+        bucketReminders={editingBucket?.defaultReminders}
         statuses={statuses}
         fields={fields.length > 0 ? fields : undefined}
       />

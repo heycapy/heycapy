@@ -5,7 +5,7 @@ import { ItemDialog } from "@/components/buckets/ItemDialog";
 import { useItemEditor } from "@/components/buckets/useItemEditor";
 import { parseFields } from "@/components/buckets/fields";
 import { BUCKET_PALETTE, DEFAULT_BUCKET_STATUSES } from "@/components/buckets/constants";
-import { parseItemsRules } from "@/lib/rules";
+import { bucketDefaultReminders, parseItemsRules, parseNotificationRules } from "@/lib/rules";
 import { localDateString } from "@/lib/reminders/zoned";
 import { ITEM_STATUS } from "@/constants";
 import { useUIStore } from "@/store/ui";
@@ -56,9 +56,8 @@ export function TodayView({ buckets, addItemRef }: TodayViewProps) {
 
   const adding = editor.dialogProps.open && editor.dialogProps.mode === "add";
   const editingItem = data?.items.find((i) => i.id === editor.editingItemId);
-  const fields = parseFields(
-    (adding ? addTo?.bucket : buckets.find((b) => b.id === editingItem?.bucketId))?.fieldSchema
-  );
+  const formBucket = adding ? addTo?.bucket : buckets.find((b) => b.id === editingItem?.bucketId);
+  const fields = parseFields(formBucket?.fieldSchema);
 
   return (
     <div className="flex flex-col">
@@ -85,6 +84,10 @@ export function TodayView({ buckets, addItemRef }: TodayViewProps) {
 
       <ItemDialog
         {...editor.dialogProps}
+        bucketReminders={
+          formBucket &&
+          bucketDefaultReminders(parseNotificationRules(formBucket.notificationsRules))
+        }
         statuses={statuses}
         fields={fields.length > 0 ? fields : undefined}
         bucketChoice={

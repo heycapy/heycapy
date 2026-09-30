@@ -34,6 +34,7 @@ export function useItemEditor({
   const [addStatus, setAddStatus] = useState<ItemStatus>(defaultStatus);
   const [addRecurring, setAddRecurring] = useState<RecurringConfig | null>(null);
   const [addProperties, setAddProperties] = useState<Record<string, unknown>>({});
+  const [addReminders, setAddReminders] = useState<number[] | null>(null);
   const [addError, setAddError] = useState("");
   const [addPending, startAddTransition] = useTransition();
 
@@ -43,6 +44,7 @@ export function useItemEditor({
   const [editStatus, setEditStatus] = useState<ItemStatus>(defaultStatus);
   const [editRecurring, setEditRecurring] = useState<RecurringConfig | null>(null);
   const [editProperties, setEditProperties] = useState<Record<string, unknown>>({});
+  const [editReminders, setEditReminders] = useState<number[] | null>(null);
   const [editPending, startEditTransition] = useTransition();
 
   function cancelEditing() {
@@ -52,6 +54,7 @@ export function useItemEditor({
     setEditStatus(defaultStatus);
     setEditRecurring(null);
     setEditProperties({});
+    setEditReminders(null);
   }
 
   function cancelAdding() {
@@ -61,6 +64,7 @@ export function useItemEditor({
     setAddStatus(defaultStatus);
     setAddRecurring(null);
     setAddProperties({});
+    setAddReminders(null);
     setAddError("");
   }
 
@@ -77,6 +81,7 @@ export function useItemEditor({
     setEditDeadline(item.deadline ? toDeadlineStr(item.deadline) : "");
     setEditStatus((item.status as ItemStatus) || defaultStatus);
     setEditRecurring(parseRecurring(item.recurring));
+    setEditReminders(item.reminderOffsets);
     setEditProperties(
       item.properties ? (JSON.parse(item.properties) as Record<string, unknown>) : {}
     );
@@ -92,7 +97,8 @@ export function useItemEditor({
         addDeadline || null,
         addStatus,
         addRecurring,
-        Object.keys(addProperties).length > 0 ? addProperties : null
+        Object.keys(addProperties).length > 0 ? addProperties : null,
+        addReminders
       );
       if (result.ok) {
         cancelAdding();
@@ -112,7 +118,8 @@ export function useItemEditor({
         editDeadline || null,
         editStatus,
         editRecurring,
-        Object.keys(editProperties).length > 0 ? editProperties : null
+        Object.keys(editProperties).length > 0 ? editProperties : null,
+        editReminders
       );
       if (result.ok) {
         cancelEditing();
@@ -145,6 +152,7 @@ export function useItemEditor({
       status: addingItem ? addStatus : editStatus,
       properties: addingItem ? addProperties : editProperties,
       recurring: addingItem ? addRecurring : editRecurring,
+      reminders: addingItem ? addReminders : editReminders,
       error: addingItem ? addError : undefined,
       pending: addingItem ? addPending : editPending,
       onTitleChange: addingItem ? setAddTitle : setEditTitle,
@@ -152,6 +160,7 @@ export function useItemEditor({
       onStatusChange: addingItem ? setAddStatus : setEditStatus,
       onPropertiesChange: addingItem ? setAddProperties : setEditProperties,
       onRecurringChange: addingItem ? setAddRecurring : setEditRecurring,
+      onRemindersChange: addingItem ? setAddReminders : setEditReminders,
       onConfirm: addingItem ? handleAdd : handleUpdate,
       onCancel: addingItem ? cancelAdding : cancelEditing,
       onDelete: editingItemId !== null ? handleDelete : undefined,

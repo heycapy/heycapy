@@ -134,7 +134,7 @@ export async function buildAccountExport(userId: number, now = new Date()) {
       deadline: i.deadline,
       scheduledAt: i.scheduledAt,
       recurring: parsed(i.recurring),
-      reminderOffsetMins: i.notificationOffsetMins,
+      reminderOffsets: i.reminderOffsets,
       fields: parsed(i.properties),
       source: i.source,
       completedAt: i.completedAt,

@@ -1,9 +1,9 @@
 import type { ReminderContext } from "@/lib/reminders/refresh";
-import { reminderBase } from "@/lib/reminders/schedule";
+import { reminderBase, reminderTimes } from "@/lib/reminders/schedule";
 import { overdueFrom } from "@/lib/reminders/zoned";
 
 type ReminderState = { deadline: Date | null; notifiedAt: Date | null };
-type OffsetState = ReminderState & { notificationOffsetMins: number | null };
+type OffsetState = ReminderState & { reminderOffsets: number[] | null };
 
 // A date that's already past gets no "due" reminder; its overdue alert still fires
 export function initialReminderState(
@@ -24,13 +24,15 @@ export function reminderResetForDeadline(
   if (unchanged) return {};
   const inPast = !!newDeadline && overdueFrom(newDeadline, ctx.timezone) < now;
   const base = newDeadline ? reminderBase(newDeadline, ctx.notifyAt, ctx.timezone) : null;
-  const offsetMs = (item.notificationOffsetMins ?? ctx.defaultOffsetMins) * 60_000;
-  // Already reminded: an early reminder whose time passed would re-ping at once, so wait for the deadline
-  const holdUntilDeadline =
-    !!base && !inPast && item.notifiedAt !== null && base.getTime() - offsetMs < now.getTime();
+  const times = base ? reminderTimes(base, item.reminderOffsets ?? ctx.defaultReminders) : [];
+  // Already reminded: reminders whose time passed would re-ping at once, so wait for the next one ahead
+  const hold =
+    base && !inPast && item.notifiedAt !== null && times.some((t) => t < now)
+      ? (times.find((t) => t >= now) ?? base)
+      : null;
   return {
     overdueNotifiedAt: null,
     notifiedAt: inPast ? (item.notifiedAt ?? now) : null,
-    remindNotBefore: holdUntilDeadline ? base : null,
+    remindNotBefore: hold,
   };
 }

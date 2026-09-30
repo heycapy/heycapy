@@ -172,7 +172,8 @@ export const items = sqliteTable(
     properties: text("properties"),
     externalId: text("external_id"),
     externalUrl: text("external_url"),
-    notificationOffsetMins: integer("notification_offset_mins"),
+    // Minutes before the deadline, largest first; null follows the bucket's default
+    reminderOffsets: text("reminder_offsets", { mode: "json" }).$type<number[]>(),
     notifiedAt: integer("notified_at", { mode: "timestamp" }),
     overdueNotifiedAt: integer("overdue_notified_at", { mode: "timestamp" }),
     remindNotBefore: integer("remind_not_before", { mode: "timestamp" }),

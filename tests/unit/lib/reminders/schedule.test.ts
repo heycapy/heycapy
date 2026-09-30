@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { NotificationRules } from "@/types/rules";
+import { NotificationRules, ReminderOffsets } from "@/types/rules";
 import {
   nextDeadlineReminder,
   nextOverdueAlert,
@@ -19,7 +19,7 @@ function inputs(
     remindNotBefore: null,
     notifiedAt: null,
     overdueNotifiedAt: null,
-    notificationOffsetMins: null,
+    reminderOffsets: null,
     notifyWhenOverdue: false,
     overdueRepeatHours: undefined,
     timezone: "America/New_York",
@@ -41,9 +41,7 @@ describe("nextDeadlineReminder", () => {
     );
     expect(
       iso(
-        nextDeadlineReminder(
-          inputs({ rules: { defaultOffsetMins: 60 }, notificationOffsetMins: 1440 })
-        )
+        nextDeadlineReminder(inputs({ rules: { defaultOffsetMins: 60 }, reminderOffsets: [1440] }))
       )
     ).toBe("2026-06-09T13:00:00.000Z");
   });
@@ -113,6 +111,69 @@ describe("nextDeadlineReminder", () => {
       rules: { notifyAt: "08:00", quietHours: { from: "22:00", to: "09:30" } },
     });
     expect(iso(nextDeadlineReminder(both))).toBe("2026-06-10T13:30:00.000Z");
+  });
+});
+
+describe("nextDeadlineReminder with several reminders", () => {
+  const offsets = [1440, 60, 0];
+  const dayBefore = "2026-06-09T13:00:00.000Z";
+  const hourBefore = "2026-06-10T12:00:00.000Z";
+
+  it("starts with the earliest", () => {
+    expect(iso(nextDeadlineReminder(inputs({ reminderOffsets: offsets })))).toBe(dayBefore);
+  });
+
+  it("moves on to the next one after each goes out", () => {
+    const sent = (at: string) => inputs({ reminderOffsets: offsets, notifiedAt: new Date(at) });
+    expect(iso(nextDeadlineReminder(sent(dayBefore)))).toBe(hourBefore);
+    expect(iso(nextDeadlineReminder(sent(hourBefore)))).toBe(deadline.toISOString());
+    expect(nextDeadlineReminder(sent(deadline.toISOString()))).toBeNull();
+  });
+
+  it("drops the ones that fell due before the last one went out", () => {
+    // Sent late (quiet hours, downtime): the 1-hour one passed meanwhile
+    const late = inputs({ reminderOffsets: offsets, notifiedAt: new Date("2026-06-10T12:30:00Z") });
+    expect(iso(nextDeadlineReminder(late))).toBe(deadline.toISOString());
+  });
+
+  it("repeats daily only after the last one", () => {
+    const rules = { repeat: "daily" };
+    const afterFirst = inputs({ rules, reminderOffsets: offsets, notifiedAt: new Date(dayBefore) });
+    expect(iso(nextDeadlineReminder(afterFirst))).toBe(hourBefore);
+    const afterLast = inputs({ rules, reminderOffsets: offsets, notifiedAt: deadline });
+    expect(iso(nextDeadlineReminder(afterLast))).toBe("2026-06-11T13:00:00.000Z");
+  });
+
+  it("sends nothing for an empty list, whatever the bucket default", () => {
+    expect(
+      nextDeadlineReminder(inputs({ rules: { defaultOffsetMins: 60 }, reminderOffsets: [] }))
+    ).toBeNull();
+  });
+
+  it("holds each one to the 'remind at' time and quiet hours", () => {
+    const quiet = inputs({
+      reminderOffsets: [600, 0], // 23:00 the night before, then 09:00
+      rules: { quietHours: { from: "22:00", to: "08:00" } },
+    });
+    expect(iso(nextDeadlineReminder(quiet))).toBe("2026-06-10T12:00:00.000Z");
+  });
+});
+
+describe("ReminderOffsets", () => {
+  it("keeps each offset once, largest first", () => {
+    expect(ReminderOffsets.parse([0, 60, 1440, 60])).toEqual([1440, 60, 0]);
+  });
+
+  it("allows none", () => {
+    expect(ReminderOffsets.parse([])).toEqual([]);
+  });
+
+  it("rejects negative, fractional, too distant or too many offsets", () => {
+    expect(ReminderOffsets.safeParse([-5]).success).toBe(false);
+    expect(ReminderOffsets.safeParse([1.5]).success).toBe(false);
+    expect(ReminderOffsets.safeParse([91 * 24 * 60]).success).toBe(false);
+    expect(ReminderOffsets.safeParse([0, 5, 10, 15]).success).toBe(true);
+    expect(ReminderOffsets.safeParse([0, 5, 10, 15, 30]).success).toBe(false);
   });
 });
 

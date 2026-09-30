@@ -132,7 +132,7 @@ describe("future deadlines are unchanged", () => {
     const itemId = await seedItem(userId, bucketId, { deadline: FUTURE });
     await db
       .update(items)
-      .set({ notificationOffsetMins: 24 * 60 })
+      .set({ reminderOffsets: [24 * 60] })
       .where(eq(items.id, itemId));
     await updateItemAction(itemId, "x", new Date(T0.getTime() + 2 * HOUR).toISOString());
     expect(await sentKinds(itemId)).toEqual(["reminder"]);

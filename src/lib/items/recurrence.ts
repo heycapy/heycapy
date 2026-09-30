@@ -47,7 +47,7 @@ async function insertOccurrence(
       description: from.description,
       properties: from.properties,
       deadline,
-      notificationOffsetMins: from.notificationOffsetMins,
+      reminderOffsets: from.reminderOffsets,
       recurring: JSON.stringify(withAnchor(config, seriesDate(from), ctx.timezone)),
       source: from.source,
     })

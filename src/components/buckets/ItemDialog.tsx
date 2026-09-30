@@ -4,6 +4,7 @@ import { DatePicker } from "@/components/ui/DatePicker";
 import { BracketButton } from "@/components/ui/BracketButton";
 import { TimeField, type Ampm, type TimeValue } from "@/components/ui/TimeField";
 import { RecurringPicker } from "./RecurringPicker";
+import { ReminderPicker } from "./ReminderPicker";
 import { ItemFieldsForm } from "./ItemFieldsForm";
 import { ItemStatusField } from "./ItemStatusField";
 import { ItemBucketField, type BucketChoice } from "./ItemBucketField";
@@ -37,6 +38,8 @@ type ItemDialogProps = {
   fields?: FieldDef[];
   properties?: Record<string, unknown>;
   recurring?: RecurringConfig | null;
+  reminders?: number[] | null;
+  bucketReminders?: number[];
   error?: string;
   pending?: boolean;
   onTitleChange: (v: string) => void;
@@ -44,6 +47,7 @@ type ItemDialogProps = {
   onStatusChange: (v: string) => void;
   onPropertiesChange?: (v: Record<string, unknown>) => void;
   onRecurringChange?: (v: RecurringConfig | null) => void;
+  onRemindersChange?: (v: number[]) => void;
   onConfirm: () => void;
   onCancel: () => void;
   onDelete?: () => void;
@@ -60,6 +64,8 @@ export function ItemDialog({
   fields,
   properties,
   recurring,
+  reminders,
+  bucketReminders,
   error,
   pending,
   onTitleChange,
@@ -67,6 +73,7 @@ export function ItemDialog({
   onStatusChange,
   onPropertiesChange,
   onRecurringChange,
+  onRemindersChange,
   onConfirm,
   onCancel,
   onDelete,
@@ -200,6 +207,16 @@ export function ItemDialog({
           )}
         </div>
       </div>
+
+      {hasDate && onRemindersChange && bucketReminders && (
+        <ReminderPicker
+          reminders={reminders ?? null}
+          bucketDefault={bucketReminders}
+          allDay={!deadline.includes("T")}
+          disabled={pending}
+          onChange={onRemindersChange}
+        />
+      )}
 
       {hasDate && onRecurringChange && (
         <RecurringPicker

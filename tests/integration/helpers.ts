@@ -58,7 +58,13 @@ export async function seedBucket(
 export async function seedItem(
   userId: number,
   bucketId: number,
-  fields: { deadline: Date; notifiedAt?: Date; overdueNotifiedAt?: Date; title?: string }
+  fields: {
+    deadline: Date;
+    notifiedAt?: Date;
+    overdueNotifiedAt?: Date;
+    title?: string;
+    reminderOffsets?: number[];
+  }
 ): Promise<number> {
   const [item] = await db
     .insert(items)
@@ -69,13 +75,18 @@ export async function seedItem(
       deadline: fields.deadline,
       notifiedAt: fields.notifiedAt ?? null,
       overdueNotifiedAt: fields.overdueNotifiedAt ?? null,
+      reminderOffsets: fields.reminderOffsets ?? null,
     })
     .returning();
   await refreshItemReminders([item.id]);
   return item.id;
 }
 
-export async function seedReminder(opts: { deadline: Date; notifiedAt?: Date }) {
+export async function seedReminder(opts: {
+  deadline: Date;
+  notifiedAt?: Date;
+  reminderOffsets?: number[];
+}) {
   const userId = await seedUser();
   const bucketId = await seedBucket(userId);
   const itemId = await seedItem(userId, bucketId, opts);

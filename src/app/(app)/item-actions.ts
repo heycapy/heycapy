@@ -8,7 +8,7 @@ import { requireSession } from "./action-helpers";
 import { db } from "@/lib/db";
 import { items } from "@/lib/db/schema";
 import { ITEM_STATUS, ITEM_TITLE_MAX_LENGTH } from "@/constants";
-import { RecurringConfig } from "@/types/rules";
+import { RecurringConfig, ReminderOffsets } from "@/types/rules";
 import { parseLocalDateTime } from "@/lib/reminders/zoned";
 import { initialReminderState, reminderResetForDeadline } from "@/lib/items/reminders";
 import { refreshItemReminders, reminderContext } from "@/lib/reminders/refresh";
@@ -93,7 +93,8 @@ export async function addItemAction(
   deadline: string | null,
   status?: string,
   recurring?: RecurringConfig | null,
-  properties?: Record<string, unknown> | null
+  properties?: Record<string, unknown> | null,
+  reminders?: number[] | null
 ): Promise<ActionResult> {
   const session = await requireSession();
 
@@ -102,6 +103,10 @@ export async function addItemAction(
   if (trimmed.length > ITEM_TITLE_MAX_LENGTH) return { ok: false, error: "Title too long" };
   if (recurring && !RecurringConfig.safeParse(recurring).success) {
     return { ok: false, error: "Invalid repeat settings" };
+  }
+  const parsedReminders = reminders ? ReminderOffsets.safeParse(reminders) : null;
+  if (parsedReminders && !parsedReminders.success) {
+    return { ok: false, error: "Invalid reminders" };
   }
 
   const bucket = await db.query.buckets.findFirst({
@@ -134,6 +139,7 @@ export async function addItemAction(
       sortOrder: maxRow.max + 1,
       recurring: recurring?.enabled ? JSON.stringify(recurring) : null,
       properties: properties ? JSON.stringify(properties) : null,
+      reminderOffsets: parsedReminders?.data ?? null,
     })
     .returning({ id: items.id });
   if (created) await refreshItemReminders([created.id]);
@@ -157,7 +163,8 @@ export async function updateItemAction(
   deadline: string | null,
   status?: string,
   recurring?: RecurringConfig | null,
-  properties?: Record<string, unknown> | null
+  properties?: Record<string, unknown> | null,
+  reminders?: number[] | null
 ): Promise<ActionResult> {
   const session = await requireSession();
 
@@ -166,6 +173,10 @@ export async function updateItemAction(
   if (trimmed.length > ITEM_TITLE_MAX_LENGTH) return { ok: false, error: "Title too long" };
   if (recurring && !RecurringConfig.safeParse(recurring).success) {
     return { ok: false, error: "Invalid repeat settings" };
+  }
+  const parsedReminders = reminders ? ReminderOffsets.safeParse(reminders) : null;
+  if (parsedReminders && !parsedReminders.success) {
+    return { ok: false, error: "Invalid reminders" };
   }
 
   const item = await db.query.items.findFirst({
@@ -212,6 +223,7 @@ export async function updateItemAction(
       ...(properties !== undefined && {
         properties: properties ? JSON.stringify(properties) : null,
       }),
+      ...(reminders !== undefined && { reminderOffsets: parsedReminders?.data ?? null }),
       updatedAt: new Date(),
     })
     .where(and(eq(items.id, itemId), eq(items.userId, session.userId)));

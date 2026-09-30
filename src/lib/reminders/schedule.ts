@@ -1,4 +1,5 @@
 import { ITEM_STATUS, isClosedStatus } from "@/constants";
+import { bucketDefaultReminders } from "@/lib/rules";
 import type { NotificationRules } from "@/types/rules";
 import {
   ALL_DAY_REMINDER_MINS,
@@ -22,7 +23,7 @@ export type ReminderInputs = {
   remindNotBefore: Date | null;
   notifiedAt: Date | null;
   overdueNotifiedAt: Date | null;
-  notificationOffsetMins: number | null;
+  reminderOffsets: number[] | null;
   rules: NotificationRules;
   notifyWhenOverdue: boolean;
   overdueRepeatHours: number | undefined;
@@ -107,16 +108,27 @@ export function reminderBase(
   return atLocalClock(deadline, mins, timezone);
 }
 
+// Earliest first
+export function reminderTimes(base: Date, offsets: number[]): Date[] {
+  return offsets
+    .map((mins) => new Date(base.getTime() - mins * 60_000))
+    .sort((a, b) => a.getTime() - b.getTime());
+}
+
 export function nextDeadlineReminder(i: ReminderInputs): Date | null {
   if (!canRemind(i) || i.rules.medium.length === 0) return null;
 
+  const base = reminderBase(i.deadline, i.rules.notifyAt, i.timezone);
+  const times = reminderTimes(base, i.reminderOffsets ?? bucketDefaultReminders(i.rules));
+  const notifiedAt = i.notifiedAt;
+  // Reminders that fell due before the last one went out are dropped: one ping, not a burst
+  const pending = notifiedAt ? times.find((t) => t > notifiedAt) : times[0];
+
   let due: Date;
-  if (!i.notifiedAt) {
-    const offsetMins = i.notificationOffsetMins ?? i.rules.defaultOffsetMins;
-    const base = reminderBase(i.deadline, i.rules.notifyAt, i.timezone);
-    due = new Date(base.getTime() - offsetMins * 60_000);
-  } else if (i.rules.repeat === "daily") {
-    due = addLocalDays(i.notifiedAt, 1, i.timezone);
+  if (pending) {
+    due = pending;
+  } else if (notifiedAt && i.rules.repeat === "daily") {
+    due = addLocalDays(notifiedAt, 1, i.timezone);
   } else {
     return null;
   }

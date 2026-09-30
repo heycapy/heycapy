@@ -2,12 +2,16 @@ import { describe, it, expect } from "vitest";
 import { initialReminderState, reminderResetForDeadline } from "@/lib/items/reminders";
 
 const now = new Date("2026-03-10T12:00:00Z");
-const ctx = (defaultOffsetMins = 0) => ({ defaultOffsetMins, notifyAt: "", timezone: "UTC" });
+const ctx = (defaultOffsetMins = 0) => ({
+  defaultReminders: [defaultOffsetMins],
+  notifyAt: "",
+  timezone: "UTC",
+});
 const notifiedAt = new Date("2026-03-10T09:00:00Z");
 const item = {
   deadline: new Date("2026-03-10T09:00:00Z"),
   notifiedAt,
-  notificationOffsetMins: null,
+  reminderOffsets: null,
 };
 
 describe("reminderResetForDeadline", () => {
@@ -35,7 +39,7 @@ describe("reminderResetForDeadline", () => {
     const fresh = {
       deadline: new Date("2026-03-11T09:00:00Z"),
       notifiedAt: null,
-      notificationOffsetMins: null,
+      reminderOffsets: null,
     };
     expect(reminderResetForDeadline(fresh, new Date("2026-03-10T10:00:00Z"), ctx(0), now)).toEqual({
       notifiedAt: now,
@@ -53,7 +57,7 @@ describe("reminderResetForDeadline", () => {
   });
 
   it("arms a reminder for an item that never had a deadline", () => {
-    const undated = { deadline: null, notifiedAt: null, notificationOffsetMins: null };
+    const undated = { deadline: null, notifiedAt: null, reminderOffsets: null };
     expect(
       reminderResetForDeadline(undated, new Date("2026-03-11T09:00:00Z"), ctx(0), now)
     ).toEqual({
@@ -90,10 +94,29 @@ describe("reminderResetForDeadline with an early reminder", () => {
   });
 
   it("uses the item's own offset over the bucket default", () => {
-    const itemOffset = { ...item, notificationOffsetMins: 24 * 60 };
+    const itemOffset = { ...item, reminderOffsets: [24 * 60] };
     expect(reminderResetForDeadline(itemOffset, tomorrow, ctx(0), now)).toMatchObject({
       remindNotBefore: tomorrow,
     });
+  });
+});
+
+describe("reminderResetForDeadline with several reminders", () => {
+  const inTwoHours = new Date("2026-03-10T14:00:00Z");
+  const reminded = { ...item, reminderOffsets: [24 * 60, 60, 0] };
+
+  it("holds an already-reminded item until the next reminder still ahead", () => {
+    // 1 day before has passed; 1 hour before (13:00) is still ahead
+    expect(reminderResetForDeadline(reminded, inTwoHours, ctx(0), now)).toMatchObject({
+      notifiedAt: null,
+      remindNotBefore: new Date("2026-03-10T13:00:00Z"),
+    });
+  });
+
+  it("doesn't hold when every reminder is still ahead", () => {
+    expect(
+      reminderResetForDeadline(reminded, new Date("2026-03-12T14:00:00Z"), ctx(0), now)
+    ).toMatchObject({ notifiedAt: null, remindNotBefore: null });
   });
 });
 

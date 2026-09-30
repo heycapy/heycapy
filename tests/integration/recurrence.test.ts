@@ -60,7 +60,7 @@ async function seedRecurring(opts: {
       deadline: opts.deadline ?? new Date(T0.getTime() + 3 * DAY),
       recurring: opts.recurring ?? MONTHLY,
       properties: opts.properties ?? null,
-      notificationOffsetMins: 60,
+      reminderOffsets: [60, 0],
     })
     .returning();
   await refreshItemReminders([item.id]);
@@ -119,7 +119,7 @@ describe("the next occurrence", () => {
 
     const [, next] = await bucketItems(bucketId);
     expect(next.title).toBe("pay rent");
-    expect(next.notificationOffsetMins).toBe(60);
+    expect(next.reminderOffsets).toEqual([60, 0]);
     expect(next.recurring).toBe(MONTHLY_ON_13);
     expect(next.properties).toBe(JSON.stringify({ amount: 1200 }));
   });

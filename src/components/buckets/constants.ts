@@ -3,6 +3,7 @@ import type { QuickRemindChoice } from "@/lib/notifications/constants";
 import type { LucideIcon } from "lucide-react";
 import { Activity, Bell, Briefcase, CreditCard, ListTodo, Square } from "lucide-react";
 import type { RecurrenceMode, StatusDef } from "@/types/rules";
+import { REMINDER_UNITS } from "@/lib/reminders/constants";
 
 export type SortBy = "deadline" | "created_at" | "manual";
 export type NotificationMedium = "ntfy" | "email" | "telegram" | "push";
@@ -58,6 +59,11 @@ export const RECURRING_FREQUENCIES = [
   { value: "monthly" as const, label: "month" },
   { value: "yearly" as const, label: "year" },
 ];
+
+// Minutes before the deadline offered in the item form's reminder picker
+export const REMINDER_PRESETS = [0, 15, 30, 60, 120, 1440, 2880, 10080];
+
+export const CUSTOM_REMINDER_UNITS = [...REMINDER_UNITS].reverse();
 
 export const SORT_OPTIONS: { value: SortBy; label: string }[] = [
   { value: "deadline", label: "deadline" },

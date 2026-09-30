@@ -12,7 +12,12 @@ import { createNextOccurrence } from "@/lib/items/recurrence";
 import { encryptValue, generateWebhookKey } from "@/lib/crypto";
 import { BUCKET_NAME_MAX_LENGTH, CLOSED_ITEM_STATUSES, ITEM_STATUS } from "@/constants";
 import { buckets, items } from "@/lib/db/schema";
-import { RecurringConfig, BucketSchema, buildPropertyValidator } from "@/types/rules";
+import {
+  RecurringConfig,
+  BucketSchema,
+  ReminderOffsets,
+  buildPropertyValidator,
+} from "@/types/rules";
 import type { ToolCall } from "./types";
 
 export { CAPY_TOOLS } from "./capyToolDefs";
@@ -53,6 +58,19 @@ function parseRecurringArgs(args: Record<string, unknown>): string | null | unde
     endDate: args.recurring_end_date ?? null,
   });
   return JSON.stringify(config);
+}
+
+// null follows the bucket's default
+function parseReminderOffsetsArg(
+  value: unknown
+): { ok: true; value: number[] | null } | { ok: false; error: string } {
+  if (value === null || value === undefined) return { ok: true, value: null };
+  const parsed = ReminderOffsets.safeParse(value);
+  if (parsed.success) return { ok: true, value: parsed.data };
+  return {
+    ok: false,
+    error: JSON.stringify({ ok: false, error: "Invalid reminders", issues: parsed.error.issues }),
+  };
 }
 
 const activeOnly = or(eq(items.status, ITEM_STATUS.active), isNull(items.status));
@@ -200,10 +218,8 @@ async function executeToolCallInner(
         .where(eq(items.bucketId, bucketId));
 
       const deadline = args.deadline ? parseLocalDateTime(String(args.deadline), timezone) : null;
-      const notificationOffsetMins =
-        args.notification_offset_mins !== null && args.notification_offset_mins !== undefined
-          ? Number(args.notification_offset_mins)
-          : null;
+      const reminders = parseReminderOffsetsArg(args.reminder_offsets_mins);
+      if (!reminders.ok) return reminders.error;
 
       let recurringJson: string | null = null;
       try {
@@ -256,7 +272,7 @@ async function executeToolCallInner(
           completedAt: finalStatus === ITEM_STATUS.completed ? new Date() : null,
           deadline,
           ...initialReminderState(deadline, timezone),
-          notificationOffsetMins,
+          reminderOffsets: reminders.value,
           recurring: recurringJson,
           properties: propertiesJson,
           source: "ai",
@@ -284,7 +300,7 @@ async function executeToolCallInner(
         notifiedAt?: Date | null;
         overdueNotifiedAt?: Date | null;
         remindNotBefore?: Date | null;
-        notificationOffsetMins?: number | null;
+        reminderOffsets?: number[] | null;
         recurring?: string | null;
         status?: string;
         completedAt?: Date | null;
@@ -307,11 +323,10 @@ async function executeToolCallInner(
           reminderResetForDeadline(item, newDeadline, await reminderContext(item.bucketId))
         );
       }
-      if ("notification_offset_mins" in args) {
-        updates.notificationOffsetMins =
-          args.notification_offset_mins !== null && args.notification_offset_mins !== undefined
-            ? Number(args.notification_offset_mins)
-            : null;
+      if ("reminder_offsets_mins" in args) {
+        const reminders = parseReminderOffsetsArg(args.reminder_offsets_mins);
+        if (!reminders.ok) return reminders.error;
+        updates.reminderOffsets = reminders.value;
       }
 
       try {
@@ -439,7 +454,7 @@ async function executeToolCallInner(
           title: items.title,
           deadline: items.deadline,
           status: items.status,
-          notificationOffsetMins: items.notificationOffsetMins,
+          reminderOffsets: items.reminderOffsets,
           recurring: items.recurring,
           properties: items.properties,
         })
@@ -498,7 +513,7 @@ async function executeToolCallInner(
             deadline: items.deadline,
             status: items.status,
             bucketId: items.bucketId,
-            notificationOffsetMins: items.notificationOffsetMins,
+            reminderOffsets: items.reminderOffsets,
             completedAt: items.completedAt,
           })
           .from(items)

@@ -94,4 +94,35 @@ describe("migrations", () => {
     }
     sqlite.close();
   });
+
+  it("keep an item's own reminder offset as a one-item list", () => {
+    const journal = JSON.parse(
+      readFileSync(path.join(MIGRATIONS, "meta/_journal.json"), "utf8")
+    ) as Journal;
+    const offsetsMigration = journal.entries.findIndex(
+      (e) => e.tag === "0016_item_reminder_offsets"
+    );
+    const dbPath = path.join(mkdtempSync(path.join(tmpdir(), "heycapy-offsets-")), "db.sqlite");
+    const sqlite = new Database(dbPath);
+    const db = drizzle(sqlite);
+    migrate(db, { migrationsFolder: migrationsUpTo(offsetsMigration) });
+
+    sqlite.exec(`
+      INSERT INTO users (id, email) VALUES (1, 'a@heycapy.test');
+      INSERT INTO buckets (id, user_id, name) VALUES (1, 1, 'Bills');
+      INSERT INTO items (bucket_id, user_id, title, notification_offset_mins)
+        VALUES (1, 1, 'rent', 1440), (1, 1, 'gym', NULL), (1, 1, 'call', 0);
+    `);
+
+    migrate(db, { migrationsFolder: MIGRATIONS });
+
+    expect(sqlite.prepare("SELECT reminder_offsets FROM items ORDER BY id").all()).toEqual([
+      { reminder_offsets: "[1440]" },
+      { reminder_offsets: null },
+      { reminder_offsets: "[0]" },
+    ]);
+    const columns = sqlite.prepare("PRAGMA table_info(items)").all() as { name: string }[];
+    expect(columns.map((c) => c.name)).not.toContain("notification_offset_mins");
+    sqlite.close();
+  });
 });

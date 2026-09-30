@@ -97,3 +97,68 @@ describe("remind me later via the assistant", () => {
     expect(await remindersQueued(itemId)).toBe(2);
   });
 });
+
+describe("several reminders per item", () => {
+  const DAY = 24 * HOUR;
+  const after = (ms: number) => new Date(T0.getTime() + ms + 60_000);
+
+  it("sends each one in turn, then stops", async () => {
+    const { itemId } = await seedReminder({
+      deadline: new Date(T0.getTime() + 2 * DAY),
+      reminderOffsets: [DAY / 60_000, 60, 0],
+    });
+    await runSchedulerAt(after(0));
+    expect(await remindersQueued(itemId)).toBe(0);
+    await runSchedulerAt(after(DAY));
+    expect(await remindersQueued(itemId)).toBe(1);
+    await runSchedulerAt(after(2 * DAY - HOUR));
+    expect(await remindersQueued(itemId)).toBe(2);
+    await runSchedulerAt(after(2 * DAY));
+    expect(await remindersQueued(itemId)).toBe(3);
+    await runSchedulerAt(after(3 * DAY));
+    expect(await remindersQueued(itemId)).toBe(3);
+  });
+
+  it("sends one ping, not a burst, when several fell due at once", async () => {
+    const { itemId } = await seedReminder({
+      deadline: new Date(T0.getTime() + 30 * 60_000),
+      reminderOffsets: [DAY / 60_000, 60, 0],
+    });
+    await runSchedulerAt(after(0));
+    expect(await remindersQueued(itemId)).toBe(1);
+    await runSchedulerAt(after(10 * 60_000));
+    expect(await remindersQueued(itemId)).toBe(1);
+    await runSchedulerAt(after(30 * 60_000));
+    expect(await remindersQueued(itemId)).toBe(2);
+  });
+
+  it("sends nothing before the deadline for an empty list", async () => {
+    const { itemId } = await seedReminder({ deadline: T0, reminderOffsets: [] });
+    await runSchedulerAt(after(HOUR));
+    expect(await remindersQueued(itemId)).toBe(0);
+  });
+
+  it("are set by the assistant, without repeats and largest first", async () => {
+    const { userId, itemId } = await seedReminder({ deadline: new Date(T0.getTime() + DAY) });
+    const update = (reminders: unknown) =>
+      executeToolCall(
+        {
+          id: "call-1",
+          name: "update_item",
+          arguments: { item_id: itemId, reminder_offsets_mins: reminders },
+        },
+        userId
+      ).then((r) => JSON.parse(r) as { ok: boolean });
+
+    expect(await update([0, 60, 60])).toMatchObject({ ok: true });
+    const item = await db.query.items.findFirst({ where: eq(items.id, itemId) });
+    expect(item?.reminderOffsets).toEqual([60, 0]);
+    expect(item?.nextReminderAt).toEqual(new Date(T0.getTime() + DAY - HOUR));
+
+    expect(await update([-5])).toMatchObject({ ok: false });
+    expect(await update([0, 5, 10, 15, 30])).toMatchObject({ ok: false });
+    expect(await update(null)).toMatchObject({ ok: true });
+    const reset = await db.query.items.findFirst({ where: eq(items.id, itemId) });
+    expect(reset?.reminderOffsets).toBeNull();
+  });
+});

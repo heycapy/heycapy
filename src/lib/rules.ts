@@ -15,6 +15,11 @@ export function parseNotificationRules(raw: string | null | undefined): Notifica
   return parsed.success ? parsed.data : NotificationRules.parse({});
 }
 
+// Reminders for an item that hasn't picked its own, in minutes before the deadline
+export function bucketDefaultReminders(rules: NotificationRules): number[] {
+  return [rules.defaultOffsetMins];
+}
+
 export function bucketChannels(raw: string | null | undefined): NotificationRules["medium"] {
   return parseNotificationRules(raw).medium;
 }

@@ -1,4 +1,4 @@
-import { parseItemsRules } from "@/lib/rules";
+import { bucketDefaultReminders, parseItemsRules, parseNotificationRules } from "@/lib/rules";
 import { ITEM_STATUS, isClosedStatus } from "@/constants";
 import { useEffect, useState, type RefObject } from "react";
 import { ItemDialog } from "./ItemDialog";
@@ -103,6 +103,7 @@ export function BucketContent({ bucket, accentColor, addItemRef }: BucketContent
 
       <ItemDialog
         {...editor.dialogProps}
+        bucketReminders={bucketDefaultReminders(parseNotificationRules(bucket.notificationsRules))}
         statuses={statuses}
         fields={fields.length > 0 ? fields : undefined}
       />

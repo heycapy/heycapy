@@ -1,4 +1,5 @@
 import type { Tool } from "./types";
+import { MAX_REMINDER_OFFSET_MINS, MAX_REMINDERS_PER_ITEM } from "@/lib/reminders/constants";
 
 export const CAPY_TOOLS: Tool[] = [
   {
@@ -105,10 +106,12 @@ export const CAPY_TOOLS: Tool[] = [
             "Optional deadline as an ISO 8601 datetime string, e.g. '2026-09-21T09:00:00Z'. " +
             "Always include time — if the user only gave a date, ask for the time first.",
         },
-        notification_offset_mins: {
-          type: "number",
+        reminder_offsets_mins: {
+          type: "array",
+          items: { type: "integer", minimum: 0, maximum: MAX_REMINDER_OFFSET_MINS },
+          maxItems: MAX_REMINDERS_PER_ITEM,
           description:
-            "How many minutes before the deadline to send a notification. " +
+            "When to remind, as minutes before the deadline; one entry per reminder. " +
             "Common values: 0 (at deadline), 30, 60, 1440 (1 day before), 10080 (1 week before). " +
             "Leave unset to use the bucket's default.",
         },
@@ -152,7 +155,7 @@ export const CAPY_TOOLS: Tool[] = [
   {
     name: "update_item",
     description:
-      "Update an existing item's title, deadline, notification offset, or recurring configuration. " +
+      "Update an existing item's title, deadline, reminders, or recurring configuration. " +
       "Only include fields you want to change — omitted fields are left as-is. " +
       "To clear the deadline, pass null. To remove recurring, set clear_recurring to true. " +
       "When the user says 'remind me later', 'remind me tomorrow' or 'postpone', move the deadline.",
@@ -172,9 +175,13 @@ export const CAPY_TOOLS: Tool[] = [
           description:
             "New deadline as ISO 8601 datetime, or null to remove the deadline entirely.",
         },
-        notification_offset_mins: {
-          type: ["number", "null"],
-          description: "New notification offset in minutes, or null to clear it.",
+        reminder_offsets_mins: {
+          type: ["array", "null"],
+          items: { type: "integer", minimum: 0, maximum: MAX_REMINDER_OFFSET_MINS },
+          maxItems: MAX_REMINDERS_PER_ITEM,
+          description:
+            "The item's full new list of reminders, as minutes before the deadline " +
+            "([] for none), or null to go back to the bucket's default.",
         },
         recurring_frequency: {
           type: "string",

@@ -1,5 +1,5 @@
 import { recordSystemError } from "@/lib/system-errors";
-import { parseNotificationRules } from "@/lib/rules";
+import { bucketDefaultReminders, parseNotificationRules } from "@/lib/rules";
 import { and, asc, eq, gt, inArray, type SQL } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { buckets, items, userSettings } from "@/lib/db/schema";
@@ -55,7 +55,7 @@ function parseTriggers(raw: unknown): {
   }
 }
 
-export type ReminderContext = { defaultOffsetMins: number; notifyAt: string; timezone: string };
+export type ReminderContext = { defaultReminders: number[]; notifyAt: string; timezone: string };
 
 // What deadline rules need to know about an item's bucket and its owner
 export async function reminderContext(bucketId: number): Promise<ReminderContext> {
@@ -67,7 +67,7 @@ export async function reminderContext(bucketId: number): Promise<ReminderContext
     .limit(1);
   const rules = parseNotificationRules(row?.rules);
   return {
-    defaultOffsetMins: rules.defaultOffsetMins,
+    defaultReminders: bucketDefaultReminders(rules),
     notifyAt: rules.notifyAt,
     timezone: row?.timezone ?? "UTC",
   };
@@ -83,7 +83,7 @@ export function toReminderInputs(row: ReminderRow): ReminderInputs {
     remindNotBefore: row.item.remindNotBefore,
     notifiedAt: row.item.notifiedAt,
     overdueNotifiedAt: row.item.overdueNotifiedAt,
-    notificationOffsetMins: row.item.notificationOffsetMins,
+    reminderOffsets: row.item.reminderOffsets,
     rules: NotificationRules.parse(JSON.parse(row.notificationsRules)),
     notifyWhenOverdue: triggers.notifyWhenOverdue,
     overdueRepeatHours: triggers.overdueRepeatHours,
