@@ -29,6 +29,12 @@ export const THEMES = [
 
 export type UserTone = "chill" | "professional" | "motivational" | "custom";
 export type AIProvider = "ollama" | "openai" | "anthropic" | "groq" | "gemini";
+// Hosted only: heycapy's AI on credits, or the user's own key; a saved key stays for switching back
+export type AISource = "heycapy" | "own";
+export const AI_SOURCE_OPTIONS: { value: AISource; label: string }[] = [
+  { value: "heycapy", label: "heycapy ai" },
+  { value: "own", label: "your own key" },
+];
 
 export const TONE_OPTIONS: { value: UserTone; label: string }[] = [
   { value: "chill", label: "chill" },

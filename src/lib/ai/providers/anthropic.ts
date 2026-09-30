@@ -42,12 +42,13 @@ function toAnthropicMessages(messages: AgentMessage[]): Anthropic.MessageParam[]
 
 // input_tokens leaves out the prompt tokens read from or written to the cache
 function anthropicUsage(usage: Anthropic.Usage): TokenUsage {
+  const cacheReadTokens = usage.cache_read_input_tokens ?? 0;
+  const cacheWriteTokens = usage.cache_creation_input_tokens ?? 0;
   return {
-    inputTokens:
-      usage.input_tokens +
-      (usage.cache_read_input_tokens ?? 0) +
-      (usage.cache_creation_input_tokens ?? 0),
+    inputTokens: usage.input_tokens + cacheReadTokens + cacheWriteTokens,
     outputTokens: usage.output_tokens,
+    cacheReadTokens,
+    cacheWriteTokens,
   };
 }
 
@@ -83,15 +84,20 @@ export function createAnthropicProvider(apiKey: string, model: string): AIProvid
       const system = systemMessages.map((m) => m.content).join("\n") || undefined;
       const anthropicMessages = toAnthropicMessages(messages);
 
-      const anthropicTools: Anthropic.Tool[] = tools.map((t) => ({
+      // The tools are the same for every user and message, so they get their own cache point;
+      // below the model's minimum cacheable length the API just skips it
+      const anthropicTools: Anthropic.Tool[] = tools.map((t, i) => ({
         name: t.name,
         description: t.description,
         input_schema: t.parameters,
+        ...(i === tools.length - 1 ? { cache_control: { type: "ephemeral" as const } } : {}),
       }));
 
       const response = await client.messages.create({
         model,
         max_tokens: 2048,
+        // Caches the whole request, so each tool round of an answer reads the rounds before it
+        cache_control: { type: "ephemeral" },
         system,
         messages: anthropicMessages,
         tools: anthropicTools,

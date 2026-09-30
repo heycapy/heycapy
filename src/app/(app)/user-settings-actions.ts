@@ -7,6 +7,7 @@ import { headers } from "next/headers";
 import { and, eq, sql } from "drizzle-orm";
 import { getSession, deleteSession } from "@/lib/auth/session";
 import { isAdmin } from "@/lib/auth/admin";
+import { isHosted } from "@/lib/credits";
 import { db } from "@/lib/db";
 import { users, userSettings } from "@/lib/db/schema";
 import { encryptValue, decryptValue } from "@/lib/crypto";
@@ -42,6 +43,7 @@ type UserSettingsUpdate = {
   aiApiKey: string | null;
   aiModel: string | null;
   aiOllamaUrl: string | null;
+  aiUseOwnKey: boolean;
   aiCompactThreshold: number;
   aiNotifyMessages: boolean;
   notificationsEmail: boolean;
@@ -69,6 +71,7 @@ export async function getUserSettingsAction(): Promise<
     smtpPassSaved: boolean;
     telegramBotConfigured: boolean;
     isAdmin: boolean;
+    hosted: boolean;
   }>
 > {
   const session = await getSession();
@@ -88,6 +91,7 @@ export async function getUserSettingsAction(): Promise<
     smtpPassSaved: !!settings.smtpPass,
     telegramBotConfigured: !!process.env.TELEGRAM_BOT_TOKEN,
     isAdmin: isAdmin(session.email),
+    hosted: isHosted(),
     settings: {
       ...settings,
       aiApiKey: settings.aiApiKey ? decryptValue(settings.aiApiKey) : null,
@@ -100,7 +104,9 @@ export async function getUserSettingsAction(): Promise<
   };
 }
 
-export async function updateUserSettingsAction(data: UserSettingsUpdate): Promise<ActionResult> {
+export async function updateUserSettingsAction(
+  data: UserSettingsUpdate
+): Promise<ActionResult<{ aiChanged: boolean }>> {
   const session = await getSession();
   if (!session) return { ok: false, error: "Unauthorized" };
 
@@ -118,9 +124,20 @@ export async function updateUserSettingsAction(data: UserSettingsUpdate): Promis
     };
   }
 
+  const saved = await db.query.userSettings.findFirst({
+    where: eq(userSettings.userId, session.userId),
+  });
+  const aiChanged =
+    saved?.aiProvider !== data.aiProvider ||
+    (saved.aiApiKey ? decryptValue(saved.aiApiKey) : null) !== (data.aiApiKey || null) ||
+    saved.aiModel !== (data.aiModel || null) ||
+    saved.aiOllamaUrl !== (data.aiOllamaUrl || null) ||
+    saved.aiUseOwnKey !== data.aiUseOwnKey;
+
   await db
     .update(userSettings)
     .set({
+      ...(aiChanged ? { aiKeyStatus: null, aiKeyError: null, aiKeyCheckedAt: null } : {}),
       personalityName: trimmedName,
       personalityTone: data.personalityTone,
       personalityEmoji: data.personalityEmoji,
@@ -130,6 +147,7 @@ export async function updateUserSettingsAction(data: UserSettingsUpdate): Promis
       aiApiKey: data.aiApiKey ? encryptValue(data.aiApiKey) : null,
       aiModel: data.aiModel || null,
       aiOllamaUrl: data.aiOllamaUrl || null,
+      aiUseOwnKey: data.aiUseOwnKey,
       aiCompactThreshold: data.aiCompactThreshold,
       aiNotifyMessages: data.aiNotifyMessages,
       notificationsEmail: data.notificationsEmail,
@@ -154,7 +172,7 @@ export async function updateUserSettingsAction(data: UserSettingsUpdate): Promis
   await refreshUserReminders(session.userId);
   revalidatePath("/");
 
-  return { ok: true };
+  return { ok: true, aiChanged };
 }
 
 export async function logoutAction() {

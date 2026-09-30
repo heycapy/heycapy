@@ -6,12 +6,14 @@ import { createGeminiProvider } from "./providers/gemini";
 import { OLLAMA_DEFAULT_URL } from "@/constants";
 import type { AIProvider } from "./types";
 import type { UsageMeta } from "./usage";
+import { isHosted } from "@/lib/credits";
 
-type AIConfig = {
+export type AIConfig = {
   provider?: string | null;
   model?: string | null;
   apiKey?: string | null;
   ollamaUrl?: string | null;
+  useOwnKey?: boolean | null;
 };
 
 export type MeteredProvider = AIProvider & { meta: UsageMeta };
@@ -22,7 +24,17 @@ function requireKey(config: AIConfig | undefined, provider: string): string {
   return key;
 }
 
-export function getAIProvider(config?: AIConfig): MeteredProvider {
+// The user's own API key or Ollama server, as opposed to the server's AI_* settings
+export function hasOwnAI(config?: AIConfig): boolean {
+  if (!config?.provider) return false;
+  if (isHosted() && config.useOwnKey === false) return false;
+  return config.provider === "ollama" ? !!config.ollamaUrl : !!config.apiKey;
+}
+
+export function getAIProvider(requested?: AIConfig): MeteredProvider {
+  // On a hosted server users without a key of their own get our AI as configured, never another
+  // provider or model on our key
+  const config = isHosted() && !hasOwnAI(requested) ? undefined : requested;
   const provider = config?.provider ?? process.env.AI_PROVIDER ?? "ollama";
   const key = config?.apiKey ? "own" : "server";
 

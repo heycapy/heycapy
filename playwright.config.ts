@@ -59,6 +59,7 @@ export default defineConfig({
       RESEND_API_KEY: "e2e-not-used",
       TELEGRAM_BOT_TOKEN: "e2e-not-used",
       ADMIN_EMAILS: "e2e-system@heycapy.test",
+      HOSTED: "true",
       PORT: String(E2E_PORT),
     },
     reuseExistingServer: !process.env.CI,

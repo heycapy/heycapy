@@ -1,0 +1,1 @@
+ALTER TABLE `user_settings` ADD `ai_use_own_key` integer DEFAULT true NOT NULL;

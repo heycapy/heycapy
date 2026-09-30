@@ -3,6 +3,7 @@ import { BracketButton } from "@/components/ui/BracketButton";
 import { getSystemStatusAction, type SystemStatus } from "@/app/(app)/actions";
 import { formatShort } from "@/lib/format-date";
 import { BOX, LABEL, SECTION } from "./settings-constants";
+import { SystemCredits } from "./SystemCredits";
 
 // Stored as JSON (stack, context, runtime); shown as readable lines
 function formatDetails(raw: string): string {
@@ -65,6 +66,8 @@ export function SystemTab() {
         </p>
         <p className={LABEL}>failed deliveries in the last 24h: {status.failedDeliveriesLastDay}</p>
       </div>
+
+      {status.hosted && <SystemCredits />}
 
       <div className={BOX}>
         <span className={SECTION}>recent errors</span>

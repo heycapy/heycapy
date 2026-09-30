@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { aiUsage, chatMessages, chatSessions, userSettings } from "@/lib/db/schema";
 import { getAIProvider } from "@/lib/ai";
 import { compactSessionIfNeeded } from "@/lib/ai/compact";
+import { recordUsage } from "@/lib/ai/usage";
 import { connectOwnChat, say } from "./telegram-helpers";
 import { seedUser } from "./helpers";
 
@@ -162,4 +163,32 @@ it("marks who pays for the model: the user's own key or ours", () => {
     model: "claude-sonnet-4-6",
     key: "own",
   });
+});
+
+it("keeps the cached part of the prompt tokens, summed over an answer's calls", async () => {
+  const userId = await seedUser();
+  const call = (read: number, write: number) => ({
+    inputTokens: 5000,
+    outputTokens: 40,
+    cacheReadTokens: read,
+    cacheWriteTokens: write,
+  });
+
+  recordUsage({
+    userId,
+    sessionId: null,
+    source: "web",
+    meta: { provider: "anthropic", model: "claude-haiku-4-5-20251001", key: "server" },
+    calls: [call(0, 4000), call(4000, 900), null],
+  });
+
+  expect(usageRows(userId)).toEqual([
+    expect.objectContaining({
+      calls: 3,
+      inputTokens: 10_000,
+      cacheReadTokens: 4000,
+      cacheWriteTokens: 4900,
+      unreportedCalls: 1,
+    }),
+  ]);
 });

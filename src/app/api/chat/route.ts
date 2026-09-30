@@ -11,8 +11,15 @@ import { chatHistory, compactSessionIfNeeded } from "@/lib/ai/compact";
 import { runAgent, type AgentStep } from "@/lib/ai/runAgent";
 import { toolStatus } from "@/lib/ai/toolStatus";
 import { logAIError, parseProviderError } from "@/lib/errors";
-import { AI_REQUEST_TIMEOUT_MS, CHAT_STREAM_PADDING, OLLAMA_REQUEST_TIMEOUT_MS } from "@/constants";
+import {
+  AI_REQUEST_TIMEOUT_MS,
+  CHAT_STREAM_PADDING,
+  OLLAMA_REQUEST_TIMEOUT_MS,
+  OUT_OF_CREDITS_ERROR,
+} from "@/constants";
 import { recordUsage } from "@/lib/ai/usage";
+import { recordKeyResult } from "@/lib/ai/status";
+import { chargesCredits, holdMessageCredit, refundMessageCredit } from "@/lib/credits";
 import type { AgentMessage, TokenUsage } from "@/lib/ai/types";
 import type { ChatEvent } from "@/lib/ai/chatEvents";
 
@@ -90,6 +97,7 @@ async function answer(userId: number, request: ChatRequest, send: (event: ChatEv
     model: settings?.aiModel,
     apiKey: settings?.aiApiKey ? decryptValue(settings.aiApiKey) : null,
     ollamaUrl: settings?.aiOllamaUrl,
+    useOwnKey: settings?.aiUseOwnKey,
   });
   const upcomingItems = await getUpcomingItems(userId, timezone);
 
@@ -127,10 +135,16 @@ async function answer(userId: number, request: ChatRequest, send: (event: ChatEv
       text: step.kind === "thinking" ? "thinking" : toolStatus(step.call, bucketName),
     });
 
+  const hold = chargesCredits(provider.meta) ? holdMessageCredit(userId) : undefined;
+  if (hold === null) {
+    send({ type: "error", error: OUT_OF_CREDITS_ERROR });
+    return;
+  }
   const usage: TokenUsage[] = [];
   let usageSessionId = ownedSession?.id ?? null;
   let reply: string;
   let savedSessionId: number | null;
+  let answered = false;
   try {
     reply = await runAgent({
       provider,
@@ -138,16 +152,21 @@ async function answer(userId: number, request: ChatRequest, send: (event: ChatEv
       userId,
       timezone,
       timeoutMs:
-        settings?.aiProvider === "ollama" ? OLLAMA_REQUEST_TIMEOUT_MS : AI_REQUEST_TIMEOUT_MS,
+        provider.meta.provider === "ollama" ? OLLAMA_REQUEST_TIMEOUT_MS : AI_REQUEST_TIMEOUT_MS,
       onStep,
       onUsage: (u) => usage.push(u),
+    }).catch(async (err: unknown) => {
+      await recordKeyResult(userId, provider.meta, err);
+      throw err;
     });
+    await recordKeyResult(userId, provider.meta);
 
     savedSessionId =
       lastUserMsg && reply
         ? await saveExchange(userId, sessionId ?? null, lastUserMsg.content, reply)
         : (sessionId ?? null);
     if (!sessionId) usageSessionId = savedSessionId;
+    answered = !!reply;
   } finally {
     // Also when the answer failed part way: the calls made before it still cost tokens
     recordUsage({
@@ -157,6 +176,7 @@ async function answer(userId: number, request: ChatRequest, send: (event: ChatEv
       meta: provider.meta,
       calls: usage,
     });
+    if (hold && !answered) refundMessageCredit(hold);
   }
 
   send({ type: "reply", text: reply || "Something went wrong. Please try again." });

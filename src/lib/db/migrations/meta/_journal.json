@@ -141,6 +141,27 @@
       "when": 1793290000000,
       "tag": "0019_chat_summary_through",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "6",
+      "when": 1793300000000,
+      "tag": "0020_credit_ledger",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "6",
+      "when": 1793310000000,
+      "tag": "0021_ai_usage_cache_tokens",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "6",
+      "when": 1793320000000,
+      "tag": "0022_ai_use_own_key",
+      "breakpoints": true
     }
   ]
 }

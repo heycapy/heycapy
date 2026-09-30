@@ -1,5 +1,12 @@
 import { ITEM_STATUS } from "@/constants";
-import { index, integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import {
+  index,
+  integer,
+  sqliteTable,
+  text,
+  uniqueIndex,
+  type AnySQLiteColumn,
+} from "drizzle-orm/sqlite-core";
 import { sql } from "drizzle-orm";
 import type { BucketSchema } from "@/types/rules";
 
@@ -63,6 +70,12 @@ export const userSettings = sqliteTable("user_settings", {
   aiOllamaUrl: text("ai_ollama_url"),
   aiCompactThreshold: integer("ai_compact_threshold").notNull().default(40),
   aiNotifyMessages: integer("ai_notify_messages", { mode: "boolean" }).notNull().default(true),
+  // Hosted only: false answers on heycapy's AI with credits while a saved key stays for switching back
+  aiUseOwnKey: integer("ai_use_own_key", { mode: "boolean" }).notNull().default(true),
+  // Outcome of the last call on the user's own key or Ollama server; null until one is made
+  aiKeyStatus: text("ai_key_status", { enum: ["working", "failed"] }),
+  aiKeyError: text("ai_key_error"),
+  aiKeyCheckedAt: integer("ai_key_checked_at", { mode: "timestamp" }),
   notificationsEmail: integer("notifications_email", { mode: "boolean" }).notNull().default(true),
   notificationEmailTo: text("notification_email_to"),
   notificationsPush: integer("notifications_push", { mode: "boolean" }).notNull().default(true),
@@ -386,6 +399,9 @@ export const aiUsage = sqliteTable(
     calls: integer("calls").notNull(),
     inputTokens: integer("input_tokens").notNull(),
     outputTokens: integer("output_tokens").notNull(),
+    // Parts of input_tokens: providers bill cache reads and writes at their own rates
+    cacheReadTokens: integer("cache_read_tokens").notNull().default(0),
+    cacheWriteTokens: integer("cache_write_tokens").notNull().default(0),
     // Calls whose provider didn't say how many tokens they used
     unreportedCalls: integer("unreported_calls").notNull().default(0),
     createdAt: integer("created_at", { mode: "timestamp" })
@@ -393,4 +409,30 @@ export const aiUsage = sqliteTable(
       .default(sql`(unixepoch())`),
   },
   (t) => [index("idx_ai_usage_user_id_created_at").on(t.userId, t.createdAt)]
+);
+
+// credit_ledger: append-only, the balance is the sum of amount; rows are never changed
+
+export const creditLedger = sqliteTable(
+  "credit_ledger",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    userId: integer("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    amount: integer("amount").notNull(),
+    kind: text("kind", { enum: ["grant", "purchase", "message", "refund", "admin"] }).notNull(),
+    // The message row a refund gives back; unique, so a message is refunded at most once
+    refundOf: integer("refund_of").references((): AnySQLiteColumn => creditLedger.id),
+    note: text("note"),
+    // Admin who made an "admin" row
+    actor: text("actor"),
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .default(sql`(unixepoch())`),
+  },
+  (t) => [
+    index("idx_credit_ledger_user_id").on(t.userId),
+    uniqueIndex("idx_credit_ledger_refund_of").on(t.refundOf),
+  ]
 );

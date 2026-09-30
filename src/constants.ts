@@ -52,11 +52,20 @@ export const USELESS_FACTS_API_URL = "https://uselessfacts.jsph.pl/api/v2/facts/
 // Per AI call; the SDKs give up at the same time, so a rate limit shows as itself, not as a timeout
 export const AI_REQUEST_TIMEOUT_MS = 30_000;
 export const OLLAMA_REQUEST_TIMEOUT_MS = 120_000;
+export const AI_KEY_CHECK_TIMEOUT_MS = 15_000;
 export const AI_TIMEOUT_ERROR = "The AI provider didn't answer in time. Try again.";
 export const AGENT_MAX_ROUNDS = 8;
 // How many chat messages may follow the summary before older ones are folded into it
 export const AI_COMPACT_THRESHOLD_MIN = 10;
 export const AI_COMPACT_THRESHOLD_MAX = 500;
+// Credits, only on a hosted server (HOSTED=true) and only for answers on our AI; placeholders until real prices
+export const CREDITS_FREE_GRANT = 50;
+export const CREDITS_PER_MESSAGE = 1;
+export const CREDITS_ADMIN_MAX_CHANGE = 100_000;
+export const CREDITS_NOTE_MAX_LENGTH = 200;
+export const CREDITS_ROWS_SHOWN = 10;
+export const OUT_OF_CREDITS_ERROR =
+  "You're out of capy credits. Add your own AI key in tweaks → ai to keep chatting (Gemini has a free tier).";
 // Safari holds back the first 1 KB of a streamed response, which would hide the first status lines
 export const CHAT_STREAM_PADDING = " ".repeat(1024) + "\n";
 export const GROQ_API_BASE = "https://api.groq.com/openai/v1";

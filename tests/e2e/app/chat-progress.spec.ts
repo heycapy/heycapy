@@ -59,7 +59,7 @@ test("shows what capy is doing while it works, then its reply", async ({ page })
 
   await ask(page, "what buckets do I have?");
 
-  const status = page.getByRole("status");
+  const status = page.getByRole("status", { name: "capy is working" });
   await expect(status).toHaveText("thinking…");
   await expect(status).toHaveText("looking at your buckets…");
   await expect(page.getByText("you have a few buckets")).toBeVisible();

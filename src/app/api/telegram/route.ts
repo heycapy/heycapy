@@ -22,9 +22,12 @@ import { errorMessage, parseProviderError } from "@/lib/errors";
 import {
   AI_REQUEST_TIMEOUT_MS,
   OLLAMA_REQUEST_TIMEOUT_MS,
+  OUT_OF_CREDITS_ERROR,
   TELEGRAM_RESERVED_COMMANDS,
 } from "@/constants";
 import { recordUsage } from "@/lib/ai/usage";
+import { recordKeyResult } from "@/lib/ai/status";
+import { chargesCredits, holdMessageCredit, refundMessageCredit } from "@/lib/credits";
 import type { AgentMessage, TokenUsage } from "@/lib/ai/types";
 import type {
   TelegramDeadlinePreset,
@@ -813,6 +816,7 @@ async function handleUpdate(botToken: string, body: TelegramUpdate): Promise<Res
         model: row.aiModel,
         apiKey: row.aiApiKey ? decryptValue(row.aiApiKey) : null,
         ollamaUrl: row.aiOllamaUrl,
+        useOwnKey: row.aiUseOwnKey,
       })
     ),
   ]);
@@ -832,6 +836,12 @@ async function handleUpdate(botToken: string, body: TelegramUpdate): Promise<Res
     { role: "user", content: text },
   ];
 
+  const hold = chargesCredits(provider.meta) ? holdMessageCredit(userId) : undefined;
+  if (hold === null) {
+    await sendTelegramWithQuickActions(botToken, chatIdStr, OUT_OF_CREDITS_ERROR).catch(() => {});
+    return new Response("OK");
+  }
+
   void sendChatAction(botToken, chatIdStr, "typing");
   const typingInterval = setInterval(() => {
     void sendChatAction(botToken, chatIdStr, "typing");
@@ -845,10 +855,13 @@ async function handleUpdate(botToken: string, body: TelegramUpdate): Promise<Res
       messages: agentMessages,
       userId,
       timezone,
-      timeoutMs: row.aiProvider === "ollama" ? OLLAMA_REQUEST_TIMEOUT_MS : AI_REQUEST_TIMEOUT_MS,
+      timeoutMs:
+        provider.meta.provider === "ollama" ? OLLAMA_REQUEST_TIMEOUT_MS : AI_REQUEST_TIMEOUT_MS,
       onUsage: (u) => usage.push(u),
     });
   } catch (err) {
+    if (hold) refundMessageCredit(hold);
+    await recordKeyResult(userId, provider.meta, err);
     recordUsage({
       userId,
       sessionId: session.id,
@@ -867,6 +880,7 @@ async function handleUpdate(botToken: string, body: TelegramUpdate): Promise<Res
   }
 
   clearInterval(typingInterval);
+  await recordKeyResult(userId, provider.meta);
   recordUsage({
     userId,
     sessionId: session.id,
@@ -874,11 +888,15 @@ async function handleUpdate(botToken: string, body: TelegramUpdate): Promise<Res
     meta: provider.meta,
     calls: usage,
   });
-  if (!finalText) return new Response("OK");
+  if (!finalText) {
+    if (hold) refundMessageCredit(hold);
+    return new Response("OK");
+  }
 
   try {
     await sendTelegramWithQuickActions(botToken, chatIdStr, finalText);
   } catch (err) {
+    if (hold) refundMessageCredit(hold);
     process.stderr.write(`[telegram] send error: ${errorMessage(err)}\n`);
   }
 

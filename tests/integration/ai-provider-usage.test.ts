@@ -23,12 +23,15 @@ vi.mock("@/constants", async (importOriginal) => {
 
 let server: Server;
 let withUsage = true;
+let anthropicRequest: Record<string, unknown> = {};
 
 beforeAll(async () => {
-  server = createServer((req, res) => {
-    req.resume();
+  server = createServer(async (req, res) => {
+    let body = "";
+    for await (const chunk of req) body += chunk;
     res.writeHead(200, { "content-type": "application/json" });
     if (req.url?.endsWith("/messages")) {
+      anthropicRequest = JSON.parse(body) as Record<string, unknown>;
       res.end(
         JSON.stringify({
           id: "msg",
@@ -55,7 +58,12 @@ beforeAll(async () => {
           { index: 0, message: { role: "assistant", content: "hi" }, finish_reason: "stop" },
         ],
         ...(withUsage && {
-          usage: { prompt_tokens: 100, completion_tokens: 20, total_tokens: 120 },
+          usage: {
+            prompt_tokens: 100,
+            completion_tokens: 20,
+            total_tokens: 120,
+            prompt_tokens_details: { cached_tokens: 60, cache_write_tokens: 30 },
+          },
         }),
       })
     );
@@ -81,8 +89,13 @@ const openAIStyle: [string, () => AIProvider][] = [
 const hello = [{ role: "user" as const, content: "hello" }];
 
 describe.each(openAIStyle)("%s", (_, provider) => {
-  it("reports the tokens of a capy call and of a summary", async () => {
-    const tokens = { inputTokens: 100, outputTokens: 20 };
+  it("reports the tokens of a capy call and of a summary, with the cached part", async () => {
+    const tokens = {
+      inputTokens: 100,
+      outputTokens: 20,
+      cacheReadTokens: 60,
+      cacheWriteTokens: 30,
+    };
     expect((await provider().complete(hello, [])).usage).toEqual(tokens);
     expect(await provider().chat(hello)).toEqual({ text: "hi", usage: tokens });
   });
@@ -93,10 +106,27 @@ describe.each(openAIStyle)("%s", (_, provider) => {
   });
 });
 
-it("anthropic counts cached prompt tokens as input", async () => {
+it("anthropic counts cached prompt tokens as input and keeps reads and writes apart", async () => {
   const provider = createAnthropicProvider("key", "claude-sonnet-4-6");
-  const tokens = { inputTokens: 18, outputTokens: 7 };
+  const tokens = { inputTokens: 18, outputTokens: 7, cacheReadTokens: 5, cacheWriteTokens: 3 };
 
   expect((await provider.complete(hello, [])).usage).toEqual(tokens);
   expect(await provider.chat(hello)).toEqual({ text: "hi", usage: tokens });
+});
+
+it("anthropic caches the tools on their own and each answer's earlier tool rounds", async () => {
+  const provider = createAnthropicProvider("key", "claude-haiku-4-5-20251001");
+  const tool = (name: string) => ({
+    name,
+    description: name,
+    parameters: { type: "object" as const, properties: {} },
+  });
+
+  await provider.complete(hello, [tool("list_buckets"), tool("add_item")]);
+
+  expect(anthropicRequest.cache_control).toEqual({ type: "ephemeral" });
+  expect(anthropicRequest.tools).toEqual([
+    expect.not.objectContaining({ cache_control: expect.anything() }),
+    expect.objectContaining({ name: "add_item", cache_control: { type: "ephemeral" } }),
+  ]);
 });

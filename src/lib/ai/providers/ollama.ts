@@ -21,7 +21,12 @@ type OllamaCompleteResponse = {
 
 function ollamaUsage(data: OllamaCompleteResponse): TokenUsage {
   if (data.prompt_eval_count === undefined && data.eval_count === undefined) return null;
-  return { inputTokens: data.prompt_eval_count ?? 0, outputTokens: data.eval_count ?? 0 };
+  return {
+    inputTokens: data.prompt_eval_count ?? 0,
+    outputTokens: data.eval_count ?? 0,
+    cacheReadTokens: 0,
+    cacheWriteTokens: 0,
+  };
 }
 
 async function postChat(baseUrl: string, body: object): Promise<OllamaCompleteResponse> {

@@ -28,6 +28,8 @@ export function recordUsage({ userId, sessionId, source, meta, calls }: UsageRec
         calls: calls.length,
         inputTokens: calls.reduce((sum, c) => sum + (c?.inputTokens ?? 0), 0),
         outputTokens: calls.reduce((sum, c) => sum + (c?.outputTokens ?? 0), 0),
+        cacheReadTokens: calls.reduce((sum, c) => sum + (c?.cacheReadTokens ?? 0), 0),
+        cacheWriteTokens: calls.reduce((sum, c) => sum + (c?.cacheWriteTokens ?? 0), 0),
         unreportedCalls: calls.filter((c) => c === null).length,
       })
       .run();

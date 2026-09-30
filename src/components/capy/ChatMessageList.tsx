@@ -78,7 +78,11 @@ export function ChatMessageList({ messages, streaming, status, fullscreen }: Pro
                 <span className="flex items-center gap-2">
                   <BouncingDots />
                   {status && (
-                    <span role="status" className="text-muted-foreground text-[11px]">
+                    <span
+                      role="status"
+                      aria-label="capy is working"
+                      className="text-muted-foreground text-[11px]"
+                    >
                       {status}…
                     </span>
                   )}

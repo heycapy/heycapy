@@ -5,6 +5,7 @@ import {
   buckets,
   chatMessages,
   chatSessions,
+  creditLedger,
   itemActions,
   items,
   notificationLog,
@@ -37,6 +38,7 @@ export async function buildAccountExport(userId: number, now = new Date()) {
     devices,
     actions,
     usage,
+    credits,
   ] = await Promise.all([
     db.query.users.findFirst({ where: eq(users.id, userId) }),
     db.query.userSettings.findFirst({ where: eq(userSettings.userId, userId) }),
@@ -69,6 +71,11 @@ export async function buildAccountExport(userId: number, now = new Date()) {
       .where(eq(itemActions.userId, userId))
       .orderBy(asc(itemActions.id)),
     db.select().from(aiUsage).where(eq(aiUsage.userId, userId)).orderBy(asc(aiUsage.id)),
+    db
+      .select()
+      .from(creditLedger)
+      .where(eq(creditLedger.userId, userId))
+      .orderBy(asc(creditLedger.id)),
   ]);
 
   return {
@@ -181,7 +188,15 @@ export async function buildAccountExport(userId: number, now = new Date()) {
       calls: u.calls,
       inputTokens: u.inputTokens,
       outputTokens: u.outputTokens,
+      cacheReadTokens: u.cacheReadTokens,
+      cacheWriteTokens: u.cacheWriteTokens,
       at: u.createdAt,
+    })),
+    credits: credits.map((c) => ({
+      amount: c.amount,
+      kind: c.kind,
+      note: c.note,
+      at: c.createdAt,
     })),
   };
 }
