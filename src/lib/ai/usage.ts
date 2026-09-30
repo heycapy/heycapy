@@ -10,7 +10,7 @@ export type UsageMeta = { provider: string; model: string; key: "own" | "server"
 type UsageRecord = {
   userId: number;
   sessionId: number | null;
-  source: "web" | "telegram" | "summary";
+  source: "web" | "telegram" | "summary" | "voice";
   meta: UsageMeta;
   calls: TokenUsage[];
 };

@@ -1,3 +1,5 @@
+import { GEMINI_DEFAULT_MODEL } from "@/constants";
+
 export const LABEL = "text-muted-foreground font-mono text-xs";
 export const INPUT =
   "border-b border-border w-full bg-transparent py-1.5 font-mono text-xs outline-none placeholder:text-muted-foreground/50 focus:border-foreground disabled:opacity-50";
@@ -56,19 +58,21 @@ export const PROVIDER_DEFAULT_MODELS: Record<AIProvider, string> = {
   openai: "gpt-4o",
   anthropic: "claude-sonnet-4-6",
   groq: "openai/gpt-oss-120b",
-  gemini: "gemini-2.5-flash",
+  gemini: GEMINI_DEFAULT_MODEL,
 };
 
-export type TranscriptionProvider = "groq" | "openai";
+export type TranscriptionProvider = "groq" | "openai" | "gemini";
 
 export const TRANSCRIPTION_PROVIDER_OPTIONS: { value: TranscriptionProvider; label: string }[] = [
   { value: "groq", label: "groq" },
   { value: "openai", label: "openai" },
+  { value: "gemini", label: "gemini" },
 ];
 
 export const TRANSCRIPTION_DEFAULT_MODELS: Record<TranscriptionProvider, string> = {
   groq: "whisper-large-v3-turbo",
   openai: "whisper-1",
+  gemini: GEMINI_DEFAULT_MODEL,
 };
 
 export const TELEGRAM_QR_SIZE = 144;

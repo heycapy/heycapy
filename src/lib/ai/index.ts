@@ -3,7 +3,7 @@ import { createOpenAIProvider } from "./providers/openai";
 import { createAnthropicProvider } from "./providers/anthropic";
 import { createGroqProvider } from "./providers/groq";
 import { createGeminiProvider } from "./providers/gemini";
-import { OLLAMA_DEFAULT_URL } from "@/constants";
+import { GEMINI_DEFAULT_MODEL, OLLAMA_DEFAULT_URL } from "@/constants";
 import type { AIProvider } from "./types";
 import type { UsageMeta } from "./usage";
 import { isHosted } from "@/lib/credits";
@@ -71,7 +71,7 @@ export function getAIProvider(requested?: AIConfig): MeteredProvider {
       };
     }
     case "gemini": {
-      const model = config?.model ?? process.env.AI_MODEL ?? "gemini-2.5-flash";
+      const model = config?.model ?? process.env.AI_MODEL ?? GEMINI_DEFAULT_MODEL;
       return {
         ...createGeminiProvider(requireKey(config, provider), model),
         meta: { provider, model, key },

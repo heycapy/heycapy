@@ -70,6 +70,15 @@ export const OUT_OF_CREDITS_ERROR =
 export const CHAT_STREAM_PADDING = " ".repeat(1024) + "\n";
 export const GROQ_API_BASE = "https://api.groq.com/openai/v1";
 export const GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta/openai/";
+// Gemini's own API: takes the browser's WebM / MP4 recordings as they are, unlike the OpenAI-compatible one
+export const GEMINI_NATIVE_API_BASE = "https://generativelanguage.googleapis.com/v1beta";
+export const GEMINI_DEFAULT_MODEL = "gemini-3.5-flash-lite";
+export const VOICE_MAX_SECONDS = 120;
+// Two minutes of Safari's AAC at 128 kbps with room to spare; Chrome's Opus is far smaller
+export const VOICE_MAX_BYTES = 3 * 1024 * 1024;
+export const VOICE_TOO_LONG_ERROR = "Recordings can be up to 2 minutes.";
+export const VOICE_NO_SPEECH_ERROR =
+  "capy didn't hear anything. Try again a bit closer to the mic.";
 
 // Default service URLs
 export const OLLAMA_DEFAULT_URL = "https://ollama.yourdomain.com";

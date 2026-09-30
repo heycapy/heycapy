@@ -3,6 +3,7 @@ import { ArrowUp, Mic } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Sprite } from "./Sprite";
+import { VOICE_MAX_SECONDS } from "@/constants";
 
 type Props = {
   input: string;
@@ -94,12 +95,16 @@ export const ChatInputBar = forwardRef<ChatInputBarHandle, Props>(function ChatI
 
     const mr = new MediaRecorder(stream);
     chunksRef.current = [];
+    const limit = setTimeout(() => {
+      if (mr.state === "recording") mr.stop();
+    }, VOICE_MAX_SECONDS * 1000);
 
     mr.ondataavailable = (e) => {
       if (e.data.size > 0) chunksRef.current.push(e.data);
     };
 
     mr.onstop = async () => {
+      clearTimeout(limit);
       stream.getTracks().forEach((t) => t.stop());
       setRecording(false);
       setTranscribing(true);
@@ -112,7 +117,7 @@ export const ChatInputBar = forwardRef<ChatInputBarHandle, Props>(function ChatI
         const res = await fetch("/api/transcribe", { method: "POST", body: fd });
         const body = (await res.json()) as { text?: string; error?: string };
         if (!res.ok || !body.text) {
-          toast.error("transcription failed", {
+          toast.error(res.status === 422 ? "didn't catch that" : "transcription failed", {
             description: body.error ?? "Unknown error.",
             icon: createElement(Sprite, { id: "capy-error", size: 28 }),
           });

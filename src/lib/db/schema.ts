@@ -392,7 +392,7 @@ export const aiUsage = sqliteTable(
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
     sessionId: integer("session_id").references(() => chatSessions.id, { onDelete: "set null" }),
-    source: text("source", { enum: ["web", "telegram", "summary"] }).notNull(),
+    source: text("source", { enum: ["web", "telegram", "summary", "voice"] }).notNull(),
     provider: text("provider").notNull(),
     model: text("model").notNull(),
     key: text("key", { enum: ["own", "server"] }).notNull(),
