@@ -37,7 +37,6 @@ function saveFromDialog(bucketId: number, notifyAt?: string) {
     `Work ${Math.random()}`,
     { sortBy: "deadline", drag: false, readonly: false, showCompleted: true },
     { medium: ["telegram"], notifyAt, repeat: "daily" },
-    undefined,
     { notifyOnArrival: false, notifyWhenOverdue: false }
   );
 }
@@ -81,7 +80,6 @@ describe("first overdue alert delay", () => {
       `Bills ${Math.random()}`,
       { sortBy: "deadline", drag: false, readonly: false, showCompleted: true },
       { medium: ["telegram"], repeat: "once" },
-      undefined,
       { notifyOnArrival: false, notifyWhenOverdue: on, overdueFirstAlertMins }
     );
   }
@@ -125,7 +123,6 @@ describe("default reminders", () => {
       `Bills ${Math.random()}`,
       { sortBy: "deadline", drag: false, readonly: false, showCompleted: true },
       { medium: ["telegram"], repeat: "once", defaultReminders },
-      undefined,
       { notifyOnArrival: false, notifyWhenOverdue: false }
     );
   }
@@ -158,5 +155,23 @@ describe("default reminders", () => {
     expect(await saveReminders(bucketId, [-5])).toEqual({ ok: false, error: "Invalid reminders" });
     expect(await saveReminders(bucketId, [0, 5, 10, 15, 30])).toMatchObject({ ok: false });
     expect((await storedRules(bucketId)).defaultReminders).toEqual([60]);
+  });
+});
+
+describe("checks shared with the assistant", () => {
+  it("refuse a value the settings don't have, keeping the saved ones", async () => {
+    const { bucketId } = await seedWorkBucket();
+    const before = await db.query.buckets.findFirst({ where: eq(buckets.id, bucketId) });
+
+    const result = await updateBucketSettingsAction(
+      bucketId,
+      "Work",
+      { sortBy: "random" as never },
+      { medium: ["telegram"], notifyAt: "25:00" }
+    );
+
+    expect(result).toEqual({ ok: false, error: "Invalid sort by" });
+    const after = await db.query.buckets.findFirst({ where: eq(buckets.id, bucketId) });
+    expect(after?.itemsRules).toBe(before?.itemsRules);
   });
 });

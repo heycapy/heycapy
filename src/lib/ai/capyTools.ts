@@ -22,7 +22,10 @@ import { buckets, items } from "@/lib/db/schema";
 import { BucketSchema, ReminderOffsets, buildPropertyValidator } from "@/types/rules";
 import type { ToolCall } from "./types";
 
-export { CAPY_TOOLS } from "./capyToolDefs";
+import { ITEM_AND_BUCKET_TOOLS } from "./capyToolDefs";
+import { BUCKET_SETTINGS_TOOLS, executeBucketSettingsTool } from "./bucketSettingsTools";
+
+export const CAPY_TOOLS = [...ITEM_AND_BUCKET_TOOLS, ...BUCKET_SETTINGS_TOOLS];
 
 export type UpcomingItem = {
   id: number;
@@ -128,6 +131,9 @@ async function executeToolCallInner(
   timezone = "UTC"
 ): Promise<string> {
   const args = call.arguments;
+
+  const settingsResult = await executeBucketSettingsTool(call.name, args, userId);
+  if (settingsResult !== null) return settingsResult;
 
   switch (call.name) {
     case "list_buckets": {

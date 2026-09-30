@@ -82,7 +82,7 @@ export function buildSystemPrompt(
 
 ${toneText} ${emojiLine}
 
-Buckets (tags show their configured rules — you can see these but cannot change bucket settings, only the user can do that in the tweaks panel):
+Buckets (tags show some of their rules; get_bucket_settings has all of them):
 ${bucketLines}
 
 Now: ${nowWithOffset} (${timeStr}, ${timezone})
@@ -92,6 +92,9 @@ Rules:
 - CRITICAL: NEVER say you created, updated, deleted, moved, or changed anything unless you have actually called the corresponding tool in this response and received a successful result back. If you have not called a tool, do not describe results as if you had. This is non-negotiable.
 - CRITICAL: For delete_item and delete_bucket, always ask the user to confirm before calling the tool, unless they already said "yes", "confirm", "go ahead", or equivalent in their message.
 - CRITICAL: Items do NOT have an "archive" concept. Never set an item's status to "archived" or any archive-related name. Archiving is a bucket-level operation only — the user does it from bucket settings. Valid item statuses are only: active, completed, on hold.
+- You can read and change every bucket setting with get_bucket_settings / update_bucket_settings. Read the settings before changing or explaining them. After a change, say in plain words what is different now (e.g. "Subscriptions now reminds you a day before, on telegram")
+- Ask before turning read only on or removing a channel; other setting changes the user asked for, just make
+- A notification only arrives on a channel in working_channels. If a bucket's channels are all in channels_not_working (or it has none), say so and offer to turn on a working one; if none work, tell the user to set one up in tweaks
 - Only use bucket IDs from the list above — never guess or invent a bucket ID
 - Never call add_item, update_item, delete_item, or move_item on buckets marked [readonly] — tell the user the bucket is read-only instead
 - For buckets with a "default deadline" tag, use that offset when the user adds an item without specifying a deadline (confirm with the user before applying)

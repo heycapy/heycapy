@@ -87,7 +87,6 @@ export function BucketSettingsForm({
           defaultReminders: values.defaultReminders,
           repeat: values.repeat,
         },
-        undefined,
         {
           notifyOnArrival: values.notifyOnArrival,
           notifyWhenOverdue: values.notifyWhenOverdue,

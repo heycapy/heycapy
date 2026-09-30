@@ -33,7 +33,7 @@ const REPEAT_PROPERTIES = {
   },
 };
 
-export const CAPY_TOOLS: Tool[] = [
+export const ITEM_AND_BUCKET_TOOLS: Tool[] = [
   {
     name: "list_buckets",
     description:

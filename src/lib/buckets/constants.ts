@@ -1,0 +1,17 @@
+export const SETTING_LABELS: Record<string, string> = {
+  sortBy: "sort by",
+  drag: "allow drag",
+  readonly: "read only",
+  showCompleted: "show completed",
+  defaultDeadlineOffsetDays: "default deadline offset",
+  recurrenceMode: "repeating items",
+  medium: "channels",
+  reminderButtons: "reminder buttons",
+  notifyAt: "remind at",
+  defaultReminders: "reminders",
+  repeat: "deadline repeat",
+  notifyOnArrival: "notify on arrival",
+  notifyWhenOverdue: "notify when overdue",
+  overdueRepeatHours: "overdue repeat",
+  overdueFirstAlertMins: "first overdue alert",
+};
