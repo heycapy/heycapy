@@ -122,7 +122,7 @@ export function CrossBucketList({
           item={menu.item}
           at={menu.at}
           readonly={bucketOf(menu.item)?.readonly === true}
-          onMove={(deadline) => void moveItem(menu.item, deadline)}
+          onMove={(deadline) => moveItem(menu.item, deadline)}
           onDelete={() => void deleteItem(menu.item)}
           onClose={() => setMenu(null)}
         />

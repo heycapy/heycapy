@@ -27,7 +27,7 @@ type ItemMenuProps = {
   item: Item;
   at: MenuAt;
   readonly: boolean;
-  onMove: (deadline: string) => void;
+  onMove: (deadline: string) => Promise<void>;
   onDelete: () => void;
   onClose: () => void;
 };
@@ -36,11 +36,13 @@ function MenuButton({
   label,
   className,
   onClick,
+  disabled,
   children,
 }: {
   label?: string;
   className?: string;
   onClick: () => void;
+  disabled?: boolean;
   children: ReactNode;
 }) {
   return (
@@ -48,8 +50,9 @@ function MenuButton({
       type="button"
       aria-label={label}
       onClick={onClick}
+      disabled={disabled}
       className={cn(
-        "hover:bg-muted flex w-full items-center gap-4 px-3 py-2.5 text-left font-mono text-xs transition-colors sm:py-2",
+        "hover:bg-muted flex w-full items-center gap-4 px-3 py-2.5 text-left font-mono text-xs transition-colors disabled:opacity-50 sm:py-2",
         className
       )}
     >
@@ -60,6 +63,7 @@ function MenuButton({
 
 function MenuBody({ item, readonly, onMove, onDelete, onClose }: Omit<ItemMenuProps, "at">) {
   const [picking, setPicking] = useState(false);
+  const [moving, setMoving] = useState(false);
   const recurring = parseRecurring(item.recurring);
   const repeat = recurring?.enabled && item.deadline ? repeatLabel(recurring) : null;
   const section = "border-border border-t border-dashed py-1";
@@ -67,6 +71,17 @@ function MenuBody({ item, readonly, onMove, onDelete, onClose }: Omit<ItemMenuPr
   function run(action: () => void) {
     onClose();
     action();
+  }
+
+  // Open until the list has the new date, so the row can't be opened with the old one underneath
+  async function move(deadline: string) {
+    if (moving) return;
+    setMoving(true);
+    try {
+      await onMove(deadline);
+    } finally {
+      onClose();
+    }
   }
 
   async function copyTitle() {
@@ -102,7 +117,7 @@ function MenuBody({ item, readonly, onMove, onDelete, onClose }: Omit<ItemMenuPr
           </BracketButton>
           <Calendar
             value={item.deadline ? deadlineDate(item.deadline.toISOString()) : ""}
-            onSelect={(date) => run(() => onMove(deadlineOn(date, item.deadline)))}
+            onSelect={(date) => void move(deadlineOn(date, item.deadline))}
           />
         </div>
       )}
@@ -116,7 +131,8 @@ function MenuBody({ item, readonly, onMove, onDelete, onClose }: Omit<ItemMenuPr
               <MenuButton
                 key={option.label}
                 label={`${option.label} ${day} ${time}`}
-                onClick={() => run(() => onMove(option.value))}
+                onClick={() => void move(option.value)}
+                disabled={moving}
               >
                 <span className="text-foreground flex-1">{option.label}</span>
                 <span className="text-muted-foreground w-20">{day}</span>

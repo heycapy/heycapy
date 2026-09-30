@@ -24,7 +24,7 @@ type ItemListProps = {
   onReorder: (items: Item[]) => void;
   onEdit: (item: Item) => void;
   onStatusChange: (item: Item, status: string) => void;
-  onMove: (item: Item, deadline: string) => void;
+  onMove: (item: Item, deadline: string) => Promise<void>;
   onDelete: (itemId: number) => void;
 };
 
