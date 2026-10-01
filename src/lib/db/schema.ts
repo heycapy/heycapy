@@ -1,5 +1,12 @@
 import { ITEM_STATUS } from "@/constants";
-import { index, integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import {
+  index,
+  integer,
+  sqliteTable,
+  text,
+  uniqueIndex,
+  type AnySQLiteColumn,
+} from "drizzle-orm/sqlite-core";
 import { sql } from "drizzle-orm";
 import type { BucketSchema } from "@/types/rules";
 
@@ -63,6 +70,12 @@ export const userSettings = sqliteTable("user_settings", {
   aiOllamaUrl: text("ai_ollama_url"),
   aiCompactThreshold: integer("ai_compact_threshold").notNull().default(40),
   aiNotifyMessages: integer("ai_notify_messages", { mode: "boolean" }).notNull().default(true),
+  // hosted only and when off capy answers on heycapy ai while a saved key stays
+  aiUseOwnKey: integer("ai_use_own_key", { mode: "boolean" }).notNull().default(true),
+  // result of the last call on the users own key or ollama server
+  aiKeyStatus: text("ai_key_status", { enum: ["working", "failed"] }),
+  aiKeyError: text("ai_key_error"),
+  aiKeyCheckedAt: integer("ai_key_checked_at", { mode: "timestamp" }),
   notificationsEmail: integer("notifications_email", { mode: "boolean" }).notNull().default(true),
   notificationEmailTo: text("notification_email_to"),
   notificationsPush: integer("notifications_push", { mode: "boolean" }).notNull().default(true),
@@ -260,6 +273,8 @@ export const chatSessions = sqliteTable("chat_sessions", {
     .notNull()
     .default("web"),
   summary: text("summary"),
+  // Id of the last message the summary covers; every later message is given to the model as is
+  summaryThrough: integer("summary_through"),
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
     .default(sql`(unixepoch())`),
@@ -366,4 +381,60 @@ export const itemActions = sqliteTable(
       .default(sql`(unixepoch())`),
   },
   (t) => [index("idx_item_actions_item_id").on(t.itemId)]
+);
+
+// One row per capy answer or chat summary: what it cost in tokens and who paid for the model
+export const aiUsage = sqliteTable(
+  "ai_usage",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    userId: integer("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    sessionId: integer("session_id").references(() => chatSessions.id, { onDelete: "set null" }),
+    source: text("source", { enum: ["web", "telegram", "summary", "voice"] }).notNull(),
+    provider: text("provider").notNull(),
+    model: text("model").notNull(),
+    key: text("key", { enum: ["own", "server"] }).notNull(),
+    calls: integer("calls").notNull(),
+    inputTokens: integer("input_tokens").notNull(),
+    outputTokens: integer("output_tokens").notNull(),
+    // parts of input tokens since providers bill cache reads and writes at their own rates
+    cacheReadTokens: integer("cache_read_tokens").notNull().default(0),
+    cacheWriteTokens: integer("cache_write_tokens").notNull().default(0),
+    // Calls whose provider didn't say how many tokens they used
+    unreportedCalls: integer("unreported_calls").notNull().default(0),
+    // millionths of a dollar at the price when it ran and null on the user's own key or an unknown price
+    costMicros: integer("cost_micros"),
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .default(sql`(unixepoch())`),
+  },
+  (t) => [index("idx_ai_usage_user_id_created_at").on(t.userId, t.createdAt)]
+);
+
+// append only so the balance is the sum of amounts and rows never change
+
+export const creditLedger = sqliteTable(
+  "credit_ledger",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    userId: integer("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    amount: integer("amount").notNull(),
+    kind: text("kind", { enum: ["grant", "purchase", "message", "refund", "admin"] }).notNull(),
+    // unique so a message is refunded at most once
+    refundOf: integer("refund_of").references((): AnySQLiteColumn => creditLedger.id),
+    note: text("note"),
+    // the admin who made an admin row
+    actor: text("actor"),
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .default(sql`(unixepoch())`),
+  },
+  (t) => [
+    index("idx_credit_ledger_user_id").on(t.userId),
+    uniqueIndex("idx_credit_ledger_refund_of").on(t.refundOf),
+  ]
 );

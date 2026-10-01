@@ -5,6 +5,14 @@ export async function register() {
         "DATABASE_URL is not set — point it at persistent storage, e.g. file:/data/heycapy.db"
       );
     }
+    const { isHosted } = await import("@/lib/credits");
+    const { missingTierKeys } = await import("@/lib/ai/tiers");
+    const missing = isHosted() ? missingTierKeys() : [];
+    if (missing.length > 0) {
+      throw new Error(
+        `HOSTED is true but ${missing.join(", ")} is not set, which the models in src/lib/ai/tiers.ts need`
+      );
+    }
     const { findMigrationsFolder } = await import("@/lib/db/migrations-folder");
     const migrationsFolder = findMigrationsFolder();
     if (migrationsFolder) {

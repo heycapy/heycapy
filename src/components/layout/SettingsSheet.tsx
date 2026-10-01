@@ -5,14 +5,17 @@ import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { BracketButton } from "@/components/ui/BracketButton";
 import {
+  checkAIKeyAction,
   getUserSettingsAction,
   updateUserSettingsAction,
   disconnectTelegramAction,
 } from "@/app/(app)/actions";
+import { useUIStore } from "@/store/ui";
 import { AppearanceTab, NotificationsTab, AITab, PersonalityTab } from "./SettingsTabs";
 import { AccountTab } from "./AccountTab";
 import { SystemTab } from "./SystemTab";
-import type { UserTone, AIProvider, TranscriptionProvider } from "./settings-constants";
+import { useAISettings } from "./useAISettings";
+import type { UserTone } from "./settings-constants";
 import type { userSettings } from "@/lib/db/schema";
 
 type Settings = typeof userSettings.$inferSelect;
@@ -30,6 +33,7 @@ export function SettingsSheet({ open, initialTab, onClose }: SettingsSheetProps)
   const { theme, setTheme } = useTheme();
   const [tab, setTab] = useState<SettingsTab>("appearance");
   const [pending, startTransition] = useTransition();
+  const tickAiRefresh = useUIStore((s) => s.tickAiRefresh);
   const [error, setError] = useState("");
   const [loaded, setLoaded] = useState(false);
 
@@ -38,17 +42,8 @@ export function SettingsSheet({ open, initialTab, onClose }: SettingsSheetProps)
   const [personalityEmoji, setPersonalityEmoji] = useState(true);
   const [personalityCustomPrompt, setPersonalityCustomPrompt] = useState("");
 
-  const [aiProvider, setAiProvider] = useState<AIProvider>("ollama");
-  const [aiApiKey, setAiApiKey] = useState("");
-  const [aiModel, setAiModel] = useState("");
-  const [aiOllamaUrl, setAiOllamaUrl] = useState("");
-  const [aiCompactThreshold, setAiCompactThreshold] = useState(40);
-  const [aiNotifyMessages, setAiNotifyMessages] = useState(true);
-  const [transcriptionProvider, setTranscriptionProvider] = useState<TranscriptionProvider | null>(
-    null
-  );
-  const [transcriptionApiKey, setTranscriptionApiKey] = useState("");
-  const [transcriptionModel, setTranscriptionModel] = useState("");
+  const ai = useAISettings();
+  const populateAI = ai.populate;
 
   const [timezone, setTimezone] = useState(() => Intl.DateTimeFormat().resolvedOptions().timeZone);
 
@@ -75,12 +70,6 @@ export function SettingsSheet({ open, initialTab, onClose }: SettingsSheetProps)
     setPersonalityTone(s.personalityTone as UserTone);
     setPersonalityEmoji(s.personalityEmoji);
     setPersonalityCustomPrompt(s.personalityCustomPrompt ?? "");
-    setAiProvider((s.aiProvider ?? "ollama") as AIProvider);
-    setAiApiKey(s.aiApiKey ?? "");
-    setAiModel(s.aiModel ?? "");
-    setAiOllamaUrl(s.aiOllamaUrl ?? "");
-    setAiCompactThreshold(s.aiCompactThreshold ?? 40);
-    setAiNotifyMessages(s.aiNotifyMessages ?? true);
     setTimezone(
       s.timezone !== "UTC" ? s.timezone : Intl.DateTimeFormat().resolvedOptions().timeZone
     );
@@ -96,9 +85,6 @@ export function SettingsSheet({ open, initialTab, onClose }: SettingsSheetProps)
     setNtfyTopic(s.ntfyTopic ?? "");
     setNotificationsTelegram(s.notificationsTelegram);
     setTelegramChatId(s.telegramChatId ?? null);
-    setTranscriptionProvider((s.transcriptionProvider as TranscriptionProvider | null) ?? null);
-    setTranscriptionApiKey(s.transcriptionApiKey ?? "");
-    setTranscriptionModel(s.transcriptionModel ?? "");
   }
 
   useEffect(() => {
@@ -111,6 +97,7 @@ export function SettingsSheet({ open, initialTab, onClose }: SettingsSheetProps)
       getUserSettingsAction().then((result) => {
         if (result.ok) {
           populate(result.settings);
+          populateAI(result.settings, result.hosted);
           setUserEmail(result.userEmail);
           setAdminUser(result.isAdmin);
           setSmtpPassSaved(result.smtpPassSaved);
@@ -123,7 +110,7 @@ export function SettingsSheet({ open, initialTab, onClose }: SettingsSheetProps)
       });
     }, 0);
     return () => clearTimeout(id);
-  }, [open, initialTab]);
+  }, [open, initialTab, populateAI]);
 
   async function handleDisconnectTelegram() {
     startTelegramTransition(async () => {
@@ -154,12 +141,7 @@ export function SettingsSheet({ open, initialTab, onClose }: SettingsSheetProps)
         personalityEmoji,
         personalityCustomPrompt: personalityCustomPrompt || null,
         timezone: timezone || Intl.DateTimeFormat().resolvedOptions().timeZone,
-        aiProvider,
-        aiApiKey: aiApiKey || null,
-        aiModel: aiModel || null,
-        aiOllamaUrl: aiOllamaUrl || null,
-        aiCompactThreshold,
-        aiNotifyMessages,
+        ...ai.payload(),
         notificationsEmail,
         notificationEmailTo: notificationEmailTo || null,
         emailProvider: smtpHost ? "smtp" : null,
@@ -173,12 +155,13 @@ export function SettingsSheet({ open, initialTab, onClose }: SettingsSheetProps)
         ntfyUrl: ntfyUrl || null,
         ntfyTopic: ntfyTopic || null,
         notificationsTelegram,
-        transcriptionProvider: transcriptionProvider || null,
-        transcriptionApiKey: transcriptionApiKey || null,
-        transcriptionModel: transcriptionModel || null,
       });
-      if (result.ok) onClose();
-      else setError(result.error);
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
+      if (result.aiChanged) void checkAIKeyAction().then(tickAiRefresh);
+      onClose();
     });
   }
 
@@ -288,29 +271,7 @@ export function SettingsSheet({ open, initialTab, onClose }: SettingsSheetProps)
                       pending={pending}
                     />
                   )}
-                  {tab === "ai" && (
-                    <AITab
-                      aiProvider={aiProvider}
-                      setAiProvider={setAiProvider}
-                      aiApiKey={aiApiKey}
-                      setAiApiKey={setAiApiKey}
-                      aiModel={aiModel}
-                      setAiModel={setAiModel}
-                      aiOllamaUrl={aiOllamaUrl}
-                      setAiOllamaUrl={setAiOllamaUrl}
-                      aiCompactThreshold={aiCompactThreshold}
-                      setAiCompactThreshold={setAiCompactThreshold}
-                      aiNotifyMessages={aiNotifyMessages}
-                      setAiNotifyMessages={setAiNotifyMessages}
-                      transcriptionProvider={transcriptionProvider}
-                      setTranscriptionProvider={setTranscriptionProvider}
-                      transcriptionApiKey={transcriptionApiKey}
-                      setTranscriptionApiKey={setTranscriptionApiKey}
-                      transcriptionModel={transcriptionModel}
-                      setTranscriptionModel={setTranscriptionModel}
-                      pending={pending}
-                    />
-                  )}
+                  {tab === "ai" && <AITab ai={ai} pending={pending} />}
                   {tab === "personality" && (
                     <PersonalityTab
                       personalityName={personalityName}

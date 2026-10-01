@@ -6,7 +6,8 @@ import { buckets, chatMessages, chatSessions, users } from "@/lib/db/schema";
 import { getAIProvider } from "@/lib/ai";
 import { decryptValue } from "@/lib/crypto";
 import { buildSystemPrompt } from "@/lib/ai/systemPrompt";
-import { CAPY_TOOLS, executeToolCall, getUpcomingItems } from "@/lib/ai/capyTools";
+import { getUpcomingItems } from "@/lib/ai/capyTools";
+import { runAgent } from "@/lib/ai/runAgent";
 import {
   sendTelegram,
   sendTelegramWithQuickActions,
@@ -15,11 +16,19 @@ import {
   answerCallbackQuery,
   sendChatAction,
 } from "@/lib/notifications/telegram";
-import { compactSessionIfNeeded } from "@/lib/ai/compact";
+import { chatHistory, compactSessionIfNeeded } from "@/lib/ai/compact";
 import { dataEvents } from "@/lib/events";
-import { errorMessage } from "@/lib/errors";
-import { TELEGRAM_RESERVED_COMMANDS } from "@/constants";
-import type { AgentMessage } from "@/lib/ai/types";
+import { errorMessage, parseProviderError } from "@/lib/errors";
+import {
+  AI_REQUEST_TIMEOUT_MS,
+  OLLAMA_REQUEST_TIMEOUT_MS,
+  OUT_OF_CREDITS_ERROR,
+  TELEGRAM_RESERVED_COMMANDS,
+} from "@/constants";
+import { recordUsage } from "@/lib/ai/usage";
+import { recordKeyResult } from "@/lib/ai/status";
+import { chargesCredits, holdMessageCredit, refundMessageCredit } from "@/lib/credits";
+import type { AgentMessage, TokenUsage } from "@/lib/ai/types";
 import type {
   TelegramDeadlinePreset,
   TelegramRecurringDefault,
@@ -797,13 +806,7 @@ async function handleUpdate(botToken: string, body: TelegramUpdate): Promise<Res
   }
 
   const threshold = row.aiCompactThreshold ?? 40;
-  const history = await db
-    .select({ role: chatMessages.role, content: chatMessages.content })
-    .from(chatMessages)
-    .where(eq(chatMessages.sessionId, session.id))
-    .orderBy(desc(chatMessages.createdAt))
-    .limit(Math.max(10, Math.floor(threshold / 4)));
-  history.reverse();
+  const history = await chatHistory(session.id);
 
   const [upcomingItems, provider] = await Promise.all([
     getUpcomingItems(userId, timezone),
@@ -813,6 +816,7 @@ async function handleUpdate(botToken: string, body: TelegramUpdate): Promise<Res
         model: row.aiModel,
         apiKey: row.aiApiKey ? decryptValue(row.aiApiKey) : null,
         ollamaUrl: row.aiOllamaUrl,
+        useOwnKey: row.aiUseOwnKey,
       })
     ),
   ]);
@@ -828,17 +832,15 @@ async function handleUpdate(botToken: string, body: TelegramUpdate): Promise<Res
         upcomingItems
       ),
     },
-    ...(session.summary
-      ? [
-          {
-            role: "system" as const,
-            content: `Summary of earlier conversation:\n${session.summary}`,
-          },
-        ]
-      : []),
-    ...history.map((m) => ({ role: m.role, content: m.content })),
+    ...history,
     { role: "user", content: text },
   ];
+
+  const hold = chargesCredits(provider.meta) ? holdMessageCredit(userId) : undefined;
+  if (hold === null) {
+    await sendTelegramWithQuickActions(botToken, chatIdStr, OUT_OF_CREDITS_ERROR).catch(() => {});
+    return new Response("OK");
+  }
 
   void sendChatAction(botToken, chatIdStr, "typing");
   const typingInterval = setInterval(() => {
@@ -846,48 +848,55 @@ async function handleUpdate(botToken: string, body: TelegramUpdate): Promise<Res
   }, 4_000);
 
   let finalText = "";
-  let lastAssistantContent = "";
+  const usage: TokenUsage[] = [];
   try {
-    for (let round = 0; round < 8; round++) {
-      let timer: ReturnType<typeof setTimeout> | undefined;
-      const result = await Promise.race([
-        provider.complete(agentMessages, CAPY_TOOLS),
-        new Promise<never>((_, reject) => {
-          timer = setTimeout(() => reject(new Error("AI provider timeout")), 30_000);
-        }),
-      ]).finally(() => clearTimeout(timer));
-      if (result.content) lastAssistantContent = result.content;
-      if (result.toolCalls.length === 0) {
-        finalText = result.content ?? "";
-        break;
-      }
-      agentMessages.push({
-        role: "assistant",
-        content: result.content,
-        toolCalls: result.toolCalls,
-      });
-      for (const call of result.toolCalls) {
-        agentMessages.push({
-          role: "tool",
-          toolCallId: call.id,
-          toolName: call.name,
-          content: await executeToolCall(call, userId, timezone),
-        });
-      }
-    }
-    if (!finalText) finalText = lastAssistantContent;
+    finalText = await runAgent({
+      provider,
+      messages: agentMessages,
+      userId,
+      timezone,
+      timeoutMs:
+        provider.meta.provider === "ollama" ? OLLAMA_REQUEST_TIMEOUT_MS : AI_REQUEST_TIMEOUT_MS,
+      onUsage: (u) => usage.push(u),
+    });
   } catch (err) {
+    if (hold) refundMessageCredit(hold);
+    await recordKeyResult(userId, provider.meta, err);
+    recordUsage({
+      userId,
+      sessionId: session.id,
+      source: "telegram",
+      meta: provider.meta,
+      calls: usage,
+    });
     clearInterval(typingInterval);
     process.stderr.write(`[telegram] AI error: ${errorMessage(err)}\n`);
+    await sendTelegramWithQuickActions(
+      botToken,
+      chatIdStr,
+      `capy couldn't answer: ${parseProviderError(err)}`
+    ).catch(() => {});
     return new Response("OK");
   }
 
   clearInterval(typingInterval);
-  if (!finalText) return new Response("OK");
+  await recordKeyResult(userId, provider.meta);
+  recordUsage({
+    userId,
+    sessionId: session.id,
+    source: "telegram",
+    meta: provider.meta,
+    calls: usage,
+  });
+  if (!finalText) {
+    if (hold) refundMessageCredit(hold);
+    return new Response("OK");
+  }
 
   try {
     await sendTelegramWithQuickActions(botToken, chatIdStr, finalText);
   } catch (err) {
+    if (hold) refundMessageCredit(hold);
     process.stderr.write(`[telegram] send error: ${errorMessage(err)}\n`);
   }
 
@@ -900,7 +909,7 @@ async function handleUpdate(botToken: string, body: TelegramUpdate): Promise<Res
       .update(chatSessions)
       .set({ updatedAt: new Date() })
       .where(eq(chatSessions.id, session.id));
-    void compactSessionIfNeeded(session.id, provider, threshold);
+    void compactSessionIfNeeded(userId, session.id, provider, threshold);
   } catch (err) {
     recordSystemError("telegram", `saving chat failed: ${errorMessage(err)}`, {
       userId,

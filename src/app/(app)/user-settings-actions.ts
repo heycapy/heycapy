@@ -7,6 +7,7 @@ import { headers } from "next/headers";
 import { and, eq, sql } from "drizzle-orm";
 import { getSession, deleteSession } from "@/lib/auth/session";
 import { isAdmin } from "@/lib/auth/admin";
+import { isHosted } from "@/lib/credits";
 import { db } from "@/lib/db";
 import { users, userSettings } from "@/lib/db/schema";
 import { encryptValue, decryptValue } from "@/lib/crypto";
@@ -16,6 +17,7 @@ import { ALL_CHANNELS, getWorkingChannels } from "@/lib/notifications/channels";
 import { TELEGRAM_API_BASE, TELEGRAM_LINK_BASE } from "@/constants";
 import { sendEmail } from "@/lib/notifications/email";
 import { sendNtfy } from "@/lib/notifications/ntfy";
+import { publicAddress } from "@/lib/notifications/public-address";
 import { sendWebPush } from "@/lib/notifications/web-push";
 import { sendTelegram } from "@/lib/notifications/telegram";
 import { dismissChannelFailures } from "@/lib/notifications/failures";
@@ -24,7 +26,12 @@ import { telegramWebhookSecret } from "@/lib/notifications/telegram-webhook";
 import type { NotificationMedium } from "@/lib/notifications/queue";
 import { isE2ETestMode } from "@/lib/e2e";
 import { errorMessage } from "@/lib/errors";
-import { APP_NAME, EMAIL_COLORS } from "@/constants";
+import {
+  AI_COMPACT_THRESHOLD_MAX,
+  AI_COMPACT_THRESHOLD_MIN,
+  APP_NAME,
+  EMAIL_COLORS,
+} from "@/constants";
 import { emailLayout } from "@/lib/email/layout";
 
 type UserSettingsUpdate = {
@@ -37,6 +44,7 @@ type UserSettingsUpdate = {
   aiApiKey: string | null;
   aiModel: string | null;
   aiOllamaUrl: string | null;
+  aiUseOwnKey: boolean;
   aiCompactThreshold: number;
   aiNotifyMessages: boolean;
   notificationsEmail: boolean;
@@ -64,6 +72,7 @@ export async function getUserSettingsAction(): Promise<
     smtpPassSaved: boolean;
     telegramBotConfigured: boolean;
     isAdmin: boolean;
+    hosted: boolean;
   }>
 > {
   const session = await getSession();
@@ -83,6 +92,7 @@ export async function getUserSettingsAction(): Promise<
     smtpPassSaved: !!settings.smtpPass,
     telegramBotConfigured: !!process.env.TELEGRAM_BOT_TOKEN,
     isAdmin: isAdmin(session.email),
+    hosted: isHosted(),
     settings: {
       ...settings,
       aiApiKey: settings.aiApiKey ? decryptValue(settings.aiApiKey) : null,
@@ -95,17 +105,47 @@ export async function getUserSettingsAction(): Promise<
   };
 }
 
-export async function updateUserSettingsAction(data: UserSettingsUpdate): Promise<ActionResult> {
+export async function updateUserSettingsAction(
+  data: UserSettingsUpdate
+): Promise<ActionResult<{ aiChanged: boolean }>> {
   const session = await getSession();
   if (!session) return { ok: false, error: "Unauthorized" };
 
   const trimmedName = data.personalityName.trim();
   if (!trimmedName) return { ok: false, error: "Name is required" };
   if (trimmedName.length > 50) return { ok: false, error: "Name too long" };
+  if (
+    !Number.isInteger(data.aiCompactThreshold) ||
+    data.aiCompactThreshold < AI_COMPACT_THRESHOLD_MIN ||
+    data.aiCompactThreshold > AI_COMPACT_THRESHOLD_MAX
+  ) {
+    return {
+      ok: false,
+      error: `Autocompact must be a whole number from ${AI_COMPACT_THRESHOLD_MIN} to ${AI_COMPACT_THRESHOLD_MAX}`,
+    };
+  }
+
+  if (isHosted() && data.aiProvider === "ollama") {
+    return { ok: false, error: "Ollama isn't available here. Pick another provider." };
+  }
+
+  const saved = await db.query.userSettings.findFirst({
+    where: eq(userSettings.userId, session.userId),
+  });
+  const aiChanged =
+    saved?.aiProvider !== data.aiProvider ||
+    (saved.aiApiKey ? decryptValue(saved.aiApiKey) : null) !== (data.aiApiKey || null) ||
+    saved.aiModel !== (data.aiModel || null) ||
+    saved.aiOllamaUrl !== (data.aiOllamaUrl || null) ||
+    saved.aiUseOwnKey !== data.aiUseOwnKey;
+
+  const addressError = await userServerAddressError(data, saved);
+  if (addressError) return { ok: false, error: addressError };
 
   await db
     .update(userSettings)
     .set({
+      ...(aiChanged ? { aiKeyStatus: null, aiKeyError: null, aiKeyCheckedAt: null } : {}),
       personalityName: trimmedName,
       personalityTone: data.personalityTone,
       personalityEmoji: data.personalityEmoji,
@@ -115,6 +155,7 @@ export async function updateUserSettingsAction(data: UserSettingsUpdate): Promis
       aiApiKey: data.aiApiKey ? encryptValue(data.aiApiKey) : null,
       aiModel: data.aiModel || null,
       aiOllamaUrl: data.aiOllamaUrl || null,
+      aiUseOwnKey: data.aiUseOwnKey,
       aiCompactThreshold: data.aiCompactThreshold,
       aiNotifyMessages: data.aiNotifyMessages,
       notificationsEmail: data.notificationsEmail,
@@ -139,7 +180,30 @@ export async function updateUserSettingsAction(data: UserSettingsUpdate): Promis
   await refreshUserReminders(session.userId);
   revalidatePath("/");
 
-  return { ok: true };
+  return { ok: true, aiChanged };
+}
+
+async function userServerAddressError(
+  data: UserSettingsUpdate,
+  saved: { ntfyUrl: string | null; smtpHost: string | null } | undefined
+): Promise<string | null> {
+  const hosts: string[] = [];
+  if (data.ntfyUrl && data.ntfyUrl !== saved?.ntfyUrl) {
+    try {
+      hosts.push(new URL(data.ntfyUrl).hostname);
+    } catch {
+      return "ntfy server url is not valid";
+    }
+  }
+  if (data.emailProvider === "smtp" && data.smtpHost && data.smtpHost !== saved?.smtpHost) {
+    hosts.push(data.smtpHost);
+  }
+  try {
+    for (const host of hosts) await publicAddress(host);
+  } catch (err) {
+    return errorMessage(err);
+  }
+  return null;
 }
 
 export async function logoutAction() {

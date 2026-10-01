@@ -10,7 +10,7 @@ type ChatStore = {
   setSessionId: (id: number | null) => void;
   appendChunkToLast: (chunk: string) => void;
   markLastStopped: () => void;
-  markLastError: () => void;
+  markLastError: (message?: string) => void;
   clearChat: () => void;
   loadSession: (id: number, msgs: ChatMessage[]) => void;
 };
@@ -40,14 +40,14 @@ export const useChatStore = create<ChatStore>()(
           return { messages: [...s.messages.slice(0, -1), { ...last, stopped: true }] };
         }),
 
-      markLastError: () =>
+      markLastError: (message) =>
         set((s) => {
           const last = s.messages.at(-1);
           if (!last) return s;
           return {
             messages: [
               ...s.messages.slice(0, -1),
-              { ...last, content: "Something went wrong. Try again." },
+              { ...last, content: message ?? "Something went wrong. Try again." },
             ],
           };
         }),

@@ -1,4 +1,6 @@
+import { isIP } from "node:net";
 import { APP_EMAIL_FROM } from "@/constants";
+import { publicAddress } from "./public-address";
 
 export type EmailPayload = {
   to: string;
@@ -40,6 +42,7 @@ async function sendViaSmtp(
     pass?: string | null;
     secure?: boolean | null;
     from?: string | null;
+    servername?: string;
   }
 ): Promise<void> {
   const nodemailer = await import("nodemailer");
@@ -59,6 +62,7 @@ async function sendViaSmtp(
     port,
     secure,
     auth: user && pass ? { user, pass } : undefined,
+    ...(opts?.servername && { tls: { servername: opts.servername } }),
   });
   await transport.sendMail({
     from,
@@ -74,12 +78,16 @@ export async function sendEmail(
   userConfig?: UserEmailConfig
 ): Promise<void> {
   if (userConfig?.emailProvider === "smtp" && userConfig.smtpHost) {
-    await sendViaSmtp(payload, userConfig.smtpHost, {
+    const host = userConfig.smtpHost;
+    const pinned = await publicAddress(host);
+    await sendViaSmtp(payload, pinned?.address ?? host, {
       port: userConfig.smtpPort,
       user: userConfig.smtpUser,
       pass: userConfig.smtpPass,
       secure: userConfig.smtpSecure,
       from: userConfig.smtpFrom,
+      // connecting by the checked address, so the certificate is still checked against the name
+      ...(pinned && !isIP(host) && { servername: host }),
     });
     return;
   }

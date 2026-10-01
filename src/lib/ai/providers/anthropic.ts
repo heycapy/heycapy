@@ -1,5 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
-import type { AIProvider, AgentMessage, CompleteResult, Message, Tool } from "../types";
+import type { AIProvider, AgentMessage, CompleteResult, Message, TokenUsage, Tool } from "../types";
+import { AI_CLIENT_OPTIONS } from "./options";
 
 function toAnthropicMessages(messages: AgentMessage[]): Anthropic.MessageParam[] {
   const result: Anthropic.MessageParam[] = [];
@@ -39,15 +40,27 @@ function toAnthropicMessages(messages: AgentMessage[]): Anthropic.MessageParam[]
   return result;
 }
 
+// input_tokens leaves out the prompt tokens read from or written to the cache
+function anthropicUsage(usage: Anthropic.Usage): TokenUsage {
+  const cacheReadTokens = usage.cache_read_input_tokens ?? 0;
+  const cacheWriteTokens = usage.cache_creation_input_tokens ?? 0;
+  return {
+    inputTokens: usage.input_tokens + cacheReadTokens + cacheWriteTokens,
+    outputTokens: usage.output_tokens,
+    cacheReadTokens,
+    cacheWriteTokens,
+  };
+}
+
 export function createAnthropicProvider(apiKey: string, model: string): AIProvider {
-  const client = new Anthropic({ apiKey });
+  const client = new Anthropic({ apiKey, ...AI_CLIENT_OPTIONS });
 
   return {
-    async *chat(messages: Message[]) {
+    async chat(messages: Message[]) {
       const systemMessages = messages.filter((m) => m.role === "system");
       const chatMessages = messages.filter((m) => m.role !== "system");
 
-      const stream = await client.messages.create({
+      const response = await client.messages.create({
         model,
         max_tokens: 1024,
         system: systemMessages.map((m) => m.content).join("\n") || undefined,
@@ -55,14 +68,15 @@ export function createAnthropicProvider(apiKey: string, model: string): AIProvid
           role: m.role as "user" | "assistant",
           content: m.content,
         })),
-        stream: true,
       });
 
-      for await (const event of stream) {
-        if (event.type === "content_block_delta" && event.delta.type === "text_delta") {
-          yield event.delta.text;
-        }
-      }
+      return {
+        text: response.content
+          .filter((b): b is Anthropic.TextBlock => b.type === "text")
+          .map((b) => b.text)
+          .join(""),
+        usage: anthropicUsage(response.usage),
+      };
     },
 
     async complete(messages: AgentMessage[], tools: Tool[]): Promise<CompleteResult> {
@@ -70,20 +84,25 @@ export function createAnthropicProvider(apiKey: string, model: string): AIProvid
       const system = systemMessages.map((m) => m.content).join("\n") || undefined;
       const anthropicMessages = toAnthropicMessages(messages);
 
-      const anthropicTools: Anthropic.Tool[] = tools.map((t) => ({
+      // tools are the same for everyone so they get their own cache point which the api skips below its minimum length
+      const anthropicTools: Anthropic.Tool[] = tools.map((t, i) => ({
         name: t.name,
         description: t.description,
         input_schema: t.parameters,
+        ...(i === tools.length - 1 ? { cache_control: { type: "ephemeral" as const } } : {}),
       }));
 
       const response = await client.messages.create({
         model,
         max_tokens: 2048,
+        // later tool rounds of an answer read the earlier rounds from the cache
+        cache_control: { type: "ephemeral" },
         system,
         messages: anthropicMessages,
         tools: anthropicTools,
       });
 
+      const usage = anthropicUsage(response.usage);
       const textContent = response.content
         .filter((b): b is Anthropic.TextBlock => b.type === "text")
         .map((b) => b.text)
@@ -101,10 +120,11 @@ export function createAnthropicProvider(apiKey: string, model: string): AIProvid
             name: b.name,
             arguments: b.input as Record<string, unknown>,
           })),
+          usage,
         };
       }
 
-      return { content: textContent || null, toolCalls: [] };
+      return { content: textContent || null, toolCalls: [], usage };
     },
   };
 }

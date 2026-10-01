@@ -1,55 +1,29 @@
 # heycapy
 
-a capy to help you with your day. buckets, deadlines, reminders, webhooks, telegram, ai chat. self-hosted via docker.
+a capy to help you with your day. buckets, deadlines, reminders, telegram and an ai to chat with.
 
-→ [heycapy.xyz](https://heycapy.xyz) · [how to use](https://heycapy.xyz/how-to-use)
+[heycapy.xyz](https://heycapy.xyz) · [how to use](https://heycapy.xyz/how-to-use)
 
----
+## run it locally
 
-## running locally
-
-requires node 20+ and pnpm.
+needs node 22+ and pnpm.
 
 ```sh
 git clone https://github.com/heycapy/heycapy
 cd heycapy
 pnpm install
-```
-
-copy the env file and fill it in:
-
-```sh
 cp .env.example .env
 ```
 
-the only required vars to get started:
-
-```
-# generate with: openssl rand -base64 32
-JWT_SECRET=
-
-# generate with: openssl rand -hex 32
-ENCRYPTION_KEY=
-
-# resend.com — used to send OTP login emails. free tier works fine.
-RESEND_API_KEY=re_...
-
-# must match a verified domain in your resend account
-EMAIL_FROM=HeyCapy <noreply@yourdomain.com>
-```
-
-run migrations and start:
+set `JWT_SECRET` and `ENCRYPTION_KEY` in `.env`, then:
 
 ```sh
-pnpm db:migrate
 pnpm dev
 ```
 
-open [http://localhost:3000](http://localhost:3000). you'll be asked to log in with your email — resend sends the OTP.
+open [localhost:3000](http://localhost:3000) and sign in with any email. without an email service the sign in code shows on the screen.
 
----
-
-## self-hosting with docker
+## self-host with docker
 
 ```sh
 git clone https://github.com/heycapy/heycapy
@@ -57,55 +31,45 @@ cd heycapy
 cp .env.example .env
 ```
 
-fill in `.env`, then edit the `Caddyfile` with your domain:
-
-```
-your-domain.com {
-    reverse_proxy heycapy:3000
-}
-```
-
-start everything:
+fill in `.env`, put your domain in the `Caddyfile`, then:
 
 ```sh
 docker compose up -d
 ```
 
-caddy handles HTTPS automatically. data lives in a docker volume at `/data/heycapy.db`.
+caddy handles https. the database lives in a docker volume at `/data/heycapy.db`.
 
----
+## configuration
 
-## environment variables
+everything is in `.env.example`. the main ones:
 
-| var | required | description |
-|-----|----------|-------------|
-| `JWT_SECRET` | yes | `openssl rand -base64 32` |
-| `ENCRYPTION_KEY` | yes | `openssl rand -hex 32` |
-| `RESEND_API_KEY` | yes | resend.com api key — used for OTP login emails |
-| `EMAIL_FROM` | yes | must match a verified domain in resend (e.g. `HeyCapy <noreply@yourdomain.com>`) |
-| `DATABASE_URL` | yes in production | sqlite file, e.g. `file:/data/heycapy.db` — must be on persistent storage (the docker volume / fly mount); the app refuses to start in production without it |
-| `TELEGRAM_BOT_TOKEN` | no | telegram bot token — only needed if you want telegram. use a separate bot for local development, never the production one |
-| `ADMIN_EMAILS` | no | comma-separated emails that see the **system** tab in tweaks (scheduler status, failed deliveries, recent server errors with stack traces) and get alerts: critical errors (app restarted by the watchdog, backup failed) right away, everything else in an hourly digest — by email and telegram, whichever each admin has set up |
-| `APP_URL` | no | your app's public url — required for telegram webhooks, and for the done / remind-again buttons in email and ntfy reminders |
+| var | what it's for |
+|-----|---------------|
+| `JWT_SECRET`, `ENCRYPTION_KEY` | required secrets |
+| `DATABASE_URL` | required in production, on persistent storage |
+| `RESEND_API_KEY`, `EMAIL_FROM` | sends sign in codes and email reminders (or use `SMTP_*`) |
+| `APP_URL` | your public url, for telegram and reminder links |
+| `TELEGRAM_BOT_TOKEN` | turns on telegram |
+| `ADMIN_EMAILS` | who sees the system tab and gets alerts |
+| `AI_PROVIDER`, `AI_MODEL`, `AI_API_KEY` | the ai for users without their own key |
 
-everything else (ntfy, ai provider, smtp, notifications) is configured per-user inside the app.
+users set up their own ai key, ntfy, smtp and notifications inside the app.
 
-### push notifications
+### only for heycapy.xyz
 
-web push works out of the box: the server generates its keys on first use and keeps them in the database (`server_secrets`), so don't reset that table or every device has to turn push on again. it needs https (localhost is fine for development). on iphone, push only works after "add to home screen" (ios 16.4+).
+| var | what it's for |
+|-----|---------------|
+| `HOSTED=true` | users without their own key pay for the server ai in credits. chat and voice then use the models and prices in `src/lib/ai/tiers.ts` instead of `AI_PROVIDER` / `AI_MODEL` / `AI_API_KEY`. also refuses ollama, and ntfy or smtp servers on a private network (localhost, 192.168.x.x, docker names), so a local ntfy stops working |
+| `GEMINI_API_KEY`, `GROQ_API_KEY`, `OPENAI_API_KEY`, `ANTHROPIC_API_KEY` | one key per provider the tiers use. the server won't start while one it needs is missing |
 
-### health checks
+leave these out when self-hosting.
 
-- `GET /api/health` — the app and database are up (safe for your platform's health check)
-- `GET /api/health/scheduler` — `503` when no reminder run has finished in 5 minutes. point an uptime monitor (e.g. uptimerobot, better stack) at it so you get alerted. don't use it for platform routing checks: a stuck scheduler shouldn't take the site down
-- in production, if the scheduler is stuck for 10 minutes the app exits so the platform restarts it (fly's default restart policy does this)
+## running it
 
-### backups
-
-every night at 03:40 (server time) the app copies the database to a `backups/` folder next to it (e.g. `/data/backups/heycapy-2026-09-28.db`) and keeps the last 7. to restore, stop the app and copy a backup over the database file. copy the folder off the server too — a backup on the same disk won't survive losing that disk.
-
----
+- **push notifications** work out of the box over https. on iphone they need "add to home screen".
+- **health checks**: `/api/health` for your platform, `/api/health/scheduler` for an uptime monitor (it returns 503 when reminders are stuck).
+- **backups**: every night the database is copied to a `backups/` folder next to it, keeping the last 7. copy that folder off the server too.
 
 ## stack
 
-next.js 16 · typescript · tailwind css · sqlite + drizzle · node-cron
+next.js · typescript · tailwind · sqlite with drizzle · node-cron

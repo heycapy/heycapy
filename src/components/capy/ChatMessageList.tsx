@@ -7,6 +7,7 @@ import type { ChatMessage } from "./chatTypes";
 type Props = {
   messages: ChatMessage[];
   streaming: boolean;
+  status?: string | null;
   fullscreen?: boolean;
 };
 
@@ -29,7 +30,7 @@ function BouncingDots() {
   );
 }
 
-export function ChatMessageList({ messages, streaming, fullscreen }: Props) {
+export function ChatMessageList({ messages, streaming, status, fullscreen }: Props) {
   const listRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -74,7 +75,18 @@ export function ChatMessageList({ messages, streaming, fullscreen }: Props) {
               )}
             >
               {!msg.content && isLastStreaming(msg) ? (
-                <BouncingDots />
+                <span className="flex items-center gap-2">
+                  <BouncingDots />
+                  {status && (
+                    <span
+                      role="status"
+                      aria-label="capy is working"
+                      className="text-muted-foreground text-[11px]"
+                    >
+                      {status}…
+                    </span>
+                  )}
+                </span>
               ) : msg.role === "assistant" ? (
                 <ReactMarkdown
                   components={{

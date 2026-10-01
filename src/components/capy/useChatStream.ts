@@ -6,6 +6,9 @@ import type { Message } from "@/lib/ai/types";
 import { useUIStore } from "@/store/ui";
 import { useChatStore } from "@/store/chat";
 import { GREETING } from "./chatTypes";
+import type { ChatEvent } from "@/lib/ai/chatEvents";
+
+const CONNECTION_LOST = "Lost the connection before capy answered. Try again.";
 
 export function useChatStream() {
   const router = useRouter();
@@ -23,6 +26,7 @@ export function useChatStream() {
 
   const [input, setInput] = useState("");
   const [streaming, setStreaming] = useState(false);
+  const [status, setStatus] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
 
   async function sendMessage() {
@@ -62,19 +66,32 @@ export function useChatStream() {
 
       if (!res.body) throw new Error("No response body from server.");
 
-      const rawSessionId = res.headers.get("X-Session-Id");
-      if (rawSessionId) {
-        setSessionId(parseInt(rawSessionId, 10));
-      }
+      let answered = false;
+      const handle = (line: string) => {
+        if (!line.trim()) return;
+        const event = JSON.parse(line) as ChatEvent;
+        if (event.type === "status") setStatus(event.text);
+        else if (event.type === "reply") {
+          answered = true;
+          setStatus(null);
+          appendChunkToLast(event.text);
+        } else if (event.type === "error") throw new Error(event.error);
+        else if (event.sessionId) setSessionId(event.sessionId);
+      };
 
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
-
+      let buffer = "";
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
-        appendChunkToLast(decoder.decode(value, { stream: true }));
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() ?? "";
+        lines.forEach(handle);
       }
+      handle(buffer);
+      if (!answered) throw new Error(CONNECTION_LOST);
     } catch (err) {
       if (err instanceof Error && err.name === "AbortError") {
         aborted = true;
@@ -86,9 +103,10 @@ export function useChatStream() {
         description: errMsg,
         icon: createElement(Sprite, { id: "capy-error", size: 28 }),
       });
-      markLastError();
+      markLastError(errMsg);
     } finally {
       setStreaming(false);
+      setStatus(null);
       abortRef.current = null;
       if (!aborted) {
         tickAiRefresh();
@@ -106,6 +124,7 @@ export function useChatStream() {
     input,
     setInput,
     streaming,
+    status,
     sendMessage,
     stopStreaming,
     sessionId,

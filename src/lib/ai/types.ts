@@ -20,14 +20,30 @@ export type ToolCall = {
   id: string;
   name: string;
   arguments: Record<string, unknown>;
+  extraContent?: unknown;
 };
+
+// Null when the provider didn't report it
+// input tokens include those read from or written to a cache
+export type TokenUsage = {
+  inputTokens: number;
+  outputTokens: number;
+  cacheReadTokens: number;
+  cacheWriteTokens: number;
+} | null;
 
 export type CompleteResult = {
   content: string | null;
   toolCalls: ToolCall[];
+  usage: TokenUsage;
+};
+
+export type ChatResult = {
+  text: string;
+  usage: TokenUsage;
 };
 
 export type AIProvider = {
-  chat(messages: Message[]): AsyncIterable<string>;
+  chat(messages: Message[]): Promise<ChatResult>;
   complete(messages: AgentMessage[], tools: Tool[]): Promise<CompleteResult>;
 };

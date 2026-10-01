@@ -1,9 +1,11 @@
 import { asc, eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import {
+  aiUsage,
   buckets,
   chatMessages,
   chatSessions,
+  creditLedger,
   itemActions,
   items,
   notificationLog,
@@ -35,6 +37,8 @@ export async function buildAccountExport(userId: number, now = new Date()) {
     messages,
     devices,
     actions,
+    usage,
+    credits,
   ] = await Promise.all([
     db.query.users.findFirst({ where: eq(users.id, userId) }),
     db.query.userSettings.findFirst({ where: eq(userSettings.userId, userId) }),
@@ -66,6 +70,12 @@ export async function buildAccountExport(userId: number, now = new Date()) {
       .from(itemActions)
       .where(eq(itemActions.userId, userId))
       .orderBy(asc(itemActions.id)),
+    db.select().from(aiUsage).where(eq(aiUsage.userId, userId)).orderBy(asc(aiUsage.id)),
+    db
+      .select()
+      .from(creditLedger)
+      .where(eq(creditLedger.userId, userId))
+      .orderBy(asc(creditLedger.id)),
   ]);
 
   return {
@@ -169,6 +179,24 @@ export async function buildAccountExport(userId: number, now = new Date()) {
       messages: messages
         .filter((m) => m.sessionId === s.id)
         .map((m) => ({ role: m.role, content: m.content, at: m.createdAt })),
+    })),
+    aiUsage: usage.map((u) => ({
+      source: u.source,
+      provider: u.provider,
+      model: u.model,
+      key: u.key,
+      calls: u.calls,
+      inputTokens: u.inputTokens,
+      outputTokens: u.outputTokens,
+      cacheReadTokens: u.cacheReadTokens,
+      cacheWriteTokens: u.cacheWriteTokens,
+      at: u.createdAt,
+    })),
+    credits: credits.map((c) => ({
+      amount: c.amount,
+      kind: c.kind,
+      note: c.note,
+      at: c.createdAt,
     })),
   };
 }

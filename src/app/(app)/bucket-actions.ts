@@ -1,6 +1,5 @@
 "use server";
 
-import { QUICK_REMIND_VALUES } from "@/lib/notifications/constants";
 import type { ActionResult } from "@/types/result";
 import { revalidatePath } from "next/cache";
 import { and, desc, eq, isNotNull, isNull, sql } from "drizzle-orm";
@@ -18,15 +17,13 @@ import {
 } from "@/constants";
 import { findBucketByName } from "@/lib/db/buckets";
 import { withDefaultChannels } from "@/lib/notifications/channels";
-import { refreshBucketReminders } from "@/lib/reminders/refresh";
+import { saveBucketSettings, type BucketSettingsInput } from "@/lib/buckets/settings";
 import {
   TELEGRAM_DEADLINE_PRESETS,
   TELEGRAM_RECURRING_OPTIONS,
-  type ItemsRulesConfig,
-  type NotificationsRulesConfig,
   type TelegramBotConfig,
 } from "@/components/buckets/constants";
-import { BucketSchema, ReminderOffsets } from "@/types/rules";
+import { BucketSchema } from "@/types/rules";
 import { buildPropertyValidator } from "@/types/rules";
 
 const TelegramBotConfigInput = z.object({
@@ -47,15 +44,6 @@ const TelegramBotConfigInput = z.object({
     .min(1, "Pick at least one time")
     .max(24),
 }) satisfies z.ZodType<TelegramBotConfig>;
-
-function parseStoredRules(json: string): Record<string, unknown> {
-  try {
-    const parsed = JSON.parse(json) as unknown;
-    return parsed && typeof parsed === "object" ? (parsed as Record<string, unknown>) : {};
-  } catch {
-    return {};
-  }
-}
 
 export async function createBucketAction(
   templateId: number,
@@ -109,96 +97,20 @@ export async function createBucketAction(
   return { ok: true, bucketId: newBucket.id };
 }
 
-type NotificationTriggers = {
-  notifyOnArrival?: boolean;
-  notifyWhenOverdue?: boolean;
-  overdueRepeatHours?: number | undefined;
-  overdueFirstAlertMins?: number | undefined;
-};
-
 export async function updateBucketSettingsAction(
   bucketId: number,
   name: string,
-  itemsRules: ItemsRulesConfig,
-  notificationsRules: NotificationsRulesConfig,
-  telegramConfig?: TelegramBotConfig | null,
-  notificationTriggers?: NotificationTriggers
+  itemsRules: BucketSettingsInput["itemsRules"],
+  notificationsRules: BucketSettingsInput["notificationsRules"],
+  notificationTriggers?: BucketSettingsInput["notificationTriggers"]
 ): Promise<ActionResult> {
   const session = await requireSession();
-
-  const trimmed = name.trim();
-  if (!trimmed) return { ok: false, error: "Name is required" };
-  if (trimmed.length > BUCKET_NAME_MAX_LENGTH) return { ok: false, error: "Name too long" };
-  const defaultReminders =
-    notificationsRules.defaultReminders &&
-    ReminderOffsets.safeParse(notificationsRules.defaultReminders);
-  if (defaultReminders && !defaultReminders.success) {
-    return { ok: false, error: "Invalid reminders" };
-  }
-
-  const bucket = await db.query.buckets.findFirst({
-    where: (b, { eq: qeq, and: qand }) => qand(qeq(b.id, bucketId), qeq(b.userId, session.userId)),
+  return saveBucketSettings(session.userId, bucketId, {
+    name,
+    itemsRules,
+    notificationsRules,
+    notificationTriggers,
   });
-  if (!bucket) return { ok: false, error: "Bucket not found" };
-
-  if (await findBucketByName(session.userId, trimmed, bucketId)) {
-    return { ok: false, error: DUPLICATE_BUCKET_NAME_ERROR };
-  }
-
-  let updatedFieldSchema: unknown = bucket.fieldSchema;
-  if (notificationTriggers !== undefined) {
-    try {
-      const existing = bucket.fieldSchema
-        ? ((typeof bucket.fieldSchema === "string"
-            ? JSON.parse(bucket.fieldSchema as string)
-            : bucket.fieldSchema) as Record<string, unknown>)
-        : {};
-      updatedFieldSchema = {
-        ...existing,
-        notifyOnArrival: notificationTriggers.notifyOnArrival ?? false,
-        notifyWhenOverdue: notificationTriggers.notifyWhenOverdue ?? false,
-        overdueRepeatHours: notificationTriggers.notifyWhenOverdue
-          ? notificationTriggers.overdueRepeatHours
-          : undefined,
-        overdueFirstAlertMins: notificationTriggers.notifyWhenOverdue
-          ? notificationTriggers.overdueFirstAlertMins
-          : undefined,
-      };
-    } catch (err) {
-      process.stderr.write(
-        `[bucket-actions] failed to parse fieldSchema for bucket ${bucketId}: ${err instanceof Error ? err.message : String(err)}\n`
-      );
-    }
-  }
-
-  await db
-    .update(buckets)
-    .set({
-      name: trimmed,
-      itemsRules: JSON.stringify(itemsRules),
-      notificationsRules: JSON.stringify({
-        ...parseStoredRules(bucket.notificationsRules),
-        ...notificationsRules,
-        ...(defaultReminders && { defaultReminders: defaultReminders.data }),
-        ...(notificationsRules.reminderButtons && {
-          reminderButtons: QUICK_REMIND_VALUES.filter((v) =>
-            notificationsRules.reminderButtons?.includes(v)
-          ),
-        }),
-      }),
-      ...(telegramConfig !== undefined
-        ? { telegramConfig: telegramConfig ? JSON.stringify(telegramConfig) : null }
-        : {}),
-      ...(notificationTriggers !== undefined
-        ? { fieldSchema: JSON.stringify(updatedFieldSchema) as unknown as BucketSchema }
-        : {}),
-      updatedAt: new Date(),
-    })
-    .where(and(eq(buckets.id, bucketId), eq(buckets.userId, session.userId)));
-  await refreshBucketReminders(bucketId);
-
-  revalidatePath("/");
-  return { ok: true };
 }
 
 export async function updateBucketTelegramConfigAction(

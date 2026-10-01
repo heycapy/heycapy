@@ -29,6 +29,7 @@ type PersonalityRow = {
   aiApiKey: string | null;
   aiModel: string | null;
   aiOllamaUrl: string | null;
+  aiUseOwnKey: boolean;
   personalityName: string;
   personalityTone: string;
   personalityEmoji: boolean;
@@ -50,6 +51,7 @@ async function generateNotificationText(
       apiKey: decryptedKey,
       model: row.aiModel,
       ollamaUrl: row.aiOllamaUrl,
+      useOwnKey: row.aiUseOwnKey,
     });
 
     const toneGuide =
@@ -106,6 +108,7 @@ const dueRowFields = {
   aiApiKey: userSettings.aiApiKey,
   aiModel: userSettings.aiModel,
   aiOllamaUrl: userSettings.aiOllamaUrl,
+  aiUseOwnKey: userSettings.aiUseOwnKey,
   aiNotifyMessages: userSettings.aiNotifyMessages,
   personalityName: userSettings.personalityName,
   personalityTone: userSettings.personalityTone,

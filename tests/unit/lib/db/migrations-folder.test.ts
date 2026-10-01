@@ -1,11 +1,17 @@
-import { describe, it, expect } from "vitest";
-import { mkdirSync, mkdtempSync } from "node:fs";
+import { afterAll, describe, it, expect } from "vitest";
+import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { findMigrationsFolder } from "@/lib/db/migrations-folder";
 
+const roots: string[] = [];
+afterAll(() => {
+  for (const root of roots) rmSync(root, { recursive: true, force: true });
+});
+
 function tempDir(...folders: string[]): string {
   const root = mkdtempSync(path.join(tmpdir(), "heycapy-migrations-folder-"));
+  roots.push(root);
   for (const folder of folders) mkdirSync(path.join(root, folder), { recursive: true });
   return root;
 }

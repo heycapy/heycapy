@@ -8,6 +8,7 @@ import { CapyChatHeader } from "./CapyChatHeader";
 import { ChatHistorySheet } from "./ChatHistorySheet";
 import { CapyChatDrawer } from "./CapyChatDrawer";
 import { Sprite } from "./Sprite";
+import { AIStatusStrip } from "./AIStatusStrip";
 import { DEFAULT_H, HEADER_H } from "./chatTypes";
 import { useLayoutStore, type ChatState } from "@/store/layout";
 
@@ -32,6 +33,7 @@ export function CapyChat() {
     input,
     setInput,
     streaming,
+    status,
     sendMessage,
     stopStreaming,
     clearChat,
@@ -85,9 +87,11 @@ export function CapyChat() {
 
   const body = (
     <>
+      <AIStatusStrip />
       <ChatMessageList
         messages={messages}
         streaming={streaming}
+        status={status}
         fullscreen={chatState === "fullscreen"}
       />
       <ChatInputBar
