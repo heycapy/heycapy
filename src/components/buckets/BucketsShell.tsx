@@ -161,6 +161,13 @@ export function BucketsShell({ buckets: rawBuckets, focusBucketId = null }: Buck
       </div>
 
       <div className="border-border bg-background sticky bottom-0 border-t-2 md:border-t-0">
+        <button
+          onClick={() => setChatState("open")}
+          aria-label="chat with capy"
+          className="absolute right-3 bottom-full flex items-end transition-transform active:scale-95 md:hidden"
+        >
+          <Sprite id="capy-idle-blink" size={52} />
+        </button>
         <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-stretch pb-[max(0.5rem,env(safe-area-inset-bottom))] md:hidden">
           <button
             onClick={() => setPickerOpen(true)}
@@ -172,7 +179,7 @@ export function BucketsShell({ buckets: rawBuckets, focusBucketId = null }: Buck
               className="flex h-10 max-w-28 min-w-0 items-center gap-1 px-2"
             >
               {todayOpen && <Clock size={13} className="shrink-0" aria-hidden />}
-              <span className="font-pixel text-foreground truncate text-sm">
+              <span className="text-foreground truncate font-mono text-base">
                 {todayOpen
                   ? "today"
                   : activeBucket.icon
@@ -193,17 +200,10 @@ export function BucketsShell({ buckets: rawBuckets, focusBucketId = null }: Buck
               </BracketButton>
             )}
           </div>
-          <div className="flex min-w-0 items-stretch justify-between">
-            <BracketButton onClick={() => setSearchOpen(true)} className="min-h-14 px-1 text-sm">
+          <div className="flex min-w-0 items-center justify-end pr-4">
+            <BracketButton onClick={() => setSearchOpen(true)} className="min-h-14 px-2 text-base">
               search
             </BracketButton>
-            <button
-              onClick={() => setChatState("open")}
-              aria-label="chat with capy"
-              className="flex min-h-14 shrink-0 items-center pr-3 pl-1 transition-transform active:scale-95"
-            >
-              <Sprite id="capy-idle-blink" size={44} />
-            </button>
           </div>
         </div>
 
