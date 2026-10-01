@@ -176,6 +176,13 @@
       "when": 1793340000000,
       "tag": "0024_outgoing_webhooks",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "6",
+      "when": 1793350000000,
+      "tag": "0025_webhook_channel",
+      "breakpoints": true
     }
   ]
 }

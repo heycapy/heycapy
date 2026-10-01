@@ -10,6 +10,7 @@ import { outgoingWebhooks } from "@/lib/db/schema";
 import { decryptValue, encryptValue } from "@/lib/crypto";
 import { publicAddress } from "@/lib/notifications/public-address";
 import { newWebhookMessageId, newWebhookSecret, sendWebhook } from "@/lib/notifications/webhook";
+import { dismissChannelFailures } from "@/lib/notifications/failures";
 import { isE2ETestMode } from "@/lib/e2e";
 import { errorMessage } from "@/lib/errors";
 import {
@@ -112,6 +113,7 @@ export async function saveWebhookAction(
 export async function deleteWebhookAction(id: number): Promise<ActionResult> {
   const session = await getSession();
   if (!session) return { ok: false, error: "Unauthorized" };
+  // ids are never reused (autoincrement), so buckets that still list this one simply skip it
   await db
     .delete(outgoingWebhooks)
     .where(and(eq(outgoingWebhooks.id, id), eq(outgoingWebhooks.userId, session.userId)));
@@ -158,5 +160,7 @@ export async function sendTestWebhookAction(id: number): Promise<ActionResult> {
   } catch (err) {
     return { ok: false, error: errorMessage(err) };
   }
+  await dismissChannelFailures(session.userId, "webhook", webhook.id);
+  revalidatePath("/");
   return { ok: true };
 }

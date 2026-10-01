@@ -82,6 +82,7 @@ export function BucketSettingsForm({
         },
         {
           medium: values.mediums,
+          webhooks: values.webhooks,
           reminderButtons: values.reminderButtons,
           notifyAt: values.notifyAt || undefined,
           defaultReminders: values.defaultReminders,
@@ -175,6 +176,7 @@ export function BucketSettingsForm({
             readonly={values.readonly}
             defaultDeadlineOffset={values.defaultDeadlineOffset}
             mediums={values.mediums}
+            webhooks={values.webhooks}
             reminderButtons={values.reminderButtons}
             notifyAt={values.notifyAt}
             defaultReminders={values.defaultReminders}
@@ -195,6 +197,14 @@ export function BucketSettingsForm({
                 mediums: prev.mediums.includes(m)
                   ? prev.mediums.filter((x) => x !== m)
                   : [...prev.mediums, m],
+              }))
+            }
+            onWebhookToggle={(id) =>
+              setValues((prev) => ({
+                ...prev,
+                webhooks: prev.webhooks.includes(id)
+                  ? prev.webhooks.filter((x) => x !== id)
+                  : [...prev.webhooks, id],
               }))
             }
             onReminderButtonToggle={(b) =>

@@ -2,6 +2,7 @@ import { test, expect, type Locator, type Page } from "@playwright/test";
 import { authState } from "../helpers/auth";
 
 test.use({ storageState: authState("outgoing-webhooks") });
+test.describe.configure({ mode: "default" });
 
 const NAME = "work slack";
 const URL_FIELD = "https://example.com/hooks/heycapy";
@@ -13,12 +14,12 @@ async function openWebhooks(page: Page): Promise<Locator> {
   await page.getByRole("button", { name: "notifications", exact: true }).click();
   return page
     .locator("div")
-    .filter({ has: page.getByText("webhooks", { exact: true }) })
+    .filter({ has: page.getByText("other apps", { exact: true }) })
     .last();
 }
 
 async function addWebhook(box: Locator, name: string, url: string) {
-  await box.getByRole("button", { name: "[ add webhook + ]" }).click();
+  await box.getByRole("button", { name: "[ add app + ]" }).click();
   await box.getByPlaceholder(NAME).fill(name);
   await box.getByPlaceholder(URL_FIELD).fill(url);
   await box.getByRole("button", { name: "[ save ]" }).click();
@@ -27,7 +28,7 @@ async function addWebhook(box: Locator, name: string, url: string) {
 
 test("a webhook is added once in tweaks, tested, kept and deleted", async ({ page }) => {
   let box = await openWebhooks(page);
-  await box.getByRole("button", { name: "[ add webhook + ]" }).click();
+  await box.getByRole("button", { name: "[ add app + ]" }).click();
   await box.getByPlaceholder(URL_FIELD).fill("https://discord.com/api/webhooks/1/abc");
   await expect(box.getByText("discord link · sent as a normal discord message")).toBeVisible();
   await box.getByRole("button", { name: "[ cancel ]" }).click();
@@ -49,7 +50,7 @@ test("a webhook is added once in tweaks, tested, kept and deleted", async ({ pag
   await expect(box.getByText("home assistant", { exact: true })).toBeHidden();
 
   box = await openWebhooks(page);
-  await expect(box.getByRole("button", { name: "[ add webhook + ]" })).toBeVisible();
+  await expect(box.getByRole("button", { name: "[ add app + ]" })).toBeVisible();
   await expect(box.getByText("home assistant", { exact: true })).toBeHidden();
 });
 

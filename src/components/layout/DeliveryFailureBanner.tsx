@@ -2,7 +2,7 @@ import { useState, useTransition } from "react";
 import { BracketButton } from "@/components/ui/BracketButton";
 import { dismissDeliveryFailuresAction } from "@/app/(app)/actions";
 import type { ChannelFailure } from "@/lib/notifications/failures";
-import type { NotificationMedium } from "@/lib/notifications/queue";
+import { channelKey } from "@/lib/notifications/channel-key";
 import { DeliveryFailuresDialog } from "./DeliveryFailuresDialog";
 
 type DeliveryFailureBannerProps = {
@@ -12,21 +12,22 @@ type DeliveryFailureBannerProps = {
 
 export function DeliveryFailureBanner({ failures, onFix }: DeliveryFailureBannerProps) {
   const [details, setDetails] = useState<ChannelFailure | null>(null);
-  const [dismissing, setDismissing] = useState<NotificationMedium[]>([]);
+  const [dismissing, setDismissing] = useState<string[]>([]);
   const [, startTransition] = useTransition();
 
-  function dismiss(medium: NotificationMedium) {
-    setDismissing((prev) => [...prev, medium]);
+  function dismiss(failure: ChannelFailure) {
+    const key = channelKey(failure);
+    setDismissing((prev) => [...prev, key]);
     startTransition(async () => {
       try {
-        await dismissDeliveryFailuresAction(medium);
+        await dismissDeliveryFailuresAction(failure.medium, failure.webhookId);
       } finally {
-        setDismissing((prev) => prev.filter((m) => m !== medium));
+        setDismissing((prev) => prev.filter((k) => k !== key));
       }
     });
   }
 
-  const visible = failures.filter((f) => !dismissing.includes(f.medium));
+  const visible = failures.filter((f) => !dismissing.includes(channelKey(f)));
   if (visible.length === 0) return null;
 
   return (
@@ -36,12 +37,12 @@ export function DeliveryFailureBanner({ failures, onFix }: DeliveryFailureBanner
         const latestError = failure.deliveries[0]?.error;
         return (
           <div
-            key={failure.medium}
+            key={channelKey(failure)}
             role="alert"
             className="border-border text-destructive flex items-center gap-3 border border-dashed px-3 py-2 font-mono text-xs"
           >
             <span className="min-w-0 flex-1 truncate">
-              ⚠ {failure.medium}: {count} {count === 1 ? "notification" : "notifications"} failed
+              ⚠ {failure.label}: {count} {count === 1 ? "notification" : "notifications"} failed
               {latestError && ` · ${latestError}`}
             </span>
             <BracketButton onClick={onFix} className="shrink-0">
@@ -51,8 +52,8 @@ export function DeliveryFailureBanner({ failures, onFix }: DeliveryFailureBanner
               details
             </BracketButton>
             <BracketButton
-              onClick={() => dismiss(failure.medium)}
-              aria-label={`dismiss ${failure.medium} failures`}
+              onClick={() => dismiss(failure)}
+              aria-label={`dismiss ${failure.label} failures`}
               className="shrink-0"
             >
               x

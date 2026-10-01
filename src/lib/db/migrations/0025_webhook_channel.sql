@@ -1,0 +1,2 @@
+ALTER TABLE `notification_log` ADD `webhook_id` integer REFERENCES outgoing_webhooks(id) ON DELETE SET NULL;--> statement-breakpoint
+ALTER TABLE `notification_queue` ADD `webhook_id` integer REFERENCES outgoing_webhooks(id) ON DELETE SET NULL;

@@ -5,7 +5,7 @@ import { db } from "@/lib/db";
 import { templates, users } from "@/lib/db/schema";
 import { AppShell } from "@/components/layout/AppShell";
 import { getChannelFailures } from "@/lib/notifications/failures";
-import { getWorkingChannels } from "@/lib/notifications/channels";
+import { getChannelSettings, workingChannels } from "@/lib/notifications/channels";
 import { CreateBucketModal } from "@/components/buckets/CreateBucketModal";
 import type { ReactNode } from "react";
 
@@ -13,14 +13,14 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   const session = await getSession();
   if (!session) redirect("/login");
 
-  const [rawTemplates, user, failures, workingChannels] = await Promise.all([
+  const [rawTemplates, user, failures, channelSettings] = await Promise.all([
     db
       .select()
       .from(templates)
       .where(or(isNull(templates.userId), eq(templates.userId, session.userId))),
     db.query.users.findFirst({ where: eq(users.id, session.userId) }),
     getChannelFailures(session.userId),
-    getWorkingChannels(session.userId),
+    getChannelSettings(session.userId),
   ]);
 
   const seen = new Set<string>();
@@ -35,7 +35,10 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
       <AppShell
         email={user?.email ?? ""}
         failures={failures}
-        hasWorkingChannel={workingChannels.length > 0}
+        hasWorkingChannel={
+          !!channelSettings &&
+          (workingChannels(channelSettings).length > 0 || channelSettings.webhooks.length > 0)
+        }
       >
         {children}
       </AppShell>

@@ -51,7 +51,9 @@ export function buildSystemPrompt(
             if (items.defaultDeadlineOffsetDays) {
               tags.push(`default deadline: ${items.defaultDeadlineOffsetDays}d from today`);
             }
-            const channels = bucketChannels(b.notificationsRules);
+            const { medium, webhooks } = bucketChannels(b.notificationsRules);
+            const channels =
+              webhooks.length > 0 ? [...medium, `${webhooks.length} webhook`] : medium;
             if (channels.length > 0) tags.push(`notifications: ${channels.join("+")}`);
             const suffix = tags.length > 0 ? ` [${tags.join(", ")}]` : "";
             return `- "${b.name}" (id: ${b.id})${suffix}`;

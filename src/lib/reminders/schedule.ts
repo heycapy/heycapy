@@ -114,8 +114,12 @@ export function reminderTimes(base: Date, offsets: number[]): Date[] {
     .sort((a, b) => a.getTime() - b.getTime());
 }
 
+function picksAChannel(i: ReminderInputs): boolean {
+  return i.rules.medium.length > 0 || i.rules.webhooks.length > 0;
+}
+
 export function nextDeadlineReminder(i: ReminderInputs): Date | null {
-  if (!canRemind(i) || i.rules.medium.length === 0) return null;
+  if (!canRemind(i) || !picksAChannel(i)) return null;
 
   const base = reminderBase(i.deadline, i.rules.notifyAt, i.timezone);
   const times = reminderTimes(base, i.reminderOffsets ?? i.rules.defaultReminders);
@@ -136,7 +140,7 @@ export function nextDeadlineReminder(i: ReminderInputs): Date | null {
 }
 
 export function nextOverdueAlert(i: ReminderInputs): Date | null {
-  if (!canRemind(i) || !i.notifyWhenOverdue || i.rules.medium.length === 0) return null;
+  if (!canRemind(i) || !i.notifyWhenOverdue || !picksAChannel(i)) return null;
 
   let due: Date;
   if (!i.overdueNotifiedAt) {

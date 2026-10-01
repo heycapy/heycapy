@@ -220,7 +220,8 @@ export const notificationQueue = sqliteTable("notification_queue", {
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
   itemId: integer("item_id").references(() => items.id, { onDelete: "set null" }),
-  medium: text("medium", { enum: ["email", "ntfy", "telegram", "push"] }).notNull(),
+  medium: text("medium", { enum: ["email", "ntfy", "telegram", "push", "webhook"] }).notNull(),
+  webhookId: integer("webhook_id").references(() => outgoingWebhooks.id, { onDelete: "set null" }),
   title: text("title").notNull(),
   message: text("message").notNull(),
   status: text("status", {
@@ -250,7 +251,8 @@ export const notificationLog = sqliteTable("notification_log", {
   userId: integer("user_id")
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
-  medium: text("medium", { enum: ["email", "ntfy", "telegram", "push"] }).notNull(),
+  medium: text("medium", { enum: ["email", "ntfy", "telegram", "push", "webhook"] }).notNull(),
+  webhookId: integer("webhook_id").references(() => outgoingWebhooks.id, { onDelete: "set null" }),
   message: text("message").notNull(),
   status: text("status", { enum: ["sent", "failed"] })
     .notNull()

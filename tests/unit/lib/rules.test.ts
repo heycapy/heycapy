@@ -8,11 +8,15 @@ describe("rules helpers", () => {
     expect(parseItemsRules("{nope")).toEqual({});
   });
 
-  it("read the bucket's channels", () => {
-    expect(bucketChannels(JSON.stringify({ medium: ["telegram", "email"] }))).toEqual([
-      "telegram",
-      "email",
-    ]);
+  it("read the bucket's channels and webhooks", () => {
+    expect(bucketChannels(JSON.stringify({ medium: ["telegram", "email"] }))).toEqual({
+      medium: ["telegram", "email"],
+      webhooks: [],
+    });
+    expect(bucketChannels(JSON.stringify({ medium: [], webhooks: [3, 7] }))).toEqual({
+      medium: [],
+      webhooks: [3, 7],
+    });
   });
 
   it("understand the older sort_by key", () => {

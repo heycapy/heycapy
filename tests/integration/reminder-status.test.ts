@@ -105,10 +105,10 @@ describe("dialog details", () => {
     expect(await getItemReminderInfo(userId, itemId)).toEqual({
       next: TOMORROW,
       nextChannels: [
-        { medium: "email", state: "notSelected" },
-        { medium: "push", state: "notSelected" },
-        { medium: "telegram", state: "send" },
-        { medium: "ntfy", state: "notSelected" },
+        { medium: "email", webhookId: null, label: "email", state: "notSelected" },
+        { medium: "push", webhookId: null, label: "push", state: "notSelected" },
+        { medium: "telegram", webhookId: null, label: "telegram", state: "send" },
+        { medium: "ntfy", webhookId: null, label: "ntfy", state: "notSelected" },
       ],
       completedAt: null,
       reason: null,
@@ -205,9 +205,9 @@ describe("history records each channel as it was at send time", () => {
         title: "t",
         message: "m",
         channels: [
-          { medium: "email", state: "notSelected" },
-          { medium: "telegram", state: "send" },
-          { medium: "ntfy", state: "notSetUp" },
+          { medium: "email", webhookId: null, label: "email", state: "notSelected" },
+          { medium: "telegram", webhookId: null, label: "telegram", state: "send" },
+          { medium: "ntfy", webhookId: null, label: "ntfy", state: "notSetUp" },
         ],
       });
     }
@@ -252,8 +252,22 @@ describe("history records each channel as it was at send time", () => {
 
     const [event] = sentEvents((await getItemReminderInfo(userId, itemId))?.history);
     expect(event?.channels).toEqual([
-      { medium: "email", outcome: "failed", error: "SMTP auth failed", retryAt: null },
-      { medium: "telegram", outcome: "retrying", error: "timeout", retryAt },
+      {
+        medium: "email",
+        webhookId: null,
+        label: "email",
+        outcome: "failed",
+        error: "SMTP auth failed",
+        retryAt: null,
+      },
+      {
+        medium: "telegram",
+        webhookId: null,
+        label: "telegram",
+        outcome: "retrying",
+        error: "timeout",
+        retryAt,
+      },
     ]);
   });
 
@@ -268,7 +282,7 @@ describe("history records each channel as it was at send time", () => {
         kind: "reminder",
         title: "t",
         message: "m",
-        channels: [{ medium: "telegram", state: "send" }],
+        channels: [{ medium: "telegram", webhookId: null, label: "telegram", state: "send" }],
       });
     }
     expect((await getItemReminderInfo(userId, itemId))?.history).toHaveLength(10);
@@ -285,7 +299,7 @@ describe("a reminder for an item closed before it was sent", () => {
       kind: "reminder",
       title: "t",
       message: "m",
-      channels: [{ medium: "telegram", state: "send" }],
+      channels: [{ medium: "telegram", webhookId: null, label: "telegram", state: "send" }],
     });
     await db.update(items).set({ status: "completed" }).where(eq(items.id, itemId));
     await processPending();

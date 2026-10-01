@@ -9,6 +9,7 @@ import type {
   NotificationEvent,
 } from "@/lib/reminders/status";
 import { formatShort } from "@/lib/format-date";
+import { channelKey } from "@/lib/notifications/channel-key";
 
 const REASONS: Record<NonNullable<Info["reason"]>, string> = {
   completed: "completed",
@@ -44,10 +45,10 @@ function statusLine(info: Info): string {
 
 function goesTo(info: Info): string | null {
   if (!info.nextChannels) return null;
-  const sends = info.nextChannels.filter((c) => c.state === "send").map((c) => c.medium);
+  const sends = info.nextChannels.filter((c) => c.state === "send").map((c) => c.label);
   const others = info.nextChannels
     .filter((c) => c.state !== "send")
-    .map((c) => `${c.medium} ${c.state === "notSelected" ? "not selected" : "not set up"}`);
+    .map((c) => `${c.label} ${c.state === "notSelected" ? "not selected" : "not set up"}`);
   return `goes to ${sends.join(", ")}${others.length ? ` (${others.join(" · ")})` : ""}`;
 }
 
@@ -136,10 +137,10 @@ export function ItemReminderInfo({ itemId }: { itemId: number }) {
                   </p>
                   {event.channels.map((c) => (
                     <p
-                      key={c.medium}
+                      key={channelKey(c)}
                       className={cn("pl-3 break-words", OUTCOMES[c.outcome].className)}
                     >
-                      {c.medium} {outcomeText(c)}
+                      {c.label} {outcomeText(c)}
                     </p>
                   ))}
                 </li>

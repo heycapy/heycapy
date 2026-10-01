@@ -74,7 +74,7 @@ export function WebhookForm({ webhook, onSaved, onDeleted, onClose }: WebhookFor
         />
       </div>
       <div className="flex flex-col gap-1.5">
-        <label className={LABEL}>url</label>
+        <label className={LABEL}>webhook url</label>
         <input
           type="url"
           value={url}

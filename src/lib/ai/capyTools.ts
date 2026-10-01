@@ -15,6 +15,7 @@ import { withDefaultChannels } from "@/lib/notifications/channels";
 import { initialReminderState, reminderResetForDeadline } from "@/lib/items/reminders";
 import { refreshItemReminders, reminderContext } from "@/lib/reminders/refresh";
 import { createNextOccurrence } from "@/lib/items/recurrence";
+import { toggleItemCompleted } from "@/lib/items/complete";
 import { onLastDayIfAnchored, parseRecurring } from "@/lib/items/occurrence";
 import { repeatFromArgs } from "./repeatArgs";
 import { encryptValue, generateWebhookKey } from "@/lib/crypto";
@@ -505,18 +506,7 @@ async function executeToolCallInner(
       });
       if (!item) return JSON.stringify({ ok: false, error: "Item not found" });
 
-      const newStatus =
-        item.status === ITEM_STATUS.completed ? ITEM_STATUS.active : ITEM_STATUS.completed;
-      await db
-        .update(items)
-        .set({
-          status: newStatus,
-          completedAt: newStatus === ITEM_STATUS.completed ? new Date() : null,
-          updatedAt: new Date(),
-        })
-        .where(and(eq(items.id, itemId), eq(items.userId, userId)));
-      await refreshItemReminders([itemId]);
-      if (newStatus === ITEM_STATUS.completed) await createNextOccurrence(itemId);
+      const newStatus = await toggleItemCompleted(item);
 
       revalidatePath("/");
       return JSON.stringify({ ok: true, newStatus });

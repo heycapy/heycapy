@@ -1,12 +1,20 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { buckets, items, notificationQueue, templates, userSettings } from "@/lib/db/schema";
+import {
+  buckets,
+  items,
+  notificationQueue,
+  outgoingWebhooks,
+  pushSubscriptions,
+  templates,
+  userSettings,
+} from "@/lib/db/schema";
 import { createBucketAction } from "@/app/(app)/bucket-actions";
 import { executeToolCall } from "@/lib/ai/capyTools";
 import { enqueue, processPending } from "@/lib/notifications/queue";
 import { refreshItemReminders } from "@/lib/reminders/refresh";
-import { getWorkingChannels } from "@/lib/notifications/channels";
+import { getChannelSettings, getWorkingChannels } from "@/lib/notifications/channels";
 import { resetSchedulerEnvironment, seedUser, useSchedulerEnvironment } from "./helpers";
 
 const session = vi.hoisted(() => ({ userId: 0, email: "" }));
@@ -163,5 +171,30 @@ describe("working channels", () => {
       ntfyTopic: "heycapy",
     });
     expect(await getWorkingChannels(userId)).toEqual([]);
+  });
+
+  it("another user's push device or webhook never counts as yours", async () => {
+    const other = await userWith({});
+    await db.insert(pushSubscriptions).values({
+      userId: other,
+      endpoint: `https://push.example.com/${other}`,
+      p256dh: "key",
+      auth: "auth",
+      deviceName: "Chrome on Linux",
+    });
+    await db.insert(outgoingWebhooks).values({
+      userId: other,
+      name: "theirs",
+      url: "https://example.com/h",
+      secret: "whsec_AA==",
+    });
+
+    const userId = await userWith({});
+    expect(await getWorkingChannels(userId)).toEqual([]);
+    expect((await getChannelSettings(userId))?.webhooks).toEqual([]);
+    expect(await getWorkingChannels(other)).toEqual(["push"]);
+    expect((await getChannelSettings(other))?.webhooks).toEqual([
+      expect.objectContaining({ name: "theirs" }),
+    ]);
   });
 });

@@ -25,6 +25,7 @@ describe("parseBucketSettings", () => {
       readonly: false,
       defaultDeadlineOffset: "",
       mediums: [],
+      webhooks: [],
       reminderButtons: ["60", "tomorrow"],
       notifyAt: "",
       defaultReminders: [0],

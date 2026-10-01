@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import { buckets, items, notificationQueue } from "@/lib/db/schema";
 import { encryptValue } from "@/lib/crypto";
 import { executeToolCall } from "@/lib/ai/capyTools";
-import { addItemAction, updateItemAction } from "@/app/(app)/item-actions";
+import { addItemAction, completeItemAction, updateItemAction } from "@/app/(app)/item-actions";
 import { createItem } from "@/app/api/telegram/telegram-utils";
 import { moveOccurrence } from "@/lib/items/recurrence";
 import { POST as postWebhook } from "@/app/api/webhook/[bucketId]/route";
@@ -124,6 +124,29 @@ describe("a deadline that is already past sends only the overdue alert", () => {
     expect(res.status).toBe(201);
     expect(await sentKinds(await latestItemId(bucketId))).toEqual(["overdue"]);
   });
+
+  it("web: reopening a completed item, even one reminded before its date", async () => {
+    const { userId, bucketId } = await setup();
+    const itemId = await seedItem(userId, bucketId, {
+      deadline: PAST,
+      notifiedAt: new Date(PAST.getTime() - 24 * HOUR),
+      reminderOffsets: [24 * 60, 0],
+    });
+    await db.update(items).set({ status: "completed" }).where(eq(items.id, itemId));
+    await completeItemAction(itemId);
+    expect(await sentKinds(itemId)).toEqual(["overdue"]);
+  });
+
+  it("assistant: reopening a completed item", async () => {
+    const { userId, bucketId } = await setup();
+    const itemId = await seedItem(userId, bucketId, { deadline: PAST });
+    await db.update(items).set({ status: "completed" }).where(eq(items.id, itemId));
+    await executeToolCall(
+      { id: "c", name: "complete_item", arguments: { item_id: itemId } },
+      userId
+    );
+    expect(await sentKinds(itemId)).toEqual(["overdue"]);
+  });
 });
 
 describe("future deadlines are unchanged", () => {
@@ -135,6 +158,14 @@ describe("future deadlines are unchanged", () => {
       .set({ reminderOffsets: [24 * 60] })
       .where(eq(items.id, itemId));
     await updateItemAction(itemId, "x", new Date(T0.getTime() + 2 * HOUR).toISOString());
+    expect(await sentKinds(itemId)).toEqual(["reminder"]);
+  });
+
+  it("reopening a completed item that's still ahead keeps its reminder", async () => {
+    const { userId, bucketId } = await setup();
+    const itemId = await seedItem(userId, bucketId, { deadline: new Date(T0.getTime() + 60_000) });
+    await db.update(items).set({ status: "completed" }).where(eq(items.id, itemId));
+    await completeItemAction(itemId);
     expect(await sentKinds(itemId)).toEqual(["reminder"]);
   });
 });

@@ -20,6 +20,7 @@ type RawItemsRules = {
 
 type RawNotifRules = {
   medium?: NotificationMedium[];
+  webhooks?: number[];
   reminderButtons?: QuickRemindChoice[];
   notifyAt?: string;
   notify_at?: string;
@@ -36,6 +37,7 @@ export type BucketSettingsValues = {
   readonly: boolean;
   defaultDeadlineOffset: string;
   mediums: NotificationMedium[];
+  webhooks: number[];
   reminderButtons: QuickRemindChoice[];
   notifyAt: string;
   defaultReminders: number[];
@@ -83,6 +85,7 @@ export function parseBucketSettings(bucket: BucketRow): BucketSettingsValues {
         ? daysToDisplayStr(ir.defaultDeadlineOffsetDays)
         : (ir.default_deadline_offset ?? ""),
     mediums: nr.medium ?? [],
+    webhooks: nr.webhooks ?? [],
     reminderButtons: nr.reminderButtons ?? DEFAULT_REMINDER_BUTTONS,
     notifyAt: nr.notifyAt ?? nr.notify_at ?? "",
     defaultReminders: nr.defaultReminders ?? [0],

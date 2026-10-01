@@ -1,6 +1,4 @@
 import { createHmac } from "node:crypto";
-import { createServer, type IncomingHttpHeaders } from "node:http";
-import type { AddressInfo } from "node:net";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
@@ -13,36 +11,19 @@ import {
   sendTestWebhookAction,
 } from "@/app/(app)/webhook-actions";
 import { seedUser } from "./helpers";
+import { startWebhookReceiver, type WebhookReceiver } from "./webhook-receiver";
 
 const session = vi.hoisted(() => ({ userId: 0, email: "someone@heycapy.test" }));
 vi.mock("@/lib/auth/session", () => ({ getSession: async () => session }));
 
-type Received = { headers: IncomingHttpHeaders; body: string };
-
-let received: Received[];
-let status: number;
-let receiver: { url: string; close: () => Promise<void> };
+let receiver: WebhookReceiver;
+let received: WebhookReceiver["received"];
 
 beforeEach(async () => {
   delete process.env.E2E_TEST_MODE;
   session.userId = await seedUser();
-  received = [];
-  status = 200;
-  const server = createServer((req, res) => {
-    let body = "";
-    req.setEncoding("utf8");
-    req.on("data", (chunk: string) => (body += chunk));
-    req.on("end", () => {
-      received.push({ headers: req.headers, body });
-      res.writeHead(status).end(status === 200 ? "ok" : "nope");
-    });
-  });
-  await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
-  const { port } = server.address() as AddressInfo;
-  receiver = {
-    url: `http://127.0.0.1:${port}/hook`,
-    close: () => new Promise((resolve) => server.close(() => resolve())),
-  };
+  receiver = await startWebhookReceiver();
+  received = receiver.received;
 });
 afterEach(async () => {
   vi.unstubAllEnvs();
@@ -75,7 +56,7 @@ it("a test message arrives signed the Standard Webhooks way", async () => {
 
 it("a receiver that rejects the test shows its answer", async () => {
   const webhook = await saveWebhook();
-  status = 400;
+  receiver.reply(400);
   expect(await sendTestWebhookAction(webhook.id)).toEqual({
     ok: false,
     error: "webhook error 400: nope",

@@ -44,10 +44,10 @@ export function WebhookSettings() {
 
   return (
     <div className={BOX}>
-      <span className={SECTION}>webhooks</span>
+      <span className={SECTION}>other apps</span>
       <p className={HINT}>
-        send notifications to discord, slack, home assistant, n8n or your own server · up to{" "}
-        {MAX_OUTGOING_WEBHOOKS}
+        send notifications to discord, slack, home assistant, n8n or your own server with its
+        webhook url · up to {MAX_OUTGOING_WEBHOOKS} · pick them per bucket under channels
       </p>
       {webhooks?.map((webhook) =>
         open === webhook.id ? (
@@ -84,7 +84,7 @@ export function WebhookSettings() {
       )}
       {webhooks && open !== "new" && webhooks.length < MAX_OUTGOING_WEBHOOKS && (
         <BracketButton type="button" onClick={() => setOpen("new")} className="self-start">
-          add webhook +
+          add app +
         </BracketButton>
       )}
     </div>

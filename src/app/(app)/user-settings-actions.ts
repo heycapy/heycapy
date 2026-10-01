@@ -13,7 +13,7 @@ import { users, userSettings } from "@/lib/db/schema";
 import { encryptValue, decryptValue } from "@/lib/crypto";
 import { refreshUserReminders } from "@/lib/reminders/refresh";
 import { parseClock } from "@/lib/reminders/zoned";
-import { ALL_CHANNELS, getWorkingChannels } from "@/lib/notifications/channels";
+import { ALL_CHANNELS, getChannelSettings, workingChannels } from "@/lib/notifications/channels";
 import { TELEGRAM_API_BASE, TELEGRAM_LINK_BASE } from "@/constants";
 import { sendEmail } from "@/lib/notifications/email";
 import { sendNtfy } from "@/lib/notifications/ntfy";
@@ -293,16 +293,21 @@ export async function getNotifAvailabilityAction(): Promise<{
   ntfy: boolean;
   telegram: boolean;
   push: boolean;
+  webhooks: { id: number; name: string }[];
 }> {
+  const none = { email: false, ntfy: false, telegram: false, push: false, webhooks: [] };
   const session = await getSession();
-  if (!session) return { email: false, ntfy: false, telegram: false, push: false };
+  if (!session) return none;
 
-  const working = await getWorkingChannels(session.userId);
+  const settings = await getChannelSettings(session.userId);
+  if (!settings) return none;
+  const working = workingChannels(settings);
   return {
     email: working.includes("email"),
     ntfy: working.includes("ntfy"),
     telegram: working.includes("telegram"),
     push: working.includes("push"),
+    webhooks: settings.webhooks.map(({ id, name }) => ({ id, name })),
   };
 }
 
@@ -424,10 +429,13 @@ async function clearFailuresAfterTest(userId: number, medium: NotificationMedium
   revalidatePath("/");
 }
 
-export async function dismissDeliveryFailuresAction(medium: NotificationMedium): Promise<void> {
+export async function dismissDeliveryFailuresAction(
+  medium: NotificationMedium,
+  webhookId: number | null = null
+): Promise<void> {
   const session = await getSession();
   if (!session || !ALL_CHANNELS.includes(medium)) return;
-  await dismissChannelFailures(session.userId, medium);
+  await dismissChannelFailures(session.userId, medium, webhookId);
   revalidatePath("/");
 }
 
