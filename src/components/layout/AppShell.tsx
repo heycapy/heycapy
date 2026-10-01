@@ -8,7 +8,7 @@ import { DeliveryFailureBanner } from "./DeliveryFailureBanner";
 import { NoChannelBanner } from "./NoChannelBanner";
 import { ArchivedBucketsSheet } from "@/components/buckets/ArchivedBucketsSheet";
 import { TrashSheet } from "@/components/buckets/TrashSheet";
-import { SearchPage } from "@/components/search/SearchPage";
+import { SearchDrawer } from "@/components/search/SearchDrawer";
 import { useUIStore } from "@/store/ui";
 import { useChatStore } from "@/store/chat";
 import { useServerEvents } from "@/hooks/useServerEvents";
@@ -29,7 +29,6 @@ export function AppShell({ children, email, failures, hasWorkingChannel }: AppSh
   const [settingsTab, setSettingsTab] = useState<SettingsTab | null>(null);
   const [archivedOpen, setArchivedOpen] = useState(false);
   const [trashOpen, setTrashOpen] = useState(false);
-  const [searchOpen, setSearchOpen] = useState(false);
 
   useServerEvents();
 
@@ -42,7 +41,6 @@ export function AppShell({ children, email, failures, hasWorkingChannel }: AppSh
     <>
       <Header
         email={email}
-        onSearchOpen={() => setSearchOpen(true)}
         onSettingsOpen={() => setSettingsTab("appearance")}
         onArchiveOpen={() => setArchivedOpen(true)}
         onTrashOpen={() => setTrashOpen(true)}
@@ -57,7 +55,7 @@ export function AppShell({ children, email, failures, hasWorkingChannel }: AppSh
       />
       <ArchivedBucketsSheet open={archivedOpen} onClose={() => setArchivedOpen(false)} />
       <TrashSheet open={trashOpen} onClose={() => setTrashOpen(false)} />
-      <SearchPage open={searchOpen} onClose={() => setSearchOpen(false)} />
+      <SearchDrawer />
       <CapyChat />
     </>
   );

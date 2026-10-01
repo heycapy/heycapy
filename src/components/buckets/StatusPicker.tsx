@@ -40,12 +40,12 @@ export function StatusPicker({
 
   return createPortal(
     <>
-      <div className="fixed inset-0 z-30" onClick={onClose} />
+      <div className="fixed inset-0 z-[56]" onClick={onClose} />
       <div
         ref={menuRef}
         role="menu"
         aria-label="status"
-        className="bg-background border-border fixed z-40 border-2 py-1"
+        className="bg-background border-border fixed z-[57] border-2 py-1"
         style={{
           top: pos?.top ?? 0,
           left: pos?.left ?? 0,

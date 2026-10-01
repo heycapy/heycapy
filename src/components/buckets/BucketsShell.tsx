@@ -57,8 +57,11 @@ export function BucketsShell({ buckets: rawBuckets, focusBucketId = null }: Buck
   const openCreateBucket = useUIStore((s) => s.openCreateBucket);
   const setChatState = useLayoutStore((s) => s.setChatState);
   const setBottomBarShown = useLayoutStore((s) => s.setBottomBarShown);
+  const setSearchOpen = useLayoutStore((s) => s.setSearchOpen);
   const activeBucketId = useUIStore((s) => s.activeBucketId);
   const setActiveBucketId = useUIStore((s) => s.setActiveBucketId);
+  const newBucketId = useUIStore((s) => s.newBucketId);
+  const clearNewBucket = useUIStore((s) => s.clearNewBucket);
   const todayOpen = useUIStore((s) => s.todayOpen);
   const openToday = useUIStore((s) => s.openToday);
   // The open view is remembered per session; wait for it rather than flash the default
@@ -90,6 +93,12 @@ export function BucketsShell({ buckets: rawBuckets, focusBucketId = null }: Buck
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  useEffect(() => {
+    if (newBucketId === null || !buckets.some((b) => b.id === newBucketId)) return;
+    setActiveBucketId(newBucketId);
+    clearNewBucket();
+  }, [buckets, newBucketId, setActiveBucketId, clearNewBucket]);
+
   const activeId =
     activeBucketId !== null && buckets.some((b) => b.id === activeBucketId)
       ? activeBucketId
@@ -108,6 +117,7 @@ export function BucketsShell({ buckets: rawBuckets, focusBucketId = null }: Buck
   const activeBucket = buckets.find((b) => b.id === activeId) ?? buckets[0];
   const activeIndex = buckets.findIndex((b) => b.id === activeId);
   const accentColor = BUCKET_PALETTE[Math.max(activeIndex, 0) % BUCKET_PALETTE.length];
+  const placeColor = todayOpen ? "var(--foreground)" : accentColor;
 
   if (!activeBucket) return null;
 
@@ -151,51 +161,48 @@ export function BucketsShell({ buckets: rawBuckets, focusBucketId = null }: Buck
       </div>
 
       <div className="border-border bg-background sticky bottom-0 border-t-2 md:border-t-0">
-        <div className="grid grid-cols-[1fr_auto_1fr] items-stretch pb-[max(0.5rem,env(safe-area-inset-bottom))] md:hidden">
+        <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-stretch pb-[max(0.5rem,env(safe-area-inset-bottom))] md:hidden">
           <button
             onClick={() => setPickerOpen(true)}
             aria-haspopup="dialog"
-            style={{ borderTopColor: todayOpen ? undefined : accentColor }}
-            className={cn(
-              "bg-card -mt-0.5 flex min-h-14 min-w-0 items-center gap-2.5 border-t-2 pr-2 pl-5 text-left",
-              todayOpen && "border-t-foreground"
-            )}
+            className="flex min-h-14 min-w-0 items-center pr-1 pl-4"
           >
-            {todayOpen ? (
-              <Clock size={14} className="text-foreground shrink-0" aria-hidden />
-            ) : (
-              <span
-                className="h-2.5 w-2.5 shrink-0 rounded-full"
-                style={{ backgroundColor: accentColor }}
-              />
-            )}
-            <span className="font-pixel text-foreground truncate text-sm">
-              {todayOpen
-                ? "today"
-                : activeBucket.icon
-                  ? `${activeBucket.icon} ${activeBucket.name}`
-                  : activeBucket.name}
+            <span
+              style={{ backgroundColor: `color-mix(in oklab, ${placeColor} 18%, transparent)` }}
+              className="flex h-10 max-w-28 min-w-0 items-center gap-1 px-2"
+            >
+              {todayOpen && <Clock size={13} className="shrink-0" aria-hidden />}
+              <span className="font-pixel text-foreground truncate text-sm">
+                {todayOpen
+                  ? "today"
+                  : activeBucket.icon
+                    ? `${activeBucket.icon} ${activeBucket.name}`
+                    : activeBucket.name}
+              </span>
+              <ChevronDown size={13} className="text-muted-foreground shrink-0" aria-hidden />
             </span>
-            <ChevronDown size={14} className="text-muted-foreground shrink-0" aria-hidden />
           </button>
           <div className="flex justify-center">
             {canAddItem && (
               <BracketButton
                 onClick={addItem}
                 style={{ color: accentColor }}
-                className="min-h-14 px-5 text-base"
+                className="min-h-14 px-3 text-base"
               >
                 add +
               </BracketButton>
             )}
           </div>
-          <div className="flex justify-end">
+          <div className="flex min-w-0 items-stretch justify-between">
+            <BracketButton onClick={() => setSearchOpen(true)} className="min-h-14 px-1 text-sm">
+              search
+            </BracketButton>
             <button
               onClick={() => setChatState("open")}
               aria-label="chat with capy"
-              className="flex min-h-14 items-center pr-5 pl-3 transition-transform active:scale-95"
+              className="flex min-h-14 shrink-0 items-center pr-3 pl-1 transition-transform active:scale-95"
             >
-              <Sprite id="capy-idle-blink" size={52} />
+              <Sprite id="capy-idle-blink" size={44} />
             </button>
           </div>
         </div>

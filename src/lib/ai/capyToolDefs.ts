@@ -342,7 +342,7 @@ export const ITEM_AND_BUCKET_TOOLS: Tool[] = [
           enum: ["overdue", "today", "tomorrow", "this_week", "all"],
           description:
             "Filter items by their deadline relative to today. " +
-            "'overdue' = past deadline, 'today' = due today, 'tomorrow' = due tomorrow, " +
+            "'overdue' = deadline already passed (including earlier today), 'today' = due today (including ones already overdue), 'tomorrow' = due tomorrow, " +
             "'this_week' = due within the next 7 days (includes today), 'all' = no deadline filter. " +
             "Defaults to 'all'.",
         },

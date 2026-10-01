@@ -8,6 +8,9 @@ type LayoutStore = {
 
   bottomBarShown: boolean;
   setBottomBarShown: (shown: boolean) => void;
+
+  searchOpen: boolean;
+  setSearchOpen: (open: boolean) => void;
 };
 
 export const useLayoutStore = create<LayoutStore>()((set) => ({
@@ -17,4 +20,7 @@ export const useLayoutStore = create<LayoutStore>()((set) => ({
 
   bottomBarShown: false,
   setBottomBarShown: (shown) => set({ bottomBarShown: shown }),
+
+  searchOpen: false,
+  setSearchOpen: (open) => set({ searchOpen: open }),
 }));

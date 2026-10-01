@@ -9,6 +9,7 @@ import { parseItemsRules, parseNotificationRules } from "@/lib/rules";
 import { localDateString } from "@/lib/reminders/zoned";
 import { ITEM_STATUS } from "@/constants";
 import { useUIStore } from "@/store/ui";
+import { useLayoutStore } from "@/store/layout";
 import type { buckets as bucketsTable } from "@/lib/db/schema";
 import { CrossBucketList } from "./CrossBucketList";
 import { groupForToday } from "./group";
@@ -26,6 +27,7 @@ export function TodayView({ buckets, addItemRef }: TodayViewProps) {
   const todayAddBucketId = useUIStore((s) => s.todayAddBucketId);
   const activeBucketId = useUIStore((s) => s.activeBucketId);
   const setTodayAddBucketId = useUIStore((s) => s.setTodayAddBucketId);
+  const setSearchOpen = useLayoutStore((s) => s.setSearchOpen);
 
   const addable = buckets.flatMap((bucket, i) =>
     parseItemsRules(bucket.itemsRules).readonly === true
@@ -66,11 +68,22 @@ export function TodayView({ buckets, addItemRef }: TodayViewProps) {
           <Clock size={13} aria-hidden />
           today
         </h2>
-        {addTo && (
-          <BracketButton onClick={editor.startAdding} className="hidden px-1 py-1.5 md:inline-flex">
-            add +
+        <div className="flex items-center gap-2">
+          <BracketButton
+            onClick={() => setSearchOpen(true)}
+            className="hidden px-1 py-1.5 md:inline-flex"
+          >
+            search
           </BracketButton>
-        )}
+          {addTo && (
+            <BracketButton
+              onClick={editor.startAdding}
+              className="hidden px-1 py-1.5 md:inline-flex"
+            >
+              add +
+            </BracketButton>
+          )}
+        </div>
       </div>
 
       <CrossBucketList

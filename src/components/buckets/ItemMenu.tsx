@@ -219,7 +219,7 @@ export function ItemMenu({ at, onClose, ...props }: ItemMenuProps) {
     <>
       <div
         {...pressGuard}
-        className="fixed inset-0 z-30"
+        className="fixed inset-0 z-[56]"
         onClick={onClose}
         onContextMenu={(e) => {
           e.preventDefault();
@@ -232,7 +232,7 @@ export function ItemMenu({ at, onClose, ...props }: ItemMenuProps) {
         role="dialog"
         aria-label={props.item.title}
         tabIndex={-1}
-        className="bg-background border-border fixed z-40 max-h-[calc(100dvh-16px)] w-80 max-w-[calc(100vw-16px)] overflow-y-auto border-2 outline-none"
+        className="bg-background border-border fixed z-[57] max-h-[calc(100dvh-16px)] w-80 max-w-[calc(100vw-16px)] overflow-y-auto border-2 outline-none"
         style={{
           top: pos?.top ?? 0,
           left: pos?.left ?? 0,

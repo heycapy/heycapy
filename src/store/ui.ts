@@ -12,6 +12,10 @@ type UIStore = {
   activeBucketId: number | null;
   setActiveBucketId: (id: number) => void;
 
+  newBucketId: number | null;
+  selectNewBucket: (id: number) => void;
+  clearNewBucket: () => void;
+
   todayOpen: boolean;
   openToday: () => void;
 
@@ -31,6 +35,10 @@ export const useUIStore = create<UIStore>()(
 
       activeBucketId: null,
       setActiveBucketId: (id) => set({ activeBucketId: id, todayOpen: false }),
+
+      newBucketId: null,
+      selectNewBucket: (id) => set({ newBucketId: id }),
+      clearNewBucket: () => set({ newBucketId: null }),
 
       todayOpen: true,
       openToday: () => set({ todayOpen: true }),

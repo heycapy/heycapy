@@ -63,7 +63,7 @@ test("shows only what's overdue or due today, from every bucket", async ({ page 
   await expect(page.getByText("someday")).toHaveCount(0);
 });
 
-test("search from the header finds items in any bucket, dated or not", async ({ page }) => {
+test("search next to add finds items in any bucket, dated or not", async ({ page }) => {
   await page.goto("/");
   const tag = uniqueName("zebra");
   await bucketWithItems(page, "Notes", [[`${tag} one`], [`${tag} two`, daysFromNow(20)]]);
@@ -80,7 +80,7 @@ test("search from the header finds items in any bucket, dated or not", async ({ 
   await box.fill(`${tag} nothing like this`);
   await expect(search.getByText("no items match")).toBeVisible();
 
-  await search.getByRole("button", { name: "[ close ]", exact: true }).click();
+  await search.getByRole("button", { name: "[ x ]", exact: true }).click();
   await expect(search).toHaveCount(0);
 });
 

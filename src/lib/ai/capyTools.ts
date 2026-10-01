@@ -62,7 +62,9 @@ function deadlineRelative(deadline: Date, timezone: string): string {
   const deadlineStr = localDateString(deadline, timezone);
 
   if (deadlineStr < todayStr) return "overdue";
-  if (deadlineStr === todayStr) return "today";
+  if (deadlineStr === todayStr) {
+    return !isAllDay(deadline, timezone) && deadline < now ? "overdue today" : "today";
+  }
 
   const tomorrowStr = localDateString(addLocalDays(now, 1, timezone), timezone);
   if (deadlineStr === tomorrowStr) return "tomorrow";
@@ -647,12 +649,15 @@ async function executeToolCallInner(
         .filter((row) => {
           if (deadlineFilter === "all") return true;
           if (!row.deadlineRelative) return false;
-          if (deadlineFilter === "overdue") return row.deadlineRelative === "overdue";
-          if (deadlineFilter === "today") return row.deadlineRelative === "today";
+          if (deadlineFilter === "overdue") return row.deadlineRelative.startsWith("overdue");
+          if (deadlineFilter === "today") {
+            return row.deadlineRelative === "today" || row.deadlineRelative === "overdue today";
+          }
           if (deadlineFilter === "tomorrow") return row.deadlineRelative === "tomorrow";
           if (deadlineFilter === "this_week") {
             return (
               row.deadlineRelative === "today" ||
+              row.deadlineRelative === "overdue today" ||
               row.deadlineRelative === "tomorrow" ||
               row.deadlineRelative.startsWith("in ")
             );

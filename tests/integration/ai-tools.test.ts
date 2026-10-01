@@ -286,6 +286,40 @@ describe("dates capy reads", () => {
   });
 });
 
+describe("overdue the way the app shows it", () => {
+  // T0 is 17:30 in India
+  const INDIA = "Asia/Kolkata";
+
+  async function titlesFor(filter: string) {
+    const userId = await seedUser(INDIA);
+    const bucketId = await seedBucket(userId);
+    await seedItem(userId, bucketId, {
+      title: "yesterday",
+      deadline: new Date("2026-03-09T06:30:00Z"),
+    });
+    await seedItem(userId, bucketId, { title: "noon", deadline: new Date("2026-03-10T06:30:00Z") });
+    await seedItem(userId, bucketId, {
+      title: "all day",
+      deadline: new Date("2026-03-09T18:30:00Z"),
+    });
+    await seedItem(userId, bucketId, {
+      title: "dinner",
+      deadline: new Date("2026-03-10T15:00:00Z"),
+    });
+    const call = { id: "call", name: "search_items", arguments: { deadline_filter: filter } };
+    const rows = JSON.parse(await executeToolCall(call, userId, INDIA)) as { title: string }[];
+    return rows.map((r) => r.title).sort();
+  }
+
+  it("counts a time earlier today as overdue", async () => {
+    expect(await titlesFor("overdue")).toEqual(["noon", "yesterday"]);
+  });
+
+  it("today still includes what's already overdue today", async () => {
+    expect(await titlesFor("today")).toEqual(["all day", "dinner", "noon"]);
+  });
+});
+
 describe("item details capy reads", () => {
   it("search_items gives the same details as list_items", async () => {
     const userId = await seedUser();

@@ -13,6 +13,7 @@ import { daysToDisplayStr, parseDurationToDate } from "@/lib/duration";
 import { DEFAULT_BUCKET_STATUSES } from "./constants";
 import type { buckets } from "@/lib/db/schema";
 import { parseFields } from "./fields";
+import { useLayoutStore } from "@/store/layout";
 
 type BucketRow = typeof buckets.$inferSelect;
 
@@ -31,6 +32,7 @@ export function BucketContent({ bucket, accentColor, addItemRef }: BucketContent
   const readonly = rules.readonly === true;
 
   const [settingsTab, setSettingsTab] = useState<SettingsTab | null>(null);
+  const setSearchOpen = useLayoutStore((s) => s.setSearchOpen);
   const list = useBucketItems(bucket.id, bucket.itemsRules, rules.showCompleted !== false);
   const editor = useItemEditor({
     bucketId: bucket.id,
@@ -64,6 +66,12 @@ export function BucketContent({ bucket, accentColor, addItemRef }: BucketContent
         <div className="flex items-center gap-2">
           <BracketButton onClick={() => setSettingsTab("items")} className="px-1 py-1.5">
             settings
+          </BracketButton>
+          <BracketButton
+            onClick={() => setSearchOpen(true)}
+            className="hidden px-1 py-1.5 md:inline-flex"
+          >
+            search
           </BracketButton>
           {!readonly && (
             <BracketButton

@@ -25,6 +25,7 @@ type CrossBucketListProps = {
   editingItemId: number | null;
   onEdit: (item: Item) => void;
   onChanged: () => Promise<void>;
+  boxed?: boolean;
 };
 
 export function CrossBucketList({
@@ -34,6 +35,7 @@ export function CrossBucketList({
   editingItemId,
   onEdit,
   onChanged,
+  boxed = false,
 }: CrossBucketListProps) {
   const [menu, setMenu] = useState<{ item: Item; at: MenuAt } | null>(null);
   const statuses = DEFAULT_BUCKET_STATUSES;
@@ -96,7 +98,12 @@ export function CrossBucketList({
   }
 
   return (
-    <div className="border-border overflow-hidden border-y-2 sm:mx-4 sm:border-x-2 sm:shadow-[2px_2px_0_var(--border)]">
+    <div
+      className={cn(
+        "border-border overflow-hidden border-y-2 sm:mx-4 sm:border-x-2 sm:shadow-[2px_2px_0_var(--border)]",
+        boxed && "mx-4 border-x-2 shadow-[2px_2px_0_var(--border)]"
+      )}
+    >
       {!data ? (
         <p className={cn(HINT, "px-4 py-6 text-center")}>loading...</p>
       ) : sections.length === 0 ? (
