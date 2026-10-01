@@ -1,5 +1,5 @@
-import { describe, it, expect } from "vitest";
-import { cpSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { afterAll, describe, it, expect } from "vitest";
+import { cpSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import Database from "better-sqlite3";
@@ -10,8 +10,19 @@ const MIGRATIONS = path.join(import.meta.dirname, "../../src/lib/db/migrations")
 
 type Journal = { entries: { tag: string; when: number }[] };
 
+const tempDirs: string[] = [];
+afterAll(() => {
+  for (const dir of tempDirs) rmSync(dir, { recursive: true, force: true });
+});
+
+function tempDir(prefix: string): string {
+  const dir = mkdtempSync(path.join(tmpdir(), prefix));
+  tempDirs.push(dir);
+  return dir;
+}
+
 function migrationsUpTo(count: number): string {
-  const dir = mkdtempSync(path.join(tmpdir(), "heycapy-migrations-"));
+  const dir = tempDir("heycapy-migrations-");
   cpSync(MIGRATIONS, dir, { recursive: true });
   const journalPath = path.join(dir, "meta/_journal.json");
   const journal = JSON.parse(readFileSync(journalPath, "utf8")) as Journal;
@@ -34,7 +45,7 @@ describe("migrations", () => {
     const journal = JSON.parse(
       readFileSync(path.join(MIGRATIONS, "meta/_journal.json"), "utf8")
     ) as Journal;
-    const dbPath = path.join(mkdtempSync(path.join(tmpdir(), "heycapy-upgrade-")), "db.sqlite");
+    const dbPath = path.join(tempDir("heycapy-upgrade-"), "db.sqlite");
     const sqlite = new Database(dbPath);
     const db = drizzle(sqlite);
 
@@ -54,7 +65,7 @@ describe("migrations", () => {
       readFileSync(path.join(MIGRATIONS, "meta/_journal.json"), "utf8")
     ) as Journal;
     const onHoldMigration = journal.entries.findIndex((e) => e.tag === "0008_on_hold_status");
-    const dbPath = path.join(mkdtempSync(path.join(tmpdir(), "heycapy-on-hold-")), "db.sqlite");
+    const dbPath = path.join(tempDir("heycapy-on-hold-"), "db.sqlite");
     const sqlite = new Database(dbPath);
     const db = drizzle(sqlite);
     migrate(db, { migrationsFolder: migrationsUpTo(onHoldMigration) });
@@ -102,7 +113,7 @@ describe("migrations", () => {
     const offsetsMigration = journal.entries.findIndex(
       (e) => e.tag === "0016_item_reminder_offsets"
     );
-    const dbPath = path.join(mkdtempSync(path.join(tmpdir(), "heycapy-offsets-")), "db.sqlite");
+    const dbPath = path.join(tempDir("heycapy-offsets-"), "db.sqlite");
     const sqlite = new Database(dbPath);
     const db = drizzle(sqlite);
     migrate(db, { migrationsFolder: migrationsUpTo(offsetsMigration) });
@@ -133,7 +144,7 @@ describe("migrations", () => {
     const listMigration = journal.entries.findIndex(
       (e) => e.tag === "0017_bucket_default_reminders"
     );
-    const dbPath = path.join(mkdtempSync(path.join(tmpdir(), "heycapy-defaults-")), "db.sqlite");
+    const dbPath = path.join(tempDir("heycapy-defaults-"), "db.sqlite");
     const sqlite = new Database(dbPath);
     const db = drizzle(sqlite);
     migrate(db, { migrationsFolder: migrationsUpTo(listMigration) });

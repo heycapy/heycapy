@@ -151,24 +151,25 @@ export const ChatInputBar = forwardRef<ChatInputBarHandle, Props>(function ChatI
     <div
       className={cn(
         "border-t-2 px-3 py-2 transition-colors",
-        recording ? "border-destructive" : "border-border"
+        recording ? "border-primary" : "border-border"
       )}
     >
       {isRecordingOrTranscribing ? (
-        <div className="flex items-center gap-3">
+        // as tall as the mic and send buttons so the bar keeps its height while capy listens
+        <div className="flex min-h-9.5 items-center gap-3 md:min-h-6.5">
           <div className="flex flex-1 items-center gap-2">
             {recording ? (
               <>
-                <span className="text-destructive font-pixel animate-[pulse_0.8s_ease-in-out_infinite] text-xs">
+                <span className="text-primary font-pixel animate-[pulse_0.8s_ease-in-out_infinite] text-xs">
                   ●
                 </span>
-                <span className="text-destructive font-pixel text-xs">
-                  rec {formatTime(recSeconds)}
+                <span className="text-foreground font-pixel text-xs">
+                  capy listening... {formatTime(recSeconds)}
                 </span>
               </>
             ) : (
               <span className="text-muted-foreground font-pixel animate-pulse text-xs">
-                transcribing...
+                capy&apos;s jotting it down...
               </span>
             )}
           </div>
@@ -176,7 +177,7 @@ export const ChatInputBar = forwardRef<ChatInputBarHandle, Props>(function ChatI
           {recording && (
             <button
               onClick={() => mediaRecorderRef.current?.stop()}
-              className="border-destructive text-destructive font-pixel shrink-0 border px-1.5 py-0.5 text-[11px] transition-opacity hover:opacity-70"
+              className="border-primary text-foreground font-pixel shrink-0 border px-1.5 py-0.5 text-[11px] transition-opacity hover:opacity-70"
             >
               ■ stop
             </button>

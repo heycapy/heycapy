@@ -32,8 +32,7 @@ const transcript = (text: string, speech = true) => ({
 
 beforeEach(() => {
   vi.stubEnv("HOSTED", "true");
-  vi.stubEnv("VOICE_PROVIDER", "gemini");
-  vi.stubEnv("VOICE_API_KEY", "server-gemini-key");
+  vi.stubEnv("GEMINI_API_KEY", "server-gemini-key");
   vi.spyOn(process.stderr, "write").mockImplementation(() => true);
   geminiReply = { status: 200, body: transcript("add dentist friday 5pm") };
   vi.stubGlobal(
@@ -97,6 +96,8 @@ it("heycapy ai users speak through our Gemini, free, and it's metered as voice",
       key: "server",
       inputTokens: 400,
       outputTokens: 12,
+      // 400 × $0.30 + 12 × $2.50 per 1M tokens
+      costMicros: 150,
     }),
   ]);
 });
@@ -111,7 +112,7 @@ it("voice needs credits left, stays short, and says so when the server has no vo
   await db.insert(creditLedger).values({ userId, amount: -CREDITS_FREE_GRANT, kind: "message" });
   expect(await speak(userId)).toEqual({ status: 402, body: { error: OUT_OF_CREDITS_ERROR } });
 
-  vi.stubEnv("VOICE_API_KEY", "");
+  vi.stubEnv("GEMINI_API_KEY", "");
   expect((await speak(await seedUser())).status).toBe(503);
   expect(calls).toEqual([]);
 });
@@ -211,24 +212,20 @@ it("gives Whisper the same names as a spelling list", async () => {
   expect(calls[0].body.prompt).toBe("capy, hey capy, heycapy, Work");
 });
 
-it("heycapy's voice can move to another provider with env alone", async () => {
+it("heycapy's voice comes from the voice tier, not the old VOICE_ variables", async () => {
   vi.stubEnv("VOICE_PROVIDER", "groq");
   vi.stubEnv("VOICE_API_KEY", "server-groq-key");
-  vi.stubEnv("VOICE_MODEL", "");
-  geminiReply = { status: 200, body: { text: "add milk" } };
-  const userId = await seedUser();
+  vi.stubEnv("VOICE_MODEL", "whisper-large-v3-turbo");
 
-  expect((await speak(userId)).body).toEqual({ text: "add milk" });
-  expect(calls[0].url).toBe("https://api.groq.com/openai/v1/audio/transcriptions");
-  expect(calls[0].body.model).toBe("whisper-large-v3-turbo");
-
-  vi.stubEnv("VOICE_PROVIDER", "elevenlabs");
-  expect((await speak(userId)).status).toBe(503);
+  expect((await speak(await seedUser())).status).toBe(200);
+  expect(calls[0].url).toBe(
+    `${GEMINI_NATIVE_API_BASE}/models/gemini-3.5-flash-lite:generateContent`
+  );
+  expect(calls[0].headers["x-goog-api-key"]).toBe("server-gemini-key");
 });
 
-it("voice never falls back to the chat AI's provider or key", async () => {
-  vi.stubEnv("VOICE_PROVIDER", "");
-  vi.stubEnv("VOICE_API_KEY", "");
+it("voice never falls back to the chat AI's key", async () => {
+  vi.stubEnv("GEMINI_API_KEY", "");
   vi.stubEnv("AI_PROVIDER", "gemini");
   vi.stubEnv("AI_API_KEY", "chat-gemini-key");
 

@@ -24,12 +24,20 @@ function setBalance(balance: number) {
   db.close();
 }
 
-test("capy shows the credits left, and says so when they run out", async ({ page }) => {
+test("capy's chat shows the credits only when they run low, and says so when they run out", async ({
+  page,
+}) => {
   setBalance(50);
   await page.goto("/");
   await page.getByRole("button", { name: "Open chat" }).click();
   const strip = page.getByRole("status", { name: "capy's ai" });
-  await expect(strip).toHaveText("capy credits · 50 left");
+  await expect(page.getByPlaceholder("ask capy...")).toBeVisible();
+  await expect(strip).toHaveCount(0);
+
+  setBalance(7);
+  await page.reload();
+  await page.getByRole("button", { name: "Open chat" }).click();
+  await expect(strip).toHaveText("capy credits · 7 left · see tweaks → ai");
 
   setBalance(0);
   await page.reload();
@@ -46,7 +54,11 @@ test("capy shows the credits left, and says so when they run out", async ({ page
   await page.getByRole("button", { name: "tweaks" }).click();
   await page.getByRole("button", { name: "ai", exact: true }).click();
   await expect(page.getByRole("status", { name: "capy's ai" })).toHaveText("out of capy credits");
-  await expect(page.getByText(/credits never expire/)).toBeVisible();
+  await expect(
+    page.getByText(
+      /each message to capy uses 1 credit, and talking to capy with the mic is included/
+    )
+  ).toBeVisible();
 });
 
 test("heycapy ai or your own key, and a saved key stays for switching back", async ({ page }) => {
@@ -77,7 +89,7 @@ test("heycapy ai or your own key, and a saved key stays for switching back", asy
   await openAITab();
   await expect(heycapy).toHaveAttribute("aria-pressed", "true");
   await expect(page.getByRole("status", { name: "capy's ai" })).toHaveText(
-    "capy credits · 50 left"
+    "50 capy credits left (never expire)"
   );
   await ownKey.click();
   await expect(page.getByRole("button", { name: "gemini", exact: true })).toHaveAttribute(
@@ -105,9 +117,10 @@ test("picking heycapy ai describes it at once, not the saved key", async ({ page
   const status = page.getByRole("status", { name: "capy's ai" });
   await expect(status).toHaveText("your groq key · working");
   await expect(page.getByText(/last checked/)).toBeVisible();
+  await expect(page.getByText("50 capy credits kept for heycapy ai")).toBeVisible();
 
   await page.getByRole("button", { name: "heycapy ai" }).click();
-  await expect(status).toHaveText("capy credits · 50 left");
+  await expect(status).toHaveText("50 capy credits left (never expire)");
   await expect(page.getByText(/save to switch to heycapy ai/)).toBeVisible();
   await expect(page.getByText(/last checked/)).toHaveCount(0);
   await expect(page.getByRole("button", { name: "check", exact: true })).toHaveCount(0);

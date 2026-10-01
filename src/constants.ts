@@ -54,7 +54,9 @@ export const AI_REQUEST_TIMEOUT_MS = 30_000;
 export const OLLAMA_REQUEST_TIMEOUT_MS = 120_000;
 export const AI_KEY_CHECK_TIMEOUT_MS = 15_000;
 export const AI_TIMEOUT_ERROR = "The AI provider didn't answer in time. Try again.";
-export const AGENT_MAX_ROUNDS = 8;
+// model calls per answer so a runaway chain of tools can't cost many times its credit
+export const AGENT_MAX_ROUNDS = 5;
+export const AGENT_STOPPED_REPLY = `capy stopped here since one message can take at most ${AGENT_MAX_ROUNDS} steps. Say "go on" to finish the rest.`;
 // How many chat messages may follow the summary before older ones are folded into it
 export const AI_COMPACT_THRESHOLD_MIN = 10;
 export const AI_COMPACT_THRESHOLD_MAX = 500;
@@ -64,6 +66,9 @@ export const CREDITS_PER_MESSAGE = 1;
 export const CREDITS_ADMIN_MAX_CHANGE = 100_000;
 export const CREDITS_NOTE_MAX_LENGTH = 200;
 export const CREDITS_ROWS_SHOWN = 30;
+export const CREDITS_RECENT_DAYS = 30;
+
+export const CREDITS_LOW_LEFT = 10;
 export const OUT_OF_CREDITS_ERROR =
   "You're out of capy credits. Add your own AI key in tweaks → ai to keep chatting.";
 // Safari holds back the first 1 KB of a streamed response, which would hide the first status lines
@@ -73,6 +78,8 @@ export const GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta
 // the gemini native api takes browser webm and mp4 recordings as they are unlike the openai compatible one
 export const GEMINI_NATIVE_API_BASE = "https://generativelanguage.googleapis.com/v1beta";
 export const GEMINI_DEFAULT_MODEL = "gemini-3.5-flash-lite";
+export const AI_PROVIDERS = ["ollama", "openai", "anthropic", "groq", "gemini"] as const;
+export type AIProviderName = (typeof AI_PROVIDERS)[number];
 export const TRANSCRIPTION_PROVIDERS = ["groq", "openai", "gemini"] as const;
 export type TranscriptionProvider = (typeof TRANSCRIPTION_PROVIDERS)[number];
 export const TRANSCRIPTION_DEFAULT_MODELS: Record<TranscriptionProvider, string> = {

@@ -8,8 +8,13 @@ import {
 } from "@/app/(app)/actions";
 import type { CreditRow } from "@/lib/credits";
 import { formatShort } from "@/lib/format-date";
-import { CREDITS_NOTE_MAX_LENGTH } from "@/constants";
+import { CREDITS_NOTE_MAX_LENGTH, CREDITS_RECENT_DAYS } from "@/constants";
 import { BOX, INPUT, LABEL, SECTION } from "./settings-constants";
+
+// four places since one answer costs a fraction of a cent
+function dollars(micros: number): string {
+  return `$${(micros / 1_000_000).toFixed(4)}`;
+}
 
 function activityDetail(row: CreditRow): string {
   return [row.note, row.actor && `by ${row.actor}`].filter(Boolean).join(" · ");
@@ -92,6 +97,12 @@ export function SystemCredits() {
               {credits.totals.grant + credits.totals.purchase} granted ·{" "}
               {-(credits.totals.message + credits.totals.refund)} used · {credits.totals.refund}{" "}
               refunded · {credits.totals.admin} by admins
+            </p>
+            <p className={LABEL}>
+              last {CREDITS_RECENT_DAYS} days · {credits.recent.creditsUsed} used ·{" "}
+              {dollars(credits.recent.costMicros)} on our ai
+              {credits.recent.unpricedCalls > 0 &&
+                ` · ${credits.recent.unpricedCalls} calls without a price`}
             </p>
           </div>
           <form

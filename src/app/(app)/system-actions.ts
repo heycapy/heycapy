@@ -11,16 +11,19 @@ import {
   adjustCredits,
   creditBalance,
   creditTotals,
+  creditsUsedSince,
   isHosted,
   recentCreditRows,
   type CreditRow,
   type CreditTotals,
 } from "@/lib/credits";
 import { schedulerHealth } from "@/lib/scheduler";
+import { serverCostSince } from "@/lib/ai/usage";
 import { recentSystemErrors } from "@/lib/system-errors";
 import {
   CREDITS_ADMIN_MAX_CHANGE,
   CREDITS_NOTE_MAX_LENGTH,
+  CREDITS_RECENT_DAYS,
   CREDITS_ROWS_SHOWN,
   SYSTEM_ERRORS_SHOWN,
 } from "@/constants";
@@ -75,6 +78,7 @@ export type UserCredits = {
   balance: number;
   totals: CreditTotals;
   rows: CreditRow[];
+  recent: { creditsUsed: number; costMicros: number; unpricedCalls: number };
 };
 
 const creditChangeSchema = z.object({
@@ -103,11 +107,16 @@ async function findUser(email: string) {
 }
 
 function creditsOf(user: { id: number; email: string }): UserCredits {
+  const since = new Date(Date.now() - CREDITS_RECENT_DAYS * 24 * 60 * 60 * 1000);
   return {
     email: user.email,
     balance: creditBalance(user.id),
     totals: creditTotals(user.id),
     rows: recentCreditRows(user.id, CREDITS_ROWS_SHOWN),
+    recent: {
+      creditsUsed: creditsUsedSince(user.id, since),
+      ...serverCostSince(user.id, since),
+    },
   };
 }
 

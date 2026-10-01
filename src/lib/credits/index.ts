@@ -1,4 +1,4 @@
-import { desc, eq, sql } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, sql } from "drizzle-orm";
 import { db, type DB } from "@/lib/db";
 import { creditLedger } from "@/lib/db/schema";
 import { CREDITS_FREE_GRANT, CREDITS_PER_MESSAGE } from "@/constants";
@@ -98,6 +98,22 @@ export function creditTotals(userId: number): CreditTotals {
     .all();
   for (const row of rows) totals[row.kind] = row.total;
   return totals;
+}
+
+// answers charged minus the ones refunded
+export function creditsUsedSince(userId: number, since: Date): number {
+  const row = db
+    .select({ total: sql<number>`coalesce(sum(${creditLedger.amount}), 0)` })
+    .from(creditLedger)
+    .where(
+      and(
+        eq(creditLedger.userId, userId),
+        inArray(creditLedger.kind, ["message", "refund"]),
+        gte(creditLedger.createdAt, since)
+      )
+    )
+    .get();
+  return -(row?.total ?? 0);
 }
 
 export function recentCreditRows(userId: number, limit: number): CreditRow[] {

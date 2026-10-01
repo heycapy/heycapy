@@ -59,10 +59,8 @@ users set up their own ai key, ntfy, smtp and notifications inside the app.
 
 | var | what it's for |
 |-----|---------------|
-| `HOSTED=true` | users without their own key pay for the server ai in credits. also refuses ollama, and ntfy or smtp servers on a private network (localhost, 192.168.x.x, docker names), so a local ntfy stops working |
-| `VOICE_PROVIDER` | voice for those users: `gemini`, `groq` or `openai`. off until this and the key are set |
-| `VOICE_API_KEY` | the key for the voice provider, never taken from the chat ai |
-| `VOICE_MODEL` | optional, defaults to `gemini-3.5-flash-lite`, `whisper-large-v3-turbo` or `whisper-1` |
+| `HOSTED=true` | users without their own key pay for the server ai in credits. chat and voice then use the models and prices in `src/lib/ai/tiers.ts` instead of `AI_PROVIDER` / `AI_MODEL` / `AI_API_KEY`. also refuses ollama, and ntfy or smtp servers on a private network (localhost, 192.168.x.x, docker names), so a local ntfy stops working |
+| `GEMINI_API_KEY`, `GROQ_API_KEY`, `OPENAI_API_KEY`, `ANTHROPIC_API_KEY` | one key per provider the tiers use. the server won't start while one it needs is missing |
 
 leave these out when self-hosting.
 

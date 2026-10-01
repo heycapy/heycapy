@@ -404,6 +404,8 @@ export const aiUsage = sqliteTable(
     cacheWriteTokens: integer("cache_write_tokens").notNull().default(0),
     // Calls whose provider didn't say how many tokens they used
     unreportedCalls: integer("unreported_calls").notNull().default(0),
+    // millionths of a dollar at the price when it ran and null on the user's own key or an unknown price
+    costMicros: integer("cost_micros"),
     createdAt: integer("created_at", { mode: "timestamp" })
       .notNull()
       .default(sql`(unixepoch())`),

@@ -1,0 +1,1 @@
+ALTER TABLE `ai_usage` ADD `cost_micros` integer;

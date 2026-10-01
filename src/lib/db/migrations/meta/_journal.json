@@ -162,6 +162,13 @@
       "when": 1793320000000,
       "tag": "0022_ai_use_own_key",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "6",
+      "when": 1793330000000,
+      "tag": "0023_ai_usage_cost",
+      "breakpoints": true
     }
   ]
 }

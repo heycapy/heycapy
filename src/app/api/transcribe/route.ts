@@ -76,7 +76,7 @@ export async function POST(req: Request) {
         userId,
         sessionId: null,
         source: "voice",
-        meta: { provider: voice.provider, model: voice.model, key: "server" },
+        meta: { provider: voice.provider, model: voice.model, key: "server", price: voice.price },
         calls: [usage],
       });
       return transcriptResponse(text);

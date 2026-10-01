@@ -1,4 +1,4 @@
-import { AGENT_MAX_ROUNDS, AI_TIMEOUT_ERROR } from "@/constants";
+import { AGENT_MAX_ROUNDS, AGENT_STOPPED_REPLY, AI_TIMEOUT_ERROR } from "@/constants";
 import { CAPY_TOOLS, executeToolCall } from "./capyTools";
 import type { AgentMessage, AIProvider, CompleteResult, TokenUsage, ToolCall } from "./types";
 
@@ -28,7 +28,7 @@ async function completeWithin(
   ]).finally(() => clearTimeout(timer));
 }
 
-// Calls the model, runs the tools it asks for and repeats until it answers; throws the provider's error
+// Calls the model, runs the tools it asks for and repeats until it answers or runs out of rounds; throws the provider's error
 export async function runAgent({
   provider,
   messages,
@@ -46,6 +46,10 @@ export async function runAgent({
     onUsage?.(result.usage);
     if (result.content) lastContent = result.content;
     if (result.toolCalls.length === 0) return result.content || lastContent;
+    // the last round's tools never run and a runaway chain still ends in a reply, which keeps its credit
+    if (round === AGENT_MAX_ROUNDS - 1) {
+      return [lastContent, AGENT_STOPPED_REPLY].filter(Boolean).join("\n\n");
+    }
 
     messages.push({ role: "assistant", content: result.content, toolCalls: result.toolCalls });
     for (const call of result.toolCalls) {
@@ -58,5 +62,5 @@ export async function runAgent({
       });
     }
   }
-  return lastContent;
+  return AGENT_STOPPED_REPLY;
 }

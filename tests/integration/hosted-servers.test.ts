@@ -26,8 +26,13 @@ vi.mock("node:dns/promises", async (importOriginal) => {
   const real = await importOriginal<typeof dnsPromises>();
   return {
     ...real,
-    lookup: async (name: string, options: { all: true }) =>
-      fakeDns.get(name) ?? real.lookup(name, options),
+    // .invalid never resolves (RFC 6761), so it fails here instead of waiting on the real resolver
+    lookup: async (name: string, options: { all: true }) => {
+      if (name.endsWith(".invalid")) {
+        throw Object.assign(new Error(`getaddrinfo ENOTFOUND ${name}`), { code: "ENOTFOUND" });
+      }
+      return fakeDns.get(name) ?? real.lookup(name, options);
+    },
   };
 });
 

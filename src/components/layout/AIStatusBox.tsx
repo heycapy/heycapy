@@ -27,14 +27,14 @@ export function AIStatusBox({ ownKeyPicked }: { ownKeyPicked: boolean }) {
 
   const heycapyPicked = !ownKeyPicked && status.kind !== "server";
   const balance =
-    status.kind === "credits" ? status.balance : status.kind === "own" ? (status.credits ?? 0) : 0;
+    status.kind === "credits" ? status.balance : status.kind === "own" ? status.credits : null;
   const ownKeySaved = status.kind === "own";
 
   let label: string;
   let problem: boolean;
   if (heycapyPicked) {
-    label = creditsLabel(balance);
-    problem = balance <= 0;
+    label = creditsLabel(balance ?? 0);
+    problem = !balance;
   } else if (status.kind === "credits") {
     label = "your own key · not saved yet";
     problem = false;
@@ -46,13 +46,26 @@ export function AIStatusBox({ ownKeyPicked }: { ownKeyPicked: boolean }) {
   return (
     <div className={BOX}>
       <div className="flex items-center justify-between gap-2">
-        <span
-          role="status"
-          aria-label="capy's ai"
-          className={cn("font-mono text-xs", problem ? "text-destructive" : "text-foreground")}
-        >
-          {label}
-        </span>
+        {heycapyPicked && balance ? (
+          <span
+            role="status"
+            aria-label="capy's ai"
+            className="flex items-baseline gap-2 font-mono"
+          >
+            <span className="text-foreground text-2xl leading-none">{balance}</span>{" "}
+            <span className="text-muted-foreground text-xs">
+              capy credits left <span className="whitespace-nowrap">(never expire)</span>
+            </span>
+          </span>
+        ) : (
+          <span
+            role="status"
+            aria-label="capy's ai"
+            className={cn("font-mono text-xs", problem ? "text-destructive" : "text-foreground")}
+          >
+            {label}
+          </span>
+        )}
         {!heycapyPicked && ownKeySaved && (
           <BracketButton onClick={check} disabled={checking}>
             check
@@ -67,12 +80,15 @@ export function AIStatusBox({ ownKeyPicked }: { ownKeyPicked: boolean }) {
       )}
       {heycapyPicked && (
         <p className={HINT}>
-          capy answers on our ai: {CREDITS_PER_MESSAGE} credit{CREDITS_PER_MESSAGE === 1 ? "" : "s"}{" "}
-          per message, and credits never expire. the mic in capy&apos;s chat is included. to use no
-          credits, pick &quot;your own key&quot; above. reminders never use credits.
+          each message to capy uses {CREDITS_PER_MESSAGE} credit
+          {CREDITS_PER_MESSAGE === 1 ? "" : "s"}, and talking to capy with the mic is included.
+          reminders never use credits. to use none at all, pick &quot;your own key&quot; above.
         </p>
       )}
 
+      {!heycapyPicked && balance !== null && balance > 0 && (
+        <p className={LABEL}>{balance} capy credits kept for heycapy ai</p>
+      )}
       {!heycapyPicked && status.kind === "credits" && (
         <p className={HINT}>
           add your key below and save: capy then answers with it, using no credits.

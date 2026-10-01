@@ -7,6 +7,7 @@ import { GEMINI_DEFAULT_MODEL, OLLAMA_DEFAULT_URL } from "@/constants";
 import type { AIProvider } from "./types";
 import type { UsageMeta } from "./usage";
 import { isHosted } from "@/lib/credits";
+import { PROVIDER_KEY_ENV, providerKey, serverTiers } from "./tiers";
 
 export type AIConfig = {
   provider?: string | null;
@@ -18,68 +19,69 @@ export type AIConfig = {
 
 export type MeteredProvider = AIProvider & { meta: UsageMeta };
 
-function requireKey(config: AIConfig | undefined, provider: string): string {
-  const key = config?.apiKey || process.env.AI_API_KEY;
-  if (!key) throw new Error(`API key is required for ${provider} provider`);
-  return key;
+const DEFAULT_MODELS: Record<string, string> = {
+  ollama: "llama3.2",
+  openai: "gpt-4o",
+  anthropic: "claude-sonnet-4-6",
+  groq: "openai/gpt-oss-120b",
+  gemini: GEMINI_DEFAULT_MODEL,
+};
+
+function createProvider(
+  provider: string,
+  model: string,
+  apiKey: string | null,
+  ollamaUrl: string
+): AIProvider {
+  if (provider === "ollama") return createOllamaProvider(ollamaUrl, model);
+  if (!apiKey) throw new Error(`API key is required for ${provider} provider`);
+  switch (provider) {
+    case "openai":
+      return createOpenAIProvider(apiKey, model);
+    case "anthropic":
+      return createAnthropicProvider(apiKey, model);
+    case "groq":
+      return createGroqProvider(apiKey, model);
+    case "gemini":
+      return createGeminiProvider(apiKey, model);
+    default:
+      throw new Error(`Unknown AI provider: ${provider}`);
+  }
 }
 
 export function hasOwnAI(config?: AIConfig): boolean {
   if (!config?.provider) return false;
   if (isHosted() && config.useOwnKey === false) return false;
-  // a hosted server never fetches a url a user typed in since it could reach our internal network
+  // a hosted server never fetches a url a user typed in since it could reach internal network damnnnn
   if (config.provider === "ollama") return !isHosted() && !!config.ollamaUrl;
   return !!config.apiKey;
 }
 
 export function getAIProvider(requested?: AIConfig): MeteredProvider {
-  // hosted users without their own key always get our configured ai and never another provider on our key
-  const config = isHosted() && !hasOwnAI(requested) ? undefined : requested;
-  const provider = config?.provider || process.env.AI_PROVIDER || "ollama";
-  const key = config?.apiKey ? "own" : "server";
-
-  switch (provider) {
-    case "ollama": {
-      const model = config?.model || process.env.AI_MODEL || "llama3.2";
-      return {
-        ...createOllamaProvider(
-          config?.ollamaUrl || process.env.OLLAMA_URL || OLLAMA_DEFAULT_URL,
-          model
-        ),
-        meta: { provider, model, key: config?.ollamaUrl ? "own" : "server" },
-      };
-    }
-    case "openai": {
-      const model = config?.model || process.env.AI_MODEL || "gpt-4o";
-      return {
-        ...createOpenAIProvider(requireKey(config, provider), model),
-        meta: { provider, model, key },
-      };
-    }
-    case "anthropic": {
-      const model = config?.model || process.env.AI_MODEL || "claude-sonnet-4-6";
-      return {
-        ...createAnthropicProvider(requireKey(config, provider), model),
-        meta: { provider, model, key },
-      };
-    }
-    case "groq": {
-      const model = config?.model || process.env.AI_MODEL || "openai/gpt-oss-120b";
-      return {
-        ...createGroqProvider(requireKey(config, provider), model),
-        meta: { provider, model, key },
-      };
-    }
-    case "gemini": {
-      const model = config?.model || process.env.AI_MODEL || GEMINI_DEFAULT_MODEL;
-      return {
-        ...createGeminiProvider(requireKey(config, provider), model),
-        meta: { provider, model, key },
-      };
-    }
-    default:
-      throw new Error(`Unknown AI provider: ${provider}`);
+  if (isHosted() && !hasOwnAI(requested)) {
+    const { provider, model, price } = serverTiers().quick.primary;
+    // for ollama this is its url
+    const key = providerKey(provider);
+    if (!key) throw new Error(`${PROVIDER_KEY_ENV[provider]} is not set`);
+    return {
+      ...createProvider(provider, model, key, key),
+      meta: { provider, model, key: "server", price },
+    };
   }
+
+  const provider = requested?.provider || process.env.AI_PROVIDER || "ollama";
+  const model = requested?.model || process.env.AI_MODEL || DEFAULT_MODELS[provider] || "";
+  const ollamaUrl = requested?.ollamaUrl || process.env.OLLAMA_URL || OLLAMA_DEFAULT_URL;
+  const own = provider === "ollama" ? !!requested?.ollamaUrl : !!requested?.apiKey;
+  return {
+    ...createProvider(
+      provider,
+      model,
+      requested?.apiKey || process.env.AI_API_KEY || null,
+      ollamaUrl
+    ),
+    meta: { provider, model, key: own ? "own" : "server" },
+  };
 }
 
 export type { AIProvider, Message } from "./types";

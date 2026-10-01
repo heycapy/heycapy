@@ -1,7 +1,8 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import type * as TiersModule from "@/lib/ai/tiers";
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { creditLedger, userSettings, users } from "@/lib/db/schema";
+import { aiUsage, creditLedger, userSettings, users } from "@/lib/db/schema";
 import { getAIProvider } from "@/lib/ai";
 import { getAIStatus } from "@/lib/ai/status";
 import {
@@ -15,7 +16,13 @@ import { encryptValue } from "@/lib/crypto";
 import { buildAccountExport } from "@/lib/account/export";
 import { POST as chatPOST } from "@/app/api/chat/route";
 import { adjustUserCreditsAction, getUserCreditsAction } from "@/app/(app)/system-actions";
-import { CREDITS_FREE_GRANT, OUT_OF_CREDITS_ERROR } from "@/constants";
+import {
+  AGENT_MAX_ROUNDS,
+  AGENT_STOPPED_REPLY,
+  CREDITS_FREE_GRANT,
+  CREDITS_RECENT_DAYS,
+  OUT_OF_CREDITS_ERROR,
+} from "@/constants";
 import { connectOwnChat, say } from "./telegram-helpers";
 import { seedUser } from "./helpers";
 
@@ -25,6 +32,17 @@ vi.mock("@/lib/auth/session", () => ({
   requireApiSession: async () => [session, null],
 }));
 
+// our quick tier answers from a stand in ollama so no test reaches a real provider
+vi.mock("@/lib/ai/tiers", async (importOriginal) => {
+  const tiers = await importOriginal<typeof TiersModule>();
+  const primary = {
+    provider: "ollama" as const,
+    model: "server-model",
+    price: { input: 1, cachedInput: 0.1, output: 2 },
+  };
+  return { ...tiers, serverTiers: () => ({ ...tiers.AI_TIERS, quick: { primary } }) };
+});
+
 const SERVER_OLLAMA = "http://server-ollama.test";
 const OWN_GROQ = "https://api.groq.com/openai/v1/chat/completions";
 
@@ -33,6 +51,13 @@ let aiCalls: string[] = [];
 let telegramTexts: string[] = [];
 
 const answer = { message: { role: "assistant", content: "done" } };
+const wantsTools = {
+  message: {
+    role: "assistant",
+    content: "",
+    tool_calls: [{ function: { name: "list_buckets", arguments: {} } }],
+  },
+};
 
 beforeEach(() => {
   process.env.TELEGRAM_BOT_TOKEN = "test-token";
@@ -215,13 +240,15 @@ it("self-hosted servers keep no ledger", async () => {
   expect(await getAIStatus(userId)).toEqual({ kind: "server", provider: "ollama" });
 });
 
-it("hosted: a provider picked without a key still answers on our AI, never our key elsewhere", () => {
+it("hosted: a provider picked without a key answers on our quick tier, never our key elsewhere", () => {
   vi.stubEnv("AI_PROVIDER", "groq");
+  vi.stubEnv("AI_MODEL", "some-groq-model");
   vi.stubEnv("AI_API_KEY", "server-key");
   expect(getAIProvider({ provider: "anthropic", model: "claude-opus-4-1" }).meta).toEqual({
-    provider: "groq",
+    provider: "ollama",
     model: "server-model",
     key: "server",
+    price: { input: 1, cachedInput: 0.1, output: 2 },
   });
   expect(getAIProvider({ provider: "anthropic", apiKey: "user-key" }).meta.key).toBe("own");
 });
@@ -342,3 +369,76 @@ it("heycapy ai keeps the saved key but answers on our AI with credits", async ()
   expect(aiCalls).toEqual([`${SERVER_OLLAMA}/api/chat`]);
   expect(await getAIStatus(userId)).toEqual({ kind: "credits", balance: CREDITS_FREE_GRANT - 1 });
 });
+
+it("an answer stops after the last model call, never runs its tools, and keeps its credit", async () => {
+  const userId = await seedUser();
+  aiReplies = Array.from({ length: AGENT_MAX_ROUNDS + 3 }, () => wantsTools);
+
+  const events = await askWeb(userId);
+
+  expect(aiCalls).toHaveLength(AGENT_MAX_ROUNDS);
+  expect(events.filter((e) => e.text === "looking at your buckets")).toHaveLength(
+    AGENT_MAX_ROUNDS - 1
+  );
+  expect(events).toContainEqual({ type: "reply", text: AGENT_STOPPED_REPLY });
+  expect(creditBalance(userId)).toBe(CREDITS_FREE_GRANT - 1);
+});
+
+it("our AI's usage records its cost at the tier's price, the user's own key doesn't", async () => {
+  const userId = await seedUser();
+  aiReplies = [{ ...answer, prompt_eval_count: 2000, eval_count: 100 }];
+  await askWeb(userId);
+  await useOwnGroq(userId);
+  aiReplies = [answer];
+  await askWeb(userId);
+
+  const rows = db
+    .select({ key: aiUsage.key, costMicros: aiUsage.costMicros })
+    .from(aiUsage)
+    .where(eq(aiUsage.userId, userId))
+    .all();
+  // 2000 × $1 + 100 × $2 per 1M tokens
+  expect(rows).toEqual([
+    { key: "server", costMicros: 2200 },
+    { key: "own", costMicros: null },
+  ]);
+});
+
+it("the system tab shows the last 30 days: credits used and what our AI cost", async () => {
+  vi.stubEnv("ADMIN_EMAILS", "admin@heycapy.test");
+  const userId = await seedUser();
+  const user = await db.query.users.findFirst({ where: eq(users.id, userId) });
+  if (!user) throw new Error("no user");
+
+  aiReplies = [{ ...answer, prompt_eval_count: 2000, eval_count: 100 }];
+  await askWeb(userId);
+  aiReplies = ["fail"];
+  await askWeb(userId);
+  const old = new Date(Date.now() - (CREDITS_RECENT_DAYS + 1) * 24 * 60 * 60 * 1000);
+  await db.insert(creditLedger).values({ userId, amount: -1, kind: "message", createdAt: old });
+  await db.insert(aiUsage).values([
+    { ...usageRow(userId), costMicros: 5000, createdAt: old },
+    { ...usageRow(userId), calls: 2, costMicros: null },
+  ]);
+
+  session = { userId, email: "admin@heycapy.test" };
+  const looked = await getUserCreditsAction(user.email);
+  expect(looked.ok && looked.credits.recent).toEqual({
+    creditsUsed: 1,
+    costMicros: 2200,
+    unpricedCalls: 2,
+  });
+});
+
+function usageRow(userId: number) {
+  return {
+    userId,
+    source: "web" as const,
+    provider: "gemini",
+    model: "old-model",
+    key: "server" as const,
+    calls: 1,
+    inputTokens: 0,
+    outputTokens: 0,
+  };
+}

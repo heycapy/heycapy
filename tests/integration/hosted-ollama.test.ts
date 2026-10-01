@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import type * as TiersModule from "@/lib/ai/tiers";
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { userSettings } from "@/lib/db/schema";
@@ -12,6 +13,17 @@ vi.mock("@/lib/auth/session", () => ({
   getSession: async () => session,
   deleteSession: async () => {},
 }));
+
+// our quick tier answers from a stand in ollama so no test reaches a real provider
+vi.mock("@/lib/ai/tiers", async (importOriginal) => {
+  const tiers = await importOriginal<typeof TiersModule>();
+  const primary = {
+    provider: "ollama" as const,
+    model: "server-model",
+    price: { input: 1, cachedInput: 0.1, output: 2 },
+  };
+  return { ...tiers, serverTiers: () => ({ ...tiers.AI_TIERS, quick: { primary } }) };
+});
 
 const INTERNAL = "http://127.0.0.1:9";
 const SERVER_OLLAMA = "http://server-ollama.test";

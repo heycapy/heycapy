@@ -3,12 +3,11 @@ import {
   AI_REQUEST_TIMEOUT_MS,
   GEMINI_NATIVE_API_BASE,
   GROQ_API_BASE,
-  TRANSCRIPTION_DEFAULT_MODELS,
-  TRANSCRIPTION_PROVIDERS,
   WHISPER_PROMPT_MAX_LENGTH,
   type TranscriptionProvider,
 } from "@/constants";
 import type { TokenUsage } from "@/lib/ai/types";
+import { providerKey, serverTiers, type Price } from "@/lib/ai/tiers";
 import type { VoiceContext } from "./hints";
 
 export type { TranscriptionProvider } from "@/constants";
@@ -141,18 +140,14 @@ export async function transcribeAudio(
   return { text: response.text, usage: null };
 }
 
-// set on its own and never taken from the chat ai so voice stays off until both are set
+// only hosted servers answer voice on our key and never with the chat ai's key
 export function serverVoice(): {
   provider: TranscriptionProvider;
   apiKey: string;
   model: string;
+  price: Price;
 } | null {
-  const provider = TRANSCRIPTION_PROVIDERS.find((p) => p === process.env.VOICE_PROVIDER);
-  const apiKey = process.env.VOICE_API_KEY;
-  if (!provider || !apiKey) return null;
-  return {
-    provider,
-    apiKey,
-    model: process.env.VOICE_MODEL || TRANSCRIPTION_DEFAULT_MODELS[provider],
-  };
+  const { provider, model, price } = serverTiers().voice.primary;
+  const apiKey = providerKey(provider);
+  return apiKey ? { provider, apiKey, model, price } : null;
 }

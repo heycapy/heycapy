@@ -33,6 +33,7 @@ test("admins give a user credits from the system tab", async ({ page }) => {
   await expect(
     page.getByText(/\d+ granted · \d+ used · \d+ refunded · \d+ by admins/)
   ).toBeVisible();
+  await expect(page.getByText(/^last 30 days · \d+ used · \$\d+\.\d{4} on our ai/)).toBeVisible();
 
   const activity = page.getByText("e2e thanks · by e2e-system@heycapy.test").first();
   await expect(activity).toBeHidden();

@@ -1,10 +1,12 @@
 import { cn } from "@/lib/utils";
 import { useAIStatus } from "@/hooks/useAIStatus";
 import { aiStatusIsProblem, aiStatusLabel } from "@/lib/ai/status-label";
+import { CREDITS_LOW_LEFT } from "@/constants";
 
 export function AIStatusStrip() {
   const status = useAIStatus();
-  const problem = status !== null && aiStatusIsProblem(status);
+  if (!status || (status.kind === "credits" && status.balance > CREDITS_LOW_LEFT)) return null;
+  const problem = aiStatusIsProblem(status);
 
   return (
     <p
@@ -15,8 +17,8 @@ export function AIStatusStrip() {
         problem ? "text-destructive" : "text-muted-foreground"
       )}
     >
-      {status && aiStatusLabel(status)}
-      {problem && " · see tweaks → ai"}
+      {aiStatusLabel(status)}
+      {(problem || status.kind === "credits") && " · see tweaks → ai"}
     </p>
   );
 }
