@@ -82,3 +82,16 @@ test("the edit dialog no longer shows reminder details", async ({ page }) => {
   await expect(edit).toBeVisible();
   await expect(edit.getByRole("region", { name: "reminders" })).toHaveCount(0);
 });
+
+test("a reminder dialog taller than the screen scrolls to its history", async ({ page }) => {
+  const title = uniqueName("renew passport");
+  await addDatedItem(page, title);
+  await page.getByRole("button", { name: /^reminder / }).click();
+  await page.setViewportSize({ width: 360, height: 170 });
+  const details = reminderDialog(page, title).getByRole("region", { name: "reminders" });
+  const history = details.getByText("nothing sent yet");
+  await expect(history).toBeAttached();
+  await details.hover();
+  await page.mouse.wheel(0, 1000);
+  await expect(history).toBeInViewport({ ratio: 1 });
+});

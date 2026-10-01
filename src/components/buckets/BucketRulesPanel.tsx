@@ -35,7 +35,13 @@ const OVERDUE_FIRST_ALERT_OPTIONS = [
   { value: 1440, label: "1 day" },
 ] as const;
 
-export type NotifAvailability = { email: boolean; ntfy: boolean; telegram: boolean; push: boolean };
+export type NotifAvailability = {
+  email: boolean;
+  ntfy: boolean;
+  telegram: boolean;
+  push: boolean;
+  webhooks: { id: number; name: string }[];
+};
 
 type BucketRulesPanelProps = {
   activeTab: "items" | "notifications";
@@ -47,6 +53,7 @@ type BucketRulesPanelProps = {
   readonly: boolean;
   defaultDeadlineOffset: string;
   mediums: NotificationMedium[];
+  webhooks: number[];
   reminderButtons: QuickRemindChoice[];
   notifyAt: string;
   defaultReminders: number[];
@@ -62,6 +69,7 @@ type BucketRulesPanelProps = {
   onReadonlyChange: (v: boolean) => void;
   onDefaultDeadlineOffsetChange: (v: string) => void;
   onMediumToggle: (m: NotificationMedium) => void;
+  onWebhookToggle: (id: number) => void;
   onReminderButtonToggle: (b: QuickRemindChoice) => void;
   onNotifyAtChange: (v: string) => void;
   onDefaultRemindersChange: (v: number[]) => void;
@@ -83,6 +91,7 @@ export function BucketRulesPanel({
   readonly,
   defaultDeadlineOffset,
   mediums,
+  webhooks,
   reminderButtons,
   notifyAt,
   defaultReminders,
@@ -98,6 +107,7 @@ export function BucketRulesPanel({
   onReadonlyChange,
   onDefaultDeadlineOffsetChange,
   onMediumToggle,
+  onWebhookToggle,
   onReminderButtonToggle,
   onNotifyAtChange,
   onDefaultRemindersChange,
@@ -164,8 +174,31 @@ export function BucketRulesPanel({
     <>
       <div className="flex flex-col gap-1.5">
         <label className={LABEL}>channels</label>
-        <span className={HINT}>where to send notifications for this bucket</span>
-        <OptionGroup options={MEDIUM_OPTIONS} value={mediums} onChange={onMediumToggle} multi />
+        <span className={HINT}>
+          where to send notifications for this bucket
+          {notifAvailability?.webhooks.length === 0 &&
+            " · add discord, slack or your own server in tweaks → notifications → other apps"}
+        </span>
+        <div className="flex flex-wrap gap-1.5">
+          {MEDIUM_OPTIONS.map((option) => (
+            <OptionButton
+              key={option.value}
+              active={mediums.includes(option.value)}
+              onClick={() => onMediumToggle(option.value)}
+            >
+              {option.label}
+            </OptionButton>
+          ))}
+          {notifAvailability?.webhooks.map((webhook) => (
+            <OptionButton
+              key={`webhook:${webhook.id}`}
+              active={webhooks.includes(webhook.id)}
+              onClick={() => onWebhookToggle(webhook.id)}
+            >
+              {webhook.name}
+            </OptionButton>
+          ))}
+        </div>
         {notifAvailability && mediums.length > 0 && (
           <div className="mt-0.5 flex flex-col gap-0.5">
             {mediums.includes("email") && !notifAvailability.email && (

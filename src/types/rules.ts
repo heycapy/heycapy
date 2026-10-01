@@ -10,6 +10,8 @@ export const ReminderOffsets = z
 
 export const NotificationRules = z.object({
   medium: z.array(z.enum(["ntfy", "email", "telegram", "push"])).default([]),
+  // ids of the user's outgoing webhooks, set up once in tweaks
+  webhooks: z.array(z.number().int().positive()).default([]),
   notifyAt: z.string().default(""),
   quietHours: z.object({ from: z.string(), to: z.string() }).nullable().default(null),
   // For items that haven't picked their own

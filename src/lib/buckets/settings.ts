@@ -2,7 +2,7 @@ import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { and, eq } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { buckets } from "@/lib/db/schema";
+import { buckets, outgoingWebhooks } from "@/lib/db/schema";
 import { findBucketByName } from "@/lib/db/buckets";
 import { refreshBucketReminders } from "@/lib/reminders/refresh";
 import { parseClock } from "@/lib/reminders/zoned";
@@ -28,6 +28,7 @@ export const BucketSettingsInput = z.object({
   }),
   notificationsRules: z.object({
     medium: notificationsShape.medium.unwrap(),
+    webhooks: notificationsShape.webhooks.unwrap().optional(),
     // Unknown ones (from older versions) are dropped rather than failing the whole save
     reminderButtons: z
       .array(z.string())
@@ -87,6 +88,15 @@ export async function saveBucketSettings(
     return { ok: false, error: DUPLICATE_BUCKET_NAME_ERROR };
   }
 
+  // ids of deleted or someone else's webhooks are dropped
+  const { webhooks: pickedWebhooks, ...otherRules } = notificationsRules;
+  const ownWebhookIds = (
+    await db
+      .select({ id: outgoingWebhooks.id })
+      .from(outgoingWebhooks)
+      .where(eq(outgoingWebhooks.userId, userId))
+  ).map((w) => w.id);
+
   const fieldSchema = notificationTriggers && {
     ...parseStored(bucket.fieldSchema),
     notifyOnArrival: notificationTriggers.notifyOnArrival ?? false,
@@ -106,7 +116,10 @@ export async function saveBucketSettings(
       itemsRules: JSON.stringify(itemsRules),
       notificationsRules: JSON.stringify({
         ...parseStored(bucket.notificationsRules),
-        ...notificationsRules,
+        ...otherRules,
+        ...(pickedWebhooks && {
+          webhooks: pickedWebhooks.filter((id) => ownWebhookIds.includes(id)),
+        }),
         notifyAt: notificationsRules.notifyAt,
       }),
       ...(fieldSchema && { fieldSchema: JSON.stringify(fieldSchema) as unknown as BucketSchema }),

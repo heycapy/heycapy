@@ -20,6 +20,7 @@ export type ItemsRulesConfig = {
 
 export type NotificationsRulesConfig = {
   medium?: NotificationMedium[];
+  webhooks?: number[];
   reminderButtons?: QuickRemindChoice[];
   notifyAt?: string;
   defaultReminders?: number[];

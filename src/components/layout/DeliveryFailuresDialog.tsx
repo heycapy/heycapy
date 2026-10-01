@@ -31,7 +31,7 @@ export function DeliveryFailuresDialog({ failure, onClose }: DeliveryFailuresDia
       >
         <div className="border-border bg-background flex max-h-[70vh] flex-col border-2">
           <div className="bg-foreground text-background flex items-center justify-between gap-2 px-3 py-1.5">
-            <span className="font-pixel min-w-0 truncate text-xs">failed [{failure.medium}]</span>
+            <span className="font-pixel min-w-0 truncate text-xs">failed [{failure.label}]</span>
             <BracketButton variant="inverted" onClick={onClose}>
               x
             </BracketButton>

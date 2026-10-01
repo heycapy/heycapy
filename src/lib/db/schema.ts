@@ -220,7 +220,8 @@ export const notificationQueue = sqliteTable("notification_queue", {
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
   itemId: integer("item_id").references(() => items.id, { onDelete: "set null" }),
-  medium: text("medium", { enum: ["email", "ntfy", "telegram", "push"] }).notNull(),
+  medium: text("medium", { enum: ["email", "ntfy", "telegram", "push", "webhook"] }).notNull(),
+  webhookId: integer("webhook_id").references(() => outgoingWebhooks.id, { onDelete: "set null" }),
   title: text("title").notNull(),
   message: text("message").notNull(),
   status: text("status", {
@@ -250,7 +251,8 @@ export const notificationLog = sqliteTable("notification_log", {
   userId: integer("user_id")
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
-  medium: text("medium", { enum: ["email", "ntfy", "telegram", "push"] }).notNull(),
+  medium: text("medium", { enum: ["email", "ntfy", "telegram", "push", "webhook"] }).notNull(),
+  webhookId: integer("webhook_id").references(() => outgoingWebhooks.id, { onDelete: "set null" }),
   message: text("message").notNull(),
   status: text("status", { enum: ["sent", "failed"] })
     .notNull()
@@ -355,6 +357,25 @@ export const pushSubscriptions = sqliteTable(
       .default(sql`(unixepoch())`),
   },
   (t) => [index("idx_push_subscriptions_user_id").on(t.userId)]
+);
+
+// outgoing webhooks a user sets up once in tweaks; buckets pick them by name
+export const outgoingWebhooks = sqliteTable(
+  "outgoing_webhooks",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    userId: integer("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    url: text("url").notNull(),
+    secret: text("secret").notNull(),
+    isDefault: integer("is_default", { mode: "boolean" }).notNull().default(false),
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .default(sql`(unixepoch())`),
+  },
+  (t) => [index("idx_outgoing_webhooks_user_id").on(t.userId)]
 );
 
 // Server-wide values generated on first use, e.g. the web push (VAPID) keys

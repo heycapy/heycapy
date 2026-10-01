@@ -15,6 +15,7 @@ import { refreshItemReminders, reminderContext } from "@/lib/reminders/refresh";
 import { createNextOccurrence, moveOccurrence, skipOccurrence } from "@/lib/items/recurrence";
 import { onLastDayIfAnchored, parseRecurring } from "@/lib/items/occurrence";
 import { cancelRemindAgain } from "@/lib/reminders/quick-actions";
+import { toggleItemCompleted } from "@/lib/items/complete";
 import { dataEvents } from "@/lib/events";
 import {
   getItemReminderInfo,
@@ -268,19 +269,7 @@ export async function completeItemAction(itemId: number): Promise<ActionResult> 
   });
   if (!item) return { ok: false, error: "Item not found" };
 
-  const newStatus =
-    item.status === ITEM_STATUS.completed ? ITEM_STATUS.active : ITEM_STATUS.completed;
-  await db
-    .update(items)
-    .set({
-      status: newStatus,
-      completedAt: newStatus === ITEM_STATUS.completed ? new Date() : null,
-      ...(newStatus === ITEM_STATUS.active && { overdueNotifiedAt: null }),
-      updatedAt: new Date(),
-    })
-    .where(and(eq(items.id, itemId), eq(items.userId, session.userId)));
-  await refreshItemReminders([itemId]);
-  if (newStatus === ITEM_STATUS.completed) await createNextOccurrence(itemId);
+  await toggleItemCompleted(item);
 
   revalidatePath("/");
   return { ok: true };

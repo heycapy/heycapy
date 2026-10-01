@@ -13,7 +13,7 @@ import { dataEvents } from "@/lib/events";
 import { decryptValue } from "@/lib/crypto";
 import { getAIProvider } from "@/lib/ai";
 import { enqueueNotification, processPending } from "@/lib/notifications/queue";
-import { channelDecisions, hasPushDevice } from "@/lib/notifications/channels";
+import { channelDecisions, hasPushDevice, userWebhooks } from "@/lib/notifications/channels";
 import { nextDeadlineReminder, nextOverdueAlert } from "@/lib/reminders/schedule";
 import { reconcile, reminderRowFields, toReminderInputs } from "@/lib/reminders/refresh";
 import {
@@ -104,6 +104,7 @@ const dueRowFields = {
   telegramChatId: userSettings.telegramChatId,
   notificationsTelegram: userSettings.notificationsTelegram,
   hasPushDevice,
+  webhooks: userWebhooks,
   aiProvider: userSettings.aiProvider,
   aiApiKey: userSettings.aiApiKey,
   aiModel: userSettings.aiModel,
@@ -178,7 +179,7 @@ async function sendDeadlineReminder(row: DueRow, now: Date): Promise<void> {
     return;
   }
 
-  const channels = channelDecisions(inputs.rules.medium, row);
+  const channels = channelDecisions(inputs.rules, row);
   const sending = channels.some((c) => c.state === "send");
   const deadlineStr = formatWhen(deadline, now, inputs.timezone);
   const message =
@@ -222,7 +223,7 @@ async function sendOverdueAlert(row: DueRow, now: Date): Promise<void> {
     kind: "overdue",
     title: `[${APP_NAME}] Overdue: ${shortTitle(row.item.title)}`,
     message: `overdue — was due ${formatWhen(deadline, now, inputs.timezone)}`,
-    channels: channelDecisions(inputs.rules.medium, row),
+    channels: channelDecisions(inputs.rules, row),
   });
 
   await db

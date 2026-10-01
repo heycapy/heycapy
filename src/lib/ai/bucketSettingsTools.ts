@@ -1,6 +1,10 @@
 import { db } from "@/lib/db";
 import { parseItemsRules } from "@/lib/rules";
-import { getWorkingChannels } from "@/lib/notifications/channels";
+import {
+  getChannelSettings,
+  workingChannels,
+  type UserWebhook,
+} from "@/lib/notifications/channels";
 import { QUICK_REMIND_VALUES } from "@/lib/notifications/constants";
 import { MAX_REMINDER_OFFSET_MINS, MAX_REMINDERS_PER_ITEM } from "@/lib/reminders/constants";
 import { saveBucketSettings, type BucketSettingsInput } from "@/lib/buckets/settings";
@@ -104,7 +108,8 @@ export const BUCKET_SETTINGS_TOOLS: Tool[] = [
     description:
       "Read every setting of one bucket, plus which notification channels actually work for the user. " +
       "Call it before changing settings, when the user asks how a bucket is set up, or before promising " +
-      "a notification will arrive.",
+      "a notification will arrive. webhooks_on lists the user's webhooks (discord, slack, their own server) " +
+      "this bucket also sends to; you can't change those, the user turns them on in bucket settings → notifications.",
     parameters: {
       type: "object",
       properties: { bucket_id: { type: "number", description: "The bucket's ID." } },
@@ -127,7 +132,16 @@ export const BUCKET_SETTINGS_TOOLS: Tool[] = [
   },
 ];
 
-function describeSettings(bucket: BucketRow, working: string[]) {
+type UserChannels = { working: string[]; webhooks: UserWebhook[] };
+
+async function userChannels(userId: number): Promise<UserChannels> {
+  const settings = await getChannelSettings(userId);
+  return settings
+    ? { working: workingChannels(settings), webhooks: settings.webhooks }
+    : { working: [], webhooks: [] };
+}
+
+function describeSettings(bucket: BucketRow, { working, webhooks }: UserChannels) {
   const s = parseBucketSettings(bucket);
   return {
     bucket_id: bucket.id,
@@ -142,6 +156,8 @@ function describeSettings(bucket: BucketRow, working: string[]) {
     channels: s.mediums,
     channels_not_working: s.mediums.filter((m) => !working.includes(m)),
     working_channels: working,
+    // read only for capy: the user turns webhooks on in bucket settings
+    webhooks_on: webhooks.filter((w) => s.webhooks.includes(w.id)).map((w) => w.name),
     reminder_buttons: s.reminderButtons,
     default_reminders_mins: s.defaultReminders,
     remind_at: s.notifyAt || null,
@@ -178,11 +194,11 @@ export async function executeBucketSettingsTool(
   if (name === "get_bucket_settings") {
     return JSON.stringify({
       ok: true,
-      settings: describeSettings(bucket, await getWorkingChannels(userId)),
+      settings: describeSettings(bucket, await userChannels(userId)),
     });
   }
 
-  const current = describeSettings(bucket, []);
+  const current = describeSettings(bucket, { working: [], webhooks: [] });
   const remindAt = pick(args, "remind_at", current.remind_at);
   // Checked by saveBucketSettings, the same checks the settings dialog goes through
   const input = {
@@ -222,6 +238,6 @@ export async function executeBucketSettingsTool(
   const saved = await findBucket(userId, bucketId);
   return JSON.stringify({
     ok: true,
-    settings: saved && describeSettings(saved, await getWorkingChannels(userId)),
+    settings: saved && describeSettings(saved, await userChannels(userId)),
   });
 }

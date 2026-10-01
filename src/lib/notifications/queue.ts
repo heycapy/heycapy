@@ -1,7 +1,13 @@
 import { isClosedStatus } from "@/constants";
 import { and, eq, inArray, isNull, lte, or } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { notificationQueue, notificationLog, users, userSettings } from "@/lib/db/schema";
+import {
+  notificationQueue,
+  notificationLog,
+  outgoingWebhooks,
+  users,
+  userSettings,
+} from "@/lib/db/schema";
 import { sendEmail } from "./email";
 import { buildNotificationEmail } from "@/lib/auth/notificationEmail";
 import { sendNtfy } from "./ntfy";
@@ -9,6 +15,8 @@ import { sendWebPush } from "./web-push";
 import { reminderLinks } from "@/lib/reminders/reminder-buttons";
 import { publicAppUrl } from "@/lib/app-url";
 import { sendTelegramAlert } from "./telegram-alert";
+import { sendWebhook } from "./webhook";
+import { webhookEvent } from "./webhook-event";
 import { errorMessage } from "@/lib/errors";
 import { withTimeout } from "@/lib/async";
 import { decryptValue } from "@/lib/crypto";
@@ -26,7 +34,7 @@ import {
   PUSH_REMIND_BUTTONS,
 } from "./constants";
 
-export type NotificationMedium = "email" | "ntfy" | "telegram" | "push";
+export type NotificationMedium = "email" | "ntfy" | "telegram" | "push" | "webhook";
 
 export type NotificationJob = {
   userId: number;
@@ -64,6 +72,7 @@ export async function enqueueNotification(notification: {
       itemId: notification.itemId,
       kind: notification.kind,
       medium: c.medium,
+      webhookId: c.webhookId,
       title: notification.title,
       message: notification.message,
       status: c.state === "send" ? ("pending" as const) : ("skipped" as const),
@@ -161,6 +170,14 @@ export async function processPending(): Promise<void> {
           .where(eq(notificationQueue.id, job.id));
         continue;
       }
+    }
+
+    if (job.medium === "webhook" && job.webhookId === null) {
+      await db
+        .update(notificationQueue)
+        .set({ status: "cancelled", lastError: "webhook was deleted" })
+        .where(eq(notificationQueue.id, job.id));
+      continue;
     }
 
     if (isE2ETestMode()) {
@@ -271,6 +288,27 @@ export async function processPending(): Promise<void> {
                 now,
               });
             }
+            case "webhook": {
+              const webhookId = job.webhookId;
+              const webhook =
+                webhookId !== null &&
+                (await db.query.outgoingWebhooks.findFirst({
+                  where: and(
+                    eq(outgoingWebhooks.id, webhookId),
+                    eq(outgoingWebhooks.userId, job.userId)
+                  ),
+                }));
+              if (!webhook) throw new Error("webhook was deleted");
+              // the same id on every retry, so the receiver can drop repeats
+              await sendWebhook(
+                webhook.url,
+                decryptValue(webhook.secret),
+                `msg_${job.id}`,
+                await webhookEvent(job, userRow.timezone),
+                `${job.title}\n${job.message}`
+              );
+              return null;
+            }
           }
         })(),
         DELIVERY_TIMEOUT_MS,
@@ -284,6 +322,7 @@ export async function processPending(): Promise<void> {
       itemId: job.itemId ?? null,
       userId: job.userId,
       medium: job.medium,
+      webhookId: job.webhookId,
       message: job.message,
       status: deliveryError ? "failed" : "sent",
       error: deliveryError,

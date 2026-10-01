@@ -15,8 +15,11 @@ export function parseNotificationRules(raw: string | null | undefined): Notifica
   return parsed.success ? parsed.data : NotificationRules.parse({});
 }
 
-export function bucketChannels(raw: string | null | undefined): NotificationRules["medium"] {
-  return parseNotificationRules(raw).medium;
+export type BucketChannels = Pick<NotificationRules, "medium" | "webhooks">;
+
+export function bucketChannels(raw: string | null | undefined): BucketChannels {
+  const { medium, webhooks } = parseNotificationRules(raw);
+  return { medium, webhooks };
 }
 
 export function bucketReminderButtons(raw: string | null | undefined): QuickRemindChoice[] {

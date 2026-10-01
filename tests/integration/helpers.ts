@@ -13,6 +13,7 @@ let userCount = 0;
 
 type NotificationRulesInput = {
   medium?: string[];
+  webhooks?: number[];
   repeat?: "once" | "daily";
   notifyAt?: string;
   defaultReminders?: number[];

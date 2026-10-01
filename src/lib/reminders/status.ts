@@ -2,13 +2,14 @@ import { bucketChannels } from "@/lib/rules";
 import { ITEM_STATUS, isClosedStatus } from "@/constants";
 import { and, desc, eq, inArray } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { buckets, itemActions, items, notificationQueue } from "@/lib/db/schema";
+import { buckets, itemActions, items, notificationQueue, outgoingWebhooks } from "@/lib/db/schema";
 import {
   ALL_CHANNELS,
   channelDecisions,
   getChannelSettings,
   type ChannelDecision,
 } from "@/lib/notifications/channels";
+import { channelKey } from "@/lib/notifications/channel-key";
 import type { NotificationMedium } from "@/lib/notifications/queue";
 import { pendingRemindAgainAt } from "./remind-again";
 
@@ -19,6 +20,8 @@ export type ReminderBadge = "failed" | "noChannel" | "upcoming" | "history";
 
 export type ChannelOutcome = {
   medium: NotificationMedium;
+  webhookId: number | null;
+  label: string;
   outcome: "sent" | "sending" | "retrying" | "failed" | "closed" | "notSelected" | "notSetUp";
   error: string | null;
   retryAt: Date | null;
@@ -58,7 +61,9 @@ async function currentDecisions(userId: number, notificationsRules: string) {
   return channelDecisions(bucketChannels(notificationsRules), await getChannelSettings(userId));
 }
 
-function toOutcome(job: Job): ChannelOutcome {
+type JobRow = { job: Job; webhookName: string | null };
+
+function toOutcome({ job, webhookName }: JobRow): ChannelOutcome {
   const outcome: ChannelOutcome["outcome"] =
     job.status === "skipped"
       ? (job.skipReason ?? "notSelected")
@@ -73,6 +78,8 @@ function toOutcome(job: Job): ChannelOutcome {
               : "sending";
   return {
     medium: job.medium,
+    webhookId: job.webhookId,
+    label: job.medium === "webhook" ? (webhookName ?? "deleted webhook") : job.medium,
     outcome,
     error: outcome === "failed" || outcome === "retrying" ? job.lastError : null,
     retryAt: outcome === "retrying" ? job.nextRetryAt : null,
@@ -80,23 +87,28 @@ function toOutcome(job: Job): ChannelOutcome {
 }
 
 // One notification = same kind and creation time, with at most one entry per channel
-function groupIntoEvents(jobs: Job[]): NotificationEvent[] {
+function groupIntoEvents(rows: JobRow[]): NotificationEvent[] {
   const events: NotificationEvent[] = [];
-  for (const job of jobs) {
+  for (const row of rows) {
+    const { job } = row;
     const last = events[events.length - 1];
     if (
       last &&
       last.kind === job.kind &&
       last.at.getTime() === job.createdAt.getTime() &&
-      !last.channels.some((c) => c.medium === job.medium)
+      !last.channels.some((c) => channelKey(c) === channelKey(job))
     ) {
-      last.channels.push(toOutcome(job));
+      last.channels.push(toOutcome(row));
     } else {
-      events.push({ type: "sent", kind: job.kind, at: job.createdAt, channels: [toOutcome(job)] });
+      events.push({ type: "sent", kind: job.kind, at: job.createdAt, channels: [toOutcome(row)] });
     }
   }
   for (const event of events) {
-    event.channels.sort((a, b) => ALL_CHANNELS.indexOf(a.medium) - ALL_CHANNELS.indexOf(b.medium));
+    event.channels.sort(
+      (a, b) =>
+        ALL_CHANNELS.indexOf(a.medium) - ALL_CHANNELS.indexOf(b.medium) ||
+        (a.webhookId ?? 0) - (b.webhookId ?? 0)
+    );
   }
   return events;
 }
@@ -129,7 +141,7 @@ export async function getReminderBadges(
   const seen = new Set<string>();
   for (const job of jobs) {
     if (job.status === "skipped") continue;
-    const key = `${job.itemId}:${job.medium}`;
+    const key = `${job.itemId}:${channelKey(job)}`;
     if (seen.has(key)) continue;
     seen.add(key);
     if (job.status === "dead" && job.itemId) failed.add(job.itemId);
@@ -164,8 +176,9 @@ export async function getItemReminderInfo(
 
   const decisions = await currentDecisions(userId, row.notificationsRules);
   const jobs = await db
-    .select()
+    .select({ job: notificationQueue, webhookName: outgoingWebhooks.name })
     .from(notificationQueue)
+    .leftJoin(outgoingWebhooks, eq(outgoingWebhooks.id, notificationQueue.webhookId))
     .where(eq(notificationQueue.itemId, itemId))
     .orderBy(desc(notificationQueue.id))
     .limit(HISTORY_LIMIT * decisions.length);

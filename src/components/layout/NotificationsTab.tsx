@@ -5,6 +5,7 @@ import { NtfySettings } from "./NtfySettings";
 import { PushSettings } from "./PushSettings";
 import { QuietHoursSettings } from "./QuietHoursSettings";
 import { TelegramSettings } from "./TelegramSettings";
+import { WebhookSettings } from "./WebhookSettings";
 import { SmtpTestDialog } from "./SmtpTestDialog";
 
 type NotificationsTabProps = {
@@ -191,6 +192,7 @@ export function NotificationsTab({
         telegramActionPending={telegramActionPending}
         pending={pending}
       />
+      <WebhookSettings />
       <SmtpTestDialog
         open={testDialogOpen}
         onClose={() => setTestDialogOpen(false)}

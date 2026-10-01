@@ -1,6 +1,7 @@
 import { and, desc, eq, gte, inArray, isNull } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { buckets, items, notificationQueue } from "@/lib/db/schema";
+import { buckets, items, notificationQueue, outgoingWebhooks } from "@/lib/db/schema";
+import { channelKey } from "./channel-key";
 import { CHANNEL_FAILURE_WINDOW_MS } from "./constants";
 import type { NotificationMedium } from "./queue";
 
@@ -13,6 +14,8 @@ export type FailedDelivery = {
 
 export type ChannelFailure = {
   medium: NotificationMedium;
+  webhookId: number | null;
+  label: string;
   deliveries: FailedDelivery[];
 };
 
@@ -22,8 +25,14 @@ export async function getChannelFailures(
   now = new Date()
 ): Promise<ChannelFailure[]> {
   const rows = await db
-    .select({ job: notificationQueue, itemTitle: items.title, bucketName: buckets.name })
+    .select({
+      job: notificationQueue,
+      itemTitle: items.title,
+      bucketName: buckets.name,
+      webhookName: outgoingWebhooks.name,
+    })
     .from(notificationQueue)
+    .leftJoin(outgoingWebhooks, eq(outgoingWebhooks.id, notificationQueue.webhookId))
     .leftJoin(items, eq(items.id, notificationQueue.itemId))
     .leftJoin(buckets, eq(buckets.id, items.bucketId))
     .where(
@@ -36,29 +45,38 @@ export async function getChannelFailures(
     )
     .orderBy(desc(notificationQueue.id));
 
-  const recovered = new Set<NotificationMedium>();
-  const failures = new Map<NotificationMedium, FailedDelivery[]>();
-  for (const { job, itemTitle, bucketName } of rows) {
-    if (recovered.has(job.medium)) continue;
+  const recovered = new Set<string>();
+  const failures = new Map<string, ChannelFailure>();
+  for (const { job, itemTitle, bucketName, webhookName } of rows) {
+    // a deleted webhook can't be fixed, so its failures aren't worth a banner
+    if (job.medium === "webhook" && !webhookName) continue;
+    const key = channelKey(job);
+    if (recovered.has(key)) continue;
     if (job.status === "sent") {
-      recovered.add(job.medium);
+      recovered.add(key);
       continue;
     }
-    const deliveries = failures.get(job.medium) ?? [];
-    deliveries.push({
+    const failure = failures.get(key) ?? {
+      medium: job.medium,
+      webhookId: job.webhookId,
+      label: webhookName ?? job.medium,
+      deliveries: [],
+    };
+    failure.deliveries.push({
       title: itemTitle ?? job.title,
       bucketName,
       at: job.createdAt,
       error: job.lastError,
     });
-    failures.set(job.medium, deliveries);
+    failures.set(key, failure);
   }
-  return [...failures].map(([medium, deliveries]) => ({ medium, deliveries }));
+  return [...failures.values()];
 }
 
 export async function dismissChannelFailures(
   userId: number,
-  medium: NotificationMedium
+  medium: NotificationMedium,
+  webhookId: number | null = null
 ): Promise<void> {
   await db
     .update(notificationQueue)
@@ -67,6 +85,7 @@ export async function dismissChannelFailures(
       and(
         eq(notificationQueue.userId, userId),
         eq(notificationQueue.medium, medium),
+        webhookId === null ? undefined : eq(notificationQueue.webhookId, webhookId),
         eq(notificationQueue.status, "dead"),
         isNull(notificationQueue.dismissedAt)
       )

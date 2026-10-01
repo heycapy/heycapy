@@ -30,14 +30,14 @@ export function ReminderInfoDialog({ itemId, title, onClose }: ReminderInfoDialo
         className="fixed top-[12%] left-1/2 z-[60] w-[calc(100%-2rem)] max-w-sm -translate-x-1/2"
         style={{ boxShadow: "5px 5px 0 var(--border)" }}
       >
-        <div className="border-border bg-background flex flex-col border-2">
-          <div className="bg-foreground text-background flex items-center justify-between gap-2 px-3 py-1.5">
+        <div className="border-border bg-background flex max-h-[76dvh] flex-col overflow-hidden border-2">
+          <div className="bg-foreground text-background flex shrink-0 items-center justify-between gap-2 px-3 py-1.5">
             <span className="font-pixel min-w-0 truncate text-xs">reminder [{title}]</span>
             <BracketButton variant="inverted" onClick={onClose}>
               x
             </BracketButton>
           </div>
-          <div className="px-4 py-4">
+          <div className="overflow-y-auto overscroll-contain px-4 py-4">
             <ItemReminderInfo itemId={itemId} />
           </div>
         </div>
