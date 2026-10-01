@@ -602,16 +602,6 @@ body {
   }
 }
 
-@keyframes capy-bob {
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-10px);
-  }
-}
-
 [data-sonner-toast] [data-close-button] {
   position: absolute !important;
   top: 2px !important;

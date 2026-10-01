@@ -3,27 +3,10 @@ import type { NextRequest } from "next/server";
 import { verifySessionToken } from "@/lib/auth/session";
 import { SESSION_COOKIE_NAME } from "@/lib/auth/constants";
 
-const PUBLIC_PATHS = ["/home", "/about", "/how-to-use", "/r"];
+const PUBLIC_PATHS = ["/r"];
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  const hostname = request.headers.get("host") ?? "";
-
-  const rootDomain = process.env.ROOT_DOMAIN;
-  const isRootDomain =
-    !!rootDomain && (hostname === rootDomain || hostname === `www.${rootDomain}`);
-  if (isRootDomain) {
-    if (pathname === "/") {
-      return NextResponse.rewrite(new URL("/home", request.url));
-    }
-    if (PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(p + "/"))) {
-      return NextResponse.next();
-    }
-    const appUrl = process.env.APP_URL;
-    if (appUrl) {
-      return NextResponse.redirect(new URL(pathname + request.nextUrl.search, appUrl));
-    }
-  }
 
   if (PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(p + "/"))) {
     return NextResponse.next();

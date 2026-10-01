@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 
 test("shared links get a preview card with an image anyone can load", async ({ page, request }) => {
-  await page.goto("/home");
+  await page.goto("/login");
   const meta = (property: string) => page.locator(`meta[property="${property}"]`);
   await expect(meta("og:title")).toHaveAttribute("content", "heycapy");
   await expect(meta("og:description")).toHaveAttribute(
