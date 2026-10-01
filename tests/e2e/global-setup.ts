@@ -7,11 +7,11 @@ export default async function globalSetup(config: FullConfig) {
   const baseURL = config.projects[0]?.use.baseURL;
   if (!baseURL) throw new Error("playwright.config.ts must set use.baseURL");
   const ctx = await request.newContext({ baseURL });
-  const reset = await ctx.post("/api/e2e/reset-auth");
+  const reset = await ctx.post("/api/e2e/reset");
   await ctx.dispose();
   if (!reset.ok()) {
     throw new Error(
-      `Test auth reset failed (${reset.status()}). The server on ${baseURL} must run with E2E_TEST_MODE=1 — stop any other server on that port and let Playwright start it.`
+      `Test account reset failed (${reset.status()}). The server on ${baseURL} must run with E2E_TEST_MODE=1 — stop any other server on that port and let Playwright start it.`
     );
   }
 
