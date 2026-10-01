@@ -159,6 +159,11 @@ export const SETTINGS_API_KEY_MAX_LENGTH = 500;
 
 export const NTFY_TOPIC_MAX_LENGTH = 100;
 export const TIMEZONE_MAX_LENGTH = 50;
+export const WEBHOOK_NAME_MAX_LENGTH = 40;
+export const MAX_OUTGOING_WEBHOOKS = 3;
+export const DISCORD_CONTENT_MAX_LENGTH = 2000;
+export const WEBHOOK_SECRET_PREFIX = "whsec_";
+export const WEBHOOK_SECRET_MASK = WEBHOOK_SECRET_PREFIX + "•".repeat(24);
 export const TELEGRAM_CHAT_ID_MAX_LENGTH = 50;
 
 // One-time link that connects a Telegram chat to an account
@@ -189,7 +194,7 @@ export const SYSTEM_ERRORS_KEPT_MS = 14 * 24 * 60 * 60 * 1000;
 export const SYSTEM_ERROR_MESSAGE_MAX = 2000;
 export const SYSTEM_ERRORS_SHOWN = 50;
 export const ADMIN_ALERT_TIMEOUT_MS = 15_000;
-export const NTFY_TIMEOUT_MS = 15_000;
+export const OUTGOING_TIMEOUT_MS = 15_000;
 export const ADMIN_DIGEST_MAX_ERRORS = 30;
 export const STACK_LINES_IN_ALERT = 12;
 export const TELEGRAM_MESSAGE_MAX = 4000;

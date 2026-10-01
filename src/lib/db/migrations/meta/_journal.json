@@ -169,6 +169,13 @@
       "when": 1793330000000,
       "tag": "0023_ai_usage_cost",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "6",
+      "when": 1793340000000,
+      "tag": "0024_outgoing_webhooks",
+      "breakpoints": true
     }
   ]
 }

@@ -357,6 +357,25 @@ export const pushSubscriptions = sqliteTable(
   (t) => [index("idx_push_subscriptions_user_id").on(t.userId)]
 );
 
+// outgoing webhooks a user sets up once in tweaks; buckets pick them by name
+export const outgoingWebhooks = sqliteTable(
+  "outgoing_webhooks",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    userId: integer("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    url: text("url").notNull(),
+    secret: text("secret").notNull(),
+    isDefault: integer("is_default", { mode: "boolean" }).notNull().default(false),
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .default(sql`(unixepoch())`),
+  },
+  (t) => [index("idx_outgoing_webhooks_user_id").on(t.userId)]
+);
+
 // Server-wide values generated on first use, e.g. the web push (VAPID) keys
 export const serverSecrets = sqliteTable("server_secrets", {
   name: text("name").primaryKey(),

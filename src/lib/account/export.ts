@@ -9,6 +9,7 @@ import {
   itemActions,
   items,
   notificationLog,
+  outgoingWebhooks,
   pushSubscriptions,
   templates,
   userSettings,
@@ -39,6 +40,7 @@ export async function buildAccountExport(userId: number, now = new Date()) {
     actions,
     usage,
     credits,
+    webhooks,
   ] = await Promise.all([
     db.query.users.findFirst({ where: eq(users.id, userId) }),
     db.query.userSettings.findFirst({ where: eq(userSettings.userId, userId) }),
@@ -76,6 +78,15 @@ export async function buildAccountExport(userId: number, now = new Date()) {
       .from(creditLedger)
       .where(eq(creditLedger.userId, userId))
       .orderBy(asc(creditLedger.id)),
+    db
+      .select({
+        name: outgoingWebhooks.name,
+        url: outgoingWebhooks.url,
+        onForNewBuckets: outgoingWebhooks.isDefault,
+      })
+      .from(outgoingWebhooks)
+      .where(eq(outgoingWebhooks.userId, userId))
+      .orderBy(asc(outgoingWebhooks.id)),
   ]);
 
   return {
@@ -105,6 +116,7 @@ export async function buildAccountExport(userId: number, now = new Date()) {
           connected: settings.telegramChatId !== null,
         },
         pushDevices: devices,
+        webhooks,
       },
       personality: {
         name: settings.personalityName,
