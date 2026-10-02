@@ -69,17 +69,13 @@ export function getAIProvider(requested?: AIConfig): MeteredProvider {
     };
   }
 
-  const provider = requested?.provider || process.env.AI_PROVIDER || "ollama";
-  const model = requested?.model || process.env.AI_MODEL || DEFAULT_MODELS[provider] || "";
-  const ollamaUrl = requested?.ollamaUrl || process.env.OLLAMA_URL || OLLAMA_DEFAULT_URL;
-  const own = provider === "ollama" ? !!requested?.ollamaUrl : !!requested?.apiKey;
+  const own = hasOwnAI(requested) && requested ? requested : null;
+  const provider = own?.provider || process.env.AI_PROVIDER || "ollama";
+  const model = (own ? own.model : process.env.AI_MODEL) || DEFAULT_MODELS[provider] || "";
+  const ollamaUrl = (own ? own.ollamaUrl : process.env.OLLAMA_URL) || OLLAMA_DEFAULT_URL;
+  const apiKey = (own ? own.apiKey : process.env.AI_API_KEY) || null;
   return {
-    ...createProvider(
-      provider,
-      model,
-      requested?.apiKey || process.env.AI_API_KEY || null,
-      ollamaUrl
-    ),
+    ...createProvider(provider, model, apiKey, ollamaUrl),
     meta: { provider, model, key: own ? "own" : "server" },
   };
 }
