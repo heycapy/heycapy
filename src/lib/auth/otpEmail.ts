@@ -1,5 +1,7 @@
-import { APP_NAME, USELESS_FACTS_API_URL } from "@/constants";
+import { APP_NAME, EMAIL_COLORS as C, USELESS_FACTS_API_URL } from "@/constants";
+import { emailLayout } from "@/lib/email/layout";
 import { OTP_TTL_MINUTES } from "./constants";
+import { escapeHtml } from "@/lib/notifications/telegram-message";
 
 async function fetchRandomFact(): Promise<string | null> {
   try {
@@ -15,93 +17,51 @@ async function fetchRandomFact(): Promise<string | null> {
   }
 }
 
+export type OtpPurpose = "sign-in" | "delete-account";
+
+const PURPOSE_COPY: Record<OtpPurpose, { label: string; ignore: string }> = {
+  "sign-in": {
+    label: "sign-in",
+    ignore: "didn't request this? ignore it — your account is safe.",
+  },
+  "delete-account": {
+    label: "account deletion",
+    ignore:
+      "didn't ask to delete your account? don't share this code, and use \"log out everywhere\".",
+  },
+};
+
 export async function buildOtpEmail(
-  code: string
+  code: string,
+  purpose: OtpPurpose = "sign-in"
 ): Promise<{ subject: string; text: string; html: string }> {
-  const fact = await fetchRandomFact();
+  const copy = PURPOSE_COPY[purpose];
+  const fact = purpose === "sign-in" ? await fetchRandomFact() : null;
 
-  const subject = `[${APP_NAME}] your sign-in code`;
-
-  const factText = fact ? `\n\n[did you know] ${fact}\n[please check yourself, please :| ]` : "";
+  const subject = `[${APP_NAME}] your ${copy.label} code`;
 
   const text = [
-    `[ ${APP_NAME} ] — sign-in code`,
-    ``,
-    `  ${code}`,
+    `your ${copy.label} code: ${code}`,
     ``,
     `expires in ${OTP_TTL_MINUTES} minutes.`,
-    `if you didn't request this, ignore it.`,
-    factText,
-    ``,
-    `your capy — sent while relaxing`,
+    copy.ignore,
+    ...(fact ? [``, `did you know? ${fact}`, `(please check yourself, please :| )`] : []),
   ].join("\n");
 
-  const mono = `'Courier New', Courier, monospace`;
-  const bg = `#282828`;
-  const card = `#3c3836`;
-  const fg = `#ebdbb2`;
-  const border = `#504945`;
-  const accent = `#d79921`;
-  const muted = `#bdae93`;
-
   const factHtml = fact
-    ? `
-          <tr>
-            <td style="padding:0 32px;">
-              <div style="border-top:1px solid ${border};padding-top:16px;padding-bottom:16px;">
-                <span style="font-family:${mono};font-size:11px;color:${accent};letter-spacing:0.05em;">[did you know]</span>
-                <p style="margin:6px 0 0;font-family:${mono};font-size:13px;color:${fg};line-height:1.6;">${fact.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</p>
-                <p style="margin:8px 0 0;font-family:${mono};font-size:10px;color:${muted};font-style:italic;">[please check yourself, please :| ]</p>
-              </div>
-            </td>
-          </tr>`
+    ? `<p style="margin:24px 0 0;padding-top:18px;border-top:1px solid ${C.border};font-size:11px;color:${C.accent};">[ did you know ]</p>
+              <p style="margin:6px 0 0;font-size:13px;line-height:1.6;color:${C.text};">${escapeHtml(fact)}</p>
+              <p style="margin:6px 0 0;font-size:11px;font-style:italic;color:${C.muted};">please check yourself, please :|</p>`
     : "";
 
-  const html = `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>${subject}</title>
-</head>
-<body style="margin:0;padding:0;background:${bg};font-family:${mono};">
-  <span style="display:none;max-height:0;overflow:hidden;mso-hide:all;">sign-in code for ${APP_NAME} &nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;</span>
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:${bg};padding:40px 16px;">
-    <tr>
-      <td align="center">
-        <table width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;background:${card};border-left:3px solid ${accent};">
-
-          <tr>
-            <td style="padding:20px 32px 16px;border-bottom:1px solid ${border};">
-              <p style="margin:0;font-family:${mono};font-size:18px;font-weight:700;color:${accent};letter-spacing:0.05em;">heycapy</p>
-              <p style="margin:4px 0 0;font-family:${mono};font-size:11px;color:${muted};letter-spacing:0.05em;">sign-in request</p>
-            </td>
-          </tr>
-
-          <tr>
-            <td style="padding:24px 32px 0;">
-              <p style="margin:0 0 12px;font-family:${mono};font-size:12px;color:${muted};letter-spacing:0.05em;">your one-time code — expires in ${OTP_TTL_MINUTES} minutes:</p>
-              <div style="background:${bg};padding:20px;text-align:center;">
-                <span style="font-family:${mono};font-size:40px;font-weight:900;letter-spacing:0.25em;color:${fg};">${code}</span>
-              </div>
-              <p style="margin:12px 0 0;font-family:${mono};font-size:11px;color:${muted};">didn&rsquo;t request this? ignore it — your account is safe.</p>
-            </td>
-          </tr>
-
-          ${factHtml}
-
-          <tr>
-            <td style="padding:16px 32px 20px;border-top:1px solid ${border};">
-              <p style="margin:0;font-family:${mono};font-size:11px;color:${muted};">your capy &mdash; sent while relaxing</p>
-            </td>
-          </tr>
-
-        </table>
-      </td>
-    </tr>
-  </table>
-</body>
-</html>`;
+  const html = emailLayout({
+    label: `${copy.label} code`,
+    preheader: `your ${copy.label} code — expires in ${OTP_TTL_MINUTES} minutes`,
+    body: `<p style="margin:0;font-size:13px;color:${C.muted};">your code — expires in ${OTP_TTL_MINUTES} minutes</p>
+              <p style="margin:12px 0 0;padding:18px 0;background:${C.panel};text-align:center;font-size:36px;font-weight:700;letter-spacing:0.25em;color:${C.text};">${escapeHtml(code)}</p>
+              <p style="margin:14px 0 0;font-size:12px;line-height:1.6;color:${C.muted};">${escapeHtml(copy.ignore)}</p>
+              ${factHtml}`,
+  });
 
   return { subject, text, html };
 }

@@ -1,19 +1,40 @@
-import { and, eq, isNull, lte, or } from "drizzle-orm";
+import { isClosedStatus } from "@/constants";
+import { and, eq, inArray, isNull, lte, or } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { notificationQueue, notificationLog, users, userSettings } from "@/lib/db/schema";
+import {
+  notificationQueue,
+  notificationLog,
+  outgoingWebhooks,
+  users,
+  userSettings,
+} from "@/lib/db/schema";
 import { sendEmail } from "./email";
 import { buildNotificationEmail } from "@/lib/auth/notificationEmail";
 import { sendNtfy } from "./ntfy";
-import { sendTelegram, sendTelegramItemNotification } from "./telegram";
+import { sendWebPush } from "./web-push";
+import { reminderLinks } from "@/lib/reminders/reminder-buttons";
+import { publicAppUrl } from "@/lib/app-url";
+import { sendTelegramAlert } from "./telegram-alert";
+import { sendWebhook } from "./webhook";
+import { webhookEvent } from "./webhook-event";
 import { errorMessage } from "@/lib/errors";
+import { withTimeout } from "@/lib/async";
 import { decryptValue } from "@/lib/crypto";
+import { isE2ETestMode } from "@/lib/e2e";
+import { dataEvents } from "@/lib/events";
+import type { ChannelDecision } from "./channels";
 import {
   QUEUE_DEFAULT_MAX_ATTEMPTS,
   QUEUE_PROCESS_BATCH_SIZE,
   QUEUE_RETRY_DELAY_MINS,
+  QUEUE_SENDING_LEASE_MS,
+  DELIVERY_TIMEOUT_MS,
+  EMAIL_REMIND_BUTTONS,
+  NTFY_REMIND_BUTTONS,
+  PUSH_REMIND_BUTTONS,
 } from "./constants";
 
-export type NotificationMedium = "email" | "ntfy" | "telegram";
+export type NotificationMedium = "email" | "ntfy" | "telegram" | "push" | "webhook";
 
 export type NotificationJob = {
   userId: number;
@@ -35,25 +56,71 @@ export async function enqueue(job: NotificationJob): Promise<void> {
   });
 }
 
+export async function enqueueNotification(notification: {
+  userId: number;
+  itemId: number;
+  kind: "reminder" | "overdue" | "arrival";
+  title: string;
+  message: string;
+  channels: ChannelDecision[];
+  notBefore?: Date;
+}): Promise<void> {
+  const createdAt = new Date();
+  await db.insert(notificationQueue).values(
+    notification.channels.map((c) => ({
+      userId: notification.userId,
+      itemId: notification.itemId,
+      kind: notification.kind,
+      medium: c.medium,
+      webhookId: c.webhookId,
+      title: notification.title,
+      message: notification.message,
+      status: c.state === "send" ? ("pending" as const) : ("skipped" as const),
+      skipReason: c.state === "send" ? null : c.state,
+      nextRetryAt:
+        notification.notBefore && notification.notBefore > createdAt
+          ? notification.notBefore
+          : null,
+      createdAt,
+    }))
+  );
+}
+
+async function externalLinks(
+  job: typeof notificationQueue.$inferSelect,
+  slots: number,
+  channel: "email" | "ntfy",
+  now: Date
+) {
+  const base = publicAppUrl();
+  if (!base || !job.itemId || job.kind === "arrival") return null;
+  const links = await reminderLinks(job.userId, job.itemId, slots, channel, now);
+  return links && { base, ...links };
+}
+
 export async function processPending(): Promise<void> {
   const now = new Date();
+
+  // Includes abandoned "sending" jobs whose lease expired
+  const ready = and(
+    inArray(notificationQueue.status, ["pending", "sending"]),
+    or(isNull(notificationQueue.nextRetryAt), lte(notificationQueue.nextRetryAt, now))
+  );
 
   const pending = await db
     .select()
     .from(notificationQueue)
-    .where(
-      and(
-        eq(notificationQueue.status, "pending"),
-        or(isNull(notificationQueue.nextRetryAt), lte(notificationQueue.nextRetryAt, now))
-      )
-    )
+    .where(ready)
     .limit(QUEUE_PROCESS_BATCH_SIZE);
 
   for (const job of pending) {
-    await db
+    // Atomic claim: overlapping runs send each job once
+    const [claimed] = await db
       .update(notificationQueue)
-      .set({ status: "sending" })
-      .where(eq(notificationQueue.id, job.id));
+      .set({ status: "sending", nextRetryAt: new Date(now.getTime() + QUEUE_SENDING_LEASE_MS) })
+      .where(and(eq(notificationQueue.id, job.id), ready))
+      .returning({ id: notificationQueue.id });
+    if (!claimed) continue;
 
     const userRow = await db
       .select({
@@ -65,6 +132,9 @@ export async function processPending(): Promise<void> {
         ntfyTopic: userSettings.ntfyTopic,
         telegramChatId: userSettings.telegramChatId,
         notificationsTelegram: userSettings.notificationsTelegram,
+        timezone: userSettings.timezone,
+        aiNotifyMessages: userSettings.aiNotifyMessages,
+        aiProvider: userSettings.aiProvider,
         emailProvider: userSettings.emailProvider,
         smtpHost: userSettings.smtpHost,
         smtpPort: userSettings.smtpPort,
@@ -93,70 +163,157 @@ export async function processPending(): Promise<void> {
         where: (i, { eq: qeq }) => qeq(i.id, itemId),
         columns: { status: true, deletedAt: true },
       });
-      if (!itemRow || itemRow.deletedAt || itemRow.status === "completed") {
+      if (!itemRow || itemRow.deletedAt || isClosedStatus(itemRow.status)) {
         await db
           .update(notificationQueue)
-          .set({ status: "sent", sentAt: new Date() })
+          .set({ status: "cancelled" })
           .where(eq(notificationQueue.id, job.id));
         continue;
       }
     }
 
+    if (job.medium === "webhook" && job.webhookId === null) {
+      await db
+        .update(notificationQueue)
+        .set({ status: "cancelled", lastError: "webhook was deleted" })
+        .where(eq(notificationQueue.id, job.id));
+      continue;
+    }
+
+    if (isE2ETestMode()) {
+      // Never deliver during test runs
+      await db
+        .update(notificationQueue)
+        .set({ status: "sent", sentAt: now })
+        .where(eq(notificationQueue.id, job.id));
+      continue;
+    }
+
     let deliveryError: string | null = null;
+    let telegramMessageId: number | null = null;
 
     try {
-      switch (job.medium) {
-        case "email": {
-          if (!userRow.notificationsEmail) throw new Error("Email notifications disabled");
-          const userEmailConfig =
-            userRow.emailProvider === "smtp" && userRow.smtpHost
-              ? {
-                  emailProvider: userRow.emailProvider,
-                  smtpHost: userRow.smtpHost,
-                  smtpPort: userRow.smtpPort,
-                  smtpUser: userRow.smtpUser,
-                  smtpPass: userRow.smtpPass ? decryptValue(userRow.smtpPass) : null,
-                  smtpSecure: userRow.smtpSecure,
-                  smtpFrom: userRow.smtpFrom,
-                }
-              : undefined;
-          const { text: emailText, html: emailHtml } = buildNotificationEmail(
-            job.title,
-            job.message
-          );
-          await sendEmail(
-            {
-              to: userRow.notificationEmailTo ?? userRow.email,
-              subject: job.title,
-              text: emailText,
-              html: emailHtml,
-            },
-            userEmailConfig
-          );
-          break;
-        }
-        case "ntfy":
-          if (!userRow.notificationsPush || !userRow.ntfyUrl || !userRow.ntfyTopic)
-            throw new Error("ntfy not configured");
-          await sendNtfy(userRow.ntfyUrl, userRow.ntfyTopic, job.title, job.message);
-          break;
-        case "telegram": {
-          const botToken = process.env.TELEGRAM_BOT_TOKEN;
-          if (!userRow.notificationsTelegram || !botToken || !userRow.telegramChatId)
-            throw new Error("Telegram not configured");
-          if (job.itemId) {
-            await sendTelegramItemNotification(
-              botToken,
-              userRow.telegramChatId,
-              job.message,
-              job.itemId
-            );
-          } else {
-            await sendTelegram(botToken, userRow.telegramChatId, job.message);
+      // A hung delivery would hold up every later reminder, so each one gets a deadline
+      telegramMessageId = await withTimeout(
+        (async (): Promise<number | null> => {
+          switch (job.medium) {
+            case "email": {
+              if (!userRow.notificationsEmail) throw new Error("Email notifications disabled");
+              const userEmailConfig =
+                userRow.emailProvider === "smtp" && userRow.smtpHost
+                  ? {
+                      emailProvider: userRow.emailProvider,
+                      smtpHost: userRow.smtpHost,
+                      smtpPort: userRow.smtpPort,
+                      smtpUser: userRow.smtpUser,
+                      smtpPass: userRow.smtpPass ? decryptValue(userRow.smtpPass) : null,
+                      smtpSecure: userRow.smtpSecure,
+                      smtpFrom: userRow.smtpFrom,
+                    }
+                  : undefined;
+              const links = await externalLinks(job, EMAIL_REMIND_BUTTONS, "email", now);
+              const { text: emailText, html: emailHtml } = buildNotificationEmail(
+                job.title,
+                job.message,
+                links
+                  ? [
+                      ...links.buttons.map((b) => ({
+                        label: b.label,
+                        url: `${links.base}/r/${b.token}`,
+                      })),
+                      { label: "open in heycapy", url: `${links.base}${links.path}` },
+                    ]
+                  : []
+              );
+              await sendEmail(
+                {
+                  to: userRow.notificationEmailTo ?? userRow.email,
+                  subject: job.title,
+                  text: emailText,
+                  html: emailHtml,
+                },
+                userEmailConfig
+              );
+              return null;
+            }
+            case "ntfy": {
+              if (!userRow.notificationsPush || !userRow.ntfyUrl || !userRow.ntfyTopic)
+                throw new Error("ntfy not configured");
+              const links = await externalLinks(job, NTFY_REMIND_BUTTONS, "ntfy", now);
+              await sendNtfy(
+                userRow.ntfyUrl,
+                userRow.ntfyTopic,
+                job.title,
+                job.message,
+                links
+                  ? {
+                      click: `${links.base}${links.path}`,
+                      actions: links.buttons.map((b) => ({
+                        label: b.label,
+                        url: `${links.base}/api/reminder-action`,
+                        body: JSON.stringify({ token: b.token }),
+                      })),
+                    }
+                  : {}
+              );
+              return null;
+            }
+            case "push": {
+              const links =
+                job.itemId && job.kind !== "arrival"
+                  ? await reminderLinks(job.userId, job.itemId, PUSH_REMIND_BUTTONS, "push", now)
+                  : null;
+              await sendWebPush(job.userId, {
+                title: job.title,
+                body: job.message,
+                ...(job.itemId && { tag: `item-${job.itemId}` }),
+                ...(links && {
+                  url: links.path,
+                  actions: links.buttons.map((b) => ({
+                    action: b.action,
+                    title: b.label,
+                    token: b.token,
+                  })),
+                }),
+              });
+              return null;
+            }
+            case "telegram": {
+              const botToken = process.env.TELEGRAM_BOT_TOKEN;
+              if (!userRow.notificationsTelegram || !botToken || !userRow.telegramChatId)
+                throw new Error("Telegram not configured");
+              return sendTelegramAlert(botToken, userRow.telegramChatId, job, {
+                timezone: userRow.timezone,
+                aiNote: userRow.aiNotifyMessages && !!userRow.aiProvider,
+                now,
+              });
+            }
+            case "webhook": {
+              const webhookId = job.webhookId;
+              const webhook =
+                webhookId !== null &&
+                (await db.query.outgoingWebhooks.findFirst({
+                  where: and(
+                    eq(outgoingWebhooks.id, webhookId),
+                    eq(outgoingWebhooks.userId, job.userId)
+                  ),
+                }));
+              if (!webhook) throw new Error("webhook was deleted");
+              // the same id on every retry, so the receiver can drop repeats
+              await sendWebhook(
+                webhook.url,
+                decryptValue(webhook.secret),
+                `msg_${job.id}`,
+                await webhookEvent(job, userRow.timezone),
+                `${job.title}\n${job.message}`
+              );
+              return null;
+            }
           }
-          break;
-        }
-      }
+        })(),
+        DELIVERY_TIMEOUT_MS,
+        `${job.medium} delivery`
+      );
     } catch (err) {
       deliveryError = errorMessage(err);
     }
@@ -165,6 +322,7 @@ export async function processPending(): Promise<void> {
       itemId: job.itemId ?? null,
       userId: job.userId,
       medium: job.medium,
+      webhookId: job.webhookId,
       message: job.message,
       status: deliveryError ? "failed" : "sent",
       error: deliveryError,
@@ -173,8 +331,9 @@ export async function processPending(): Promise<void> {
     if (!deliveryError) {
       await db
         .update(notificationQueue)
-        .set({ status: "sent", sentAt: now })
+        .set({ status: "sent", sentAt: now, telegramMessageId })
         .where(eq(notificationQueue.id, job.id));
+      dataEvents.emit("refresh", job.userId);
     } else {
       const newAttempts = job.attempts + 1;
       const isDead = newAttempts >= job.maxAttempts;
@@ -190,6 +349,7 @@ export async function processPending(): Promise<void> {
           lastError: deliveryError,
         })
         .where(eq(notificationQueue.id, job.id));
+      if (isDead) dataEvents.emit("refresh", job.userId);
     }
   }
 }

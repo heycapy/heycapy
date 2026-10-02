@@ -1,12 +1,16 @@
+import { ITEM_STATUS } from "@/constants";
+import type { QuickRemindChoice } from "@/lib/notifications/constants";
 import type { LucideIcon } from "lucide-react";
 import { Activity, Bell, Briefcase, CreditCard, ListTodo, Square } from "lucide-react";
-import type { StatusDef } from "@/types/rules";
+import type { RecurrenceMode, StatusDef } from "@/types/rules";
+import { REMINDER_UNITS } from "@/lib/reminders/constants";
 
 export type SortBy = "deadline" | "created_at" | "manual";
-export type NotificationMedium = "ntfy" | "email" | "telegram";
+export type NotificationMedium = "ntfy" | "email" | "telegram" | "push";
 export type RepeatMode = "once" | "daily";
 
 export type ItemsRulesConfig = {
+  recurrenceMode?: RecurrenceMode;
   sortBy?: SortBy;
   drag?: boolean;
   readonly?: boolean;
@@ -16,11 +20,12 @@ export type ItemsRulesConfig = {
 
 export type NotificationsRulesConfig = {
   medium?: NotificationMedium[];
+  webhooks?: number[];
+  reminderButtons?: QuickRemindChoice[];
   notifyAt?: string;
-  defaultOffsetMins?: number;
+  defaultReminders?: number[];
   repeat?: RepeatMode;
   quietHours?: { from: string; to: string } | null;
-  snoozeUntil?: string | null;
 };
 
 export const TEMPLATE_ICONS: Record<string, LucideIcon> = {
@@ -35,10 +40,17 @@ export const TEMPLATE_ICONS: Record<string, LucideIcon> = {
 export type ItemStatus = string;
 
 export const DEFAULT_BUCKET_STATUSES: StatusDef[] = [
-  { name: "active", color: "#22c55e", isDefault: true },
-  { name: "completed", color: "#3b82f6" },
-  { name: "snoozed", color: "#f59e0b" },
+  { name: ITEM_STATUS.active, color: "#22c55e", isDefault: true },
+  { name: ITEM_STATUS.completed, color: "#3b82f6" },
+  { name: ITEM_STATUS.onHold, color: "#f59e0b" },
 ];
+
+export const ITEM_HIGHLIGHT_MS = 3000;
+export const MENU_GAP = 6;
+export const SCREEN_MARGIN = 8;
+export const UNDO_DELETE_MS = 6000;
+export const LONG_PRESS_MS = 500;
+export const LONG_PRESS_SLOP = 8;
 
 export const BUCKET_PALETTE = ["var(--p1)", "var(--p2)", "var(--p3)", "var(--p4)", "var(--p5)"];
 
@@ -49,6 +61,11 @@ export const RECURRING_FREQUENCIES = [
   { value: "yearly" as const, label: "year" },
 ];
 
+// Minutes before the deadline offered in the item form's reminder picker
+export const REMINDER_PRESETS = [0, 15, 30, 60, 120, 1440, 2880, 10080];
+
+export const CUSTOM_REMINDER_UNITS = [...REMINDER_UNITS].reverse();
+
 export const SORT_OPTIONS: { value: SortBy; label: string }[] = [
   { value: "deadline", label: "deadline" },
   { value: "created_at", label: "created" },
@@ -56,9 +73,10 @@ export const SORT_OPTIONS: { value: SortBy; label: string }[] = [
 ];
 
 export const MEDIUM_OPTIONS: { value: NotificationMedium; label: string }[] = [
-  { value: "ntfy", label: "ntfy" },
   { value: "email", label: "email" },
+  { value: "push", label: "push" },
   { value: "telegram", label: "telegram" },
+  { value: "ntfy", label: "ntfy" },
 ];
 
 export const REPEAT_OPTIONS: { value: RepeatMode; label: string }[] = [
@@ -122,3 +140,25 @@ export const CURRENCY_OPTIONS = [
 ] as const;
 
 export type CurrencySymbol = (typeof CURRENCY_OPTIONS)[number]["value"];
+
+export const FIELD_LABEL = "text-muted-foreground font-mono text-xs";
+export const FIELD_INPUT =
+  "border-b border-border w-full bg-transparent py-1.5 font-mono text-xs outline-none placeholder:text-muted-foreground/50 focus:border-foreground disabled:opacity-50";
+
+export const RECURRENCE_MODE_OPTIONS: { value: RecurrenceMode; label: string; hint: string }[] = [
+  {
+    value: "wait",
+    label: "wait for me",
+    hint: "the next one appears when you complete this one — for bills and to-dos you still owe",
+  },
+  {
+    value: "moveOn",
+    label: "move on if missed",
+    hint: "when the next date arrives, an unfinished one is marked missed — for habits",
+  },
+  {
+    value: "afterCompletion",
+    label: "after completion",
+    hint: "the next date counts from when you complete it — e.g. water plants 3 days after",
+  },
+];

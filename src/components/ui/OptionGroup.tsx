@@ -2,13 +2,13 @@
 
 import { OptionButton } from "./OptionButton";
 
-interface OptionGroupProps<T extends string> {
+type OptionGroupProps<T extends string> = {
   options: { value: T; label: string }[];
   value: T | T[];
   onChange: (v: T) => void;
   multi?: boolean;
   disabled?: boolean;
-}
+};
 
 export function OptionGroup<T extends string>({
   options,

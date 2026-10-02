@@ -1,15 +1,13 @@
-"use client";
-
 import { cn } from "@/lib/utils";
 import { useRef, useEffect, type KeyboardEvent, type ClipboardEvent } from "react";
 
-interface OtpInputProps {
+type OtpInputProps = {
   value: string;
   onChange: (value: string) => void;
   length?: number;
   disabled?: boolean;
   focus?: boolean;
-}
+};
 
 export function OtpInput({
   value,

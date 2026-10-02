@@ -1,5 +1,3 @@
-"use client";
-
 import { cn } from "@/lib/utils";
 import { charCountColor } from "@/components/ui/input";
 import { Toggle } from "@/components/ui/Toggle";
@@ -8,7 +6,7 @@ import { LABEL, INPUT, TONE_OPTIONS } from "./settings-constants";
 import type { UserTone } from "./settings-constants";
 import { PERSONALITY_NAME_MAX_LENGTH, CUSTOM_PROMPT_MAX_LENGTH } from "@/constants";
 
-interface PersonalityTabProps {
+type PersonalityTabProps = {
   personalityName: string;
   setPersonalityName: (v: string) => void;
   personalityTone: UserTone;
@@ -18,7 +16,7 @@ interface PersonalityTabProps {
   personalityEmoji: boolean;
   setPersonalityEmoji: (v: boolean) => void;
   pending: boolean;
-}
+};
 
 export function PersonalityTab({
   personalityName,
@@ -47,7 +45,7 @@ export function PersonalityTab({
         {personalityName.length > 0 && (
           <p
             className={cn(
-              "text-right font-mono text-[9px] transition-colors",
+              "text-right font-mono text-[11px] transition-colors",
               charCountColor(personalityName.length, PERSONALITY_NAME_MAX_LENGTH)
             )}
           >

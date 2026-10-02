@@ -1,5 +1,3 @@
-"use client";
-
 import { useEffect, useState, useTransition } from "react";
 import { useScrollLock } from "@/hooks/useScrollLock";
 import { useTheme } from "next-themes";
@@ -7,28 +5,35 @@ import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { BracketButton } from "@/components/ui/BracketButton";
 import {
+  checkAIKeyAction,
   getUserSettingsAction,
   updateUserSettingsAction,
-  setupTelegramAction,
   disconnectTelegramAction,
 } from "@/app/(app)/actions";
+import { useUIStore } from "@/store/ui";
 import { AppearanceTab, NotificationsTab, AITab, PersonalityTab } from "./SettingsTabs";
-import type { UserTone, AIProvider, TranscriptionProvider } from "./settings-constants";
+import { AccountTab } from "./AccountTab";
+import { SystemTab } from "./SystemTab";
+import { useAISettings } from "./useAISettings";
+import type { UserTone } from "./settings-constants";
 import type { userSettings } from "@/lib/db/schema";
 
 type Settings = typeof userSettings.$inferSelect;
-type Tab = "appearance" | "notifications" | "ai" | "personality";
+export type SettingsTab =
+  "appearance" | "notifications" | "ai" | "personality" | "account" | "system";
 
-interface SettingsSheetProps {
+type SettingsSheetProps = {
   open: boolean;
+  initialTab: SettingsTab;
   onClose: () => void;
-}
+};
 
-export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
+export function SettingsSheet({ open, initialTab, onClose }: SettingsSheetProps) {
   useScrollLock(open);
   const { theme, setTheme } = useTheme();
-  const [tab, setTab] = useState<Tab>("appearance");
+  const [tab, setTab] = useState<SettingsTab>("appearance");
   const [pending, startTransition] = useTransition();
+  const tickAiRefresh = useUIStore((s) => s.tickAiRefresh);
   const [error, setError] = useState("");
   const [loaded, setLoaded] = useState(false);
 
@@ -37,23 +42,15 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
   const [personalityEmoji, setPersonalityEmoji] = useState(true);
   const [personalityCustomPrompt, setPersonalityCustomPrompt] = useState("");
 
-  const [aiProvider, setAiProvider] = useState<AIProvider>("ollama");
-  const [aiApiKey, setAiApiKey] = useState("");
-  const [aiModel, setAiModel] = useState("");
-  const [aiOllamaUrl, setAiOllamaUrl] = useState("");
-  const [aiCompactThreshold, setAiCompactThreshold] = useState(40);
-  const [aiNotifyMessages, setAiNotifyMessages] = useState(true);
-  const [transcriptionProvider, setTranscriptionProvider] = useState<TranscriptionProvider | null>(
-    null
-  );
-  const [transcriptionApiKey, setTranscriptionApiKey] = useState("");
-  const [transcriptionModel, setTranscriptionModel] = useState("");
+  const ai = useAISettings();
+  const populateAI = ai.populate;
 
   const [timezone, setTimezone] = useState(() => Intl.DateTimeFormat().resolvedOptions().timeZone);
 
   const [notificationsEmail, setNotificationsEmail] = useState(true);
   const [notificationEmailTo, setNotificationEmailTo] = useState("");
   const [userEmail, setUserEmail] = useState("");
+  const [adminUser, setAdminUser] = useState(false);
   const [smtpHost, setSmtpHost] = useState("");
   const [smtpPort, setSmtpPort] = useState("");
   const [smtpUser, setSmtpUser] = useState("");
@@ -65,22 +62,14 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
   const [ntfyTopic, setNtfyTopic] = useState("");
   const [notificationsTelegram, setNotificationsTelegram] = useState(false);
   const [telegramChatId, setTelegramChatId] = useState<string | null>(null);
-  const [telegramBotUsername, setTelegramBotUsername] = useState<string | null>(null);
   const [telegramBotConfigured, setTelegramBotConfigured] = useState(false);
   const [telegramActionPending, startTelegramTransition] = useTransition();
-  const [telegramError, setTelegramError] = useState("");
 
   function populate(s: Settings) {
     setPersonalityName(s.personalityName);
     setPersonalityTone(s.personalityTone as UserTone);
     setPersonalityEmoji(s.personalityEmoji);
     setPersonalityCustomPrompt(s.personalityCustomPrompt ?? "");
-    setAiProvider((s.aiProvider ?? "ollama") as AIProvider);
-    setAiApiKey(s.aiApiKey ?? "");
-    setAiModel(s.aiModel ?? "");
-    setAiOllamaUrl(s.aiOllamaUrl ?? "");
-    setAiCompactThreshold(s.aiCompactThreshold ?? 40);
-    setAiNotifyMessages(s.aiNotifyMessages ?? true);
     setTimezone(
       s.timezone !== "UTC" ? s.timezone : Intl.DateTimeFormat().resolvedOptions().timeZone
     );
@@ -96,25 +85,23 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
     setNtfyTopic(s.ntfyTopic ?? "");
     setNotificationsTelegram(s.notificationsTelegram);
     setTelegramChatId(s.telegramChatId ?? null);
-    setTranscriptionProvider((s.transcriptionProvider as TranscriptionProvider | null) ?? null);
-    setTranscriptionApiKey(s.transcriptionApiKey ?? "");
-    setTranscriptionModel(s.transcriptionModel ?? "");
   }
 
   useEffect(() => {
     if (!open) return;
     const id = setTimeout(() => {
-      setTab("appearance");
+      setTab(initialTab);
       setError("");
       setLoaded(false);
-      setTelegramBotUsername(null);
       setTelegramBotConfigured(false);
-      setTelegramError("");
       getUserSettingsAction().then((result) => {
         if (result.ok) {
           populate(result.settings);
+          populateAI(result.settings, result.hosted, result.aiKeys, result.transcriptionKey);
           setUserEmail(result.userEmail);
+          setAdminUser(result.isAdmin);
           setSmtpPassSaved(result.smtpPassSaved);
+          setTelegramBotConfigured(result.telegramBotConfigured);
           if (!result.settings.notificationEmailTo) {
             setNotificationEmailTo(result.userEmail);
           }
@@ -123,32 +110,7 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
       });
     }, 0);
     return () => clearTimeout(id);
-  }, [open]);
-
-  useEffect(() => {
-    if (!open || tab !== "notifications") return;
-    setupTelegramAction().then((result) => {
-      if (result.ok) {
-        setTelegramBotConfigured(true);
-        setTelegramBotUsername(result.botUsername);
-      } else {
-        setTelegramBotConfigured(false);
-      }
-    });
-  }, [open, tab]);
-
-  async function handleSetupTelegram() {
-    setTelegramError("");
-    startTelegramTransition(async () => {
-      const result = await setupTelegramAction();
-      if (result.ok) {
-        setTelegramBotConfigured(true);
-        setTelegramBotUsername(result.botUsername);
-      } else {
-        setTelegramError(result.error);
-      }
-    });
-  }
+  }, [open, initialTab, populateAI]);
 
   async function handleDisconnectTelegram() {
     startTelegramTransition(async () => {
@@ -179,12 +141,7 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
         personalityEmoji,
         personalityCustomPrompt: personalityCustomPrompt || null,
         timezone: timezone || Intl.DateTimeFormat().resolvedOptions().timeZone,
-        aiProvider,
-        aiApiKey: aiApiKey || null,
-        aiModel: aiModel || null,
-        aiOllamaUrl: aiOllamaUrl || null,
-        aiCompactThreshold,
-        aiNotifyMessages,
+        ...ai.payload(),
         notificationsEmail,
         notificationEmailTo: notificationEmailTo || null,
         emailProvider: smtpHost ? "smtp" : null,
@@ -198,18 +155,19 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
         ntfyUrl: ntfyUrl || null,
         ntfyTopic: ntfyTopic || null,
         notificationsTelegram,
-        transcriptionProvider: transcriptionProvider || null,
-        transcriptionApiKey: transcriptionApiKey || null,
-        transcriptionModel: transcriptionModel || null,
       });
-      if (result.ok) onClose();
-      else setError(result.error);
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
+      if (result.aiChanged) void checkAIKeyAction().then(tickAiRefresh);
+      onClose();
     });
   }
 
-  const tabBtn = (t: Tab) =>
+  const tabBtn = (t: SettingsTab) =>
     cn(
-      "font-mono text-[10px] px-1.5 py-1 whitespace-nowrap transition-colors shrink-0",
+      "font-mono text-xs px-2 py-1.5 whitespace-nowrap transition-colors shrink-0",
       tab === t ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"
     );
 
@@ -242,18 +200,29 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
               </BracketButton>
             </div>
 
-            <div className="border-border scrollbar-hide flex overflow-x-auto border-b">
-              {(["appearance", "notifications", "ai", "personality"] as Tab[]).map((t) => (
+            <div className="border-border flex flex-wrap gap-0.5 border-b px-2 py-1">
+              {(
+                [
+                  "appearance",
+                  "notifications",
+                  "ai",
+                  "personality",
+                  "account",
+                  ...(adminUser ? ["system"] : []),
+                ] as SettingsTab[]
+              ).map((t) => (
                 <button key={t} onClick={() => setTab(t)} className={tabBtn(t)}>
                   {t}
                 </button>
               ))}
             </div>
-            <div className="border-border flex justify-end border-b px-3 py-1.5">
-              <BracketButton onClick={handleSave} disabled={pending || !loaded}>
-                save
-              </BracketButton>
-            </div>
+            {tab !== "account" && tab !== "system" && (
+              <div className="border-border flex justify-end border-b px-3 py-1.5">
+                <BracketButton onClick={handleSave} disabled={pending || !loaded}>
+                  save
+                </BracketButton>
+              </div>
+            )}
 
             <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-4 py-4">
               {!loaded ? (
@@ -295,39 +264,14 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
                       notificationsTelegram={notificationsTelegram}
                       setNotificationsTelegram={setNotificationsTelegram}
                       telegramChatId={telegramChatId}
-                      telegramBotUsername={telegramBotUsername}
                       telegramBotConfigured={telegramBotConfigured}
-                      onSetupTelegram={handleSetupTelegram}
                       onDisconnectTelegram={handleDisconnectTelegram}
                       onRecheckTelegram={handleRecheckTelegram}
                       telegramActionPending={telegramActionPending}
-                      telegramError={telegramError}
                       pending={pending}
                     />
                   )}
-                  {tab === "ai" && (
-                    <AITab
-                      aiProvider={aiProvider}
-                      setAiProvider={setAiProvider}
-                      aiApiKey={aiApiKey}
-                      setAiApiKey={setAiApiKey}
-                      aiModel={aiModel}
-                      setAiModel={setAiModel}
-                      aiOllamaUrl={aiOllamaUrl}
-                      setAiOllamaUrl={setAiOllamaUrl}
-                      aiCompactThreshold={aiCompactThreshold}
-                      setAiCompactThreshold={setAiCompactThreshold}
-                      aiNotifyMessages={aiNotifyMessages}
-                      setAiNotifyMessages={setAiNotifyMessages}
-                      transcriptionProvider={transcriptionProvider}
-                      setTranscriptionProvider={setTranscriptionProvider}
-                      transcriptionApiKey={transcriptionApiKey}
-                      setTranscriptionApiKey={setTranscriptionApiKey}
-                      transcriptionModel={transcriptionModel}
-                      setTranscriptionModel={setTranscriptionModel}
-                      pending={pending}
-                    />
-                  )}
+                  {tab === "ai" && <AITab ai={ai} pending={pending} />}
                   {tab === "personality" && (
                     <PersonalityTab
                       personalityName={personalityName}
@@ -341,7 +285,9 @@ export function SettingsSheet({ open, onClose }: SettingsSheetProps) {
                       pending={pending}
                     />
                   )}
-                  {error && <span className="text-destructive font-mono text-[10px]">{error}</span>}
+                  {tab === "account" && <AccountTab email={userEmail} />}
+                  {tab === "system" && adminUser && <SystemTab />}
+                  {error && <span className="text-destructive font-mono text-xs">{error}</span>}
                 </>
               )}
             </div>

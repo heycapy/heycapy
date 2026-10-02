@@ -6,7 +6,11 @@ import { buckets } from "@/lib/db/schema";
 import { BucketsEmptyState } from "@/components/buckets/BucketsEmptyState";
 import { BucketsShell } from "@/components/buckets/BucketsShell";
 
-export default async function Home() {
+export default async function Home({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
   const session = await getSession();
   if (!session) redirect("/login");
 
@@ -22,5 +26,7 @@ export default async function Home() {
     return <BucketsEmptyState />;
   }
 
-  return <BucketsShell buckets={userBuckets} />;
+  const { bucket } = await searchParams;
+  const focusBucketId = typeof bucket === "string" ? Number(bucket) : null;
+  return <BucketsShell buckets={userBuckets} focusBucketId={focusBucketId} />;
 }

@@ -1,7 +1,16 @@
-import { and, eq, isNull, ne, sql } from "drizzle-orm";
+import { ITEM_STATUS } from "@/constants";
+import { and, eq, isNull, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { buckets, items, userSettings } from "@/lib/db/schema";
-import { parseDeadlineInTimezone } from "@/lib/ai/capyTools";
+import { initialReminderState } from "@/lib/items/reminders";
+import { refreshItemReminders, reminderContext } from "@/lib/reminders/refresh";
+import {
+  addLocalDays,
+  atLocalClock,
+  fromLocal,
+  parseLocalDateTime,
+  toLocal,
+} from "@/lib/reminders/zoned";
 import type { TelegramBotConfig } from "@/components/buckets/constants";
 import { DEFAULT_TELEGRAM_BOT_CONFIG } from "@/components/buckets/constants";
 
@@ -10,8 +19,18 @@ export type TelegramUpdate = {
   callback_query?: {
     id: string;
     data?: string;
-    message?: { chat?: { id: number } };
+    message?: { message_id?: number; chat?: { id: number } };
   };
+};
+
+export type RescheduleState = {
+  s: "rs";
+  itemId: number;
+  origin: "reminder" | "list";
+  date?: string;
+  month?: string;
+  typing?: boolean;
+  pending?: { hour: number; minute: number };
 };
 
 export type FlowState =
@@ -37,47 +56,11 @@ export type FlowState =
       hour: number;
       minute: number;
     }
-  | {
-      s: "mg_edit_ampm";
-      itemId: number;
-      itemTitle: string;
-      bucketId: number;
-      bucketName: string;
-      date: string;
-      hour: number;
-      minute: number;
-    }
   // list / item management flow
-  | { s: "lb_items"; bucketId: number; bucketName: string; page: number }
   | { s: "mg_edit"; itemId: number; itemTitle: string; bucketId: number; bucketName: string }
   | { s: "mg_confirm"; itemId: number; itemTitle: string; bucketId: number; bucketName: string }
   | { s: "mg_edit_title"; itemId: number; itemTitle: string; bucketId: number; bucketName: string }
-  | { s: "mg_edit_dl"; itemId: number; itemTitle: string; bucketId: number; bucketName: string }
-  | {
-      s: "mg_edit_cal";
-      itemId: number;
-      itemTitle: string;
-      bucketId: number;
-      bucketName: string;
-      month: string;
-    }
-  | {
-      s: "mg_edit_time";
-      itemId: number;
-      itemTitle: string;
-      bucketId: number;
-      bucketName: string;
-      date: string;
-      isToday: boolean;
-    }
-  | {
-      s: "mg_edit_ctime";
-      itemId: number;
-      itemTitle: string;
-      bucketId: number;
-      bucketName: string;
-      date: string;
-    }
+  | RescheduleState
   | null;
 
 export function getFlowState(raw: string | null): FlowState {
@@ -138,54 +121,6 @@ export async function getBucketTelegramConfig(bucketId: number): Promise<Telegra
   }
 }
 
-export function getLocalDateStr(d: Date, timezone: string): string {
-  const parts = new Intl.DateTimeFormat("en-US", {
-    timeZone: timezone,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).formatToParts(d);
-  return `${parts.find((p) => p.type === "year")?.value ?? ""}-${parts.find((p) => p.type === "month")?.value ?? ""}-${parts.find((p) => p.type === "day")?.value ?? ""}`;
-}
-
-export function getEndOfMonthDateStr(timezone: string): string {
-  const now = new Date();
-  const parts = new Intl.DateTimeFormat("en-US", {
-    timeZone: timezone,
-    year: "numeric",
-    month: "2-digit",
-  }).formatToParts(now);
-  const year = Number(parts.find((p) => p.type === "year")?.value ?? 0);
-  const month = Number(parts.find((p) => p.type === "month")?.value ?? 1);
-  const lastDay = new Date(year, month, 0).getDate();
-  return `${year}-${String(month).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
-}
-
-export function getCurrentTimeInTz(timezone: string): { hour: number; minute: number } {
-  const parts = new Intl.DateTimeFormat("en-US", {
-    timeZone: timezone,
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  }).formatToParts(new Date());
-  return {
-    hour: parseInt(parts.find((p) => p.type === "hour")?.value ?? "0", 10),
-    minute: parseInt(parts.find((p) => p.type === "minute")?.value ?? "0", 10),
-  };
-}
-
-export function applyTimeToDate(
-  dateStr: string,
-  hour: number,
-  minute: number,
-  timezone: string
-): Date {
-  return parseDeadlineInTimezone(
-    `${dateStr}T${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}:00`,
-    timezone
-  );
-}
-
 export function parseTimeStringExtended(
   input: string
 ): { hour: number; minute: number; ambiguous: boolean } | null {
@@ -211,75 +146,27 @@ export function parseTimeStringExtended(
   return null;
 }
 
-export function formatSlot(hhmm: string): string {
-  const [hStr, mStr] = hhmm.split(":");
-  const h = parseInt(hStr ?? "0");
-  const m = parseInt(mStr ?? "0");
-  const period = h < 12 ? "am" : "pm";
-  const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
-  return m === 0 ? `${h12}${period}` : `${h12}:${String(m).padStart(2, "0")}${period}`;
-}
-
-export function fmtDate(d: Date, timezone: string): string {
-  return d.toLocaleDateString("en-US", {
-    timeZone: timezone,
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
-}
-
-export function fmtDateTime(d: Date, timezone: string): string {
-  return d.toLocaleString("en-US", {
-    timeZone: timezone,
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  });
-}
-
-export function fmtDateTimeShort(d: Date, timezone: string): string {
-  return d.toLocaleString("en-US", {
-    timeZone: timezone,
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  });
-}
-
 export function parseNaturalDeadline(input: string, timezone: string): Date | null {
   const s = input.trim().toLowerCase();
   const now = new Date();
 
-  function localNoon(offsetDays = 0): Date {
-    const t = new Date(now.getTime() + offsetDays * 86_400_000);
-    const parts = new Intl.DateTimeFormat("en-US", {
-      timeZone: timezone,
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-    }).formatToParts(t);
-    const dateStr = `${parts.find((p) => p.type === "year")?.value ?? "2000"}-${parts.find((p) => p.type === "month")?.value ?? "01"}-${parts.find((p) => p.type === "day")?.value ?? "01"}`;
-    return parseDeadlineInTimezone(`${dateStr}T12:00:00`, timezone);
-  }
+  // A date without a time is an all-day item
+  const allDay = (offsetDays = 0): Date =>
+    addLocalDays(atLocalClock(now, 0, timezone), offsetDays, timezone);
 
-  if (s === "today") return localNoon(0);
-  if (s === "tomorrow") return localNoon(1);
-  if (s === "next week") return localNoon(7);
+  if (s === "today") return allDay(0);
+  if (s === "tomorrow") return allDay(1);
+  if (s === "next week") return allDay(7);
 
   const inMatch = s.match(/^in (\d+) (days?|weeks?|months?)$/);
   if (inMatch) {
     const n = Number(inMatch[1]);
     const unit = inMatch[2] ?? "";
-    if (unit.startsWith("day")) return localNoon(n);
-    if (unit.startsWith("week")) return localNoon(n * 7);
+    if (unit.startsWith("day")) return allDay(n);
+    if (unit.startsWith("week")) return allDay(n * 7);
     if (unit.startsWith("month")) {
-      const d = localNoon(0);
-      d.setUTCMonth(d.getUTCMonth() + n);
-      return d;
+      const today = toLocal(allDay(0), timezone);
+      return fromLocal({ ...today, month: today.month + n }, timezone);
     }
   }
 
@@ -294,11 +181,11 @@ export function parseNaturalDeadline(input: string, timezone: string): Date | nu
       const current = weekdays.indexOf(todayName);
       let diff = target - current;
       if (diff <= 0) diff += 7;
-      return localNoon(diff);
+      return allDay(diff);
     }
   }
 
-  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return parseDeadlineInTimezone(s, timezone);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return parseLocalDateTime(s, timezone);
 
   const MONTHS = [
     "jan",
@@ -323,9 +210,9 @@ export function parseNaturalDeadline(input: string, timezone: string): Date | nu
       const day = Number(dayStr);
       const y = now.getFullYear();
       const pad = (n: number) => String(n).padStart(2, "0");
-      let d = parseDeadlineInTimezone(`${y}-${pad(mi + 1)}-${pad(day)}`, timezone);
+      let d = parseLocalDateTime(`${y}-${pad(mi + 1)}-${pad(day)}`, timezone);
       if (d.getTime() < now.getTime())
-        d = parseDeadlineInTimezone(`${y + 1}-${pad(mi + 1)}-${pad(day)}`, timezone);
+        d = parseLocalDateTime(`${y + 1}-${pad(mi + 1)}-${pad(day)}`, timezone);
       return d;
     }
   }
@@ -341,28 +228,6 @@ export async function getUserBuckets(userId: number) {
     .orderBy(buckets.sortOrder);
 }
 
-export async function getActiveItemsForBucket(userId: number, bucketId: number) {
-  return db
-    .select({ id: items.id, title: items.title, deadline: items.deadline })
-    .from(items)
-    .where(
-      and(
-        eq(items.userId, userId),
-        eq(items.bucketId, bucketId),
-        isNull(items.deletedAt),
-        ne(items.status, "completed")
-      )
-    )
-    .orderBy(items.sortOrder, items.createdAt);
-}
-
-export async function completeItemById(userId: number, itemId: number): Promise<void> {
-  await db
-    .update(items)
-    .set({ status: "completed", completedAt: new Date(), updatedAt: new Date() })
-    .where(and(eq(items.id, itemId), eq(items.userId, userId)));
-}
-
 export async function updateItemTitle(
   userId: number,
   itemId: number,
@@ -374,22 +239,12 @@ export async function updateItemTitle(
     .where(and(eq(items.id, itemId), eq(items.userId, userId)));
 }
 
-export async function updateItemDeadline(
-  userId: number,
-  itemId: number,
-  deadline: Date | null
-): Promise<void> {
-  await db
-    .update(items)
-    .set({ deadline, updatedAt: new Date() })
-    .where(and(eq(items.id, itemId), eq(items.userId, userId)));
-}
-
 export async function softDeleteItemById(userId: number, itemId: number): Promise<void> {
   await db
     .update(items)
     .set({ deletedAt: new Date() })
     .where(and(eq(items.id, itemId), eq(items.userId, userId)));
+  await refreshItemReminders([itemId]);
 }
 
 export async function createItem(
@@ -404,14 +259,19 @@ export async function createItem(
     .from(items)
     .where(eq(items.bucketId, bucketId));
 
-  await db.insert(items).values({
-    bucketId,
-    userId,
-    title,
-    deadline,
-    status: "active",
-    source: "manual",
-    sortOrder: (maxRow?.max ?? -1) + 1,
-    recurring,
-  });
+  const [created] = await db
+    .insert(items)
+    .values({
+      bucketId,
+      userId,
+      title,
+      deadline,
+      ...initialReminderState(deadline, (await reminderContext(bucketId)).timezone),
+      status: ITEM_STATUS.active,
+      source: "manual",
+      sortOrder: (maxRow?.max ?? -1) + 1,
+      recurring,
+    })
+    .returning({ id: items.id });
+  if (created) await refreshItemReminders([created.id]);
 }

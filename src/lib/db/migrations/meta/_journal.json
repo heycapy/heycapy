@@ -29,6 +29,167 @@
       "when": 1793050000000,
       "tag": "0003_unique_builtin_template_name",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1793100000000,
+      "tag": "0004_reminder_schedule",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1793150000000,
+      "tag": "0005_notification_kind",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1793160000000,
+      "tag": "0006_delivery_failure_dismissed",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1793170000000,
+      "tag": "0007_telegram_message_id",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1793180000000,
+      "tag": "0008_on_hold_status",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1793190000000,
+      "tag": "0009_telegram_link_code",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "6",
+      "when": 1793200000000,
+      "tag": "0010_session_version",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "6",
+      "when": 1793210000000,
+      "tag": "0011_system_errors",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "6",
+      "when": 1793220000000,
+      "tag": "0012_web_push",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "6",
+      "when": 1793230000000,
+      "tag": "0013_item_actions",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "6",
+      "when": 1793240000000,
+      "tag": "0014_user_quiet_hours",
+      "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "6",
+      "when": 1793250000000,
+      "tag": "0015_item_scheduled_at",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "6",
+      "when": 1793260000000,
+      "tag": "0016_item_reminder_offsets",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "6",
+      "when": 1793270000000,
+      "tag": "0017_bucket_default_reminders",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "6",
+      "when": 1793280000000,
+      "tag": "0018_ai_usage",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "6",
+      "when": 1793290000000,
+      "tag": "0019_chat_summary_through",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "6",
+      "when": 1793300000000,
+      "tag": "0020_credit_ledger",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "6",
+      "when": 1793310000000,
+      "tag": "0021_ai_usage_cache_tokens",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "6",
+      "when": 1793320000000,
+      "tag": "0022_ai_use_own_key",
+      "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "6",
+      "when": 1793330000000,
+      "tag": "0023_ai_usage_cost",
+      "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "6",
+      "when": 1793340000000,
+      "tag": "0024_outgoing_webhooks",
+      "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "6",
+      "when": 1793350000000,
+      "tag": "0025_webhook_channel",
+      "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "6",
+      "when": 1793360000000,
+      "tag": "0026_ai_saved_keys",
+      "breakpoints": true
     }
   ]
 }

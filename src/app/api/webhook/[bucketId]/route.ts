@@ -1,16 +1,22 @@
+import { recordSystemError } from "@/lib/system-errors";
+import { bucketChannels, parseNotificationRules } from "@/lib/rules";
+import { afterQuietHours } from "@/lib/reminders/schedule";
 import { db } from "@/lib/db";
 import { items } from "@/lib/db/schema";
 import { decryptValue } from "@/lib/crypto";
 import { BucketSchema, buildPropertyValidator } from "@/types/rules";
-import { enqueue, processPending } from "@/lib/notifications/queue";
+import { enqueueNotification, processPending } from "@/lib/notifications/queue";
 import {
   WEBHOOK_RATE_LIMIT_MAX,
   WEBHOOK_RATE_LIMIT_WINDOW_MS,
 } from "@/lib/notifications/constants";
 import { errorMessage } from "@/lib/errors";
-import { ITEM_TITLE_MAX_LENGTH } from "@/constants";
-import type { NotificationMedium } from "@/lib/notifications/queue";
+import { ITEM_STATUS, ITEM_TITLE_MAX_LENGTH } from "@/constants";
+import { channelDecisions, getChannelSettings } from "@/lib/notifications/channels";
+import { initialReminderState } from "@/lib/items/reminders";
 import { dataEvents } from "@/lib/events";
+import { refreshItemReminders, reminderContext } from "@/lib/reminders/refresh";
+import { parseLocalDateTime } from "@/lib/reminders/zoned";
 
 const rateLimitMap = new Map<string, number[]>();
 
@@ -116,7 +122,7 @@ export async function POST(
   }
 
   // Optional status — must be one of the three built-in statuses
-  const VALID_STATUSES = ["active", "completed", "snoozed"] as const;
+  const VALID_STATUSES = [ITEM_STATUS.active, ITEM_STATUS.completed, ITEM_STATUS.onHold] as const;
   let status: string | undefined;
   if (raw.status !== undefined) {
     if (typeof raw.status !== "string") {
@@ -131,13 +137,14 @@ export async function POST(
     status = raw.status;
   }
 
-  // Optional deadline — must be an ISO datetime string
+  // Optional deadline — an ISO datetime, or YYYY-MM-DD for an all-day item
+  const ctx = await reminderContext(bucketId);
   let deadline: Date | undefined;
   if (raw.deadline !== undefined) {
     if (typeof raw.deadline !== "string") {
       return Response.json({ error: "deadline must be an ISO datetime string" }, { status: 400 });
     }
-    const d = new Date(raw.deadline);
+    const d = parseLocalDateTime(raw.deadline, ctx.timezone);
     if (isNaN(d.getTime())) {
       return Response.json({ error: "deadline is not a valid datetime" }, { status: 400 });
     }
@@ -153,35 +160,45 @@ export async function POST(
       properties: properties ? JSON.stringify(properties) : null,
       source: "webhook",
       ...(status !== undefined && { status }),
-      ...(deadline !== undefined && { deadline }),
+      ...(deadline !== undefined && {
+        deadline,
+        ...initialReminderState(deadline, ctx.timezone),
+      }),
     })
     .returning();
+  await refreshItemReminders([item.id]);
 
   const hasArrivalTrigger = parsedSchema?.success && parsedSchema.data.notifyOnArrival === true;
 
   if (hasArrivalTrigger) {
-    const userRow = await db.query.userSettings.findFirst({
-      where: (s, { eq: qe }) => qe(s.userId, bucket.userId),
-    });
+    const userRow = await getChannelSettings(bucket.userId);
 
     if (userRow) {
-      const mediums: NotificationMedium[] = [];
-      if (userRow.notificationsEmail) mediums.push("email");
-      if (userRow.notificationsPush && userRow.ntfyUrl && userRow.ntfyTopic) mediums.push("ntfy");
-      if (userRow.notificationsTelegram && process.env.TELEGRAM_BOT_TOKEN && userRow.telegramChatId)
-        mediums.push("telegram");
-
-      const notifTitle = `New item in ${bucket.name}`;
-      const message = `"${title}" was added via webhook.`;
-
-      await Promise.all(
-        mediums.map((medium) =>
-          enqueue({ userId: bucket.userId, itemId: item.id, medium, title: notifTitle, message })
-        )
-      );
+      await enqueueNotification({
+        userId: bucket.userId,
+        itemId: item.id,
+        kind: "arrival",
+        title: `New item in ${bucket.name}`,
+        message: `"${title}" was added via webhook.`,
+        channels: channelDecisions(bucketChannels(bucket.notificationsRules), userRow),
+        notBefore: afterQuietHours(
+          new Date(),
+          [
+            parseNotificationRules(bucket.notificationsRules).quietHours,
+            userRow.quietHoursFrom && userRow.quietHoursTo
+              ? { from: userRow.quietHoursFrom, to: userRow.quietHoursTo }
+              : null,
+          ],
+          userRow.timezone
+        ),
+      });
 
       void processPending().catch((err) => {
-        process.stderr.write(`[webhook] processPending error: ${errorMessage(err)}\n`);
+        recordSystemError("queue", `delivery after webhook failed: ${errorMessage(err)}`, {
+          err,
+          userId: bucket.userId,
+          context: { bucketId, itemId: item.id },
+        });
       });
     }
   }

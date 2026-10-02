@@ -1,5 +1,3 @@
-"use client";
-
 import { motion, AnimatePresence } from "framer-motion";
 import { BracketButton } from "@/components/ui/BracketButton";
 import { WebhookPanel } from "./WebhookPanel";
@@ -7,11 +5,11 @@ import type { buckets } from "@/lib/db/schema";
 
 type BucketRow = typeof buckets.$inferSelect;
 
-interface WebhookDialogProps {
+type WebhookDialogProps = {
   open: boolean;
   bucket: BucketRow;
   onClose: () => void;
-}
+};
 
 export function WebhookDialog({ open, bucket, onClose }: WebhookDialogProps) {
   return (

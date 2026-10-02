@@ -8,13 +8,7 @@ const devOrigins = appUrl ? [new URL(appUrl).host] : [];
 const nextConfig: NextConfig = {
   allowedDevOrigins: devOrigins,
   output: "standalone",
-  serverExternalPackages: [
-    "better-sqlite3",
-    "pg",
-    "pg-native",
-    "drizzle-orm/node-postgres",
-    "nodemailer",
-  ],
+  serverExternalPackages: ["better-sqlite3", "nodemailer"],
   logging: {
     serverFunctions: false,
   },
@@ -29,7 +23,7 @@ const nextConfig: NextConfig = {
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
           {
             key: "Permissions-Policy",
-            value: "camera=(), microphone=(), geolocation=()",
+            value: "camera=(), microphone=(self), geolocation=()",
           },
           {
             key: "Strict-Transport-Security",

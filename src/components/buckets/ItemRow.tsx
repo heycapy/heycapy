@@ -1,109 +1,47 @@
-"use client";
-
-import { useRef, useState } from "react";
-import { createPortal } from "react-dom";
-import { GripVertical } from "lucide-react";
+import { formatShort, formatShortTime } from "@/lib/format-date";
+import { ITEM_STATUS, isClosedStatus } from "@/constants";
+import { ITEM_HIGHLIGHT_MS } from "./constants";
+import { StatusPicker, type StatusAnchor } from "./StatusPicker";
+import { useEffect, useRef, useState } from "react";
+import { Bell, BellOff, Ellipsis, GripVertical, TriangleAlert } from "lucide-react";
 import type { DragControls } from "framer-motion";
 import { cn } from "@/lib/utils";
 import type { items } from "@/lib/db/schema";
 import type { StatusDef, FieldDef } from "@/types/rules";
+import type { ReminderBadge } from "@/lib/reminders/status";
+import { ReminderInfoDialog } from "./ReminderInfoDialog";
+import type { MenuAt } from "./ItemMenu";
+import { pendingRemindAgainAt } from "@/lib/reminders/remind-again";
+import { relativeTime } from "@/lib/items/relative-day";
+import { parseRecurring } from "@/lib/items/occurrence";
+import { repeatLabel } from "@/lib/items/repeat-label";
 
 type ItemRow = typeof items.$inferSelect;
 
-interface ItemRowProps {
+type ItemRowProps = {
   item: ItemRow;
   statuses: StatusDef[];
   fields?: FieldDef[];
   dragControls?: DragControls;
   isEditing?: boolean;
+  menuOpen?: boolean;
   onEditStart?: () => void;
   onStatusChange?: (status: string) => void;
-}
-
-function StatusPicker({
-  current,
-  statuses,
-  position,
-  onSelect,
-  onClose,
-}: {
-  current: string;
-  statuses: StatusDef[];
-  position: { top: number; left: number };
-  onSelect: (s: string) => void;
-  onClose: () => void;
-}) {
-  return createPortal(
-    <>
-      <div className="fixed inset-0 z-30" onClick={onClose} />
-      <div
-        className="bg-background border-border fixed z-40 border-2 py-1"
-        style={{
-          top: position.top,
-          left: position.left,
-          boxShadow: "2px 2px 0 var(--border)",
-        }}
-      >
-        {statuses.map((s) => (
-          <button
-            key={s.name}
-            onClick={() => onSelect(s.name)}
-            className={cn(
-              "flex w-full items-center gap-2 px-3 py-1.5 font-mono text-xs transition-colors",
-              s.name === current
-                ? "bg-foreground text-background"
-                : "text-foreground hover:bg-muted"
-            )}
-          >
-            <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: s.color }} />
-            {s.name}
-          </button>
-        ))}
-      </div>
-    </>,
-    document.body
-  );
-}
-
-const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  reminderBadge?: ReminderBadge;
+  bucket?: { name: string; color: string };
+  onMenu?: (at: MenuAt) => void;
+};
 
 function getRecurringFrequency(raw: string | null): string | null {
-  if (!raw) return null;
-  try {
-    const obj = JSON.parse(raw) as { enabled?: boolean; frequency?: string };
-    return obj.enabled ? (obj.frequency ?? "monthly") : null;
-  } catch {
-    return null;
-  }
-}
-
-function formatDeadline(d: Date): string {
-  const date = `${MONTHS[d.getMonth()]} ${d.getDate()}`;
-  const hasTime = d.getHours() !== 0 || d.getMinutes() !== 0;
-  if (!hasTime) return date;
-  const h = d.getHours();
-  const m = d.getMinutes();
-  const ampm = h >= 12 ? "pm" : "am";
-  const hour = h % 12 === 0 ? 12 : h % 12;
-  const min = m > 0 ? `:${String(m).padStart(2, "0")}` : "";
-  return `${date} ${hour}${min}${ampm}`;
-}
-
-function relativeTime(deadline: Date): string {
-  const now = new Date();
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const deadlineDay = new Date(deadline.getFullYear(), deadline.getMonth(), deadline.getDate());
-  const diffDays = Math.round((deadlineDay.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-  if (diffDays < 0) return "overdue";
-  if (diffDays === 0) return deadline < now ? "overdue" : "today";
-  return `${diffDays}d`;
+  const config = parseRecurring(raw);
+  return config?.enabled ? repeatLabel(config) : null;
 }
 
 function daysLeftColor(rel: string): string {
   const d = parseInt(rel);
   if (d <= 2) return "text-orange-500";
   if (d <= 5) return "text-yellow-500";
-  return "text-muted-foreground/50";
+  return "text-muted-foreground";
 }
 
 function getShowInRowBadges(
@@ -138,19 +76,58 @@ function getShowInRowBadges(
     });
 }
 
+const REMINDER_ICON: Record<ReminderBadge, { Icon: typeof Bell; className: string }> = {
+  upcoming: { Icon: Bell, className: "text-muted-foreground" },
+  noChannel: { Icon: BellOff, className: "text-muted-foreground" },
+  failed: { Icon: TriangleAlert, className: "text-warning" },
+  history: { Icon: Bell, className: "text-muted-foreground/50" },
+};
+
+function remindAgainLabel(item: ItemRow): string | null {
+  const now = new Date();
+  const at = pendingRemindAgainAt(item, now);
+  return at ? `⏰ again ${formatShortTime(at, now)}` : null;
+}
+
+function reminderLabel(badge: ReminderBadge, next: Date | null): string {
+  if (badge === "failed") return "reminder failed";
+  if (badge === "noChannel") return "no reminder";
+  if (badge === "history") return "reminder history";
+  return next ? `reminder ${formatShort(next)}` : "reminder";
+}
+
 export function ItemRow({
   item,
   statuses,
   fields,
   dragControls,
   isEditing,
+  menuOpen,
   onEditStart,
   onStatusChange,
+  reminderBadge,
+  bucket,
+  onMenu,
 }: ItemRowProps) {
-  const [pickerPos, setPickerPos] = useState<{ top: number; left: number } | null>(null);
+  const [pickerAnchor, setPickerAnchor] = useState<StatusAnchor | null>(null);
+  const [reminderOpen, setReminderOpen] = useState(false);
+  const ReminderIcon = reminderBadge ? REMINDER_ICON[reminderBadge].Icon : null;
   const dotRef = useRef<HTMLButtonElement>(null);
-  const rel = item.deadline ? relativeTime(item.deadline) : null;
-  const isCompleted = item.status === "completed";
+  const rowRef = useRef<HTMLDivElement>(null);
+  const anchor = `item-${item.id}`;
+  const [highlighted, setHighlighted] = useState(() => window.location.hash === `#${anchor}`);
+
+  useEffect(() => {
+    if (!highlighted) return;
+    rowRef.current?.scrollIntoView({ block: "center" });
+    window.history.replaceState(null, "", window.location.pathname + window.location.search);
+    const fade = setTimeout(() => setHighlighted(false), ITEM_HIGHLIGHT_MS);
+    return () => clearTimeout(fade);
+  }, [highlighted]);
+  const rel = item.deadline && !isClosedStatus(item.status) ? relativeTime(item.deadline) : null;
+  const isCompleted = item.status === ITEM_STATUS.completed;
+  const isMissed = item.status === ITEM_STATUS.missed;
+  const remindAgain = remindAgainLabel(item);
   const recurringFreq = getRecurringFrequency(item.recurring);
   const dotColor = statuses.find((s) => s.name === item.status)?.color ?? "var(--muted-foreground)";
   const badges = fields ? getShowInRowBadges(fields, item.properties) : [];
@@ -158,21 +135,26 @@ export function ItemRow({
   function openPicker() {
     if (!dotRef.current) return;
     const rect = dotRef.current.getBoundingClientRect();
-    setPickerPos({ top: rect.bottom + 6, left: rect.left });
+    setPickerAnchor({ top: rect.top, bottom: rect.bottom, left: rect.left });
   }
 
   return (
     <div
+      ref={rowRef}
+      id={anchor}
       className={cn(
-        "flex items-stretch gap-0 px-3",
+        "flex items-stretch gap-0 px-3 transition-colors duration-1000",
+        highlighted && "bg-primary/15",
         isEditing && "bg-muted/20",
-        isCompleted && "opacity-60"
+        menuOpen && "bg-card duration-0",
+        (isCompleted || isMissed) && "opacity-60"
       )}
     >
       {dragControls && (
         <button
           className="text-muted-foreground/40 hover:text-muted-foreground flex shrink-0 cursor-grab touch-none items-center justify-center pr-2.5 transition-colors active:cursor-grabbing"
           onPointerDown={(e) => dragControls.start(e)}
+          aria-label="drag to reorder"
         >
           <GripVertical size={13} />
         </button>
@@ -181,8 +163,9 @@ export function ItemRow({
       <button
         ref={dotRef}
         onClick={onStatusChange ? openPicker : undefined}
+        aria-label={`status: ${item.status}`}
         className={cn(
-          "flex shrink-0 items-center justify-center pr-2.5",
+          "-ml-1.5 flex shrink-0 items-center justify-center pr-3 pl-1.5",
           onStatusChange ? "cursor-pointer" : "cursor-default"
         )}
       >
@@ -195,16 +178,16 @@ export function ItemRow({
         />
       </button>
 
-      {pickerPos && onStatusChange && (
+      {pickerAnchor && onStatusChange && (
         <StatusPicker
           current={item.status}
           statuses={statuses}
-          position={pickerPos}
+          anchor={pickerAnchor}
           onSelect={(s) => {
             onStatusChange(s);
-            setPickerPos(null);
+            setPickerAnchor(null);
           }}
-          onClose={() => setPickerPos(null)}
+          onClose={() => setPickerAnchor(null)}
         />
       )}
 
@@ -225,48 +208,97 @@ export function ItemRow({
             {badges.map((b) => (
               <span
                 key={b.label}
-                className="border-border text-muted-foreground border px-1 font-mono text-[9px]"
+                className="border-border text-muted-foreground border px-1 font-mono text-[11px]"
               >
                 {b.label}: {b.value}
               </span>
             ))}
           </span>
         )}
-        <span className="mt-0.5 flex items-center gap-1 font-mono text-[10px]">
-          <span className="text-muted-foreground/30">#{item.id}</span>
+        <span className="mt-0.5 flex flex-wrap items-center gap-x-1 gap-y-0.5 font-mono text-xs *:whitespace-nowrap">
+          <span className="text-muted-foreground/60">#{item.id}</span>
+          {bucket && (
+            <span className="text-muted-foreground flex items-center gap-1">
+              ·
+              <span
+                className="h-1.5 w-1.5 rounded-full"
+                style={{ backgroundColor: bucket.color }}
+              />
+              {bucket.name}
+            </span>
+          )}
+          {bucket && !item.deadline && <span className="text-muted-foreground">· no date</span>}
+          {isMissed && <span className="text-warning">· ⏭ missed</span>}
           {(item.deadline ?? item.notifiedAt) && (
             <>
-              {recurringFreq && <span className="text-muted-foreground">· ↺ {recurringFreq}</span>}
               {item.deadline && (
-                <span
-                  className={cn(
-                    rel === "overdue"
-                      ? "bg-destructive/15 text-destructive px-1"
-                      : rel === "today"
-                        ? "font-medium text-(--status-snoozed)"
-                        : "text-muted-foreground"
-                  )}
-                >
-                  {recurringFreq ? "next " : ""}
-                  {formatDeadline(item.deadline)}
-                  {rel === "today" ? " · today" : rel === "overdue" ? " · overdue" : ""}
-                </span>
+                <>
+                  <span className="text-muted-foreground">·</span>
+                  <span
+                    className={cn(
+                      rel === "overdue"
+                        ? "bg-destructive/15 text-destructive px-1"
+                        : rel === "today"
+                          ? "font-medium text-(--status-on-hold)"
+                          : "text-muted-foreground"
+                    )}
+                  >
+                    {formatShort(item.deadline)}
+                    {rel === "today" ? " · today" : rel === "overdue" ? " · overdue" : ""}
+                  </span>
+                </>
               )}
+              {recurringFreq && <span className="text-muted-foreground">· ↺ {recurringFreq}</span>}
               {item.notifiedAt && <span className="text-muted-foreground">· notified</span>}
             </>
           )}
         </span>
+        {remindAgain && (
+          <span className="text-foreground/80 mt-0.5 block font-mono text-xs">{remindAgain}</span>
+        )}
       </button>
 
       {rel && rel !== "overdue" && rel !== "today" && (
         <span
-          className={cn(
-            "flex shrink-0 items-center pl-2 font-mono text-[10px]",
-            daysLeftColor(rel)
-          )}
+          className={cn("flex shrink-0 items-center pl-2 font-mono text-xs", daysLeftColor(rel))}
         >
           {rel}
         </span>
+      )}
+
+      {reminderBadge && ReminderIcon && (
+        <button
+          type="button"
+          onClick={() => setReminderOpen(true)}
+          aria-label={reminderLabel(reminderBadge, item.nextReminderAt)}
+          title={reminderLabel(reminderBadge, item.nextReminderAt)}
+          className={cn(
+            "flex shrink-0 items-center pl-2 transition-opacity hover:opacity-70",
+            REMINDER_ICON[reminderBadge].className
+          )}
+        >
+          <ReminderIcon size={11} aria-hidden />
+        </button>
+      )}
+      {onMenu && (
+        <button
+          type="button"
+          onClick={(e) => {
+            const rect = e.currentTarget.getBoundingClientRect();
+            onMenu({ x: rect.left, top: rect.top, bottom: rect.bottom });
+          }}
+          aria-label="item menu"
+          className="text-muted-foreground hover:text-foreground -mr-3 flex shrink-0 items-center px-3 transition-colors"
+        >
+          <Ellipsis size={14} aria-hidden />
+        </button>
+      )}
+      {reminderOpen && (
+        <ReminderInfoDialog
+          itemId={item.id}
+          title={item.title}
+          onClose={() => setReminderOpen(false)}
+        />
       )}
     </div>
   );

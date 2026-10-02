@@ -7,6 +7,7 @@ import type { ChatMessage } from "./chatTypes";
 type Props = {
   messages: ChatMessage[];
   streaming: boolean;
+  status?: string | null;
   fullscreen?: boolean;
 };
 
@@ -29,17 +30,21 @@ function BouncingDots() {
   );
 }
 
-export function ChatMessageList({ messages, streaming, fullscreen }: Props) {
-  const bottomRef = useRef<HTMLDivElement>(null);
+export function ChatMessageList({ messages, streaming, status, fullscreen }: Props) {
+  const listRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    const list = listRef.current;
+    list?.scrollTo({ top: list.scrollHeight, behavior: "smooth" });
   }, [messages]);
 
   const isLastStreaming = (msg: ChatMessage) => streaming && msg.id === messages.at(-1)?.id;
 
   return (
-    <div className="scrollbar-hide flex flex-1 flex-col gap-3 overflow-y-auto overscroll-contain p-3">
+    <div
+      ref={listRef}
+      className="scrollbar-hide flex flex-1 flex-col gap-3 overflow-y-auto overscroll-contain p-3"
+    >
       {messages.map((msg) => (
         <div
           key={msg.id}
@@ -70,7 +75,18 @@ export function ChatMessageList({ messages, streaming, fullscreen }: Props) {
               )}
             >
               {!msg.content && isLastStreaming(msg) ? (
-                <BouncingDots />
+                <span className="flex items-center gap-2">
+                  <BouncingDots />
+                  {status && (
+                    <span
+                      role="status"
+                      aria-label="capy is working"
+                      className="text-muted-foreground text-[11px]"
+                    >
+                      {status}…
+                    </span>
+                  )}
+                </span>
               ) : msg.role === "assistant" ? (
                 <ReactMarkdown
                   components={{
@@ -83,7 +99,7 @@ export function ChatMessageList({ messages, streaming, fullscreen }: Props) {
                     ),
                     li: ({ children }) => <li className="mb-0.5">{children}</li>,
                     pre: ({ children }) => (
-                      <pre className="bg-muted my-1.5 overflow-x-auto rounded p-1.5 text-[10px]">
+                      <pre className="bg-muted my-1.5 overflow-x-auto rounded p-1.5 text-xs">
                         {children}
                       </pre>
                     ),
@@ -101,12 +117,11 @@ export function ChatMessageList({ messages, streaming, fullscreen }: Props) {
               )}
             </div>
             {msg.stopped && (
-              <span className="text-muted-foreground font-mono text-[9px]">— stopped</span>
+              <span className="text-muted-foreground font-mono text-[11px]">— stopped</span>
             )}
           </div>
         </div>
       ))}
-      <div ref={bottomRef} />
     </div>
   );
 }

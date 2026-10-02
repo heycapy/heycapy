@@ -1,16 +1,15 @@
-"use client";
-
 import { useEffect, useState, useTransition } from "react";
 import { Eye, EyeOff, RefreshCw } from "lucide-react";
 import { BracketButton } from "@/components/ui/BracketButton";
 import { getWebhookKeyAction, rotateWebhookKeyAction } from "@/app/(app)/actions";
 import type { buckets } from "@/lib/db/schema";
 import { BucketSchema } from "@/types/rules";
+import { ITEM_STATUS, WEBHOOK_KEY_MASK } from "@/constants";
 
 type BucketRow = typeof buckets.$inferSelect;
 
-const LABEL = "text-muted-foreground font-mono text-[10px]";
-const HINT = "text-muted-foreground/50 font-mono text-[9px] leading-tight";
+const LABEL = "text-muted-foreground font-mono text-xs";
+const HINT = "text-muted-foreground font-mono text-[11px] leading-tight";
 
 function buildWebhookUrl(bucketId: number): string {
   if (typeof window === "undefined") return "";
@@ -24,7 +23,7 @@ function buildCurlCommand(url: string, key: string, schema: BucketSchema | null)
 
 function buildExamplePayload(schema: BucketSchema | null): string {
   const payload: Record<string, unknown> = { title: "My item title" };
-  payload.status = "active";
+  payload.status = ITEM_STATUS.active;
   const sevenDaysFromNow = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
   payload.deadline = sevenDaysFromNow.toISOString().replace(/\.\d{3}Z$/, "Z");
   if (schema) {
@@ -66,12 +65,13 @@ function buildExamplePayload(schema: BucketSchema | null): string {
   return JSON.stringify(payload, null, 2);
 }
 
-interface WebhookPanelProps {
+type WebhookPanelProps = {
   bucket: BucketRow;
-}
+};
 
 export function WebhookPanel({ bucket }: WebhookPanelProps) {
   const [key, setKey] = useState<string | null>(null);
+  const [keyMissing, setKeyMissing] = useState(false);
   const [revealed, setRevealed] = useState(false);
   const [copied, setCopied] = useState(false);
   const [urlCopied, setUrlCopied] = useState(false);
@@ -93,6 +93,7 @@ export function WebhookPanel({ bucket }: WebhookPanelProps) {
   useEffect(() => {
     void getWebhookKeyAction(bucket.id).then((r) => {
       if (r.ok) setKey(r.key);
+      else setKeyMissing(true);
     });
   }, [bucket.id]);
 
@@ -116,6 +117,7 @@ export function WebhookPanel({ bucket }: WebhookPanelProps) {
       const result = await rotateWebhookKeyAction(bucket.id);
       if (result.ok) {
         setKey(result.key);
+        setKeyMissing(false);
         setRevealed(true);
       }
     });
@@ -127,12 +129,12 @@ export function WebhookPanel({ bucket }: WebhookPanelProps) {
         <label className={LABEL}>endpoint url</label>
         <span className={HINT}>POST to this URL to create an item in this bucket</span>
         <div className="border-border flex items-center border">
-          <code className="text-muted-foreground flex-1 overflow-hidden bg-transparent px-2 py-1 font-mono text-[9px] text-ellipsis">
+          <code className="text-muted-foreground flex-1 overflow-hidden bg-transparent px-2 py-1 font-mono text-[11px] text-ellipsis">
             {webhookUrl}
           </code>
           <button
             onClick={copyUrl}
-            className="text-muted-foreground hover:text-foreground shrink-0 px-2 font-mono text-[9px] transition-colors"
+            className="text-muted-foreground hover:text-foreground shrink-0 px-2 font-mono text-[11px] transition-colors"
           >
             {urlCopied ? "[copied]" : "[copy]"}
           </button>
@@ -145,12 +147,19 @@ export function WebhookPanel({ bucket }: WebhookPanelProps) {
           send as Authorization: Bearer {"<key>"} — rotate to invalidate the old key
         </span>
         <div className="border-border flex items-center border">
-          <code className="text-muted-foreground flex-1 overflow-hidden bg-transparent px-2 py-1 font-mono text-[9px] text-ellipsis">
-            {key ? (revealed ? key : "hc_live_" + "•".repeat(32)) : "loading..."}
+          <code className="text-muted-foreground flex-1 overflow-hidden bg-transparent px-2 py-1 font-mono text-[11px] text-ellipsis">
+            {key
+              ? revealed
+                ? key
+                : WEBHOOK_KEY_MASK
+              : keyMissing
+                ? "no key yet — rotate to generate one"
+                : "loading..."}
           </code>
           <button
             onClick={() => setRevealed((v) => !v)}
             disabled={!key}
+            aria-label={revealed ? "hide key" : "show key"}
             className="text-muted-foreground hover:text-foreground shrink-0 px-2 transition-colors disabled:opacity-30"
           >
             {revealed ? <EyeOff size={11} /> : <Eye size={11} />}
@@ -158,7 +167,7 @@ export function WebhookPanel({ bucket }: WebhookPanelProps) {
           <button
             onClick={copyKey}
             disabled={!key}
-            className="text-muted-foreground hover:text-foreground shrink-0 px-2 font-mono text-[9px] transition-colors disabled:opacity-30"
+            className="text-muted-foreground hover:text-foreground shrink-0 px-2 font-mono text-[11px] transition-colors disabled:opacity-30"
           >
             {copied ? "[copied]" : "[copy]"}
           </button>
@@ -177,8 +186,10 @@ export function WebhookPanel({ bucket }: WebhookPanelProps) {
         <label className={LABEL}>test with curl</label>
         <span className={HINT}>paste this in your terminal to create a test item</span>
         <div className="border-border relative border">
-          <pre className="text-muted-foreground overflow-x-auto bg-transparent p-2 font-mono text-[9px]">
-            {key ? buildCurlCommand(webhookUrl, key, schema) : buildExamplePayload(schema)}
+          <pre className="text-muted-foreground overflow-x-auto bg-transparent p-2 font-mono text-[11px]">
+            {key
+              ? buildCurlCommand(webhookUrl, revealed ? key : WEBHOOK_KEY_MASK, schema)
+              : buildExamplePayload(schema)}
           </pre>
           {key && (
             <button
@@ -190,7 +201,7 @@ export function WebhookPanel({ bucket }: WebhookPanelProps) {
                     setTimeout(() => setCurlCopied(false), 2000);
                   });
               }}
-              className="text-muted-foreground hover:text-foreground absolute right-1.5 bottom-1.5 font-mono text-[9px] transition-colors"
+              className="text-muted-foreground hover:text-foreground absolute right-1.5 bottom-1.5 font-mono text-[11px] transition-colors"
             >
               {curlCopied ? "[copied]" : "[copy]"}
             </button>

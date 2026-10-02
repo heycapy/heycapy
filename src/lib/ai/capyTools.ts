@@ -1,11 +1,39 @@
+import { recordSystemError } from "@/lib/system-errors";
+import { errorMessage } from "@/lib/errors";
+import {
+  addLocalDays,
+  isAllDay,
+  localDateString,
+  parseLocalDateTime,
+  toLocal,
+} from "@/lib/reminders/zoned";
 import { revalidatePath } from "next/cache";
-import { and, eq, gte, isNull, lte, ne, or, sql } from "drizzle-orm";
+import { and, eq, gte, isNull, lte, or, sql, notInArray } from "drizzle-orm";
 import { db } from "@/lib/db";
+import { findBucketByName } from "@/lib/db/buckets";
+import { withDefaultChannels } from "@/lib/notifications/channels";
+import { initialReminderState, reminderResetForDeadline } from "@/lib/items/reminders";
+import { refreshItemReminders, reminderContext } from "@/lib/reminders/refresh";
+import { createNextOccurrence } from "@/lib/items/recurrence";
+import { toggleItemCompleted } from "@/lib/items/complete";
+import { onLastDayIfAnchored, parseRecurring } from "@/lib/items/occurrence";
+import { repeatFromArgs } from "./repeatArgs";
+import { encryptValue, generateWebhookKey } from "@/lib/crypto";
+import {
+  BUCKET_NAME_MAX_LENGTH,
+  CLOSED_ITEM_STATUSES,
+  ITEM_STATUS,
+  SETTABLE_ITEM_STATUSES,
+  WEEKDAY_SHORT_NAMES,
+} from "@/constants";
 import { buckets, items } from "@/lib/db/schema";
-import { RecurringConfig, BucketSchema, buildPropertyValidator } from "@/types/rules";
+import { BucketSchema, ReminderOffsets, buildPropertyValidator } from "@/types/rules";
 import type { ToolCall } from "./types";
 
-export { CAPY_TOOLS } from "./capyToolDefs";
+import { ITEM_AND_BUCKET_TOOLS } from "./capyToolDefs";
+import { BUCKET_SETTINGS_TOOLS, executeBucketSettingsTool } from "./bucketSettingsTools";
+
+export const CAPY_TOOLS = [...ITEM_AND_BUCKET_TOOLS, ...BUCKET_SETTINGS_TOOLS];
 
 export type UpcomingItem = {
   id: number;
@@ -15,72 +43,31 @@ export type UpcomingItem = {
   deadline: Date;
 };
 
-/**
- * Parse a deadline string from the AI in the context of the user's timezone.
- * - If the string already carries an offset (e.g. +05:30) or Z, parse as-is.
- * - If it's a naive datetime (no offset), interpret it as the user's local time
- *   and convert to the correct UTC instant.
- * - If it's a date-only string (YYYY-MM-DD), treat it as midnight in the user's TZ.
- */
-export function parseDeadlineInTimezone(str: string, timezone: string): Date {
-  const s = str.trim();
-
-  // Already has an offset or Z — parse directly
-  if (/Z$|[+-]\d{2}:\d{2}$/.test(s)) return new Date(s);
-
-  // Date-only: YYYY-MM-DD — treat as midnight in user's TZ by appending T00:00:00 and falling through
-  const normalized = /^\d{4}-\d{2}-\d{2}$/.test(s) ? `${s}T00:00:00` : s;
-
-  // Parse as if UTC to extract the numeric components
-  const naiveUtc = new Date(`${normalized}Z`);
-  if (isNaN(naiveUtc.getTime())) return new Date(s); // fallback for unparseable strings
-
-  // Get what the user's local time looks like at that UTC instant
-  const parts = new Intl.DateTimeFormat("en-US", {
-    timeZone: timezone,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: false,
-  }).formatToParts(naiveUtc);
-  const localMs = Date.UTC(
-    Number(parts.find((p) => p.type === "year")?.value ?? 0),
-    Number(parts.find((p) => p.type === "month")?.value ?? 1) - 1,
-    Number(parts.find((p) => p.type === "day")?.value ?? 1),
-    Number(parts.find((p) => p.type === "hour")?.value ?? 0),
-    Number(parts.find((p) => p.type === "minute")?.value ?? 0),
-    Number(parts.find((p) => p.type === "second")?.value ?? 0)
-  );
-  // offsetMs = UTC - local (positive for timezones east of UTC like IST)
-  const offsetMs = naiveUtc.getTime() - localMs;
-  return new Date(naiveUtc.getTime() + offsetMs);
+// Times as the user sees them in the app, e.g. "Thu 2026-10-29 21:00"
+function localTime(date: Date, timezone: string): string {
+  const l = toLocal(date, timezone);
+  const weekday = WEEKDAY_SHORT_NAMES[new Date(Date.UTC(l.year, l.month - 1, l.day)).getUTCDay()];
+  const clock = `${String(l.hour).padStart(2, "0")}:${String(l.minute).padStart(2, "0")}`;
+  return `${weekday} ${localDateString(date, timezone)} ${clock}`;
 }
 
-function toDateStr(d: Date, tz: string): string {
-  const parts = new Intl.DateTimeFormat("en-US", {
-    timeZone: tz,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).formatToParts(d);
-  const y = parts.find((p) => p.type === "year")?.value ?? "";
-  const mo = parts.find((p) => p.type === "month")?.value ?? "";
-  const dy = parts.find((p) => p.type === "day")?.value ?? "";
-  return `${y}-${mo}-${dy}`;
+// A deadline at local midnight has no time: "Fri 2026-10-30, all day"
+export function localDeadline(date: Date, timezone: string): string {
+  if (!isAllDay(date, timezone)) return localTime(date, timezone);
+  return `${localTime(date, timezone).slice(0, -" 00:00".length)}, all day`;
 }
 
 function deadlineRelative(deadline: Date, timezone: string): string {
   const now = new Date();
-  const todayStr = toDateStr(now, timezone);
-  const deadlineStr = toDateStr(deadline, timezone);
+  const todayStr = localDateString(now, timezone);
+  const deadlineStr = localDateString(deadline, timezone);
 
   if (deadlineStr < todayStr) return "overdue";
-  if (deadlineStr === todayStr) return "today";
+  if (deadlineStr === todayStr) {
+    return !isAllDay(deadline, timezone) && deadline < now ? "overdue today" : "today";
+  }
 
-  const tomorrowStr = toDateStr(new Date(now.getTime() + 86_400_000), timezone);
+  const tomorrowStr = localDateString(addLocalDays(now, 1, timezone), timezone);
   if (deadlineStr === tomorrowStr) return "tomorrow";
 
   const diffDays = Math.round((deadline.getTime() - now.getTime()) / 86_400_000);
@@ -89,21 +76,123 @@ function deadlineRelative(deadline: Date, timezone: string): string {
   return `in ${Math.round(diffDays / 30)} months`;
 }
 
-function parseRecurringArgs(args: Record<string, unknown>): string | null | undefined {
-  if (args.clear_recurring === true) return null;
-  if (args.recurring_frequency === undefined) return undefined;
-
-  const config = RecurringConfig.parse({
-    enabled: true,
-    frequency: args.recurring_frequency,
-    interval: args.recurring_interval ?? 1,
-    endDate: args.recurring_end_date ?? null,
-  });
-  return JSON.stringify(config);
+function repeatError(error: string): string {
+  return JSON.stringify({ ok: false, error });
 }
 
-const activeOnly = or(eq(items.status, "active"), isNull(items.status));
-const notCompleted = ne(items.status, "completed");
+// null follows the bucket's default
+function parseReminderOffsetsArg(
+  value: unknown
+): { ok: true; value: number[] | null } | { ok: false; error: string } {
+  if (value === null || value === undefined) return { ok: true, value: null };
+  const parsed = ReminderOffsets.safeParse(value);
+  if (parsed.success) return { ok: true, value: parsed.data };
+  return {
+    ok: false,
+    error: JSON.stringify({ ok: false, error: "Invalid reminders", issues: parsed.error.issues }),
+  };
+}
+
+function invalidStatusError(status: string): string {
+  return JSON.stringify({
+    ok: false,
+    error: `Unknown status "${status}". Use one of: ${SETTABLE_ITEM_STATUSES.join(", ")}`,
+  });
+}
+
+// Checked against the bucket's fields; a bucket without fields keeps any values
+function validateProperties(
+  fieldSchema: unknown,
+  properties: Record<string, unknown>
+): { ok: true; json: string | null } | { ok: false; error: string } {
+  if (!fieldSchema) return { ok: true, json: JSON.stringify(properties) };
+  const schema = BucketSchema.safeParse(
+    typeof fieldSchema === "string" ? JSON.parse(fieldSchema) : fieldSchema
+  );
+  if (!schema.success || schema.data.fields.length === 0) return { ok: true, json: null };
+
+  const validated = buildPropertyValidator(schema.data.fields).safeParse(properties);
+  if (!validated.success) {
+    return {
+      ok: false,
+      error: JSON.stringify({
+        ok: false,
+        error: "Invalid properties",
+        issues: validated.error.issues,
+      }),
+    };
+  }
+  return { ok: true, json: JSON.stringify(validated.data) };
+}
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return !!value && typeof value === "object" && !Array.isArray(value);
+}
+
+const ITEM_DETAIL_COLUMNS = {
+  id: items.id,
+  title: items.title,
+  status: items.status,
+  bucketId: items.bucketId,
+  deadline: items.deadline,
+  reminderOffsets: items.reminderOffsets,
+  recurring: items.recurring,
+  properties: items.properties,
+  completedAt: items.completedAt,
+};
+
+type ItemDetailRow = {
+  id: number;
+  title: string;
+  status: string;
+  bucketId: number;
+  deadline: Date | null;
+  reminderOffsets: number[] | null;
+  recurring: string | null;
+  properties: string | null;
+  completedAt: Date | null;
+};
+
+// Everything the item form shows, so each tool that returns items answers the same questions
+function itemDetails(row: ItemDetailRow, timezone: string) {
+  return {
+    id: row.id,
+    title: row.title,
+    status: row.status,
+    bucketId: row.bucketId,
+    deadline: row.deadline ? localDeadline(row.deadline, timezone) : null,
+    deadlineRelative: row.deadline ? deadlineRelative(row.deadline, timezone) : null,
+    reminderOffsets: row.reminderOffsets,
+    recurring: parseRecurring(row.recurring),
+    properties: row.properties ? (JSON.parse(row.properties) as unknown) : null,
+    completedAt: row.completedAt ? localTime(row.completedAt, timezone) : null,
+  };
+}
+
+// Models sometimes invent "today" (e.g. from their training data); a past day is almost always that
+function pastDayError(
+  deadline: Date | null,
+  args: Record<string, unknown>,
+  timezone: string
+): string | null {
+  if (!deadline || args.allow_past === true) return null;
+  const now = new Date();
+  if (localDateString(deadline, timezone) >= localDateString(now, timezone)) return null;
+  return JSON.stringify({
+    ok: false,
+    error:
+      `${localDeadline(deadline, timezone)} is before today (now: ${localTime(now, timezone)}). ` +
+      "Pick a date from today on, or pass allow_past: true if the user really means that past date.",
+  });
+}
+
+async function savedItem(itemId: number, timezone: string) {
+  const [row] = await db.select(ITEM_DETAIL_COLUMNS).from(items).where(eq(items.id, itemId));
+  return row ? itemDetails(row, timezone) : null;
+}
+
+const activeOnly = or(eq(items.status, ITEM_STATUS.active), isNull(items.status));
+const notCompleted = notInArray(items.status, CLOSED_ITEM_STATUSES as string[]);
 
 export async function executeToolCall(
   call: ToolCall,
@@ -113,9 +202,11 @@ export async function executeToolCall(
   try {
     return await executeToolCallInner(call, userId, timezone);
   } catch (err) {
-    process.stderr.write(
-      `[ai-tools] tool ${call.name} failed: ${err instanceof Error ? err.message : String(err)}\n`
-    );
+    recordSystemError("ai-tools", `tool ${call.name} failed: ${errorMessage(err)}`, {
+      userId,
+      err,
+      context: { tool: call.name, argumentNames: Object.keys(call.arguments ?? {}) },
+    });
     return JSON.stringify({ ok: false, error: "Tool execution failed" });
   }
 }
@@ -126,6 +217,9 @@ async function executeToolCallInner(
   timezone = "UTC"
 ): Promise<string> {
   const args = call.arguments;
+
+  const settingsResult = await executeBucketSettingsTool(call.name, args, userId);
+  if (settingsResult !== null) return settingsResult;
 
   switch (call.name) {
     case "list_buckets": {
@@ -141,18 +235,14 @@ async function executeToolCallInner(
     case "create_bucket": {
       const name = String(args.name ?? "").trim();
       if (!name) return JSON.stringify({ ok: false, error: "Name is required" });
+      if (name.length > BUCKET_NAME_MAX_LENGTH) {
+        return JSON.stringify({
+          ok: false,
+          error: `Name must be at most ${BUCKET_NAME_MAX_LENGTH} characters`,
+        });
+      }
 
-      const [duplicate] = await db
-        .select({ id: buckets.id })
-        .from(buckets)
-        .where(
-          and(
-            eq(buckets.userId, userId),
-            isNull(buckets.deletedAt),
-            sql`lower(${buckets.name}) = lower(${name})`
-          )
-        )
-        .limit(1);
+      const duplicate = await findBucketByName(userId, name);
       if (duplicate)
         return JSON.stringify({
           ok: false,
@@ -170,7 +260,9 @@ async function executeToolCallInner(
           userId,
           name,
           icon: args.icon ? String(args.icon) : null,
+          notificationsRules: JSON.stringify(await withDefaultChannels(userId, {})),
           sortOrder: (maxRow?.max ?? -1) + 1,
+          webhookKey: encryptValue(generateWebhookKey()),
         })
         .returning({ id: buckets.id });
 
@@ -191,6 +283,15 @@ async function executeToolCallInner(
       if (args.name !== undefined) {
         const name = String(args.name).trim();
         if (!name) return JSON.stringify({ ok: false, error: "Name cannot be empty" });
+        if (name.length > BUCKET_NAME_MAX_LENGTH) {
+          return JSON.stringify({
+            ok: false,
+            error: `Name must be at most ${BUCKET_NAME_MAX_LENGTH} characters`,
+          });
+        }
+        if (await findBucketByName(userId, name, bucketId)) {
+          return JSON.stringify({ ok: false, error: `A bucket named "${name}" already exists.` });
+        }
         updates.name = name;
       }
       if ("icon" in args) {
@@ -237,53 +338,28 @@ async function executeToolCallInner(
         .from(items)
         .where(eq(items.bucketId, bucketId));
 
-      const deadline = args.deadline
-        ? parseDeadlineInTimezone(String(args.deadline), timezone)
+      const reminders = parseReminderOffsetsArg(args.reminder_offsets_mins);
+      if (!reminders.ok) return reminders.error;
+
+      const repeat = repeatFromArgs(args, null);
+      if (repeat.kind === "error") return repeatError(repeat.error);
+      const recurring = repeat.kind === "set" ? repeat.config : null;
+      const parsedDeadline = args.deadline
+        ? parseLocalDateTime(String(args.deadline), timezone)
         : null;
-      const notificationOffsetMins =
-        args.notification_offset_mins !== null && args.notification_offset_mins !== undefined
-          ? Number(args.notification_offset_mins)
-          : null;
+      if (recurring && !parsedDeadline) return repeatError("A repeating item needs a deadline");
+      const deadline = parsedDeadline && onLastDayIfAnchored(parsedDeadline, recurring, timezone);
+      const pastDay = pastDayError(deadline, args, timezone);
+      if (pastDay) return pastDay;
 
-      let recurringJson: string | null = null;
-      try {
-        const parsed = parseRecurringArgs(args);
-        if (parsed !== undefined) recurringJson = parsed;
-      } catch {
-        return JSON.stringify({ ok: false, error: "Invalid recurring configuration" });
-      }
-
-      const statusArg = args.status ? String(args.status).trim() : "active";
-      const finalStatus = statusArg || "active";
-
-      let schemaParsed: ReturnType<typeof BucketSchema.safeParse> | null = null;
-      if (bucket.fieldSchema) {
-        schemaParsed = BucketSchema.safeParse(
-          typeof bucket.fieldSchema === "string"
-            ? JSON.parse(bucket.fieldSchema)
-            : bucket.fieldSchema
-        );
-      }
+      const finalStatus = args.status ? String(args.status).trim() : ITEM_STATUS.active;
+      if (!SETTABLE_ITEM_STATUSES.includes(finalStatus)) return invalidStatusError(finalStatus);
 
       let propertiesJson: string | null = null;
-      if (
-        args.properties &&
-        typeof args.properties === "object" &&
-        !Array.isArray(args.properties)
-      ) {
-        if (schemaParsed?.success && schemaParsed.data.fields.length > 0) {
-          const validator = buildPropertyValidator(schemaParsed.data.fields);
-          const validated = validator.safeParse(args.properties);
-          if (!validated.success)
-            return JSON.stringify({
-              ok: false,
-              error: "Invalid properties",
-              issues: validated.error.issues,
-            });
-          propertiesJson = JSON.stringify(validated.data);
-        } else if (!bucket.fieldSchema) {
-          propertiesJson = JSON.stringify(args.properties);
-        }
+      if (isPlainObject(args.properties)) {
+        const validated = validateProperties(bucket.fieldSchema, args.properties);
+        if (!validated.ok) return validated.error;
+        propertiesJson = validated.json;
       }
 
       const [inserted] = await db
@@ -293,18 +369,24 @@ async function executeToolCallInner(
           userId,
           title,
           status: finalStatus,
-          completedAt: finalStatus === "completed" ? new Date() : null,
+          completedAt: finalStatus === ITEM_STATUS.completed ? new Date() : null,
           deadline,
-          notificationOffsetMins,
-          recurring: recurringJson,
+          ...initialReminderState(deadline, timezone),
+          reminderOffsets: reminders.value,
+          recurring: recurring ? JSON.stringify(recurring) : null,
           properties: propertiesJson,
           source: "ai",
           sortOrder: (maxRow?.max ?? -1) + 1,
         })
         .returning({ id: items.id });
+      if (inserted) await refreshItemReminders([inserted.id]);
 
       revalidatePath("/");
-      return JSON.stringify({ ok: true, itemId: inserted?.id });
+      return JSON.stringify({
+        ok: true,
+        itemId: inserted?.id,
+        item: inserted ? await savedItem(inserted.id, timezone) : null,
+      });
     }
 
     case "update_item": {
@@ -318,9 +400,11 @@ async function executeToolCallInner(
         updatedAt: Date;
         title?: string;
         deadline?: Date | null;
+        scheduledAt?: null;
         notifiedAt?: Date | null;
         overdueNotifiedAt?: Date | null;
-        notificationOffsetMins?: number | null;
+        remindNotBefore?: Date | null;
+        reminderOffsets?: number[] | null;
         recurring?: string | null;
         status?: string;
         completedAt?: Date | null;
@@ -332,46 +416,75 @@ async function executeToolCallInner(
         if (!title) return JSON.stringify({ ok: false, error: "Title cannot be empty" });
         updates.title = title;
       }
-      if ("deadline" in args) {
-        const newDeadline = args.deadline
-          ? parseDeadlineInTimezone(String(args.deadline), timezone)
-          : null;
-        updates.deadline = newDeadline;
-        if ((item.deadline?.getTime() ?? null) !== (newDeadline?.getTime() ?? null)) {
-          updates.notifiedAt = null;
-          updates.overdueNotifiedAt = null;
-        }
-      }
-      if ("notification_offset_mins" in args) {
-        updates.notificationOffsetMins =
-          args.notification_offset_mins !== null && args.notification_offset_mins !== undefined
-            ? Number(args.notification_offset_mins)
-            : null;
-      }
 
-      try {
-        const parsed = parseRecurringArgs(args);
-        if (parsed !== undefined) updates.recurring = parsed;
-      } catch {
-        return JSON.stringify({ ok: false, error: "Invalid recurring configuration" });
+      const repeat = repeatFromArgs(args, parseRecurring(item.recurring));
+      if (repeat.kind === "error") return repeatError(repeat.error);
+      const recurring =
+        repeat.kind === "none"
+          ? parseRecurring(item.recurring)
+          : repeat.kind === "set"
+            ? repeat.config
+            : null;
+      if (repeat.kind !== "none") updates.recurring = recurring ? JSON.stringify(recurring) : null;
+      if (repeat.kind === "clear") updates.scheduledAt = null;
+
+      const askedDeadline =
+        "deadline" in args
+          ? args.deadline
+            ? parseLocalDateTime(String(args.deadline), timezone)
+            : null
+          : item.deadline;
+      const touchesSchedule = "deadline" in args || repeat.kind === "set";
+      if (touchesSchedule && recurring && !askedDeadline) {
+        return repeatError("A repeating item needs a deadline");
+      }
+      const newDeadline =
+        askedDeadline && touchesSchedule
+          ? onLastDayIfAnchored(askedDeadline, recurring, timezone)
+          : askedDeadline;
+      const pastDay = "deadline" in args ? pastDayError(newDeadline, args, timezone) : null;
+      if (pastDay) return pastDay;
+      if ("deadline" in args || newDeadline?.getTime() !== item.deadline?.getTime()) {
+        updates.deadline = newDeadline;
+        if (newDeadline?.getTime() !== item.deadline?.getTime()) updates.scheduledAt = null;
+        Object.assign(
+          updates,
+          reminderResetForDeadline(item, newDeadline, await reminderContext(item.bucketId))
+        );
+      }
+      if ("reminder_offsets_mins" in args) {
+        const reminders = parseReminderOffsetsArg(args.reminder_offsets_mins);
+        if (!reminders.ok) return reminders.error;
+        updates.reminderOffsets = reminders.value;
       }
 
       if (args.status !== undefined) {
         const statusName = String(args.status).trim();
-        if (statusName) {
-          updates.status = statusName;
-          if (statusName === "completed" && item.status !== "completed")
-            updates.completedAt = new Date();
-          else if (statusName !== "completed" && item.status === "completed")
-            updates.completedAt = null;
-        }
+        if (!SETTABLE_ITEM_STATUSES.includes(statusName)) return invalidStatusError(statusName);
+        updates.status = statusName;
+        if (statusName === ITEM_STATUS.completed && item.status !== ITEM_STATUS.completed)
+          updates.completedAt = new Date();
+        else if (statusName !== ITEM_STATUS.completed && item.status === ITEM_STATUS.completed)
+          updates.completedAt = null;
       }
 
       if (args.properties !== undefined) {
         if (args.properties === null) {
           updates.properties = null;
-        } else if (typeof args.properties === "object" && !Array.isArray(args.properties)) {
-          updates.properties = JSON.stringify(args.properties);
+        } else if (isPlainObject(args.properties)) {
+          const bucket = await db.query.buckets.findFirst({
+            where: (b, { eq: qeq }) => qeq(b.id, item.bucketId),
+            columns: { fieldSchema: true },
+          });
+          const saved = item.properties
+            ? (JSON.parse(item.properties) as Record<string, unknown>)
+            : {};
+          const validated = validateProperties(bucket?.fieldSchema, {
+            ...saved,
+            ...args.properties,
+          });
+          if (!validated.ok) return validated.error;
+          updates.properties = validated.json;
         }
       }
 
@@ -379,9 +492,11 @@ async function executeToolCallInner(
         .update(items)
         .set(updates)
         .where(and(eq(items.id, itemId), eq(items.userId, userId)));
+      await refreshItemReminders([itemId]);
+      if (updates.status === ITEM_STATUS.completed) await createNextOccurrence(itemId);
 
       revalidatePath("/");
-      return JSON.stringify({ ok: true });
+      return JSON.stringify({ ok: true, item: await savedItem(itemId, timezone) });
     }
 
     case "complete_item": {
@@ -391,15 +506,7 @@ async function executeToolCallInner(
       });
       if (!item) return JSON.stringify({ ok: false, error: "Item not found" });
 
-      const newStatus = item.status === "completed" ? "active" : "completed";
-      await db
-        .update(items)
-        .set({
-          status: newStatus,
-          completedAt: newStatus === "completed" ? new Date() : null,
-          updatedAt: new Date(),
-        })
-        .where(and(eq(items.id, itemId), eq(items.userId, userId)));
+      const newStatus = await toggleItemCompleted(item);
 
       revalidatePath("/");
       return JSON.stringify({ ok: true, newStatus });
@@ -416,6 +523,7 @@ async function executeToolCallInner(
         .update(items)
         .set({ deletedAt: new Date() })
         .where(and(eq(items.id, itemId), eq(items.userId, userId)));
+      await refreshItemReminders([itemId]);
 
       revalidatePath("/");
       return JSON.stringify({ ok: true });
@@ -446,25 +554,7 @@ async function executeToolCallInner(
         .update(items)
         .set({ bucketId: destBucketId, sortOrder: (maxRow?.max ?? -1) + 1, updatedAt: new Date() })
         .where(and(eq(items.id, itemId), eq(items.userId, userId)));
-
-      revalidatePath("/");
-      return JSON.stringify({ ok: true });
-    }
-
-    case "snooze_item": {
-      const itemId = Number(args.item_id);
-      const item = await db.query.items.findFirst({
-        where: (i, { eq: qeq, and: qand }) => qand(qeq(i.id, itemId), qeq(i.userId, userId)),
-      });
-      if (!item) return JSON.stringify({ ok: false, error: "Item not found" });
-
-      const snoozedUntil = args.snooze_until
-        ? parseDeadlineInTimezone(String(args.snooze_until), timezone)
-        : null;
-      await db
-        .update(items)
-        .set({ snoozedUntil, updatedAt: new Date() })
-        .where(and(eq(items.id, itemId), eq(items.userId, userId)));
+      await refreshItemReminders([itemId]);
 
       revalidatePath("/");
       return JSON.stringify({ ok: true });
@@ -480,16 +570,7 @@ async function executeToolCallInner(
       if (!bucket) return JSON.stringify({ ok: false, error: "Bucket not found" });
 
       const rows = await db
-        .select({
-          id: items.id,
-          title: items.title,
-          deadline: items.deadline,
-          status: items.status,
-          notificationOffsetMins: items.notificationOffsetMins,
-          snoozedUntil: items.snoozedUntil,
-          recurring: items.recurring,
-          properties: items.properties,
-        })
+        .select(ITEM_DETAIL_COLUMNS)
         .from(items)
         .where(
           includeCompleted
@@ -502,13 +583,7 @@ async function executeToolCallInner(
               )
         );
 
-      const enriched = rows.map((row) => ({
-        ...row,
-        recurring: row.recurring ? (JSON.parse(row.recurring) as unknown) : null,
-        properties: row.properties ? (JSON.parse(row.properties) as unknown) : null,
-        deadlineRelative: row.deadline ? deadlineRelative(row.deadline, timezone) : null,
-      }));
-      return JSON.stringify(enriched);
+      return JSON.stringify(rows.map((row) => itemDetails(row, timezone)));
     }
 
     case "search_items": {
@@ -539,16 +614,7 @@ async function executeToolCallInner(
 
       const [rows, bucketRows] = await Promise.all([
         db
-          .select({
-            id: items.id,
-            title: items.title,
-            deadline: items.deadline,
-            status: items.status,
-            bucketId: items.bucketId,
-            notificationOffsetMins: items.notificationOffsetMins,
-            snoozedUntil: items.snoozedUntil,
-            completedAt: items.completedAt,
-          })
+          .select(ITEM_DETAIL_COLUMNS)
           .from(items)
           .where(and(...conditions)),
         db
@@ -567,25 +633,21 @@ async function executeToolCallInner(
           return keywordWords.every((w) => lower.includes(w));
         })
         .map((row) => ({
-          id: row.id,
-          title: row.title,
-          status: row.status,
+          ...itemDetails(row, timezone),
           bucket: bucketMap.get(row.bucketId) ?? "Unknown",
-          bucketId: row.bucketId,
-          deadline: row.deadline,
-          deadlineRelative: row.deadline ? deadlineRelative(row.deadline, timezone) : null,
-          snoozedUntil: row.snoozedUntil,
-          completedAt: row.completedAt,
         }))
         .filter((row) => {
           if (deadlineFilter === "all") return true;
           if (!row.deadlineRelative) return false;
-          if (deadlineFilter === "overdue") return row.deadlineRelative === "overdue";
-          if (deadlineFilter === "today") return row.deadlineRelative === "today";
+          if (deadlineFilter === "overdue") return row.deadlineRelative.startsWith("overdue");
+          if (deadlineFilter === "today") {
+            return row.deadlineRelative === "today" || row.deadlineRelative === "overdue today";
+          }
           if (deadlineFilter === "tomorrow") return row.deadlineRelative === "tomorrow";
           if (deadlineFilter === "this_week") {
             return (
               row.deadlineRelative === "today" ||
+              row.deadlineRelative === "overdue today" ||
               row.deadlineRelative === "tomorrow" ||
               row.deadlineRelative.startsWith("in ")
             );

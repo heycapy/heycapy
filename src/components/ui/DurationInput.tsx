@@ -1,18 +1,16 @@
-"use client";
-
 import { cn } from "@/lib/utils";
 import { durationPreview } from "@/lib/duration";
 
 const INPUT =
   "border-b border-border w-full bg-transparent py-1.5 font-mono text-xs outline-none placeholder:text-muted-foreground/50 focus:border-foreground disabled:opacity-50";
 
-interface DurationInputProps {
+type DurationInputProps = {
   value: string;
   onChange: (v: string) => void;
   placeholder?: string;
   disabled?: boolean;
   className?: string;
-}
+};
 
 export function DurationInput({
   value,
@@ -36,7 +34,7 @@ export function DurationInput({
       {value && preview.text && (
         <span
           className={cn(
-            "font-mono text-[10px]",
+            "font-mono text-xs",
             preview.valid ? "text-muted-foreground" : "text-destructive"
           )}
         >

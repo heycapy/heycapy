@@ -1,12 +1,24 @@
 import { z } from "zod";
+import { DEFAULT_REMINDER_BUTTONS, QUICK_REMIND_VALUES } from "@/lib/notifications/constants";
+import { MAX_REMINDER_OFFSET_MINS, MAX_REMINDERS_PER_ITEM } from "@/lib/reminders/constants";
+
+// Minutes before the deadline, stored largest first without repeats
+export const ReminderOffsets = z
+  .array(z.number().int().min(0).max(MAX_REMINDER_OFFSET_MINS))
+  .max(MAX_REMINDERS_PER_ITEM)
+  .transform((offsets) => [...new Set(offsets)].sort((a, b) => b - a));
 
 export const NotificationRules = z.object({
-  medium: z.array(z.enum(["ntfy", "email", "telegram"])).default(["ntfy"]),
+  medium: z.array(z.enum(["ntfy", "email", "telegram", "push"])).default([]),
+  // ids of the user's outgoing webhooks, set up once in tweaks
+  webhooks: z.array(z.number().int().positive()).default([]),
   notifyAt: z.string().default(""),
   quietHours: z.object({ from: z.string(), to: z.string() }).nullable().default(null),
-  defaultOffsetMins: z.number().int().nonnegative().default(0),
+  // For items that haven't picked their own
+  defaultReminders: ReminderOffsets.default([0]),
   repeat: z.enum(["once", "daily"]).default("once"),
-  snoozeUntil: z.iso.datetime().nullable().default(null),
+  // "Remind again" buttons shown next to Done on every channel, as much as each has room for
+  reminderButtons: z.array(z.enum(QUICK_REMIND_VALUES)).default(DEFAULT_REMINDER_BUTTONS),
 });
 
 export const ItemsRules = z.object({
@@ -15,6 +27,8 @@ export const ItemsRules = z.object({
   readonly: z.boolean().default(false),
   showCompleted: z.boolean().default(true),
   defaultDeadlineOffsetDays: z.number().int().nonnegative().nullable().default(null),
+  // How a repeating item's next occurrence comes about
+  recurrenceMode: z.enum(["wait", "moveOn", "afterCompletion"]).default("wait"),
 });
 
 export const McpRules = z.object({
@@ -37,10 +51,15 @@ export const RecurringConfig = z.object({
   frequency: z.enum(["daily", "weekly", "monthly", "yearly"]),
   interval: z.number().int().positive().default(1),
   endDate: z.iso.date().nullable().default(null),
+  // Day of month a monthly/yearly series was set on, so short months don't shift it
+  anchorDay: z.number().int().min(1).max(31).optional(),
+  // Weekly on these days (0 = Sunday); without it, the deadline's own weekday
+  weekdays: z.array(z.number().int().min(0).max(6)).min(1).max(7).optional(),
 });
 
 export type NotificationRules = z.infer<typeof NotificationRules>;
 export type ItemsRules = z.infer<typeof ItemsRules>;
+export type RecurrenceMode = ItemsRules["recurrenceMode"];
 export type McpRules = z.infer<typeof McpRules>;
 export type PersonalityRules = z.infer<typeof PersonalityRules>;
 export type RecurringConfig = z.infer<typeof RecurringConfig>;
@@ -93,6 +112,7 @@ export const BucketSchema = z.object({
   notifyOnArrival: z.boolean().optional(),
   notifyWhenOverdue: z.boolean().optional(),
   overdueRepeatHours: z.number().positive().optional(),
+  overdueFirstAlertMins: z.number().int().positive().optional(),
 });
 
 export type FieldValidation = z.infer<typeof FieldValidation>;

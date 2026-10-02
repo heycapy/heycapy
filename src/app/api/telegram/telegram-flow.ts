@@ -1,3 +1,5 @@
+import { formatSlot, formatWhen } from "@/lib/format-date";
+import { toLocal } from "@/lib/reminders/zoned";
 import {
   sendTelegram,
   sendTelegramWithQuickActions,
@@ -10,15 +12,7 @@ import type {
   TelegramRecurringDefault,
 } from "@/components/buckets/constants";
 import { dataEvents } from "@/lib/events";
-import {
-  getBucketTelegramConfig,
-  setFlowState,
-  createItem,
-  getCurrentTimeInTz,
-  formatSlot,
-  fmtDate,
-  fmtDateTime,
-} from "./telegram-utils";
+import { getBucketTelegramConfig, setFlowState, createItem } from "./telegram-utils";
 import type { FlowState } from "./telegram-utils";
 
 const PRESET_LABELS: Record<TelegramDeadlinePreset, string> = {
@@ -43,7 +37,7 @@ export async function showBucketPicker(
   const buttonRows: InlineButton[][] = buckets.map((b) => [
     {
       text: `${b.icon ? b.icon + " " : ""}${b.name}`,
-      callback_data: `ab:${b.id}:${b.name.slice(0, 20)}`,
+      callback_data: `ab:${b.id}`,
     },
   ]);
   buttonRows.push([{ text: "✖ Cancel", callback_data: "cancel" }]);
@@ -89,7 +83,7 @@ export async function showTimePicker(
   const sorted = [...slots].sort();
   const filtered = isToday
     ? (() => {
-        const { hour: nowH, minute: nowM } = getCurrentTimeInTz(timezone);
+        const { hour: nowH, minute: nowM } = toLocal(new Date(), timezone);
         return sorted.filter((s) => {
           const [hStr, mStr] = s.split(":");
           const h = parseInt(hStr ?? "0");
@@ -254,7 +248,7 @@ export async function handleAfterTime(
     await sendTelegramWithQuickActions(
       botToken,
       chatId,
-      `Added "${state.title}" to ${state.bucketName} (${fmtDateTime(deadline, timezone)}) ✓`
+      `Added "${state.title}" to ${state.bucketName} (${formatWhen(deadline, new Date(), timezone)}) ✓`
     );
   }
 }
@@ -292,7 +286,7 @@ export async function handleAfterDeadline(
     if (messageId) await removeMessageButtons(botToken, chatId, messageId);
     await createItem(userId, state.bucketId, state.title, deadline);
     await setFlowState(userId, null);
-    const note = deadline ? ` (due ${fmtDate(deadline, timezone)})` : "";
+    const note = deadline ? ` (due ${formatWhen(deadline, new Date(), timezone)})` : "";
     dataEvents.emit("refresh", userId);
     await sendTelegramWithQuickActions(
       botToken,
@@ -320,7 +314,7 @@ export async function handleRepeatCallback(
   await createItem(userId, state.bucketId, state.title, deadline, recurring);
   await setFlowState(userId, null);
   dataEvents.emit("refresh", userId);
-  const dateNote = deadline ? ` (due ${fmtDate(deadline, timezone)})` : "";
+  const dateNote = deadline ? ` (due ${formatWhen(deadline, new Date(), timezone)})` : "";
   const recurNote = freq === "none" ? "" : `, repeats ${freq}`;
   await sendTelegramWithQuickActions(
     botToken,

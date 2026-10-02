@@ -1,5 +1,3 @@
-"use client";
-
 import { useEffect, useState, useTransition } from "react";
 import { useScrollLock } from "@/hooks/useScrollLock";
 import { useRouter } from "next/navigation";
@@ -14,10 +12,10 @@ import type { buckets } from "@/lib/db/schema";
 
 type BucketRow = typeof buckets.$inferSelect;
 
-interface ArchivedBucketsSheetProps {
+type ArchivedBucketsSheetProps = {
   open: boolean;
   onClose: () => void;
-}
+};
 
 export function ArchivedBucketsSheet({ open, onClose }: ArchivedBucketsSheetProps) {
   useScrollLock(open);
@@ -102,7 +100,7 @@ export function ArchivedBucketsSheet({ open, onClose }: ArchivedBucketsSheetProp
                       <div className="min-w-0 flex-1">
                         <p className="font-pixel truncate text-xs">{bucket.name}</p>
                         {bucket.archivedAt && (
-                          <p className="text-muted-foreground/60 mt-0.5 font-mono text-[10px]">
+                          <p className="text-muted-foreground mt-0.5 font-mono text-xs">
                             archived{" "}
                             {bucket.archivedAt.toLocaleDateString("en-US", {
                               month: "short",

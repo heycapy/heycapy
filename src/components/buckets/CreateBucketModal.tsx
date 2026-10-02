@@ -17,16 +17,16 @@ import type { templates } from "@/lib/db/schema";
 
 type TemplateRow = typeof templates.$inferSelect;
 
-interface CreateBucketModalProps {
+type CreateBucketModalProps = {
   templates: TemplateRow[];
-}
+};
 
 type Step = "pick" | "name";
 
 const transition: Transition = { duration: 0.15, ease: "easeOut" };
 
 export function CreateBucketModal({ templates }: CreateBucketModalProps) {
-  const { createBucketOpen, closeCreateBucket, setActiveBucketId } = useUIStore();
+  const { createBucketOpen, closeCreateBucket, selectNewBucket } = useUIStore();
   useScrollLock(createBucketOpen);
   const [step, setStep] = useState<Step>("pick");
   const [selected, setSelected] = useState<TemplateRow | null>(null);
@@ -61,7 +61,7 @@ export function CreateBucketModal({ templates }: CreateBucketModalProps) {
     startTransition(async () => {
       const result = await createBucketAction(selected.id, name);
       if (result.ok) {
-        setActiveBucketId(result.bucketId);
+        selectNewBucket(result.bucketId);
         closeCreateBucket();
       } else {
         setError(result.error);
@@ -114,7 +114,7 @@ export function CreateBucketModal({ templates }: CreateBucketModalProps) {
 
                   <div className="max-h-[55vh] overflow-y-auto">
                     {error && (
-                      <p className="text-destructive px-4 pt-3 font-mono text-[10px]">{error}</p>
+                      <p className="text-destructive px-4 pt-3 font-mono text-xs">{error}</p>
                     )}
 
                     <div className="grid grid-cols-2 gap-1.5 p-2 sm:gap-2 sm:p-3">
@@ -130,11 +130,9 @@ export function CreateBucketModal({ templates }: CreateBucketModalProps) {
                               <Icon size={12} className="text-muted-foreground sm:size-[15px]" />
                             );
                           })()}
-                          <span className="font-pixel truncate text-[10px] sm:text-xs">
-                            {t.name}
-                          </span>
+                          <span className="font-pixel truncate text-xs sm:text-xs">{t.name}</span>
                           {t.description && (
-                            <span className="text-muted-foreground line-clamp-2 text-[9px] leading-snug sm:text-[10px]">
+                            <span className="text-muted-foreground line-clamp-2 text-[11px] leading-snug sm:text-xs">
                               {t.description}
                             </span>
                           )}
@@ -184,7 +182,7 @@ export function CreateBucketModal({ templates }: CreateBucketModalProps) {
                     {name.length > 0 && (
                       <p
                         className={cn(
-                          "mt-0.5 text-right font-mono text-[9px] transition-colors",
+                          "mt-0.5 text-right font-mono text-[11px] transition-colors",
                           charCountColor(name.length, BUCKET_NAME_MAX_LENGTH)
                         )}
                       >

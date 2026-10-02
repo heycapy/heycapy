@@ -1,18 +1,16 @@
-"use client";
-
 import { useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Archive, LogOut, SlidersHorizontal, Trash2 } from "lucide-react";
 import { BracketButton } from "@/components/ui/BracketButton";
-import { logoutAction } from "@/app/(app)/actions";
+import { logoutAction, logoutEverywhereAction } from "@/app/(app)/actions";
 import { useScrollLock } from "@/hooks/useScrollLock";
 
-interface HeaderProps {
+type HeaderProps = {
   email: string;
   onSettingsOpen: () => void;
   onArchiveOpen: () => void;
   onTrashOpen: () => void;
-}
+};
 
 function getGreeting() {
   const h = new Date().getHours();
@@ -30,7 +28,27 @@ function getDate() {
   });
 }
 
-function LogoutConfirm({ onConfirm, onCancel }: { onConfirm: () => void; onCancel: () => void }) {
+type LogoutScope = "here" | "everywhere";
+
+const LOGOUT_COPY: Record<LogoutScope, { title: string; body: string; action: string }> = {
+  here: { title: "log out?", body: "you'll need to log in again.", action: "log out" },
+  everywhere: {
+    title: "log out everywhere?",
+    body: "ends your sessions on every device, including this one.",
+    action: "log out everywhere",
+  },
+};
+
+function LogoutConfirm({
+  scope,
+  onConfirm,
+  onCancel,
+}: {
+  scope: LogoutScope;
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  const copy = LOGOUT_COPY[scope];
   return createPortal(
     <>
       <div className="fixed inset-0 z-50 bg-black/40" onClick={onCancel} />
@@ -38,13 +56,11 @@ function LogoutConfirm({ onConfirm, onCancel }: { onConfirm: () => void; onCance
         className="bg-background border-border fixed top-1/2 left-1/2 z-50 -translate-x-1/2 -translate-y-1/2 border-2 p-5"
         style={{ boxShadow: "3px 3px 0 var(--border)", minWidth: 220 }}
       >
-        <p className="font-pixel mb-1 text-sm">log out?</p>
-        <p className="text-muted-foreground mb-4 font-mono text-xs">
-          you&apos;ll need to log in again.
-        </p>
+        <p className="font-pixel mb-1 text-sm">{copy.title}</p>
+        <p className="text-muted-foreground mb-4 font-mono text-xs">{copy.body}</p>
         <div className="flex gap-2">
           <BracketButton onClick={onConfirm} variant="destructive" className="px-2 py-1">
-            log out
+            {copy.action}
           </BracketButton>
           <BracketButton onClick={onCancel} className="px-2 py-1">
             cancel
@@ -68,8 +84,8 @@ function GlobalMenu({
   onTrash: () => void;
 }) {
   const [open, setOpen] = useState(false);
-  const [confirmLogout, setConfirmLogout] = useState(false);
-  useScrollLock(confirmLogout);
+  const [confirmLogout, setConfirmLogout] = useState<LogoutScope | null>(null);
+  useScrollLock(confirmLogout !== null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [pos, setPos] = useState({ top: 0, left: 0 });
 
@@ -95,8 +111,11 @@ function GlobalMenu({
 
       {confirmLogout && (
         <LogoutConfirm
-          onConfirm={() => void logoutAction()}
-          onCancel={() => setConfirmLogout(false)}
+          scope={confirmLogout}
+          onConfirm={() =>
+            void (confirmLogout === "everywhere" ? logoutEverywhereAction() : logoutAction())
+          }
+          onCancel={() => setConfirmLogout(null)}
         />
       )}
 
@@ -105,7 +124,7 @@ function GlobalMenu({
           <>
             <div className="fixed inset-0 z-30" onClick={() => setOpen(false)} />
             <div
-              className="bg-background border-border fixed z-40 border-2 py-1"
+              className="bg-background border-border fixed z-40 w-max max-w-[calc(100vw-2rem)] min-w-44 border-2 py-1 whitespace-nowrap"
               style={{
                 top: pos.top,
                 left: pos.left,
@@ -113,37 +132,44 @@ function GlobalMenu({
                 boxShadow: "2px 2px 0 var(--border)",
               }}
             >
-              <div className="text-muted-foreground border-border mb-1 border-b px-3 pt-0.5 pb-1.5 font-mono text-[10px]">
+              <div className="text-muted-foreground border-border mb-1 max-w-64 truncate border-b px-3 pt-0.5 pb-1.5 font-mono text-xs">
                 {email}
               </div>
               <button
                 onClick={() => pick(onSettings)}
-                className="text-foreground hover:bg-muted flex w-full items-center gap-2.5 px-3 py-1.5 font-mono text-xs transition-colors"
+                className="text-foreground hover:bg-muted flex w-full items-center gap-2.5 px-3 py-2 font-mono text-xs transition-colors"
               >
                 <SlidersHorizontal size={11} />
                 tweaks
               </button>
               <button
                 onClick={() => pick(onArchive)}
-                className="text-foreground hover:bg-muted flex w-full items-center gap-2.5 px-3 py-1.5 font-mono text-xs transition-colors"
+                className="text-foreground hover:bg-muted flex w-full items-center gap-2.5 px-3 py-2 font-mono text-xs transition-colors"
               >
                 <Archive size={11} />
                 archived
               </button>
               <button
                 onClick={() => pick(onTrash)}
-                className="text-foreground hover:bg-muted flex w-full items-center gap-2.5 px-3 py-1.5 font-mono text-xs transition-colors"
+                className="text-foreground hover:bg-muted flex w-full items-center gap-2.5 px-3 py-2 font-mono text-xs transition-colors"
               >
                 <Trash2 size={11} />
                 trash
               </button>
               <div className="border-border my-1 border-t" />
               <button
-                onClick={() => pick(() => setConfirmLogout(true))}
-                className="text-destructive hover:bg-muted flex w-full items-center gap-2.5 px-3 py-1.5 font-mono text-xs transition-colors"
+                onClick={() => pick(() => setConfirmLogout("here"))}
+                className="text-destructive hover:bg-muted flex w-full items-center gap-2.5 px-3 py-2 font-mono text-xs transition-colors"
               >
                 <LogOut size={11} />
                 logout
+              </button>
+              <button
+                onClick={() => pick(() => setConfirmLogout("everywhere"))}
+                className="text-destructive hover:bg-muted flex w-full items-center gap-2.5 px-3 py-2 font-mono text-xs transition-colors"
+              >
+                <LogOut size={11} />
+                logout everywhere
               </button>
             </div>
           </>,
@@ -164,14 +190,12 @@ export function Header({ email, onSettingsOpen, onArchiveOpen, onTrashOpen }: He
         <p className="text-muted-foreground mt-0.5 text-xs">{date}</p>
       </div>
 
-      <div className="flex items-center gap-3">
-        <GlobalMenu
-          email={email}
-          onSettings={onSettingsOpen}
-          onArchive={onArchiveOpen}
-          onTrash={onTrashOpen}
-        />
-      </div>
+      <GlobalMenu
+        email={email}
+        onSettings={onSettingsOpen}
+        onArchive={onArchiveOpen}
+        onTrash={onTrashOpen}
+      />
     </header>
   );
 }

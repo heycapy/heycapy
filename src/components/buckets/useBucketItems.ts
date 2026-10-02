@@ -1,0 +1,98 @@
+import { isClosedStatus } from "@/constants";
+import { useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
+import {
+  deleteItemAction,
+  getItemsForBucketAction,
+  moveItemAction,
+  updateItemAction,
+} from "@/app/(app)/actions";
+import type { ReminderBadge } from "@/lib/reminders/status";
+import type { items } from "@/lib/db/schema";
+import { useUIStore } from "@/store/ui";
+import { offerUndoDelete } from "./undoDelete";
+
+type Item = typeof items.$inferSelect;
+
+export function useBucketItems(bucketId: number, itemsRules: string, showCompleted: boolean) {
+  const aiRefreshTick = useUIStore((s) => s.aiRefreshTick);
+  const [fetchedItems, setFetchedItems] = useState<Item[]>([]);
+  const [reminderBadges, setReminderBadges] = useState<Record<number, ReminderBadge>>({});
+  const [loading, setLoading] = useState(true);
+  const [orderedItems, setOrderedItems] = useState<Item[]>([]);
+  const orderedItemsRef = useRef<Item[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void getItemsForBucketAction(bucketId).then((result) => {
+      if (cancelled) return;
+      if (result.ok) {
+        setFetchedItems(result.items);
+        setReminderBadges(result.reminderBadges);
+      }
+      setLoading(false);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [bucketId, itemsRules, aiRefreshTick]);
+
+  useEffect(() => {
+    const next = showCompleted
+      ? fetchedItems
+      : fetchedItems.filter((i) => !isClosedStatus(i.status));
+    const id = setTimeout(() => {
+      setOrderedItems(next);
+      orderedItemsRef.current = next;
+    }, 0);
+    return () => clearTimeout(id);
+  }, [fetchedItems, showCompleted]);
+
+  async function refetch() {
+    const result = await getItemsForBucketAction(bucketId);
+    if (!result.ok) return;
+    setFetchedItems(result.items);
+    setReminderBadges(result.reminderBadges);
+  }
+
+  async function changeStatus(item: Item, status: string) {
+    await updateItemAction(
+      item.id,
+      item.title,
+      item.deadline ? item.deadline.toISOString() : null,
+      status
+    );
+    await refetch();
+  }
+
+  async function moveItem(item: Item, deadline: string) {
+    const result = await moveItemAction(item.id, deadline);
+    if (!result.ok) toast.error(result.error);
+    await refetch();
+  }
+
+  async function deleteItem(itemId: number) {
+    const title = fetchedItems.find((i) => i.id === itemId)?.title ?? "item";
+    await deleteItemAction(itemId);
+    await refetch();
+    offerUndoDelete(itemId, title, refetch);
+  }
+
+  function reorder(newOrder: Item[]) {
+    orderedItemsRef.current = newOrder;
+    setOrderedItems(newOrder);
+  }
+
+  return {
+    items: fetchedItems,
+    orderedItems,
+    orderedItemsRef,
+    reminderBadges,
+    loading,
+    refetch,
+    changeStatus,
+    moveItem,
+    deleteItem,
+    reorder,
+  };
+}

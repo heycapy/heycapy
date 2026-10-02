@@ -18,7 +18,7 @@ type SpriteConfig = {
 };
 
 export const SPRITES: Record<SpriteId, SpriteConfig> = {
-  "capy-mascot": { src: "/sprites/capy-mascot.png", frameW: 64, frameH: 64, frameCount: 1, fps: 1 },
+  "capy-mascot": { src: "/sprites/capy-mascot.png", frameW: 48, frameH: 48, frameCount: 1, fps: 1 },
   "capy-mascot-sleep": {
     src: "/sprites/capy-mascot-sleep.png",
     frameW: 24,

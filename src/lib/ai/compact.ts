@@ -1,58 +1,87 @@
-import { asc, eq, sql } from "drizzle-orm";
+import { and, asc, eq, gt } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { chatMessages, chatSessions } from "@/lib/db/schema";
-import type { AIProvider } from "./types";
+import { logAIError } from "@/lib/errors";
+import type { MeteredProvider } from "./index";
+import type { AgentMessage } from "./types";
+import { recordUsage } from "./usage";
 
+const SUMMARY_PROMPT =
+  "Summarize the conversation concisely. Preserve: key facts, items created/updated/deleted, decisions made, and any context needed to continue the conversation. If a summary so far is given, fold the new messages into it. Output only the summary — no preamble.";
+
+async function unsummarized(sessionId: number) {
+  const session = await db.query.chatSessions.findFirst({
+    where: eq(chatSessions.id, sessionId),
+  });
+  const messages = await db
+    .select({ id: chatMessages.id, role: chatMessages.role, content: chatMessages.content })
+    .from(chatMessages)
+    .where(
+      and(eq(chatMessages.sessionId, sessionId), gt(chatMessages.id, session?.summaryThrough ?? 0))
+    )
+    // A question and its reply share a created_at second; ids keep their order
+    .orderBy(asc(chatMessages.id));
+  return { summary: session?.summary ?? null, messages };
+}
+
+// The summary stands in for everything it covers; every message after it goes to the model as is
+export async function chatHistory(sessionId: number): Promise<AgentMessage[]> {
+  const { summary, messages } = await unsummarized(sessionId);
+  return [
+    ...(summary
+      ? [{ role: "system" as const, content: `Summary of earlier conversation:\n${summary}` }]
+      : []),
+    ...messages.map((m) => ({ role: m.role, content: m.content })),
+  ];
+}
+
+const running = new Set<number>();
+
+// Once more than `threshold` messages follow the summary, folds all but the latest few into it
 export async function compactSessionIfNeeded(
+  userId: number,
   sessionId: number,
-  provider: AIProvider,
+  provider: MeteredProvider,
   threshold = 40
 ): Promise<void> {
-  const [countRow] = await db
-    .select({ count: sql<number>`count(*)` })
-    .from(chatMessages)
-    .where(eq(chatMessages.sessionId, sessionId));
-
-  const total = countRow?.count ?? 0;
-  if (total <= threshold) return;
-
-  const keepRecent = Math.max(10, Math.floor(threshold / 4));
-
-  // only recompact every keepRecent messages after the threshold
-  // so we don't regenerate the summary on every single message
-  if ((total - threshold) % keepRecent !== 0) return;
-
-  const all = await db
-    .select({ role: chatMessages.role, content: chatMessages.content })
-    .from(chatMessages)
-    .where(eq(chatMessages.sessionId, sessionId))
-    .orderBy(asc(chatMessages.createdAt));
-
-  const toSummarize = all.slice(0, all.length - keepRecent);
-  if (toSummarize.length === 0) return;
-
-  const transcript = toSummarize.map((m) => `${m.role}: ${m.content}`).join("\n\n");
-
-  let summary = "";
+  if (running.has(sessionId)) return;
+  running.add(sessionId);
   try {
-    for await (const chunk of provider.chat([
+    const { summary, messages } = await unsummarized(sessionId);
+    if (messages.length <= threshold) return;
+
+    const keepRecent = Math.max(10, Math.floor(threshold / 4));
+    const toSummarize = messages.slice(0, -keepRecent);
+    const last = toSummarize.at(-1);
+    if (!last) return;
+
+    const transcript = toSummarize.map((m) => `${m.role}: ${m.content}`).join("\n\n");
+    const result = await provider.chat([
+      { role: "system", content: SUMMARY_PROMPT },
       {
-        role: "system",
-        content:
-          "Summarize the following conversation concisely. Preserve: key facts, items created/updated/deleted, decisions made, and any context needed to continue the conversation. Output only the summary — no preamble.",
+        role: "user",
+        content: summary
+          ? `Summary so far:\n${summary}\n\nNew messages:\n${transcript}`
+          : transcript,
       },
-      { role: "user", content: transcript },
-    ])) {
-      summary += chunk;
-    }
-  } catch {
-    return;
+    ]);
+    recordUsage({
+      userId,
+      sessionId,
+      source: "summary",
+      meta: provider.meta,
+      calls: [result.usage],
+    });
+    if (!result.text) return;
+
+    // Messages are never deleted, only covered by the summary
+    await db
+      .update(chatSessions)
+      .set({ summary: result.text, summaryThrough: last.id })
+      .where(eq(chatSessions.id, sessionId));
+  } catch (err) {
+    logAIError(err, "summary");
+  } finally {
+    running.delete(sessionId);
   }
-
-  if (!summary) return;
-
-  // store summary only , never delete messages
-  db.transaction((tx) => {
-    tx.update(chatSessions).set({ summary }).where(eq(chatSessions.id, sessionId)).run();
-  });
 }

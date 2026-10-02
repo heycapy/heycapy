@@ -8,7 +8,7 @@ export function charCountColor(length: number, max: number): string {
   if (pct >= 1) return "text-destructive";
   if (pct >= 0.75) return "text-orange-500";
   if (pct >= 0.5) return "text-yellow-500";
-  return "text-muted-foreground/40";
+  return "text-muted-foreground";
 }
 
 export function Input({
@@ -42,7 +42,7 @@ export function Input({
       {maxLength && (
         <p
           className={cn(
-            "mt-0.5 text-right font-mono text-[9px] transition-colors",
+            "mt-0.5 text-right font-mono text-[11px] transition-colors",
             charCountColor(current.length, maxLength)
           )}
         >

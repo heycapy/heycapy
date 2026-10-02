@@ -1,17 +1,15 @@
-"use client";
-
 import { cn } from "@/lib/utils";
 import { charCountColor } from "@/components/ui/input";
 import { LABEL, INPUT, THEMES } from "./settings-constants";
 import { TIMEZONE_MAX_LENGTH } from "@/constants";
 
-interface AppearanceTabProps {
+type AppearanceTabProps = {
   theme: string | undefined;
   setTheme: (t: string) => void;
   timezone: string;
   setTimezone: (v: string) => void;
   pending: boolean;
-}
+};
 
 export function AppearanceTab({
   theme,
@@ -41,7 +39,7 @@ export function AppearanceTab({
               />
               <span
                 className={cn(
-                  "text-center font-mono text-[10px] leading-tight",
+                  "text-center font-mono text-xs leading-tight",
                   theme === t.id ? "text-foreground" : "text-muted-foreground"
                 )}
               >
@@ -65,7 +63,7 @@ export function AppearanceTab({
         {timezone.length > 0 && (
           <p
             className={cn(
-              "mt-0.5 text-right font-mono text-[9px] transition-colors",
+              "mt-0.5 text-right font-mono text-[11px] transition-colors",
               charCountColor(timezone.length, TIMEZONE_MAX_LENGTH)
             )}
           >

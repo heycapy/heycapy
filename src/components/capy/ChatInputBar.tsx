@@ -1,10 +1,9 @@
-"use client";
-
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState, createElement } from "react";
 import { ArrowUp, Mic } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Sprite } from "./Sprite";
+import { VOICE_MAX_SECONDS } from "@/constants";
 
 type Props = {
   input: string;
@@ -96,12 +95,16 @@ export const ChatInputBar = forwardRef<ChatInputBarHandle, Props>(function ChatI
 
     const mr = new MediaRecorder(stream);
     chunksRef.current = [];
+    const limit = setTimeout(() => {
+      if (mr.state === "recording") mr.stop();
+    }, VOICE_MAX_SECONDS * 1000);
 
     mr.ondataavailable = (e) => {
       if (e.data.size > 0) chunksRef.current.push(e.data);
     };
 
     mr.onstop = async () => {
+      clearTimeout(limit);
       stream.getTracks().forEach((t) => t.stop());
       setRecording(false);
       setTranscribing(true);
@@ -114,7 +117,7 @@ export const ChatInputBar = forwardRef<ChatInputBarHandle, Props>(function ChatI
         const res = await fetch("/api/transcribe", { method: "POST", body: fd });
         const body = (await res.json()) as { text?: string; error?: string };
         if (!res.ok || !body.text) {
-          toast.error("transcription failed", {
+          toast.error(res.status === 422 ? "didn't catch that" : "transcription failed", {
             description: body.error ?? "Unknown error.",
             icon: createElement(Sprite, { id: "capy-error", size: 28 }),
           });
@@ -148,24 +151,25 @@ export const ChatInputBar = forwardRef<ChatInputBarHandle, Props>(function ChatI
     <div
       className={cn(
         "border-t-2 px-3 py-2 transition-colors",
-        recording ? "border-destructive" : "border-border"
+        recording ? "border-primary" : "border-border"
       )}
     >
       {isRecordingOrTranscribing ? (
-        <div className="flex items-center gap-3">
+        // as tall as the mic and send buttons so the bar keeps its height while capy listens
+        <div className="flex min-h-9.5 items-center gap-3 md:min-h-6.5">
           <div className="flex flex-1 items-center gap-2">
             {recording ? (
               <>
-                <span className="text-destructive font-pixel animate-[pulse_0.8s_ease-in-out_infinite] text-[10px]">
+                <span className="text-primary font-pixel animate-[pulse_0.8s_ease-in-out_infinite] text-xs">
                   ●
                 </span>
-                <span className="text-destructive font-pixel text-[10px]">
-                  rec {formatTime(recSeconds)}
+                <span className="text-foreground font-pixel text-xs">
+                  capy listening... {formatTime(recSeconds)}
                 </span>
               </>
             ) : (
-              <span className="text-muted-foreground font-pixel animate-pulse text-[10px]">
-                transcribing...
+              <span className="text-muted-foreground font-pixel animate-pulse text-xs">
+                capy&apos;s jotting it down...
               </span>
             )}
           </div>
@@ -173,7 +177,7 @@ export const ChatInputBar = forwardRef<ChatInputBarHandle, Props>(function ChatI
           {recording && (
             <button
               onClick={() => mediaRecorderRef.current?.stop()}
-              className="border-destructive text-destructive font-pixel shrink-0 border px-1.5 py-0.5 text-[9px] transition-opacity hover:opacity-70"
+              className="border-primary text-foreground font-pixel shrink-0 border px-1.5 py-0.5 text-[11px] transition-opacity hover:opacity-70"
             >
               ■ stop
             </button>
@@ -209,7 +213,7 @@ export const ChatInputBar = forwardRef<ChatInputBarHandle, Props>(function ChatI
           {streaming ? (
             <button
               onClick={onStop}
-              className="text-destructive border-destructive font-pixel mb-0.5 shrink-0 border px-2.5 py-2.5 text-[11px] transition-opacity hover:opacity-70 md:px-1.5 md:py-0.5 md:text-[9px]"
+              className="text-destructive border-destructive font-pixel mb-0.5 shrink-0 border px-2.5 py-2.5 text-[11px] transition-opacity hover:opacity-70 md:px-1.5 md:py-0.5 md:text-[11px]"
               aria-label="Stop"
             >
               stop

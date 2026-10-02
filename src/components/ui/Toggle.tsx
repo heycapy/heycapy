@@ -2,11 +2,11 @@
 
 import { OptionButton } from "./OptionButton";
 
-interface ToggleProps {
+type ToggleProps = {
   value: boolean;
   onChange: (v: boolean) => void;
   disabled?: boolean;
-}
+};
 
 export function Toggle({ value, onChange, disabled }: ToggleProps) {
   return (

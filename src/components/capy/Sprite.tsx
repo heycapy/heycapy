@@ -3,14 +3,13 @@
 import { cn } from "@/lib/utils";
 import { SPRITES, SPRITE_SIZE, type SpriteId } from "./sprites";
 
-interface SpriteProps {
+type SpriteProps = {
   id: SpriteId;
   size?: number;
-  bob?: boolean;
   className?: string;
-}
+};
 
-export function Sprite({ id, size = SPRITE_SIZE, bob = false, className }: SpriteProps) {
+export function Sprite({ id, size = SPRITE_SIZE, className }: SpriteProps) {
   const { src, frameW, frameH, frameCount, fps } = SPRITES[id];
 
   const scale = size / frameW;
@@ -35,9 +34,7 @@ export function Sprite({ id, size = SPRITE_SIZE, bob = false, className }: Sprit
               ["--sheet-w" as string]: `-${totalSheetW}px`,
               animation: `sprite-play ${frameCount / fps}s steps(${frameCount}) infinite`,
             }
-          : bob
-            ? { animation: "capy-bob 2s ease-in-out infinite" }
-            : {}),
+          : {}),
       }}
     />
   );

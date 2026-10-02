@@ -24,6 +24,7 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.127.0",
     "better-sqlite3": "^13.0.3",
+    "chrono-node": "^2.10.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "drizzle-orm": "^0.45.2",
@@ -35,6 +36,7 @@
     "node-cron": "^4.6.0",
     "nodemailer": "^10.0.10",
     "openai": "^7.19.0",
+    "qrcode.react": "^4.2.0",
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "react-markdown": "^10.1.0",
@@ -42,6 +44,7 @@
     "sonner": "^2.0.8",
     "tailwind-merge": "^3.7.0",
     "vaul": "^1.1.2",
+    "web-push": "3.6.7",
     "zod": "^4.6.5",
     "zustand": "^5.0.15"
   },
@@ -60,6 +63,7 @@
     "@types/nodemailer": "^8.0.2",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/web-push": "3.6.4",
     "@vitejs/plugin-react": "^6.1.1",
     "@vitest/coverage-v8": "^5.0.1",
     "drizzle-kit": "^0.31.10",
@@ -91,9 +95,5 @@
   "engines": {
     "node": ">=22",
     "pnpm": ">=10"
-  },
-  "optionalDependencies": {
-    "@types/pg": "^8.23.1",
-    "pg": "^8.23.0"
   }
 }

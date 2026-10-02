@@ -1,4 +1,12 @@
-import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { ITEM_STATUS } from "@/constants";
+import {
+  index,
+  integer,
+  sqliteTable,
+  text,
+  uniqueIndex,
+  type AnySQLiteColumn,
+} from "drizzle-orm/sqlite-core";
 import { sql } from "drizzle-orm";
 import type { BucketSchema } from "@/types/rules";
 
@@ -8,6 +16,8 @@ export const users = sqliteTable("users", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   email: text("email").notNull().unique(),
   displayName: text("display_name"),
+  // Bumped by "log out everywhere"; sessions issued under an older version stop working
+  sessionVersion: integer("session_version").notNull().default(1),
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
     .default(sql`(unixepoch())`),
@@ -57,15 +67,26 @@ export const userSettings = sqliteTable("user_settings", {
   aiProvider: text("ai_provider", { enum: ["ollama", "openai", "anthropic", "groq", "gemini"] }),
   aiApiKey: text("ai_api_key"),
   aiModel: text("ai_model"),
+  // every provider's key (encrypted) and model the user typed, so switching providers in
+  // tweaks brings them back; ai_api_key / ai_model above stay the ones capy actually uses
+  aiSavedKeys: text("ai_saved_keys"),
   aiOllamaUrl: text("ai_ollama_url"),
   aiCompactThreshold: integer("ai_compact_threshold").notNull().default(40),
   aiNotifyMessages: integer("ai_notify_messages", { mode: "boolean" }).notNull().default(true),
+  // hosted only and when off capy answers on heycapy ai while a saved key stays
+  aiUseOwnKey: integer("ai_use_own_key", { mode: "boolean" }).notNull().default(true),
+  // result of the last call on the users own key or ollama server
+  aiKeyStatus: text("ai_key_status", { enum: ["working", "failed"] }),
+  aiKeyError: text("ai_key_error"),
+  aiKeyCheckedAt: integer("ai_key_checked_at", { mode: "timestamp" }),
   notificationsEmail: integer("notifications_email", { mode: "boolean" }).notNull().default(true),
   notificationEmailTo: text("notification_email_to"),
   notificationsPush: integer("notifications_push", { mode: "boolean" }).notNull().default(true),
   ntfyUrl: text("ntfy_url"),
   ntfyTopic: text("ntfy_topic"),
   telegramChatId: text("telegram_chat_id"),
+  telegramLinkCodeHash: text("telegram_link_code_hash"),
+  telegramLinkExpiresAt: integer("telegram_link_expires_at", { mode: "timestamp" }),
   notificationsTelegram: integer("notifications_telegram", { mode: "boolean" })
     .notNull()
     .default(false),
@@ -80,6 +101,9 @@ export const userSettings = sqliteTable("user_settings", {
   smtpPass: text("smtp_pass"),
   smtpSecure: integer("smtp_secure", { mode: "boolean" }).default(false),
   smtpFrom: text("smtp_from"),
+  // "HH:MM" in the user's timezone; nothing is sent in between, whatever the bucket
+  quietHoursFrom: text("quiet_hours_from"),
+  quietHoursTo: text("quiet_hours_to"),
   updatedAt: integer("updated_at", { mode: "timestamp" })
     .notNull()
     .default(sql`(unixepoch())`),
@@ -146,39 +170,50 @@ export const buckets = sqliteTable("buckets", {
 
 // items
 
-export const items = sqliteTable("items", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
-  bucketId: integer("bucket_id")
-    .notNull()
-    .references(() => buckets.id, { onDelete: "cascade" }),
-  userId: integer("user_id")
-    .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
-  title: text("title").notNull(),
-  description: text("description"),
-  deadline: integer("deadline", { mode: "timestamp" }),
-  status: text("status").notNull().default("active"),
-  properties: text("properties"),
-  externalId: text("external_id"),
-  externalUrl: text("external_url"),
-  notificationOffsetMins: integer("notification_offset_mins"),
-  notifiedAt: integer("notified_at", { mode: "timestamp" }),
-  overdueNotifiedAt: integer("overdue_notified_at", { mode: "timestamp" }),
-  snoozedUntil: integer("snoozed_until", { mode: "timestamp" }),
-  sortOrder: integer("sort_order").notNull().default(0),
-  recurring: text("recurring"),
-  source: text("source", { enum: ["manual", "ai", "mcp", "webhook", "system"] })
-    .notNull()
-    .default("manual"),
-  completedAt: integer("completed_at", { mode: "timestamp" }),
-  deletedAt: integer("deleted_at", { mode: "timestamp" }),
-  createdAt: integer("created_at", { mode: "timestamp" })
-    .notNull()
-    .default(sql`(unixepoch())`),
-  updatedAt: integer("updated_at", { mode: "timestamp" })
-    .notNull()
-    .default(sql`(unixepoch())`),
-});
+export const items = sqliteTable(
+  "items",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    bucketId: integer("bucket_id")
+      .notNull()
+      .references(() => buckets.id, { onDelete: "cascade" }),
+    userId: integer("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    title: text("title").notNull(),
+    description: text("description"),
+    deadline: integer("deadline", { mode: "timestamp" }),
+    scheduledAt: integer("scheduled_at", { mode: "timestamp" }),
+    status: text("status").notNull().default(ITEM_STATUS.active),
+    properties: text("properties"),
+    externalId: text("external_id"),
+    externalUrl: text("external_url"),
+    // Minutes before the deadline, largest first; null follows the bucket's default
+    reminderOffsets: text("reminder_offsets", { mode: "json" }).$type<number[]>(),
+    notifiedAt: integer("notified_at", { mode: "timestamp" }),
+    overdueNotifiedAt: integer("overdue_notified_at", { mode: "timestamp" }),
+    remindNotBefore: integer("remind_not_before", { mode: "timestamp" }),
+    nextReminderAt: integer("next_reminder_at", { mode: "timestamp" }),
+    nextOverdueAt: integer("next_overdue_at", { mode: "timestamp" }),
+    sortOrder: integer("sort_order").notNull().default(0),
+    recurring: text("recurring"),
+    source: text("source", { enum: ["manual", "ai", "mcp", "webhook", "system"] })
+      .notNull()
+      .default("manual"),
+    completedAt: integer("completed_at", { mode: "timestamp" }),
+    deletedAt: integer("deleted_at", { mode: "timestamp" }),
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .default(sql`(unixepoch())`),
+    updatedAt: integer("updated_at", { mode: "timestamp" })
+      .notNull()
+      .default(sql`(unixepoch())`),
+  },
+  (t) => [
+    index("idx_items_next_reminder_at").on(t.nextReminderAt),
+    index("idx_items_next_overdue_at").on(t.nextOverdueAt),
+  ]
+);
 
 // notification_queue — reliable delivery with retries
 
@@ -188,12 +223,17 @@ export const notificationQueue = sqliteTable("notification_queue", {
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
   itemId: integer("item_id").references(() => items.id, { onDelete: "set null" }),
-  medium: text("medium", { enum: ["email", "ntfy", "telegram"] }).notNull(),
+  medium: text("medium", { enum: ["email", "ntfy", "telegram", "push", "webhook"] }).notNull(),
+  webhookId: integer("webhook_id").references(() => outgoingWebhooks.id, { onDelete: "set null" }),
   title: text("title").notNull(),
   message: text("message").notNull(),
-  status: text("status", { enum: ["pending", "sending", "sent", "failed", "dead"] })
+  status: text("status", {
+    enum: ["pending", "sending", "sent", "failed", "dead", "cancelled", "skipped"],
+  })
     .notNull()
     .default("pending"),
+  kind: text("kind", { enum: ["reminder", "overdue", "arrival"] }),
+  skipReason: text("skip_reason", { enum: ["notSelected", "notSetUp"] }),
   attempts: integer("attempts").notNull().default(0),
   maxAttempts: integer("max_attempts").notNull().default(3),
   nextRetryAt: integer("next_retry_at", { mode: "timestamp" }),
@@ -202,6 +242,8 @@ export const notificationQueue = sqliteTable("notification_queue", {
     .notNull()
     .default(sql`(unixepoch())`),
   sentAt: integer("sent_at", { mode: "timestamp" }),
+  dismissedAt: integer("dismissed_at", { mode: "timestamp" }),
+  telegramMessageId: integer("telegram_message_id"),
 });
 
 // notification_log — immutable audit trail
@@ -212,7 +254,8 @@ export const notificationLog = sqliteTable("notification_log", {
   userId: integer("user_id")
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
-  medium: text("medium", { enum: ["email", "ntfy", "telegram"] }).notNull(),
+  medium: text("medium", { enum: ["email", "ntfy", "telegram", "push", "webhook"] }).notNull(),
+  webhookId: integer("webhook_id").references(() => outgoingWebhooks.id, { onDelete: "set null" }),
   message: text("message").notNull(),
   status: text("status", { enum: ["sent", "failed"] })
     .notNull()
@@ -235,6 +278,8 @@ export const chatSessions = sqliteTable("chat_sessions", {
     .notNull()
     .default("web"),
   summary: text("summary"),
+  // Id of the last message the summary covers; every later message is given to the model as is
+  summaryThrough: integer("summary_through"),
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
     .default(sql`(unixepoch())`),
@@ -276,3 +321,144 @@ export const templates = sqliteTable("templates", {
     .notNull()
     .default(sql`(unixepoch())`),
 });
+
+// Server-side problems for the admin view; kept for a couple of weeks
+export const systemErrors = sqliteTable(
+  "system_errors",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    userId: integer("user_id").references(() => users.id, { onDelete: "set null" }),
+    level: text("level", { enum: ["critical", "error", "warning"] })
+      .notNull()
+      .default("error"),
+    source: text("source").notNull(),
+    message: text("message").notNull(),
+    // JSON: stack trace, what was being worked on, and where the app ran
+    details: text("details"),
+    // Set once an admin has been told, so the hourly digest never repeats it
+    alertedAt: integer("alerted_at", { mode: "timestamp" }),
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .default(sql`(unixepoch())`),
+  },
+  (t) => [index("idx_system_errors_created_at").on(t.createdAt)]
+);
+
+export const pushSubscriptions = sqliteTable(
+  "push_subscriptions",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    userId: integer("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    endpoint: text("endpoint").notNull().unique(),
+    p256dh: text("p256dh").notNull(),
+    auth: text("auth").notNull(),
+    deviceName: text("device_name").notNull(),
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .default(sql`(unixepoch())`),
+  },
+  (t) => [index("idx_push_subscriptions_user_id").on(t.userId)]
+);
+
+// outgoing webhooks a user sets up once in tweaks; buckets pick them by name
+export const outgoingWebhooks = sqliteTable(
+  "outgoing_webhooks",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    userId: integer("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    url: text("url").notNull(),
+    secret: text("secret").notNull(),
+    isDefault: integer("is_default", { mode: "boolean" }).notNull().default(false),
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .default(sql`(unixepoch())`),
+  },
+  (t) => [index("idx_outgoing_webhooks_user_id").on(t.userId)]
+);
+
+// Server-wide values generated on first use, e.g. the web push (VAPID) keys
+export const serverSecrets = sqliteTable("server_secrets", {
+  name: text("name").primaryKey(),
+  value: text("value").notNull(),
+});
+
+export const itemActions = sqliteTable(
+  "item_actions",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    userId: integer("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    itemId: integer("item_id")
+      .notNull()
+      .references(() => items.id, { onDelete: "cascade" }),
+    action: text("action", { enum: ["done", "remindAgain", "cancelRemindAgain"] }).notNull(),
+    source: text("source", { enum: ["app", "telegram", "email", "ntfy", "push"] }).notNull(),
+    remindAt: integer("remind_at", { mode: "timestamp" }),
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .default(sql`(unixepoch())`),
+  },
+  (t) => [index("idx_item_actions_item_id").on(t.itemId)]
+);
+
+// One row per capy answer or chat summary: what it cost in tokens and who paid for the model
+export const aiUsage = sqliteTable(
+  "ai_usage",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    userId: integer("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    sessionId: integer("session_id").references(() => chatSessions.id, { onDelete: "set null" }),
+    source: text("source", { enum: ["web", "telegram", "summary", "voice"] }).notNull(),
+    provider: text("provider").notNull(),
+    model: text("model").notNull(),
+    key: text("key", { enum: ["own", "server"] }).notNull(),
+    calls: integer("calls").notNull(),
+    inputTokens: integer("input_tokens").notNull(),
+    outputTokens: integer("output_tokens").notNull(),
+    // parts of input tokens since providers bill cache reads and writes at their own rates
+    cacheReadTokens: integer("cache_read_tokens").notNull().default(0),
+    cacheWriteTokens: integer("cache_write_tokens").notNull().default(0),
+    // Calls whose provider didn't say how many tokens they used
+    unreportedCalls: integer("unreported_calls").notNull().default(0),
+    // millionths of a dollar at the price when it ran and null on the user's own key or an unknown price
+    costMicros: integer("cost_micros"),
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .default(sql`(unixepoch())`),
+  },
+  (t) => [index("idx_ai_usage_user_id_created_at").on(t.userId, t.createdAt)]
+);
+
+// append only so the balance is the sum of amounts and rows never change
+
+export const creditLedger = sqliteTable(
+  "credit_ledger",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    userId: integer("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    amount: integer("amount").notNull(),
+    kind: text("kind", { enum: ["grant", "purchase", "message", "refund", "admin"] }).notNull(),
+    // unique so a message is refunded at most once
+    refundOf: integer("refund_of").references((): AnySQLiteColumn => creditLedger.id),
+    note: text("note"),
+    // the admin who made an admin row
+    actor: text("actor"),
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .default(sql`(unixepoch())`),
+  },
+  (t) => [
+    index("idx_credit_ledger_user_id").on(t.userId),
+    uniqueIndex("idx_credit_ledger_refund_of").on(t.refundOf),
+  ]
+);

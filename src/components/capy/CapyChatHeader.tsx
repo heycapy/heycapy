@@ -1,13 +1,15 @@
-import { History, Maximize2, Minimize2, Minus, SquarePen, X } from "lucide-react";
+import { Maximize2, Minimize2, Minus } from "lucide-react";
+import { BracketButton } from "@/components/ui/BracketButton";
 import { Sprite } from "./Sprite";
 import { HEADER_H } from "./chatTypes";
+import { cn } from "@/lib/utils";
 
 type Props = {
   fullscreen: boolean;
   minimized: boolean;
   onClose: () => void;
-  onMinimize: () => void;
-  onFullscreen: () => void;
+  onMinimize?: () => void;
+  onFullscreen?: () => void;
   onHistoryOpen: () => void;
   onNewChat: () => void;
 };
@@ -24,7 +26,10 @@ export function CapyChatHeader({
   return (
     <div
       style={{ height: HEADER_H }}
-      className="border-border bg-card flex cursor-pointer items-center gap-1 border-b-2 px-2 select-none"
+      className={cn(
+        "border-border bg-card flex items-center gap-1 border-b-2 px-2 select-none",
+        onMinimize && "cursor-pointer"
+      )}
       onClick={onMinimize}
     >
       <div className="flex items-center gap-1 pr-1">
@@ -33,29 +38,27 @@ export function CapyChatHeader({
 
       <span className="font-pixel flex-1 text-[11px]">capy</span>
 
-      <button
+      <BracketButton
         onClick={(e) => {
           e.stopPropagation();
           onHistoryOpen();
         }}
-        className="text-muted-foreground hover:text-foreground flex h-6 w-6 items-center justify-center transition-colors"
-        aria-label="Chat history"
+        className="px-1"
       >
-        <History size={13} />
-      </button>
+        history
+      </BracketButton>
 
-      <button
+      <BracketButton
         onClick={(e) => {
           e.stopPropagation();
           onNewChat();
         }}
-        className="text-muted-foreground hover:text-foreground flex h-6 w-6 items-center justify-center transition-colors"
-        aria-label="New chat"
+        className="px-1"
       >
-        <SquarePen size={13} />
-      </button>
+        new
+      </BracketButton>
 
-      {!fullscreen && (
+      {onMinimize && !fullscreen && (
         <button
           onClick={(e) => {
             e.stopPropagation();
@@ -67,26 +70,28 @@ export function CapyChatHeader({
           <Minus size={13} />
         </button>
       )}
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          onFullscreen();
-        }}
-        className="text-muted-foreground hover:text-foreground flex h-6 w-6 items-center justify-center transition-colors"
-        aria-label={fullscreen ? "Exit fullscreen" : "Fullscreen"}
-      >
-        {fullscreen ? <Minimize2 size={13} /> : <Maximize2 size={13} />}
-      </button>
-      <button
+      {onFullscreen && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onFullscreen();
+          }}
+          className="text-muted-foreground hover:text-foreground flex h-6 w-6 items-center justify-center transition-colors"
+          aria-label={fullscreen ? "Exit fullscreen" : "Fullscreen"}
+        >
+          {fullscreen ? <Minimize2 size={13} /> : <Maximize2 size={13} />}
+        </button>
+      )}
+      <BracketButton
         onClick={(e) => {
           e.stopPropagation();
           onClose();
         }}
-        className="text-muted-foreground hover:text-foreground flex h-6 w-6 items-center justify-center transition-colors"
-        aria-label="Close"
+        aria-label="close chat"
+        className="px-1"
       >
-        <X size={13} />
-      </button>
+        x
+      </BracketButton>
     </div>
   );
 }

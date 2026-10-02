@@ -1,51 +1,40 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { getSessionFromToken } from "@/lib/auth/session";
+import { verifySessionToken } from "@/lib/auth/session";
 import { SESSION_COOKIE_NAME } from "@/lib/auth/constants";
 
-const PUBLIC_PATHS = ["/home", "/about", "/how-to-use"];
+const PUBLIC_PATHS = ["/r"];
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  const hostname = request.headers.get("host") ?? "";
-
-  const rootDomain = process.env.ROOT_DOMAIN;
-  const isRootDomain =
-    !!rootDomain && (hostname === rootDomain || hostname === `www.${rootDomain}`);
-  if (isRootDomain) {
-    if (pathname === "/") {
-      return NextResponse.rewrite(new URL("/home", request.url));
-    }
-    if (PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(p + "/"))) {
-      return NextResponse.next();
-    }
-    const appUrl = process.env.APP_URL;
-    if (appUrl) {
-      return NextResponse.redirect(new URL(pathname + request.nextUrl.search, appUrl));
-    }
-  }
 
   if (PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(p + "/"))) {
     return NextResponse.next();
   }
 
   const token = request.cookies.get(SESSION_COOKIE_NAME)?.value;
-  const session = token ? await getSessionFromToken(token) : null;
+  const session = token ? await verifySessionToken(token) : null;
 
   if (pathname.startsWith("/login")) {
     if (session) return NextResponse.redirect(new URL("/", request.url));
-    return NextResponse.next();
+    return withoutStaleCookie(NextResponse.next(), token);
   }
 
   if (!session) {
-    return NextResponse.redirect(new URL("/login", request.url));
+    return withoutStaleCookie(NextResponse.redirect(new URL("/login", request.url)), token);
   }
 
   return NextResponse.next();
 }
 
+// A revoked or expired session: drop it so the browser stops sending it
+function withoutStaleCookie(response: NextResponse, token: string | undefined): NextResponse {
+  if (token) response.cookies.delete(SESSION_COOKIE_NAME);
+  return response;
+}
+
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.png$|api/telegram|api/webhook|api/feedback).*)",
+    "/((?!_next/static|_next/image|favicon.ico|sw\\.js$|manifest\\.webmanifest$|opengraph-image|.*\\.png$|api/telegram|api/webhook|api/reminder-action|api/feedback|api/e2e|api/health).*)",
   ],
 };

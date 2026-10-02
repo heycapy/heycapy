@@ -14,7 +14,7 @@
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
-  --color-warning: var(--status-snoozed, hsl(38 90% 55%));
+  --color-warning: var(--status-on-hold, hsl(38 90% 55%));
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
@@ -51,7 +51,7 @@
   --p5: #b89a5a;
   --status-active: #a89070;
   --status-completed: #5a7a3a;
-  --status-snoozed: #c47a35;
+  --status-on-hold: #c47a35;
   --status-archived: #c4a882;
 }
 
@@ -80,7 +80,7 @@
   --p5: #d65d0e;
   --status-active: #928374;
   --status-completed: #b8bb26;
-  --status-snoozed: #d79921;
+  --status-on-hold: #d79921;
   --status-archived: #504945;
 }
 
@@ -109,7 +109,7 @@
   --p5: #ff3333;
   --status-active: #00aa2b;
   --status-completed: #00ff41;
-  --status-snoozed: #ffff00;
+  --status-on-hold: #ffff00;
   --status-archived: #1a3320;
 }
 
@@ -138,7 +138,7 @@
   --p5: hsl(38 92% 50%);
   --status-active: hsl(0 0% 45%);
   --status-completed: hsl(142 71% 45%);
-  --status-snoozed: hsl(38 92% 50%);
+  --status-on-hold: hsl(38 92% 50%);
   --status-archived: hsl(0 0% 80%);
 }
 
@@ -167,7 +167,7 @@
   --p5: hsl(38 92% 55%);
   --status-active: hsl(0 0% 63%);
   --status-completed: hsl(142 71% 45%);
-  --status-snoozed: hsl(38 92% 55%);
+  --status-on-hold: hsl(38 92% 55%);
   --status-archived: hsl(0 0% 25%);
 }
 
@@ -196,7 +196,7 @@
   --p5: hsl(38 65% 65%);
   --status-active: hsl(48 20% 68%);
   --status-completed: hsl(96 29% 62%);
-  --status-snoozed: hsl(38 65% 65%);
+  --status-on-hold: hsl(38 65% 65%);
   --status-archived: hsl(120 6% 30%);
 }
 
@@ -225,7 +225,7 @@
   --p5: hsl(30 70% 45%);
   --status-active: hsl(50 10% 45%);
   --status-completed: hsl(100 60% 35%);
-  --status-snoozed: hsl(30 70% 45%);
+  --status-on-hold: hsl(30 70% 45%);
   --status-archived: hsl(50 15% 70%);
 }
 
@@ -254,7 +254,7 @@
   --p5: hsl(20 70% 48%);
   --status-active: hsl(41 35% 60%);
   --status-completed: hsl(100 50% 42%);
-  --status-snoozed: hsl(40 60% 48%);
+  --status-on-hold: hsl(40 60% 48%);
   --status-archived: hsl(31 10% 30%);
 }
 
@@ -283,7 +283,7 @@
   --p5: hsl(38 80% 65%);
   --status-active: hsl(220 13% 65%);
   --status-completed: hsl(150 60% 55%);
-  --status-snoozed: hsl(38 80% 65%);
+  --status-on-hold: hsl(38 80% 65%);
   --status-archived: hsl(220 20% 30%);
 }
 
@@ -312,7 +312,7 @@
   --p5: hsl(38 70% 55%);
   --status-active: hsl(246 20% 45%);
   --status-completed: hsl(150 50% 45%);
-  --status-snoozed: hsl(38 70% 55%);
+  --status-on-hold: hsl(38 70% 55%);
   --status-archived: hsl(246 15% 72%);
 }
 
@@ -341,7 +341,7 @@
   --p5: hsl(38 65% 60%);
   --status-active: hsl(245 50% 72%);
   --status-completed: hsl(150 40% 55%);
-  --status-snoozed: hsl(38 65% 60%);
+  --status-on-hold: hsl(38 65% 60%);
   --status-archived: hsl(248 25% 32%);
 }
 
@@ -370,7 +370,7 @@
   --p5: hsl(40 71% 73%);
   --status-active: hsl(220 16% 60%);
   --status-completed: hsl(92 28% 65%);
-  --status-snoozed: hsl(40 71% 73%);
+  --status-on-hold: hsl(40 71% 73%);
   --status-archived: hsl(220 16% 35%);
 }
 
@@ -399,7 +399,7 @@
   --p5: hsl(38 100% 74%);
   --status-active: hsl(60 30% 72%);
   --status-completed: hsl(135 94% 65%);
-  --status-snoozed: hsl(38 100% 74%);
+  --status-on-hold: hsl(38 100% 74%);
   --status-archived: hsl(231 15% 35%);
 }
 
@@ -428,7 +428,7 @@
   --p5: hsl(45 100% 35%);
   --status-active: hsl(46 42% 58%);
   --status-completed: hsl(68 100% 30%);
-  --status-snoozed: hsl(45 100% 35%);
+  --status-on-hold: hsl(45 100% 35%);
   --status-archived: hsl(192 81% 20%);
 }
 
@@ -457,7 +457,7 @@
   --p5: hsl(41 86% 83%);
   --status-active: hsl(226 64% 70%);
   --status-completed: hsl(115 54% 76%);
-  --status-snoozed: hsl(41 86% 83%);
+  --status-on-hold: hsl(41 86% 83%);
   --status-archived: hsl(240 24% 32%);
 }
 
@@ -486,7 +486,7 @@
   --p5: hsl(38 96% 63%);
   --status-active: hsl(220 14% 55%);
   --status-completed: hsl(95 38% 62%);
-  --status-snoozed: hsl(38 96% 63%);
+  --status-on-hold: hsl(38 96% 63%);
   --status-archived: hsl(220 13% 33%);
 }
 
@@ -515,7 +515,7 @@
   --p5: hsl(38 90% 72%);
   --status-active: hsl(206 93% 72%);
   --status-completed: hsl(191 97% 77%);
-  --status-snoozed: hsl(38 90% 72%);
+  --status-on-hold: hsl(38 90% 72%);
   --status-archived: hsl(207 95% 20%);
 }
 
@@ -544,7 +544,7 @@
   --p5: hsl(38 70% 40%);
   --status-active: hsl(0 0% 45%);
   --status-completed: hsl(179 98% 26%);
-  --status-snoozed: hsl(38 70% 40%);
+  --status-on-hold: hsl(38 70% 40%);
   --status-archived: hsl(240 3% 18%);
 }
 
@@ -552,8 +552,14 @@
   font-family: var(--font-geist-mono), monospace !important;
 }
 
-* {
-  border-color: var(--border);
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--border);
+  }
 }
 
 body {
@@ -587,22 +593,25 @@ body {
   }
 }
 
-@keyframes capy-bob {
-  0%,
-  100% {
-    transform: translateY(0);
+@keyframes countdown {
+  from {
+    transform: scaleX(1);
   }
-  50% {
-    transform: translateY(-10px);
+  to {
+    transform: scaleX(0);
   }
 }
 
 [data-sonner-toast] [data-close-button] {
   position: absolute !important;
-  top: 6px !important;
-  right: 6px !important;
+  top: 2px !important;
+  right: 2px !important;
   left: auto !important;
   transform: none !important;
+  width: auto !important;
+  height: auto !important;
+  padding: 4px !important;
+  white-space: nowrap;
 }
 [data-sonner-toast] [data-close-button] svg {
   display: none;
@@ -610,7 +619,7 @@ body {
 [data-sonner-toast] [data-close-button]::before {
   content: "[x]";
   font-family: var(--font-geist-mono);
-  font-size: 10px;
+  font-size: 12px;
   line-height: 1;
 }
 

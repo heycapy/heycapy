@@ -1,91 +1,103 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Drawer } from "vaul";
-import { Check, ChevronDown } from "lucide-react";
+import { ChevronDown, Clock } from "lucide-react";
 import { BracketButton } from "@/components/ui/BracketButton";
 import { cn } from "@/lib/utils";
 import { BucketContent } from "./BucketContent";
+import { PlacePicker } from "./PlacePicker";
+import { Sprite } from "@/components/capy/Sprite";
+import { TodayView } from "@/components/today/TodayView";
 import { BUCKET_PALETTE } from "./constants";
 import { useUIStore } from "@/store/ui";
+import { useLayoutStore } from "@/store/layout";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
+import { parseItemsRules } from "@/lib/rules";
+import { BOTTOM_BAR_MEDIA_QUERY } from "@/constants";
 import { saveTimezoneIfDefaultAction } from "@/app/(app)/user-settings-actions";
 import type { buckets } from "@/lib/db/schema";
 
 type BucketRow = typeof buckets.$inferSelect;
 
-interface BucketsShellProps {
+type BucketsShellProps = {
   buckets: BucketRow[];
-}
+  focusBucketId?: number | null;
+};
 
-function MobileBucketPicker({
-  buckets,
-  open,
-  activeId,
-  onSelect,
-  onClose,
+function TodayButton({
+  active,
+  onClick,
+  className,
 }: {
-  buckets: BucketRow[];
-  open: boolean;
-  activeId: number;
-  onSelect: (id: number) => void;
-  onClose: () => void;
+  active: boolean;
+  onClick: () => void;
+  className: string;
 }) {
   return (
-    <Drawer.Root open={open} onOpenChange={(v) => !v && onClose()} shouldScaleBackground={false}>
-      <Drawer.Portal>
-        <Drawer.Overlay className="fixed inset-0 z-50 bg-black/50" />
-        <Drawer.Content className="bg-background border-border fixed inset-x-0 bottom-0 z-50 flex flex-col border-t-2 outline-none">
-          <div className="mx-auto mt-2 mb-1 h-1 w-8 shrink-0 rounded-full bg-zinc-300 dark:bg-zinc-600" />
-          <Drawer.Title className="font-pixel text-muted-foreground px-4 pt-1 pb-3 text-[10px]">
-            switch bucket
-          </Drawer.Title>
-          <div className="border-border max-h-[60vh] overflow-y-auto border-t">
-            {buckets.map((bucket, i) => {
-              const isActive = bucket.id === activeId;
-              const color = BUCKET_PALETTE[i % BUCKET_PALETTE.length];
-              return (
-                <button
-                  key={bucket.id}
-                  onClick={() => {
-                    onSelect(bucket.id);
-                    onClose();
-                  }}
-                  className={cn(
-                    "border-border flex w-full items-center gap-3 border-b px-4 py-3.5 text-left transition-colors last:border-b-0",
-                    isActive ? "bg-card" : "hover:bg-muted"
-                  )}
-                >
-                  <span
-                    className="mt-0.5 h-2 w-2 shrink-0 rounded-full"
-                    style={{ backgroundColor: color }}
-                  />
-                  <span className="font-pixel text-foreground flex-1 truncate text-xs">
-                    {bucket.icon ? `${bucket.icon} ${bucket.name}` : bucket.name}
-                  </span>
-                  {isActive && <Check size={12} className="text-foreground shrink-0" />}
-                </button>
-              );
-            })}
-          </div>
-        </Drawer.Content>
-      </Drawer.Portal>
-    </Drawer.Root>
+    <button
+      onClick={onClick}
+      aria-pressed={active}
+      className={cn(
+        "flex shrink-0 items-center gap-1.5 border-t-2 px-3 font-mono text-xs transition-colors",
+        active
+          ? "bg-card text-foreground border-t-foreground"
+          : "text-muted-foreground hover:text-foreground border-t-transparent",
+        className
+      )}
+    >
+      <Clock size={12} aria-hidden />
+      today
+    </button>
   );
 }
 
-export function BucketsShell({ buckets: rawBuckets }: BucketsShellProps) {
+export function BucketsShell({ buckets: rawBuckets, focusBucketId = null }: BucketsShellProps) {
   const buckets = rawBuckets.filter((b, i, arr) => arr.findIndex((x) => x.id === b.id) === i);
   const openCreateBucket = useUIStore((s) => s.openCreateBucket);
+  const setChatState = useLayoutStore((s) => s.setChatState);
+  const setBottomBarShown = useLayoutStore((s) => s.setBottomBarShown);
+  const setSearchOpen = useLayoutStore((s) => s.setSearchOpen);
   const activeBucketId = useUIStore((s) => s.activeBucketId);
   const setActiveBucketId = useUIStore((s) => s.setActiveBucketId);
+  const newBucketId = useUIStore((s) => s.newBucketId);
+  const clearNewBucket = useUIStore((s) => s.clearNewBucket);
+  const todayOpen = useUIStore((s) => s.todayOpen);
+  const openToday = useUIStore((s) => s.openToday);
+  // The open view is remembered per session; wait for it rather than flash the default
+  const hydrated = useSyncExternalStore(
+    (onChange) => useUIStore.persist.onFinishHydration(onChange),
+    () => useUIStore.persist.hasHydrated(),
+    () => false
+  );
   const prevBucketsRef = useRef<BucketRow[]>(buckets);
   const [pickerOpen, setPickerOpen] = useState(false);
+  const addItemRef = useRef<(() => void) | null>(null);
+  const hasBottomBar = useMediaQuery(BOTTOM_BAR_MEDIA_QUERY);
+
+  useEffect(() => {
+    setBottomBarShown(true);
+    return () => setBottomBarShown(false);
+  }, [setBottomBarShown]);
 
   useEffect(() => {
     const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
     void saveTimezoneIfDefaultAction(tz);
   }, []);
+
+  useEffect(() => {
+    if (focusBucketId === null) return;
+    setActiveBucketId(focusBucketId);
+    // Keep the #item anchor, drop ?bucket so a reload doesn't jump back
+    window.history.replaceState(null, "", `/${window.location.hash}`);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (newBucketId === null || !buckets.some((b) => b.id === newBucketId)) return;
+    setActiveBucketId(newBucketId);
+    clearNewBucket();
+  }, [buckets, newBucketId, setActiveBucketId, clearNewBucket]);
 
   const activeId =
     activeBucketId !== null && buckets.some((b) => b.id === activeBucketId)
@@ -95,10 +107,9 @@ export function BucketsShell({ buckets: rawBuckets }: BucketsShellProps) {
   useEffect(() => {
     if (activeBucketId === null) return;
     const stillExists = buckets.some((b) => b.id === activeBucketId);
-    if (!stillExists && buckets.length > 0) {
-      const prevIndex = prevBucketsRef.current.findIndex((b) => b.id === activeBucketId);
-      const nextIndex = Math.min(prevIndex, buckets.length - 1);
-      setActiveBucketId(buckets[Math.max(nextIndex, 0)].id);
+    const prevIndex = prevBucketsRef.current.findIndex((b) => b.id === activeBucketId);
+    if (!stillExists && prevIndex !== -1 && buckets.length > 0) {
+      useUIStore.setState({ activeBucketId: buckets[Math.min(prevIndex, buckets.length - 1)].id });
     }
     prevBucketsRef.current = buckets;
   }, [buckets, activeBucketId, setActiveBucketId]);
@@ -106,53 +117,104 @@ export function BucketsShell({ buckets: rawBuckets }: BucketsShellProps) {
   const activeBucket = buckets.find((b) => b.id === activeId) ?? buckets[0];
   const activeIndex = buckets.findIndex((b) => b.id === activeId);
   const accentColor = BUCKET_PALETTE[Math.max(activeIndex, 0) % BUCKET_PALETTE.length];
+  const placeColor = todayOpen ? "var(--foreground)" : accentColor;
 
   if (!activeBucket) return null;
 
+  const canAddItem = todayOpen
+    ? buckets.some((b) => parseItemsRules(b.itemsRules).readonly !== true)
+    : parseItemsRules(activeBucket.itemsRules).readonly !== true;
+
+  function addItem() {
+    addItemRef.current?.();
+  }
+
   return (
     <div className="flex flex-1 flex-col">
-      <div className="flex-1 overflow-y-auto pb-[420px]">
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={activeBucket.id}
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -6 }}
-            transition={{ duration: 0.15 }}
-          >
-            <BucketContent bucket={activeBucket} accentColor={accentColor} />
-          </motion.div>
-        </AnimatePresence>
+      <div
+        className="flex-1 overflow-y-auto pb-[420px]"
+        onClick={(e) => {
+          if (hasBottomBar && canAddItem && e.target === e.currentTarget) addItem();
+        }}
+      >
+        {hydrated && (
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={todayOpen ? "today" : activeBucket.id}
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: 0.15 }}
+            >
+              {todayOpen ? (
+                <TodayView buckets={buckets} addItemRef={addItemRef} />
+              ) : (
+                <BucketContent
+                  bucket={activeBucket}
+                  accentColor={accentColor}
+                  addItemRef={addItemRef}
+                />
+              )}
+            </motion.div>
+          </AnimatePresence>
+        )}
       </div>
 
-      <div className="border-border bg-background sticky bottom-0 border-t-2">
-        {/* Mobile: custom picker */}
-        <div className="flex items-center md:hidden">
-          <BracketButton onClick={openCreateBucket} className="shrink-0 px-3 py-3.5">
-            add bucket
-          </BracketButton>
-          <button onClick={() => setPickerOpen(true)} className="-mt-0.5 min-w-0 flex-1">
-            <div
-              className="bg-card flex items-center justify-between gap-2 border-t-2 px-3 py-3.5"
-              style={{ borderTopColor: accentColor }}
+      <div className="border-border bg-background sticky bottom-0 border-t-2 md:border-t-0">
+        <button
+          onClick={() => setChatState("open")}
+          aria-label="chat with capy"
+          className="absolute right-3 bottom-full flex items-end transition-transform active:scale-95 md:hidden"
+        >
+          <Sprite id="capy-idle-blink" size={52} />
+        </button>
+        <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-stretch pb-[max(0.5rem,env(safe-area-inset-bottom))] md:hidden">
+          <button
+            onClick={() => setPickerOpen(true)}
+            aria-haspopup="dialog"
+            className="flex min-h-14 min-w-0 items-center pr-1 pl-4"
+          >
+            <span
+              style={{ backgroundColor: `color-mix(in oklab, ${placeColor} 18%, transparent)` }}
+              className="flex h-10 max-w-28 min-w-0 items-center gap-1 px-2"
             >
-              <span className="font-pixel text-foreground block truncate text-xs">
-                {activeBucket.icon
-                  ? `${activeBucket.icon} ${activeBucket.name}`
-                  : activeBucket.name}
+              {todayOpen && <Clock size={13} className="shrink-0" aria-hidden />}
+              <span className="text-foreground truncate font-mono text-base">
+                {todayOpen
+                  ? "today"
+                  : activeBucket.icon
+                    ? `${activeBucket.icon} ${activeBucket.name}`
+                    : activeBucket.name}
               </span>
-              <ChevronDown size={11} className="text-muted-foreground shrink-0" />
-            </div>
+              <ChevronDown size={13} className="text-muted-foreground shrink-0" aria-hidden />
+            </span>
           </button>
+          <div className="flex justify-center">
+            {canAddItem && (
+              <BracketButton
+                onClick={addItem}
+                style={{ color: accentColor }}
+                className="min-h-14 px-3 text-base"
+              >
+                add +
+              </BracketButton>
+            )}
+          </div>
+          <div className="flex min-w-0 items-center justify-end pr-4">
+            <BracketButton onClick={() => setSearchOpen(true)} className="min-h-14 px-2 text-base">
+              search
+            </BracketButton>
+          </div>
         </div>
 
-        {/* Desktop: tab bar */}
-        <div className="scrollbar-hide hidden overflow-x-auto md:flex">
+        <div className="scrollbar-hide hidden overflow-x-auto shadow-[inset_0_2px_0_var(--border)] md:flex">
           <BracketButton onClick={openCreateBucket} className="shrink-0 px-3 py-[13.8px]">
             add bucket
           </BracketButton>
+          <TodayButton active={todayOpen} onClick={openToday} className="py-[13.8px]" />
+          <span aria-hidden className="bg-border my-2.5 w-0.5 shrink-0" />
           {buckets.map((bucket, i) => {
-            const isActive = bucket.id === activeId;
+            const isActive = !todayOpen && bucket.id === activeId;
             const color = BUCKET_PALETTE[i % BUCKET_PALETTE.length];
 
             return (
@@ -161,7 +223,7 @@ export function BucketsShell({ buckets: rawBuckets }: BucketsShellProps) {
                 onClick={() => setActiveBucketId(bucket.id)}
                 style={isActive ? { borderTopColor: color } : undefined}
                 className={cn(
-                  "-mt-0.5 max-w-[140px] shrink-0 border-t-2 px-3 py-[13.8px] text-left transition-colors",
+                  "max-w-[140px] shrink-0 border-t-2 px-3 py-[13.8px] text-left transition-colors",
                   isActive
                     ? "bg-card text-foreground"
                     : "text-muted-foreground hover:text-foreground border-t-transparent"
@@ -176,11 +238,13 @@ export function BucketsShell({ buckets: rawBuckets }: BucketsShellProps) {
         </div>
       </div>
 
-      <MobileBucketPicker
+      <PlacePicker
         open={pickerOpen}
         buckets={buckets}
+        todayOpen={todayOpen}
         activeId={activeId}
-        onSelect={setActiveBucketId}
+        onSelectToday={openToday}
+        onSelectBucket={setActiveBucketId}
         onClose={() => setPickerOpen(false)}
       />
     </div>

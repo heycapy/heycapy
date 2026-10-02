@@ -1,11 +1,10 @@
-"use client";
-
+import { APP_TAGLINE } from "@/constants";
 import { useState, useTransition } from "react";
 import { cn } from "@/lib/utils";
 import { INPUT, LABEL } from "./settings-constants";
 import { testSmtpAction } from "@/app/(app)/actions";
 
-interface SmtpTestDialogProps {
+type SmtpTestDialogProps = {
   open: boolean;
   onClose: () => void;
   from: string;
@@ -15,7 +14,7 @@ interface SmtpTestDialogProps {
   smtpUser: string;
   smtpPass: string | null;
   smtpSecure: boolean;
-}
+};
 
 export function SmtpTestDialog({
   open,
@@ -61,11 +60,7 @@ export function SmtpTestDialog({
       <div className="bg-background border-border relative z-10 flex w-full max-w-md flex-col gap-0 border-2">
         <div className="bg-foreground text-background flex items-center justify-between px-3 py-1.5">
           <span className="font-pixel text-xs">send test email</span>
-          <button
-            type="button"
-            onClick={onClose}
-            className="font-mono text-[10px] hover:opacity-70"
-          >
+          <button type="button" onClick={onClose} className="font-mono text-xs hover:opacity-70">
             [x]
           </button>
         </div>
@@ -91,7 +86,7 @@ export function SmtpTestDialog({
           </div>
 
           <div className="border-border flex flex-col gap-2 border p-3">
-            <span className="text-muted-foreground font-mono text-[9px] tracking-widest uppercase">
+            <span className="text-muted-foreground font-mono text-[11px] tracking-widest uppercase">
               preview
             </span>
             <div
@@ -99,14 +94,16 @@ export function SmtpTestDialog({
               className="border-border flex flex-col border text-[11px]"
             >
               <div className="border-border border-b px-3 py-2">
-                <p className="text-foreground text-sm font-bold">[ HeyCapy ]</p>
-                <p className="text-muted-foreground text-[10px]">smtp test</p>
+                <p className="text-[11px]">
+                  <span className="font-bold">heycapy</span>
+                  <span className="text-muted-foreground"> · smtp test</span>
+                </p>
               </div>
               <div className="px-3 py-3">
                 <p className="text-foreground text-[12px]">your smtp is working correctly.</p>
               </div>
               <div className="border-border border-t px-3 py-2">
-                <p className="text-muted-foreground text-[10px]">your capy — sent while relaxing</p>
+                <p className="text-muted-foreground text-xs">{APP_TAGLINE}</p>
               </div>
             </div>
           </div>
@@ -114,7 +111,7 @@ export function SmtpTestDialog({
           {result && (
             <p
               className={cn(
-                "font-mono text-[10px]",
+                "font-mono text-xs",
                 result.ok ? "text-green-600 dark:text-green-400" : "text-destructive"
               )}
             >
@@ -127,7 +124,7 @@ export function SmtpTestDialog({
               type="button"
               onClick={handleSend}
               disabled={pending || !sendTo || !smtpHost}
-              className="text-muted-foreground hover:text-foreground font-mono text-[10px] disabled:opacity-40"
+              className="text-muted-foreground hover:text-foreground font-mono text-xs disabled:opacity-40"
             >
               {pending ? "[sending...]" : "[send]"}
             </button>

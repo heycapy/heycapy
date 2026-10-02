@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { type FormEvent } from "react";
+import { useState, useEffect, useRef, useTransition } from "react";
+import { type SubmitEvent } from "react";
 import { useRouter } from "next/navigation";
 import { motion, type Transition } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -21,6 +21,8 @@ export default function LoginPage() {
   const [code, setCode] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [openingApp, startOpeningApp] = useTransition();
+  const busy = loading || openingApp;
   const [devCode, setDevCode] = useState("");
   const [devCopied, setDevCopied] = useState(false);
   const [resendCountdown, setResendCountdown] = useState(0);
@@ -41,12 +43,6 @@ export default function LoginPage() {
     countdownRef.current = id;
   }
 
-  function applyDevCode(dc?: string) {
-    // eslint-disable-next-line no-console
-    if (dc) console.log(`[dev] OTP: ${dc}`);
-    setDevCode(dc ?? "");
-  }
-
   function handleCopyDevCode() {
     if (!devCode) return;
     void navigator.clipboard.writeText(devCode).then(() => {
@@ -55,7 +51,7 @@ export default function LoginPage() {
     });
   }
 
-  async function handleSendOtp(e: FormEvent<HTMLFormElement>) {
+  async function handleSendOtp(e: SubmitEvent<HTMLFormElement>) {
     e.preventDefault();
     setError("");
     setLoading(true);
@@ -65,7 +61,7 @@ export default function LoginPage() {
       setError(result.error);
       return;
     }
-    applyDevCode(result.devCode);
+    setDevCode(result.devCode ?? "");
     setStep("otp");
     startResendCountdown();
   }
@@ -80,21 +76,22 @@ export default function LoginPage() {
       setError(result.error);
       return;
     }
-    applyDevCode(result.devCode);
+    setDevCode(result.devCode ?? "");
     startResendCountdown();
   }
 
-  async function handleVerifyOtp(e: FormEvent<HTMLFormElement>) {
+  async function handleVerifyOtp(e: SubmitEvent<HTMLFormElement>) {
     e.preventDefault();
     setError("");
     setLoading(true);
     const result = await verifyOtpAction(email, code);
-    setLoading(false);
     if (!result.ok) {
+      setLoading(false);
       setError(result.error);
       return;
     }
-    router.push("/");
+    startOpeningApp(() => router.push("/"));
+    setLoading(false);
   }
 
   function handleBack() {
@@ -118,7 +115,7 @@ export default function LoginPage() {
   return (
     <main className="flex flex-1 flex-col items-center justify-center gap-6 p-4">
       <div className="flex flex-col items-center gap-2">
-        <Sprite id="capy-mascot" size={96} />
+        <Sprite id="capy-idle-blink" size={96} />
         <h1 className="font-pixel text-xl">{APP_NAME}</h1>
       </div>
 
@@ -127,10 +124,8 @@ export default function LoginPage() {
           onSubmit={handleSendOtp}
           animate={{ opacity: step === "email" ? 1 : 0, x: step === "email" ? 0 : -16 }}
           transition={transition}
-          className={cn(
-            "flex flex-col gap-3 [grid-area:1/1]",
-            step !== "email" && "pointer-events-none"
-          )}
+          inert={step !== "email"}
+          className="flex flex-col gap-3 [grid-area:1/1]"
         >
           <div>
             <p className="text-foreground text-sm font-medium">Sign in</p>
@@ -161,10 +156,8 @@ export default function LoginPage() {
           initial={{ opacity: 0, x: 16 }}
           animate={{ opacity: step === "otp" ? 1 : 0, x: step === "otp" ? 0 : 16 }}
           transition={transition}
-          className={cn(
-            "flex flex-col gap-3 [grid-area:1/1]",
-            step !== "otp" && "pointer-events-none"
-          )}
+          inert={step !== "otp"}
+          className="flex flex-col gap-3 [grid-area:1/1]"
         >
           <div>
             <p className="text-foreground text-sm font-medium">Check your email</p>
@@ -173,7 +166,7 @@ export default function LoginPage() {
               <span className="text-foreground">{email || "your email"}</span>.
             </p>
           </div>
-          <OtpInput value={code} onChange={setCode} disabled={loading} focus={step === "otp"} />
+          <OtpInput value={code} onChange={setCode} disabled={busy} focus={step === "otp"} />
           {devCode && (
             <div className="bg-muted flex items-center justify-between rounded px-3 py-2">
               <span className="text-muted-foreground font-mono text-xs">
@@ -189,7 +182,7 @@ export default function LoginPage() {
               </button>
             </div>
           )}
-          <Button type="submit" loading={loading} disabled={code.length !== 6}>
+          <Button type="submit" loading={busy} disabled={code.length !== 6}>
             Sign in
           </Button>
           <p className={cn("text-xs", error && step === "otp" ? "text-destructive" : "invisible")}>
@@ -209,11 +202,11 @@ export default function LoginPage() {
             Resend in {resendCountdown}s
           </p>
         ) : (
-          <Button type="button" variant="ghost" onClick={handleResend} loading={loading}>
+          <Button type="button" variant="ghost" onClick={handleResend} loading={busy}>
             Resend code
           </Button>
         )}
-        <Button type="button" variant="ghost" onClick={handleBack}>
+        <Button type="button" variant="ghost" onClick={handleBack} disabled={busy}>
           Use a different email
         </Button>
       </div>
