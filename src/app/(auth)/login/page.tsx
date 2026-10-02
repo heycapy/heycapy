@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useTransition } from "react";
 import { type SubmitEvent } from "react";
 import { useRouter } from "next/navigation";
 import { motion, type Transition } from "framer-motion";
@@ -21,6 +21,8 @@ export default function LoginPage() {
   const [code, setCode] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [openingApp, startOpeningApp] = useTransition();
+  const busy = loading || openingApp;
   const [devCode, setDevCode] = useState("");
   const [devCopied, setDevCopied] = useState(false);
   const [resendCountdown, setResendCountdown] = useState(0);
@@ -83,12 +85,13 @@ export default function LoginPage() {
     setError("");
     setLoading(true);
     const result = await verifyOtpAction(email, code);
-    setLoading(false);
     if (!result.ok) {
+      setLoading(false);
       setError(result.error);
       return;
     }
-    router.push("/");
+    startOpeningApp(() => router.push("/"));
+    setLoading(false);
   }
 
   function handleBack() {
@@ -163,7 +166,7 @@ export default function LoginPage() {
               <span className="text-foreground">{email || "your email"}</span>.
             </p>
           </div>
-          <OtpInput value={code} onChange={setCode} disabled={loading} focus={step === "otp"} />
+          <OtpInput value={code} onChange={setCode} disabled={busy} focus={step === "otp"} />
           {devCode && (
             <div className="bg-muted flex items-center justify-between rounded px-3 py-2">
               <span className="text-muted-foreground font-mono text-xs">
@@ -179,7 +182,7 @@ export default function LoginPage() {
               </button>
             </div>
           )}
-          <Button type="submit" loading={loading} disabled={code.length !== 6}>
+          <Button type="submit" loading={busy} disabled={code.length !== 6}>
             Sign in
           </Button>
           <p className={cn("text-xs", error && step === "otp" ? "text-destructive" : "invisible")}>
@@ -199,11 +202,11 @@ export default function LoginPage() {
             Resend in {resendCountdown}s
           </p>
         ) : (
-          <Button type="button" variant="ghost" onClick={handleResend} loading={loading}>
+          <Button type="button" variant="ghost" onClick={handleResend} loading={busy}>
             Resend code
           </Button>
         )}
-        <Button type="button" variant="ghost" onClick={handleBack}>
+        <Button type="button" variant="ghost" onClick={handleBack} disabled={busy}>
           Use a different email
         </Button>
       </div>

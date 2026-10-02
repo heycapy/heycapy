@@ -75,6 +75,38 @@ test.describe("login page", () => {
     await expect(page).toHaveURL("/");
   });
 
+  test("after a right code the button keeps spinning and nothing is clickable until the app opens", async ({
+    page,
+  }) => {
+    await sendCode(page, uniqueEmail("e2e-slow-app"));
+    const code = await readDevCode(page);
+    // the live server takes a second or more to send the app page; hold it back so the wait shows
+    let releaseApp = () => {};
+    const appHeld = new Promise<void>((resolve) => (releaseApp = resolve));
+    await page.route("**/*", async (route) => {
+      const request = route.request();
+      const isAppPage = request.method() === "GET" && new URL(request.url()).pathname === "/";
+      if (isAppPage && request.headers()["rsc"]) await appHeld;
+      await route.continue();
+    });
+
+    const codeChecked = page.waitForResponse(
+      (r) => r.request().method() === "POST" && new URL(r.url()).pathname === "/login"
+    );
+    await enterCode(page, code);
+    await codeChecked;
+    await page.waitForTimeout(300);
+
+    await expect(page).toHaveURL(/\/login/);
+    // while it spins the label is hidden, so find it by place, not name
+    await expect(otpStep(page).locator('button[type="submit"]')).toBeDisabled();
+    await expect(otpStep(page).locator("input").first()).toBeDisabled();
+    await expect(page.getByRole("button", { name: "Use a different email" })).toBeDisabled();
+
+    releaseApp();
+    await page.waitForURL("/");
+  });
+
   test("over plain http the login cookie isn't https-only, so every browser keeps it", async ({
     page,
     context,
