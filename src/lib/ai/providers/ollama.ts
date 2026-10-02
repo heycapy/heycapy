@@ -1,3 +1,5 @@
+import { OLLAMA_REQUEST_TIMEOUT_MS } from "@/constants";
+import { postJson } from "@/lib/notifications/post-json";
 import type { AIProvider, AgentMessage, CompleteResult, Message, TokenUsage, Tool } from "../types";
 
 type OllamaToolCall = {
@@ -29,11 +31,23 @@ function ollamaUsage(data: OllamaCompleteResponse): TokenUsage {
   };
 }
 
-async function postChat(baseUrl: string, body: object): Promise<OllamaCompleteResponse> {
-  const res = await fetch(`${baseUrl}/api/chat`, {
+async function postChat(
+  baseUrl: string,
+  body: object,
+  userTyped: boolean
+): Promise<OllamaCompleteResponse> {
+  const url = `${baseUrl}/api/chat`;
+  const payload = JSON.stringify({ ...body, stream: false });
+  // a url a user typed in only goes to a public address on hosted servers, see postJson
+  if (userTyped) {
+    const { status, text } = await postJson(new URL(url), payload, {}, OLLAMA_REQUEST_TIMEOUT_MS);
+    if (status < 200 || status >= 300) throw new Error(`Ollama error: ${status}`);
+    return JSON.parse(text) as OllamaCompleteResponse;
+  }
+  const res = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ ...body, stream: false }),
+    body: payload,
   });
   if (!res.ok) {
     throw new Error(`Ollama error: ${res.status} ${res.statusText}`);
@@ -60,10 +74,14 @@ function toOllamaMessage(m: AgentMessage): OllamaMessage {
   return { role: m.role, content: m.content };
 }
 
-export function createOllamaProvider(baseUrl: string, model: string): AIProvider {
+export function createOllamaProvider(
+  baseUrl: string,
+  model: string,
+  userTyped = false
+): AIProvider {
   return {
     async chat(messages: Message[]) {
-      const data = await postChat(baseUrl, { model, messages });
+      const data = await postChat(baseUrl, { model, messages }, userTyped);
       return { text: data.message.content ?? "", usage: ollamaUsage(data) };
     },
 
@@ -74,7 +92,11 @@ export function createOllamaProvider(baseUrl: string, model: string): AIProvider
         function: { name: t.name, description: t.description, parameters: t.parameters },
       }));
 
-      const data = await postChat(baseUrl, { model, messages: ollamaMessages, tools: ollamaTools });
+      const data = await postChat(
+        baseUrl,
+        { model, messages: ollamaMessages, tools: ollamaTools },
+        userTyped
+      );
       const usage = ollamaUsage(data);
       const msg = data.message;
 

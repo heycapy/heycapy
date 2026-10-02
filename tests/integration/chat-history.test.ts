@@ -8,6 +8,14 @@ import { compactSessionIfNeeded } from "@/lib/ai/compact";
 import { connectOwnChat, say } from "./telegram-helpers";
 import { seedUser } from "./helpers";
 
+// a user's ollama is reached through postJson; here it goes to the stubbed fetch like the rest
+vi.mock("@/lib/notifications/post-json", () => ({
+  postJson: async (url: URL, body: string) => {
+    const res = await fetch(url.href, { method: "POST", body });
+    return { status: res.status, text: await res.text() };
+  },
+}));
+
 const OLLAMA_URL = "http://ollama.test";
 const auth = vi.hoisted(() => ({ userId: 0 }));
 vi.mock("@/lib/auth/session", () => ({

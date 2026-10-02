@@ -66,13 +66,7 @@ export function useAISettings() {
     (s: Settings, hostedServer: boolean, aiKeys: AIKeyViews, savedTranscriptionKey: KeyView) => {
       setHosted(hostedServer);
       setUseOwnKey(!hostedServer || (s.aiUseOwnKey && s.aiProvider !== null));
-      setProvider(
-        s.aiProvider && !(hostedServer && s.aiProvider === "ollama")
-          ? s.aiProvider
-          : hostedServer
-            ? "gemini"
-            : "ollama"
-      );
+      setProvider(s.aiProvider ?? (hostedServer ? "gemini" : "ollama"));
       const loaded: Partial<Record<AIProvider, ProviderState>> = {};
       for (const [p, view] of Object.entries(aiKeys) as [AIProvider, AIKeyViews[AIProvider]][]) {
         if (view) loaded[p] = { ...NO_KEY, ...view, model: view.model ?? "" };

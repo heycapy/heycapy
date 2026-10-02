@@ -144,10 +144,6 @@ export async function updateUserSettingsAction(
     };
   }
 
-  if (isHosted() && data.aiProvider === "ollama") {
-    return { ok: false, error: "Ollama isn't available here. Pick another provider." };
-  }
-
   const keyEdits = AIKeyEditsSchema.safeParse(data.aiKeyEdits);
   const transcriptionKeyEdit = KeyEditSchema.safeParse(data.transcriptionKeyEdit);
   if (!keyEdits.success || !transcriptionKeyEdit.success) {
@@ -220,9 +216,16 @@ export async function updateUserSettingsAction(
 
 async function userServerAddressError(
   data: UserSettingsUpdate,
-  saved: { ntfyUrl: string | null; smtpHost: string | null } | undefined
+  saved: { ntfyUrl: string | null; smtpHost: string | null; aiOllamaUrl: string | null } | undefined
 ): Promise<string | null> {
   const hosts: string[] = [];
+  if (data.aiOllamaUrl && data.aiOllamaUrl !== saved?.aiOllamaUrl) {
+    const url = URL.canParse(data.aiOllamaUrl) ? new URL(data.aiOllamaUrl) : null;
+    if (!url || (url.protocol !== "http:" && url.protocol !== "https:")) {
+      return "ollama url is not valid";
+    }
+    hosts.push(url.hostname);
+  }
   if (data.ntfyUrl && data.ntfyUrl !== saved?.ntfyUrl) {
     try {
       hosts.push(new URL(data.ntfyUrl).hostname);

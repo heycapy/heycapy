@@ -8,10 +8,11 @@ import { publicAddress } from "./public-address";
 export async function postJson(
   url: URL,
   body: string,
-  headers: Record<string, string> = {}
+  headers: Record<string, string> = {},
+  timeoutMs = OUTGOING_TIMEOUT_MS
 ): Promise<{ status: number; text: string }> {
   const pinned = await publicAddress(url.hostname);
-  return post(url, body, headers, pinned && pinnedLookup(pinned));
+  return post(url, body, headers, pinned && pinnedLookup(pinned), timeoutMs);
 }
 
 // node asks for a list when it tries ipv4 and ipv6 in turn (autoSelectFamily)
@@ -27,7 +28,8 @@ function post(
   url: URL,
   body: string,
   headers: Record<string, string>,
-  lookup: LookupFunction | null
+  lookup: LookupFunction | null,
+  timeoutMs: number
 ): Promise<{ status: number; text: string }> {
   const request = url.protocol === "https:" ? https.request : http.request;
   return new Promise((resolve, reject) => {
@@ -40,7 +42,7 @@ function post(
           "Content-Type": "application/json",
           "Content-Length": Buffer.byteLength(body),
         },
-        timeout: OUTGOING_TIMEOUT_MS,
+        timeout: timeoutMs,
         ...(lookup && { lookup }),
       },
       (res) => {

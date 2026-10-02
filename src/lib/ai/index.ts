@@ -31,9 +31,10 @@ function createProvider(
   provider: string,
   model: string,
   apiKey: string | null,
-  ollamaUrl: string
+  ollamaUrl: string,
+  userTyped = false
 ): AIProvider {
-  if (provider === "ollama") return createOllamaProvider(ollamaUrl, model);
+  if (provider === "ollama") return createOllamaProvider(ollamaUrl, model, userTyped);
   if (!apiKey) throw new Error(`API key is required for ${provider} provider`);
   switch (provider) {
     case "openai":
@@ -52,8 +53,8 @@ function createProvider(
 export function hasOwnAI(config?: AIConfig): boolean {
   if (!config?.provider) return false;
   if (isHosted() && config.useOwnKey === false) return false;
-  // a hosted server never fetches a url a user typed in since it could reach internal network damnnnn
-  if (config.provider === "ollama") return !isHosted() && !!config.ollamaUrl;
+  // on a hosted server a user's ollama is only reached on a public address, see postJson
+  if (config.provider === "ollama") return !!config.ollamaUrl;
   return !!config.apiKey;
 }
 
@@ -75,7 +76,7 @@ export function getAIProvider(requested?: AIConfig): MeteredProvider {
   const ollamaUrl = (own ? own.ollamaUrl : process.env.OLLAMA_URL) || OLLAMA_DEFAULT_URL;
   const apiKey = (own ? own.apiKey : process.env.AI_API_KEY) || null;
   return {
-    ...createProvider(provider, model, apiKey, ollamaUrl),
+    ...createProvider(provider, model, apiKey, ollamaUrl, !!own),
     meta: { provider, model, key: own ? "own" : "server" },
   };
 }
