@@ -48,3 +48,76 @@ export function storeSavedAIKeys(keys: SavedAIKeys): string | null {
   }
   return Object.keys(stored).length > 0 ? JSON.stringify(stored) : null;
 }
+
+// what the browser sees of a saved key: never the key, only that there is one and its last
+// characters, so a saved key can't be read back out of the settings screen
+export type KeyView = { hasKey: boolean; keyEnding: string | null };
+export type AIKeyView = KeyView & { model: string | null };
+export type AIKeyViews = Partial<Record<AIProviderName, AIKeyView>>;
+
+const KEY_ENDING_LENGTH = 4;
+// if key is less than 12 than no characters shown
+const KEY_ENDING_MIN_LENGTH = 12;
+
+export function keyView(key: string | null | undefined): KeyView {
+  if (!key) return { hasKey: false, keyEnding: null };
+  return {
+    hasKey: true,
+    keyEnding: key.length >= KEY_ENDING_MIN_LENGTH ? key.slice(-KEY_ENDING_LENGTH) : null,
+  };
+}
+
+export function aiKeyViews(keys: SavedAIKeys): AIKeyViews {
+  const views: AIKeyViews = {};
+  for (const provider of AI_PROVIDERS) {
+    const entry = keys[provider];
+    if (entry) views[provider] = { ...keyView(entry.apiKey), model: entry.model };
+  }
+  return views;
+}
+
+export const KeyEditSchema = z.object({
+  newKey: z.string().max(SETTINGS_API_KEY_MAX_LENGTH).nullable(),
+  clear: z.boolean(),
+});
+export type KeyEdit = z.infer<typeof KeyEditSchema>;
+
+export const AIKeyEditsSchema = z.partialRecord(
+  z.enum(AI_PROVIDERS),
+  KeyEditSchema.extend({ model: z.string().max(AI_MODEL_MAX_LENGTH).nullable() })
+);
+export type AIKeyEdits = z.infer<typeof AIKeyEditsSchema>;
+
+export function applyKeyEdit(saved: string | null, edit: KeyEdit | undefined): string | null {
+  if (!edit) return saved;
+  return edit.newKey || (edit.clear ? null : saved);
+}
+
+export function applyAIKeyEdits(saved: SavedAIKeys, edits: AIKeyEdits): SavedAIKeys {
+  const next: SavedAIKeys = { ...saved };
+  for (const provider of AI_PROVIDERS) {
+    const edit = edits[provider];
+    if (!edit) continue;
+    next[provider] = {
+      apiKey: applyKeyEdit(saved[provider]?.apiKey ?? null, edit),
+      model: edit.model,
+    };
+  }
+  return next;
+}
+
+type AIKeyColumns = {
+  aiSavedKeys: string | null;
+  aiProvider: AIProviderName | null;
+  aiApiKey: string | null;
+  aiModel: string | null;
+};
+
+export function savedAIKeysOf(row: AIKeyColumns): SavedAIKeys {
+  const keys = readSavedAIKeys(row.aiSavedKeys);
+  const activeKey = row.aiApiKey ? decryptValue(row.aiApiKey) : null;
+  if (row.aiProvider && (activeKey || row.aiModel)) {
+    keys[row.aiProvider] = { apiKey: activeKey, model: row.aiModel };
+  }
+  return keys;
+}

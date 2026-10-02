@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { cn } from "@/lib/utils";
-import { charCountColor } from "@/components/ui/input";
 import { Toggle } from "@/components/ui/Toggle";
 import { OptionGroup } from "@/components/ui/OptionGroup";
 import { BracketButton } from "@/components/ui/BracketButton";
 import { AIStatusBox } from "./AIStatusBox";
+import { CharCount } from "./CharCount";
+import { KeyField } from "./KeyField";
 import {
   LABEL,
   INPUT,
@@ -19,7 +20,6 @@ import type { AISettings } from "./useAISettings";
 import {
   OLLAMA_DEFAULT_URL,
   SETTINGS_URL_MAX_LENGTH,
-  SETTINGS_API_KEY_MAX_LENGTH,
   AI_MODEL_MAX_LENGTH,
   AI_COMPACT_THRESHOLD_MIN,
   AI_COMPACT_THRESHOLD_MAX,
@@ -29,20 +29,6 @@ type AITabProps = {
   ai: AISettings;
   pending: boolean;
 };
-
-function CharCount({ length, max }: { length: number; max: number }) {
-  if (length === 0) return null;
-  return (
-    <p
-      className={cn(
-        "mt-0.5 text-right font-mono text-[11px] transition-colors",
-        charCountColor(length, max)
-      )}
-    >
-      {length}/{max}
-    </p>
-  );
-}
 
 export function AITab({ ai, pending }: AITabProps) {
   const [aiSubTab, setAiSubTab] = useState<"chat" | "voice">("chat");
@@ -145,19 +131,15 @@ export function AITab({ ai, pending }: AITabProps) {
                   <CharCount length={ai.ollamaUrl.length} max={SETTINGS_URL_MAX_LENGTH} />
                 </div>
               ) : (
-                <div className="flex flex-col gap-1.5">
-                  <label className={LABEL}>api key</label>
-                  <input
-                    type="password"
-                    value={ai.apiKey}
-                    onChange={(e) => ai.setApiKey(e.target.value)}
-                    placeholder="sk-..."
-                    maxLength={SETTINGS_API_KEY_MAX_LENGTH}
-                    disabled={pending}
-                    className={INPUT}
-                  />
-                  <CharCount length={ai.apiKey.length} max={SETTINGS_API_KEY_MAX_LENGTH} />
-                </div>
+                <KeyField
+                  label="api key"
+                  inputLabel="api key"
+                  {...ai.apiKeyField}
+                  onChange={ai.setApiKey}
+                  onEdit={ai.editApiKey}
+                  onCancel={ai.cancelApiKeyEdit}
+                  disabled={pending}
+                />
               )}
               <div className="flex flex-col gap-1.5">
                 <label className={LABEL}>model</label>
@@ -172,7 +154,7 @@ export function AITab({ ai, pending }: AITabProps) {
                 />
                 <CharCount length={ai.model.length} max={AI_MODEL_MAX_LENGTH} />
               </div>
-              {(ai.apiKey || ai.model || (ai.provider === "ollama" && ai.ollamaUrl)) && (
+              {ai.canClear && (
                 <BracketButton
                   type="button"
                   onClick={ai.clearProvider}
@@ -202,27 +184,35 @@ export function AITab({ ai, pending }: AITabProps) {
               {ai.transcriptionProvider && (
                 <>
                   <div className="flex flex-col gap-1.5">
-                    <label className={LABEL}>
-                      api key
-                      {ai.transcriptionProvider && ai.hasKeyFor(ai.transcriptionProvider) && (
-                        <span className="text-muted-foreground ml-1">
-                          (leave blank to reuse your chat key)
-                        </span>
-                      )}
-                    </label>
-                    <input
-                      type="password"
-                      value={ai.transcriptionApiKey}
-                      onChange={(e) => ai.setTranscriptionApiKey(e.target.value)}
-                      placeholder="sk-..."
-                      maxLength={SETTINGS_API_KEY_MAX_LENGTH}
+                    <KeyField
+                      label={
+                        <>
+                          api key
+                          {ai.hasKeyFor(ai.transcriptionProvider) &&
+                            !ai.transcriptionKeyField.saved && (
+                              <span className="text-muted-foreground ml-1">
+                                (leave blank to reuse your chat key)
+                              </span>
+                            )}
+                        </>
+                      }
+                      inputLabel="voice api key"
+                      {...ai.transcriptionKeyField}
+                      onChange={ai.setTranscriptionApiKey}
+                      onEdit={ai.editTranscriptionKey}
+                      onCancel={ai.cancelTranscriptionKeyEdit}
                       disabled={pending}
-                      className={INPUT}
                     />
-                    <CharCount
-                      length={ai.transcriptionApiKey.length}
-                      max={SETTINGS_API_KEY_MAX_LENGTH}
-                    />
+                    {ai.canClearTranscriptionKey && (
+                      <BracketButton
+                        type="button"
+                        onClick={ai.clearTranscriptionKey}
+                        disabled={pending}
+                        className="w-fit"
+                      >
+                        clear voice key
+                      </BracketButton>
+                    )}
                   </div>
                   <div className="flex flex-col gap-1.5">
                     <label className={LABEL}>model</label>

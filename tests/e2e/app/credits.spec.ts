@@ -96,10 +96,15 @@ test("heycapy ai or your own key, and a saved key stays for switching back", asy
     "aria-pressed",
     "true"
   );
-  await expect(keyField).toHaveValue("e2e-gemini-key");
+  // write-only: the saved key never comes back, only that it's there
+  await expect(page.getByText("saved · ••••-key")).toBeVisible();
+  await expect(page.getByLabel("api key", { exact: true })).toHaveCount(0);
+  expect(await page.content()).not.toContain("e2e-gemini-key");
 });
 
-test("each provider keeps its own key and model when switching between them", async ({ page }) => {
+test("each provider keeps its own key and model, and saved keys never come back", async ({
+  page,
+}) => {
   setBalance(50);
   const openAITab = async () => {
     await page.goto("/");
@@ -107,44 +112,53 @@ test("each provider keeps its own key and model when switching between them", as
     await page.getByRole("button", { name: "tweaks" }).click();
     await page.getByRole("button", { name: "ai", exact: true }).click();
   };
-  const keyField = page.getByPlaceholder("sk-...");
+  const keyField = page.getByLabel("api key", { exact: true });
   const modelField = page.getByPlaceholder("gpt-4o");
   const provider = (name: string) => page.getByRole("button", { name, exact: true });
+  const clearOpenAI = page.getByRole("button", { name: "clear openai key and model" });
 
   await openAITab();
   await page.getByRole("button", { name: "your own key" }).click();
   await provider("openai").click();
-  await keyField.fill("e2e-openai-key");
+  await keyField.fill("e2e-openai-key-1111");
   await modelField.fill("gpt-4.1-mini");
 
   await provider("groq").click();
   await expect(keyField).toHaveValue("");
-  await keyField.fill("e2e-groq-key");
+  await keyField.fill("e2e-groq-key-2222");
 
   await provider("openai").click();
-  await expect(keyField).toHaveValue("e2e-openai-key");
+  await expect(keyField).toHaveValue("e2e-openai-key-1111");
   await expect(modelField).toHaveValue("gpt-4.1-mini");
   await provider("groq").click();
   await page.getByRole("button", { name: "save" }).click();
 
   await openAITab();
   await expect(provider("groq")).toHaveAttribute("aria-pressed", "true");
-  await expect(keyField).toHaveValue("e2e-groq-key");
+  await expect(page.getByText("saved · ••••2222")).toBeVisible();
+  await expect(keyField).toHaveCount(0);
   await provider("openai").click();
-  await expect(keyField).toHaveValue("e2e-openai-key");
+  await expect(page.getByText("saved · ••••1111")).toBeVisible();
   await expect(modelField).toHaveValue("gpt-4.1-mini");
+  expect(await page.content()).not.toMatch(/e2e-openai-key|e2e-groq-key/);
 
-  await page.getByRole("button", { name: "clear openai key and model" }).click();
+  await page.getByRole("button", { name: "edit" }).click();
+  await expect(keyField).toBeFocused();
+  await expect(keyField).toHaveValue("");
+  await page.getByRole("button", { name: "cancel" }).click();
+  await expect(page.getByText("saved · ••••1111")).toBeVisible();
+
+  await clearOpenAI.click();
   await expect(keyField).toHaveValue("");
   await expect(modelField).toHaveValue("");
   await provider("groq").click();
   await page.getByRole("button", { name: "save" }).click();
 
   await openAITab();
-  await expect(keyField).toHaveValue("e2e-groq-key");
+  await expect(page.getByText("saved · ••••2222")).toBeVisible();
   await provider("openai").click();
-  await expect(keyField).toHaveValue("");
-  await expect(page.getByRole("button", { name: "clear openai key and model" })).toHaveCount(0);
+  await expect(keyField).toBeVisible();
+  await expect(clearOpenAI).toHaveCount(0);
 });
 
 test("picking heycapy ai describes it at once, not the saved key", async ({ page }) => {

@@ -34,10 +34,18 @@ import {
 } from "@/constants";
 import { emailLayout } from "@/lib/email/layout";
 import {
-  readSavedAIKeys,
-  SavedAIKeysSchema,
+  AIKeyEditsSchema,
+  aiKeyViews,
+  applyAIKeyEdits,
+  applyKeyEdit,
+  KeyEditSchema,
+  keyView,
+  savedAIKeysOf,
   storeSavedAIKeys,
-  type SavedAIKeys,
+  type AIKeyEdits,
+  type AIKeyViews,
+  type KeyEdit,
+  type KeyView,
 } from "@/lib/ai/saved-keys";
 
 type UserSettingsUpdate = {
@@ -47,9 +55,7 @@ type UserSettingsUpdate = {
   personalityCustomPrompt: string | null;
   timezone: string;
   aiProvider: "ollama" | "openai" | "anthropic" | "groq" | "gemini" | null;
-  aiApiKey: string | null;
-  aiModel: string | null;
-  aiSavedKeys: SavedAIKeys;
+  aiKeyEdits: AIKeyEdits;
   aiOllamaUrl: string | null;
   aiUseOwnKey: boolean;
   aiCompactThreshold: number;
@@ -61,7 +67,7 @@ type UserSettingsUpdate = {
   ntfyTopic: string | null;
   notificationsTelegram: boolean;
   transcriptionProvider: string | null;
-  transcriptionApiKey: string | null;
+  transcriptionKeyEdit: KeyEdit;
   transcriptionModel: string | null;
   emailProvider: string | null;
   smtpHost: string | null;
@@ -80,7 +86,8 @@ export async function getUserSettingsAction(): Promise<
     telegramBotConfigured: boolean;
     isAdmin: boolean;
     hosted: boolean;
-    savedAIKeys: SavedAIKeys;
+    aiKeys: AIKeyViews;
+    transcriptionKey: KeyView;
   }>
 > {
   const session = await getSession();
@@ -94,12 +101,6 @@ export async function getUserSettingsAction(): Promise<
   ]);
   if (!settings) return { ok: false, error: "Settings not found" };
 
-  const activeKey = settings.aiApiKey ? decryptValue(settings.aiApiKey) : null;
-  const savedAIKeys = readSavedAIKeys(settings.aiSavedKeys);
-  if (settings.aiProvider && (activeKey || settings.aiModel)) {
-    savedAIKeys[settings.aiProvider] = { apiKey: activeKey, model: settings.aiModel };
-  }
-
   return {
     ok: true,
     userEmail: user?.email ?? session.email,
@@ -107,15 +108,17 @@ export async function getUserSettingsAction(): Promise<
     telegramBotConfigured: !!process.env.TELEGRAM_BOT_TOKEN,
     isAdmin: isAdmin(session.email),
     hosted: isHosted(),
-    savedAIKeys,
+    aiKeys: aiKeyViews(savedAIKeysOf(settings)),
+    transcriptionKey: keyView(
+      settings.transcriptionApiKey ? decryptValue(settings.transcriptionApiKey) : null
+    ),
+    // keys and passwords are write-only: once saved they never go back to the browser
     settings: {
       ...settings,
-      aiApiKey: activeKey,
+      aiApiKey: null,
       aiSavedKeys: null,
-      transcriptionApiKey: settings.transcriptionApiKey
-        ? decryptValue(settings.transcriptionApiKey)
-        : null,
-      smtpPass: null, // never expose — write-only
+      transcriptionApiKey: null,
+      smtpPass: null,
       telegramLinkCodeHash: null,
     },
   };
@@ -145,19 +148,28 @@ export async function updateUserSettingsAction(
     return { ok: false, error: "Ollama isn't available here. Pick another provider." };
   }
 
-  const savedKeys = SavedAIKeysSchema.safeParse(data.aiSavedKeys);
-  if (!savedKeys.success) return { ok: false, error: "An AI key or model is too long" };
-  const aiSavedKeys = data.aiProvider
-    ? { ...savedKeys.data, [data.aiProvider]: { apiKey: data.aiApiKey, model: data.aiModel } }
-    : savedKeys.data;
+  const keyEdits = AIKeyEditsSchema.safeParse(data.aiKeyEdits);
+  const transcriptionKeyEdit = KeyEditSchema.safeParse(data.transcriptionKeyEdit);
+  if (!keyEdits.success || !transcriptionKeyEdit.success) {
+    return { ok: false, error: "An AI key or model is too long" };
+  }
 
   const saved = await db.query.userSettings.findFirst({
     where: eq(userSettings.userId, session.userId),
   });
+  const aiKeys = applyAIKeyEdits(saved ? savedAIKeysOf(saved) : {}, keyEdits.data);
+  const active = data.aiProvider ? aiKeys[data.aiProvider] : undefined;
+  const aiApiKey = active?.apiKey || null;
+  const aiModel = active?.model || null;
+  const savedTranscriptionKey = saved?.transcriptionApiKey
+    ? decryptValue(saved.transcriptionApiKey)
+    : null;
+  const transcriptionApiKey = applyKeyEdit(savedTranscriptionKey, transcriptionKeyEdit.data);
+
   const aiChanged =
     saved?.aiProvider !== data.aiProvider ||
-    (saved.aiApiKey ? decryptValue(saved.aiApiKey) : null) !== (data.aiApiKey || null) ||
-    saved.aiModel !== (data.aiModel || null) ||
+    (saved.aiApiKey ? decryptValue(saved.aiApiKey) : null) !== aiApiKey ||
+    saved.aiModel !== aiModel ||
     saved.aiOllamaUrl !== (data.aiOllamaUrl || null) ||
     saved.aiUseOwnKey !== data.aiUseOwnKey;
 
@@ -174,9 +186,9 @@ export async function updateUserSettingsAction(
       personalityCustomPrompt: data.personalityCustomPrompt || null,
       timezone: data.timezone || "UTC",
       aiProvider: data.aiProvider,
-      aiApiKey: data.aiApiKey ? encryptValue(data.aiApiKey) : null,
-      aiModel: data.aiModel || null,
-      aiSavedKeys: storeSavedAIKeys(aiSavedKeys),
+      aiApiKey: aiApiKey && encryptValue(aiApiKey),
+      aiModel,
+      aiSavedKeys: storeSavedAIKeys(aiKeys),
       aiOllamaUrl: data.aiOllamaUrl || null,
       aiUseOwnKey: data.aiUseOwnKey,
       aiCompactThreshold: data.aiCompactThreshold,
@@ -188,7 +200,7 @@ export async function updateUserSettingsAction(
       ntfyTopic: data.ntfyTopic || null,
       notificationsTelegram: data.notificationsTelegram,
       transcriptionProvider: data.transcriptionProvider || null,
-      transcriptionApiKey: data.transcriptionApiKey ? encryptValue(data.transcriptionApiKey) : null,
+      transcriptionApiKey: transcriptionApiKey && encryptValue(transcriptionApiKey),
       transcriptionModel: data.transcriptionModel || null,
       emailProvider: data.emailProvider || null,
       smtpHost: data.smtpHost || null,

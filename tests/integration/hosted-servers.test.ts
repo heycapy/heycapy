@@ -161,11 +161,10 @@ it("saving an ntfy url or smtp host on our own network is refused", async () => 
   if (!settings) throw new Error("no settings");
   const base = {
     ...settings,
-    aiApiKey: null,
-    aiSavedKeys: {},
+    aiKeyEdits: {},
     smtpPass: null,
     smtpSecure: settings.smtpSecure ?? false,
-    transcriptionApiKey: null,
+    transcriptionKeyEdit: { newKey: null, clear: false },
   };
   fakeDns.set("my-app.internal", [{ address: "fdaa:0:1:a7b::2", family: 6 }]);
 

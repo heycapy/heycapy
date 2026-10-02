@@ -86,8 +86,8 @@ it("the key check doesn't fetch it either, and saving ollama is refused", async 
   expect(
     await updateUserSettingsAction({
       ...settings,
-      aiApiKey: null,
-      aiSavedKeys: {},
+      aiKeyEdits: {},
+      transcriptionKeyEdit: { newKey: null, clear: false },
       aiProvider: "ollama",
       aiOllamaUrl: INTERNAL,
       smtpPass: null,
