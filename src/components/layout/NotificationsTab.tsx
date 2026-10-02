@@ -3,7 +3,7 @@ import { Toggle } from "@/components/ui/Toggle";
 import { LABEL, INPUT, SECTION, BOX } from "./settings-constants";
 import { NtfySettings } from "./NtfySettings";
 import { PushSettings } from "./PushSettings";
-import { QuietHoursSettings } from "./QuietHoursSettings";
+import { QuietHoursSettings, type QuietHours } from "./QuietHoursSettings";
 import { TelegramSettings } from "./TelegramSettings";
 import { WebhookSettings } from "./WebhookSettings";
 import { SmtpTestDialog } from "./SmtpTestDialog";
@@ -37,6 +37,8 @@ type NotificationsTabProps = {
   onDisconnectTelegram: () => Promise<void>;
   onRecheckTelegram: () => Promise<void>;
   telegramActionPending: boolean;
+  quietHours: QuietHours;
+  setQuietHours: (v: QuietHours) => void;
   pending: boolean;
 };
 
@@ -69,6 +71,8 @@ export function NotificationsTab({
   onDisconnectTelegram,
   onRecheckTelegram,
   telegramActionPending,
+  quietHours,
+  setQuietHours,
   pending,
 }: NotificationsTabProps) {
   const [testDialogOpen, setTestDialogOpen] = useState(false);
@@ -78,7 +82,7 @@ export function NotificationsTab({
 
   return (
     <div className="flex flex-col gap-3">
-      <QuietHoursSettings />
+      <QuietHoursSettings value={quietHours} onChange={setQuietHours} pending={pending} />
       <div className={BOX}>
         <span className={SECTION}>email</span>
 

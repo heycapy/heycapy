@@ -52,6 +52,8 @@ export const USELESS_FACTS_API_URL = "https://uselessfacts.jsph.pl/api/v2/facts/
 // Per AI call; the SDKs give up at the same time, so a rate limit shows as itself, not as a timeout
 export const AI_REQUEST_TIMEOUT_MS = 30_000;
 export const OLLAMA_REQUEST_TIMEOUT_MS = 120_000;
+
+export const AI_MAX_OUTPUT_TOKENS = 4096;
 export const AI_KEY_CHECK_TIMEOUT_MS = 15_000;
 export const AI_TIMEOUT_ERROR = "The AI provider didn't answer in time. Try again.";
 // model calls per answer so a runaway chain of tools can't cost many times its credit
