@@ -97,7 +97,7 @@ export function SettingsSheet({ open, initialTab, onClose }: SettingsSheetProps)
       getUserSettingsAction().then((result) => {
         if (result.ok) {
           populate(result.settings);
-          populateAI(result.settings, result.hosted);
+          populateAI(result.settings, result.hosted, result.savedAIKeys);
           setUserEmail(result.userEmail);
           setAdminUser(result.isAdmin);
           setSmtpPassSaved(result.smtpPassSaved);

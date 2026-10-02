@@ -3,6 +3,7 @@ import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { aiUsage, buckets, creditLedger, items, userSettings } from "@/lib/db/schema";
 import { encryptValue } from "@/lib/crypto";
+import { storeSavedAIKeys } from "@/lib/ai/saved-keys";
 import { creditBalance } from "@/lib/credits";
 import { POST } from "@/app/api/transcribe/route";
 import {
@@ -139,6 +140,24 @@ it("own-key users can pick gemini for voice, on their own key", async () => {
   expect((await speak(userId)).body).toEqual({ text: "add dentist friday 5pm" });
   expect(calls[0].headers["x-goog-api-key"]).toBe("user-gemini-key");
   expect(usageRows(userId)).toEqual([expect.objectContaining({ source: "voice", key: "own" })]);
+});
+
+it("voice with no key of its own uses the key saved for its provider in chat", async () => {
+  const userId = await seedUser();
+  await db
+    .update(userSettings)
+    .set({
+      aiProvider: "openai",
+      aiApiKey: encryptValue("sk-chat-key"),
+      aiSavedKeys: storeSavedAIKeys({ groq: { apiKey: "gsk-saved-key", model: null } }),
+      transcriptionProvider: "groq",
+    })
+    .where(eq(userSettings.userId, userId));
+  geminiReply = { status: 200, body: { text: "call mom sunday" } };
+
+  expect((await speak(userId)).body).toEqual({ text: "call mom sunday" });
+  expect(calls[0].url).toContain("api.groq.com");
+  expect(new Headers(calls[0].headers).get("authorization")).toBe("Bearer gsk-saved-key");
 });
 
 it("self-hosted servers keep voice on the user's own provider", async () => {

@@ -87,6 +87,7 @@ it("the key check doesn't fetch it either, and saving ollama is refused", async 
     await updateUserSettingsAction({
       ...settings,
       aiApiKey: null,
+      aiSavedKeys: {},
       aiProvider: "ollama",
       aiOllamaUrl: INTERNAL,
       smtpPass: null,

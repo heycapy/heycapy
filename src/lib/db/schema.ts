@@ -67,6 +67,9 @@ export const userSettings = sqliteTable("user_settings", {
   aiProvider: text("ai_provider", { enum: ["ollama", "openai", "anthropic", "groq", "gemini"] }),
   aiApiKey: text("ai_api_key"),
   aiModel: text("ai_model"),
+  // every provider's key (encrypted) and model the user typed, so switching providers in
+  // tweaks brings them back; ai_api_key / ai_model above stay the ones capy actually uses
+  aiSavedKeys: text("ai_saved_keys"),
   aiOllamaUrl: text("ai_ollama_url"),
   aiCompactThreshold: integer("ai_compact_threshold").notNull().default(40),
   aiNotifyMessages: integer("ai_notify_messages", { mode: "boolean" }).notNull().default(true),

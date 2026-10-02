@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { userSettings } from "@/lib/db/schema";
 import { voiceContext } from "@/lib/transcription/hints";
 import { decryptValue } from "@/lib/crypto";
+import { readSavedAIKeys } from "@/lib/ai/saved-keys";
 import { hasOwnAI } from "@/lib/ai";
 import { recordUsage } from "@/lib/ai/usage";
 import { creditBalance, isHosted } from "@/lib/credits";
@@ -98,6 +99,8 @@ export async function POST(req: Request) {
     apiKey = decryptValue(settings.transcriptionApiKey);
   } else if (provider === settings?.aiProvider && settings?.aiApiKey) {
     apiKey = decryptValue(settings.aiApiKey);
+  } else {
+    apiKey = readSavedAIKeys(settings?.aiSavedKeys)[provider]?.apiKey ?? null;
   }
 
   if (!apiKey) {

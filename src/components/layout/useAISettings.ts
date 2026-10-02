@@ -1,5 +1,6 @@
 import { useCallback, useState } from "react";
 import type { userSettings } from "@/lib/db/schema";
+import type { SavedAIKeys } from "@/lib/ai/saved-keys";
 import type { AIProvider, TranscriptionProvider } from "./settings-constants";
 
 type Settings = typeof userSettings.$inferSelect;
@@ -8,8 +9,7 @@ export function useAISettings() {
   const [hosted, setHosted] = useState(false);
   const [useOwnKey, setUseOwnKey] = useState(true);
   const [provider, setProvider] = useState<AIProvider>("ollama");
-  const [apiKey, setApiKey] = useState("");
-  const [model, setModel] = useState("");
+  const [keys, setKeys] = useState<SavedAIKeys>({});
   const [ollamaUrl, setOllamaUrl] = useState("");
   const [compactThreshold, setCompactThreshold] = useState(40);
   const [notifyMessages, setNotifyMessages] = useState(true);
@@ -19,7 +19,28 @@ export function useAISettings() {
   const [transcriptionApiKey, setTranscriptionApiKey] = useState("");
   const [transcriptionModel, setTranscriptionModel] = useState("");
 
-  const populate = useCallback((s: Settings, hostedServer: boolean) => {
+  const apiKey = keys[provider]?.apiKey ?? "";
+  const model = keys[provider]?.model ?? "";
+
+  function setApiKey(value: string) {
+    setKeys((k) => ({ ...k, [provider]: { apiKey: value, model: k[provider]?.model ?? null } }));
+  }
+
+  // the provider's entry goes away on save, so its key isn't kept anywhere
+  function clearProvider() {
+    setKeys((k) => ({ ...k, [provider]: { apiKey: null, model: null } }));
+    if (provider === "ollama") setOllamaUrl("");
+  }
+
+  function hasKeyFor(p: AIProvider): boolean {
+    return !!keys[p]?.apiKey;
+  }
+
+  function setModel(value: string) {
+    setKeys((k) => ({ ...k, [provider]: { apiKey: k[provider]?.apiKey ?? null, model: value } }));
+  }
+
+  const populate = useCallback((s: Settings, hostedServer: boolean, saved: SavedAIKeys) => {
     setHosted(hostedServer);
     setUseOwnKey(!hostedServer || (s.aiUseOwnKey && s.aiProvider !== null));
     setProvider(
@@ -29,8 +50,7 @@ export function useAISettings() {
           ? "gemini"
           : "ollama"
     );
-    setApiKey(s.aiApiKey ?? "");
-    setModel(s.aiModel ?? "");
+    setKeys(saved);
     setOllamaUrl(s.aiOllamaUrl ?? "");
     setCompactThreshold(s.aiCompactThreshold ?? 40);
     setNotifyMessages(s.aiNotifyMessages ?? true);
@@ -44,6 +64,7 @@ export function useAISettings() {
       aiProvider: provider,
       aiApiKey: apiKey || null,
       aiModel: model || null,
+      aiSavedKeys: keys,
       aiOllamaUrl: ollamaUrl || null,
       aiUseOwnKey: !hosted || useOwnKey,
       aiCompactThreshold: compactThreshold,
@@ -64,6 +85,8 @@ export function useAISettings() {
     setApiKey,
     model,
     setModel,
+    hasKeyFor,
+    clearProvider,
     ollamaUrl,
     setOllamaUrl,
     compactThreshold,

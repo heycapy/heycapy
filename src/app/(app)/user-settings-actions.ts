@@ -33,6 +33,12 @@ import {
   EMAIL_COLORS,
 } from "@/constants";
 import { emailLayout } from "@/lib/email/layout";
+import {
+  readSavedAIKeys,
+  SavedAIKeysSchema,
+  storeSavedAIKeys,
+  type SavedAIKeys,
+} from "@/lib/ai/saved-keys";
 
 type UserSettingsUpdate = {
   personalityName: string;
@@ -43,6 +49,7 @@ type UserSettingsUpdate = {
   aiProvider: "ollama" | "openai" | "anthropic" | "groq" | "gemini" | null;
   aiApiKey: string | null;
   aiModel: string | null;
+  aiSavedKeys: SavedAIKeys;
   aiOllamaUrl: string | null;
   aiUseOwnKey: boolean;
   aiCompactThreshold: number;
@@ -73,6 +80,7 @@ export async function getUserSettingsAction(): Promise<
     telegramBotConfigured: boolean;
     isAdmin: boolean;
     hosted: boolean;
+    savedAIKeys: SavedAIKeys;
   }>
 > {
   const session = await getSession();
@@ -86,6 +94,12 @@ export async function getUserSettingsAction(): Promise<
   ]);
   if (!settings) return { ok: false, error: "Settings not found" };
 
+  const activeKey = settings.aiApiKey ? decryptValue(settings.aiApiKey) : null;
+  const savedAIKeys = readSavedAIKeys(settings.aiSavedKeys);
+  if (settings.aiProvider && (activeKey || settings.aiModel)) {
+    savedAIKeys[settings.aiProvider] = { apiKey: activeKey, model: settings.aiModel };
+  }
+
   return {
     ok: true,
     userEmail: user?.email ?? session.email,
@@ -93,9 +107,11 @@ export async function getUserSettingsAction(): Promise<
     telegramBotConfigured: !!process.env.TELEGRAM_BOT_TOKEN,
     isAdmin: isAdmin(session.email),
     hosted: isHosted(),
+    savedAIKeys,
     settings: {
       ...settings,
-      aiApiKey: settings.aiApiKey ? decryptValue(settings.aiApiKey) : null,
+      aiApiKey: activeKey,
+      aiSavedKeys: null,
       transcriptionApiKey: settings.transcriptionApiKey
         ? decryptValue(settings.transcriptionApiKey)
         : null,
@@ -129,6 +145,12 @@ export async function updateUserSettingsAction(
     return { ok: false, error: "Ollama isn't available here. Pick another provider." };
   }
 
+  const savedKeys = SavedAIKeysSchema.safeParse(data.aiSavedKeys);
+  if (!savedKeys.success) return { ok: false, error: "An AI key or model is too long" };
+  const aiSavedKeys = data.aiProvider
+    ? { ...savedKeys.data, [data.aiProvider]: { apiKey: data.aiApiKey, model: data.aiModel } }
+    : savedKeys.data;
+
   const saved = await db.query.userSettings.findFirst({
     where: eq(userSettings.userId, session.userId),
   });
@@ -154,6 +176,7 @@ export async function updateUserSettingsAction(
       aiProvider: data.aiProvider,
       aiApiKey: data.aiApiKey ? encryptValue(data.aiApiKey) : null,
       aiModel: data.aiModel || null,
+      aiSavedKeys: storeSavedAIKeys(aiSavedKeys),
       aiOllamaUrl: data.aiOllamaUrl || null,
       aiUseOwnKey: data.aiUseOwnKey,
       aiCompactThreshold: data.aiCompactThreshold,

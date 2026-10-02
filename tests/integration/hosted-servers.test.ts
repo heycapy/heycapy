@@ -162,6 +162,7 @@ it("saving an ntfy url or smtp host on our own network is refused", async () => 
   const base = {
     ...settings,
     aiApiKey: null,
+    aiSavedKeys: {},
     smtpPass: null,
     smtpSecure: settings.smtpSecure ?? false,
     transcriptionApiKey: null,

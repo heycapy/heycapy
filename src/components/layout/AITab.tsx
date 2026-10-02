@@ -3,6 +3,7 @@ import { cn } from "@/lib/utils";
 import { charCountColor } from "@/components/ui/input";
 import { Toggle } from "@/components/ui/Toggle";
 import { OptionGroup } from "@/components/ui/OptionGroup";
+import { BracketButton } from "@/components/ui/BracketButton";
 import { AIStatusBox } from "./AIStatusBox";
 import {
   LABEL,
@@ -171,6 +172,16 @@ export function AITab({ ai, pending }: AITabProps) {
                 />
                 <CharCount length={ai.model.length} max={AI_MODEL_MAX_LENGTH} />
               </div>
+              {(ai.apiKey || ai.model || (ai.provider === "ollama" && ai.ollamaUrl)) && (
+                <BracketButton
+                  type="button"
+                  onClick={ai.clearProvider}
+                  disabled={pending}
+                  className="w-fit"
+                >
+                  clear {ai.provider} {ai.provider === "ollama" ? "url" : "key"} and model
+                </BracketButton>
+              )}
               {general}
             </>
           )}
@@ -193,9 +204,9 @@ export function AITab({ ai, pending }: AITabProps) {
                   <div className="flex flex-col gap-1.5">
                     <label className={LABEL}>
                       api key
-                      {ai.transcriptionProvider === ai.provider && (
+                      {ai.transcriptionProvider && ai.hasKeyFor(ai.transcriptionProvider) && (
                         <span className="text-muted-foreground ml-1">
-                          (leave blank to reuse chat key)
+                          (leave blank to reuse your chat key)
                         </span>
                       )}
                     </label>

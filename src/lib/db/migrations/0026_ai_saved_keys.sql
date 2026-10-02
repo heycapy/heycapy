@@ -1,0 +1,1 @@
+ALTER TABLE `user_settings` ADD `ai_saved_keys` text;
