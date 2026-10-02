@@ -1,8 +1,16 @@
-# heycapy
+<p align="center">
+  <img src=".github/assets/capy-blink.gif" width="96" height="96" alt="capy, the heycapy mascot, blinking">
+</p>
 
-a capy to help you with your day. buckets, deadlines, reminders, telegram and an ai to chat with.
+<h1 align="center">heycapy</h1>
 
-[heycapy.xyz](https://heycapy.xyz) · [how to use](https://heycapy.xyz/how-to-use)
+<p align="center">
+  a capy to help you with your day. buckets, deadlines, reminders, telegram and an ai to chat with.
+</p>
+
+<p align="center">
+  <a href="https://heycapy.xyz">heycapy.xyz</a> · <a href="https://heycapy.xyz/how-to-use">how to use</a>
+</p>
 
 ## run it locally
 
