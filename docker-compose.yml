@@ -2,6 +2,7 @@ services:
   heycapy:
     build: .
     restart: unless-stopped
+    env_file: .env
     environment:
       - NODE_ENV=production
       - DATABASE_URL=file:/data/heycapy.db
