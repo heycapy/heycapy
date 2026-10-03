@@ -1,18 +1,30 @@
+// Throwing here only logs: Next.js keeps running and answers every request with a 500
+function refuseToStart(problems: string[]): never {
+  process.stderr.write(
+    `heycapy can't start, set these in .env or your host's secrets:\n- ${problems.join("\n- ")}\n`
+  );
+  process.exit(1);
+}
+
 export async function register() {
   if (process.env.NEXT_RUNTIME === "nodejs") {
+    const { secretProblems } = await import("@/lib/startup-secrets");
+    const problems = secretProblems(process.env);
     if (process.env.NODE_ENV === "production" && !process.env.DATABASE_URL) {
-      throw new Error(
-        "DATABASE_URL is not set — point it at persistent storage, e.g. file:/data/heycapy.db"
+      problems.push(
+        "DATABASE_URL is not set, point it at persistent storage, e.g. file:/data/heycapy.db"
       );
     }
     const { isHosted } = await import("@/lib/credits");
     const { missingTierKeys } = await import("@/lib/ai/tiers");
     const missing = isHosted() ? missingTierKeys() : [];
     if (missing.length > 0) {
-      throw new Error(
+      problems.push(
         `HOSTED is true but ${missing.join(", ")} is not set, which the models in src/lib/ai/tiers.ts need`
       );
     }
+    if (problems.length > 0) refuseToStart(problems);
+
     const { findMigrationsFolder } = await import("@/lib/db/migrations-folder");
     const migrationsFolder = findMigrationsFolder();
     if (migrationsFolder) {

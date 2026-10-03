@@ -3,6 +3,9 @@ export const APP_DOMAIN = "heycapy.xyz";
 export const APP_EMAIL_FROM = `${APP_NAME} <noreply@${APP_DOMAIN}>`;
 export const APP_TAGLINE = "a capy to help you with your day.";
 
+export const JWT_SECRET_MIN_LENGTH = 32;
+export const SECRET_PLACEHOLDER_PREFIX = "change-me";
+
 // Indexed like Date.getDay(): 0 = Sunday
 export const WEEKDAY_NAMES = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"] as const;
 export const WEEKDAY_SHORT_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] as const;
