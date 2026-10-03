@@ -76,6 +76,8 @@ type UserSettingsUpdate = {
   smtpPass: string | null;
   smtpSecure: boolean;
   smtpFrom: string | null;
+  quietHoursFrom: string | null;
+  quietHoursTo: string | null;
 };
 
 export async function getUserSettingsAction(): Promise<
@@ -144,6 +146,9 @@ export async function updateUserSettingsAction(
     };
   }
 
+  const quietError = quietHoursError(data.quietHoursFrom, data.quietHoursTo);
+  if (quietError) return { ok: false, error: quietError };
+
   const keyEdits = AIKeyEditsSchema.safeParse(data.aiKeyEdits);
   const transcriptionKeyEdit = KeyEditSchema.safeParse(data.transcriptionKeyEdit);
   if (!keyEdits.success || !transcriptionKeyEdit.success) {
@@ -205,6 +210,8 @@ export async function updateUserSettingsAction(
       ...(data.smtpPass ? { smtpPass: encryptValue(data.smtpPass) } : {}),
       smtpSecure: data.smtpSecure,
       smtpFrom: data.smtpFrom || null,
+      quietHoursFrom: data.quietHoursFrom,
+      quietHoursTo: data.quietHoursTo,
       updatedAt: new Date(),
     })
     .where(eq(userSettings.userId, session.userId));
@@ -477,37 +484,11 @@ export async function dismissDeliveryFailuresAction(
   revalidatePath("/");
 }
 
-export async function getQuietHoursAction(): Promise<
-  ActionResult<{ from: string | null; to: string | null }>
-> {
-  const session = await getSession();
-  if (!session) return { ok: false, error: "Unauthorized" };
-  const settings = await db.query.userSettings.findFirst({
-    where: eq(userSettings.userId, session.userId),
-    columns: { quietHoursFrom: true, quietHoursTo: true },
-  });
-  return { ok: true, from: settings?.quietHoursFrom ?? null, to: settings?.quietHoursTo ?? null };
-}
-
-export async function saveQuietHoursAction(
-  from: string | null,
-  to: string | null
-): Promise<ActionResult> {
-  const session = await getSession();
-  if (!session) return { ok: false, error: "Unauthorized" };
-  const off = from === null && to === null;
-  const valid =
-    from !== null && to !== null && parseClock(from) !== null && parseClock(to) !== null;
-  if (!off && !valid) return { ok: false, error: "quiet hours need a start and an end time" };
-  if (valid && parseClock(from) === parseClock(to)) {
-    return { ok: false, error: "start and end can't be the same time" };
+function quietHoursError(from: string | null, to: string | null): string | null {
+  if (from === null && to === null) return null;
+  if (from === null || to === null || parseClock(from) === null || parseClock(to) === null) {
+    return "quiet hours need a start and an end time";
   }
-
-  await db
-    .update(userSettings)
-    .set({ quietHoursFrom: from, quietHoursTo: to, updatedAt: new Date() })
-    .where(eq(userSettings.userId, session.userId));
-  await refreshUserReminders(session.userId);
-  revalidatePath("/");
-  return { ok: true };
+  if (parseClock(from) === parseClock(to)) return "start and end can't be the same time";
+  return null;
 }

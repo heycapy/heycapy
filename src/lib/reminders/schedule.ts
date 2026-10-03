@@ -19,6 +19,7 @@ export type ReminderInputs = {
   deadline: Date | null;
   status: string;
   deletedAt: Date | null;
+  bucketLive: boolean;
   remindNotBefore: Date | null;
   notifiedAt: Date | null;
   overdueNotifiedAt: Date | null;
@@ -37,6 +38,7 @@ function canRemind(i: ReminderInputs): i is ReminderInputs & { deadline: Date } 
   return (
     i.deadline !== null &&
     i.deletedAt === null &&
+    i.bucketLive &&
     !isClosedStatus(i.status) &&
     i.status !== ITEM_STATUS.onHold
   );

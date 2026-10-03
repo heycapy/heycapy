@@ -43,6 +43,8 @@ const saved = {
   smtpPass: null,
   smtpSecure: false,
   smtpFrom: null,
+  quietHoursFrom: null,
+  quietHoursTo: null,
 };
 
 function typed(newKey: string | null, model: string | null = null) {

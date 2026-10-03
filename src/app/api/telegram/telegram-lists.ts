@@ -3,6 +3,7 @@ import { CLOSED_ITEM_STATUSES } from "@/constants";
 import { and, asc, eq, gte, isNull, lt, lte, type SQL, notInArray } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { buckets, items } from "@/lib/db/schema";
+import { inLiveBucket } from "@/lib/buckets/live";
 import { TELEGRAM_LIST_PAGE_SIZE } from "@/lib/notifications/constants";
 import {
   editTelegramHtml,
@@ -39,6 +40,7 @@ async function loadList(
         and(
           eq(items.userId, ctx.userId),
           isNull(items.deletedAt),
+          inLiveBucket,
           notInArray(items.status, CLOSED_ITEM_STATUSES as string[]),
           where
         )

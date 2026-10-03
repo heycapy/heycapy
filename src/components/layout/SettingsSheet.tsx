@@ -15,7 +15,9 @@ import { AppearanceTab, NotificationsTab, AITab, PersonalityTab } from "./Settin
 import { AccountTab } from "./AccountTab";
 import { SystemTab } from "./SystemTab";
 import { useAISettings } from "./useAISettings";
-import type { UserTone } from "./settings-constants";
+import type { QuietHours } from "./QuietHoursSettings";
+import { CloseWarning, SaveBar, useUnsavedChanges } from "./UnsavedChanges";
+import { DEFAULT_QUIET_FROM, DEFAULT_QUIET_TO, type UserTone } from "./settings-constants";
 import type { userSettings } from "@/lib/db/schema";
 
 type Settings = typeof userSettings.$inferSelect;
@@ -64,6 +66,16 @@ export function SettingsSheet({ open, initialTab, onClose }: SettingsSheetProps)
   const [telegramChatId, setTelegramChatId] = useState<string | null>(null);
   const [telegramBotConfigured, setTelegramBotConfigured] = useState(false);
   const [telegramActionPending, startTelegramTransition] = useTransition();
+  const [quietHours, setQuietHours] = useState<QuietHours>({
+    enabled: false,
+    from: DEFAULT_QUIET_FROM,
+    to: DEFAULT_QUIET_TO,
+  });
+  const [reloads, setReloads] = useState(0);
+  const [wasOpen, setWasOpen] = useState(open);
+  const [confirmClose, setConfirmClose] = useState(false);
+  const unsaved = useUnsavedChanges(loaded ? JSON.stringify(formValues()) : null);
+  const resetUnsaved = unsaved.reset;
 
   function populate(s: Settings) {
     setPersonalityName(s.personalityName);
@@ -85,14 +97,25 @@ export function SettingsSheet({ open, initialTab, onClose }: SettingsSheetProps)
     setNtfyTopic(s.ntfyTopic ?? "");
     setNotificationsTelegram(s.notificationsTelegram);
     setTelegramChatId(s.telegramChatId ?? null);
+    setQuietHours({
+      enabled: s.quietHoursFrom !== null,
+      from: s.quietHoursFrom ?? DEFAULT_QUIET_FROM,
+      to: s.quietHoursTo ?? DEFAULT_QUIET_TO,
+    });
+  }
+
+  if (open !== wasOpen) {
+    setWasOpen(open);
+    if (open) setTab(initialTab);
   }
 
   useEffect(() => {
     if (!open) return;
     const id = setTimeout(() => {
-      setTab(initialTab);
       setError("");
       setLoaded(false);
+      resetUnsaved();
+      setConfirmClose(false);
       setTelegramBotConfigured(false);
       getUserSettingsAction().then((result) => {
         if (result.ok) {
@@ -110,13 +133,14 @@ export function SettingsSheet({ open, initialTab, onClose }: SettingsSheetProps)
       });
     }, 0);
     return () => clearTimeout(id);
-  }, [open, initialTab, populateAI]);
+  }, [open, populateAI, reloads, resetUnsaved]);
 
   async function handleDisconnectTelegram() {
     startTelegramTransition(async () => {
       await disconnectTelegramAction();
       setTelegramChatId(null);
       setNotificationsTelegram(false);
+      unsaved.keepSaved({ notificationsTelegram: false });
     });
   }
 
@@ -126,38 +150,55 @@ export function SettingsSheet({ open, initialTab, onClose }: SettingsSheetProps)
       if (result.ok) {
         setTelegramChatId(result.settings.telegramChatId ?? null);
         setNotificationsTelegram(result.settings.notificationsTelegram);
+        unsaved.keepSaved({ notificationsTelegram: result.settings.notificationsTelegram });
       }
     });
+  }
+
+  function formValues() {
+    const parsedPort = smtpPort ? parseInt(smtpPort, 10) : null;
+    return {
+      personalityName,
+      personalityTone,
+      personalityEmoji,
+      personalityCustomPrompt: personalityCustomPrompt || null,
+      timezone: timezone || Intl.DateTimeFormat().resolvedOptions().timeZone,
+      ...ai.payload(),
+      notificationsEmail,
+      notificationEmailTo: notificationEmailTo || null,
+      emailProvider: smtpHost ? "smtp" : null,
+      smtpHost: smtpHost || null,
+      smtpPort: parsedPort && !isNaN(parsedPort) ? parsedPort : null,
+      smtpUser: smtpUser || null,
+      smtpPass: smtpPass || null,
+      smtpSecure,
+      smtpFrom: smtpUser || null,
+      notificationsPush,
+      ntfyUrl: ntfyUrl || null,
+      ntfyTopic: ntfyTopic || null,
+      notificationsTelegram,
+      quietHoursFrom: quietHours.enabled ? quietHours.from : null,
+      quietHoursTo: quietHours.enabled ? quietHours.to : null,
+    };
+  }
+
+  function requestClose() {
+    if (unsaved.dirty) setConfirmClose(true);
+    else onClose();
+  }
+
+  function discard() {
+    setReloads((n) => n + 1);
   }
 
   function handleSave() {
     if (pending) return;
     setError("");
-    const parsedPort = smtpPort ? parseInt(smtpPort, 10) : null;
     startTransition(async () => {
-      const result = await updateUserSettingsAction({
-        personalityName,
-        personalityTone,
-        personalityEmoji,
-        personalityCustomPrompt: personalityCustomPrompt || null,
-        timezone: timezone || Intl.DateTimeFormat().resolvedOptions().timeZone,
-        ...ai.payload(),
-        notificationsEmail,
-        notificationEmailTo: notificationEmailTo || null,
-        emailProvider: smtpHost ? "smtp" : null,
-        smtpHost: smtpHost || null,
-        smtpPort: parsedPort && !isNaN(parsedPort) ? parsedPort : null,
-        smtpUser: smtpUser || null,
-        smtpPass: smtpPass || null,
-        smtpSecure,
-        smtpFrom: smtpUser || null,
-        notificationsPush,
-        ntfyUrl: ntfyUrl || null,
-        ntfyTopic: ntfyTopic || null,
-        notificationsTelegram,
-      });
+      const result = await updateUserSettingsAction(formValues());
       if (!result.ok) {
         setError(result.error);
+        setConfirmClose(false);
         return;
       }
       if (result.aiChanged) void checkAIKeyAction().then(tickAiRefresh);
@@ -182,7 +223,7 @@ export function SettingsSheet({ open, initialTab, onClose }: SettingsSheetProps)
             exit={{ opacity: 0 }}
             transition={{ duration: 0.15 }}
             className="fixed inset-0 z-[55] bg-black"
-            onClick={onClose}
+            onClick={requestClose}
           />
           <motion.aside
             key="sheet"
@@ -195,7 +236,7 @@ export function SettingsSheet({ open, initialTab, onClose }: SettingsSheetProps)
           >
             <div className="bg-foreground text-background flex items-center justify-between px-3 py-1.5">
               <span className="font-pixel text-xs">tweaks</span>
-              <BracketButton variant="inverted" onClick={onClose}>
+              <BracketButton variant="inverted" onClick={requestClose}>
                 x
               </BracketButton>
             </div>
@@ -216,13 +257,6 @@ export function SettingsSheet({ open, initialTab, onClose }: SettingsSheetProps)
                 </button>
               ))}
             </div>
-            {tab !== "account" && tab !== "system" && (
-              <div className="border-border flex justify-end border-b px-3 py-1.5">
-                <BracketButton onClick={handleSave} disabled={pending || !loaded}>
-                  save
-                </BracketButton>
-              </div>
-            )}
 
             <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-4 py-4">
               {!loaded ? (
@@ -268,6 +302,8 @@ export function SettingsSheet({ open, initialTab, onClose }: SettingsSheetProps)
                       onDisconnectTelegram={handleDisconnectTelegram}
                       onRecheckTelegram={handleRecheckTelegram}
                       telegramActionPending={telegramActionPending}
+                      quietHours={quietHours}
+                      setQuietHours={setQuietHours}
                       pending={pending}
                     />
                   )}
@@ -291,6 +327,15 @@ export function SettingsSheet({ open, initialTab, onClose }: SettingsSheetProps)
                 </>
               )}
             </div>
+            {unsaved.dirty && <SaveBar pending={pending} onSave={handleSave} onDiscard={discard} />}
+            {confirmClose && (
+              <CloseWarning
+                pending={pending}
+                onSave={handleSave}
+                onDiscard={onClose}
+                onKeepEditing={() => setConfirmClose(false)}
+              />
+            )}
           </motion.aside>
         </>
       )}

@@ -5,7 +5,7 @@ import { db } from "@/lib/db";
 import { buckets, items, notificationQueue, userSettings } from "@/lib/db/schema";
 import { encryptValue } from "@/lib/crypto";
 import { POST as postWebhook } from "@/app/api/webhook/[bucketId]/route";
-import { saveQuietHoursAction } from "@/app/(app)/user-settings-actions";
+import { updateUserSettingsAction } from "@/app/(app)/user-settings-actions";
 import {
   HOUR,
   resetSchedulerEnvironment,
@@ -28,6 +28,23 @@ const KEY = "hc_live_testkey";
 beforeEach(() => useSchedulerEnvironment(T0));
 afterEach(() => resetSchedulerEnvironment());
 
+// quiet hours are saved with the rest of tweaks, so they go through the same save
+async function saveQuietHours(from: string | null, to: string | null) {
+  const settings = await db.query.userSettings.findFirst({
+    where: eq(userSettings.userId, session.userId),
+  });
+  if (!settings) throw new Error("no settings");
+  return updateUserSettingsAction({
+    ...settings,
+    aiKeyEdits: {},
+    transcriptionKeyEdit: { newKey: null, clear: false },
+    smtpPass: null,
+    smtpSecure: settings.smtpSecure ?? false,
+    quietHoursFrom: from,
+    quietHoursTo: to,
+  });
+}
+
 async function quietUser(from: string | null, to: string | null) {
   const userId = await seedUser();
   await db
@@ -40,8 +57,8 @@ async function quietUser(from: string | null, to: string | null) {
 describe("saving quiet hours", () => {
   it("accepts a start and an end, or neither", async () => {
     session.userId = await seedUser();
-    expect(await saveQuietHoursAction("22:00", "07:00")).toEqual({ ok: true });
-    expect(await saveQuietHoursAction(null, null)).toEqual({ ok: true });
+    expect(await saveQuietHours("22:00", "07:00")).toMatchObject({ ok: true });
+    expect(await saveQuietHours(null, null)).toMatchObject({ ok: true });
   });
 
   it("refuses half-set, invalid or empty windows", async () => {
@@ -51,7 +68,7 @@ describe("saving quiet hours", () => {
       ["25:00", "07:00"],
       ["07:00", "07:00"],
     ] as const) {
-      expect((await saveQuietHoursAction(from, to)).ok).toBe(false);
+      expect((await saveQuietHours(from, to)).ok).toBe(false);
     }
   });
 
@@ -62,7 +79,7 @@ describe("saving quiet hours", () => {
       deadline: new Date("2026-03-10T23:00:00Z"),
     });
 
-    await saveQuietHoursAction("22:00", "07:00");
+    await saveQuietHours("22:00", "07:00");
 
     const item = await db.query.items.findFirst({ where: eq(items.id, itemId) });
     expect(item?.nextReminderAt).toEqual(new Date("2026-03-11T07:00:00Z"));
