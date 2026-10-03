@@ -12,6 +12,8 @@ export const reminderRowFields = {
   item: items,
   notificationsRules: buckets.notificationsRules,
   fieldSchema: buckets.fieldSchema,
+  bucketDeletedAt: buckets.deletedAt,
+  bucketArchivedAt: buckets.archivedAt,
   timezone: userSettings.timezone,
   quietFrom: userSettings.quietHoursFrom,
   quietTo: userSettings.quietHoursTo,
@@ -21,6 +23,8 @@ export type ReminderRow = {
   item: typeof items.$inferSelect;
   notificationsRules: string;
   fieldSchema: unknown;
+  bucketDeletedAt: Date | null;
+  bucketArchivedAt: Date | null;
   timezone: string | null;
   quietFrom: string | null;
   quietTo: string | null;
@@ -80,6 +84,7 @@ export function toReminderInputs(row: ReminderRow): ReminderInputs {
     deadline: row.item.deadline,
     status: row.item.status,
     deletedAt: row.item.deletedAt,
+    bucketLive: row.bucketDeletedAt === null && row.bucketArchivedAt === null,
     remindNotBefore: row.item.remindNotBefore,
     notifiedAt: row.item.notifiedAt,
     overdueNotifiedAt: row.item.overdueNotifiedAt,

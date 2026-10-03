@@ -1,6 +1,7 @@
 import { and, asc, desc, eq, inArray, isNull, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { buckets, items } from "@/lib/db/schema";
+import { inLiveBucket } from "@/lib/buckets/live";
 import { ITEM_STATUS, VOICE_HINT_ITEMS, VOICE_HINT_MAX_LENGTH } from "@/constants";
 
 export type VoiceContext = { assistant: string; names: string[] };
@@ -15,10 +16,12 @@ export async function voiceContext(userId: number, assistantName: string): Promi
     db
       .select({ title: items.title })
       .from(items)
+      .innerJoin(buckets, eq(buckets.id, items.bucketId))
       .where(
         and(
           eq(items.userId, userId),
           isNull(items.deletedAt),
+          inLiveBucket,
           inArray(items.status, [ITEM_STATUS.active, ITEM_STATUS.onHold])
         )
       )

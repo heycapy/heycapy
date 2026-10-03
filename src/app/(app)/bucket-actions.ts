@@ -16,6 +16,7 @@ import {
   TELEGRAM_RESERVED_COMMANDS,
 } from "@/constants";
 import { findBucketByName } from "@/lib/db/buckets";
+import { refreshBucketReminders } from "@/lib/reminders/refresh";
 import { withDefaultChannels } from "@/lib/notifications/channels";
 import { saveBucketSettings, type BucketSettingsInput } from "@/lib/buckets/settings";
 import {
@@ -163,6 +164,7 @@ export async function archiveBucketAction(bucketId: number): Promise<ActionResul
     .update(buckets)
     .set({ archivedAt: new Date() })
     .where(and(eq(buckets.id, bucketId), eq(buckets.userId, session.userId)));
+  await refreshBucketReminders(bucketId);
 
   revalidatePath("/");
   return { ok: true };
@@ -175,6 +177,7 @@ export async function restoreBucketAction(bucketId: number): Promise<ActionResul
     .update(buckets)
     .set({ archivedAt: null })
     .where(and(eq(buckets.id, bucketId), eq(buckets.userId, session.userId)));
+  await refreshBucketReminders(bucketId);
 
   revalidatePath("/");
   return { ok: true };
@@ -187,6 +190,7 @@ export async function deleteBucketAction(bucketId: number): Promise<ActionResult
     .update(buckets)
     .set({ deletedAt: new Date() })
     .where(and(eq(buckets.id, bucketId), eq(buckets.userId, session.userId)));
+  await refreshBucketReminders(bucketId);
 
   revalidatePath("/");
   return { ok: true };
@@ -210,6 +214,7 @@ export async function restoreDeletedBucketAction(bucketId: number): Promise<Acti
     .update(buckets)
     .set({ deletedAt: null })
     .where(and(eq(buckets.id, bucketId), eq(buckets.userId, session.userId)));
+  await refreshBucketReminders(bucketId);
 
   revalidatePath("/");
   return { ok: true };
