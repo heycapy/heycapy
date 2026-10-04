@@ -28,3 +28,11 @@ export function secretProblems(env: Record<string, string | undefined>): string[
 
   return problems;
 }
+
+// Throwing in register() only logs: Next.js keeps running and answers every request with a 500
+export function refuseToStart(problems: string[]): never {
+  process.stderr.write(
+    `heycapy can't start, set these in .env or your host's secrets:\n- ${problems.join("\n- ")}\n`
+  );
+  process.exit(1);
+}

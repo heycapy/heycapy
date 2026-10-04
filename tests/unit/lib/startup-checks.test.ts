@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { secretProblems } from "@/lib/startup-secrets";
+import { secretProblems } from "@/lib/startup-checks";
 
 const GOOD = {
   JWT_SECRET: "x".repeat(32),

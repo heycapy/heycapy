@@ -1,14 +1,6 @@
-// Throwing here only logs: Next.js keeps running and answers every request with a 500
-function refuseToStart(problems: string[]): never {
-  process.stderr.write(
-    `heycapy can't start, set these in .env or your host's secrets:\n- ${problems.join("\n- ")}\n`
-  );
-  process.exit(1);
-}
-
 export async function register() {
   if (process.env.NEXT_RUNTIME === "nodejs") {
-    const { secretProblems } = await import("@/lib/startup-secrets");
+    const { refuseToStart, secretProblems } = await import("@/lib/startup-checks");
     const problems = secretProblems(process.env);
     if (process.env.NODE_ENV === "production" && !process.env.DATABASE_URL) {
       problems.push(
