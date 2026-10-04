@@ -67,13 +67,60 @@ set `APP_URL=http://localhost`, put `:80` instead of the domain in `Caddyfile`, 
 back up first, then move to the new version:
 
 ```sh
+docker compose stop heycapy
 docker compose cp heycapy:/data ./heycapy-backup
 git fetch --tags
 git checkout v0.1.1
 docker compose up -d --build
 ```
 
+stopping first matters: while heycapy runs, recent changes sit in a separate `heycapy.db-wal` file that a copy can miss.
+
 the database updates itself on start. what changed is in [CHANGELOG.md](CHANGELOG.md).
+
+### restoring a backup
+
+every night heycapy saves a copy of the database in `backups/` (see "running it"). each file is complete on its own. you also need the `.env` from back then: without the same `ENCRYPTION_KEY`, the keys and tokens saved in the app can't be read. a different `JWT_SECRET` only signs everyone out.
+
+1. stop heycapy and get the backup file next to your `docker-compose.yml`. if it's still on the server:
+
+   ```sh
+   docker compose stop heycapy
+   docker compose cp heycapy:/data/backups ./heycapy-backups
+   ```
+
+   on a new server, put your off-server copy there instead and set up `.env` and `Caddyfile` as in "self-host with docker".
+
+2. restore it, with the name of the file you want:
+
+   ```sh
+   docker compose run --rm --no-deps --user root \
+     -v "$PWD/heycapy-backups/heycapy-2026-10-04.db:/restore.db:ro" \
+     --entrypoint sh heycapy -c '
+       mkdir -p /data/before-restore
+       mv /data/heycapy.db* /data/before-restore/ 2>/dev/null
+       cp /restore.db /data/heycapy.db
+       chown nextjs:nodejs /data/heycapy.db'
+   ```
+
+3. start it again and sign in:
+
+   ```sh
+   docker compose up -d
+   ```
+
+the database you replaced is kept in `before-restore/` inside the volume, so a wrong pick can be undone. delete that folder once you're sure.
+
+don't copy the file in with `docker compose cp` instead: the old `heycapy.db-wal` stays behind and is applied on top, which silently undoes the restore, and the file ends up owned by the wrong user so heycapy can't write to it.
+
+restoring after a bad upgrade: `git checkout` the previous version first, then restore, then `docker compose up -d --build`. restoring a backup made by a newer version into an older one isn't supported.
+
+if you want the exact state from the upgrade step (`./heycapy-backup`, a full copy of `/data`), mount that folder instead (`-v "$PWD/heycapy-backup:/restore:ro"`) and use these two lines in place of the `cp` and `chown` ones. the `.db` and `-wal` files have to stay together:
+
+```sh
+cp /restore/heycapy.db* /data/
+chown nextjs:nodejs /data/heycapy.db*
+```
 
 ## configuration
 
@@ -104,7 +151,7 @@ leave these out when self-hosting.
 
 - **push notifications** work out of the box over https. on iphone they need "add to home screen".
 - **health checks**: `/api/health` for your platform, `/api/health/scheduler` for an uptime monitor (it returns 503 when reminders are stuck).
-- **backups**: every night the database is copied to a `backups/` folder next to it, keeping the last 7. copy that folder off the server too.
+- **backups**: every night the database is copied to a `backups/` folder next to it, keeping the last 7. it lives in the same docker volume as the database, so copy it off the server too (`docker compose cp heycapy:/data/backups .`), along with your `.env`. [how to restore](#restoring-a-backup)
 
 ## stack
 
