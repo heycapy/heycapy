@@ -5,12 +5,34 @@
 <h1 align="center">heycapy</h1>
 
 <p align="center">
-  a capy to help you with your day. buckets, deadlines, reminders, telegram and an ai to chat with.
+  a capy to help you with your day. buckets, deadlines, reminders on the channels you already use, and an ai to chat with.
 </p>
 
 <p align="center">
-  <a href="https://heycapy.xyz">heycapy.xyz</a> · <a href="https://heycapy.xyz/how-to-use">how to use</a>
+  <a href="https://heycapy.xyz">heycapy.xyz</a> · <a href="https://heycapy.xyz/how-to-use">how to use</a> · <a href="https://status.heycapy.xyz">status</a>
 </p>
+
+<p align="center">
+  <a href="https://github.com/heycapy/heycapy/actions/workflows/ci.yml"><img src="https://github.com/heycapy/heycapy/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/heycapy/heycapy" alt="MIT license"></a>
+  <a href="https://github.com/heycapy/heycapy/releases"><img src="https://img.shields.io/github/v/release/heycapy/heycapy" alt="latest release"></a>
+</p>
+
+## what it does
+
+- **buckets**: a list for each part of your life, from a template (reminders, subscriptions, todo, work, ci/cd monitor) or blank. each bucket has its own sort order, channels, quiet hours and custom fields. archive or delete one and it can be brought back from the trash
+- **items with dates**: type "pay rent friday 9am" and the date is picked out of the title. repeat daily, weekly, on chosen weekdays or on the last day of the month. up to 4 reminders per item, snooze, swipe to complete, long-press or right-click for quick dates
+- **reminders that arrive**: send them by email (resend or your own smtp server), web push (iphone too, from the home screen), ntfy, telegram, discord, slack or any webhook url. pick the channels per bucket, with quiet hours, retries and a banner when a channel keeps failing. reminders live in the database, so a restart delays one instead of losing it
+- **capy**: an assistant you can type or talk to. it adds, moves and completes items and changes bucket settings, using your own key (ollama, openai, anthropic, groq or gemini) or the server's
+- **act from the reminder**: done and remind me later buttons on email, push (android and desktop), ntfy and telegram. telegram can also add items and list what's due
+- **webhooks both ways**: every bucket has an incoming webhook that adds items. outgoing webhooks (up to 3 per user) post to discord, slack or any url with signed json ([standard webhooks](https://www.standardwebhooks.com))
+- **yours**: self-hosted with docker and sqlite, nightly backups, full account export, 18 themes
+
+## screenshots
+
+![heycapy in the capy and dark themes](.github/assets/screenshots/overview.png)
+
+![subscriptions and ci jobs that repeat](.github/assets/screenshots/recurring.png)
 
 ## run it locally
 
