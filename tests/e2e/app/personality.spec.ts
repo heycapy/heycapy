@@ -51,3 +51,26 @@ test("the custom tone needs a prompt", async ({ page }) => {
     "Talk like a pirate."
   );
 });
+
+test("my favorite tone sits apart from the others and is kept", async ({ page }) => {
+  await openPersonality(page);
+  await expect(page.getByText("my favorite", { exact: true })).toBeVisible();
+  const favorite = page.getByRole("button", { name: "rude & funny", exact: true });
+  await expect(favorite).toHaveAttribute("aria-pressed", "false");
+
+  await favorite.click();
+  await expect(favorite).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByPlaceholder("Describe the tone and style...")).toHaveCount(0);
+  await page.getByRole("button", { name: "[ save ]", exact: true }).click();
+  await expect(page.getByText("tweaks", { exact: true })).toBeHidden();
+
+  await openPersonality(page);
+  await expect(page.getByRole("button", { name: "rude & funny", exact: true })).toHaveAttribute(
+    "aria-pressed",
+    "true"
+  );
+  await expect(page.getByRole("button", { name: "chill", exact: true })).toHaveAttribute(
+    "aria-pressed",
+    "false"
+  );
+});

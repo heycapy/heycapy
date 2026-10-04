@@ -58,7 +58,7 @@ export const userSettings = sqliteTable("user_settings", {
   timezone: text("timezone").notNull().default("UTC"),
   personalityName: text("personality_name").notNull().default("Capy"),
   personalityTone: text("personality_tone", {
-    enum: ["chill", "professional", "motivational", "custom"],
+    enum: ["chill", "professional", "motivational", "rude_funny", "custom"],
   })
     .notNull()
     .default("chill"),

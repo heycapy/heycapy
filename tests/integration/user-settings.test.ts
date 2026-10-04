@@ -347,3 +347,16 @@ it("doesn't review a prompt that isn't in use", async () => {
   expect(review.calls).toBe(0);
   vi.unstubAllEnvs();
 });
+
+it("saves the rude and funny tone without a custom prompt or a review", async () => {
+  vi.stubEnv("HOSTED", "true");
+  const userId = await seedUser();
+  session = { userId };
+
+  const result = await updateUserSettingsAction({ ...saved, personalityTone: "rude_funny" });
+
+  expect(result.ok).toBe(true);
+  expect((await row(userId)).personalityTone).toBe("rude_funny");
+  expect(review.calls).toBe(0);
+  vi.unstubAllEnvs();
+});

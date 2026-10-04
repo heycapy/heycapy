@@ -26,7 +26,7 @@ import type { NotificationMedium } from "@/lib/notifications/queue";
 import { isE2ETestMode } from "@/lib/e2e";
 import { errorMessage, logAIError } from "@/lib/errors";
 import { getAIProvider } from "@/lib/ai";
-import { reviewCustomPrompt } from "@/lib/ai/personality";
+import { reviewCustomPrompt, type PersonalityTone } from "@/lib/ai/personality";
 import {
   AI_COMPACT_THRESHOLD_MAX,
   AI_COMPACT_THRESHOLD_MIN,
@@ -55,7 +55,7 @@ import {
 
 type UserSettingsUpdate = {
   personalityName: string;
-  personalityTone: "chill" | "professional" | "motivational" | "custom";
+  personalityTone: PersonalityTone;
   personalityEmoji: boolean;
   personalityCustomPrompt: string | null;
   timezone: string;

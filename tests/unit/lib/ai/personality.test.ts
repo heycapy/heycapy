@@ -55,3 +55,10 @@ it("refuses a prompt the reviewer rejects, and one it can't answer for", async (
   );
   expect(await reviewCustomPrompt(providerAnswering(null), "x")).toBe(CUSTOM_PROMPT_REJECTED_ERROR);
 });
+
+it("gives the rude and funny tone playful limits", () => {
+  const text = toneInstruction("rude_funny", null);
+  expect(text).toMatch(/^Be rude and funny/);
+  expect(text).toContain("keep it playful");
+  expect(text).toContain("never be truly cruel");
+});

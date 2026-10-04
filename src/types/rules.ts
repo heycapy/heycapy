@@ -41,7 +41,7 @@ export const McpRules = z.object({
 
 export const PersonalityRules = z.object({
   toneOverride: z
-    .enum(["chill", "professional", "motivational", "custom"])
+    .enum(["chill", "professional", "motivational", "rude_funny", "custom"])
     .nullable()
     .default(null),
 });
