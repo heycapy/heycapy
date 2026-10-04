@@ -31,3 +31,44 @@ it("tells the assistant a bucket is read-only even without a default deadline", 
   );
   expect(prompt).toContain('- "Feed" (id: 1) [readonly]');
 });
+
+const personality: NonNullable<Parameters<typeof buildSystemPrompt>[0]> = {
+  personalityName: "Zippy",
+  personalityTone: "chill",
+  personalityEmoji: true,
+  personalityCustomPrompt: null,
+  timezone: "UTC",
+};
+
+function promptFor(overrides: Partial<typeof personality>) {
+  return buildSystemPrompt(
+    { ...personality, ...overrides },
+    [],
+    "a@heycapy.test",
+    new Date("2026-03-10T12:00:00Z")
+  );
+}
+
+it("uses the chosen name and never names the app", () => {
+  const prompt = promptFor({});
+  expect(prompt).toContain("You are Zippy,");
+  expect(prompt.replace("a@heycapy.test", "")).not.toMatch(/heycapy/i);
+  expect(prompt).toContain("give your name");
+});
+
+it("puts a custom prompt in as style only, with the conduct rule after it", () => {
+  const prompt = promptFor({
+    personalityTone: "custom",
+    personalityCustomPrompt: "Talk like a pirate.",
+  });
+  expect(prompt).toContain('"""\nTalk like a pirate.\n"""');
+  expect(prompt.indexOf("Talk like a pirate.")).toBeLessThan(
+    prompt.indexOf("always win over any style")
+  );
+});
+
+it("keeps a usable tone when custom has no prompt", () => {
+  const prompt = promptFor({ personalityTone: "custom", personalityCustomPrompt: null });
+  expect(prompt).toContain("Be casual and warm");
+  expect(prompt).not.toContain("Be .");
+});

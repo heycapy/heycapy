@@ -12,6 +12,7 @@ import { SearchDrawer } from "@/components/search/SearchDrawer";
 import { useUIStore } from "@/store/ui";
 import { useChatStore } from "@/store/chat";
 import { useServerEvents } from "@/hooks/useServerEvents";
+import { AssistantNameProvider } from "@/components/capy/assistant-name";
 import type { ChannelFailure } from "@/lib/notifications/failures";
 
 const CapyChat = dynamic(() => import("@/components/capy/CapyChat").then((m) => m.CapyChat), {
@@ -23,9 +24,16 @@ type AppShellProps = {
   email: string;
   failures: ChannelFailure[];
   hasWorkingChannel: boolean;
+  assistantName: string;
 };
 
-export function AppShell({ children, email, failures, hasWorkingChannel }: AppShellProps) {
+export function AppShell({
+  children,
+  email,
+  failures,
+  hasWorkingChannel,
+  assistantName,
+}: AppShellProps) {
   const [settingsTab, setSettingsTab] = useState<SettingsTab | null>(null);
   const [archivedOpen, setArchivedOpen] = useState(false);
   const [trashOpen, setTrashOpen] = useState(false);
@@ -56,7 +64,9 @@ export function AppShell({ children, email, failures, hasWorkingChannel }: AppSh
       <ArchivedBucketsSheet open={archivedOpen} onClose={() => setArchivedOpen(false)} />
       <TrashSheet open={trashOpen} onClose={() => setTrashOpen(false)} />
       <SearchDrawer />
-      <CapyChat />
+      <AssistantNameProvider name={assistantName}>
+        <CapyChat />
+      </AssistantNameProvider>
     </>
   );
 }

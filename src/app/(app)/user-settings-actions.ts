@@ -14,7 +14,6 @@ import { encryptValue, decryptValue } from "@/lib/crypto";
 import { refreshUserReminders } from "@/lib/reminders/refresh";
 import { parseClock } from "@/lib/reminders/zoned";
 import { ALL_CHANNELS, getChannelSettings, workingChannels } from "@/lib/notifications/channels";
-import { TELEGRAM_API_BASE, TELEGRAM_LINK_BASE } from "@/constants";
 import { sendEmail } from "@/lib/notifications/email";
 import { sendNtfy } from "@/lib/notifications/ntfy";
 import { publicAddress } from "@/lib/notifications/public-address";
@@ -25,12 +24,18 @@ import { createTelegramLinkCode } from "@/lib/notifications/telegram-link";
 import { telegramWebhookSecret } from "@/lib/notifications/telegram-webhook";
 import type { NotificationMedium } from "@/lib/notifications/queue";
 import { isE2ETestMode } from "@/lib/e2e";
-import { errorMessage } from "@/lib/errors";
+import { errorMessage, logAIError } from "@/lib/errors";
+import { getAIProvider } from "@/lib/ai";
+import { reviewCustomPrompt } from "@/lib/ai/personality";
 import {
   AI_COMPACT_THRESHOLD_MAX,
   AI_COMPACT_THRESHOLD_MIN,
   APP_NAME,
+  CUSTOM_PROMPT_MAX_LENGTH,
+  CUSTOM_PROMPT_REQUIRED_ERROR,
   EMAIL_COLORS,
+  TELEGRAM_API_BASE,
+  TELEGRAM_LINK_BASE,
 } from "@/constants";
 import { emailLayout } from "@/lib/email/layout";
 import {
@@ -126,6 +131,20 @@ export async function getUserSettingsAction(): Promise<
   };
 }
 
+async function customPromptError(
+  tone: string,
+  prompt: string | null,
+  savedPrompt: string | null | undefined
+): Promise<string | null> {
+  if (!isHosted() || tone !== "custom" || !prompt || prompt === savedPrompt) return null;
+  try {
+    return await reviewCustomPrompt(getAIProvider(), prompt);
+  } catch (err) {
+    logAIError(err, "personality-review");
+    return null;
+  }
+}
+
 export async function updateUserSettingsAction(
   data: UserSettingsUpdate
 ): Promise<ActionResult<{ aiChanged: boolean }>> {
@@ -135,6 +154,13 @@ export async function updateUserSettingsAction(
   const trimmedName = data.personalityName.trim();
   if (!trimmedName) return { ok: false, error: "Name is required" };
   if (trimmedName.length > 50) return { ok: false, error: "Name too long" };
+  const customPrompt = data.personalityCustomPrompt?.trim() || null;
+  if (data.personalityTone === "custom" && !customPrompt) {
+    return { ok: false, error: CUSTOM_PROMPT_REQUIRED_ERROR };
+  }
+  if (customPrompt && customPrompt.length > CUSTOM_PROMPT_MAX_LENGTH) {
+    return { ok: false, error: "Custom prompt too long" };
+  }
   if (
     !Number.isInteger(data.aiCompactThreshold) ||
     data.aiCompactThreshold < AI_COMPACT_THRESHOLD_MIN ||
@@ -158,6 +184,12 @@ export async function updateUserSettingsAction(
   const saved = await db.query.userSettings.findFirst({
     where: eq(userSettings.userId, session.userId),
   });
+  const promptError = await customPromptError(
+    data.personalityTone,
+    customPrompt,
+    saved?.personalityCustomPrompt
+  );
+  if (promptError) return { ok: false, error: promptError };
   const aiKeys = applyAIKeyEdits(saved ? savedAIKeysOf(saved) : {}, keyEdits.data);
   const active = data.aiProvider ? aiKeys[data.aiProvider] : undefined;
   const aiApiKey = active?.apiKey || null;
@@ -184,7 +216,7 @@ export async function updateUserSettingsAction(
       personalityName: trimmedName,
       personalityTone: data.personalityTone,
       personalityEmoji: data.personalityEmoji,
-      personalityCustomPrompt: data.personalityCustomPrompt || null,
+      personalityCustomPrompt: customPrompt,
       timezone: data.timezone || "UTC",
       aiProvider: data.aiProvider,
       aiApiKey: aiApiKey && encryptValue(aiApiKey),

@@ -874,7 +874,7 @@ async function handleUpdate(botToken: string, body: TelegramUpdate): Promise<Res
     await sendTelegramWithQuickActions(
       botToken,
       chatIdStr,
-      `capy couldn't answer: ${parseProviderError(err)}`
+      `couldn't answer: ${parseProviderError(err)}`
     ).catch(() => {});
     return new Response("OK");
   }

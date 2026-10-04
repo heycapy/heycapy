@@ -23,6 +23,7 @@ import {
 } from "@/lib/reminders/constants";
 import { SCHEDULER_AI_TIMEOUT_MS, SCHEDULER_STALE_MS, SCHEDULER_WATCHDOG_MS } from "./constants";
 import type { AgentMessage } from "@/lib/ai/types";
+import { CONDUCT_RULE, toneInstruction, type PersonalityTone } from "@/lib/ai/personality";
 
 type PersonalityRow = {
   aiProvider: string | null;
@@ -54,14 +55,10 @@ async function generateNotificationText(
       useOwnKey: row.aiUseOwnKey,
     });
 
-    const toneGuide =
-      row.personalityTone === "custom" && row.personalityCustomPrompt
-        ? row.personalityCustomPrompt
-        : ({
-            chill: "casual and friendly",
-            professional: "professional and concise",
-            motivational: "energetic and motivating",
-          }[row.personalityTone] ?? "friendly");
+    const toneGuide = toneInstruction(
+      row.personalityTone as PersonalityTone,
+      row.personalityCustomPrompt
+    );
 
     const emojiNote = row.personalityEmoji
       ? "You may use 1-2 relevant emojis."
@@ -70,7 +67,7 @@ async function generateNotificationText(
     const messages: AgentMessage[] = [
       {
         role: "system",
-        content: `You are ${row.personalityName}, a helpful assistant. Write a single short push notification sentence reminding the user about an upcoming deadline. Tone: ${toneGuide}. ${emojiNote} Output only the notification text — no quotes, no labels, nothing else.`,
+        content: `You are ${row.personalityName}, a helpful assistant. Write a single short push notification sentence reminding the user about an upcoming deadline. ${toneGuide} ${emojiNote} ${CONDUCT_RULE} Output only the notification text — no quotes, no labels, nothing else.`,
       },
       {
         role: "user",

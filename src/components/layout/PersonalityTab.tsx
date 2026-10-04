@@ -74,6 +74,10 @@ export function PersonalityTab({
             rows={4}
             className="border-border placeholder:text-muted-foreground/50 focus:border-foreground w-full resize-none border-b bg-transparent py-1.5 font-mono text-xs outline-none disabled:opacity-50"
           />
+          <p className="text-muted-foreground font-mono text-[11px]">
+            only how it should sound, like &quot;talk like a pirate&quot;. keep it friendly: prompts
+            that ask for anything else are refused.
+          </p>
         </div>
       )}
       <div className="flex flex-col gap-1.5">

@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Sprite } from "./Sprite";
 import { VOICE_MAX_SECONDS } from "@/constants";
+import { useAssistantName } from "./assistant-name";
 
 type Props = {
   input: string;
@@ -25,6 +26,7 @@ export const ChatInputBar = forwardRef<ChatInputBarHandle, Props>(function ChatI
   { input, setInput, streaming, onSend, onStop }: Props,
   ref
 ) {
+  const name = useAssistantName();
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
@@ -164,12 +166,12 @@ export const ChatInputBar = forwardRef<ChatInputBarHandle, Props>(function ChatI
                   ●
                 </span>
                 <span className="text-foreground font-pixel text-xs">
-                  capy listening... {formatTime(recSeconds)}
+                  {name} listening... {formatTime(recSeconds)}
                 </span>
               </>
             ) : (
               <span className="text-muted-foreground font-pixel animate-pulse text-xs">
-                capy&apos;s jotting it down...
+                {name}&apos;s jotting it down...
               </span>
             )}
           </div>
@@ -190,7 +192,7 @@ export const ChatInputBar = forwardRef<ChatInputBarHandle, Props>(function ChatI
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="ask capy..."
+            placeholder={`ask ${name}...`}
             rows={1}
             disabled={streaming}
             className="placeholder:text-muted-foreground flex-1 resize-none bg-transparent font-mono text-xs outline-none disabled:opacity-50"
