@@ -1,4 +1,5 @@
 import { JWT_SECRET_MIN_LENGTH, SECRET_PLACEHOLDER_PREFIX } from "@/constants";
+import { isLocalUrl } from "@/lib/app-url";
 
 const MAKE_JWT_SECRET = "generate one with: openssl rand -base64 32";
 const MAKE_ENCRYPTION_KEY = "generate one with: openssl rand -hex 32";
@@ -26,6 +27,25 @@ export function secretProblems(env: Record<string, string | undefined>): string[
     problems.push(`ENCRYPTION_KEY must be 64 hex characters, ${MAKE_ENCRYPTION_KEY}`);
   }
 
+  return problems;
+}
+
+const EXAMPLE_VALUE = /yourdomain\.com|^re_\.\.\.$/;
+
+export function productionProblems(env: Record<string, string | undefined>): string[] {
+  const problems = Object.entries(env)
+    .filter(([, value]) => value && EXAMPLE_VALUE.test(value))
+    .map(([name]) => `${name} is still the example value from .env.example`);
+
+  if (!env.APP_URL || !/^https?:\/\//.test(env.APP_URL)) {
+    problems.push(
+      "APP_URL is not set, set it to the address heycapy is opened at, e.g. https://heycapy.example.com (or http://localhost to try it on this machine)"
+    );
+  } else if (!env.RESEND_API_KEY && !env.SMTP_HOST && !isLocalUrl(env.APP_URL)) {
+    problems.push(
+      "no email is set up, set RESEND_API_KEY or SMTP_HOST so sign in codes can be sent. without one the codes would show on the sign in screen and anyone could sign in as anyone (fine only on this machine: APP_URL=http://localhost)"
+    );
+  }
   return problems;
 }
 

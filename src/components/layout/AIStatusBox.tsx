@@ -25,7 +25,7 @@ export function AIStatusBox({ ownKeyPicked }: { ownKeyPicked: boolean }) {
     });
   }
 
-  const heycapyPicked = !ownKeyPicked && status.kind !== "server";
+  const heycapyPicked = !ownKeyPicked && (status.kind === "credits" || status.kind === "own");
   const balance =
     status.kind === "credits" ? status.balance : status.kind === "own" ? status.credits : null;
   const ownKeySaved = status.kind === "own";
@@ -104,6 +104,12 @@ export function AIStatusBox({ ownKeyPicked }: { ownKeyPicked: boolean }) {
       {status.kind === "server" && (
         <p className={HINT}>
           capy uses this server&apos;s ai. add your own key below to use yours.
+        </p>
+      )}
+      {status.kind === "none" && (
+        <p className={HINT}>
+          this server has no ai of its own, so capy needs yours. add a key or an ollama url below
+          and save.
         </p>
       )}
     </div>

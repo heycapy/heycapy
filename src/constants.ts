@@ -59,6 +59,7 @@ export const OLLAMA_REQUEST_TIMEOUT_MS = 120_000;
 export const AI_MAX_OUTPUT_TOKENS = 4096;
 export const AI_KEY_CHECK_TIMEOUT_MS = 15_000;
 export const AI_TIMEOUT_ERROR = "The AI provider didn't answer in time. Try again.";
+export const NO_AI_ERROR = "capy needs an ai first. add your own key or ollama url in tweaks → ai.";
 // model calls per answer so a runaway chain of tools can't cost many times its credit
 export const AGENT_MAX_ROUNDS = 5;
 export const AGENT_STOPPED_REPLY = `capy stopped here since one message can take at most ${AGENT_MAX_ROUNDS} steps. Say "go on" to finish the rest.`;

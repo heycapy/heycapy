@@ -3,7 +3,7 @@ import { db } from "@/lib/db";
 import { userSettings } from "@/lib/db/schema";
 import { creditBalance, isHosted } from "@/lib/credits";
 import { parseProviderError } from "@/lib/errors";
-import { hasOwnAI } from ".";
+import { hasOwnAI, hasServerAI } from ".";
 import type { UsageMeta } from "./usage";
 
 export type AIStatus =
@@ -16,7 +16,8 @@ export type AIStatus =
       checkedAt: Date | null;
       credits: number | null;
     }
-  | { kind: "server"; provider: string };
+  | { kind: "server"; provider: string }
+  | { kind: "none" };
 
 type SettingsRow = typeof userSettings.$inferSelect;
 
@@ -40,9 +41,10 @@ export function aiStatusFor(userId: number, settings: SettingsRow | undefined): 
   if (isHosted()) {
     return { kind: "credits", balance: creditBalance(userId) };
   }
+  if (!hasServerAI()) return { kind: "none" };
   return {
     kind: "server",
-    provider: settings?.aiProvider ?? process.env.AI_PROVIDER ?? "ollama",
+    provider: process.env.AI_PROVIDER ?? "",
   };
 }
 

@@ -3,7 +3,7 @@ import { createOpenAIProvider } from "./providers/openai";
 import { createAnthropicProvider } from "./providers/anthropic";
 import { createGroqProvider } from "./providers/groq";
 import { createGeminiProvider } from "./providers/gemini";
-import { GEMINI_DEFAULT_MODEL, OLLAMA_DEFAULT_URL } from "@/constants";
+import { GEMINI_DEFAULT_MODEL, NO_AI_ERROR, OLLAMA_DEFAULT_URL } from "@/constants";
 import type { AIProvider } from "./types";
 import type { UsageMeta } from "./usage";
 import { isHosted } from "@/lib/credits";
@@ -58,6 +58,13 @@ export function hasOwnAI(config?: AIConfig): boolean {
   return !!config.apiKey;
 }
 
+// Self-hosted only: the ai in .env for users without their own; ollama needs no key
+export function hasServerAI(): boolean {
+  const provider = process.env.AI_PROVIDER;
+  if (!provider) return false;
+  return provider === "ollama" || !!process.env.AI_API_KEY;
+}
+
 export function getAIProvider(requested?: AIConfig): MeteredProvider {
   if (isHosted() && !hasOwnAI(requested)) {
     const { provider, model, price } = serverTiers().quick.primary;
@@ -71,6 +78,7 @@ export function getAIProvider(requested?: AIConfig): MeteredProvider {
   }
 
   const own = hasOwnAI(requested) && requested ? requested : null;
+  if (!own && !hasServerAI()) throw new Error(NO_AI_ERROR);
   const provider = own?.provider || process.env.AI_PROVIDER || "ollama";
   const model = (own ? own.model : process.env.AI_MODEL) || DEFAULT_MODELS[provider] || "";
   const ollamaUrl = (own ? own.ollamaUrl : process.env.OLLAMA_URL) || OLLAMA_DEFAULT_URL;

@@ -1,11 +1,15 @@
 export async function register() {
   if (process.env.NEXT_RUNTIME === "nodejs") {
-    const { refuseToStart, secretProblems } = await import("@/lib/startup-checks");
+    const { productionProblems, refuseToStart, secretProblems } =
+      await import("@/lib/startup-checks");
     const problems = secretProblems(process.env);
-    if (process.env.NODE_ENV === "production" && !process.env.DATABASE_URL) {
-      problems.push(
-        "DATABASE_URL is not set, point it at persistent storage, e.g. file:/data/heycapy.db"
-      );
+    if (process.env.NODE_ENV === "production") {
+      if (!process.env.DATABASE_URL) {
+        problems.push(
+          "DATABASE_URL is not set, point it at persistent storage, e.g. file:/data/heycapy.db"
+        );
+      }
+      problems.push(...productionProblems(process.env));
     }
     const { isHosted } = await import("@/lib/credits");
     const { missingTierKeys } = await import("@/lib/ai/tiers");

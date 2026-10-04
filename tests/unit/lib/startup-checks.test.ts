@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { secretProblems } from "@/lib/startup-checks";
+import { productionProblems, secretProblems } from "@/lib/startup-checks";
 
 const GOOD = {
   JWT_SECRET: "x".repeat(32),
@@ -39,5 +39,46 @@ describe("secretProblems", () => {
 
   it("lists every problem at once", () => {
     expect(secretProblems({})).toHaveLength(2);
+  });
+});
+
+describe("productionProblems", () => {
+  const LIVE = { APP_URL: "https://heycapy.example.com", RESEND_API_KEY: "re_live" };
+
+  it("accepts a public address with email set up, by resend or smtp", () => {
+    expect(productionProblems(LIVE)).toEqual([]);
+    expect(productionProblems({ APP_URL: LIVE.APP_URL, SMTP_HOST: "smtp.example.com" })).toEqual(
+      []
+    );
+  });
+
+  it("refuses a missing APP_URL", () => {
+    expect(productionProblems({ RESEND_API_KEY: "re_live" })).toEqual([
+      expect.stringMatching(/^APP_URL is not set/),
+    ]);
+  });
+
+  it("refuses a public address without email, where codes on screen would let anyone in", () => {
+    expect(productionProblems({ APP_URL: LIVE.APP_URL })).toEqual([
+      expect.stringMatching(/^no email is set up/),
+    ]);
+  });
+
+  it("allows no email when heycapy only runs on this machine", () => {
+    expect(productionProblems({ APP_URL: "http://localhost" })).toEqual([]);
+    expect(productionProblems({ APP_URL: "http://127.0.0.1:8080" })).toEqual([]);
+  });
+
+  it("names every value still copied from .env.example", () => {
+    expect(
+      productionProblems({
+        ...LIVE,
+        RESEND_API_KEY: "re_...",
+        EMAIL_FROM: "HeyCapy <noreply@yourdomain.com>",
+      })
+    ).toEqual([
+      "RESEND_API_KEY is still the example value from .env.example",
+      "EMAIL_FROM is still the example value from .env.example",
+    ]);
   });
 });
