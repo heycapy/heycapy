@@ -1,5 +1,6 @@
 import { AGENT_MAX_ROUNDS, AGENT_STOPPED_REPLY, AI_TIMEOUT_ERROR } from "@/constants";
 import { CAPY_TOOLS, executeToolCall } from "./capyTools";
+import { nextTurnId } from "./deleteGuard";
 import type { AgentMessage, AIProvider, CompleteResult, TokenUsage, ToolCall } from "./types";
 
 export type AgentStep = { kind: "thinking" } | { kind: "tool"; call: ToolCall };
@@ -38,6 +39,7 @@ export async function runAgent({
   onStep,
   onUsage,
 }: RunAgentOptions): Promise<string> {
+  const turnId = nextTurnId();
   let lastContent = "";
   for (let round = 0; round < AGENT_MAX_ROUNDS; round++) {
     // After tools, their line stays up while the model reads the results; a fresh "thinking" would hide it
@@ -58,7 +60,7 @@ export async function runAgent({
         role: "tool",
         toolCallId: call.id,
         toolName: call.name,
-        content: await executeToolCall(call, userId, timezone),
+        content: await executeToolCall(call, userId, timezone, turnId),
       });
     }
   }

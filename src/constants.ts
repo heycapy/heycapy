@@ -62,6 +62,8 @@ export const AI_TIMEOUT_ERROR = "The AI provider didn't answer in time. Try agai
 export const NO_AI_ERROR = "no ai is set up yet. add your own key or ollama url in tweaks → ai.";
 // model calls per answer so a runaway chain of tools can't cost many times its credit
 export const AGENT_MAX_ROUNDS = 5;
+// how long a delete asked for by capy waits for the user to say yes in a later message
+export const DELETE_CONFIRM_TTL_MS = 5 * 60 * 1000;
 export const AGENT_STOPPED_REPLY = `I stopped here since one message can take at most ${AGENT_MAX_ROUNDS} steps. Say "go on" to finish the rest.`;
 // How many chat messages may follow the summary before older ones are folded into it
 export const AI_COMPACT_THRESHOLD_MIN = 10;

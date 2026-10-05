@@ -106,7 +106,7 @@ export const ITEM_AND_BUCKET_TOOLS: Tool[] = [
     name: "delete_bucket",
     description:
       "Move a bucket and all its items to the trash. " +
-      "Only do this when the user explicitly asks to delete or remove a bucket, and confirm first. " +
+      "Only do this when the user explicitly asks to delete or remove a bucket. Call it right away: the first call deletes nothing and tells you to ask the user, and the delete happens when you call it again after they say yes. " +
       "The user can restore it from the trash for 30 days; after that it is deleted for good.",
     parameters: {
       type: "object",
