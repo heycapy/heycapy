@@ -94,6 +94,8 @@ export const TRANSCRIPTION_DEFAULT_MODELS: Record<TranscriptionProvider, string>
   gemini: GEMINI_DEFAULT_MODEL,
 };
 export const VOICE_MAX_SECONDS = 120;
+// shorter than this is a tap, not speech
+export const VOICE_MIN_MS = 800;
 // two minutes of safari aac at 128 kbps with room to spare
 export const VOICE_MAX_BYTES = 3 * 1024 * 1024;
 export const VOICE_TOO_LONG_ERROR = "Recordings can be up to 2 minutes.";

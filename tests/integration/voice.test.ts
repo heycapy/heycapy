@@ -254,3 +254,44 @@ it("voice never falls back to the chat AI's key", async () => {
   });
   expect(calls).toEqual([]);
 });
+
+it("an empty recording says nothing was heard without calling the provider", async () => {
+  const userId = await seedUser();
+
+  expect(await speak(userId, new Blob([]))).toEqual({
+    status: 422,
+    body: { error: VOICE_NO_SPEECH_ERROR },
+  });
+  expect(calls).toEqual([]);
+  expect(usageRows(userId)).toEqual([]);
+});
+
+it("audio Gemini can't decode says nothing was heard, but other 400s stay errors", async () => {
+  const userId = await seedUser();
+  geminiReply = {
+    status: 400,
+    body: {
+      error: {
+        code: 400,
+        message: "Request contains an invalid argument.",
+        status: "INVALID_ARGUMENT",
+      },
+    },
+  };
+  expect(await speak(userId)).toEqual({ status: 422, body: { error: VOICE_NO_SPEECH_ERROR } });
+
+  geminiReply = {
+    status: 400,
+    body: {
+      error: {
+        code: 400,
+        message: "API key not valid. Please pass a valid API key.",
+        status: "INVALID_ARGUMENT",
+      },
+    },
+  };
+  expect(await speak(userId)).toEqual({
+    status: 502,
+    body: { error: "Gemini error: API key not valid. Please pass a valid API key." },
+  });
+});

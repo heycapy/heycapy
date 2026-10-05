@@ -49,7 +49,7 @@ type GeminiResponse = {
     candidatesTokenCount?: number;
     cachedContentTokenCount?: number;
   };
-  error?: { message?: string };
+  error?: { message?: string; status?: string };
 };
 
 // safari records mp4 which gemini calls m4a and codec parameters are not part of its types
@@ -93,6 +93,12 @@ async function transcribeWithGemini(
     }
   );
   const body = (await res.json().catch(() => ({}))) as GeminiResponse;
+  if (
+    body.error?.status === "INVALID_ARGUMENT" &&
+    /invalid argument/i.test(body.error.message ?? "")
+  ) {
+    return { text: "", usage: null };
+  }
   if (!res.ok) {
     throw new Error(`Gemini error: ${body.error?.message ?? `${res.status} ${res.statusText}`}`);
   }
