@@ -13,9 +13,9 @@
 </p>
 
 <p align="center">
+  <a href="https://github.com/heycapy/heycapy/releases"><img src="https://img.shields.io/github/v/release/heycapy/heycapy" alt="latest release"></a>
   <a href="https://github.com/heycapy/heycapy/actions/workflows/ci.yml"><img src="https://github.com/heycapy/heycapy/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <a href="LICENSE"><img src="https://img.shields.io/github/license/heycapy/heycapy" alt="MIT license"></a>
-  <a href="https://github.com/heycapy/heycapy/releases"><img src="https://img.shields.io/github/v/release/heycapy/heycapy" alt="latest release"></a>
 </p>
 
 ## what it does
