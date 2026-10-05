@@ -4,6 +4,8 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Sprite } from "./Sprite";
 import { VOICE_MAX_SECONDS } from "@/constants";
+import { useAssistantName } from "./assistant-name";
+import { isTooShort, recordingFileName } from "./recording";
 
 type Props = {
   input: string;
@@ -25,6 +27,7 @@ export const ChatInputBar = forwardRef<ChatInputBarHandle, Props>(function ChatI
   { input, setInput, streaming, onSend, onStop }: Props,
   ref
 ) {
+  const name = useAssistantName();
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
@@ -94,6 +97,7 @@ export const ChatInputBar = forwardRef<ChatInputBarHandle, Props>(function ChatI
     }
 
     const mr = new MediaRecorder(stream);
+    const startedAt = Date.now();
     chunksRef.current = [];
     const limit = setTimeout(() => {
       if (mr.state === "recording") mr.stop();
@@ -107,11 +111,18 @@ export const ChatInputBar = forwardRef<ChatInputBarHandle, Props>(function ChatI
       clearTimeout(limit);
       stream.getTracks().forEach((t) => t.stop());
       setRecording(false);
-      setTranscribing(true);
 
       const blob = new Blob(chunksRef.current, { type: mr.mimeType || "audio/webm" });
+      if (isTooShort(blob.size, Date.now() - startedAt)) {
+        toast.error("didn't catch that", {
+          description: "Hold the mic a bit longer while you talk.",
+          icon: createElement(Sprite, { id: "capy-error", size: 28 }),
+        });
+        return;
+      }
+      setTranscribing(true);
       const fd = new FormData();
-      fd.append("audio", blob, "recording.webm");
+      fd.append("audio", blob, recordingFileName(blob.type));
 
       try {
         const res = await fetch("/api/transcribe", { method: "POST", body: fd });
@@ -164,12 +175,12 @@ export const ChatInputBar = forwardRef<ChatInputBarHandle, Props>(function ChatI
                   ●
                 </span>
                 <span className="text-foreground font-pixel text-xs">
-                  capy listening... {formatTime(recSeconds)}
+                  {name} listening... {formatTime(recSeconds)}
                 </span>
               </>
             ) : (
               <span className="text-muted-foreground font-pixel animate-pulse text-xs">
-                capy&apos;s jotting it down...
+                {name}&apos;s jotting it down...
               </span>
             )}
           </div>
@@ -190,7 +201,7 @@ export const ChatInputBar = forwardRef<ChatInputBarHandle, Props>(function ChatI
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="ask capy..."
+            placeholder={`ask ${name}...`}
             rows={1}
             disabled={streaming}
             className="placeholder:text-muted-foreground flex-1 resize-none bg-transparent font-mono text-xs outline-none disabled:opacity-50"

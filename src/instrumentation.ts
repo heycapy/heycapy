@@ -1,18 +1,26 @@
 export async function register() {
   if (process.env.NEXT_RUNTIME === "nodejs") {
-    if (process.env.NODE_ENV === "production" && !process.env.DATABASE_URL) {
-      throw new Error(
-        "DATABASE_URL is not set — point it at persistent storage, e.g. file:/data/heycapy.db"
-      );
+    const { productionProblems, refuseToStart, secretProblems } =
+      await import("@/lib/startup-checks");
+    const problems = secretProblems(process.env);
+    if (process.env.NODE_ENV === "production") {
+      if (!process.env.DATABASE_URL) {
+        problems.push(
+          "DATABASE_URL is not set, point it at persistent storage, e.g. file:/data/heycapy.db"
+        );
+      }
+      problems.push(...productionProblems(process.env));
     }
     const { isHosted } = await import("@/lib/credits");
     const { missingTierKeys } = await import("@/lib/ai/tiers");
     const missing = isHosted() ? missingTierKeys() : [];
     if (missing.length > 0) {
-      throw new Error(
+      problems.push(
         `HOSTED is true but ${missing.join(", ")} is not set, which the models in src/lib/ai/tiers.ts need`
       );
     }
+    if (problems.length > 0) refuseToStart(problems);
+
     const { findMigrationsFolder } = await import("@/lib/db/migrations-folder");
     const migrationsFolder = findMigrationsFolder();
     if (migrationsFolder) {

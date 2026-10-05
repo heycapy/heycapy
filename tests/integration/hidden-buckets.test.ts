@@ -35,14 +35,21 @@ async function seedDueItem() {
   return { userId, bucketId, itemId };
 }
 
-async function capy(userId: number, name: string, args: Record<string, unknown>) {
-  return JSON.parse(await executeToolCall({ id: "t", name, arguments: args }, userId)) as unknown;
+async function capy(userId: number, name: string, args: Record<string, unknown>, turnId?: number) {
+  return JSON.parse(
+    await executeToolCall({ id: "t", name, arguments: args }, userId, "UTC", turnId)
+  ) as unknown;
+}
+
+async function capyDeletesBucket(userId: number, bucketId: number) {
+  await capy(userId, "delete_bucket", { bucket_id: bucketId }, 1);
+  await capy(userId, "delete_bucket", { bucket_id: bucketId }, 2);
 }
 
 describe("a deleted bucket's items", () => {
   it("send no reminders, whether capy or the app deleted the bucket", async () => {
     const byCapy = await seedDueItem();
-    await capy(byCapy.userId, "delete_bucket", { bucket_id: byCapy.bucketId });
+    await capyDeletesBucket(byCapy.userId, byCapy.bucketId);
     const byApp = await seedDueItem();
     await deleteBucketAction(byApp.bucketId);
 
@@ -62,7 +69,7 @@ describe("a deleted bucket's items", () => {
 
   it("are left out of capy's searches, upcoming list and bucket lists", async () => {
     const { userId, bucketId } = await seedDueItem();
-    await capy(userId, "delete_bucket", { bucket_id: bucketId });
+    await capyDeletesBucket(userId, bucketId);
 
     expect(await capy(userId, "search_items", { deadline_filter: "today" })).toEqual([]);
     expect(await getUpcomingItems(userId, "UTC")).toEqual([]);

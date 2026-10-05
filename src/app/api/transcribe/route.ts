@@ -22,6 +22,9 @@ import {
 async function readAudio(req: Request): Promise<File | Response> {
   try {
     const entry = (await req.formData()).get("audio");
+    if (entry instanceof File && entry.size === 0) {
+      return Response.json({ error: VOICE_NO_SPEECH_ERROR }, { status: 422 });
+    }
     if (entry instanceof File) return entry;
     return Response.json({ error: "Missing audio file." }, { status: 400 });
   } catch {

@@ -1,0 +1,50 @@
+name: bug report
+description: something doesn't work the way it should
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        thanks for reporting it. for a security problem don't use this form, see [SECURITY.md](https://github.com/heycapy/heycapy/blob/main/SECURITY.md).
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: what happened
+      description: what you did, what you expected and what happened instead. a screenshot helps.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: steps to reproduce
+      placeholder: |
+        1. open the bucket settings
+        2. ...
+    validations:
+      required: true
+  - type: dropdown
+    id: install
+    attributes:
+      label: how you run heycapy
+      options:
+        - docker compose (self-hosted)
+        - pnpm dev
+        - heycapy.xyz (hosted)
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: version
+      description: the git tag you cloned (for example v0.1.0) or the commit, or leave blank for heycapy.xyz.
+  - type: input
+    id: browser
+    attributes:
+      label: browser and device
+      description: only if it's about the web app, for example firefox on linux or safari on iphone.
+  - type: textarea
+    id: logs
+    attributes:
+      label: logs
+      description: for a self-hosted install, the output of `docker compose logs heycapy`. remove anything private, like keys, tokens and email addresses.
+      render: shell

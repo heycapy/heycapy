@@ -22,6 +22,7 @@ import { createNextOccurrence } from "@/lib/items/recurrence";
 import { toggleItemCompleted } from "@/lib/items/complete";
 import { onLastDayIfAnchored, parseRecurring } from "@/lib/items/occurrence";
 import { repeatFromArgs } from "./repeatArgs";
+import { confirmDelete, nextTurnId } from "./deleteGuard";
 import { encryptValue, generateWebhookKey } from "@/lib/crypto";
 import {
   BUCKET_NAME_MAX_LENGTH,
@@ -202,10 +203,11 @@ const notCompleted = notInArray(items.status, CLOSED_ITEM_STATUSES as string[]);
 export async function executeToolCall(
   call: ToolCall,
   userId: number,
-  timezone = "UTC"
+  timezone = "UTC",
+  turnId = nextTurnId()
 ): Promise<string> {
   try {
-    return await executeToolCallInner(call, userId, timezone);
+    return await executeToolCallInner(call, userId, timezone, turnId);
   } catch (err) {
     recordSystemError("ai-tools", `tool ${call.name} failed: ${errorMessage(err)}`, {
       userId,
@@ -219,7 +221,8 @@ export async function executeToolCall(
 async function executeToolCallInner(
   call: ToolCall,
   userId: number,
-  timezone = "UTC"
+  timezone: string,
+  turnId: number
 ): Promise<string> {
   const args = call.arguments;
 
@@ -318,6 +321,14 @@ async function executeToolCallInner(
         where: (b, { eq: qeq, and: qand }) => qand(qeq(b.id, bucketId), qeq(b.userId, userId)),
       });
       if (!bucket) return JSON.stringify({ ok: false, error: "Bucket not found" });
+
+      if (!confirmDelete(userId, bucketId, turnId)) {
+        return JSON.stringify({
+          ok: false,
+          needsConfirmation: true,
+          error: `Nothing deleted yet. Ask the user to confirm deleting "${bucket.name}". When they say yes, call delete_bucket again.`,
+        });
+      }
 
       await db
         .update(buckets)

@@ -1,9 +1,15 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import type * as AIModule from "@/lib/ai";
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { userSettings } from "@/lib/db/schema";
 import { getUserSettingsAction, updateUserSettingsAction } from "@/app/(app)/user-settings-actions";
 import { decryptValue, encryptValue } from "@/lib/crypto";
+import {
+  CUSTOM_PROMPT_MAX_LENGTH,
+  CUSTOM_PROMPT_REJECTED_ERROR,
+  CUSTOM_PROMPT_REQUIRED_ERROR,
+} from "@/constants";
 import { resetSchedulerEnvironment, seedUser, useSchedulerEnvironment } from "./helpers";
 
 let session: { userId: number; email?: string } | null = null;
@@ -12,6 +18,27 @@ vi.mock("@/lib/auth/session", () => ({
   deleteSession: async () => {},
 }));
 
+const review = vi.hoisted(() => ({ answer: "OK", fails: false, calls: 0 }));
+vi.mock("@/lib/ai", async (importOriginal) => {
+  const ai = await importOriginal<typeof AIModule>();
+  return {
+    ...ai,
+    getAIProvider: () => ({
+      chat: async () => ({ text: "", usage: null }),
+      complete: async () => {
+        review.calls++;
+        if (review.fails) throw new Error("provider down");
+        return { content: review.answer, toolCalls: [], usage: null };
+      },
+    }),
+  };
+});
+
+beforeEach(() => {
+  review.answer = "OK";
+  review.fails = false;
+  review.calls = 0;
+});
 beforeEach(() => useSchedulerEnvironment(new Date("2026-03-10T12:00:00Z")));
 afterEach(() => resetSchedulerEnvironment());
 
@@ -207,4 +234,129 @@ it("refuses a key that's too long", async () => {
       aiKeyEdits: { openai: typed("x".repeat(501)) },
     })
   ).toEqual({ ok: false, error: "An AI key or model is too long" });
+});
+
+const pirate = {
+  personalityTone: "custom" as const,
+  personalityCustomPrompt: "  Talk like a pirate.  ",
+};
+
+it("refuses the custom tone without a prompt and keeps what was saved", async () => {
+  const userId = await seedUser();
+  session = { userId };
+
+  for (const personalityCustomPrompt of [null, "", "   "]) {
+    const result = await updateUserSettingsAction({
+      ...saved,
+      personalityName: "Zippy",
+      personalityTone: "custom",
+      personalityCustomPrompt,
+    });
+    expect(result).toEqual({ ok: false, error: CUSTOM_PROMPT_REQUIRED_ERROR });
+  }
+  expect((await row(userId)).personalityName).not.toBe("Zippy");
+});
+
+it("saves the name and a trimmed custom prompt without a review on a self-hosted server", async () => {
+  const userId = await seedUser();
+  session = { userId };
+
+  const result = await updateUserSettingsAction({
+    ...saved,
+    personalityName: " Zippy ",
+    ...pirate,
+  });
+
+  expect(result.ok).toBe(true);
+  const settings = await row(userId);
+  expect(settings.personalityName).toBe("Zippy");
+  expect(settings.personalityCustomPrompt).toBe("Talk like a pirate.");
+  expect(review.calls).toBe(0);
+});
+
+it("refuses a custom prompt that is too long", async () => {
+  const userId = await seedUser();
+  session = { userId };
+
+  const result = await updateUserSettingsAction({
+    ...saved,
+    ...pirate,
+    personalityCustomPrompt: "a".repeat(CUSTOM_PROMPT_MAX_LENGTH + 1),
+  });
+
+  expect(result).toEqual({ ok: false, error: "Custom prompt too long" });
+});
+
+it("on a hosted server a custom prompt the review rejects is refused and not saved", async () => {
+  vi.stubEnv("HOSTED", "true");
+  const userId = await seedUser();
+  session = { userId };
+  review.answer = "REJECT";
+
+  const result = await updateUserSettingsAction({ ...saved, personalityName: "Zippy", ...pirate });
+
+  expect(result).toEqual({ ok: false, error: CUSTOM_PROMPT_REJECTED_ERROR });
+  const settings = await row(userId);
+  expect(settings.personalityCustomPrompt).toBeNull();
+  expect(settings.personalityName).not.toBe("Zippy");
+  vi.unstubAllEnvs();
+});
+
+it("on a hosted server an accepted prompt is saved, and an unchanged one isn't reviewed again", async () => {
+  vi.stubEnv("HOSTED", "true");
+  const userId = await seedUser();
+  session = { userId };
+
+  expect((await updateUserSettingsAction({ ...saved, ...pirate })).ok).toBe(true);
+  expect(review.calls).toBe(1);
+  expect((await row(userId)).personalityCustomPrompt).toBe("Talk like a pirate.");
+
+  review.answer = "REJECT";
+  expect(
+    (await updateUserSettingsAction({ ...saved, ...pirate, timezone: "Asia/Kolkata" })).ok
+  ).toBe(true);
+  expect(review.calls).toBe(1);
+  vi.unstubAllEnvs();
+});
+
+it("on a hosted server a review that can't run lets the prompt through", async () => {
+  vi.stubEnv("HOSTED", "true");
+  vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+  const userId = await seedUser();
+  session = { userId };
+  review.fails = true;
+
+  expect((await updateUserSettingsAction({ ...saved, ...pirate })).ok).toBe(true);
+  expect((await row(userId)).personalityCustomPrompt).toBe("Talk like a pirate.");
+  vi.unstubAllEnvs();
+});
+
+it("doesn't review a prompt that isn't in use", async () => {
+  vi.stubEnv("HOSTED", "true");
+  const userId = await seedUser();
+  session = { userId };
+  review.answer = "REJECT";
+
+  const result = await updateUserSettingsAction({
+    ...saved,
+    personalityTone: "chill",
+    personalityCustomPrompt: "Talk like a pirate.",
+  });
+
+  expect(result.ok).toBe(true);
+  expect(review.calls).toBe(0);
+  vi.unstubAllEnvs();
+});
+
+it("saves the rude and funny tone without a custom prompt or a review", async () => {
+  vi.stubEnv("HOSTED", "true");
+  const userId = await seedUser();
+  session = { userId };
+
+  const result = await updateUserSettingsAction({ ...saved, personalityTone: "rude_funny" });
+
+  expect(result.ok).toBe(true);
+  expect((await row(userId)).personalityTone).toBe("rude_funny");
+  expect(review.calls).toBe(0);
+  vi.unstubAllEnvs();
 });

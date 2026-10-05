@@ -1,4 +1,5 @@
-# Replace heycapy.xyz with your  (or use :80 for local HTTP-only)
-heycapy.xyz {
+# put the domain heycapy runs at here, caddy gets its https certificate on its own
+# or :80 to try it on this machine at http://localhost
+yourdomain.com {
     reverse_proxy heycapy:3000
 }

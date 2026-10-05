@@ -2,6 +2,7 @@ import { Maximize2, Minimize2, Minus } from "lucide-react";
 import { BracketButton } from "@/components/ui/BracketButton";
 import { Sprite } from "./Sprite";
 import { HEADER_H } from "./chatTypes";
+import { useAssistantName } from "./assistant-name";
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -23,6 +24,7 @@ export function CapyChatHeader({
   onHistoryOpen,
   onNewChat,
 }: Props) {
+  const name = useAssistantName();
   return (
     <div
       style={{ height: HEADER_H }}
@@ -36,7 +38,7 @@ export function CapyChatHeader({
         <Sprite id="capy-idle-blink" size={24} />
       </div>
 
-      <span className="font-pixel flex-1 text-[11px]">capy</span>
+      <span className="font-pixel flex-1 truncate text-[11px]">{name}</span>
 
       <BracketButton
         onClick={(e) => {

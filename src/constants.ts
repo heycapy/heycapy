@@ -3,6 +3,9 @@ export const APP_DOMAIN = "heycapy.xyz";
 export const APP_EMAIL_FROM = `${APP_NAME} <noreply@${APP_DOMAIN}>`;
 export const APP_TAGLINE = "a capy to help you with your day.";
 
+export const JWT_SECRET_MIN_LENGTH = 32;
+export const SECRET_PLACEHOLDER_PREFIX = "change-me";
+
 // Indexed like Date.getDay(): 0 = Sunday
 export const WEEKDAY_NAMES = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"] as const;
 export const WEEKDAY_SHORT_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] as const;
@@ -56,9 +59,12 @@ export const OLLAMA_REQUEST_TIMEOUT_MS = 120_000;
 export const AI_MAX_OUTPUT_TOKENS = 4096;
 export const AI_KEY_CHECK_TIMEOUT_MS = 15_000;
 export const AI_TIMEOUT_ERROR = "The AI provider didn't answer in time. Try again.";
+export const NO_AI_ERROR = "no ai is set up yet. add your own key or ollama url in tweaks → ai.";
 // model calls per answer so a runaway chain of tools can't cost many times its credit
 export const AGENT_MAX_ROUNDS = 5;
-export const AGENT_STOPPED_REPLY = `capy stopped here since one message can take at most ${AGENT_MAX_ROUNDS} steps. Say "go on" to finish the rest.`;
+// how long a delete asked for by capy waits for the user to say yes in a later message
+export const DELETE_CONFIRM_TTL_MS = 5 * 60 * 1000;
+export const AGENT_STOPPED_REPLY = `I stopped here since one message can take at most ${AGENT_MAX_ROUNDS} steps. Say "go on" to finish the rest.`;
 // How many chat messages may follow the summary before older ones are folded into it
 export const AI_COMPACT_THRESHOLD_MIN = 10;
 export const AI_COMPACT_THRESHOLD_MAX = 500;
@@ -90,6 +96,8 @@ export const TRANSCRIPTION_DEFAULT_MODELS: Record<TranscriptionProvider, string>
   gemini: GEMINI_DEFAULT_MODEL,
 };
 export const VOICE_MAX_SECONDS = 120;
+// shorter than this is a tap, not speech
+export const VOICE_MIN_MS = 800;
 // two minutes of safari aac at 128 kbps with room to spare
 export const VOICE_MAX_BYTES = 3 * 1024 * 1024;
 export const VOICE_TOO_LONG_ERROR = "Recordings can be up to 2 minutes.";
@@ -98,8 +106,7 @@ export const VOICE_HINT_ITEMS = 20;
 export const VOICE_HINT_MAX_LENGTH = 60;
 
 export const WHISPER_PROMPT_MAX_LENGTH = 600;
-export const VOICE_NO_SPEECH_ERROR =
-  "capy didn't hear anything. Try again a bit closer to the mic.";
+export const VOICE_NO_SPEECH_ERROR = "Nothing was heard. Try again a bit closer to the mic.";
 
 // Default service URLs
 export const OLLAMA_DEFAULT_URL = "https://ollama.yourdomain.com";
@@ -154,6 +161,9 @@ export const STATUS_NAME_MAX_LENGTH = 50;
 // Settings field limits
 export const PERSONALITY_NAME_MAX_LENGTH = 50;
 export const CUSTOM_PROMPT_MAX_LENGTH = 1000;
+export const CUSTOM_PROMPT_REQUIRED_ERROR = "Write a custom prompt, or pick another tone";
+export const CUSTOM_PROMPT_REJECTED_ERROR =
+  "That custom prompt can't be used. Keep it to a way of speaking, and keep it friendly.";
 
 export const AI_MODEL_MAX_LENGTH = 500;
 export const SETTINGS_URL_MAX_LENGTH = 500;

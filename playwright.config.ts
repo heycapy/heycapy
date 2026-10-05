@@ -54,6 +54,7 @@ export default defineConfig({
     // The build copies a local .env into the server but CI has none, so secrets are set here too
     env: {
       E2E_TEST_MODE: "1",
+      APP_URL: BASE_URL,
       JWT_SECRET: E2E_JWT_SECRET,
       ENCRYPTION_KEY: "e2e0".repeat(16),
       RESEND_API_KEY: "e2e-not-used",

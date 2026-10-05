@@ -3,15 +3,10 @@ services:
     build: .
     restart: unless-stopped
     env_file: .env
+    # everything else comes from .env
     environment:
       - NODE_ENV=production
       - DATABASE_URL=file:/data/heycapy.db
-      - JWT_SECRET=${JWT_SECRET}
-      - ENCRYPTION_KEY=${ENCRYPTION_KEY}
-      - RESEND_API_KEY=${RESEND_API_KEY}
-      - EMAIL_FROM=${EMAIL_FROM}
-      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
-      - APP_URL=${APP_URL}
     volumes:
       - heycapy_data:/data
     expose:
