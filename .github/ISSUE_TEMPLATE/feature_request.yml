@@ -1,0 +1,28 @@
+name: feature request
+description: an idea for something heycapy should do
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        heycapy is small and run by one person, so I may say no or want it built differently. asking first saves you from writing code I wouldn't merge.
+  - type: textarea
+    id: idea
+    attributes:
+      label: what you'd like
+      description: what should heycapy do?
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: why
+      description: what are you trying to do, and how do you do it today?
+    validations:
+      required: true
+  - type: checkboxes
+    id: help
+    attributes:
+      label: contributing
+      options:
+        - label: I'd like to build this myself
