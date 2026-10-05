@@ -172,7 +172,7 @@ it("a failed answer gives the credit back", async () => {
 
   await say("hello", chat);
 
-  expect(telegramTexts.at(-1)).toContain("capy couldn't answer");
+  expect(telegramTexts.at(-1)).toContain("couldn't answer");
   expect(creditBalance(userId)).toBe(CREDITS_FREE_GRANT);
   expect(ledger(userId).map((r) => r.kind)).toEqual(["grant", "message", "refund"]);
 });

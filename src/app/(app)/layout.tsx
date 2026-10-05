@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { eq, isNull, or } from "drizzle-orm";
 import { getSession } from "@/lib/auth/session";
 import { db } from "@/lib/db";
-import { templates, users } from "@/lib/db/schema";
+import { templates, userSettings, users } from "@/lib/db/schema";
 import { AppShell } from "@/components/layout/AppShell";
 import { getChannelFailures } from "@/lib/notifications/failures";
 import { getChannelSettings, workingChannels } from "@/lib/notifications/channels";
@@ -13,7 +13,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   const session = await getSession();
   if (!session) redirect("/login");
 
-  const [rawTemplates, user, failures, channelSettings] = await Promise.all([
+  const [rawTemplates, user, failures, channelSettings, settings] = await Promise.all([
     db
       .select()
       .from(templates)
@@ -21,6 +21,10 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
     db.query.users.findFirst({ where: eq(users.id, session.userId) }),
     getChannelFailures(session.userId),
     getChannelSettings(session.userId),
+    db.query.userSettings.findFirst({
+      where: eq(userSettings.userId, session.userId),
+      columns: { personalityName: true },
+    }),
   ]);
 
   const seen = new Set<string>();
@@ -34,6 +38,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
     <div className="flex h-full flex-col">
       <AppShell
         email={user?.email ?? ""}
+        assistantName={settings?.personalityName ?? "capy"}
         failures={failures}
         hasWorkingChannel={
           !!channelSettings &&

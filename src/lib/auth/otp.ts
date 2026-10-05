@@ -4,6 +4,7 @@ import { otps } from "@/lib/db/schema";
 import { and, eq, gt, isNull } from "drizzle-orm";
 import { OTP_LENGTH, OTP_TTL_MINUTES } from "./constants";
 import { isE2ETestMode } from "@/lib/e2e";
+import { isLocalUrl } from "@/lib/app-url";
 
 export function generateOtp(): string {
   const min = Math.pow(10, OTP_LENGTH - 1);
@@ -38,5 +39,7 @@ export async function verifyOtp(email: string, code: string): Promise<boolean> {
 }
 
 export function codesShownOnScreen(): boolean {
-  return (!process.env.RESEND_API_KEY && !process.env.SMTP_HOST) || isE2ETestMode();
+  if (isE2ETestMode()) return true;
+  if (process.env.RESEND_API_KEY || process.env.SMTP_HOST) return false;
+  return process.env.NODE_ENV !== "production" || isLocalUrl(process.env.APP_URL);
 }

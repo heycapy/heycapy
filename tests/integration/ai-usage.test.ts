@@ -159,6 +159,7 @@ it("a chat summary records its tokens", async () => {
 });
 
 it("marks who pays for the model: the user's own key or ours", () => {
+  vi.stubEnv("AI_PROVIDER", "ollama");
   vi.stubEnv("AI_API_KEY", "server-key");
   vi.stubEnv("OLLAMA_URL", "http://server-ollama.test");
 

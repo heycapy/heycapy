@@ -1,5 +1,5 @@
 import OpenAI from "openai";
-import { GROQ_API_BASE } from "@/constants";
+import { AI_MAX_OUTPUT_TOKENS, GROQ_API_BASE } from "@/constants";
 import type { AIProvider, AgentMessage, CompleteResult, Message, Tool } from "../types";
 import { AI_CLIENT_OPTIONS } from "./options";
 import { openAIUsage } from "./usage";
@@ -9,7 +9,11 @@ export function createGroqProvider(apiKey: string, model: string): AIProvider {
 
   return {
     async chat(messages: Message[]) {
-      const response = await client.chat.completions.create({ model, messages });
+      const response = await client.chat.completions.create({
+        model,
+        messages,
+        max_completion_tokens: AI_MAX_OUTPUT_TOKENS,
+      });
       return {
         text: response.choices[0]?.message?.content ?? "",
         usage: openAIUsage(response.usage),
@@ -48,6 +52,7 @@ export function createGroqProvider(apiKey: string, model: string): AIProvider {
 
       const response = await client.chat.completions.create({
         model,
+        max_completion_tokens: AI_MAX_OUTPUT_TOKENS,
         messages: oaiMessages,
         tools: oaiTools,
       });

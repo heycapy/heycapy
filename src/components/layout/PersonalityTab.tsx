@@ -2,7 +2,7 @@ import { cn } from "@/lib/utils";
 import { charCountColor } from "@/components/ui/input";
 import { Toggle } from "@/components/ui/Toggle";
 import { OptionGroup } from "@/components/ui/OptionGroup";
-import { LABEL, INPUT, TONE_OPTIONS } from "./settings-constants";
+import { LABEL, INPUT, TONE_OPTIONS, FAVORITE_TONE_OPTIONS } from "./settings-constants";
 import type { UserTone } from "./settings-constants";
 import { PERSONALITY_NAME_MAX_LENGTH, CUSTOM_PROMPT_MAX_LENGTH } from "@/constants";
 
@@ -61,6 +61,15 @@ export function PersonalityTab({
           onChange={setPersonalityTone}
           disabled={pending}
         />
+        <div className="border-border mt-1 flex flex-col gap-1.5 border-t border-dashed pt-2.5">
+          <span className="text-muted-foreground font-mono text-[11px]">my favorite</span>
+          <OptionGroup
+            options={FAVORITE_TONE_OPTIONS}
+            value={personalityTone}
+            onChange={setPersonalityTone}
+            disabled={pending}
+          />
+        </div>
       </div>
       {personalityTone === "custom" && (
         <div className="flex flex-col gap-1.5">
@@ -74,6 +83,10 @@ export function PersonalityTab({
             rows={4}
             className="border-border placeholder:text-muted-foreground/50 focus:border-foreground w-full resize-none border-b bg-transparent py-1.5 font-mono text-xs outline-none disabled:opacity-50"
           />
+          <p className="text-muted-foreground font-mono text-[11px]">
+            only how it should sound, like &quot;talk like a pirate&quot;. keep it friendly: prompts
+            that ask for anything else are refused.
+          </p>
         </div>
       )}
       <div className="flex flex-col gap-1.5">

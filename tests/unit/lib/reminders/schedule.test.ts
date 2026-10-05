@@ -16,6 +16,7 @@ function inputs(
     deadline,
     status: "active",
     deletedAt: null,
+    bucketLive: true,
     remindNotBefore: null,
     notifiedAt: null,
     overdueNotifiedAt: null,
@@ -51,6 +52,11 @@ describe("nextDeadlineReminder", () => {
     expect(nextDeadlineReminder(inputs({ status: "on hold" }))).toBeNull();
     expect(nextDeadlineReminder(inputs({ deletedAt: new Date() }))).toBeNull();
     expect(nextDeadlineReminder(inputs({ deadline: null }))).toBeNull();
+  });
+
+  it("sends nothing while the bucket is deleted or archived", () => {
+    expect(nextDeadlineReminder(inputs({ bucketLive: false }))).toBeNull();
+    expect(nextOverdueAlert(inputs({ bucketLive: false, notifyWhenOverdue: true }))).toBeNull();
   });
 
   it("sends nothing when the bucket has no channels", () => {

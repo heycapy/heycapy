@@ -29,7 +29,7 @@ export const THEMES = [
   { id: "midnight", label: "midnight", bg: "#000000", fg: "#999999" },
 ] as const;
 
-export type UserTone = "chill" | "professional" | "motivational" | "custom";
+export type UserTone = "chill" | "professional" | "motivational" | "rude_funny" | "custom";
 export type AIProvider = "ollama" | "openai" | "anthropic" | "groq" | "gemini";
 // a saved key stays when switching to heycapy ai
 export type AISource = "heycapy" | "own";
@@ -43,6 +43,11 @@ export const TONE_OPTIONS: { value: UserTone; label: string }[] = [
   { value: "professional", label: "professional" },
   { value: "motivational", label: "motivational" },
   { value: "custom", label: "custom" },
+];
+
+// NOTE: will have someone of my tones i enjoyed testing
+export const FAVORITE_TONE_OPTIONS: { value: UserTone; label: string }[] = [
+  { value: "rude_funny", label: "rude & funny" },
 ];
 
 export const PROVIDER_OPTIONS: { value: AIProvider; label: string }[] = [

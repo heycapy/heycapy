@@ -13,11 +13,16 @@ import { db } from "@/lib/db";
 import { findBucketByName } from "@/lib/db/buckets";
 import { withDefaultChannels } from "@/lib/notifications/channels";
 import { initialReminderState, reminderResetForDeadline } from "@/lib/items/reminders";
-import { refreshItemReminders, reminderContext } from "@/lib/reminders/refresh";
+import {
+  refreshBucketReminders,
+  refreshItemReminders,
+  reminderContext,
+} from "@/lib/reminders/refresh";
 import { createNextOccurrence } from "@/lib/items/recurrence";
 import { toggleItemCompleted } from "@/lib/items/complete";
 import { onLastDayIfAnchored, parseRecurring } from "@/lib/items/occurrence";
 import { repeatFromArgs } from "./repeatArgs";
+import { confirmDelete, nextTurnId } from "./deleteGuard";
 import { encryptValue, generateWebhookKey } from "@/lib/crypto";
 import {
   BUCKET_NAME_MAX_LENGTH,
@@ -27,6 +32,7 @@ import {
   WEEKDAY_SHORT_NAMES,
 } from "@/constants";
 import { buckets, items } from "@/lib/db/schema";
+import { inLiveBucket } from "@/lib/buckets/live";
 import { BucketSchema, ReminderOffsets, buildPropertyValidator } from "@/types/rules";
 import type { ToolCall } from "./types";
 
@@ -197,10 +203,11 @@ const notCompleted = notInArray(items.status, CLOSED_ITEM_STATUSES as string[]);
 export async function executeToolCall(
   call: ToolCall,
   userId: number,
-  timezone = "UTC"
+  timezone = "UTC",
+  turnId = nextTurnId()
 ): Promise<string> {
   try {
-    return await executeToolCallInner(call, userId, timezone);
+    return await executeToolCallInner(call, userId, timezone, turnId);
   } catch (err) {
     recordSystemError("ai-tools", `tool ${call.name} failed: ${errorMessage(err)}`, {
       userId,
@@ -214,7 +221,8 @@ export async function executeToolCall(
 async function executeToolCallInner(
   call: ToolCall,
   userId: number,
-  timezone = "UTC"
+  timezone: string,
+  turnId: number
 ): Promise<string> {
   const args = call.arguments;
 
@@ -314,10 +322,19 @@ async function executeToolCallInner(
       });
       if (!bucket) return JSON.stringify({ ok: false, error: "Bucket not found" });
 
+      if (!confirmDelete(userId, bucketId, turnId)) {
+        return JSON.stringify({
+          ok: false,
+          needsConfirmation: true,
+          error: `Nothing deleted yet. Ask the user to confirm deleting "${bucket.name}". When they say yes, call delete_bucket again.`,
+        });
+      }
+
       await db
         .update(buckets)
         .set({ deletedAt: new Date() })
         .where(and(eq(buckets.id, bucketId), eq(buckets.userId, userId)));
+      await refreshBucketReminders(bucketId);
 
       revalidatePath("/");
       return JSON.stringify({ ok: true });
@@ -564,9 +581,10 @@ async function executeToolCallInner(
       const bucketId = Number(args.bucket_id);
       const includeCompleted = Boolean(args.include_completed ?? false);
 
-      const bucket = await db.query.buckets.findFirst({
-        where: (b, { eq: qeq, and: qand }) => qand(qeq(b.id, bucketId), qeq(b.userId, userId)),
-      });
+      const [bucket] = await db
+        .select({ id: buckets.id })
+        .from(buckets)
+        .where(and(eq(buckets.id, bucketId), eq(buckets.userId, userId), inLiveBucket));
       if (!bucket) return JSON.stringify({ ok: false, error: "Bucket not found" });
 
       const rows = await db
@@ -612,19 +630,13 @@ async function executeToolCallInner(
           : []),
       ];
 
-      const [rows, bucketRows] = await Promise.all([
-        db
-          .select(ITEM_DETAIL_COLUMNS)
-          .from(items)
-          .where(and(...conditions)),
-        db
-          .select({ id: buckets.id, name: buckets.name })
-          .from(buckets)
-          .where(and(eq(buckets.userId, userId), isNull(buckets.deletedAt))),
-      ]);
+      const rows = await db
+        .select({ ...ITEM_DETAIL_COLUMNS, bucketName: buckets.name })
+        .from(items)
+        .innerJoin(buckets, eq(buckets.id, items.bucketId))
+        .where(and(...conditions, inLiveBucket));
 
       const keywordWords = keyword ? keyword.toLowerCase().split(/\s+/).filter(Boolean) : null;
-      const bucketMap = new Map(bucketRows.map((b) => [b.id, b.name]));
 
       const enriched = rows
         .filter((row) => {
@@ -634,7 +646,7 @@ async function executeToolCallInner(
         })
         .map((row) => ({
           ...itemDetails(row, timezone),
-          bucket: bucketMap.get(row.bucketId) ?? "Unknown",
+          bucket: row.bucketName,
         }))
         .filter((row) => {
           if (deadlineFilter === "all") return true;
@@ -666,37 +678,31 @@ async function executeToolCallInner(
 export async function getUpcomingItems(userId: number, timezone: string): Promise<UpcomingItem[]> {
   const weekFromNow = new Date(Date.now() + 7 * 86_400_000);
 
-  const [rows, bucketRows] = await Promise.all([
-    db
-      .select({
-        id: items.id,
-        title: items.title,
-        deadline: items.deadline,
-        bucketId: items.bucketId,
-      })
-      .from(items)
-      .where(
-        and(
-          eq(items.userId, userId),
-          isNull(items.deletedAt),
-          activeOnly,
-          lte(items.deadline, weekFromNow)
-        )
-      ),
-    db
-      .select({ id: buckets.id, name: buckets.name })
-      .from(buckets)
-      .where(and(eq(buckets.userId, userId), isNull(buckets.deletedAt))),
-  ]);
-
-  const bucketMap = new Map(bucketRows.map((b) => [b.id, b.name]));
+  const rows = await db
+    .select({
+      id: items.id,
+      title: items.title,
+      deadline: items.deadline,
+      bucketName: buckets.name,
+    })
+    .from(items)
+    .innerJoin(buckets, eq(buckets.id, items.bucketId))
+    .where(
+      and(
+        eq(items.userId, userId),
+        isNull(items.deletedAt),
+        inLiveBucket,
+        activeOnly,
+        lte(items.deadline, weekFromNow)
+      )
+    );
 
   return rows
     .filter((row): row is typeof row & { deadline: Date } => row.deadline !== null)
     .map((row) => ({
       id: row.id,
       title: row.title,
-      bucket: bucketMap.get(row.bucketId) ?? "Unknown",
+      bucket: row.bucketName,
       deadlineRelative: deadlineRelative(row.deadline, timezone),
       deadline: row.deadline,
     }))

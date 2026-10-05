@@ -32,7 +32,7 @@ test("capy in the bottom bar opens the chat as a drawer on phones", async ({ pag
 
   await page.getByRole("button", { name: "chat with capy" }).tap();
   const chat = page.getByRole("dialog", { name: "chat with capy" });
-  await expect(chat.getByText("am capy")).toBeVisible();
+  await expect(chat.getByText("Hi there! How can I help you today?")).toBeVisible();
   await expect(chat.getByPlaceholder("ask capy...")).not.toBeFocused();
   await expect.poll(() => chat.evaluate((el) => el.scrollTop)).toBe(0);
 

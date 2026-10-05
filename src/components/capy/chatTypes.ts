@@ -12,5 +12,5 @@ export type ChatMessage = {
 export const GREETING: ChatMessage = {
   id: "greeting",
   role: "assistant",
-  content: "Hi there, am capy... how can I help you today?",
+  content: "Hi there! How can I help you today?",
 };
