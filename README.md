@@ -24,7 +24,7 @@
 - **items with dates**: type "pay rent friday 9am" and the date is picked out of the title. repeat daily, weekly, on chosen weekdays or on the last day of the month. up to 4 reminders per item, snooze, swipe to complete, long-press or right-click for quick dates
 - **reminders that arrive**: send them by email (resend or your own smtp server), web push (iphone too, from the home screen), ntfy, telegram, discord, slack or any webhook url. pick the channels per bucket, with quiet hours, retries and a banner when a channel keeps failing. reminders live in the database, so a restart delays one instead of losing it
 - **capy**: an assistant you can type or talk to. it adds, moves and completes items and changes bucket settings, using your own key (ollama, openai, anthropic, groq or gemini) or the server's
-- **act from the reminder**: done and remind me later buttons on email, push (android and desktop), ntfy and telegram. telegram can also add items and list what's due
+- **act from the reminder**: a done button and remind me again buttons (15 min, 30 min, 1 hour, tomorrow; you pick which per bucket) on email, push (android and desktop), ntfy and telegram. telegram also has reschedule, and can add items and list what's due
 - **webhooks both ways**: every bucket has an incoming webhook that adds items. outgoing webhooks (up to 3 per user) post to discord, slack or any url with signed json ([standard webhooks](https://www.standardwebhooks.com))
 - **yours**: self-hosted with docker and sqlite, nightly backups, full account export, 18 themes
 
@@ -92,7 +92,7 @@ if something's missing heycapy won't start and says what to fix: `docker compose
 
 ### try it on your own machine first
 
-set `APP_URL=http://localhost`, put `:80` instead of the domain in `Caddyfile`, and open [localhost](http://localhost). email is optional like this: without it the sign in code shows on the screen, which heycapy only allows when `APP_URL` is localhost.
+set `APP_URL=http://localhost`, put `:80` instead of the domain in `Caddyfile`, and open [localhost](http://localhost) (not `localhost:3000`, that port only exists inside docker). email is optional like this: without it the sign in code shows on the screen, which heycapy only allows when `APP_URL` is localhost.
 
 ### upgrading
 
