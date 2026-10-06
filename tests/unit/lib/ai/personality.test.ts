@@ -62,3 +62,17 @@ it("gives the rude and funny tone playful limits", () => {
   expect(text).toContain("keep it playful");
   expect(text).toContain("never be truly cruel");
 });
+
+// "a jab, then the answer" made the model write a made-up "Added ..." and skip the tool
+it("tells the rude and funny tone to use the tools before it writes the reply", () => {
+  const text = toneInstruction("rude_funny", null);
+  expect(text).toContain("with your tools first");
+  expect(text).not.toContain("then the answer");
+});
+
+it("tells a custom style to call the tool before it writes the reply", () => {
+  const text = toneInstruction("custom", "talk like a pirate");
+  expect(text).toContain("call the tool first");
+  expect(text).toContain("without a tool call is wrong");
+  expect(text).toContain("talk like a pirate");
+});

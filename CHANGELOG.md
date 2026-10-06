@@ -2,6 +2,12 @@
 
 all notable changes to heycapy. versions follow [semver](https://semver.org): 0.1.x fixes, 0.2 features. the database migrates itself on start and migrations only go forward, so back up before upgrading (see the README).
 
+## 0.1.1
+
+### fixes
+
+- capy no longer skips its tools with the rude and funny tone or a custom style. it could say "added ..." without adding anything, then loop on "i stopped here since one message can take at most 5 steps" when you corrected it
+
 ## 0.1.0
 
 the first release. you can self-host it with docker.
