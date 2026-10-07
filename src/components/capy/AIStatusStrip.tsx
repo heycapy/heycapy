@@ -18,7 +18,7 @@ export function AIStatusStrip() {
       )}
     >
       {aiStatusLabel(status)}
-      {(problem || status.kind === "credits") && " · see tweaks → ai"}
+      {status.kind === "credits" ? " · see tweaks → credits" : problem && " · see tweaks → ai"}
     </p>
   );
 }

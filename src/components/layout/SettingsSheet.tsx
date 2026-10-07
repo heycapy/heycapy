@@ -11,18 +11,25 @@ import {
   disconnectTelegramAction,
 } from "@/app/(app)/actions";
 import { useUIStore } from "@/store/ui";
+import { useAIStatus } from "@/hooks/useAIStatus";
 import { AppearanceTab, NotificationsTab, AITab, PersonalityTab } from "./SettingsTabs";
 import { AccountTab } from "./AccountTab";
+import { CreditsTab } from "./CreditsTab";
 import { SystemTab } from "./SystemTab";
 import { useAISettings } from "./useAISettings";
 import type { QuietHours } from "./QuietHoursSettings";
 import { CloseWarning, SaveBar, useUnsavedChanges } from "./UnsavedChanges";
-import { DEFAULT_QUIET_FROM, DEFAULT_QUIET_TO, type UserTone } from "./settings-constants";
+import {
+  ACCENT_BUTTONS,
+  DEFAULT_QUIET_FROM,
+  DEFAULT_QUIET_TO,
+  type UserTone,
+} from "./settings-constants";
 import type { userSettings } from "@/lib/db/schema";
 
 type Settings = typeof userSettings.$inferSelect;
 export type SettingsTab =
-  "appearance" | "notifications" | "ai" | "personality" | "account" | "system";
+  "appearance" | "ai" | "credits" | "notifications" | "personality" | "account" | "system";
 
 type SettingsSheetProps = {
   open: boolean;
@@ -45,6 +52,10 @@ export function SettingsSheet({ open, initialTab, onClose }: SettingsSheetProps)
   const [personalityCustomPrompt, setPersonalityCustomPrompt] = useState("");
 
   const ai = useAISettings();
+  const aiStatus = useAIStatus();
+  // only a hosted server keeps credits, and its status always carries a balance
+  const hasCredits =
+    aiStatus?.kind === "credits" || (aiStatus?.kind === "own" && aiStatus.credits !== null);
   const populateAI = ai.populate;
 
   const [timezone, setTimezone] = useState(() => Intl.DateTimeFormat().resolvedOptions().timeZone);
@@ -209,7 +220,7 @@ export function SettingsSheet({ open, initialTab, onClose }: SettingsSheetProps)
   const tabBtn = (t: SettingsTab) =>
     cn(
       "font-mono text-xs px-2 py-1.5 whitespace-nowrap transition-colors shrink-0",
-      tab === t ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"
+      tab === t ? "bg-foreground text-background" : "text-primary hover:text-foreground"
     );
 
   return (
@@ -231,7 +242,10 @@ export function SettingsSheet({ open, initialTab, onClose }: SettingsSheetProps)
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
             transition={{ duration: 0.2, ease: "easeInOut" }}
-            className="bg-background border-border fixed top-0 right-0 z-[60] flex h-full w-full flex-col border-l-2 sm:w-80"
+            className={cn(
+              "bg-background border-border fixed top-0 right-0 z-[60] flex h-full w-full flex-col border-l-2 sm:w-80",
+              ACCENT_BUTTONS
+            )}
             style={{ boxShadow: "-4px 0 0 var(--border)" }}
           >
             <div className="bg-foreground text-background flex items-center justify-between px-3 py-1.5">
@@ -245,8 +259,9 @@ export function SettingsSheet({ open, initialTab, onClose }: SettingsSheetProps)
               {(
                 [
                   "appearance",
-                  "notifications",
                   "ai",
+                  ...(hasCredits ? ["credits"] : []),
+                  "notifications",
                   "personality",
                   "account",
                   ...(adminUser ? ["system"] : []),
@@ -308,6 +323,7 @@ export function SettingsSheet({ open, initialTab, onClose }: SettingsSheetProps)
                     />
                   )}
                   {tab === "ai" && <AITab ai={ai} pending={pending} />}
+                  {tab === "credits" && hasCredits && <CreditsTab />}
                   {tab === "personality" && (
                     <PersonalityTab
                       personalityName={personalityName}

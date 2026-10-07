@@ -82,7 +82,8 @@ export function AIStatusBox({ ownKeyPicked }: { ownKeyPicked: boolean }) {
         <p className={HINT}>
           each message to capy uses {CREDITS_PER_MESSAGE} credit
           {CREDITS_PER_MESSAGE === 1 ? "" : "s"}, and talking to capy with the mic is included.
-          reminders never use credits. to use none at all, pick &quot;your own key&quot; above.
+          reminders never use credits. to use none at all, pick &quot;your own key&quot; above. need
+          more? see the credits tab.
         </p>
       )}
 
