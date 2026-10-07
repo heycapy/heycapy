@@ -71,7 +71,7 @@ it("shows why the checkout didn't start", async () => {
 
 it("on the way back from a payment it says so, opens tweaks and looks at the balance again", () => {
   vi.useFakeTimers();
-  window.history.replaceState(null, "", "/?payment_id=pay_1&status=success&email=a%40b.c");
+  window.history.replaceState(null, "", "/?payment_id=pay_1&status=succeeded&email=a%40b.c");
   const onPaid = vi.fn();
   const before = useUIStore.getState().aiRefreshTick;
   render(<PurchaseReturn onPaid={onPaid} />);
@@ -91,6 +91,27 @@ it("on the way back from a failed payment it says nothing was charged", () => {
   render(<PurchaseReturn onPaid={onPaid} />);
   expect(toast.error).toHaveBeenCalledWith("the payment didn't go through. you weren't charged.");
   expect(onPaid).not.toHaveBeenCalled();
+});
+
+it("on the way back from an expired checkout it says nothing was charged", () => {
+  window.history.replaceState(null, "", "/?payment_id=pay_1&status=expired&email=a%40b.c");
+  const onPaid = vi.fn();
+  render(<PurchaseReturn onPaid={onPaid} />);
+  expect(toast.error).toHaveBeenCalledWith(
+    "the checkout expired. you weren't charged. start again from tweaks → credits."
+  );
+  expect(onPaid).not.toHaveBeenCalled();
+});
+
+it("on the way back from a payment that is still settling it says so and opens credits", () => {
+  window.history.replaceState(null, "", "/?payment_id=pay_1&status=processing&email=a%40b.c");
+  const onPaid = vi.fn();
+  render(<PurchaseReturn onPaid={onPaid} />);
+  expect(toast.success).toHaveBeenCalledWith(
+    "your payment is still being processed. your credits arrive when it clears."
+  );
+  expect(toast.error).not.toHaveBeenCalled();
+  expect(onPaid).toHaveBeenCalledOnce();
 });
 
 it("does nothing on a normal visit", () => {

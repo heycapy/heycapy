@@ -82,6 +82,10 @@ export const PRICING_URL = `https://${APP_DOMAIN}/pricing`;
 export const REFUNDS_URL = `https://${APP_DOMAIN}/refunds`;
 // Dodo sends the buyer back with these in the address, and they are cleared once read
 export const CHECKOUT_RETURN_PARAMS = ["status", "payment_id", "email", "session_id"] as const;
+// the status Dodo puts in the address on the way back; anything else means it is still settling
+export const CHECKOUT_STATUS_SUCCEEDED = "succeeded";
+export const CHECKOUT_STATUS_FAILED = "failed";
+export const CHECKOUT_STATUS_EXPIRED = "expired";
 // the balance is looked at again at these seconds while the webhook is on its way
 export const CHECKOUT_BALANCE_RECHECK_SECONDS = [0, 3, 6, 10, 15, 25];
 export const OUT_OF_CREDITS_BUY_ERROR =
