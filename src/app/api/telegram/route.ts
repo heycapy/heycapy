@@ -22,12 +22,12 @@ import { errorMessage, parseProviderError } from "@/lib/errors";
 import {
   AI_REQUEST_TIMEOUT_MS,
   OLLAMA_REQUEST_TIMEOUT_MS,
-  OUT_OF_CREDITS_ERROR,
   TELEGRAM_RESERVED_COMMANDS,
 } from "@/constants";
 import { recordUsage } from "@/lib/ai/usage";
 import { recordKeyResult } from "@/lib/ai/status";
 import { chargesCredits, holdMessageCredit, refundMessageCredit } from "@/lib/credits";
+import { outOfCreditsMessage } from "@/lib/billing/dodo";
 import type { AgentMessage, TokenUsage } from "@/lib/ai/types";
 import type {
   TelegramDeadlinePreset,
@@ -838,7 +838,7 @@ async function handleUpdate(botToken: string, body: TelegramUpdate): Promise<Res
 
   const hold = chargesCredits(provider.meta) ? holdMessageCredit(userId) : undefined;
   if (hold === null) {
-    await sendTelegramWithQuickActions(botToken, chatIdStr, OUT_OF_CREDITS_ERROR).catch(() => {});
+    await sendTelegramWithQuickActions(botToken, chatIdStr, outOfCreditsMessage()).catch(() => {});
     return new Response("OK");
   }
 

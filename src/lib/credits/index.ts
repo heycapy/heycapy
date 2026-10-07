@@ -70,6 +70,82 @@ export function refundMessageCredit(holdId: number): void {
     .run();
 }
 
+// the provider's id makes a retried webhook a no-op; the free credits come first so a buyer with no ledger yet keeps them
+export function grantPurchasedCredits(
+  userId: number,
+  credits: number,
+  provider: string,
+  providerRef: string,
+  note: string
+): boolean {
+  return db.transaction((tx) => {
+    grantIfNew(tx, userId);
+    const row = tx
+      .insert(creditLedger)
+      .values({ userId, amount: credits, kind: "purchase", note, provider, providerRef })
+      .onConflictDoNothing()
+      .returning({ id: creditLedger.id })
+      .get();
+    return Boolean(row);
+  });
+}
+
+// takes back the credits of a payment that was refunded or lost in a dispute; the balance may end below zero
+// since credits already spent can't be recalled, and that just keeps capy off until they buy more
+export function reversePurchase(
+  provider: string,
+  paymentRef: string,
+  reversalRef: string,
+  share: number
+): "reversed" | "already reversed" | "no purchase" {
+  return db.transaction((tx) => {
+    const purchase = tx
+      .select()
+      .from(creditLedger)
+      .where(
+        and(
+          eq(creditLedger.provider, provider),
+          eq(creditLedger.providerRef, paymentRef),
+          eq(creditLedger.kind, "purchase")
+        )
+      )
+      .get();
+    if (!purchase) return "no purchase";
+
+    const taken = tx
+      .select({ total: sql<number>`coalesce(sum(${creditLedger.amount}), 0)` })
+      .from(creditLedger)
+      .where(
+        and(
+          eq(creditLedger.userId, purchase.userId),
+          eq(creditLedger.kind, "reversal"),
+          eq(creditLedger.note, paymentRef)
+        )
+      )
+      .get();
+    const take = Math.min(
+      purchase.amount + (taken?.total ?? 0),
+      Math.round(purchase.amount * Math.min(share, 1))
+    );
+    if (take <= 0) return "already reversed";
+
+    const row = tx
+      .insert(creditLedger)
+      .values({
+        userId: purchase.userId,
+        amount: -take,
+        kind: "reversal",
+        note: paymentRef,
+        provider,
+        providerRef: reversalRef,
+      })
+      .onConflictDoNothing()
+      .returning({ id: creditLedger.id })
+      .get();
+    return row ? "reversed" : "already reversed";
+  });
+}
+
 // refuses a change that would take the balance below zero
 export function adjustCredits(
   userId: number,
@@ -89,7 +165,14 @@ export function adjustCredits(
 export type CreditTotals = Record<CreditRow["kind"], number>;
 
 export function creditTotals(userId: number): CreditTotals {
-  const totals: CreditTotals = { grant: 0, purchase: 0, message: 0, refund: 0, admin: 0 };
+  const totals: CreditTotals = {
+    grant: 0,
+    purchase: 0,
+    message: 0,
+    refund: 0,
+    reversal: 0,
+    admin: 0,
+  };
   const rows = db
     .select({ kind: creditLedger.kind, total: sql<number>`sum(${creditLedger.amount})` })
     .from(creditLedger)

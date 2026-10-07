@@ -7,6 +7,13 @@ export const INPUT =
 export const SECTION =
   "text-muted-foreground font-mono text-xs font-semibold tracking-widest uppercase";
 export const BOX = "border-border flex flex-col gap-3 border p-3";
+// every button in tweaks in the theme's accent so they read as buttons, without touching a picked option or tab
+export const ACCENT_BUTTONS = [
+  "[&_[data-variant=default]]:text-primary",
+  "[&_[data-variant=default]:hover]:text-foreground",
+  "[&_button[aria-pressed=false]]:text-primary",
+  "[&_button[aria-pressed=false]:hover]:text-foreground",
+].join(" ");
 
 export const THEMES = [
   { id: "capy", label: "capy", bg: "#fdf6e3", fg: "#7c4b2a" },

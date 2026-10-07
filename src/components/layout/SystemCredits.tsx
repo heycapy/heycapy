@@ -96,7 +96,7 @@ export function SystemCredits() {
             <p className={LABEL}>
               {credits.totals.grant + credits.totals.purchase} granted ·{" "}
               {-(credits.totals.message + credits.totals.refund)} used · {credits.totals.refund}{" "}
-              refunded · {credits.totals.admin} by admins
+              refunded · {-credits.totals.reversal} taken back · {credits.totals.admin} by admins
             </p>
             <p className={LABEL}>
               last {CREDITS_RECENT_DAYS} days · {credits.recent.creditsUsed} used ·{" "}

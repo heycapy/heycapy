@@ -21,6 +21,7 @@ export function BracketButton({
 }: BracketButtonProps) {
   return (
     <button
+      data-variant={variant}
       className={cn(
         "inline-flex items-center py-1 font-mono text-xs transition-colors disabled:opacity-25",
         variant === "default" && "text-muted-foreground hover:text-foreground",
