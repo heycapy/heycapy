@@ -14,7 +14,12 @@ import { seedUser } from "./helpers";
 let sessionUser: { userId: number; email: string } | null = null;
 vi.mock("@/lib/auth/session", () => ({ getSession: async () => sessionUser }));
 
-const created = vi.hoisted(() => ({ calls: [] as unknown[], fail: false, paymentTotal: 500 }));
+const created = vi.hoisted(() => ({
+  calls: [] as unknown[],
+  fail: false,
+  paymentTotal: 500,
+  sessions: 0,
+}));
 vi.mock("dodopayments", async (importOriginal) => {
   const actual = await importOriginal<typeof DodoModule>();
   class Fake extends actual.default {
@@ -26,7 +31,7 @@ vi.mock("dodopayments", async (importOriginal) => {
         created.calls.push(params);
         if (created.fail) throw new Error("dodo is down");
         return {
-          session_id: `cks_${created.calls.length}`,
+          session_id: `cks_fake_${++created.sessions}`,
           checkout_url: "https://test.checkout.dodopayments.com/session/x",
         };
       },
@@ -76,6 +81,7 @@ function payment(overrides: Record<string, unknown> = {}) {
 
 beforeEach(() => {
   vi.stubEnv("HOSTED", "true");
+  vi.stubEnv("DODO_PAYMENTS_ENVIRONMENT", "live_mode");
   vi.stubEnv("DODO_PAYMENTS_API_KEY", "dodo_test_key");
   vi.stubEnv("DODO_PAYMENTS_WEBHOOK_KEY", WEBHOOK_KEY);
   vi.stubEnv("DODO_PRODUCT_ID_PACK_5", "pdt_five");
@@ -206,11 +212,11 @@ it("says so, and logs it, when dodo fails", async () => {
 });
 
 it("offers only the packs that have a product, and only when billing is on", async () => {
-  expect(availablePacks().map((p) => p.id)).toEqual(["pack_5", "pack_10"]);
+  expect(availablePacks("a@b.c").map((p) => p.id)).toEqual(["pack_5", "pack_10"]);
   vi.stubEnv("DODO_PRODUCT_ID_PACK_10", "");
-  expect(availablePacks()).toEqual([{ id: "pack_5", usd: 5, credits: 600 }]);
+  expect(availablePacks("a@b.c")).toEqual([{ id: "pack_5", usd: 5, credits: 600 }]);
   vi.stubEnv("HOSTED", "false");
-  expect(availablePacks()).toEqual([]);
+  expect(availablePacks("a@b.c")).toEqual([]);
 });
 
 it("sends the pack list only to a signed in user", async () => {
@@ -371,4 +377,18 @@ it("acknowledges a refund for a payment we never credited and logs it", async ()
       .all()
       .some((e) => e.message.includes("never credited"))
   ).toBe(true);
+});
+
+it("keeps buying to the operators while payments are in test mode", async () => {
+  vi.stubEnv("DODO_PAYMENTS_ENVIRONMENT", "test_mode");
+  vi.stubEnv("ADMIN_EMAILS", "boss@heycapy.test");
+  expect(availablePacks("someone@heycapy.test")).toEqual([]);
+  expect(availablePacks(null)).toEqual([]);
+  expect(availablePacks("Boss@heycapy.test").map((p) => p.id)).toEqual(["pack_5", "pack_10"]);
+  expect(outOfCreditsMessage()).toBe(OUT_OF_CREDITS_ERROR);
+
+  const stranger = await seedUser();
+  expect((await createCheckout(stranger, "someone@heycapy.test", "pack_5")).ok).toBe(false);
+  expect(created.calls).toHaveLength(0);
+  expect((await createCheckout(stranger, "boss@heycapy.test", "pack_5")).ok).toBe(true);
 });

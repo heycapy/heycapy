@@ -8,6 +8,7 @@ import {
   type CreditPackId,
 } from "@/constants";
 import { publicAppUrl } from "@/lib/app-url";
+import { isAdmin } from "@/lib/auth/admin";
 import { grantPurchasedCredits, isHosted, reversePurchase } from "@/lib/credits";
 import { db } from "@/lib/db";
 import { checkoutSessions } from "@/lib/db/schema";
@@ -19,9 +20,16 @@ export function dodoEnabled(): boolean {
 }
 
 // anything but the exact word live_mode stays in test mode so a typo can never take a real payment
+function isLiveMode(): boolean {
+  return process.env.DODO_PAYMENTS_ENVIRONMENT === "live_mode";
+}
+
+function mayBuy(email: string | null): boolean {
+  return isLiveMode() || (email !== null && isAdmin(email));
+}
+
 function client(): DodoPayments {
-  const environment =
-    process.env.DODO_PAYMENTS_ENVIRONMENT === "live_mode" ? "live_mode" : "test_mode";
+  const environment = isLiveMode() ? "live_mode" : "test_mode";
   return new DodoPayments({
     bearerToken: process.env.DODO_PAYMENTS_API_KEY,
     webhookKey: process.env.DODO_PAYMENTS_WEBHOOK_KEY,
@@ -41,16 +49,16 @@ function packOfProduct(productId: string): CreditPackId | null {
 export type PackOffer = { id: CreditPackId; usd: number; credits: number };
 
 // only the packs that have a product to buy, so nothing is offered that can't be paid for
-export function availablePacks(): PackOffer[] {
-  if (!dodoEnabled() || !publicAppUrl()) return [];
+export function availablePacks(email: string | null): PackOffer[] {
+  if (!dodoEnabled() || !publicAppUrl() || !mayBuy(email)) return [];
   return (Object.keys(CREDIT_PACKS) as CreditPackId[])
     .filter((id) => productIdOf(id))
     .map((id) => ({ id, usd: CREDIT_PACKS[id].usd, credits: CREDIT_PACKS[id].credits }));
 }
 
-// says to buy more only when there is something to buy
+// says to buy more only when everyone can, so not while payments are in test mode
 export function outOfCreditsMessage(): string {
-  return availablePacks().length > 0 ? OUT_OF_CREDITS_BUY_ERROR : OUT_OF_CREDITS_ERROR;
+  return availablePacks(null).length > 0 ? OUT_OF_CREDITS_BUY_ERROR : OUT_OF_CREDITS_ERROR;
 }
 
 export async function createCheckout(
@@ -60,7 +68,7 @@ export async function createCheckout(
 ): Promise<{ ok: true; url: string } | { ok: false; error: string }> {
   const productId = productIdOf(pack);
   const returnUrl = publicAppUrl();
-  if (!dodoEnabled() || !productId || !returnUrl) {
+  if (!dodoEnabled() || !productId || !returnUrl || !mayBuy(email)) {
     return { ok: false, error: "Buying credits isn't available right now." };
   }
   try {

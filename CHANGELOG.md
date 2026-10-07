@@ -2,6 +2,18 @@
 
 all notable changes to heycapy. versions follow [semver](https://semver.org): 0.1.x fixes, 0.2 features. the database migrates itself on start and migrations only go forward, so back up before upgrading (see the README).
 
+## 0.2.0
+
+### what's new
+
+- the hosted version can sell capy credit packs through dodo payments: a credits tab in tweaks with buying, a signed webhook that adds the credits once per payment, and refunds and lost disputes that take them back. it stays off unless `HOSTED=true` and the dodo variables are set, so self-hosted servers see nothing new
+- in test mode only the admins can buy, so a test card never gives anyone free credits
+- tweaks: ai is now the second tab, and every button uses the theme's accent colour
+
+### upgrading
+
+- a migration adds a `checkout_sessions` table and two columns on `credit_ledger`. it runs on start and only goes forward, so back up first (see the README)
+
 ## 0.1.1
 
 ### fixes
