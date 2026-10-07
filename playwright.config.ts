@@ -61,6 +61,8 @@ export default defineConfig({
       TELEGRAM_BOT_TOKEN: "e2e-not-used",
       ADMIN_EMAILS: "e2e-system@heycapy.test",
       HOSTED: "true",
+      // billing stays off here even when a local .env or the shell has the keys
+      DODO_PAYMENTS_API_KEY: "",
       GEMINI_API_KEY: "e2e-not-used",
       OLLAMA_URL: `http://127.0.0.1:${E2E_SERVER_OLLAMA_PORT}`,
       PORT: String(E2E_PORT),

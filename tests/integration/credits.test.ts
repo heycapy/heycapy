@@ -314,6 +314,7 @@ it("admins give and take credits, never below zero", async () => {
     purchase: 0,
     message: 0,
     refund: 0,
+    reversal: 0,
     admin: 25,
   });
   expect(looked.ok && looked.credits.rows[0]).toMatchObject({

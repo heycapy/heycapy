@@ -447,12 +447,17 @@ export const creditLedger = sqliteTable(
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
     amount: integer("amount").notNull(),
-    kind: text("kind", { enum: ["grant", "purchase", "message", "refund", "admin"] }).notNull(),
+    kind: text("kind", {
+      enum: ["grant", "purchase", "message", "refund", "reversal", "admin"],
+    }).notNull(),
     // unique so a message is refunded at most once
     refundOf: integer("refund_of").references((): AnySQLiteColumn => creditLedger.id),
     note: text("note"),
     // the admin who made an admin row
     actor: text("actor"),
+    // the payment provider and its id for the payment or refund, so a retried webhook never credits twice
+    provider: text("provider"),
+    providerRef: text("provider_ref"),
     createdAt: integer("created_at", { mode: "timestamp" })
       .notNull()
       .default(sql`(unixepoch())`),
@@ -460,5 +465,27 @@ export const creditLedger = sqliteTable(
   (t) => [
     index("idx_credit_ledger_user_id").on(t.userId),
     uniqueIndex("idx_credit_ledger_refund_of").on(t.refundOf),
+    uniqueIndex("idx_credit_ledger_provider_ref").on(t.provider, t.providerRef, t.kind),
+  ]
+);
+
+// a checkout we started, so a payment finds its user from the session id and not from anything the buyer sent
+export const checkoutSessions = sqliteTable(
+  "checkout_sessions",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    userId: integer("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    provider: text("provider").notNull(),
+    sessionId: text("session_id").notNull(),
+    pack: text("pack").notNull(),
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .default(sql`(unixepoch())`),
+  },
+  (t) => [
+    uniqueIndex("idx_checkout_sessions_session").on(t.provider, t.sessionId),
+    index("idx_checkout_sessions_user_id").on(t.userId),
   ]
 );
