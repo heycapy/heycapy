@@ -11,6 +11,8 @@ type Props = {
   onClose: () => void;
   onMinimize?: () => void;
   onFullscreen?: () => void;
+  sidebarOpen?: boolean;
+  onToggleSidebar?: () => void;
   onHistoryOpen: () => void;
   onNewChat: () => void;
 };
@@ -21,6 +23,8 @@ export function CapyChatHeader({
   onClose,
   onMinimize,
   onFullscreen,
+  sidebarOpen,
+  onToggleSidebar,
   onHistoryOpen,
   onNewChat,
 }: Props) {
@@ -34,21 +38,37 @@ export function CapyChatHeader({
       )}
       onClick={onMinimize}
     >
+      {fullscreen && onToggleSidebar && (
+        <BracketButton
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggleSidebar();
+          }}
+          aria-label={sidebarOpen ? "Hide history" : "Show history"}
+          aria-expanded={sidebarOpen}
+          className="px-1"
+        >
+          {sidebarOpen ? "sidebar >" : "sidebar <"}
+        </BracketButton>
+      )}
+
       <div className="flex items-center gap-1 pr-1">
         <Sprite id="capy-idle-blink" size={24} />
       </div>
 
       <span className="font-pixel flex-1 truncate text-[11px]">{name}</span>
 
-      <BracketButton
-        onClick={(e) => {
-          e.stopPropagation();
-          onHistoryOpen();
-        }}
-        className="px-1"
-      >
-        history
-      </BracketButton>
+      {!fullscreen && (
+        <BracketButton
+          onClick={(e) => {
+            e.stopPropagation();
+            onHistoryOpen();
+          }}
+          className="px-1"
+        >
+          history
+        </BracketButton>
+      )}
 
       <BracketButton
         onClick={(e) => {

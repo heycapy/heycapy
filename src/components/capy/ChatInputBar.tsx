@@ -13,6 +13,7 @@ type Props = {
   streaming: boolean;
   onSend: () => void;
   onStop: () => void;
+  boxed?: boolean;
 };
 
 export type ChatInputBarHandle = { focus: () => void };
@@ -24,7 +25,7 @@ function formatTime(seconds: number) {
 }
 
 export const ChatInputBar = forwardRef<ChatInputBarHandle, Props>(function ChatInputBar(
-  { input, setInput, streaming, onSend, onStop }: Props,
+  { input, setInput, streaming, onSend, onStop, boxed }: Props,
   ref
 ) {
   const name = useAssistantName();
@@ -161,7 +162,8 @@ export const ChatInputBar = forwardRef<ChatInputBarHandle, Props>(function ChatI
   return (
     <div
       className={cn(
-        "border-t-2 px-3 py-2 transition-colors",
+        "px-3 py-2 transition-colors",
+        boxed ? "border-2" : "border-t-2",
         recording ? "border-primary" : "border-border"
       )}
     >
