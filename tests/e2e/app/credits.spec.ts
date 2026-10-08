@@ -37,12 +37,12 @@ test("capy's chat shows the credits only when they run low, and says so when the
   setBalance(7);
   await page.reload();
   await page.getByRole("button", { name: "Open chat" }).click();
-  await expect(strip).toHaveText("capy credits · 7 left · see tweaks → ai");
+  await expect(strip).toHaveText("capy credits · 7 left · see tweaks → credits");
 
   setBalance(0);
   await page.reload();
   await page.getByRole("button", { name: "Open chat" }).click();
-  await expect(strip).toHaveText("out of capy credits · see tweaks → ai");
+  await expect(strip).toHaveText("out of capy credits · see tweaks → credits");
 
   const input = page.getByPlaceholder("ask capy...");
   await input.fill("hello");
@@ -142,7 +142,7 @@ test("each provider keeps its own key and model, and saved keys never come back"
   await expect(modelField).toHaveValue("gpt-4.1-mini");
   expect(await page.content()).not.toMatch(/e2e-openai-key|e2e-groq-key/);
 
-  await page.getByRole("button", { name: "edit" }).click();
+  await page.getByRole("button", { name: "[ edit ]", exact: true }).click();
   await expect(keyField).toBeFocused();
   await expect(keyField).toHaveValue("");
   await page.getByRole("button", { name: "cancel" }).click();
@@ -186,4 +186,35 @@ test("picking heycapy ai describes it at once, not the saved key", async ({ page
   await expect(page.getByText(/save to switch to heycapy ai/)).toBeVisible();
   await expect(page.getByText(/last checked/)).toHaveCount(0);
   await expect(page.getByRole("button", { name: "check", exact: true })).toHaveCount(0);
+});
+
+test("tweaks has ai second and a credits tab with the balance and what buying looks like", async ({
+  page,
+}) => {
+  setBalance(42);
+  await page.goto("/");
+  await page.getByRole("button", { name: "···" }).click();
+  await page.getByRole("button", { name: "tweaks" }).click();
+
+  const tabs = page
+    .locator("aside")
+    .getByRole("button", { name: /^(appearance|ai|credits|notifications|personality|account)$/ });
+  await expect(tabs).toHaveText([
+    "appearance",
+    "ai",
+    "credits",
+    "notifications",
+    "personality",
+    "account",
+  ]);
+
+  await page.getByRole("button", { name: "credits", exact: true }).click();
+  await expect(page.getByRole("status", { name: "capy credits" })).toHaveText(
+    "42capy credits left (never expire)"
+  );
+  await expect(page.getByText("buying credits isn't open yet.")).toBeVisible();
+  await expect(page.getByText(/each message to capy uses 1 credit/)).toBeVisible();
+
+  await page.getByRole("button", { name: "ai", exact: true }).click();
+  await expect(page.getByText(/need more\? see the credits tab/)).toBeVisible();
 });

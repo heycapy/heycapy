@@ -70,6 +70,22 @@ export const AI_COMPACT_THRESHOLD_MIN = 10;
 export const AI_COMPACT_THRESHOLD_MAX = 500;
 // only on a hosted server for answers on our ai and placeholder amounts until real prices exist
 export const CREDITS_FREE_GRANT = 50;
+// what a pack buys; the payment provider's product id for each lives in the environment since test and live differ
+export const CREDIT_PACKS = {
+  pack_5: { usd: 5, credits: 600, productEnv: "DODO_PRODUCT_ID_PACK_5" },
+  pack_10: { usd: 10, credits: 1400, productEnv: "DODO_PRODUCT_ID_PACK_10" },
+} as const;
+export type CreditPackId = keyof typeof CREDIT_PACKS;
+export const CREDIT_PACK_IDS = Object.keys(CREDIT_PACKS) as [CreditPackId, ...CreditPackId[]];
+export const BILLING_PROVIDER = "dodo";
+export const PRICING_URL = `https://${APP_DOMAIN}/pricing`;
+export const REFUNDS_URL = `https://${APP_DOMAIN}/refunds`;
+// Dodo sends the buyer back with these in the address, and they are cleared once read
+export const CHECKOUT_RETURN_PARAMS = ["status", "payment_id", "email", "session_id"] as const;
+// the balance is looked at again at these seconds while the webhook is on its way
+export const CHECKOUT_BALANCE_RECHECK_SECONDS = [0, 3, 6, 10, 15, 25];
+export const OUT_OF_CREDITS_BUY_ERROR =
+  "You're out of capy credits. Buy more in tweaks → credits, or add your own AI key to keep chatting.";
 export const CREDITS_PER_MESSAGE = 1;
 export const CREDITS_ADMIN_MAX_CHANGE = 100_000;
 export const CREDITS_NOTE_MAX_LENGTH = 200;

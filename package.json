@@ -1,6 +1,6 @@
 {
   "name": "heycapy",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "private": true,
   "scripts": {
     "dev": "next dev -H 0.0.0.0",
@@ -27,6 +27,7 @@
     "chrono-node": "^2.10.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "dodopayments": "^2.53.0",
     "drizzle-orm": "^0.45.2",
     "framer-motion": "^13.4.0",
     "jose": "^6.2.12",

@@ -8,12 +8,12 @@ import { readSavedAIKeys } from "@/lib/ai/saved-keys";
 import { hasOwnAI } from "@/lib/ai";
 import { recordUsage } from "@/lib/ai/usage";
 import { creditBalance, isHosted } from "@/lib/credits";
+import { outOfCreditsMessage } from "@/lib/billing/dodo";
 import { serverVoice, transcribeAudio, type TranscriptionProvider } from "@/lib/transcription";
 import { aiErrorResponse } from "@/lib/errors";
 import {
   CREDITS_PER_MESSAGE,
   TRANSCRIPTION_DEFAULT_MODELS,
-  OUT_OF_CREDITS_ERROR,
   VOICE_MAX_BYTES,
   VOICE_NO_SPEECH_ERROR,
   VOICE_TOO_LONG_ERROR,
@@ -61,7 +61,7 @@ export async function POST(req: Request) {
       return Response.json({ error: "Voice isn't set up on this server." }, { status: 503 });
     }
     if (creditBalance(userId) < CREDITS_PER_MESSAGE) {
-      return Response.json({ error: OUT_OF_CREDITS_ERROR }, { status: 402 });
+      return Response.json({ error: outOfCreditsMessage() }, { status: 402 });
     }
     const audio = await readAudio(req);
     if (audio instanceof Response) return audio;

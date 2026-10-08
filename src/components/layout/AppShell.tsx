@@ -5,6 +5,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { Header } from "./Header";
 import { SettingsSheet, type SettingsTab } from "./SettingsSheet";
 import { DeliveryFailureBanner } from "./DeliveryFailureBanner";
+import { PurchaseReturn } from "./PurchaseReturn";
 import { NoChannelBanner } from "./NoChannelBanner";
 import { ArchivedBucketsSheet } from "@/components/buckets/ArchivedBucketsSheet";
 import { TrashSheet } from "@/components/buckets/TrashSheet";
@@ -47,6 +48,7 @@ export function AppShell({
 
   return (
     <>
+      <PurchaseReturn onPaid={() => setSettingsTab("credits")} />
       <Header
         email={email}
         onSettingsOpen={() => setSettingsTab("appearance")}

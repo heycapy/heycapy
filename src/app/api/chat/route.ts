@@ -11,15 +11,11 @@ import { chatHistory, compactSessionIfNeeded } from "@/lib/ai/compact";
 import { runAgent, type AgentStep } from "@/lib/ai/runAgent";
 import { toolStatus } from "@/lib/ai/toolStatus";
 import { logAIError, parseProviderError } from "@/lib/errors";
-import {
-  AI_REQUEST_TIMEOUT_MS,
-  CHAT_STREAM_PADDING,
-  OLLAMA_REQUEST_TIMEOUT_MS,
-  OUT_OF_CREDITS_ERROR,
-} from "@/constants";
+import { AI_REQUEST_TIMEOUT_MS, CHAT_STREAM_PADDING, OLLAMA_REQUEST_TIMEOUT_MS } from "@/constants";
 import { recordUsage } from "@/lib/ai/usage";
 import { recordKeyResult } from "@/lib/ai/status";
 import { chargesCredits, holdMessageCredit, refundMessageCredit } from "@/lib/credits";
+import { outOfCreditsMessage } from "@/lib/billing/dodo";
 import type { AgentMessage, TokenUsage } from "@/lib/ai/types";
 import type { ChatEvent } from "@/lib/ai/chatEvents";
 
@@ -137,7 +133,7 @@ async function answer(userId: number, request: ChatRequest, send: (event: ChatEv
 
   const hold = chargesCredits(provider.meta) ? holdMessageCredit(userId) : undefined;
   if (hold === null) {
-    send({ type: "error", error: OUT_OF_CREDITS_ERROR });
+    send({ type: "error", error: outOfCreditsMessage() });
     return;
   }
   const usage: TokenUsage[] = [];
