@@ -11,14 +11,12 @@ import { useItemEditor } from "./useItemEditor";
 import { BracketButton } from "@/components/ui/BracketButton";
 import { daysToDisplayStr, parseDurationToDate } from "@/lib/duration";
 import { DEFAULT_BUCKET_STATUSES } from "./constants";
-import type { buckets } from "@/lib/db/schema";
+import type { ViewerBucket } from "@/lib/buckets/access";
 import { parseFields } from "./fields";
 import { useLayoutStore } from "@/store/layout";
 
-type BucketRow = typeof buckets.$inferSelect;
-
 type BucketContentProps = {
-  bucket: BucketRow;
+  bucket: ViewerBucket;
   accentColor: string;
   addItemRef: RefObject<(() => void) | null>;
 };

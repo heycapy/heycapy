@@ -14,18 +14,20 @@ import {
   getNotifAvailabilityAction,
 } from "@/app/(app)/actions";
 import { BUCKET_NAME_MAX_LENGTH } from "@/constants";
-import type { buckets } from "@/lib/db/schema";
+import type { ViewerBucket } from "@/lib/buckets/access";
+import { BucketMembersPanel } from "./BucketMembersPanel";
 
-type BucketRow = typeof buckets.$inferSelect;
-export type SettingsTab = "items" | "notifications" | "advanced";
+export type SettingsTab = "items" | "notifications" | "advanced" | "members";
 
-const TABS: SettingsTab[] = ["items", "notifications", "advanced"];
+const OWNER_TABS: SettingsTab[] = ["items", "notifications", "advanced", "members"];
+// A member can't change the bucket, only see who is in it and leave
+const MEMBER_TABS: SettingsTab[] = ["members"];
 
 const tabCn = (active: boolean) =>
   `font-mono text-xs px-2 py-1 transition-colors shrink-0 whitespace-nowrap ${active ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"}`;
 
 type BucketSettingsFormProps = {
-  bucket: BucketRow;
+  bucket: ViewerBucket;
   onClose: () => void;
   onOpenSchema: () => void;
   onOpenTelegram: () => void;
@@ -44,7 +46,8 @@ export function BucketSettingsForm({
 }: BucketSettingsFormProps) {
   const router = useRouter();
   const nameId = useId();
-  const [tab, setTab] = useState<SettingsTab>(initialTab);
+  const tabs = bucket.isOwner ? OWNER_TABS : MEMBER_TABS;
+  const [tab, setTab] = useState<SettingsTab>(bucket.isOwner ? initialTab : "members");
   const [values, setValues] = useState<BucketSettingsValues>(() => parseBucketSettings(bucket));
   const [error, setError] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -129,40 +132,42 @@ export function BucketSettingsForm({
         </BracketButton>
       </div>
 
-      <div className="flex shrink-0 flex-col gap-4 px-4 pt-4 pb-0">
-        <div className="flex flex-col gap-1.5">
-          <label htmlFor={nameId} className="text-muted-foreground font-mono text-xs">
-            name
-          </label>
-          <input
-            id={nameId}
-            type="text"
-            value={values.name}
-            onChange={(e) => set("name", e.target.value)}
-            maxLength={BUCKET_NAME_MAX_LENGTH}
-            disabled={pending}
-            className="border-border focus:border-foreground w-full border-b bg-transparent py-1.5 font-mono text-xs outline-none disabled:opacity-50"
-          />
-          {values.name.length > 0 && (
-            <p
-              className={cn(
-                "text-right font-mono text-[11px] transition-colors",
-                charCountColor(values.name.length, BUCKET_NAME_MAX_LENGTH)
-              )}
-            >
-              {values.name.length}/{BUCKET_NAME_MAX_LENGTH}
-            </p>
-          )}
-          {error && <span className="text-destructive font-mono text-xs">{error}</span>}
+      {bucket.isOwner && (
+        <div className="flex shrink-0 flex-col gap-4 px-4 pt-4 pb-0">
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor={nameId} className="text-muted-foreground font-mono text-xs">
+              name
+            </label>
+            <input
+              id={nameId}
+              type="text"
+              value={values.name}
+              onChange={(e) => set("name", e.target.value)}
+              maxLength={BUCKET_NAME_MAX_LENGTH}
+              disabled={pending}
+              className="border-border focus:border-foreground w-full border-b bg-transparent py-1.5 font-mono text-xs outline-none disabled:opacity-50"
+            />
+            {values.name.length > 0 && (
+              <p
+                className={cn(
+                  "text-right font-mono text-[11px] transition-colors",
+                  charCountColor(values.name.length, BUCKET_NAME_MAX_LENGTH)
+                )}
+              >
+                {values.name.length}/{BUCKET_NAME_MAX_LENGTH}
+              </p>
+            )}
+            {error && <span className="text-destructive font-mono text-xs">{error}</span>}
+          </div>
+          <div className="border-border flex overflow-x-auto border-b">
+            {tabs.map((t) => (
+              <button key={t} onClick={() => setTab(t)} className={tabCn(tab === t)}>
+                {t}
+              </button>
+            ))}
+          </div>
         </div>
-        <div className="border-border flex overflow-x-auto border-b">
-          {TABS.map((t) => (
-            <button key={t} onClick={() => setTab(t)} className={tabCn(tab === t)}>
-              {t}
-            </button>
-          ))}
-        </div>
-      </div>
+      )}
 
       <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-4 py-4">
         {(tab === "items" || tab === "notifications") && (
@@ -237,6 +242,8 @@ export function BucketSettingsForm({
             </BracketButton>
           </div>
         )}
+
+        {tab === "members" && <BucketMembersPanel bucket={bucket} onLeft={onClose} />}
 
         {tab === "advanced" && (
           <div className="flex flex-col gap-5">

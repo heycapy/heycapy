@@ -2,13 +2,8 @@ import { describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { bucketInvites, bucketMembers, buckets } from "@/lib/db/schema";
-import {
-  createInvite,
-  listOpenInvites,
-  normalizeInviteCode,
-  redeemInvite,
-  revokeInvite,
-} from "@/lib/buckets/invites";
+import { createInvite, listOpenInvites, redeemInvite, revokeInvite } from "@/lib/buckets/invites";
+import { normalizeInviteCode } from "@/lib/buckets/invite-code";
 import {
   BUCKET_MEMBERS_MAX,
   INVITE_ACTIVE_MAX,

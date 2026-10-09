@@ -1,0 +1,113 @@
+import { test, expect, type Page } from "@playwright/test";
+import Database from "better-sqlite3";
+import { E2E_DATABASE_FILE } from "../helpers/env";
+import { login, uniqueEmail } from "../helpers/login";
+
+const bracket = (label: string) => new RegExp(`^\\[\\s*${label}\\s*\\]$`);
+
+function addBucket(email: string, name: string): number {
+  const db = new Database(E2E_DATABASE_FILE);
+  const { id: userId } = db.prepare("select id from users where email = ?").get(email) as {
+    id: number;
+  };
+  const { id } = db
+    .prepare("insert into buckets (user_id, name) values (?, ?) returning id")
+    .get(userId, name) as { id: number };
+  db.close();
+  return id;
+}
+
+async function openSettings(page: Page) {
+  await page.getByRole("button", { name: bracket("settings") }).click();
+}
+
+async function openMembers(page: Page) {
+  await openSettings(page);
+  await page.getByRole("button", { name: "members", exact: true }).click();
+}
+
+async function ownerWithInvite(page: Page, bucketName: string) {
+  const email = uniqueEmail("e2e-share-owner");
+  await login(page, email);
+  const bucketId = addBucket(email, bucketName);
+  await page.goto(`/?bucket=${bucketId}`);
+  await openMembers(page);
+  await page.getByRole("button", { name: bracket("create invite") }).click();
+  const code = (await page.getByTestId("invite-code").textContent()) ?? "";
+  return { bucketId, code };
+}
+
+async function joinWithCode(page: Page, code: string) {
+  await login(page, uniqueEmail("e2e-share-friend"));
+  await page.getByRole("button", { name: "···" }).click();
+  await page.getByRole("button", { name: "join a bucket" }).click();
+  await page.getByRole("textbox", { name: "invite code" }).fill(code.toLowerCase());
+  await page.getByRole("button", { name: bracket("join") }).click();
+}
+
+test("an owner invites with a code, the friend joins from the menu and sees who is in", async ({
+  page,
+  browser,
+}) => {
+  const bucketName = `shared ${Date.now()}`;
+  const { bucketId, code } = await ownerWithInvite(page, bucketName);
+  expect(code).toMatch(/^[A-Z2-9]{4}-[A-Z2-9]{4}$/);
+  await expect(page.getByRole("textbox", { name: "invite link" })).toHaveValue(
+    new RegExp(`/join/${code.replace("-", "")}$`)
+  );
+  await expect(page.getByRole("img", { name: "scan to join this bucket" })).toBeVisible();
+  await expect(page.getByText("people in this bucket (1/5)")).toBeVisible();
+
+  const friend = await browser.newPage();
+  await joinWithCode(friend, code);
+  await friend.waitForURL(`/?bucket=${bucketId}`);
+  await expect(friend.getByText(bucketName).first()).toBeVisible();
+
+  await openSettings(friend);
+  await expect(friend.getByText("people in this bucket (2/5)")).toBeVisible();
+  await expect(friend.getByRole("button", { name: bracket("leave bucket") })).toBeVisible();
+  await expect(friend.getByRole("button", { name: bracket("create invite") })).toHaveCount(0);
+  await expect(friend.getByRole("button", { name: "advanced", exact: true })).toHaveCount(0);
+  await expect(friend.getByRole("textbox", { name: "name" })).toHaveCount(0);
+
+  await page.reload();
+  await openMembers(page);
+  await expect(page.getByText("people in this bucket (2/5)")).toBeVisible();
+  await page.getByRole("button", { name: bracket("remove") }).click();
+  await page.getByRole("button", { name: bracket("confirm") }).click();
+  await expect(page.getByText("people in this bucket (1/5)")).toBeVisible();
+
+  await friend.reload();
+  await expect(friend.getByText("no buckets yet.")).toBeVisible();
+  await friend.close();
+});
+
+test("a member can leave a bucket", async ({ page, browser }) => {
+  const { code } = await ownerWithInvite(page, `leave ${Date.now()}`);
+
+  const friend = await browser.newPage();
+  await joinWithCode(friend, code);
+  await friend.waitForURL(/\/\?bucket=\d+$/);
+  await openSettings(friend);
+  await friend.getByRole("button", { name: bracket("leave bucket") }).click();
+  await friend.getByRole("button", { name: bracket("confirm") }).click();
+
+  await expect(friend.getByText("no buckets yet.")).toBeVisible();
+  await page.reload();
+  await openMembers(page);
+  await expect(page.getByText("people in this bucket (1/5)")).toBeVisible();
+  await friend.close();
+});
+
+test("an owner can cancel an invite before it is used", async ({ page, browser }) => {
+  const { code } = await ownerWithInvite(page, `cancel ${Date.now()}`);
+  await page.getByRole("button", { name: bracket("cancel") }).click();
+  await expect(page.getByText(/expires in/)).toHaveCount(0);
+
+  const friend = await browser.newPage();
+  await joinWithCode(friend, code);
+  await expect(
+    friend.getByRole("alert").filter({ hasText: "That code isn't valid or has expired." })
+  ).toBeVisible();
+  await friend.close();
+});

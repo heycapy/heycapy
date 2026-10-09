@@ -3,6 +3,7 @@ import { and, count, eq, gt, inArray, isNull } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { bucketInvites, bucketMembers, buckets, inviteAttempts } from "@/lib/db/schema";
 import { inLiveBucket } from "@/lib/buckets/live";
+import { normalizeInviteCode } from "./invite-code";
 import {
   BUCKET_MEMBERS_MAX,
   INVITE_ACTIVE_MAX,
@@ -26,11 +27,6 @@ export type PendingInvite = { id: number; createdAt: Date; expiresAt: Date };
 
 function hashCode(code: string): string {
   return createHash("sha256").update(code).digest("hex");
-}
-
-// Typed or pasted with spaces, dashes or lowercase, all the same code
-export function normalizeInviteCode(input: string): string {
-  return input.toUpperCase().replace(/[^A-Z0-9]/g, "");
 }
 
 function generateInviteCode(): string {

@@ -6,13 +6,11 @@ import { BucketSettingsForm, type SettingsTab } from "./BucketSettingsForm";
 import { SchemaEditorDialog } from "./SchemaEditorDialog";
 import { TelegramConfigDialog } from "./TelegramConfigDialog";
 import { WebhookDialog } from "./WebhookDialog";
-import type { buckets } from "@/lib/db/schema";
-
-type BucketRow = typeof buckets.$inferSelect;
+import type { ViewerBucket } from "@/lib/buckets/access";
 
 type BucketSettingsProps = {
   open: boolean;
-  bucket: BucketRow;
+  bucket: ViewerBucket;
   onClose: () => void;
   initialTab?: SettingsTab;
 };

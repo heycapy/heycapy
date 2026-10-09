@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Archive, LogOut, SlidersHorizontal, Trash2 } from "lucide-react";
+import { Archive, LogOut, SlidersHorizontal, Trash2, UserPlus } from "lucide-react";
 import { BracketButton } from "@/components/ui/BracketButton";
 import { logoutAction, logoutEverywhereAction } from "@/app/(app)/actions";
 import { useScrollLock } from "@/hooks/useScrollLock";
@@ -10,6 +10,7 @@ type HeaderProps = {
   onSettingsOpen: () => void;
   onArchiveOpen: () => void;
   onTrashOpen: () => void;
+  onJoinOpen: () => void;
 };
 
 function getGreeting() {
@@ -77,11 +78,13 @@ function GlobalMenu({
   onSettings,
   onArchive,
   onTrash,
+  onJoin,
 }: {
   email: string;
   onSettings: () => void;
   onArchive: () => void;
   onTrash: () => void;
+  onJoin: () => void;
 }) {
   const [open, setOpen] = useState(false);
   const [confirmLogout, setConfirmLogout] = useState<LogoutScope | null>(null);
@@ -143,6 +146,13 @@ function GlobalMenu({
                 tweaks
               </button>
               <button
+                onClick={() => pick(onJoin)}
+                className="text-foreground hover:bg-muted flex w-full items-center gap-2.5 px-3 py-2 font-mono text-xs transition-colors"
+              >
+                <UserPlus size={11} />
+                join a bucket
+              </button>
+              <button
                 onClick={() => pick(onArchive)}
                 className="text-foreground hover:bg-muted flex w-full items-center gap-2.5 px-3 py-2 font-mono text-xs transition-colors"
               >
@@ -179,7 +189,13 @@ function GlobalMenu({
   );
 }
 
-export function Header({ email, onSettingsOpen, onArchiveOpen, onTrashOpen }: HeaderProps) {
+export function Header({
+  email,
+  onSettingsOpen,
+  onArchiveOpen,
+  onTrashOpen,
+  onJoinOpen,
+}: HeaderProps) {
   const greeting = useMemo(() => getGreeting(), []);
   const date = useMemo(() => getDate(), []);
 
@@ -195,6 +211,7 @@ export function Header({ email, onSettingsOpen, onArchiveOpen, onTrashOpen }: He
         onSettings={onSettingsOpen}
         onArchive={onArchiveOpen}
         onTrash={onTrashOpen}
+        onJoin={onJoinOpen}
       />
     </header>
   );

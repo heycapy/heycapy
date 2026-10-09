@@ -57,13 +57,19 @@ describe("a member of a shared bucket", () => {
     const [seen] = await listLiveBuckets(friend);
     expect(seen).toMatchObject({
       id: bucketId,
+      isOwner: false,
       webhookKey: null,
       telegramConfig: null,
       mcpConfig: null,
       mcpIntegration: null,
     });
     const [own] = await listLiveBuckets(owner);
-    expect(own).toMatchObject({ id: bucketId, webhookKey: "secret-key", telegramConfig: "{}" });
+    expect(own).toMatchObject({
+      id: bucketId,
+      isOwner: true,
+      webhookKey: "secret-key",
+      telegramConfig: "{}",
+    });
   });
 
   it("gets the items of the bucket from the items action", async () => {
