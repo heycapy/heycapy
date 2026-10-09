@@ -89,6 +89,7 @@ export async function getUserSettingsAction(): Promise<
   ActionResult<{
     settings: typeof userSettings.$inferSelect;
     userEmail: string;
+    username: string | null;
     smtpPassSaved: boolean;
     telegramBotConfigured: boolean;
     isAdmin: boolean;
@@ -111,6 +112,7 @@ export async function getUserSettingsAction(): Promise<
   return {
     ok: true,
     userEmail: user?.email ?? session.email,
+    username: user?.username ?? null,
     smtpPassSaved: !!settings.smtpPass,
     telegramBotConfigured: !!process.env.TELEGRAM_BOT_TOKEN,
     isAdmin: isAdmin(session.email),

@@ -63,6 +63,7 @@ export function SettingsSheet({ open, initialTab, onClose }: SettingsSheetProps)
   const [notificationsEmail, setNotificationsEmail] = useState(true);
   const [notificationEmailTo, setNotificationEmailTo] = useState("");
   const [userEmail, setUserEmail] = useState("");
+  const [username, setUsername] = useState<string | null>(null);
   const [adminUser, setAdminUser] = useState(false);
   const [smtpHost, setSmtpHost] = useState("");
   const [smtpPort, setSmtpPort] = useState("");
@@ -133,6 +134,7 @@ export function SettingsSheet({ open, initialTab, onClose }: SettingsSheetProps)
           populate(result.settings);
           populateAI(result.settings, result.hosted, result.aiKeys, result.transcriptionKey);
           setUserEmail(result.userEmail);
+          setUsername(result.username);
           setAdminUser(result.isAdmin);
           setSmtpPassSaved(result.smtpPassSaved);
           setTelegramBotConfigured(result.telegramBotConfigured);
@@ -337,7 +339,7 @@ export function SettingsSheet({ open, initialTab, onClose }: SettingsSheetProps)
                       pending={pending}
                     />
                   )}
-                  {tab === "account" && <AccountTab email={userEmail} />}
+                  {tab === "account" && <AccountTab email={userEmail} username={username} />}
                   {tab === "system" && adminUser && <SystemTab />}
                   {error && <span className="text-destructive font-mono text-xs">{error}</span>}
                 </>

@@ -27,6 +27,8 @@ export async function register() {
       const { db } = await import("@/lib/db");
       const { migrate } = await import("drizzle-orm/better-sqlite3/migrator");
       migrate(db, { migrationsFolder });
+      const { backfillUsernames } = await import("@/lib/account/username");
+      await backfillUsernames();
     }
     const { startScheduler } = await import("@/lib/scheduler");
     startScheduler();

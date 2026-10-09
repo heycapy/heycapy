@@ -5,7 +5,7 @@ import { BOX, INPUT, LABEL, SECTION } from "./settings-constants";
 
 type Step = "idle" | "confirm" | "code";
 
-export function AccountTab({ email }: { email: string }) {
+export function AccountTab({ email, username }: { email: string; username: string | null }) {
   const [step, setStep] = useState<Step>("idle");
   const [code, setCode] = useState("");
   const [devCode, setDevCode] = useState("");
@@ -43,6 +43,18 @@ export function AccountTab({ email }: { email: string }) {
 
   return (
     <div className="flex flex-col gap-3">
+      {username && (
+        <div className={BOX}>
+          <span className={SECTION}>username</span>
+          <p className="font-mono text-xs" data-testid="username">
+            {username}
+          </p>
+          <p className={LABEL}>
+            the name other people will see when you share a bucket. you can&apos;t change it yet.
+          </p>
+        </div>
+      )}
+
       <div className={BOX}>
         <span className={SECTION}>your data</span>
         <p className={LABEL}>

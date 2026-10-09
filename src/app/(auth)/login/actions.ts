@@ -16,6 +16,7 @@ import {
 } from "@/lib/auth/rate-limit";
 import { eq } from "drizzle-orm";
 import { seed } from "@/lib/db/seed";
+import { assignUsername } from "@/lib/account/username";
 
 type SendOtpResult = ActionResult<{ devCode?: string }>;
 type VerifyOtpResult = ActionResult;
@@ -72,6 +73,7 @@ export async function verifyOtpAction(email: string, code: string): Promise<Veri
     const [created] = await db.insert(users).values({ email }).returning();
     user = created;
     await db.insert(userSettings).values({ userId: user.id });
+    await assignUsername(user.id);
     await seed(user.id);
   }
 

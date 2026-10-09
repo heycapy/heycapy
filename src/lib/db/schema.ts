@@ -16,6 +16,7 @@ export const users = sqliteTable("users", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   email: text("email").notNull().unique(),
   displayName: text("display_name"),
+  username: text("username").unique(),
   // Bumped by "log out everywhere"; sessions issued under an older version stop working
   sessionVersion: integer("session_version").notNull().default(1),
   createdAt: integer("created_at", { mode: "timestamp" })
