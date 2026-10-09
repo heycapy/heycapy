@@ -109,7 +109,8 @@ export async function addItemAction(
   }
 
   const bucket = await db.query.buckets.findFirst({
-    where: (b, { eq: qeq, and: qand }) => qand(qeq(b.id, bucketId), qeq(b.userId, session.userId)),
+    where: (b, { eq: qeq, and: qand, inArray: qin }) =>
+      qand(qeq(b.id, bucketId), qin(b.id, memberBucketIds(session.userId))),
   });
   if (!bucket) return { ok: false, error: "Bucket not found" };
 
@@ -179,7 +180,8 @@ export async function updateItemAction(
   }
 
   const item = await db.query.items.findFirst({
-    where: (i, { eq: qeq, and: qand }) => qand(qeq(i.id, itemId), qeq(i.userId, session.userId)),
+    where: (i, { eq: qeq, and: qand, inArray: qin }) =>
+      qand(qeq(i.id, itemId), qin(i.bucketId, memberBucketIds(session.userId))),
   });
   if (!item) return { ok: false, error: "Item not found" };
 
@@ -225,7 +227,7 @@ export async function updateItemAction(
       ...(reminders !== undefined && { reminderOffsets: parsedReminders?.data ?? null }),
       updatedAt: new Date(),
     })
-    .where(and(eq(items.id, itemId), eq(items.userId, session.userId)));
+    .where(eq(items.id, itemId));
   await refreshItemReminders([itemId]);
   if (nowCompleted) await createNextOccurrence(itemId);
 
@@ -244,7 +246,8 @@ export async function moveItemAction(itemId: number, deadline: string): Promise<
   const session = await requireSession();
 
   const item = await db.query.items.findFirst({
-    where: (i, { eq: qeq, and: qand }) => qand(qeq(i.id, itemId), qeq(i.userId, session.userId)),
+    where: (i, { eq: qeq, and: qand, inArray: qin }) =>
+      qand(qeq(i.id, itemId), qin(i.bucketId, memberBucketIds(session.userId))),
     columns: { bucketId: true },
   });
   if (!item) return { ok: false, error: "Item not found" };
@@ -263,7 +266,8 @@ export async function completeItemAction(itemId: number): Promise<ActionResult> 
   const session = await requireSession();
 
   const item = await db.query.items.findFirst({
-    where: (i, { eq: qeq, and: qand }) => qand(qeq(i.id, itemId), qeq(i.userId, session.userId)),
+    where: (i, { eq: qeq, and: qand, inArray: qin }) =>
+      qand(qeq(i.id, itemId), qin(i.bucketId, memberBucketIds(session.userId))),
   });
   if (!item) return { ok: false, error: "Item not found" };
 
@@ -280,7 +284,8 @@ export async function reorderItemsAction(
   const session = await requireSession();
 
   const bucket = await db.query.buckets.findFirst({
-    where: (b, { eq: qeq, and: qand }) => qand(qeq(b.id, bucketId), qeq(b.userId, session.userId)),
+    where: (b, { eq: qeq, and: qand, inArray: qin }) =>
+      qand(qeq(b.id, bucketId), qin(b.id, memberBucketIds(session.userId))),
   });
   if (!bucket) return { ok: false, error: "Bucket not found" };
 
@@ -289,7 +294,7 @@ export async function reorderItemsAction(
       db
         .update(items)
         .set({ sortOrder: i })
-        .where(and(eq(items.id, id), eq(items.userId, session.userId)))
+        .where(and(eq(items.id, id), eq(items.bucketId, bucketId)))
     )
   );
 
@@ -301,14 +306,12 @@ export async function deleteItemAction(itemId: number): Promise<ActionResult> {
   const session = await requireSession();
 
   const item = await db.query.items.findFirst({
-    where: (i, { eq: qeq, and: qand }) => qand(qeq(i.id, itemId), qeq(i.userId, session.userId)),
+    where: (i, { eq: qeq, and: qand, inArray: qin }) =>
+      qand(qeq(i.id, itemId), qin(i.bucketId, memberBucketIds(session.userId))),
   });
   if (!item) return { ok: false, error: "Item not found" };
 
-  await db
-    .update(items)
-    .set({ deletedAt: new Date() })
-    .where(and(eq(items.id, itemId), eq(items.userId, session.userId)));
+  await db.update(items).set({ deletedAt: new Date() }).where(eq(items.id, itemId));
   await refreshItemReminders([itemId]);
 
   revalidatePath("/");

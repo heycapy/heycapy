@@ -1,6 +1,7 @@
 import { test, expect, type Page } from "@playwright/test";
 import Database from "better-sqlite3";
 import { E2E_DATABASE_FILE } from "../helpers/env";
+import { addItem, itemRow } from "../helpers/buckets";
 import { login, uniqueEmail } from "../helpers/login";
 
 const bracket = (label: string) => new RegExp(`^\\[\\s*${label}\\s*\\]$`);
@@ -62,6 +63,8 @@ test("an owner invites with a code, the friend joins from the menu and sees who 
   await joinWithCode(friend, code);
   await friend.waitForURL(`/?bucket=${bucketId}`);
   await expect(friend.getByText(bucketName).first()).toBeVisible();
+  const itemTitle = `added by a member ${Date.now()}`;
+  await addItem(friend, itemTitle);
 
   await openSettings(friend);
   await expect(friend.getByText("people in this bucket (2/5)")).toBeVisible();
@@ -71,6 +74,7 @@ test("an owner invites with a code, the friend joins from the menu and sees who 
   await expect(friend.getByRole("textbox", { name: "name" })).toHaveCount(0);
 
   await page.reload();
+  await expect(itemRow(page, itemTitle)).toBeVisible();
   await openMembers(page);
   await expect(page.getByText("people in this bucket (2/5)")).toBeVisible();
   await page.getByRole("button", { name: bracket("remove") }).click();

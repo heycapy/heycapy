@@ -1,9 +1,10 @@
 import type { ActionResult } from "@/types/result";
 import type { RecurringConfig } from "@/types/rules";
 import { CLOSED_ITEM_STATUSES, ITEM_STATUS } from "@/constants";
-import { and, eq, isNotNull, isNull, lt, notInArray } from "drizzle-orm";
+import { and, eq, inArray, isNotNull, isNull, lt, notInArray } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { buckets, items } from "@/lib/db/schema";
+import { memberBucketIds } from "@/lib/buckets/access";
 import { dataEvents } from "@/lib/events";
 import { parseItemsRules } from "@/lib/rules";
 import {
@@ -143,7 +144,7 @@ export async function skipOccurrence(
   now = new Date()
 ): Promise<ActionResult> {
   const item = await db.query.items.findFirst({
-    where: and(eq(items.id, itemId), eq(items.userId, userId)),
+    where: and(eq(items.id, itemId), inArray(items.bucketId, memberBucketIds(userId))),
   });
   if (!item) return { ok: false, error: "Item not found" };
   const config = parseRecurring(item.recurring);
@@ -179,7 +180,11 @@ export async function moveOccurrence(
   now = new Date()
 ): Promise<ActionResult<{ next: Date | null }>> {
   const item = await db.query.items.findFirst({
-    where: and(eq(items.id, itemId), eq(items.userId, userId), isNull(items.deletedAt)),
+    where: and(
+      eq(items.id, itemId),
+      inArray(items.bucketId, memberBucketIds(userId)),
+      isNull(items.deletedAt)
+    ),
   });
   if (!item) return { ok: false, error: "Item not found" };
 
