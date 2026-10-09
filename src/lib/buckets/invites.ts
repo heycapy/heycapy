@@ -2,6 +2,7 @@ import { createHash, randomInt } from "node:crypto";
 import { and, count, eq, gt, inArray, isNull } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { bucketInvites, bucketMembers, buckets, inviteAttempts } from "@/lib/db/schema";
+import { ownedBucketIds } from "@/lib/buckets/access";
 import { inLiveBucket } from "@/lib/buckets/live";
 import { normalizeInviteCode } from "./invite-code";
 import {
@@ -34,10 +35,6 @@ function generateInviteCode(): string {
     { length: INVITE_CODE_LENGTH },
     () => INVITE_CODE_ALPHABET[randomInt(INVITE_CODE_ALPHABET.length)]
   ).join("");
-}
-
-function ownedBucketIds(userId: number) {
-  return db.select({ id: buckets.id }).from(buckets).where(eq(buckets.userId, userId));
 }
 
 function openInvites(bucketId: number, now: Date) {

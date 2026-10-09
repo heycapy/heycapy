@@ -242,7 +242,7 @@ export async function updateItemTitle(
 export async function softDeleteItemById(userId: number, itemId: number): Promise<void> {
   await db
     .update(items)
-    .set({ deletedAt: new Date() })
+    .set({ deletedAt: new Date(), deletedBy: userId })
     .where(and(eq(items.id, itemId), eq(items.userId, userId)));
   await refreshItemReminders([itemId]);
 }

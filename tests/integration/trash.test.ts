@@ -83,12 +83,20 @@ describe("the trash list", () => {
     await trashItem(loose);
     await trashItem(inside);
     await trashBucket(gone);
-    await trashItem(await seedItem(await seedUser(), kept, { deadline: T0 }));
+    const leftBehind = await seedItem(await seedUser(), kept, {
+      deadline: T0,
+      title: "left by someone who left",
+    });
+    await trashItem(leftBehind);
+    const stranger = await seedUser();
+    const theirBucket = await seedBucket(stranger);
+    await trashItem(await seedItem(stranger, theirBucket, { deadline: T0, title: "not mine" }));
 
     const trash = await listTrash(userId);
     expect(trash.buckets).toMatchObject([{ id: gone, itemCount: 2 }]);
     expect(trash.items.map((i) => [i.title, i.bucketInTrash]).sort()).toEqual([
       ["inside", true],
+      ["left by someone who left", false],
       ["pay rent", false],
     ]);
   });

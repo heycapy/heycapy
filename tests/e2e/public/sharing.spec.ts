@@ -1,8 +1,9 @@
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, type Locator, type Page } from "@playwright/test";
 import Database from "better-sqlite3";
 import { E2E_DATABASE_FILE } from "../helpers/env";
 import { addItem, itemRow } from "../helpers/buckets";
 import { login, uniqueEmail } from "../helpers/login";
+import { modal, option } from "../helpers/settings";
 
 const bracket = (label: string) => new RegExp(`^\\[\\s*${label}\\s*\\]$`);
 
@@ -113,5 +114,60 @@ test("an owner can cancel an invite before it is used", async ({ page, browser }
   await expect(
     friend.getByRole("alert").filter({ hasText: "That code isn't valid or has expired." })
   ).toBeVisible();
+  await friend.close();
+});
+
+async function deleteItem(page: Page, title: string) {
+  await itemRow(page, title).click();
+  const dialog = modal(page, /^edit item$/);
+  await dialog.getByRole("button", { name: "delete item" }).click();
+  await expect(itemRow(page, title)).toHaveCount(0);
+}
+
+async function openTrash(page: Page): Promise<Locator> {
+  await page.getByRole("button", { name: "···" }).click();
+  await page.getByRole("button", { name: "trash", exact: true }).click();
+  const sheet = page.locator("aside").filter({ has: page.getByText("trash", { exact: true }) });
+  await expect(sheet.getByText("loading...")).not.toBeVisible();
+  return sheet;
+}
+
+function trashedItem(sheet: Locator, title: string): Locator {
+  return sheet
+    .getByRole("region", { name: "items" })
+    .locator("div.flex.items-center")
+    .filter({ has: sheet.page().getByText(title, { exact: true }) });
+}
+
+test("a shared trash: a member can restore, only the owner can delete forever", async ({
+  page,
+  browser,
+}) => {
+  const { code } = await ownerWithInvite(page, `trash ${Date.now()}`);
+  const friend = await browser.newPage();
+  await joinWithCode(friend, code);
+  await friend.waitForURL(/\/\?bucket=\d+$/);
+
+  const gone = `old note ${Date.now()}`;
+  const back = `call dentist ${Date.now()}`;
+  await addItem(friend, gone);
+  await addItem(friend, back);
+  await deleteItem(friend, gone);
+  await deleteItem(friend, back);
+
+  const friendTrash = await openTrash(friend);
+  await expect(trashedItem(friendTrash, gone)).toContainText("deleted by you");
+  await expect(option(trashedItem(friendTrash, gone), "[ delete ]")).toHaveCount(0);
+  await expect(friendTrash.getByRole("button", { name: "empty trash" })).toHaveCount(0);
+  await option(trashedItem(friendTrash, back), "[ restore ]").click();
+  await expect(trashedItem(friendTrash, back)).toHaveCount(0);
+
+  await page.reload();
+  const ownerTrash = await openTrash(page);
+  const row = trashedItem(ownerTrash, gone);
+  await expect(row).toContainText(/deleted by \S+/);
+  await option(row, "[ delete ]").click();
+  await option(row, "[ confirm ]").click();
+  await expect(row).toHaveCount(0);
   await friend.close();
 });

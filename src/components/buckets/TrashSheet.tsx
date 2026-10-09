@@ -33,6 +33,7 @@ function TrashRow({
   confirming,
   pending,
   canRestore = true,
+  canDelete = true,
   onRestore,
   onAskDelete,
   onConfirmDelete,
@@ -43,6 +44,7 @@ function TrashRow({
   confirming: boolean;
   pending: boolean;
   canRestore?: boolean;
+  canDelete?: boolean;
   onRestore: () => void;
   onAskDelete: () => void;
   onConfirmDelete: () => void;
@@ -71,9 +73,11 @@ function TrashRow({
                 restore
               </BracketButton>
             )}
-            <BracketButton variant="destructive" onClick={onAskDelete} disabled={pending}>
-              delete
-            </BracketButton>
+            {canDelete && (
+              <BracketButton variant="destructive" onClick={onAskDelete} disabled={pending}>
+                delete
+              </BracketButton>
+            )}
           </>
         )}
       </div>
@@ -135,6 +139,7 @@ export function TrashSheet({ open, onClose }: TrashSheetProps) {
   }
 
   const empty = bucketRows.length === 0 && itemRows.length === 0;
+  const canEmpty = bucketRows.length > 0 || itemRows.some((i) => i.canDelete);
 
   return (
     <AnimatePresence>
@@ -166,7 +171,7 @@ export function TrashSheet({ open, onClose }: TrashSheetProps) {
 
             <div className="border-border flex items-center justify-between gap-3 border-b px-4 py-2">
               <p className={HINT}>deleted forever after {TRASH_RETENTION_DAYS} days in the trash</p>
-              {!empty &&
+              {canEmpty &&
                 (confirming === "all" ? (
                   <span className="flex shrink-0 gap-2">
                     <BracketButton
@@ -174,7 +179,7 @@ export function TrashSheet({ open, onClose }: TrashSheetProps) {
                       onClick={() =>
                         run(emptyTrashAction, () => {
                           setBucketRows([]);
-                          setItemRows([]);
+                          setItemRows((prev) => prev.filter((i) => !i.canDelete));
                         })
                       }
                       disabled={pending}
@@ -249,11 +254,12 @@ export function TrashSheet({ open, onClose }: TrashSheetProps) {
                           meta={
                             item.bucketInTrash
                               ? `${item.bucketName} · restore its bucket first`
-                              : `${item.bucketName} · deleted ${deletedOn(item.deletedAt)}`
+                              : `${item.bucketName} · deleted ${item.deletedBy ? `by ${item.deletedBy} ` : ""}${deletedOn(item.deletedAt)}`
                           }
                           confirming={confirming === `item:${item.id}`}
                           pending={pending}
                           canRestore={!item.bucketInTrash}
+                          canDelete={item.canDelete}
                           onRestore={() =>
                             run(
                               () => restoreItemAction(item.id),

@@ -289,7 +289,10 @@ export async function deleteItemAction(itemId: number): Promise<ActionResult> {
   const item = await findAccessibleItem(session.userId, itemId);
   if (!item) return { ok: false, error: "Item not found" };
 
-  await db.update(items).set({ deletedAt: new Date() }).where(eq(items.id, itemId));
+  await db
+    .update(items)
+    .set({ deletedAt: new Date(), deletedBy: session.userId })
+    .where(eq(items.id, itemId));
   await refreshItemReminders([itemId]);
 
   revalidatePath("/");

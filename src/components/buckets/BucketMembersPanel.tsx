@@ -3,6 +3,7 @@ import { useRouter } from "next/navigation";
 import { BracketButton } from "@/components/ui/BracketButton";
 import { leaveBucketAction, listMembersAction, removeMemberAction } from "@/app/(app)/actions";
 import { BUCKET_MEMBERS_MAX } from "@/lib/buckets/constants";
+import { memberName } from "@/lib/buckets/member-name";
 import type { ViewerBucket } from "@/lib/buckets/access";
 import type { BucketMember } from "@/lib/buckets/members";
 import { InviteSection } from "./InviteSection";
@@ -99,9 +100,7 @@ export function BucketMembersPanel({
             <li key={member.userId} className="flex flex-col gap-1.5 px-3 py-2">
               <div className="flex items-center justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="truncate font-mono text-xs">
-                    {member.displayName ?? member.username ?? "someone"}
-                  </p>
+                  <p className="truncate font-mono text-xs">{memberName(member)}</p>
                   <p className="text-muted-foreground truncate font-mono text-[11px]">
                     {member.displayName && member.username ? `@${member.username} · ` : ""}
                     {member.role}

@@ -267,6 +267,8 @@ export const items = sqliteTable(
       .default("manual"),
     completedAt: integer("completed_at", { mode: "timestamp" }),
     deletedAt: integer("deleted_at", { mode: "timestamp" }),
+    // Who moved it to the trash, so a shared trash can say; null when it isn't known
+    deletedBy: integer("deleted_by").references(() => users.id, { onDelete: "set null" }),
     createdAt: integer("created_at", { mode: "timestamp" })
       .notNull()
       .default(sql`(unixepoch())`),

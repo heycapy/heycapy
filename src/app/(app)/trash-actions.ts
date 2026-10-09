@@ -30,7 +30,11 @@ export async function restoreItemAction(itemId: number): Promise<ActionResult> {
 
 export async function deleteItemForeverAction(itemId: number): Promise<ActionResult> {
   const session = await requireSession();
-  await deleteItemForever(session.userId, itemId);
+  const result = await deleteItemForever(session.userId, itemId);
+  if (result === "not_found") return { ok: false, error: "Item not found in trash" };
+  if (result === "not_owner") {
+    return { ok: false, error: "Only the owner can delete items forever" };
+  }
   return { ok: true };
 }
 

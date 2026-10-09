@@ -1,7 +1,9 @@
-import { and, count, desc, eq, inArray, isNotNull, lt } from "drizzle-orm";
+import { and, count, desc, eq, inArray, isNotNull, isNull, lt, or, sql } from "drizzle-orm";
 import { TRASH_RETENTION_DAYS } from "@/constants";
 import { db } from "@/lib/db";
-import { buckets, items } from "@/lib/db/schema";
+import { buckets, items, users } from "@/lib/db/schema";
+import { findAccessibleItem, memberBucketIds, ownedBucketIds } from "@/lib/buckets/access";
+import { memberName } from "@/lib/buckets/member-name";
 import { initialReminderState } from "@/lib/items/reminders";
 import { refreshItemReminders, reminderContext } from "@/lib/reminders/refresh";
 
@@ -13,7 +15,13 @@ export type TrashedItem = {
   bucketId: number;
   bucketName: string;
   bucketInTrash: boolean;
+  // Only in a bucket with other people: who deleted it, "you" for the viewer
+  deletedBy: string | null;
+  // Only the bucket's owner can delete forever
+  canDelete: boolean;
 };
+
+export type DeleteForeverResult = "deleted" | "not_found" | "not_owner";
 
 export async function listTrash(
   userId: number
@@ -44,10 +52,23 @@ export async function listTrash(
       bucketId: items.bucketId,
       bucketName: buckets.name,
       bucketDeletedAt: buckets.deletedAt,
+      bucketOwnerId: buckets.userId,
+      deletedById: items.deletedBy,
+      deleterName: users.displayName,
+      deleterUsername: users.username,
+      memberCount: sql<number>`(select count(*) from bucket_members where bucket_id = ${items.bucketId})`,
     })
     .from(items)
     .innerJoin(buckets, eq(buckets.id, items.bucketId))
-    .where(and(eq(items.userId, userId), isNotNull(items.deletedAt)))
+    .leftJoin(users, eq(users.id, items.deletedBy))
+    .where(
+      and(
+        inArray(items.bucketId, memberBucketIds(userId)),
+        isNotNull(items.deletedAt),
+        // A deleted bucket is gone for its members; only the owner can bring it back
+        or(eq(buckets.userId, userId), isNull(buckets.deletedAt))
+      )
+    )
     .orderBy(desc(items.deletedAt));
 
   return {
@@ -73,6 +94,13 @@ export async function listTrash(
               bucketId: i.bucketId,
               bucketName: i.bucketName,
               bucketInTrash: i.bucketDeletedAt !== null,
+              deletedBy:
+                i.memberCount > 1 && i.deletedById !== null
+                  ? i.deletedById === userId
+                    ? "you"
+                    : memberName({ displayName: i.deleterName, username: i.deleterUsername })
+                  : null,
+              canDelete: i.bucketOwnerId === userId,
             },
           ]
         : []
@@ -82,15 +110,14 @@ export async function listTrash(
 
 // A due date that passed while it was in the trash comes back overdue, without a late "due now"
 export async function restoreItem(userId: number, itemId: number, now = new Date()) {
-  const item = await db.query.items.findFirst({
-    where: and(eq(items.id, itemId), eq(items.userId, userId), isNotNull(items.deletedAt)),
-  });
-  if (!item) return false;
+  const item = await findAccessibleItem(userId, itemId);
+  if (!item?.deletedAt) return false;
   const { timezone } = await reminderContext(item.bucketId);
   await db
     .update(items)
     .set({
       deletedAt: null,
+      deletedBy: null,
       ...(item.notifiedAt ? {} : initialReminderState(item.deadline, timezone, now)),
       updatedAt: now,
     })
@@ -99,14 +126,24 @@ export async function restoreItem(userId: number, itemId: number, now = new Date
   return true;
 }
 
-export async function deleteItemForever(userId: number, itemId: number): Promise<void> {
-  await db
+export async function deleteItemForever(
+  userId: number,
+  itemId: number
+): Promise<DeleteForeverResult> {
+  const item = await findAccessibleItem(userId, itemId);
+  if (!item?.deletedAt) return "not_found";
+  const [removed] = await db
     .delete(items)
-    .where(and(eq(items.id, itemId), eq(items.userId, userId), isNotNull(items.deletedAt)));
+    .where(and(eq(items.id, itemId), inArray(items.bucketId, ownedBucketIds(userId))))
+    .returning({ id: items.id });
+  return removed ? "deleted" : "not_owner";
 }
 
+// Only what is in the user's own buckets: in a shared bucket the others' trash is the owner's to empty
 export async function emptyTrash(userId: number): Promise<void> {
-  await db.delete(items).where(and(eq(items.userId, userId), isNotNull(items.deletedAt)));
+  await db
+    .delete(items)
+    .where(and(inArray(items.bucketId, ownedBucketIds(userId)), isNotNull(items.deletedAt)));
   await db.delete(buckets).where(and(eq(buckets.userId, userId), isNotNull(buckets.deletedAt)));
 }
 

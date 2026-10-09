@@ -16,7 +16,10 @@ export function memberBucketIds(userId: number) {
     .where(eq(bucketMembers.userId, userId));
 }
 
-//  says who may use a bucket or an item; actions call these, not their own checks.
+export function ownedBucketIds(userId: number) {
+  return db.select({ id: buckets.id }).from(buckets).where(eq(buckets.userId, userId));
+}
+
 // The rows still hold what only the owner may see, so they stay on the server
 export function findAccessibleBucket(
   userId: number,
