@@ -1,9 +1,10 @@
 import { and, asc, eq, inArray } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { bucketMembers, buckets } from "@/lib/db/schema";
+import { bucketMembers, buckets, items } from "@/lib/db/schema";
 import { inLiveBucket } from "@/lib/buckets/live";
 
 type Bucket = typeof buckets.$inferSelect;
+type Item = typeof items.$inferSelect;
 
 export type ViewerBucket = Bucket & { isOwner: boolean };
 
@@ -13,6 +14,23 @@ export function memberBucketIds(userId: number) {
     .select({ id: bucketMembers.bucketId })
     .from(bucketMembers)
     .where(eq(bucketMembers.userId, userId));
+}
+
+//  says who may use a bucket or an item; actions call these, not their own checks.
+// The rows still hold what only the owner may see, so they stay on the server
+export function findAccessibleBucket(
+  userId: number,
+  bucketId: number
+): Promise<Bucket | undefined> {
+  return db.query.buckets.findFirst({
+    where: and(eq(buckets.id, bucketId), inArray(buckets.id, memberBucketIds(userId))),
+  });
+}
+
+export function findAccessibleItem(userId: number, itemId: number): Promise<Item | undefined> {
+  return db.query.items.findFirst({
+    where: and(eq(items.id, itemId), inArray(items.bucketId, memberBucketIds(userId))),
+  });
 }
 
 // Rows go to the browser as they are, so what only the owner may see is blanked for members

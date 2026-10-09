@@ -7,7 +7,7 @@ import { and, asc, eq, isNull, sql } from "drizzle-orm";
 import { requireSession } from "./action-helpers";
 import { db } from "@/lib/db";
 import { items } from "@/lib/db/schema";
-import { memberBucketIds } from "@/lib/buckets/access";
+import { findAccessibleBucket, findAccessibleItem } from "@/lib/buckets/access";
 import { ITEM_STATUS, ITEM_TITLE_MAX_LENGTH } from "@/constants";
 import { RecurringConfig, ReminderOffsets } from "@/types/rules";
 import { parseLocalDateTime } from "@/lib/reminders/zoned";
@@ -33,10 +33,7 @@ export async function getItemsForBucketAction(bucketId: number): Promise<
 > {
   const session = await requireSession();
 
-  const bucket = await db.query.buckets.findFirst({
-    where: (b, { eq: qeq, and: qand, inArray: qin }) =>
-      qand(qeq(b.id, bucketId), qin(b.id, memberBucketIds(session.userId))),
-  });
+  const bucket = await findAccessibleBucket(session.userId, bucketId);
   if (!bucket) return { ok: false, error: "Bucket not found" };
 
   const sortBy = parseItemsRules(bucket.itemsRules).sortBy ?? "manual";
@@ -108,10 +105,7 @@ export async function addItemAction(
     return { ok: false, error: "Invalid reminders" };
   }
 
-  const bucket = await db.query.buckets.findFirst({
-    where: (b, { eq: qeq, and: qand, inArray: qin }) =>
-      qand(qeq(b.id, bucketId), qin(b.id, memberBucketIds(session.userId))),
-  });
+  const bucket = await findAccessibleBucket(session.userId, bucketId);
   if (!bucket) return { ok: false, error: "Bucket not found" };
 
   const [maxRow] = await db
@@ -179,10 +173,7 @@ export async function updateItemAction(
     return { ok: false, error: "Invalid reminders" };
   }
 
-  const item = await db.query.items.findFirst({
-    where: (i, { eq: qeq, and: qand, inArray: qin }) =>
-      qand(qeq(i.id, itemId), qin(i.bucketId, memberBucketIds(session.userId))),
-  });
+  const item = await findAccessibleItem(session.userId, itemId);
   if (!item) return { ok: false, error: "Item not found" };
 
   const ctx = await reminderContext(item.bucketId);
@@ -245,11 +236,7 @@ export async function skipOccurrenceAction(itemId: number): Promise<ActionResult
 export async function moveItemAction(itemId: number, deadline: string): Promise<ActionResult> {
   const session = await requireSession();
 
-  const item = await db.query.items.findFirst({
-    where: (i, { eq: qeq, and: qand, inArray: qin }) =>
-      qand(qeq(i.id, itemId), qin(i.bucketId, memberBucketIds(session.userId))),
-    columns: { bucketId: true },
-  });
+  const item = await findAccessibleItem(session.userId, itemId);
   if (!item) return { ok: false, error: "Item not found" };
 
   const ctx = await reminderContext(item.bucketId);
@@ -265,10 +252,7 @@ export async function moveItemAction(itemId: number, deadline: string): Promise<
 export async function completeItemAction(itemId: number): Promise<ActionResult> {
   const session = await requireSession();
 
-  const item = await db.query.items.findFirst({
-    where: (i, { eq: qeq, and: qand, inArray: qin }) =>
-      qand(qeq(i.id, itemId), qin(i.bucketId, memberBucketIds(session.userId))),
-  });
+  const item = await findAccessibleItem(session.userId, itemId);
   if (!item) return { ok: false, error: "Item not found" };
 
   await toggleItemCompleted(item);
@@ -283,10 +267,7 @@ export async function reorderItemsAction(
 ): Promise<ActionResult> {
   const session = await requireSession();
 
-  const bucket = await db.query.buckets.findFirst({
-    where: (b, { eq: qeq, and: qand, inArray: qin }) =>
-      qand(qeq(b.id, bucketId), qin(b.id, memberBucketIds(session.userId))),
-  });
+  const bucket = await findAccessibleBucket(session.userId, bucketId);
   if (!bucket) return { ok: false, error: "Bucket not found" };
 
   await Promise.all(
@@ -305,10 +286,7 @@ export async function reorderItemsAction(
 export async function deleteItemAction(itemId: number): Promise<ActionResult> {
   const session = await requireSession();
 
-  const item = await db.query.items.findFirst({
-    where: (i, { eq: qeq, and: qand, inArray: qin }) =>
-      qand(qeq(i.id, itemId), qin(i.bucketId, memberBucketIds(session.userId))),
-  });
+  const item = await findAccessibleItem(session.userId, itemId);
   if (!item) return { ok: false, error: "Item not found" };
 
   await db.update(items).set({ deletedAt: new Date() }).where(eq(items.id, itemId));
