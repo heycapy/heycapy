@@ -175,4 +175,31 @@ describe("migrations", () => {
     expect(JSON.parse(saved.r)).toEqual({ notifications: { defaultReminders: [4320] }, items: {} });
     sqlite.close();
   });
+
+  it("make every existing bucket's owner a member of it", () => {
+    const journal = JSON.parse(
+      readFileSync(path.join(MIGRATIONS, "meta/_journal.json"), "utf8")
+    ) as Journal;
+    const membersMigration = journal.entries.findIndex((e) => e.tag === "0029_bucket_members");
+    const dbPath = path.join(tempDir("heycapy-members-"), "db.sqlite");
+    const sqlite = new Database(dbPath);
+    const db = drizzle(sqlite);
+    migrate(db, { migrationsFolder: migrationsUpTo(membersMigration) });
+
+    sqlite.exec(`
+      INSERT INTO users (id, email) VALUES (1, 'a@heycapy.test'), (2, 'b@heycapy.test');
+      INSERT INTO buckets (id, user_id, name) VALUES (1, 1, 'Bills'), (2, 1, 'Todo'), (3, 2, 'Gym');
+    `);
+
+    migrate(db, { migrationsFolder: MIGRATIONS });
+
+    expect(
+      sqlite.prepare("SELECT bucket_id, user_id, role FROM bucket_members ORDER BY bucket_id").all()
+    ).toEqual([
+      { bucket_id: 1, user_id: 1, role: "owner" },
+      { bucket_id: 2, user_id: 1, role: "owner" },
+      { bucket_id: 3, user_id: 2, role: "owner" },
+    ]);
+    sqlite.close();
+  });
 });

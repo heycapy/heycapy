@@ -169,6 +169,32 @@ export const buckets = sqliteTable("buckets", {
     .default(sql`(unixepoch())`),
 });
 
+// bucket_members — who can use a bucket. The owner has a row too: a trigger (migration 0029) adds it
+// when a bucket is created, so no insert site can forget it. buckets.user_id stays the owner.
+
+export const bucketMembers = sqliteTable(
+  "bucket_members",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    bucketId: integer("bucket_id")
+      .notNull()
+      .references(() => buckets.id, { onDelete: "cascade" }),
+    userId: integer("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    role: text("role", { enum: ["owner", "member"] })
+      .notNull()
+      .default("member"),
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .default(sql`(unixepoch())`),
+  },
+  (t) => [
+    uniqueIndex("idx_bucket_members_bucket_user").on(t.bucketId, t.userId),
+    index("idx_bucket_members_user_id").on(t.userId),
+  ]
+);
+
 // items
 
 export const items = sqliteTable(
