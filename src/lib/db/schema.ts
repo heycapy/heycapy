@@ -269,6 +269,8 @@ export const items = sqliteTable(
     deletedAt: integer("deleted_at", { mode: "timestamp" }),
     // Who moved it to the trash, so a shared trash can say; null when it isn't known
     deletedBy: integer("deleted_by").references(() => users.id, { onDelete: "set null" }),
+    // A member of the bucket who should do it; null means anyone can
+    assigneeId: integer("assignee_id").references(() => users.id, { onDelete: "set null" }),
     createdAt: integer("created_at", { mode: "timestamp" })
       .notNull()
       .default(sql`(unixepoch())`),

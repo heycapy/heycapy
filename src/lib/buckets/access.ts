@@ -16,6 +16,14 @@ export function memberBucketIds(userId: number) {
     .where(eq(bucketMembers.userId, userId));
 }
 
+export async function isBucketMember(userId: number, bucketId: number): Promise<boolean> {
+  const row = await db.query.bucketMembers.findFirst({
+    columns: { id: true },
+    where: and(eq(bucketMembers.bucketId, bucketId), eq(bucketMembers.userId, userId)),
+  });
+  return row !== undefined;
+}
+
 export function ownedBucketIds(userId: number) {
   return db.select({ id: buckets.id }).from(buckets).where(eq(buckets.userId, userId));
 }

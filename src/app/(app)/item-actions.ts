@@ -7,7 +7,7 @@ import { and, asc, eq, isNull, sql } from "drizzle-orm";
 import { requireSession } from "./action-helpers";
 import { db } from "@/lib/db";
 import { items } from "@/lib/db/schema";
-import { findAccessibleBucket, findAccessibleItem } from "@/lib/buckets/access";
+import { findAccessibleBucket, findAccessibleItem, isBucketMember } from "@/lib/buckets/access";
 import { ITEM_STATUS, ITEM_TITLE_MAX_LENGTH } from "@/constants";
 import { RecurringConfig, ReminderOffsets } from "@/types/rules";
 import { parseLocalDateTime } from "@/lib/reminders/zoned";
@@ -83,6 +83,8 @@ export async function cancelRemindAgainAction(itemId: number): Promise<ActionRes
   return { ok: true };
 }
 
+const NOT_A_MEMBER_ERROR = "That person isn't in this bucket";
+
 export async function addItemAction(
   bucketId: number,
   title: string,
@@ -90,7 +92,8 @@ export async function addItemAction(
   status?: string,
   recurring?: RecurringConfig | null,
   properties?: Record<string, unknown> | null,
-  reminders?: number[] | null
+  reminders?: number[] | null,
+  assigneeId?: number | null
 ): Promise<ActionResult> {
   const session = await requireSession();
 
@@ -107,6 +110,9 @@ export async function addItemAction(
 
   const bucket = await findAccessibleBucket(session.userId, bucketId);
   if (!bucket) return { ok: false, error: "Bucket not found" };
+  if (assigneeId && !(await isBucketMember(assigneeId, bucketId))) {
+    return { ok: false, error: NOT_A_MEMBER_ERROR };
+  }
 
   const [maxRow] = await db
     .select({ max: sql<number>`COALESCE(MAX(${items.sortOrder}), -1)` })
@@ -134,6 +140,7 @@ export async function addItemAction(
       recurring: recurring?.enabled ? JSON.stringify(recurring) : null,
       properties: properties ? JSON.stringify(properties) : null,
       reminderOffsets: parsedReminders?.data ?? null,
+      assigneeId: assigneeId ?? null,
     })
     .returning({ id: items.id });
   if (created) await refreshItemReminders([created.id]);
@@ -158,7 +165,8 @@ export async function updateItemAction(
   status?: string,
   recurring?: RecurringConfig | null,
   properties?: Record<string, unknown> | null,
-  reminders?: number[] | null
+  reminders?: number[] | null,
+  assigneeId?: number | null
 ): Promise<ActionResult> {
   const session = await requireSession();
 
@@ -175,6 +183,9 @@ export async function updateItemAction(
 
   const item = await findAccessibleItem(session.userId, itemId);
   if (!item) return { ok: false, error: "Item not found" };
+  if (assigneeId && !(await isBucketMember(assigneeId, item.bucketId))) {
+    return { ok: false, error: NOT_A_MEMBER_ERROR };
+  }
 
   const ctx = await reminderContext(item.bucketId);
   const savedRecurring =
@@ -216,6 +227,7 @@ export async function updateItemAction(
         properties: properties ? JSON.stringify(properties) : null,
       }),
       ...(reminders !== undefined && { reminderOffsets: parsedReminders?.data ?? null }),
+      ...(assigneeId !== undefined && { assigneeId }),
       updatedAt: new Date(),
     })
     .where(eq(items.id, itemId));

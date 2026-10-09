@@ -44,6 +44,7 @@ async function insertOccurrence(
     .values({
       bucketId: from.bucketId,
       userId: from.userId,
+      assigneeId: from.assigneeId,
       title: from.title,
       description: from.description,
       properties: from.properties,

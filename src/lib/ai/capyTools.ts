@@ -569,7 +569,12 @@ async function executeToolCallInner(
 
       await db
         .update(items)
-        .set({ bucketId: destBucketId, sortOrder: (maxRow?.max ?? -1) + 1, updatedAt: new Date() })
+        .set({
+          bucketId: destBucketId,
+          assigneeId: null,
+          sortOrder: (maxRow?.max ?? -1) + 1,
+          updatedAt: new Date(),
+        })
         .where(and(eq(items.id, itemId), eq(items.userId, userId)));
       await refreshItemReminders([itemId]);
 

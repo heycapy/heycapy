@@ -49,6 +49,10 @@ function dropMember(tx: Tx, bucketId: number, userId: number): void {
   tx.delete(bucketMembers)
     .where(and(eq(bucketMembers.bucketId, bucketId), eq(bucketMembers.userId, userId)))
     .run();
+  tx.update(items)
+    .set({ assigneeId: null })
+    .where(and(eq(items.bucketId, bucketId), eq(items.assigneeId, userId)))
+    .run();
   tx.update(notificationQueue)
     .set({ status: "cancelled", lastError: "no longer a member of the bucket" })
     .where(
