@@ -195,6 +195,44 @@ export const bucketMembers = sqliteTable(
   ]
 );
 
+// bucket_invites — a code the owner hands out to let one person join; only its hash is stored, so a
+// code can be shown once and never again
+
+export const bucketInvites = sqliteTable(
+  "bucket_invites",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    bucketId: integer("bucket_id")
+      .notNull()
+      .references(() => buckets.id, { onDelete: "cascade" }),
+    createdBy: integer("created_by")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    codeHash: text("code_hash").notNull(),
+    expiresAt: integer("expires_at", { mode: "timestamp" }).notNull(),
+    usedAt: integer("used_at", { mode: "timestamp" }),
+    usedBy: integer("used_by").references(() => users.id, { onDelete: "set null" }),
+    revokedAt: integer("revoked_at", { mode: "timestamp" }),
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .default(sql`(unixepoch())`),
+  },
+  (t) => [
+    uniqueIndex("idx_bucket_invites_code_hash").on(t.codeHash),
+    index("idx_bucket_invites_bucket_id").on(t.bucketId),
+  ]
+);
+
+// invite_attempts — wrong codes per signed in user, so a code can't be guessed by trying many
+
+export const inviteAttempts = sqliteTable("invite_attempts", {
+  userId: integer("user_id")
+    .primaryKey()
+    .references(() => users.id, { onDelete: "cascade" }),
+  failCount: integer("fail_count").notNull().default(0),
+  lockedUntil: integer("locked_until", { mode: "timestamp" }),
+});
+
 // items
 
 export const items = sqliteTable(
