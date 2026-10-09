@@ -21,6 +21,7 @@ type ItemListProps = {
   fields: FieldDef[];
   editingItemId: number | null;
   reminderBadges: Record<number, ReminderBadge>;
+  assigneeNames: Record<number, string>;
   onReorder: (items: Item[]) => void;
   onEdit: (item: Item) => void;
   onStatusChange: (item: Item, status: string) => void;
@@ -38,6 +39,7 @@ export function ItemList({
   fields,
   editingItemId,
   reminderBadges,
+  assigneeNames,
   onReorder,
   onEdit,
   onStatusChange,
@@ -63,6 +65,7 @@ export function ItemList({
     onEditStart: readonly ? undefined : () => onEdit(item),
     onStatusChange: readonly ? undefined : (s: string) => onStatusChange(item, s),
     reminderBadge: reminderBadges[item.id],
+    assignee: item.assigneeId ? assigneeNames[item.assigneeId] : undefined,
     onMenu: (at: MenuAt) => setMenu({ item, at }),
   });
 

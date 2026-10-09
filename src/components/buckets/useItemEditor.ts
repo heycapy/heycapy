@@ -35,6 +35,7 @@ export function useItemEditor({
   const [addRecurring, setAddRecurring] = useState<RecurringConfig | null>(null);
   const [addProperties, setAddProperties] = useState<Record<string, unknown>>({});
   const [addReminders, setAddReminders] = useState<number[] | null>(null);
+  const [addAssignee, setAddAssignee] = useState<number | null>(null);
   const [addError, setAddError] = useState("");
   const [addPending, startAddTransition] = useTransition();
 
@@ -45,6 +46,7 @@ export function useItemEditor({
   const [editRecurring, setEditRecurring] = useState<RecurringConfig | null>(null);
   const [editProperties, setEditProperties] = useState<Record<string, unknown>>({});
   const [editReminders, setEditReminders] = useState<number[] | null>(null);
+  const [editAssignee, setEditAssignee] = useState<number | null>(null);
   const [editPending, startEditTransition] = useTransition();
 
   function cancelEditing() {
@@ -55,6 +57,7 @@ export function useItemEditor({
     setEditRecurring(null);
     setEditProperties({});
     setEditReminders(null);
+    setEditAssignee(null);
   }
 
   function cancelAdding() {
@@ -65,6 +68,7 @@ export function useItemEditor({
     setAddRecurring(null);
     setAddProperties({});
     setAddReminders(null);
+    setAddAssignee(null);
     setAddError("");
   }
 
@@ -82,6 +86,7 @@ export function useItemEditor({
     setEditStatus((item.status as ItemStatus) || defaultStatus);
     setEditRecurring(parseRecurring(item.recurring));
     setEditReminders(item.reminderOffsets);
+    setEditAssignee(item.assigneeId);
     setEditProperties(
       item.properties ? (JSON.parse(item.properties) as Record<string, unknown>) : {}
     );
@@ -99,7 +104,8 @@ export function useItemEditor({
         addStatus,
         addRecurring,
         Object.keys(addProperties).length > 0 ? addProperties : null,
-        addReminders
+        addReminders,
+        addAssignee
       );
       if (result.ok) {
         cancelAdding();
@@ -120,7 +126,8 @@ export function useItemEditor({
         editStatus,
         editRecurring,
         Object.keys(editProperties).length > 0 ? editProperties : null,
-        editReminders
+        editReminders,
+        editAssignee
       );
       if (result.ok) {
         cancelEditing();
@@ -145,6 +152,8 @@ export function useItemEditor({
     editingItemId,
     startAdding,
     startEditing,
+    assigneeId: addingItem ? addAssignee : editAssignee,
+    setAssigneeId: addingItem ? setAddAssignee : setEditAssignee,
     dialogProps: {
       open: addingItem || editingItemId !== null,
       mode: addingItem ? ("add" as const) : ("edit" as const),

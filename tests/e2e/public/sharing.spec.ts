@@ -39,8 +39,14 @@ async function ownerWithInvite(page: Page, bucketName: string) {
   return { bucketId, code };
 }
 
-async function joinWithCode(page: Page, code: string) {
-  await login(page, uniqueEmail("e2e-share-friend"));
+async function joinWithCode(page: Page, code: string, displayName?: string) {
+  const email = uniqueEmail("e2e-share-friend");
+  await login(page, email);
+  if (displayName) {
+    const db = new Database(E2E_DATABASE_FILE);
+    db.prepare("update users set display_name = ? where email = ?").run(displayName, email);
+    db.close();
+  }
   await page.getByRole("button", { name: "···" }).click();
   await page.getByRole("button", { name: "join a bucket" }).click();
   await page.getByRole("textbox", { name: "invite code" }).fill(code.toLowerCase());
@@ -202,5 +208,53 @@ test("an owner can't delete their account while they still share a bucket", asyn
   await openAccountTab(page);
   await expect(page.getByText(/you still share/)).toHaveCount(0);
   await expect(page.getByRole("button", { name: /delete account/ })).toBeEnabled();
+  await friend.close();
+});
+
+function newItemDialog(page: Page): Locator {
+  return page.locator("div.fixed").filter({ has: page.getByText("new item", { exact: true }) });
+}
+
+test("an item can be assigned to a member, and a bucket nobody shares has no such field", async ({
+  page,
+  browser,
+}) => {
+  const email = uniqueEmail("e2e-assign-owner");
+  await login(page, email);
+  const bucketId = addBucket(email, `assign ${Date.now()}`);
+  await page.goto(`/?bucket=${bucketId}`);
+
+  await page.getByRole("button", { name: "[ add + ]", exact: true }).click();
+  await expect(newItemDialog(page)).toBeVisible();
+  await expect(newItemDialog(page).getByText("assigned to")).toHaveCount(0);
+  await newItemDialog(page).getByRole("button", { name: "[ x ]", exact: true }).click();
+
+  await openMembers(page);
+  await page.getByRole("button", { name: bracket("create invite") }).click();
+  const code = (await page.getByTestId("invite-code").textContent()) ?? "";
+  const friend = await browser.newPage();
+  await joinWithCode(friend, code, "Sam");
+  await friend.waitForURL(`/?bucket=${bucketId}`);
+
+  const title = `take out the bins ${Date.now()}`;
+  await page.goto(`/?bucket=${bucketId}`);
+  await page.getByRole("button", { name: "[ add + ]", exact: true }).click();
+  const dialog = newItemDialog(page);
+  await dialog.locator("textarea").fill(title);
+  await dialog.getByRole("button", { name: "Sam", exact: true }).click();
+  await dialog.getByRole("button", { name: "[ add ]", exact: true }).click();
+  await expect(itemRow(page, title)).toContainText("→ Sam");
+
+  await friend.reload();
+  await expect(itemRow(friend, title)).toContainText("→ you");
+  await itemRow(friend, title).click();
+  const edit = modal(friend, /^edit item$/);
+  await edit.getByRole("button", { name: "anyone", exact: true }).click();
+  await edit.getByRole("button", { name: "[ update ]", exact: true }).click();
+  await expect(edit).not.toBeVisible();
+  await expect(itemRow(friend, title)).not.toContainText("→");
+
+  await page.reload();
+  await expect(itemRow(page, title)).not.toContainText("→");
   await friend.close();
 });

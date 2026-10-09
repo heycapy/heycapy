@@ -52,7 +52,14 @@ describe("the member list", () => {
     ]);
     expect(asFriend?.[1]).toMatchObject({ displayName: "Sam", username: "sleepy_otter_juggling" });
     expect(JSON.stringify(asFriend)).not.toContain("@heycapy.test");
-    expect(asOwner).toEqual(asFriend);
+    expect(asOwner?.map((m) => [m.userId, m.isYou])).toEqual([
+      [owner, true],
+      [friend, false],
+    ]);
+    expect(asFriend?.map((m) => [m.userId, m.isYou])).toEqual([
+      [owner, false],
+      [friend, true],
+    ]);
   });
 
   it("is not shown to someone outside the bucket", async () => {

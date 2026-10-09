@@ -10,6 +10,7 @@ export type BucketMember = {
   displayName: string | null;
   role: "owner" | "member";
   joinedAt: Date;
+  isYou: boolean;
 };
 
 export type MemberChangeResult =
@@ -26,7 +27,7 @@ export async function listMembers(
   });
   if (!viewer) return null;
 
-  return db
+  const rows = await db
     .select({
       userId: users.id,
       username: users.username,
@@ -42,6 +43,7 @@ export async function listMembers(
       asc(bucketMembers.createdAt),
       asc(bucketMembers.id)
     );
+  return rows.map((row) => ({ ...row, isYou: row.userId === viewerId }));
 }
 
 // Reminders already queued for them would still arrive for a bucket they can no longer see

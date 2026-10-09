@@ -28,6 +28,7 @@ type ItemRowProps = {
   onEditStart?: () => void;
   onStatusChange?: (status: string) => void;
   reminderBadge?: ReminderBadge;
+  assignee?: string;
   bucket?: { name: string; color: string };
   onMenu?: (at: MenuAt) => void;
 };
@@ -106,6 +107,7 @@ export function ItemRow({
   onEditStart,
   onStatusChange,
   reminderBadge,
+  assignee,
   bucket,
   onMenu,
 }: ItemRowProps) {
@@ -217,6 +219,7 @@ export function ItemRow({
         )}
         <span className="mt-0.5 flex flex-wrap items-center gap-x-1 gap-y-0.5 font-mono text-xs *:whitespace-nowrap">
           <span className="text-muted-foreground/60">#{item.id}</span>
+          {assignee && <span className="text-muted-foreground">→ {assignee}</span>}
           {bucket && (
             <span className="text-muted-foreground flex items-center gap-1">
               ·

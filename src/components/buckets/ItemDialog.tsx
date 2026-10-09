@@ -8,6 +8,7 @@ import { ReminderPicker } from "./ReminderPicker";
 import { ItemFieldsForm } from "./ItemFieldsForm";
 import { ItemStatusField } from "./ItemStatusField";
 import { ItemBucketField, type BucketChoice } from "./ItemBucketField";
+import { ItemAssigneeField, type AssigneeChoice } from "./ItemAssigneeField";
 import { ItemDialogFrame } from "./ItemDialogFrame";
 import { ItemPageFrame } from "./ItemPageFrame";
 import { ItemTitleField } from "./ItemTitleField";
@@ -59,6 +60,7 @@ type ItemDialogProps = {
   onCancel: () => void;
   onDelete?: () => void;
   bucketChoice?: BucketChoice;
+  assigneeChoice?: AssigneeChoice;
 };
 
 export function ItemDialog({
@@ -85,6 +87,7 @@ export function ItemDialog({
   onCancel,
   onDelete,
   bucketChoice,
+  assigneeChoice,
 }: ItemDialogProps) {
   const scrollBodyRef = useRef<HTMLDivElement>(null);
   const scrollToFirst = useScrollToFirst(scrollBodyRef);
@@ -271,6 +274,10 @@ export function ItemDialog({
       />
 
       {bucketChoice && <ItemBucketField choice={bucketChoice} disabled={pending} />}
+
+      {assigneeChoice && assigneeChoice.members.length > 1 && (
+        <ItemAssigneeField choice={assigneeChoice} disabled={pending} />
+      )}
 
       {hasFields ? (
         <div className="flex flex-col gap-5">

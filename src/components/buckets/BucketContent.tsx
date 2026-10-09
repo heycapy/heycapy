@@ -8,6 +8,7 @@ import type { SettingsTab } from "./BucketSettingsForm";
 import { RemindersOffNotice } from "./RemindersOffNotice";
 import { useBucketItems } from "./useBucketItems";
 import { useItemEditor } from "./useItemEditor";
+import { useBucketMembers } from "./useBucketMembers";
 import { BracketButton } from "@/components/ui/BracketButton";
 import { daysToDisplayStr, parseDurationToDate } from "@/lib/duration";
 import { DEFAULT_BUCKET_STATUSES } from "./constants";
@@ -41,6 +42,7 @@ export function BucketContent({ bucket, accentColor, addItemRef }: BucketContent
         : "",
     onSaved: list.refetch,
   });
+  const { members, names } = useBucketMembers(bucket.id, editor.dialogProps.open);
   useEffect(() => {
     addItemRef.current = editor.startAdding;
     return () => {
@@ -99,6 +101,7 @@ export function BucketContent({ bucket, accentColor, addItemRef }: BucketContent
           fields={fields}
           editingItemId={editor.editingItemId}
           reminderBadges={list.reminderBadges}
+          assigneeNames={names}
           onReorder={list.reorder}
           onEdit={editor.startEditing}
           onStatusChange={(item, status) => void list.changeStatus(item, status)}
@@ -109,6 +112,7 @@ export function BucketContent({ bucket, accentColor, addItemRef }: BucketContent
 
       <ItemDialog
         {...editor.dialogProps}
+        assigneeChoice={{ members, value: editor.assigneeId, onChange: editor.setAssigneeId }}
         bucketReminders={parseNotificationRules(bucket.notificationsRules).defaultReminders}
         statuses={statuses}
         fields={fields.length > 0 ? fields : undefined}

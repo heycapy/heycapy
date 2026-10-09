@@ -23,6 +23,7 @@ type DraggableItemProps = {
   onDelete?: () => void;
   onMenu: (at: MenuAt) => void;
   reminderBadge?: ReminderBadge;
+  assignee?: string;
 };
 
 export function DraggableItem({
@@ -37,6 +38,7 @@ export function DraggableItem({
   onDelete,
   onMenu,
   reminderBadge,
+  assignee,
 }: DraggableItemProps) {
   const controls = useDragControls();
 
@@ -74,6 +76,7 @@ export function DraggableItem({
           onEditStart={onEditStart}
           onStatusChange={onStatusChange}
           reminderBadge={reminderBadge}
+          assignee={assignee}
           onMenu={onMenu}
         />
       </SwipeableRow>
