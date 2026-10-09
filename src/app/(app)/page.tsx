@@ -1,8 +1,9 @@
 import { redirect } from "next/navigation";
-import { and, asc, eq, isNotNull, isNull } from "drizzle-orm";
+import { and, eq, inArray, isNotNull, isNull } from "drizzle-orm";
 import { getSession } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { buckets, items } from "@/lib/db/schema";
+import { listLiveBuckets, memberBucketIds } from "@/lib/buckets/access";
 import { BucketsEmptyState } from "@/components/buckets/BucketsEmptyState";
 import { BucketsShell } from "@/components/buckets/BucketsShell";
 
@@ -14,13 +15,7 @@ export default async function Home({
   const session = await getSession();
   if (!session) redirect("/login");
 
-  const userBuckets = await db
-    .select()
-    .from(buckets)
-    .where(
-      and(eq(buckets.userId, session.userId), isNull(buckets.deletedAt), isNull(buckets.archivedAt))
-    )
-    .orderBy(asc(buckets.sortOrder), asc(buckets.createdAt));
+  const userBuckets = await listLiveBuckets(session.userId);
 
   if (userBuckets.length === 0) {
     const [archived, deletedBucket, deletedItem] = await Promise.all([
@@ -43,7 +38,9 @@ export default async function Home({
       db
         .select({ id: items.id })
         .from(items)
-        .where(and(eq(items.userId, session.userId), isNotNull(items.deletedAt)))
+        .where(
+          and(inArray(items.bucketId, memberBucketIds(session.userId)), isNotNull(items.deletedAt))
+        )
         .limit(1),
     ]);
     return (

@@ -7,6 +7,7 @@ import { and, asc, eq, isNull, sql } from "drizzle-orm";
 import { requireSession } from "./action-helpers";
 import { db } from "@/lib/db";
 import { items } from "@/lib/db/schema";
+import { memberBucketIds } from "@/lib/buckets/access";
 import { ITEM_STATUS, ITEM_TITLE_MAX_LENGTH } from "@/constants";
 import { RecurringConfig, ReminderOffsets } from "@/types/rules";
 import { parseLocalDateTime } from "@/lib/reminders/zoned";
@@ -33,17 +34,14 @@ export async function getItemsForBucketAction(bucketId: number): Promise<
   const session = await requireSession();
 
   const bucket = await db.query.buckets.findFirst({
-    where: (b, { eq: qeq, and: qand }) => qand(qeq(b.id, bucketId), qeq(b.userId, session.userId)),
+    where: (b, { eq: qeq, and: qand, inArray: qin }) =>
+      qand(qeq(b.id, bucketId), qin(b.id, memberBucketIds(session.userId))),
   });
   if (!bucket) return { ok: false, error: "Bucket not found" };
 
   const sortBy = parseItemsRules(bucket.itemsRules).sortBy ?? "manual";
 
-  const condition = and(
-    eq(items.bucketId, bucketId),
-    eq(items.userId, session.userId),
-    isNull(items.deletedAt)
-  );
+  const condition = and(eq(items.bucketId, bucketId), isNull(items.deletedAt));
 
   const result =
     sortBy === "deadline"
