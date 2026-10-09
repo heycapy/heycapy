@@ -1,6 +1,11 @@
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { BracketButton } from "@/components/ui/BracketButton";
-import { deleteAccountAction, sendAccountDeletionCodeAction } from "@/app/(app)/actions";
+import {
+  deleteAccountAction,
+  getDeletionBlockersAction,
+  sendAccountDeletionCodeAction,
+} from "@/app/(app)/actions";
+import type { SharedBucket } from "@/lib/account/delete";
 import { BOX, INPUT, LABEL, SECTION } from "./settings-constants";
 
 type Step = "idle" | "confirm" | "code";
@@ -11,6 +16,17 @@ export function AccountTab({ email, username }: { email: string; username: strin
   const [devCode, setDevCode] = useState("");
   const [error, setError] = useState("");
   const [pending, startTransition] = useTransition();
+  const [sharedBuckets, setSharedBuckets] = useState<SharedBucket[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void getDeletionBlockersAction().then((result) => {
+      if (!cancelled && result.ok) setSharedBuckets(result.buckets);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   function reset() {
     setStep("idle");
@@ -75,9 +91,17 @@ export function AccountTab({ email, username }: { email: string; username: strin
         {step === "idle" && (
           <>
             <p className={LABEL}>permanently deletes {email} and everything in it.</p>
+            {sharedBuckets.length > 0 && (
+              <p className="text-muted-foreground font-mono text-[11px] leading-relaxed">
+                you still share {sharedBuckets.map((bucket) => bucket.name).join(", ")} with other
+                people. delete {sharedBuckets.length === 1 ? "it" : "them"}, or remove everyone from{" "}
+                {sharedBuckets.length === 1 ? "it" : "them"}, before you delete your account.
+              </p>
+            )}
             <BracketButton
               variant="destructive"
               onClick={() => setStep("confirm")}
+              disabled={sharedBuckets.length > 0}
               className="self-start"
             >
               delete account

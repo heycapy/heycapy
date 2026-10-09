@@ -171,3 +171,36 @@ test("a shared trash: a member can restore, only the owner can delete forever", 
   await expect(row).toHaveCount(0);
   await friend.close();
 });
+
+async function openAccountTab(page: Page) {
+  await page.getByRole("button", { name: "···" }).click();
+  await page.getByRole("button", { name: "tweaks" }).click();
+  await page.getByRole("button", { name: "account", exact: true }).click();
+}
+
+test("an owner can't delete their account while they still share a bucket", async ({
+  page,
+  browser,
+}) => {
+  const bucketName = `delete ${Date.now()}`;
+  const { code } = await ownerWithInvite(page, bucketName);
+  const friend = await browser.newPage();
+  await joinWithCode(friend, code);
+  await friend.waitForURL(/\/\?bucket=\d+$/);
+
+  await page.reload();
+  await openAccountTab(page);
+  await expect(page.getByText(`you still share ${bucketName} with other people`)).toBeVisible();
+  await expect(page.getByRole("button", { name: /delete account/ })).toBeDisabled();
+
+  await openSettings(friend);
+  await friend.getByRole("button", { name: bracket("leave bucket") }).click();
+  await friend.getByRole("button", { name: bracket("confirm") }).click();
+  await expect(friend.getByText("no buckets yet.")).toBeVisible();
+
+  await page.reload();
+  await openAccountTab(page);
+  await expect(page.getByText(/you still share/)).toHaveCount(0);
+  await expect(page.getByRole("button", { name: /delete account/ })).toBeEnabled();
+  await friend.close();
+});

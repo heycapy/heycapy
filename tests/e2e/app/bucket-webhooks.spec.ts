@@ -1,5 +1,7 @@
 import { test, expect, type Page } from "@playwright/test";
-import { authState } from "../helpers/auth";
+import Database from "better-sqlite3";
+import { authState, specUserEmail } from "../helpers/auth";
+import { E2E_DATABASE_FILE } from "../helpers/env";
 import { createAndSelectBucket, selectBucket, uniqueName } from "../helpers/buckets";
 import {
   closeDialog,
@@ -12,6 +14,15 @@ import {
 } from "../helpers/settings";
 
 test.use({ storageState: authState("bucket-webhooks") });
+
+// The test adds a webhook and keeps it, so a repeat or a retry has to start without one
+test.beforeEach(() => {
+  const db = new Database(E2E_DATABASE_FILE);
+  db.prepare(
+    "delete from outgoing_webhooks where user_id = (select id from users where email = ?)"
+  ).run(specUserEmail("bucket-webhooks"));
+  db.close();
+});
 
 async function addWebhookInTweaks(page: Page, name: string, url: string) {
   await page.getByRole("button", { name: "···" }).click();

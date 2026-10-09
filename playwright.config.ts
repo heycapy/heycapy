@@ -48,7 +48,7 @@ export default defineConfig({
       : []),
   ],
   webServer: {
-    command: `pnpm build && cp -r public .next/standalone/ && cp -r .next/static .next/standalone/.next/ && cp -r src/lib/db/migrations .next/standalone/migrations && DATABASE_URL=file:$PWD/${E2E_DATABASE_FILE} node .next/standalone/server.js`,
+    command: `pnpm build && cp -r public .next/standalone/ && cp -r .next/static .next/standalone/.next/ && cp -r src/lib/db/migrations .next/standalone/migrations && NODE_OPTIONS=--require=$PWD/tests/e2e/helpers/fake-dns.cjs DATABASE_URL=file:$PWD/${E2E_DATABASE_FILE} node .next/standalone/server.js`,
     url: BASE_URL,
     // Dummy keys override .env: channels count as configured, and nothing reaches real services.
     // The build copies a local .env into the server but CI has none, so secrets are set here too
