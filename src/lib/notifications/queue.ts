@@ -2,6 +2,8 @@ import { isClosedStatus } from "@/constants";
 import { and, eq, inArray, isNull, lte, or } from "drizzle-orm";
 import { db } from "@/lib/db";
 import {
+  bucketMembers,
+  items,
   notificationQueue,
   notificationLog,
   outgoingWebhooks,
@@ -159,14 +161,25 @@ export async function processPending(): Promise<void> {
 
     if (job.itemId) {
       const itemId = job.itemId;
-      const itemRow = await db.query.items.findFirst({
-        where: (i, { eq: qeq }) => qeq(i.id, itemId),
-        columns: { status: true, deletedAt: true },
-      });
+      const [itemRow] = await db
+        .select({ status: items.status, deletedAt: items.deletedAt, memberId: bucketMembers.id })
+        .from(items)
+        .leftJoin(
+          bucketMembers,
+          and(eq(bucketMembers.bucketId, items.bucketId), eq(bucketMembers.userId, job.userId))
+        )
+        .where(eq(items.id, itemId));
       if (!itemRow || itemRow.deletedAt || isClosedStatus(itemRow.status)) {
         await db
           .update(notificationQueue)
           .set({ status: "cancelled" })
+          .where(eq(notificationQueue.id, job.id));
+        continue;
+      }
+      if (itemRow.memberId === null) {
+        await db
+          .update(notificationQueue)
+          .set({ status: "cancelled", lastError: "no longer a member of the bucket" })
           .where(eq(notificationQueue.id, job.id));
         continue;
       }
