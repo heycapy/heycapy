@@ -258,3 +258,70 @@ test("an item can be assigned to a member, and a bucket nobody shares has no suc
   await expect(itemRow(page, title)).not.toContainText("→");
   await friend.close();
 });
+
+test("typing @ in the title picks a member in a shared bucket, and does nothing in a solo one", async ({
+  page,
+  browser,
+}) => {
+  const email = uniqueEmail("e2e-mention-owner");
+  await login(page, email);
+  const bucketId = addBucket(email, `mention ${Date.now()}`);
+  await page.goto(`/?bucket=${bucketId}`);
+
+  await page.getByRole("button", { name: "[ add + ]", exact: true }).click();
+  const solo = newItemDialog(page);
+  await solo.locator("textarea").fill("@");
+  await expect(solo.getByRole("listbox")).toHaveCount(0);
+  await solo.locator("textarea").fill("remind @sa about it");
+  await expect(solo.getByRole("listbox")).toHaveCount(0);
+  await solo.getByRole("button", { name: "[ x ]", exact: true }).click();
+
+  await openMembers(page);
+  await page.getByRole("button", { name: bracket("create invite") }).click();
+  const code = (await page.getByTestId("invite-code").textContent()) ?? "";
+  const friend = await browser.newPage();
+  await joinWithCode(friend, code, "Sam");
+  await friend.waitForURL(`/?bucket=${bucketId}`);
+  await friend.close();
+
+  await page.goto(`/?bucket=${bucketId}`);
+  await page.getByRole("button", { name: "[ add + ]", exact: true }).click();
+  const dialog = newItemDialog(page);
+  const title = dialog.locator("textarea");
+
+  await title.fill("mail bob@example.com");
+  await expect(dialog.getByRole("listbox")).toHaveCount(0);
+
+  await title.fill("buy oat milk @sa");
+  await expect(dialog.getByRole("option", { name: /^Sam/ })).toBeVisible();
+  await title.press("Escape");
+  await expect(dialog.getByRole("listbox")).toHaveCount(0);
+  await expect(title).toHaveValue("buy oat milk @sa");
+  await expect(page.getByText("new item", { exact: true })).toBeVisible();
+
+  await title.press("m");
+  await expect(dialog.getByRole("option", { name: /^Sam/ })).toBeVisible();
+  await title.press("Enter");
+  await expect(title).toHaveValue("buy oat milk");
+  await expect(dialog.getByRole("button", { name: "Sam", exact: true })).toHaveAttribute(
+    "aria-pressed",
+    "true"
+  );
+  await dialog.getByRole("button", { name: "[ add ]", exact: true }).click();
+  await expect(itemRow(page, "buy oat milk")).toContainText("→ Sam");
+
+  await page.getByRole("button", { name: "[ add + ]", exact: true }).click();
+  await title.fill("water the plants @");
+  await expect(dialog.getByRole("option")).toHaveCount(3);
+  await title.press("ArrowDown");
+  await expect(dialog.getByRole("option", { name: /^Sam/ })).toHaveAttribute(
+    "aria-selected",
+    "true"
+  );
+  await dialog.getByRole("option", { name: /^Sam/ }).click();
+  await expect(title).toHaveValue("water the plants");
+  await expect(dialog.getByRole("button", { name: "Sam", exact: true })).toHaveAttribute(
+    "aria-pressed",
+    "true"
+  );
+});

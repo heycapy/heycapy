@@ -1,9 +1,17 @@
-import { useLayoutEffect, useRef, type ChangeEvent } from "react";
+import { useLayoutEffect, useRef, useState, type ChangeEvent } from "react";
 import { BracketButton } from "@/components/ui/BracketButton";
 import { clockTime, formatWeekdayDate } from "@/lib/format-date";
+import {
+  findMention,
+  mentionOptions,
+  removeMention,
+  type MentionMember,
+  type MentionOption,
+} from "@/lib/items/mention";
 import type { TitleDate } from "@/lib/items/title-date";
 import { ITEM_TITLE_MAX_LENGTH } from "@/constants";
 import { cn } from "@/lib/utils";
+import { MentionList } from "./MentionList";
 
 const LABEL = "text-muted-foreground font-mono text-xs";
 // Shared by the textarea and the highlight layer behind it, so their text lines up exactly
@@ -25,6 +33,8 @@ type ItemTitleFieldProps = {
   showRequired: boolean;
   disabled?: boolean;
   typedDate: TitleDate | null;
+  // Typing @ in a shared bucket offers its members; picking one assigns the item
+  mention?: { members: MentionMember[]; onPick: (userId: number | null) => void };
   onChange: (v: string) => void;
   onEnter: () => void;
   onEscape: () => void;
@@ -38,12 +48,21 @@ export function ItemTitleField({
   showRequired,
   disabled,
   typedDate,
+  mention,
   onChange,
   onEnter,
   onEscape,
   onDismissDate,
 }: ItemTitleFieldProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const caretAfterPick = useRef<number | null>(null);
+  const [caret, setCaret] = useState(0);
+  const [highlighted, setHighlighted] = useState(0);
+  const [closedOn, setClosedOn] = useState<string | null>(null);
+
+  const found = mention ? findMention(value, caret) : null;
+  const options = found && mention ? mentionOptions(mention.members, found.query) : [];
+  const listOpen = found !== null && options.length > 0 && closedOn !== value;
 
   useLayoutEffect(() => {
     if (!open) return;
@@ -55,10 +74,30 @@ export function ItemTitleField({
     el.setSelectionRange(el.value.length, el.value.length);
   }, [open]);
 
+  useLayoutEffect(() => {
+    const el = textareaRef.current;
+    if (!el || caretAfterPick.current === null) return;
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight}px`;
+    el.setSelectionRange(caretAfterPick.current, caretAfterPick.current);
+    caretAfterPick.current = null;
+  }, [value]);
+
   function handleChange(e: ChangeEvent<HTMLTextAreaElement>) {
     onChange(e.target.value);
+    setCaret(e.target.selectionStart);
+    setHighlighted(0);
     e.target.style.height = "auto";
     e.target.style.height = `${e.target.scrollHeight}px`;
+  }
+
+  function pick(option: MentionOption) {
+    if (!found || !mention) return;
+    const next = removeMention(value, found);
+    caretAfterPick.current = next.caret;
+    setCaret(next.caret);
+    onChange(next.text);
+    mention.onPick(option.userId);
   }
 
   return (
@@ -84,7 +123,26 @@ export function ItemTitleField({
           ref={textareaRef}
           value={value}
           onChange={handleChange}
+          onSelect={(e) => setCaret(e.currentTarget.selectionStart)}
           onKeyDown={(e) => {
+            if (listOpen) {
+              if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+                e.preventDefault();
+                const step = e.key === "ArrowDown" ? 1 : -1;
+                setHighlighted((highlighted + step + options.length) % options.length);
+                return;
+              }
+              if (e.key === "Enter" || e.key === "Tab") {
+                e.preventDefault();
+                pick(options[Math.min(highlighted, options.length - 1)]);
+                return;
+              }
+              if (e.key === "Escape") {
+                e.stopPropagation();
+                setClosedOn(value);
+                return;
+              }
+            }
             if (e.key === "Enter" && !e.shiftKey && value.trim()) {
               e.preventDefault();
               onEnter();
@@ -106,6 +164,14 @@ export function ItemTitleField({
           )}
         />
       </div>
+      {listOpen && (
+        <MentionList
+          options={options}
+          highlighted={Math.min(highlighted, options.length - 1)}
+          onPick={pick}
+          onHover={setHighlighted}
+        />
+      )}
       {showRequired && <p className="text-destructive font-mono text-[11px]">title is required</p>}
       {typedDate && (
         <div className="flex items-center gap-2">

@@ -179,6 +179,10 @@ export function ItemDialog({
   }
 
   const titleHasError = validationAttempted && !title.trim();
+  const mention =
+    assigneeChoice && assigneeChoice.members.length > 1
+      ? { members: assigneeChoice.members, onPick: assigneeChoice.onChange }
+      : undefined;
 
   const whenAndStatus = (
     <>
@@ -267,6 +271,7 @@ export function ItemDialog({
         showRequired={titleHasError}
         disabled={pending}
         typedDate={titleDate.match}
+        mention={mention}
         onChange={handleTitleChange}
         onEnter={handleConfirmClick}
         onEscape={onCancel}
