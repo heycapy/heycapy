@@ -1,5 +1,13 @@
-import { describe, it, expect } from "vitest";
-import { toH24, toH12, buildDeadline, defaultTimeFor, lastDayOfMonth } from "@/lib/time";
+import { afterEach, beforeEach, describe, it, expect } from "vitest";
+import {
+  toH24,
+  toH12,
+  buildDeadline,
+  defaultTimeFor,
+  deadlineValue,
+  itemDeadline,
+  lastDayOfMonth,
+} from "@/lib/time";
 
 describe("toH24", () => {
   it("converts 12am to 0", () => expect(toH24(12, "am")).toBe(0));
@@ -95,5 +103,38 @@ describe("defaultTimeFor", () => {
   it("is all day once no half hour is left today", () => {
     expect(defaultTimeFor(today, at(23, 30)).hour).toBe("");
     expect(defaultTimeFor(today, at(23, 29))).toEqual({ hour: "11", min: "30", ampm: "pm" });
+  });
+});
+
+describe("an item's deadline in a London browser", () => {
+  const savedTz = process.env.TZ;
+  beforeEach(() => {
+    process.env.TZ = "Europe/London";
+  });
+  afterEach(() => {
+    process.env.TZ = savedTz;
+  });
+
+  const oct12India = new Date("2026-10-11T18:30:00Z");
+
+  it("puts an all-day item set in India on its own date", () => {
+    expect(itemDeadline(oct12India, "Asia/Kolkata")).toEqual({
+      at: new Date(2026, 9, 12),
+      allDay: true,
+    });
+    expect(deadlineValue(oct12India, "Asia/Kolkata")).toBe("2026-10-12");
+  });
+
+  it("keeps a time that lands on midnight here as a time", () => {
+    const halfPastFourIndia = new Date("2026-10-12T23:00:00Z");
+    expect(itemDeadline(halfPastFourIndia, "Asia/Kolkata")).toEqual({
+      at: halfPastFourIndia,
+      allDay: false,
+    });
+    expect(deadlineValue(halfPastFourIndia, "Asia/Kolkata")).toBe("2026-10-12T23:00:00.000Z");
+  });
+
+  it("reads an item without a saved clock on this browser's clock", () => {
+    expect(deadlineValue(new Date("2026-10-11T23:00:00Z"), null)).toBe("2026-10-12");
   });
 });

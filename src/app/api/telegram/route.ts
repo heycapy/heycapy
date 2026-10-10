@@ -412,7 +412,12 @@ async function handleUpdate(botToken: string, body: TelegramUpdate): Promise<Res
       const newMsgId = await showItemActionMenu(
         botToken,
         chatIdStr,
-        { title: itemRow.title, deadline: itemRow.deadline, bucketName },
+        {
+          title: itemRow.title,
+          deadline: itemRow.deadline,
+          deadlineTimezone: itemRow.deadlineTimezone,
+          bucketName,
+        },
         timezone,
         menuMsgId
       );

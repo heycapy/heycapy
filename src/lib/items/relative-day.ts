@@ -6,10 +6,13 @@ export function daysFromToday(deadline: Date, now = new Date()): number {
   return Math.round((day.getTime() - today.getTime()) / DAY_MS);
 }
 
-export function relativeTime(deadline: Date, now = new Date()): string {
+export function relativeTime(
+  deadline: Date,
+  now = new Date(),
+  allDay = deadline.getHours() === 0 && deadline.getMinutes() === 0
+): string {
   const diffDays = daysFromToday(deadline, now);
   if (diffDays < 0) return "overdue";
-  const allDay = deadline.getHours() === 0 && deadline.getMinutes() === 0;
   if (diffDays === 0) return !allDay && deadline < now ? "overdue" : "today";
   return `${diffDays}d`;
 }

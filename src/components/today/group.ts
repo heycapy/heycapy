@@ -1,4 +1,5 @@
 import { relativeTime } from "@/lib/items/relative-day";
+import { itemDeadline } from "@/lib/time";
 import type { items } from "@/lib/db/schema";
 import type { CrossBucketSection } from "./CrossBucketList";
 
@@ -9,7 +10,8 @@ export function groupForToday(list: Item[], now = new Date()): CrossBucketSectio
   const today: Item[] = [];
   for (const item of list) {
     if (!item.deadline) continue;
-    const rel = relativeTime(item.deadline, now);
+    const due = itemDeadline(item.deadline, item.deadlineTimezone);
+    const rel = relativeTime(due.at, now, due.allDay);
     if (rel === "overdue") overdue.push(item);
     else if (rel === "today") today.push(item);
   }

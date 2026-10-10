@@ -5,7 +5,7 @@ import { buckets, items, users } from "@/lib/db/schema";
 import { findAccessibleItem, memberBucketIds, ownedBucketIds } from "@/lib/buckets/access";
 import { memberName } from "@/lib/buckets/member-name";
 import { initialReminderState } from "@/lib/items/reminders";
-import { refreshItemReminders, reminderContext } from "@/lib/reminders/refresh";
+import { refreshItemReminders } from "@/lib/reminders/refresh";
 
 export type TrashedBucket = { id: number; name: string; deletedAt: Date; itemCount: number };
 export type TrashedItem = {
@@ -112,13 +112,14 @@ export async function listTrash(
 export async function restoreItem(userId: number, itemId: number, now = new Date()) {
   const item = await findAccessibleItem(userId, itemId);
   if (!item?.deletedAt) return false;
-  const { timezone } = await reminderContext(item.bucketId);
   await db
     .update(items)
     .set({
       deletedAt: null,
       deletedBy: null,
-      ...(item.notifiedAt ? {} : initialReminderState(item.deadline, timezone, now)),
+      ...(item.notifiedAt
+        ? {}
+        : initialReminderState(item.deadline, item.deadlineTimezone ?? "UTC", now)),
       updatedAt: now,
     })
     .where(eq(items.id, itemId));

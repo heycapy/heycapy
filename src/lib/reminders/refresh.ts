@@ -77,11 +77,21 @@ export async function reminderContext(bucketId: number): Promise<ReminderContext
   };
 }
 
+export async function userTimezone(userId: number): Promise<string> {
+  const [row] = await db
+    .select({ timezone: userSettings.timezone })
+    .from(userSettings)
+    .where(eq(userSettings.userId, userId))
+    .limit(1);
+  return row?.timezone ?? "UTC";
+}
+
 // Throws on invalid stored rules
 export function toReminderInputs(row: ReminderRow): ReminderInputs {
   const triggers = parseTriggers(row.fieldSchema);
   return {
     deadline: row.item.deadline,
+    deadlineTimezone: row.item.deadlineTimezone ?? row.timezone ?? "UTC",
     status: row.item.status,
     deletedAt: row.item.deletedAt,
     bucketLive: row.bucketDeletedAt === null && row.bucketArchivedAt === null,

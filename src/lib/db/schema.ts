@@ -248,6 +248,8 @@ export const items = sqliteTable(
     title: text("title").notNull(),
     description: text("description"),
     deadline: integer("deadline", { mode: "timestamp" }),
+    // The clock the deadline was set on; an all-day item is midnight here, so its date is the same for everyone
+    deadlineTimezone: text("deadline_timezone"),
     scheduledAt: integer("scheduled_at", { mode: "timestamp" }),
     status: text("status").notNull().default(ITEM_STATUS.active),
     properties: text("properties"),

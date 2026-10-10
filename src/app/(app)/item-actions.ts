@@ -10,9 +10,9 @@ import { items } from "@/lib/db/schema";
 import { findAccessibleBucket, findAccessibleItem, isBucketMember } from "@/lib/buckets/access";
 import { ITEM_STATUS, ITEM_TITLE_MAX_LENGTH } from "@/constants";
 import { RecurringConfig, ReminderOffsets } from "@/types/rules";
-import { parseLocalDateTime } from "@/lib/reminders/zoned";
 import { initialReminderState, reminderResetForDeadline } from "@/lib/items/reminders";
-import { refreshItemReminders, reminderContext } from "@/lib/reminders/refresh";
+import { refreshItemReminders, reminderContext, userTimezone } from "@/lib/reminders/refresh";
+import { resolveDeadline } from "@/lib/items/deadline";
 import { createNextOccurrence, moveOccurrence, skipOccurrence } from "@/lib/items/recurrence";
 import { onLastDayIfAnchored, parseRecurring } from "@/lib/items/occurrence";
 import { cancelRemindAgain } from "@/lib/reminders/quick-actions";
@@ -119,14 +119,11 @@ export async function addItemAction(
     .from(items)
     .where(eq(items.bucketId, bucketId));
 
-  const ctx = await reminderContext(bucketId);
-  const parsedDeadline = deadline
-    ? onLastDayIfAnchored(
-        parseLocalDateTime(deadline, ctx.timezone),
-        recurring ?? null,
-        ctx.timezone
-      )
-    : null;
+  const due = resolveDeadline(deadline, await userTimezone(session.userId));
+  const parsedDeadline =
+    due.deadline && due.deadlineTimezone
+      ? onLastDayIfAnchored(due.deadline, recurring ?? null, due.deadlineTimezone)
+      : null;
   const [created] = await db
     .insert(items)
     .values({
@@ -134,7 +131,8 @@ export async function addItemAction(
       userId: session.userId,
       title: trimmed,
       deadline: parsedDeadline,
-      ...initialReminderState(parsedDeadline, ctx.timezone),
+      deadlineTimezone: due.deadlineTimezone,
+      ...initialReminderState(parsedDeadline, due.deadlineTimezone ?? "UTC"),
       status: status ?? ITEM_STATUS.active,
       sortOrder: maxRow.max + 1,
       recurring: recurring?.enabled ? JSON.stringify(recurring) : null,
@@ -194,14 +192,15 @@ export async function updateItemAction(
       : recurring?.enabled
         ? keepAnchor(recurring, item.recurring)
         : null;
-  const parsedDeadline = deadline ? parseLocalDateTime(deadline, ctx.timezone) : null;
+  const due = resolveDeadline(deadline, await userTimezone(session.userId), item);
+  const parsedDeadline = due.deadline;
   const keepsMovedDate =
     !!item.scheduledAt &&
     !!savedRecurring &&
     parsedDeadline?.getTime() === item.deadline?.getTime();
   const newDeadline =
-    parsedDeadline && !keepsMovedDate
-      ? onLastDayIfAnchored(parsedDeadline, savedRecurring, ctx.timezone)
+    parsedDeadline && due.deadlineTimezone && !keepsMovedDate
+      ? onLastDayIfAnchored(parsedDeadline, savedRecurring, due.deadlineTimezone)
       : parsedDeadline;
   const statusChanged = status !== undefined && status !== item.status;
 
@@ -215,8 +214,15 @@ export async function updateItemAction(
     .set({
       title: trimmed,
       deadline: newDeadline,
+      deadlineTimezone: due.deadlineTimezone,
       ...(!keepsMovedDate && { scheduledAt: null }),
-      ...reminderResetForDeadline(item, newDeadline, ctx),
+      ...reminderResetForDeadline(
+        item,
+        newDeadline,
+        ctx,
+        new Date(),
+        due.deadlineTimezone ?? undefined
+      ),
       ...(status !== undefined && { status }),
       ...(nowCompleted && { completedAt: new Date() }),
       ...(nowUncompleted && { completedAt: null }),
@@ -251,11 +257,16 @@ export async function moveItemAction(itemId: number, deadline: string): Promise<
   const item = await findAccessibleItem(session.userId, itemId);
   if (!item) return { ok: false, error: "Item not found" };
 
-  const ctx = await reminderContext(item.bucketId);
-  const parsed = parseLocalDateTime(deadline, ctx.timezone);
-  if (isNaN(parsed.getTime())) return { ok: false, error: "Invalid date" };
+  const due = resolveDeadline(deadline, await userTimezone(session.userId), item);
+  if (!due.deadline || isNaN(due.deadline.getTime())) return { ok: false, error: "Invalid date" };
 
-  const result = await moveOccurrence(session.userId, itemId, parsed);
+  const result = await moveOccurrence(
+    session.userId,
+    itemId,
+    due.deadline,
+    new Date(),
+    due.deadlineTimezone ?? undefined
+  );
   if (!result.ok) return result;
   revalidatePath("/");
   return { ok: true };

@@ -202,4 +202,34 @@ describe("migrations", () => {
     ]);
     sqlite.close();
   });
+
+  it("save each existing deadline on its bucket owner's clock, what it was read in", () => {
+    const journal = JSON.parse(
+      readFileSync(path.join(MIGRATIONS, "meta/_journal.json"), "utf8")
+    ) as Journal;
+    const zoneMigration = journal.entries.findIndex((e) => e.tag === "0033_item_deadline_timezone");
+    const dbPath = path.join(tempDir("heycapy-deadline-zone-"), "db.sqlite");
+    const sqlite = new Database(dbPath);
+    const db = drizzle(sqlite);
+    migrate(db, { migrationsFolder: migrationsUpTo(zoneMigration) });
+
+    sqlite.exec(`
+      INSERT INTO users (id, email) VALUES (1, 'a@heycapy.test'), (2, 'b@heycapy.test');
+      INSERT INTO user_settings (user_id, timezone) VALUES (1, 'Asia/Kolkata');
+      INSERT INTO buckets (id, user_id, name) VALUES (1, 1, 'Bills'), (2, 2, 'Gym');
+      INSERT INTO items (id, bucket_id, user_id, title, deadline) VALUES
+        (1, 1, 2, 'pay rent', 1791743400),
+        (2, 1, 1, 'someday', NULL),
+        (3, 2, 2, 'run', 1791743400);
+    `);
+
+    migrate(db, { migrationsFolder: MIGRATIONS });
+
+    expect(sqlite.prepare("SELECT id, deadline_timezone FROM items ORDER BY id").all()).toEqual([
+      { id: 1, deadline_timezone: "Asia/Kolkata" },
+      { id: 2, deadline_timezone: null },
+      { id: 3, deadline_timezone: "UTC" },
+    ]);
+    sqlite.close();
+  });
 });

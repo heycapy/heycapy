@@ -8,22 +8,25 @@ type OffsetState = ReminderState & { reminderOffsets: number[] | null };
 // A date that's already past gets no "due" reminder; its overdue alert still fires
 export function initialReminderState(
   deadline: Date | null | undefined,
-  timezone: string,
+  deadlineTimezone: string,
   now = new Date()
 ): { notifiedAt?: Date } {
-  return deadline && overdueFrom(deadline, timezone) < now ? { notifiedAt: now } : {};
+  return deadline && overdueFrom(deadline, deadlineTimezone) < now ? { notifiedAt: now } : {};
 }
 
 export function reminderResetForDeadline(
   item: OffsetState,
   newDeadline: Date | null,
   ctx: ReminderContext,
-  now = new Date()
+  now = new Date(),
+  deadlineTimezone = ctx.timezone
 ): { notifiedAt?: Date | null; overdueNotifiedAt?: null; remindNotBefore?: Date | null } {
   const unchanged = (item.deadline?.getTime() ?? null) === (newDeadline?.getTime() ?? null);
   if (unchanged) return {};
-  const inPast = !!newDeadline && overdueFrom(newDeadline, ctx.timezone) < now;
-  const base = newDeadline ? reminderBase(newDeadline, ctx.notifyAt, ctx.timezone) : null;
+  const inPast = !!newDeadline && overdueFrom(newDeadline, deadlineTimezone) < now;
+  const base = newDeadline
+    ? reminderBase(newDeadline, ctx.notifyAt, deadlineTimezone, deadlineTimezone)
+    : null;
   const times = base ? reminderTimes(base, item.reminderOffsets ?? ctx.defaultReminders) : [];
   // Already reminded: reminders whose time passed would re-ping at once, so wait for the next one ahead
   const hold =

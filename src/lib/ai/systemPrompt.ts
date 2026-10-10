@@ -75,7 +75,7 @@ export function buildSystemPrompt(
 
   const upcomingSection =
     upcomingItems.length > 0
-      ? `\nUpcoming deadlines (next 7 days only — NOT a full list of all items):\n${upcomingItems.map((item) => `- [id:${item.id}] "${item.title}" — ${item.bucket} — ${localDeadline(item.deadline, timezone)} (${item.deadlineRelative})`).join("\n")}`
+      ? `\nUpcoming deadlines (next 7 days only — NOT a full list of all items):\n${upcomingItems.map((item) => `- [id:${item.id}] "${item.title}" — ${item.bucket} — ${localDeadline(item.deadline, timezone, item.deadlineTimezone)} (${item.deadlineRelative})`).join("\n")}`
       : "\nNo items due in the next 7 days.";
 
   // First and in words: models trust their training data's year over a timestamp further down

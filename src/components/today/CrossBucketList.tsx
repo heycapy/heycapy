@@ -9,6 +9,7 @@ import { ItemMenu, type MenuAt } from "@/components/buckets/ItemMenu";
 import { SwipeableRow } from "@/components/buckets/SwipeableRow";
 import { completionToggle } from "@/components/buckets/completion";
 import { offerUndoDelete } from "@/components/buckets/undoDelete";
+import { deadlineValue } from "@/lib/time";
 import type { CrossBucketItems } from "@/lib/items/today";
 import type { items } from "@/lib/db/schema";
 
@@ -45,7 +46,7 @@ export function CrossBucketList({
     await updateItemAction(
       item.id,
       item.title,
-      item.deadline ? item.deadline.toISOString() : null,
+      item.deadline ? deadlineValue(item.deadline, item.deadlineTimezone) : null,
       status
     );
     await onChanged();

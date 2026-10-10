@@ -12,11 +12,14 @@ import {
   minutesOfDay,
   overdueFrom,
   parseClock,
+  sameDateOn,
   toLocal,
 } from "./zoned";
 
 export type ReminderInputs = {
   deadline: Date | null;
+  // The clock the deadline was set on; the recipient's own when left out
+  deadlineTimezone?: string;
   status: string;
   deletedAt: Date | null;
   bucketLive: boolean;
@@ -98,15 +101,16 @@ function applyDeliveryWindow(date: Date, i: ReminderInputs, useNotifyAt: boolean
   return result;
 }
 
-// The moment a reminder aims at: the deadline, or for an all-day item a time on that day
+// The moment a reminder aims at: the deadline, or for an all-day item a time on that date on the recipient's clock
 export function reminderBase(
   deadline: Date,
   notifyAt: string | null | undefined,
-  timezone: string
+  timezone: string,
+  deadlineTimezone = timezone
 ): Date {
-  if (!isAllDay(deadline, timezone)) return deadline;
+  if (!isAllDay(deadline, deadlineTimezone)) return deadline;
   const mins = (notifyAt ? parseClock(notifyAt) : null) ?? ALL_DAY_REMINDER_MINS;
-  return atLocalClock(deadline, mins, timezone);
+  return atLocalClock(sameDateOn(deadline, deadlineTimezone, timezone), mins, timezone);
 }
 
 // Earliest first
@@ -123,7 +127,7 @@ function picksAChannel(i: ReminderInputs): boolean {
 export function nextDeadlineReminder(i: ReminderInputs): Date | null {
   if (!canRemind(i) || !picksAChannel(i)) return null;
 
-  const base = reminderBase(i.deadline, i.rules.notifyAt, i.timezone);
+  const base = reminderBase(i.deadline, i.rules.notifyAt, i.timezone, i.deadlineTimezone);
   const times = reminderTimes(base, i.reminderOffsets ?? i.rules.defaultReminders);
   const notifiedAt = i.notifiedAt;
   // Reminders that fell due before the last one went out are dropped: one ping, not a burst
@@ -147,7 +151,10 @@ export function nextOverdueAlert(i: ReminderInputs): Date | null {
   let due: Date;
   if (!i.overdueNotifiedAt) {
     const delayMins = i.overdueFirstAlertMins ?? OVERDUE_FIRST_ALERT_DEFAULT_MINS;
-    due = new Date(overdueFrom(i.deadline, i.timezone).getTime() + delayMins * 60_000);
+    due = new Date(
+      overdueFrom(i.deadline, i.deadlineTimezone ?? i.timezone, i.timezone).getTime() +
+        delayMins * 60_000
+    );
   } else if (i.overdueRepeatHours) {
     due = new Date(i.overdueNotifiedAt.getTime() + i.overdueRepeatHours * 3_600_000);
   } else {
@@ -166,7 +173,9 @@ export function remindAgainAt(
   const overdueByThen =
     i.notifyWhenOverdue &&
     i.deadline !== null &&
-    overdueFrom(i.deadline, i.timezone).getTime() + firstAlertMs <= at.getTime();
+    overdueFrom(i.deadline, i.deadlineTimezone ?? i.timezone, i.timezone).getTime() +
+      firstAlertMs <=
+      at.getTime();
   return overdueByThen
     ? { remindNotBefore: at, overdueNotifiedAt: null, notifiedAt: i.notifiedAt ?? now }
     : { remindNotBefore: at, notifiedAt: null };

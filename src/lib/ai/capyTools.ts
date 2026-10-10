@@ -4,9 +4,11 @@ import {
   addLocalDays,
   isAllDay,
   localDateString,
+  onViewerClock,
   parseLocalDateTime,
   toLocal,
 } from "@/lib/reminders/zoned";
+import { dueOn, resolveDeadline, type Due } from "@/lib/items/deadline";
 import { revalidatePath } from "next/cache";
 import { and, eq, gte, isNull, lte, or, sql, notInArray } from "drizzle-orm";
 import { db } from "@/lib/db";
@@ -47,6 +49,7 @@ export type UpcomingItem = {
   bucket: string;
   deadlineRelative: string;
   deadline: Date;
+  deadlineTimezone: string | null;
 };
 
 // Times as the user sees them in the app, e.g. "Thu 2026-10-29 21:00"
@@ -57,20 +60,33 @@ function localTime(date: Date, timezone: string): string {
   return `${weekday} ${localDateString(date, timezone)} ${clock}`;
 }
 
-// A deadline at local midnight has no time: "Fri 2026-10-30, all day"
-export function localDeadline(date: Date, timezone: string): string {
-  if (!isAllDay(date, timezone)) return localTime(date, timezone);
-  return `${localTime(date, timezone).slice(0, -" 00:00".length)}, all day`;
+// An all-day deadline has no time, and keeps its own date: "Fri 2026-10-30, all day"
+export function localDeadline(
+  date: Date,
+  timezone: string,
+  deadlineTimezone: string | null = timezone
+): string {
+  if (!isAllDay(date, deadlineTimezone ?? timezone)) return localTime(date, timezone);
+  const day = onViewerClock(date, deadlineTimezone, timezone);
+  return `${localTime(day, timezone).slice(0, -" 00:00".length)}, all day`;
 }
 
-function deadlineRelative(deadline: Date, timezone: string): string {
+function deadlineRelative(
+  deadline: Date,
+  deadlineTimezone: string | null,
+  timezone: string
+): string {
   const now = new Date();
+  const allDay = isAllDay(deadline, deadlineTimezone ?? timezone);
   const todayStr = localDateString(now, timezone);
-  const deadlineStr = localDateString(deadline, timezone);
+  const deadlineStr = localDateString(
+    onViewerClock(deadline, deadlineTimezone, timezone),
+    timezone
+  );
 
   if (deadlineStr < todayStr) return "overdue";
   if (deadlineStr === todayStr) {
-    return !isAllDay(deadline, timezone) && deadline < now ? "overdue today" : "today";
+    return !allDay && deadline < now ? "overdue today" : "today";
   }
 
   const tomorrowStr = localDateString(addLocalDays(now, 1, timezone), timezone);
@@ -141,6 +157,7 @@ const ITEM_DETAIL_COLUMNS = {
   status: items.status,
   bucketId: items.bucketId,
   deadline: items.deadline,
+  deadlineTimezone: items.deadlineTimezone,
   reminderOffsets: items.reminderOffsets,
   recurring: items.recurring,
   properties: items.properties,
@@ -153,6 +170,7 @@ type ItemDetailRow = {
   status: string;
   bucketId: number;
   deadline: Date | null;
+  deadlineTimezone: string | null;
   reminderOffsets: number[] | null;
   recurring: string | null;
   properties: string | null;
@@ -166,8 +184,10 @@ function itemDetails(row: ItemDetailRow, timezone: string) {
     title: row.title,
     status: row.status,
     bucketId: row.bucketId,
-    deadline: row.deadline ? localDeadline(row.deadline, timezone) : null,
-    deadlineRelative: row.deadline ? deadlineRelative(row.deadline, timezone) : null,
+    deadline: row.deadline ? localDeadline(row.deadline, timezone, row.deadlineTimezone) : null,
+    deadlineRelative: row.deadline
+      ? deadlineRelative(row.deadline, row.deadlineTimezone, timezone)
+      : null,
     reminderOffsets: row.reminderOffsets,
     recurring: parseRecurring(row.recurring),
     properties: row.properties ? (JSON.parse(row.properties) as unknown) : null,
@@ -387,7 +407,7 @@ async function executeToolCallInner(
           title,
           status: finalStatus,
           completedAt: finalStatus === ITEM_STATUS.completed ? new Date() : null,
-          deadline,
+          ...dueOn(deadline, timezone),
           ...initialReminderState(deadline, timezone),
           reminderOffsets: reminders.value,
           recurring: recurring ? JSON.stringify(recurring) : null,
@@ -417,6 +437,7 @@ async function executeToolCallInner(
         updatedAt: Date;
         title?: string;
         deadline?: Date | null;
+        deadlineTimezone?: string | null;
         scheduledAt?: null;
         notifiedAt?: Date | null;
         overdueNotifiedAt?: Date | null;
@@ -445,28 +466,35 @@ async function executeToolCallInner(
       if (repeat.kind !== "none") updates.recurring = recurring ? JSON.stringify(recurring) : null;
       if (repeat.kind === "clear") updates.scheduledAt = null;
 
-      const askedDeadline =
+      const asked: Due =
         "deadline" in args
-          ? args.deadline
-            ? parseLocalDateTime(String(args.deadline), timezone)
-            : null
-          : item.deadline;
+          ? resolveDeadline(args.deadline ? String(args.deadline) : null, timezone, item)
+          : item;
+      const askedDeadline = asked.deadline;
+      const askedTimezone = asked.deadlineTimezone ?? timezone;
       const touchesSchedule = "deadline" in args || repeat.kind === "set";
       if (touchesSchedule && recurring && !askedDeadline) {
         return repeatError("A repeating item needs a deadline");
       }
       const newDeadline =
         askedDeadline && touchesSchedule
-          ? onLastDayIfAnchored(askedDeadline, recurring, timezone)
+          ? onLastDayIfAnchored(askedDeadline, recurring, askedTimezone)
           : askedDeadline;
       const pastDay = "deadline" in args ? pastDayError(newDeadline, args, timezone) : null;
       if (pastDay) return pastDay;
       if ("deadline" in args || newDeadline?.getTime() !== item.deadline?.getTime()) {
-        updates.deadline = newDeadline;
+        const next = dueOn(newDeadline, askedTimezone);
+        Object.assign(updates, next);
         if (newDeadline?.getTime() !== item.deadline?.getTime()) updates.scheduledAt = null;
         Object.assign(
           updates,
-          reminderResetForDeadline(item, newDeadline, await reminderContext(item.bucketId))
+          reminderResetForDeadline(
+            item,
+            newDeadline,
+            await reminderContext(item.bucketId),
+            new Date(),
+            askedTimezone
+          )
         );
       }
       if ("reminder_offsets_mins" in args) {
@@ -688,6 +716,7 @@ export async function getUpcomingItems(userId: number, timezone: string): Promis
       id: items.id,
       title: items.title,
       deadline: items.deadline,
+      deadlineTimezone: items.deadlineTimezone,
       bucketName: buckets.name,
     })
     .from(items)
@@ -708,8 +737,9 @@ export async function getUpcomingItems(userId: number, timezone: string): Promis
       id: row.id,
       title: row.title,
       bucket: row.bucketName,
-      deadlineRelative: deadlineRelative(row.deadline, timezone),
+      deadlineRelative: deadlineRelative(row.deadline, row.deadlineTimezone, timezone),
       deadline: row.deadline,
+      deadlineTimezone: row.deadlineTimezone,
     }))
     .sort((a, b) => a.deadline.getTime() - b.deadline.getTime());
 }

@@ -17,6 +17,7 @@ import { initialReminderState } from "@/lib/items/reminders";
 import { dataEvents } from "@/lib/events";
 import { refreshItemReminders, reminderContext } from "@/lib/reminders/refresh";
 import { parseLocalDateTime } from "@/lib/reminders/zoned";
+import { dueOn } from "@/lib/items/deadline";
 
 const rateLimitMap = new Map<string, number[]>();
 
@@ -161,7 +162,7 @@ export async function POST(
       source: "webhook",
       ...(status !== undefined && { status }),
       ...(deadline !== undefined && {
-        deadline,
+        ...dueOn(deadline, ctx.timezone),
         ...initialReminderState(deadline, ctx.timezone),
       }),
     })

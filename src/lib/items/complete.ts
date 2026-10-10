@@ -2,7 +2,7 @@ import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { items } from "@/lib/db/schema";
 import { ITEM_STATUS } from "@/constants";
-import { refreshItemReminders, reminderContext } from "@/lib/reminders/refresh";
+import { refreshItemReminders } from "@/lib/reminders/refresh";
 import { initialReminderState } from "./reminders";
 import { createNextOccurrence } from "./recurrence";
 
@@ -14,11 +14,7 @@ export async function toggleItemCompleted(item: Item, now = new Date()): Promise
   const reminders = reopening
     ? {
         overdueNotifiedAt: null,
-        ...initialReminderState(
-          item.deadline,
-          (await reminderContext(item.bucketId)).timezone,
-          now
-        ),
+        ...initialReminderState(item.deadline, item.deadlineTimezone ?? "UTC", now),
       }
     : {};
   const status = reopening ? ITEM_STATUS.active : ITEM_STATUS.completed;

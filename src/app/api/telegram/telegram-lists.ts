@@ -1,4 +1,4 @@
-import { formatWhen } from "@/lib/format-date";
+import { formatDeadline } from "@/lib/format-date";
 import { CLOSED_ITEM_STATUSES } from "@/constants";
 import { and, asc, eq, gte, isNull, lt, lte, type SQL, notInArray } from "drizzle-orm";
 import { db } from "@/lib/db";
@@ -12,14 +12,24 @@ import {
   type InlineButton,
 } from "@/lib/notifications/telegram";
 import { escapeHtml } from "@/lib/notifications/telegram-message";
-import { addLocalDays, atLocalClock, overdueFrom } from "@/lib/reminders/zoned";
+import { addLocalDays, localDateString, onViewerClock, overdueFrom } from "@/lib/reminders/zoned";
 
 type Ctx = { botToken: string; chatId: string; userId: number; timezone: string };
 
 // "up" next 7 days, "td" due today, "od" overdue, "b<id>" one bucket
 export type ItemListKind = "up" | "td" | "od" | `b${number}`;
 
-type ListRow = { id: number; title: string; deadline: Date | null; bucketName: string };
+type ListRow = {
+  id: number;
+  title: string;
+  deadline: Date | null;
+  deadlineTimezone: string | null;
+  bucketName: string;
+};
+
+function zoneOf(row: ListRow, ctx: Ctx): string {
+  return row.deadlineTimezone ?? ctx.timezone;
+}
 
 async function loadList(
   ctx: Ctx,
@@ -32,6 +42,7 @@ async function loadList(
         id: items.id,
         title: items.title,
         deadline: items.deadline,
+        deadlineTimezone: items.deadlineTimezone,
         bucketName: buckets.name,
       })
       .from(items)
@@ -55,12 +66,12 @@ async function loadList(
     const rows = (
       await select(
         and(
-          gte(items.deadline, atLocalClock(now, 0, ctx.timezone)),
+          gte(items.deadline, addLocalDays(now, -2, ctx.timezone)),
           lte(items.deadline, addLocalDays(now, 7, ctx.timezone))
         ),
         "deadline"
       )
-    ).filter((r) => r.deadline && overdueFrom(r.deadline, ctx.timezone) > now);
+    ).filter((r) => r.deadline && overdueFrom(r.deadline, zoneOf(r, ctx), ctx.timezone) > now);
     return {
       heading: "Upcoming · next 7 days",
       empty: "Nothing due in the next 7 days.",
@@ -69,17 +80,30 @@ async function loadList(
     };
   }
   if (kind === "td") {
-    const start = atLocalClock(now, 0, ctx.timezone);
-    const rows = await select(
-      and(gte(items.deadline, start), lt(items.deadline, addLocalDays(start, 1, ctx.timezone))),
-      "deadline"
+    // Wide enough for an all-day item set on any clock; its own date decides
+    const today = localDateString(now, ctx.timezone);
+    const rows = (
+      await select(
+        and(
+          gte(items.deadline, addLocalDays(now, -2, ctx.timezone)),
+          lt(items.deadline, addLocalDays(now, 2, ctx.timezone))
+        ),
+        "deadline"
+      )
+    ).filter(
+      (r) =>
+        r.deadline &&
+        localDateString(
+          onViewerClock(r.deadline, r.deadlineTimezone, ctx.timezone),
+          ctx.timezone
+        ) === today
     );
     return { heading: "Due today", empty: "Nothing due today.", rows, perBucket: false };
   }
   if (kind === "od") {
     // Today's all-day items aren't overdue until the day ends
     const rows = (await select(lt(items.deadline, now), "deadline")).filter(
-      (r) => r.deadline && overdueFrom(r.deadline, ctx.timezone) <= now
+      (r) => r.deadline && overdueFrom(r.deadline, zoneOf(r, ctx), ctx.timezone) <= now
     );
     return { heading: "Overdue", empty: "Nothing overdue.", rows, perBucket: false };
   }
@@ -93,7 +117,9 @@ async function loadList(
 }
 
 function entry(row: ListRow, n: number, perBucket: boolean, now: Date, timezone: string): string {
-  const when = row.deadline ? formatWhen(row.deadline, now, timezone) : "no date";
+  const when = row.deadline
+    ? formatDeadline(row.deadline, row.deadlineTimezone, now, timezone)
+    : "no date";
   const detail = perBucket ? when : `${when} · ${escapeHtml(row.bucketName)}`;
   return `${n}. ${escapeHtml(row.title)}\n     <i>${detail}</i>`;
 }

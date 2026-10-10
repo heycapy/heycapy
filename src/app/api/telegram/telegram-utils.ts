@@ -3,7 +3,8 @@ import { and, eq, isNull, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { buckets, items, userSettings } from "@/lib/db/schema";
 import { initialReminderState } from "@/lib/items/reminders";
-import { refreshItemReminders, reminderContext } from "@/lib/reminders/refresh";
+import { refreshItemReminders, userTimezone } from "@/lib/reminders/refresh";
+import { dueOn } from "@/lib/items/deadline";
 import {
   addLocalDays,
   atLocalClock,
@@ -254,6 +255,7 @@ export async function createItem(
   deadline: Date | null,
   recurring: string | null = null
 ): Promise<void> {
+  const timezone = await userTimezone(userId);
   const [maxRow] = await db
     .select({ max: sql<number>`COALESCE(MAX(${items.sortOrder}), -1)` })
     .from(items)
@@ -265,8 +267,8 @@ export async function createItem(
       bucketId,
       userId,
       title,
-      deadline,
-      ...initialReminderState(deadline, (await reminderContext(bucketId)).timezone),
+      ...dueOn(deadline, timezone),
+      ...initialReminderState(deadline, timezone),
       status: ITEM_STATUS.active,
       source: "manual",
       sortOrder: (maxRow?.max ?? -1) + 1,

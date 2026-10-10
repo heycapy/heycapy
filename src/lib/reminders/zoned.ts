@@ -78,7 +78,7 @@ export function atLocalClock(date: Date, minutes: number, timezone: string, dayO
   );
 }
 
-// An all-day item is stored as midnight in the user's timezone
+// An all-day item is stored as midnight in its deadline timezone
 export function isAllDay(date: Date, timezone: string): boolean {
   const l = toLocal(date, timezone);
   return l.hour === 0 && l.minute === 0;
@@ -98,9 +98,29 @@ export function localDateString(date: Date, timezone: string): string {
   return `${l.year}-${String(l.month).padStart(2, "0")}-${String(l.day).padStart(2, "0")}`;
 }
 
-// When an item starts counting as overdue: its time, or the end of its day if it has none
-export function overdueFrom(deadline: Date, timezone: string): Date {
-  return isAllDay(deadline, timezone) ? addLocalDays(deadline, 1, timezone) : deadline;
+// The same calendar date on another clock: an all-day item lands on the same date for everyone
+export function sameDateOn(deadline: Date, deadlineTimezone: string, timezone: string): Date {
+  return localDateToDate(localDateString(deadline, deadlineTimezone), timezone);
+}
+
+// An item's deadline as a moment on the viewer's clock: an all-day item is midnight of its own date there
+export function onViewerClock(
+  deadline: Date,
+  deadlineTimezone: string | null | undefined,
+  timezone: string
+): Date {
+  const zone = deadlineTimezone ?? timezone;
+  return isAllDay(deadline, zone) ? sameDateOn(deadline, zone, timezone) : deadline;
+}
+
+// When an item starts counting as overdue for someone on `timezone`: its time, or the end of its date on their clock
+export function overdueFrom(
+  deadline: Date,
+  deadlineTimezone: string,
+  timezone = deadlineTimezone
+): Date {
+  if (!isAllDay(deadline, deadlineTimezone)) return deadline;
+  return addLocalDays(sameDateOn(deadline, deadlineTimezone, timezone), 1, timezone);
 }
 
 // "YYYY-MM-DD" at hour:minute in the timezone

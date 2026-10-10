@@ -2,18 +2,12 @@ import { useState, useTransition } from "react";
 import { offerUndoDelete } from "./undoDelete";
 import { addItemAction, deleteItemAction, updateItemAction } from "@/app/(app)/actions";
 import { parseRecurring } from "@/lib/items/occurrence";
+import { deadlineValue } from "@/lib/time";
 import type { items } from "@/lib/db/schema";
 import type { RecurringConfig } from "@/types/rules";
 import type { ItemStatus } from "./constants";
 
 type Item = typeof items.$inferSelect;
-
-function toDeadlineStr(d: Date): string {
-  if (d.getHours() !== 0 || d.getMinutes() !== 0) return d.toISOString();
-  const mo = String(d.getMonth() + 1).padStart(2, "0");
-  const dy = String(d.getDate()).padStart(2, "0");
-  return `${d.getFullYear()}-${mo}-${dy}`;
-}
 
 type ItemEditorOptions = {
   bucketId: number;
@@ -82,7 +76,7 @@ export function useItemEditor({
     setAddingItem(false);
     setEditingItemId(item.id);
     setEditTitle(item.title);
-    setEditDeadline(item.deadline ? toDeadlineStr(item.deadline) : "");
+    setEditDeadline(item.deadline ? deadlineValue(item.deadline, item.deadlineTimezone) : "");
     setEditStatus((item.status as ItemStatus) || defaultStatus);
     setEditRecurring(parseRecurring(item.recurring));
     setEditReminders(item.reminderOffsets);

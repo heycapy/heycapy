@@ -1,3 +1,5 @@
+import { isAllDay, localDateString } from "@/lib/reminders/zoned";
+
 export type Ampm = "am" | "pm";
 
 export function toH24(h12: number, ampm: Ampm): number {
@@ -50,4 +52,21 @@ export function lastDayOfMonth(date: string): string {
   const [year = 0, month = 1] = date.split("-").map(Number);
   const day = new Date(Date.UTC(year, month, 0)).getUTCDate();
   return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+}
+
+// An item's deadline on this browser's clock; an all-day item is midnight of its own date here
+export function itemDeadline(
+  deadline: Date,
+  deadlineTimezone: string | null
+): { at: Date; allDay: boolean } {
+  const zone = deadlineTimezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone;
+  if (!isAllDay(deadline, zone)) return { at: deadline, allDay: false };
+  const [year = 0, month = 1, day = 1] = localDateString(deadline, zone).split("-").map(Number);
+  return { at: new Date(year, month - 1, day), allDay: true };
+}
+
+// What the editor holds: "YYYY-MM-DD" for an all-day item, else the exact time
+export function deadlineValue(deadline: Date, deadlineTimezone: string | null): string {
+  const { at, allDay } = itemDeadline(deadline, deadlineTimezone);
+  return allDay ? deadlineDate(at.toISOString()) : at.toISOString();
 }

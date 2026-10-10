@@ -1,4 +1,4 @@
-import { formatWhen } from "@/lib/format-date";
+import { formatDeadline } from "@/lib/format-date";
 import {
   editTelegramHtml,
   sendOrEditButtons,
@@ -31,7 +31,12 @@ export async function showListBucketPicker(
   return sendOrEditButtons(botToken, chatId, messageId, "Which bucket?", buttonRows);
 }
 
-export type MenuItem = { title: string; deadline: Date | null; bucketName: string };
+export type MenuItem = {
+  title: string;
+  deadline: Date | null;
+  deadlineTimezone: string | null;
+  bucketName: string;
+};
 
 export async function showItemActionMenu(
   botToken: string,
@@ -40,7 +45,9 @@ export async function showItemActionMenu(
   timezone: string,
   messageId: number
 ): Promise<number> {
-  const when = item.deadline ? `due ${formatWhen(item.deadline, new Date(), timezone)}` : "no date";
+  const when = item.deadline
+    ? `due ${formatDeadline(item.deadline, item.deadlineTimezone, new Date(), timezone)}`
+    : "no date";
   await editTelegramHtml(
     botToken,
     chatId,

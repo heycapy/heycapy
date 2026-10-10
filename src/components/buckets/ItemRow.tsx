@@ -13,6 +13,7 @@ import { ReminderInfoDialog } from "./ReminderInfoDialog";
 import type { MenuAt } from "./ItemMenu";
 import { pendingRemindAgainAt } from "@/lib/reminders/remind-again";
 import { relativeTime } from "@/lib/items/relative-day";
+import { itemDeadline } from "@/lib/time";
 import { parseRecurring } from "@/lib/items/occurrence";
 import { repeatLabel } from "@/lib/items/repeat-label";
 
@@ -126,7 +127,9 @@ export function ItemRow({
     const fade = setTimeout(() => setHighlighted(false), ITEM_HIGHLIGHT_MS);
     return () => clearTimeout(fade);
   }, [highlighted]);
-  const rel = item.deadline && !isClosedStatus(item.status) ? relativeTime(item.deadline) : null;
+  const due = item.deadline ? itemDeadline(item.deadline, item.deadlineTimezone) : null;
+  const rel =
+    due && !isClosedStatus(item.status) ? relativeTime(due.at, undefined, due.allDay) : null;
   const isCompleted = item.status === ITEM_STATUS.completed;
   const isMissed = item.status === ITEM_STATUS.missed;
   const remindAgain = remindAgainLabel(item);
@@ -234,7 +237,7 @@ export function ItemRow({
           {isMissed && <span className="text-warning">· ⏭ missed</span>}
           {(item.deadline ?? item.notifiedAt) && (
             <>
-              {item.deadline && (
+              {due && (
                 <>
                   <span className="text-muted-foreground">·</span>
                   <span
@@ -246,7 +249,7 @@ export function ItemRow({
                           : "text-muted-foreground"
                     )}
                   >
-                    {formatShort(item.deadline)}
+                    {formatShort(due.at, due.allDay)}
                     {rel === "today" ? " · today" : rel === "overdue" ? " · overdue" : ""}
                   </span>
                 </>

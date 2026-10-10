@@ -21,6 +21,7 @@ export async function sendTelegramAlert(
           .select({
             title: items.title,
             deadline: items.deadline,
+            deadlineTimezone: items.deadlineTimezone,
             bucketName: buckets.name,
             rules: buckets.notificationsRules,
           })
@@ -41,6 +42,7 @@ export async function sendTelegramAlert(
       kind,
       title: item.title,
       deadline: item.deadline,
+      deadlineTimezone: item.deadlineTimezone,
       bucketName: item.bucketName,
       note: kind === "reminder" && opts.aiNote ? job.message : null,
     },
