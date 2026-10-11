@@ -10,6 +10,8 @@ import {
 } from "@/lib/db/schema";
 import { UNSET_TIMEZONE } from "@/lib/timezones/constants";
 import { placeName } from "@/lib/timezones/place";
+import { channelDecisions, getChannelSettings } from "@/lib/notifications/channels";
+import { bucketChannels } from "@/lib/rules";
 
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
@@ -22,6 +24,8 @@ export type BucketMember = {
   isYou: boolean;
   timezone: string;
   place: string | null;
+  // Whether any of this bucket's channels works for them
+  remindable: boolean;
 };
 
 export type MemberChangeResult =
@@ -56,10 +60,27 @@ export async function listMembers(
       asc(bucketMembers.createdAt),
       asc(bucketMembers.id)
     );
-  return rows.map((row) => {
-    const timezone = row.timezone ?? UNSET_TIMEZONE;
-    return { ...row, timezone, place: placeName(timezone), isYou: row.userId === viewerId };
+  const bucket = await db.query.buckets.findFirst({
+    columns: { notificationsRules: true },
+    where: eq(buckets.id, bucketId),
   });
+  const selected = bucketChannels(bucket?.notificationsRules);
+  return Promise.all(
+    rows.map(async (row) => {
+      const timezone = row.timezone ?? UNSET_TIMEZONE;
+      // The bucket's webhooks are the owner's; a member's own never fire for it
+      const remindable = channelDecisions(selected, await getChannelSettings(row.userId)).some(
+        (c) => c.state === "send" && (row.role === "owner" || c.medium !== "webhook")
+      );
+      return {
+        ...row,
+        timezone,
+        place: placeName(timezone),
+        remindable,
+        isYou: row.userId === viewerId,
+      };
+    })
+  );
 }
 
 // Reminders already queued for them would still arrive for a bucket they can no longer see.

@@ -29,6 +29,8 @@ type ItemRowProps = {
   onStatusChange?: (status: string) => void;
   reminderBadge?: ReminderBadge;
   assignee?: string;
+  // The time on another clock that matters for this item, e.g. "9am for Sam"
+  otherClock?: string;
   bucket?: { name: string; color: string };
   onMenu?: (at: MenuAt) => void;
 };
@@ -108,6 +110,7 @@ export function ItemRow({
   onStatusChange,
   reminderBadge,
   assignee,
+  otherClock,
   bucket,
   onMenu,
 }: ItemRowProps) {
@@ -251,6 +254,7 @@ export function ItemRow({
                     {formatShort(due.at, due.allDay)}
                     {rel === "today" ? " · today" : rel === "overdue" ? " · overdue" : ""}
                   </span>
+                  {otherClock && <span className="text-muted-foreground">({otherClock})</span>}
                 </>
               )}
               {recurringFreq && <span className="text-muted-foreground">· ↺ {recurringFreq}</span>}

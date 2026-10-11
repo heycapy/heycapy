@@ -8,6 +8,10 @@ import { ItemMenu, type MenuAt } from "./ItemMenu";
 import type { ReminderBadge } from "@/lib/reminders/status";
 import type { items } from "@/lib/db/schema";
 import type { StatusDef, FieldDef } from "@/types/rules";
+import type { BucketMember } from "@/lib/buckets/members";
+import { memberName } from "@/lib/buckets/member-name";
+import { otherClock } from "@/lib/timezones/gap";
+import { itemDeadline } from "@/lib/time";
 
 type Item = typeof items.$inferSelect;
 
@@ -22,6 +26,7 @@ type ItemListProps = {
   editingItemId: number | null;
   reminderBadges: Record<number, ReminderBadge>;
   assigneeNames: Record<number, string>;
+  members: BucketMember[];
   onReorder: (items: Item[]) => void;
   onEdit: (item: Item) => void;
   onStatusChange: (item: Item, status: string) => void;
@@ -40,6 +45,7 @@ export function ItemList({
   editingItemId,
   reminderBadges,
   assigneeNames,
+  members,
   onReorder,
   onEdit,
   onStatusChange,
@@ -56,6 +62,22 @@ export function ItemList({
     );
   }
 
+  const yours = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const clockHint = (item: Item) => {
+    const due = item.deadline && itemDeadline(item.deadline, item.deadlineTimezone);
+    if (!due || due.allDay) return undefined;
+    const assignee = members.find((m) => m.userId === item.assigneeId);
+    const setter = members.find((m) => m.timezone === item.deadlineTimezone && m.place);
+    return (
+      otherClock(
+        due.at,
+        yours,
+        assignee && { ...assignee, name: memberName(assignee) },
+        setter?.place ? { timezone: setter.timezone, place: setter.place } : undefined
+      ) ?? undefined
+    );
+  };
+
   const rowProps = (item: Item) => ({
     item,
     statuses,
@@ -66,6 +88,7 @@ export function ItemList({
     onStatusChange: readonly ? undefined : (s: string) => onStatusChange(item, s),
     reminderBadge: reminderBadges[item.id],
     assignee: item.assigneeId ? assigneeNames[item.assigneeId] : undefined,
+    otherClock: clockHint(item),
     onMenu: (at: MenuAt) => setMenu({ item, at }),
   });
 

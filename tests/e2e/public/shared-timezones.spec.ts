@@ -1,12 +1,14 @@
 import { test, expect } from "@playwright/test";
 import Database from "better-sqlite3";
 import { E2E_DATABASE_FILE } from "../helpers/env";
+import { itemRow } from "../helpers/buckets";
 import { login, uniqueEmail } from "../helpers/login";
+import { modal } from "../helpers/settings";
 
 test.use({ timezoneId: "Asia/Kolkata" });
 
 // A bucket the India owner shares with a member in London
-function seedSharedBucket(ownerEmail: string, memberEmail: string): number {
+function seedSharedBucket(ownerEmail: string, memberEmail: string, title?: string): number {
   const db = new Database(E2E_DATABASE_FILE);
   const id = (email: string) =>
     (db.prepare("select id from users where email = ?").get(email) as { id: number }).id;
@@ -14,12 +16,26 @@ function seedSharedBucket(ownerEmail: string, memberEmail: string): number {
   setZone.run("Asia/Kolkata", id(ownerEmail));
   setZone.run("Europe/London", id(memberEmail));
   const { id: bucketId } = db
-    .prepare("insert into buckets (user_id, name) values (?, ?) returning id")
-    .get(id(ownerEmail), `family ${Date.now()}`) as { id: number };
+    .prepare(
+      "insert into buckets (user_id, name, notifications_rules) values (?, ?, ?) returning id"
+    )
+    .get(id(ownerEmail), `family ${Date.now()}`, JSON.stringify({ medium: ["email"] })) as {
+    id: number;
+  };
   db.prepare("insert into bucket_members (bucket_id, user_id) values (?, ?)").run(
     bucketId,
     id(memberEmail)
   );
+  if (title) {
+    // Set in India for 09:00 UTC in three days, and assigned to the member, who has no email
+    const day = new Date(Date.now() + 3 * 86_400_000).toISOString().slice(0, 10);
+    db.prepare(
+      "insert into items (bucket_id, user_id, assignee_id, title, deadline, deadline_timezone) values (?, ?, ?, ?, ?, 'Asia/Kolkata')"
+    ).run(bucketId, id(ownerEmail), id(memberEmail), title, Date.parse(`${day}T09:00:00Z`) / 1000);
+    db.prepare("update user_settings set notifications_email = 0 where user_id = ?").run(
+      id(memberEmail)
+    );
+  }
   db.close();
   return bucketId;
 }
@@ -43,4 +59,26 @@ test("a bucket shared across timezones says where everyone is", async ({ page, b
   await expect(rows.nth(1)).toContainText(
     /memberUK · \d{1,2}(:\d\d)?(am|pm) now · \d:\d\d h behind you\[/
   );
+});
+
+test("a timed item shows the time on the other clock that matters", async ({ page, browser }) => {
+  const ownerEmail = uniqueEmail("e2e-tz-owner");
+  await login(page, ownerEmail);
+  const london = await browser.newContext({ timezoneId: "Europe/London" });
+  const member = await london.newPage();
+  const memberEmail = uniqueEmail("e2e-tz-member");
+  await login(member, memberEmail);
+  const title = `call the bank ${Date.now()}`;
+  const bucketId = seedSharedBucket(ownerEmail, memberEmail, title);
+
+  await page.goto(`/?bucket=${bucketId}`);
+  await expect(itemRow(page, title)).toContainText(/\(\d{1,2}(am|pm) for \w+\)/);
+  await member.goto(`/?bucket=${bucketId}`);
+  await expect(itemRow(member, title)).toContainText(/\(\d{1,2}:30pm India\)/);
+
+  await itemRow(page, title).click();
+  const picker = modal(page, /^edit item$/);
+  await expect(picker.getByRole("button", { name: /\(you\)\s*India$/ })).toBeVisible();
+  await expect(picker.getByRole("button", { name: /\sUK · no reminders set up$/ })).toBeVisible();
+  await london.close();
 });

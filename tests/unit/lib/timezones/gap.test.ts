@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { placesOf, timeGap } from "@/lib/timezones/gap";
+import { otherClock, placesOf, timeGap } from "@/lib/timezones/gap";
 
 const INDIA = "Asia/Kolkata";
 const LONDON = "Europe/London";
@@ -37,5 +37,28 @@ describe("placesOf", () => {
       places: ["India"],
       differ: false,
     });
+  });
+});
+
+describe("otherClock", () => {
+  const sam = { name: "Sam", timezone: LONDON, isYou: false };
+  const setInIndia = { timezone: INDIA, place: "India" };
+  const before = new Date("2026-10-24T09:00:00Z");
+  const after = new Date("2026-10-26T09:00:00Z");
+
+  it("gives the time for the person it's assigned to, on their clock", () => {
+    expect(otherClock(before, INDIA, sam, setInIndia)).toBe("10am for Sam");
+    expect(otherClock(after, INDIA, sam, setInIndia)).toBe("9am for Sam");
+  });
+
+  it("else gives the time on the clock it was set on", () => {
+    expect(otherClock(after, LONDON, { ...sam, isYou: true }, setInIndia)).toBe("2:30pm India");
+    expect(otherClock(after, LONDON, undefined, setInIndia)).toBe("2:30pm India");
+  });
+
+  it("says nothing when every clock involved is yours", () => {
+    expect(otherClock(after, INDIA, { ...sam, timezone: INDIA }, setInIndia)).toBeNull();
+    expect(otherClock(after, INDIA, { ...sam, timezone: "UTC" }, setInIndia)).toBeNull();
+    expect(otherClock(after, LONDON, undefined, undefined)).toBeNull();
   });
 });

@@ -2,7 +2,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type * as SessionModule from "@/lib/auth/session";
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { bucketMembers } from "@/lib/db/schema";
+import { bucketMembers, outgoingWebhooks, userSettings } from "@/lib/db/schema";
+import { newWebhookSecret } from "@/lib/notifications/webhook";
 import { dataEvents } from "@/lib/events";
 import {
   createInviteAction,
@@ -178,5 +179,44 @@ describe("members and leaving", () => {
     session.userId = friend;
     expect(await leaveBucketAction(bucketId)).toEqual({ ok: true });
     expect(await memberIds(bucketId)).toEqual([owner]);
+  });
+});
+
+describe("the members list", () => {
+  it("says who has a working channel for the bucket, never counting a member's own webhook", async () => {
+    const owner = await seedUser("Asia/Kolkata");
+    const member = await seedUser("Europe/London");
+    const [webhook] = await db
+      .insert(outgoingWebhooks)
+      .values({
+        userId: owner,
+        name: "family discord",
+        url: "https://discord.com/api/webhooks/1/x",
+        secret: newWebhookSecret(),
+      })
+      .returning();
+    const [own] = await db
+      .insert(outgoingWebhooks)
+      .values({
+        userId: member,
+        name: "my slack",
+        url: "https://hooks.slack.com/services/x",
+        secret: newWebhookSecret(),
+      })
+      .returning();
+    const bucketId = await seedBucket(owner, { medium: ["email"], webhooks: [webhook.id, own.id] });
+    await db.insert(bucketMembers).values({ bucketId, userId: member });
+    await db
+      .update(userSettings)
+      .set({ notificationsTelegram: false })
+      .where(eq(userSettings.userId, owner));
+    session.userId = member;
+
+    const listed = await listMembersAction(bucketId);
+
+    expect(listed.ok && listed.members).toMatchObject([
+      { userId: owner, place: "India", remindable: true },
+      { userId: member, place: "UK", remindable: false },
+    ]);
   });
 });

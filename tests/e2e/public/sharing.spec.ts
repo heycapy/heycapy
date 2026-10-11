@@ -303,7 +303,7 @@ test("typing @ in the title picks a member in a shared bucket, and does nothing 
   await expect(dialog.getByRole("option", { name: /^Sam/ })).toBeVisible();
   await title.press("Enter");
   await expect(title).toHaveValue("buy oat milk");
-  await expect(dialog.getByRole("button", { name: "Sam", exact: true })).toHaveAttribute(
+  await expect(dialog.getByRole("button", { name: /^Sam/ })).toHaveAttribute(
     "aria-pressed",
     "true"
   );
@@ -320,7 +320,7 @@ test("typing @ in the title picks a member in a shared bucket, and does nothing 
   );
   await dialog.getByRole("option", { name: /^Sam/ }).click();
   await expect(title).toHaveValue("water the plants");
-  await expect(dialog.getByRole("button", { name: "Sam", exact: true })).toHaveAttribute(
+  await expect(dialog.getByRole("button", { name: /^Sam/ })).toHaveAttribute(
     "aria-pressed",
     "true"
   );

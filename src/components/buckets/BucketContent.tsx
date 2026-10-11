@@ -105,6 +105,7 @@ export function BucketContent({ bucket, accentColor, addItemRef }: BucketContent
           editingItemId={editor.editingItemId}
           reminderBadges={list.reminderBadges}
           assigneeNames={names}
+          members={members}
           onReorder={list.reorder}
           onEdit={editor.startEditing}
           onStatusChange={(item, status) => void list.changeStatus(item, status)}

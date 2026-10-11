@@ -1,3 +1,4 @@
+import { clockTimeIn } from "@/lib/format-date";
 import { offsetMinutes } from "@/lib/reminders/zoned";
 import { UNSET_TIMEZONE } from "./constants";
 
@@ -18,4 +19,25 @@ export function placesOf(people: { place: string | null }[]): {
   const places = [...new Set(people.flatMap((p) => (p.place ? [p.place] : [])))];
   const unset = people.some((p) => p.place === null);
   return { places, differ: places.length + (unset ? 1 : 0) > 1 };
+}
+
+const differs = (at: Date, a: string, b: string) => offsetMinutes(at, a) !== offsetMinutes(at, b);
+
+// "9am for Sam" when the person it's assigned to keeps another clock, else "9am India" when
+// it was set on another clock than yours
+export function otherClock(
+  at: Date,
+  yours: string,
+  assignee: { name: string; timezone: string; isYou: boolean } | undefined,
+  setOn: { timezone: string; place: string } | undefined
+): string | null {
+  if (assignee && !assignee.isYou && assignee.timezone !== UNSET_TIMEZONE) {
+    if (differs(at, assignee.timezone, yours)) {
+      return `${clockTimeIn(at, assignee.timezone)} for ${assignee.name}`;
+    }
+  }
+  if (setOn && differs(at, setOn.timezone, yours)) {
+    return `${clockTimeIn(at, setOn.timezone)} ${setOn.place}`;
+  }
+  return null;
 }
