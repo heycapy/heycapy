@@ -25,12 +25,16 @@ export function formatWhen(
       ...(local.year !== toLocal(now, timezone).year && { year: "numeric" }),
     }).format(date);
   if (allDay) return day;
-  const time = new Intl.DateTimeFormat("en-US", {
+  return `${day}, ${timeIn(date, timezone)}`;
+}
+
+// "4:30 PM"
+export function timeIn(date: Date, timezone: string): string {
+  return new Intl.DateTimeFormat("en-US", {
     timeZone: timezone,
     hour: "numeric",
     minute: "2-digit",
   }).format(date);
-  return `${day}, ${time}`;
 }
 
 // An item's deadline on the viewer's clock; an all-day item shows its own date to everyone

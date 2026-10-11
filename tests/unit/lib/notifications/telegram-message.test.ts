@@ -51,6 +51,12 @@ describe("itemAlertHtml", () => {
     );
   });
 
+  it("names both clocks when the time was set on another one", () => {
+    expect(
+      itemAlertHtml({ ...alert, deadlineTimezone: "Asia/Kolkata" }, NOW, "Europe/London")
+    ).toBe(`⏰ <b>${alert.title}</b>\ndue today, 4:30 PM UK (10:00 PM India) · Bills`);
+  });
+
   it("adds the AI note under the title", () => {
     expect(itemAlertHtml({ ...alert, note: "you got this" }, NOW, "UTC")).toMatch(
       /\n\n<i>you got this<\/i>$/

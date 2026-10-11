@@ -311,6 +311,32 @@ describe("the bucket's webhook", () => {
   });
 });
 
+describe("the reminder message", () => {
+  it("names both clocks for someone on another clock than the one the time was set on", async () => {
+    const { owner, member, bucketId } = await sharedBucket();
+    session.userId = owner;
+    const deadline = new Date("2026-10-26T09:30:00Z");
+    const itemId = await add(bucketId, deadline.toISOString());
+
+    await runSchedulerAt(justAfter(deadline));
+
+    const messagesFor = async (userId: number) => [
+      ...new Set(
+        (
+          await db
+            .select({ message: notificationQueue.message })
+            .from(notificationQueue)
+            .where(and(eq(notificationQueue.itemId, itemId), eq(notificationQueue.userId, userId)))
+        ).map((j) => j.message)
+      ),
+    ];
+    expect(await messagesFor(owner)).toEqual(['Reminder: "pay rent" is due today, 3:00 PM']);
+    expect(await messagesFor(member)).toEqual([
+      'Reminder: "pay rent" is due today, 9:30 AM UK (3:00 PM India)',
+    ]);
+  });
+});
+
 describe("the reminder icon", () => {
   it("shows each person their own next reminder", async () => {
     const { owner, member, bucketId } = await sharedBucket();

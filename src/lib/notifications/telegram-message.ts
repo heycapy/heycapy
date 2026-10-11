@@ -1,4 +1,5 @@
 import { formatDeadline, formatWhen } from "@/lib/format-date";
+import { deadlineOnBothClocks } from "@/lib/timezones/deadline-text";
 import type { Due } from "@/lib/items/deadline";
 import { overdueFrom } from "@/lib/reminders/zoned";
 
@@ -16,7 +17,7 @@ export function escapeHtml(text: string): string {
 }
 
 export function itemAlertHtml(alert: ItemAlert, now: Date, timezone: string): string {
-  const when = formatDeadline(alert.deadline, alert.deadlineTimezone, now, timezone);
+  const when = deadlineOnBothClocks(alert.deadline, alert.deadlineTimezone, now, timezone);
   const bucket = alert.bucketName ? ` · ${escapeHtml(alert.bucketName)}` : "";
   const lines =
     alert.kind === "overdue" ||

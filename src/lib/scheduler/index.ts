@@ -1,7 +1,7 @@
 import { pruneSystemErrors, recordSystemError } from "@/lib/system-errors";
 import { purgeOldTrash } from "@/lib/items/trash";
 import { moveOnMissedOccurrences } from "@/lib/items/recurrence";
-import { formatDeadline } from "@/lib/format-date";
+import { deadlineOnBothClocks } from "@/lib/timezones/deadline-text";
 import { schedule } from "node-cron";
 import { asc, eq, lte } from "drizzle-orm";
 import { backupDatabase, databaseFilePath, db } from "@/lib/db";
@@ -220,7 +220,7 @@ async function sendDeadlineReminder(row: DueRow, now: Date): Promise<void> {
 
   const list = await deliveries(inputs.rules, row);
   const sending = sends(list);
-  const deadlineStr = formatDeadline(deadline, inputs.deadlineTimezone, now, inputs.timezone);
+  const deadlineStr = deadlineOnBothClocks(deadline, inputs.deadlineTimezone, now, inputs.timezone);
   const message =
     sending && row.aiNotifyMessages
       ? await generateNotificationText(row.item.title, deadlineStr, row)
@@ -265,7 +265,7 @@ async function sendOverdueAlert(row: DueRow, now: Date): Promise<void> {
     row.item.id,
     "overdue",
     `[${APP_NAME}] Overdue: ${shortTitle(row.item.title)}`,
-    `overdue — was due ${formatDeadline(deadline, inputs.deadlineTimezone, now, inputs.timezone)}`
+    `overdue — was due ${deadlineOnBothClocks(deadline, inputs.deadlineTimezone, now, inputs.timezone)}`
   );
 
   await db
