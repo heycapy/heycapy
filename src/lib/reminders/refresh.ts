@@ -6,6 +6,7 @@ import { bucketMembers, buckets, itemReminders, items, userSettings } from "@/li
 import { memberBucketIds } from "@/lib/buckets/access";
 import { NotificationRules } from "@/types/rules";
 import { errorMessage } from "@/lib/errors";
+import { bucketsChanged } from "@/lib/events";
 import { RECONCILE_BATCH_SIZE } from "./constants";
 import { nextDeadlineReminder, nextOverdueAlert, type ReminderInputs } from "./schedule";
 
@@ -232,13 +233,14 @@ async function refreshItems(list: RecipientItem[]): Promise<void> {
 
 export async function refreshItemReminders(itemIds: number[]): Promise<void> {
   if (itemIds.length === 0) return;
-  await refreshItems(
-    await db.select(recipientFields).from(items).where(inArray(items.id, itemIds))
-  );
+  const list = await db.select(recipientFields).from(items).where(inArray(items.id, itemIds));
+  await refreshItems(list);
+  bucketsChanged(list.map((i) => i.bucketId));
 }
 
 export async function refreshBucketReminders(bucketId: number): Promise<void> {
   await reconcile(eq(items.bucketId, bucketId));
+  bucketsChanged([bucketId]);
 }
 
 export async function refreshUserReminders(userId: number): Promise<void> {

@@ -1,5 +1,7 @@
 import { requireApiSession } from "@/lib/auth/session";
 import { dataEvents } from "@/lib/events";
+import { isBucketMember } from "@/lib/buckets/access";
+import { recordSystemError } from "@/lib/system-errors";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -15,16 +17,28 @@ export async function GET() {
 
   const stream = new ReadableStream({
     start(controller) {
-      const onRefresh = (eventUserId: number) => {
-        if (eventUserId !== userId) return;
+      const send = () => {
         try {
           controller.enqueue(encoder.encode("data: refresh\n\n"));
         } catch {
           // client disconnected
         }
       };
+      const onRefresh = (eventUserId: number) => {
+        if (eventUserId === userId) send();
+      };
+      const onBucket = (bucketId: number) => {
+        isBucketMember(userId, bucketId)
+          .then((member) => {
+            if (member) send();
+          })
+          .catch((err: unknown) => {
+            recordSystemError("events", `bucket ${bucketId} refresh failed`, { userId, err });
+          });
+      };
 
       dataEvents.on("refresh", onRefresh);
+      dataEvents.on("bucket", onBucket);
 
       // Keepalive ping every 25s so proxies don't close the connection
       const ping = setInterval(() => {
@@ -37,6 +51,7 @@ export async function GET() {
 
       cleanup = () => {
         dataEvents.off("refresh", onRefresh);
+        dataEvents.off("bucket", onBucket);
         clearInterval(ping);
       };
     },

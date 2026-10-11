@@ -23,7 +23,7 @@ import { createNextOccurrence, moveOccurrence, skipOccurrence } from "@/lib/item
 import { onLastDayIfAnchored, parseRecurring } from "@/lib/items/occurrence";
 import { cancelRemindAgain } from "@/lib/reminders/quick-actions";
 import { toggleItemCompleted } from "@/lib/items/complete";
-import { dataEvents } from "@/lib/events";
+import { bucketsChanged, dataEvents } from "@/lib/events";
 import {
   getItemReminderInfo,
   getReminderBadges,
@@ -315,6 +315,7 @@ export async function reorderItemsAction(
         .where(and(eq(items.id, id), eq(items.bucketId, bucketId)))
     )
   );
+  bucketsChanged([bucketId]);
 
   revalidatePath("/");
   return { ok: true };
