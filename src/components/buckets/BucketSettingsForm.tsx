@@ -28,6 +28,7 @@ const tabCn = (active: boolean) =>
 
 type BucketSettingsFormProps = {
   bucket: ViewerBucket;
+  clocksDiffer: boolean;
   onClose: () => void;
   onOpenSchema: () => void;
   onOpenTelegram: () => void;
@@ -38,6 +39,7 @@ type BucketSettingsFormProps = {
 // Mounted fresh on every open, so the form always starts from the saved settings
 export function BucketSettingsForm({
   bucket,
+  clocksDiffer,
   onClose,
   onOpenSchema,
   onOpenTelegram,
@@ -184,6 +186,7 @@ export function BucketSettingsForm({
             webhooks={values.webhooks}
             reminderButtons={values.reminderButtons}
             notifyAt={values.notifyAt}
+            clocksDiffer={clocksDiffer}
             defaultReminders={values.defaultReminders}
             repeat={values.repeat}
             notifyOnArrival={values.notifyOnArrival}

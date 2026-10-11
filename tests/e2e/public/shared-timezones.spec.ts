@@ -1,9 +1,9 @@
 import { test, expect } from "@playwright/test";
 import Database from "better-sqlite3";
 import { E2E_DATABASE_FILE } from "../helpers/env";
-import { itemRow } from "../helpers/buckets";
+import { createAndSelectBucket, itemRow, uniqueName } from "../helpers/buckets";
 import { login, uniqueEmail } from "../helpers/login";
-import { modal } from "../helpers/settings";
+import { field, modal, openSettings, settingsDialog, switchTab } from "../helpers/settings";
 
 test.use({ timezoneId: "Asia/Kolkata" });
 
@@ -59,6 +59,21 @@ test("a bucket shared across timezones says where everyone is", async ({ page, b
   await expect(rows.nth(1)).toContainText(
     /memberUK · \d{1,2}(:\d\d)?(am|pm) now · \d:\d\d h behind you\[/
   );
+
+  await page.getByRole("button", { name: "notifications", exact: true }).click();
+  await expect(field(settingsDialog(page), "remind at")).toContainText(
+    "each person gets this on their own clock"
+  );
+});
+
+test("a bucket on one clock doesn't mention clocks in its rules", async ({ page }) => {
+  await login(page, uniqueEmail("e2e-tz-solo"));
+  await createAndSelectBucket(page, uniqueName("solo"));
+  const settings = await openSettings(page);
+  await switchTab(settings, "notifications");
+  const remindAt = field(settings, "remind at");
+  await expect(remindAt).toContainText("the time of day for items without a time");
+  await expect(remindAt).not.toContainText("each person gets this on their own clock");
 });
 
 test("a timed item shows the time on the other clock that matters", async ({ page, browser }) => {

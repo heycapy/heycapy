@@ -56,6 +56,7 @@ type BucketRulesPanelProps = {
   webhooks: number[];
   reminderButtons: QuickRemindChoice[];
   notifyAt: string;
+  clocksDiffer: boolean;
   defaultReminders: number[];
   repeat: RepeatMode;
   notifyOnArrival: boolean;
@@ -94,6 +95,7 @@ export function BucketRulesPanel({
   webhooks,
   reminderButtons,
   notifyAt,
+  clocksDiffer,
   defaultReminders,
   repeat,
   notifyOnArrival,
@@ -249,6 +251,7 @@ export function BucketRulesPanel({
         <label className={LABEL}>remind at</label>
         <span className={HINT}>
           the time of day for items without a time; this bucket also never reminds earlier than it
+          {clocksDiffer && " · each person gets this on their own clock"}
         </span>
         <TimePicker value={notifyAt} onChange={onNotifyAtChange} disabled={disabled} />
       </div>

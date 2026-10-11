@@ -16,6 +16,7 @@ import { DEFAULT_BUCKET_STATUSES } from "./constants";
 import type { ViewerBucket } from "@/lib/buckets/access";
 import { parseFields } from "./fields";
 import { useLayoutStore } from "@/store/layout";
+import { placesOf } from "@/lib/timezones/gap";
 
 type BucketContentProps = {
   bucket: ViewerBucket;
@@ -126,6 +127,7 @@ export function BucketContent({ bucket, accentColor, addItemRef }: BucketContent
         open={settingsTab !== null}
         initialTab={settingsTab ?? undefined}
         bucket={bucket}
+        clocksDiffer={placesOf(members).differ}
         onClose={() => setSettingsTab(null)}
       />
     </div>
