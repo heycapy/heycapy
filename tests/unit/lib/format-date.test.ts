@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { formatDeadline } from "@/lib/format-date";
+import { clockTimeIn, formatDeadline } from "@/lib/format-date";
 
 const INDIA = "Asia/Kolkata";
 const LONDON = "Europe/London";
@@ -19,5 +19,13 @@ describe("formatDeadline", () => {
 
   it("reads the date on the viewer's clock when the item has none saved", () => {
     expect(formatDeadline(new Date("2026-10-11T23:00:00Z"), null, NOW, LONDON)).toBe("Mon, Oct 12");
+  });
+});
+
+describe("clockTimeIn", () => {
+  it("reads the time on someone else's clock", () => {
+    const at = new Date("2026-10-26T12:00:00Z");
+    expect(clockTimeIn(at, "Asia/Kolkata")).toBe("5:30pm");
+    expect(clockTimeIn(at, "Europe/London")).toBe("12pm");
   });
 });

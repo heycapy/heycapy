@@ -1,6 +1,15 @@
 import { and, asc, eq, inArray, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { bucketMembers, buckets, items, notificationQueue, users } from "@/lib/db/schema";
+import {
+  bucketMembers,
+  buckets,
+  items,
+  notificationQueue,
+  users,
+  userSettings,
+} from "@/lib/db/schema";
+import { UNSET_TIMEZONE } from "@/lib/timezones/constants";
+import { placeName } from "@/lib/timezones/place";
 
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
@@ -11,6 +20,8 @@ export type BucketMember = {
   role: "owner" | "member";
   joinedAt: Date;
   isYou: boolean;
+  timezone: string;
+  place: string | null;
 };
 
 export type MemberChangeResult =
@@ -34,16 +45,21 @@ export async function listMembers(
       displayName: users.displayName,
       role: bucketMembers.role,
       joinedAt: bucketMembers.createdAt,
+      timezone: userSettings.timezone,
     })
     .from(bucketMembers)
     .innerJoin(users, eq(users.id, bucketMembers.userId))
+    .leftJoin(userSettings, eq(userSettings.userId, users.id))
     .where(eq(bucketMembers.bucketId, bucketId))
     .orderBy(
       sql`${bucketMembers.role} = 'owner' desc`,
       asc(bucketMembers.createdAt),
       asc(bucketMembers.id)
     );
-  return rows.map((row) => ({ ...row, isYou: row.userId === viewerId }));
+  return rows.map((row) => {
+    const timezone = row.timezone ?? UNSET_TIMEZONE;
+    return { ...row, timezone, place: placeName(timezone), isYou: row.userId === viewerId };
+  });
 }
 
 // Reminders already queued for them would still arrive for a bucket they can no longer see.

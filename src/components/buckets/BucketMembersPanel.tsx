@@ -6,9 +6,20 @@ import { BUCKET_MEMBERS_MAX } from "@/lib/buckets/constants";
 import { memberName } from "@/lib/buckets/member-name";
 import type { ViewerBucket } from "@/lib/buckets/access";
 import type { BucketMember } from "@/lib/buckets/members";
+import { clockTimeIn } from "@/lib/format-date";
+import { placesOf, timeGap } from "@/lib/timezones/gap";
 import { InviteSection } from "./InviteSection";
 
 type Confirming = number | "leave" | null;
+
+function whereTheyAre(member: BucketMember, you: BucketMember | undefined, now: Date): string {
+  if (!member.place) return "timezone not set";
+  if (member.isYou) return member.place;
+  const gap = you && timeGap(member.timezone, you.timezone, now);
+  return [member.place, `${clockTimeIn(now, member.timezone)} now`, gap]
+    .filter(Boolean)
+    .join(" · ");
+}
 
 function ConfirmRow({
   question,
@@ -89,6 +100,10 @@ export function BucketMembersPanel({
     });
   }
 
+  const now = new Date();
+  const you = members?.find((m) => m.isYou);
+  const showZones = members !== null && placesOf(members).differ;
+
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-2">
@@ -105,6 +120,11 @@ export function BucketMembersPanel({
                     {member.displayName && member.username ? `@${member.username} · ` : ""}
                     {member.role}
                   </p>
+                  {showZones && (
+                    <p className="text-muted-foreground truncate font-mono text-[11px]">
+                      {whereTheyAre(member, you, now)}
+                    </p>
+                  )}
                 </div>
                 {bucket.isOwner && member.role === "member" && confirming !== member.userId && (
                   <BracketButton

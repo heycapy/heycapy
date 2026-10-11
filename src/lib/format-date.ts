@@ -70,8 +70,15 @@ export function formatWeekdayDate(d: Date): string {
 }
 
 export function clockTime(d: Date): string {
-  const h = d.getHours();
-  const m = d.getMinutes();
+  return clockText(d.getHours(), d.getMinutes());
+}
+
+export function clockTimeIn(d: Date, timezone: string): string {
+  const { hour, minute } = toLocal(d, timezone);
+  return clockText(hour, minute);
+}
+
+function clockText(h: number, m: number): string {
   const ampm = h >= 12 ? "pm" : "am";
   const hour = h % 12 === 0 ? 12 : h % 12;
   const min = m > 0 ? `:${String(m).padStart(2, "0")}` : "";

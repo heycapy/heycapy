@@ -6,6 +6,7 @@ import { ItemList } from "./ItemList";
 import { BucketSettings } from "./BucketSettings";
 import type { SettingsTab } from "./BucketSettingsForm";
 import { RemindersOffNotice } from "./RemindersOffNotice";
+import { TimezonesNotice } from "./TimezonesNotice";
 import { useBucketItems } from "./useBucketItems";
 import { useItemEditor } from "./useItemEditor";
 import { useBucketMembers } from "./useBucketMembers";
@@ -83,6 +84,8 @@ export function BucketContent({ bucket, accentColor, addItemRef }: BucketContent
           )}
         </div>
       </div>
+
+      <TimezonesNotice members={members} />
 
       <RemindersOffNotice
         notificationsRules={bucket.notificationsRules}

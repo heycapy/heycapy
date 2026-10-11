@@ -150,9 +150,13 @@ export function endOfMonthDateString(date: Date, timezone: string): string {
   return `${l.year}-${String(l.month).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
 }
 
+export function offsetMinutes(date: Date, timezone: string): number {
+  return Math.round(offsetMs(date, timezone) / 60_000);
+}
+
 // e.g. "+05:30"
 export function utcOffset(date: Date, timezone: string): string {
-  const mins = Math.round(offsetMs(date, timezone) / 60_000);
+  const mins = offsetMinutes(date, timezone);
   const abs = Math.abs(mins);
   return `${mins >= 0 ? "+" : "-"}${String(Math.floor(abs / 60)).padStart(2, "0")}:${String(abs % 60).padStart(2, "0")}`;
 }
