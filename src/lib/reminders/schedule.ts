@@ -180,3 +180,14 @@ export function remindAgainAt(
     ? { remindNotBefore: at, overdueNotifiedAt: null, notifiedAt: i.notifiedAt ?? now }
     : { remindNotBefore: at, notifiedAt: null };
 }
+
+// Whether quiet hours push the next reminder later than it would otherwise go out
+export function heldByQuietHours(i: ReminderInputs): boolean {
+  const next = nextDeadlineReminder(i);
+  const without = nextDeadlineReminder({
+    ...i,
+    rules: { ...i.rules, quietHours: null },
+    userQuietHours: null,
+  });
+  return next !== null && without !== null && next.getTime() > without.getTime();
+}

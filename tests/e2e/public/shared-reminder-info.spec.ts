@@ -65,5 +65,6 @@ test("item info shows the member their own reminder and tells the owner it went 
   await expect(reminderDetails(page, title)).toContainText(
     "no reminders for you — it's assigned to someone else"
   );
+  await expect(reminderDetails(page, title)).toContainText(/also reminded\w+ · next \w{3} \d+/);
   await other.close();
 });

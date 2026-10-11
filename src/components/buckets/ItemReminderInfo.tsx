@@ -7,8 +7,10 @@ import type {
   ChannelOutcome,
   ItemReminderInfo as Info,
   NotificationEvent,
+  OtherRecipient,
 } from "@/lib/reminders/status";
 import { formatShort } from "@/lib/format-date";
+import { otherClock } from "@/lib/timezones/gap";
 import { channelKey } from "@/lib/notifications/channel-key";
 
 const REASONS: Record<NonNullable<Info["reason"]>, string> = {
@@ -37,8 +39,10 @@ const OUTCOMES: Record<ChannelOutcome["outcome"], { text: string; className: str
   notSetUp: { text: "– not set up at the time", className: "text-muted-foreground" },
 };
 
+const HELD = " · held by quiet hours";
+
 function statusLine(info: Info): string {
-  if (info.next) return `next ${formatShort(info.next)}`;
+  if (info.next) return `next ${formatShort(info.next)}${info.heldByQuietHours ? HELD : ""}`;
   if (info.reason === "completed" && info.completedAt) {
     return `completed ${formatShort(info.completedAt)}`;
   }
@@ -61,7 +65,16 @@ function actionText(e: ActionEvent): string {
       : e.action === "cancelRemindAgain"
         ? "cancelled remind again"
         : `remind again${e.remindAt ? ` at ${formatShort(e.remindAt)}` : ""}`;
-  return `you: ${what} (from ${e.source})`;
+  return `${e.by}: ${what} (from ${e.source})`;
+}
+
+function otherLine(person: OtherRecipient): string {
+  if (!person.next) return `${person.name} · no further reminders`;
+  const yours = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const theirs = otherClock(person.next, yours, { ...person, isYou: false }, undefined);
+  return `${person.name} · next ${formatShort(person.next)}${theirs ? ` (${theirs})` : ""}${
+    person.heldByQuietHours ? HELD : ""
+  }`;
 }
 
 function outcomeText(c: ChannelOutcome): string {
@@ -118,6 +131,15 @@ export function ItemReminderInfo({ itemId }: { itemId: number }) {
         {cancelError && <p className="text-destructive">{cancelError}</p>}
         {route && <p className="text-muted-foreground">{route}</p>}
       </div>
+
+      {info.others.length > 0 && (
+        <div>
+          <p className="text-muted-foreground">also reminded</p>
+          {info.others.map((person, i) => (
+            <p key={i}>{otherLine(person)}</p>
+          ))}
+        </div>
+      )}
 
       <div>
         <p className="text-muted-foreground">history</p>

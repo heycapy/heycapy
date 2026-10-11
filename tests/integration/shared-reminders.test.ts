@@ -8,6 +8,8 @@ import {
   items,
   notificationQueue,
   outgoingWebhooks,
+  users,
+  userSettings,
 } from "@/lib/db/schema";
 import { addItemAction, updateItemAction } from "@/app/(app)/item-actions";
 import {
@@ -432,5 +434,38 @@ describe("a reminder still queued for someone the item was taken from", () => {
     const info = await getItemReminderInfo(member, itemId);
     expect(info?.reason).toBe("notRecipient");
     expect(info?.history).toMatchObject([{ type: "sent", channels: [{ outcome: "handedOver" }] }]);
+  });
+});
+
+describe("item info", () => {
+  it("shows who else is reminded and when, who acted, and a hold by their quiet hours", async () => {
+    const { owner, member, bucketId } = await sharedBucket();
+    await db.update(users).set({ displayName: "Sam" }).where(eq(users.id, member));
+    await db
+      .update(userSettings)
+      .set({ quietHoursFrom: "22:00", quietHoursTo: "10:00" })
+      .where(eq(userSettings.userId, member));
+    session.userId = owner;
+    const itemId = await add(bucketId, "2026-10-26");
+    await remindItemAgain(member, itemId, "30", LONDON, "telegram", NOW);
+
+    const forOwner = await getItemReminderInfo(owner, itemId);
+
+    // 09:00 London is inside Sam's quiet hours, so it waits until 10:00
+    expect(forOwner?.others).toEqual([
+      {
+        name: "Sam",
+        timezone: LONDON,
+        next: new Date("2026-10-26T10:00:00Z"),
+        heldByQuietHours: true,
+      },
+    ]);
+    expect(forOwner?.heldByQuietHours).toBe(false);
+    expect(forOwner?.history).toMatchObject([{ type: "action", by: "Sam", source: "telegram" }]);
+
+    const forSam = await getItemReminderInfo(member, itemId);
+    expect(forSam?.heldByQuietHours).toBe(true);
+    expect(forSam?.others).toMatchObject([{ name: expect.any(String), heldByQuietHours: false }]);
+    expect(forSam?.history).toMatchObject([{ type: "action", by: "you" }]);
   });
 });

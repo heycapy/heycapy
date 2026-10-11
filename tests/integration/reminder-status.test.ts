@@ -114,6 +114,8 @@ describe("dialog details", () => {
       completedAt: null,
       reason: null,
       remindAgain: null,
+      heldByQuietHours: false,
+      others: [],
       history: [],
     });
   });

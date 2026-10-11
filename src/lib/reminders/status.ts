@@ -4,6 +4,7 @@ import { and, desc, eq, inArray } from "drizzle-orm";
 import { db } from "@/lib/db";
 import {
   buckets,
+  users,
   itemActions,
   itemReminders,
   items,
@@ -21,6 +22,10 @@ import { NOT_RECIPIENT_ERROR } from "@/lib/notifications/constants";
 import { memberBucketIds } from "@/lib/buckets/access";
 import type { NotificationMedium } from "@/lib/notifications/queue";
 import { pendingRemindAgainAt } from "./remind-again";
+import { selectReminderRows, toReminderInputs } from "./refresh";
+import { heldByQuietHours } from "./schedule";
+import { memberName } from "@/lib/buckets/member-name";
+import { UNSET_TIMEZONE } from "@/lib/timezones/constants";
 
 type Item = typeof items.$inferSelect;
 type Reminder = typeof itemReminders.$inferSelect;
@@ -60,6 +65,15 @@ export type ActionEvent = {
   action: Action["action"];
   source: Action["source"];
   remindAt: Date | null;
+  by: string;
+};
+
+// Someone else reminded about the item, as the viewer sees them
+export type OtherRecipient = {
+  name: string;
+  timezone: string;
+  next: Date | null;
+  heldByQuietHours: boolean;
 };
 
 export type HistoryEvent = NotificationEvent | ActionEvent;
@@ -71,6 +85,8 @@ export type ItemReminderInfo = {
   reason:
     "completed" | "missed" | "onHold" | "notRecipient" | "noChannel" | "alreadyReminded" | null;
   remindAgain: { at: Date; source: Action["source"] } | null;
+  heldByQuietHours: boolean;
+  others: OtherRecipient[];
   history: HistoryEvent[];
 };
 
@@ -261,6 +277,36 @@ export async function getItemReminderInfo(
                 ? null
                 : "alreadyReminded";
 
+  const recipients = isClosedStatus(item.status)
+    ? []
+    : await selectReminderRows(eq(items.id, itemId));
+  const people = await db
+    .select({ id: users.id, displayName: users.displayName, username: users.username })
+    .from(users)
+    .where(
+      inArray(users.id, [
+        ...recipients.map((r) => r.reminder.userId),
+        ...actions.map((a) => a.userId),
+      ])
+    );
+  const nameOf = (id: number) => {
+    if (id === userId) return "you";
+    const person = people.find((p) => p.id === id);
+    return person ? memberName(person) : "someone";
+  };
+  const held = (id: number) => {
+    const row = recipients.find((r) => r.reminder.userId === id);
+    return row !== undefined && heldByQuietHours(toReminderInputs(row));
+  };
+  const others = recipients
+    .filter((r) => r.reminder.userId !== userId)
+    .map((r) => ({
+      name: nameOf(r.reminder.userId),
+      timezone: r.timezone ?? UNSET_TIMEZONE,
+      next: r.reminder.nextReminderAt,
+      heldByQuietHours: held(r.reminder.userId),
+    }));
+
   const remindAgainAt = pendingRemindAgainAt(item, now);
   const askedFrom = actions.find((a) => a.action === "remindAgain");
   const history: HistoryEvent[] = [
@@ -271,6 +317,7 @@ export async function getItemReminderInfo(
       action: a.action,
       source: a.source,
       remindAt: a.remindAt,
+      by: nameOf(a.userId),
     })),
   ]
     .sort((a, b) => b.at.getTime() - a.at.getTime())
@@ -282,6 +329,8 @@ export async function getItemReminderInfo(
     completedAt: item.status === ITEM_STATUS.completed ? item.completedAt : null,
     reason,
     remindAgain: remindAgainAt ? { at: remindAgainAt, source: askedFrom?.source ?? "app" } : null,
+    heldByQuietHours: !reason && held(userId),
+    others,
     history,
   };
 }
