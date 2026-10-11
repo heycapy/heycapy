@@ -4,7 +4,12 @@ import { db } from "@/lib/db";
 import { buckets, items } from "@/lib/db/schema";
 import { memberBucketIds } from "@/lib/buckets/access";
 import { inLiveBucket } from "@/lib/buckets/live";
-import { getReminderBadges, type ReminderBadge } from "@/lib/reminders/status";
+import {
+  getReminderBadges,
+  withViewerReminders,
+  type ListItem,
+  type ReminderBadge,
+} from "@/lib/reminders/status";
 import { parseItemsRules, parseNotificationRules } from "@/lib/rules";
 
 type Item = typeof items.$inferSelect;
@@ -20,12 +25,13 @@ export type ItemBucket = {
 };
 
 export type CrossBucketItems = {
-  items: Item[];
+  items: ListItem[];
   buckets: ItemBucket[];
   reminderBadges: Record<number, ReminderBadge>;
 };
 
-async function withBuckets(userId: number, rows: Item[]): Promise<CrossBucketItems> {
+async function withBuckets(userId: number, found: Item[]): Promise<CrossBucketItems> {
+  const rows = await withViewerReminders(userId, found);
   const all = await db
     .select()
     .from(buckets)

@@ -18,6 +18,7 @@ import {
   seedItem,
   seedUser,
   useSchedulerEnvironment,
+  reminderOf,
 } from "./helpers";
 
 const T0 = new Date("2026-03-10T12:00:00Z");
@@ -47,7 +48,7 @@ describe("restoring an item", () => {
     expect(await restoreItem(userId, itemId, T0)).toBe(true);
     const item = await db.query.items.findFirst({ where: eq(items.id, itemId) });
     expect(item?.deletedAt).toBeNull();
-    expect(item?.nextReminderAt).toEqual(new Date(T0.getTime() + DAY));
+    expect((await reminderOf(itemId)).nextReminderAt).toEqual(new Date(T0.getTime() + DAY));
   });
 
   it("doesn't send a late 'due now' when its date passed while in the trash", async () => {

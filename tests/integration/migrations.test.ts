@@ -53,7 +53,9 @@ describe("migrations", () => {
       migrate(db, { migrationsFolder: migrationsUpTo(applied) });
     }
 
-    const columns = sqlite.prepare("PRAGMA table_info(items)").all() as { name: string }[];
+    const columns = sqlite.prepare("PRAGMA table_info(item_reminders)").all() as {
+      name: string;
+    }[];
     expect(columns.map((c) => c.name)).toEqual(
       expect.arrayContaining(["next_reminder_at", "next_overdue_at"])
     );
@@ -230,6 +232,101 @@ describe("migrations", () => {
       { id: 2, deadline_timezone: null },
       { id: 3, deadline_timezone: "UTC" },
     ]);
+    sqlite.close();
+  });
+
+  it("give every person an item reminds their own schedule, and copy resets to all of them", () => {
+    const journal = JSON.parse(
+      readFileSync(path.join(MIGRATIONS, "meta/_journal.json"), "utf8")
+    ) as Journal;
+    const perPerson = journal.entries.findIndex((e) => e.tag === "0034_item_reminders");
+    const dbPath = path.join(tempDir("heycapy-item-reminders-"), "db.sqlite");
+    const sqlite = new Database(dbPath);
+    const db = drizzle(sqlite);
+    migrate(db, { migrationsFolder: migrationsUpTo(perPerson) });
+
+    // item 1 nobody's, item 2 assigned to the member, item 3 to someone who has left
+    sqlite.exec(`
+      INSERT INTO users (id, email) VALUES (1, 'a@heycapy.test'), (2, 'b@heycapy.test'), (3, 'c@heycapy.test');
+      INSERT INTO buckets (id, user_id, name) VALUES (1, 1, 'Home');
+      INSERT INTO bucket_members (bucket_id, user_id) VALUES (1, 2);
+      INSERT INTO items (id, bucket_id, user_id, title, notified_at, next_reminder_at, next_overdue_at, assignee_id) VALUES
+        (1, 1, 1, 'pay rent', 100, 200, 300, NULL),
+        (2, 1, 1, 'call the plumber', NULL, 400, NULL, 2),
+        (3, 1, 2, 'buy milk', NULL, 500, NULL, 3);
+    `);
+
+    migrate(db, { migrationsFolder: MIGRATIONS });
+
+    const rows = () =>
+      sqlite
+        .prepare(
+          "SELECT item_id, user_id, notified_at, overdue_notified_at, next_reminder_at, next_overdue_at FROM item_reminders ORDER BY item_id, user_id"
+        )
+        .all();
+    expect(rows()).toEqual([
+      {
+        item_id: 1,
+        user_id: 1,
+        notified_at: 100,
+        overdue_notified_at: null,
+        next_reminder_at: 200,
+        next_overdue_at: 300,
+      },
+      {
+        item_id: 1,
+        user_id: 2,
+        notified_at: 100,
+        overdue_notified_at: null,
+        next_reminder_at: null,
+        next_overdue_at: null,
+      },
+      {
+        item_id: 2,
+        user_id: 2,
+        notified_at: null,
+        overdue_notified_at: null,
+        next_reminder_at: null,
+        next_overdue_at: null,
+      },
+      {
+        item_id: 3,
+        user_id: 1,
+        notified_at: null,
+        overdue_notified_at: null,
+        next_reminder_at: null,
+        next_overdue_at: null,
+      },
+      {
+        item_id: 3,
+        user_id: 2,
+        notified_at: null,
+        overdue_notified_at: null,
+        next_reminder_at: 500,
+        next_overdue_at: null,
+      },
+    ]);
+
+    sqlite.exec(
+      "UPDATE item_reminders SET notified_at = 150, overdue_notified_at = 160 WHERE item_id = 1 AND user_id = 1"
+    );
+    sqlite.exec("UPDATE items SET notified_at = NULL WHERE id = 1");
+    expect(
+      sqlite
+        .prepare(
+          "SELECT user_id, notified_at, overdue_notified_at FROM item_reminders WHERE item_id = 1 ORDER BY user_id"
+        )
+        .all()
+    ).toEqual([
+      { user_id: 1, notified_at: null, overdue_notified_at: 160 },
+      { user_id: 2, notified_at: null, overdue_notified_at: null },
+    ]);
+    sqlite.exec("UPDATE items SET overdue_notified_at = NULL WHERE id = 1");
+    expect(
+      sqlite
+        .prepare("SELECT overdue_notified_at FROM item_reminders WHERE item_id = 1 AND user_id = 1")
+        .get()
+    ).toEqual({ overdue_notified_at: null });
     sqlite.close();
   });
 });

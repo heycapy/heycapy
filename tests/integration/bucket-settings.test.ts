@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { buckets, items } from "@/lib/db/schema";
+import { buckets } from "@/lib/db/schema";
 import { updateBucketSchemaAction, updateBucketSettingsAction } from "@/app/(app)/bucket-actions";
 import {
   resetSchedulerEnvironment,
@@ -9,6 +9,7 @@ import {
   seedItem,
   seedUser,
   useSchedulerEnvironment,
+  reminderOf,
 } from "./helpers";
 
 const session = vi.hoisted(() => ({ userId: 0, email: "" }));
@@ -62,8 +63,9 @@ describe("saving bucket settings", () => {
     const itemId = await seedItem(userId, bucketId, { deadline: new Date("2026-03-10T20:00:00Z") });
     await saveFromDialog(bucketId, "08:00");
 
-    const item = await db.query.items.findFirst({ where: eq(items.id, itemId) });
-    expect(item?.nextReminderAt?.toISOString()).toBe("2026-03-11T09:00:00.000Z");
+    expect((await reminderOf(itemId)).nextReminderAt?.toISOString()).toBe(
+      "2026-03-11T09:00:00.000Z"
+    );
   });
 
   it("still clears a field the dialog manages", async () => {
@@ -90,12 +92,14 @@ describe("first overdue alert delay", () => {
     const itemId = await seedItem(userId, bucketId, { deadline });
 
     await saveOverdue(bucketId, 30);
-    let item = await db.query.items.findFirst({ where: eq(items.id, itemId) });
-    expect(item?.nextOverdueAt?.toISOString()).toBe("2026-03-10T15:30:00.000Z");
+    expect((await reminderOf(itemId)).nextOverdueAt?.toISOString()).toBe(
+      "2026-03-10T15:30:00.000Z"
+    );
 
     await saveOverdue(bucketId, undefined);
-    item = await db.query.items.findFirst({ where: eq(items.id, itemId) });
-    expect(item?.nextOverdueAt?.toISOString()).toBe("2026-03-10T16:00:00.000Z");
+    expect((await reminderOf(itemId)).nextOverdueAt?.toISOString()).toBe(
+      "2026-03-10T16:00:00.000Z"
+    );
   });
 
   it("is cleared when overdue alerts are turned off", async () => {
@@ -128,8 +132,7 @@ describe("default reminders", () => {
   }
 
   async function nextReminder(itemId: number) {
-    const item = await db.query.items.findFirst({ where: eq(items.id, itemId) });
-    return item?.nextReminderAt;
+    return (await reminderOf(itemId)).nextReminderAt;
   }
 
   it("re-schedule items that follow the bucket, and leave the rest alone", async () => {

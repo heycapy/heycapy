@@ -14,6 +14,8 @@ import {
 import { sendEmail } from "@/lib/notifications/email";
 import { db } from "@/lib/db";
 import { deleteAccount, ownedSharedBuckets, type SharedBucket } from "@/lib/account/delete";
+import { memberBucketIds } from "@/lib/buckets/access";
+import { refreshBucketReminders } from "@/lib/reminders/refresh";
 
 function sharedBucketsError(shared: SharedBucket[]): string {
   const names = shared.map((bucket) => bucket.name).join(", ");
@@ -62,8 +64,11 @@ export async function deleteAccountAction(code: string): Promise<ActionResult> {
   }
   await recordCodeSuccess(session.email);
 
+  const joined = await memberBucketIds(session.userId);
   const stillShared = deleteAccount(session.userId, session.email);
   if (stillShared.length > 0) return { ok: false, error: sharedBucketsError(stillShared) };
+
+  for (const { id } of joined) await refreshBucketReminders(id);
   await deleteSession();
   redirect("/login");
 }

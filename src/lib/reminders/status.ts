@@ -2,7 +2,14 @@ import { bucketChannels } from "@/lib/rules";
 import { ITEM_STATUS, isClosedStatus } from "@/constants";
 import { and, desc, eq, inArray } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { buckets, itemActions, items, notificationQueue, outgoingWebhooks } from "@/lib/db/schema";
+import {
+  buckets,
+  itemActions,
+  itemReminders,
+  items,
+  notificationQueue,
+  outgoingWebhooks,
+} from "@/lib/db/schema";
 import {
   ALL_CHANNELS,
   channelDecisions,
@@ -14,6 +21,7 @@ import type { NotificationMedium } from "@/lib/notifications/queue";
 import { pendingRemindAgainAt } from "./remind-again";
 
 type Item = typeof items.$inferSelect;
+type Reminder = typeof itemReminders.$inferSelect;
 type Job = typeof notificationQueue.$inferSelect;
 
 export type ReminderBadge = "failed" | "noChannel" | "upcoming" | "history";
@@ -55,7 +63,39 @@ export type ItemReminderInfo = {
   history: HistoryEvent[];
 };
 
+// An item as one person sees it: their own reminder times, none when they aren't reminded about it
+export type ListItem = Item & Partial<Pick<Reminder, "nextReminderAt" | "nextOverdueAt">>;
+
 const HISTORY_LIMIT = 10;
+
+function viewerRows(userId: number, itemIds: number[]): Promise<Reminder[]> {
+  if (itemIds.length === 0) return Promise.resolve([]);
+  return db
+    .select()
+    .from(itemReminders)
+    .where(and(eq(itemReminders.userId, userId), inArray(itemReminders.itemId, itemIds)));
+}
+
+function asViewer(item: Item, mine: Reminder | undefined): ListItem {
+  return {
+    ...item,
+    nextReminderAt: mine?.nextReminderAt ?? null,
+    nextOverdueAt: mine?.nextOverdueAt ?? null,
+    ...(mine && { notifiedAt: mine.notifiedAt, overdueNotifiedAt: mine.overdueNotifiedAt }),
+  };
+}
+
+export async function withViewerReminders(userId: number, rows: Item[]): Promise<ListItem[]> {
+  const mine = new Map(
+    (
+      await viewerRows(
+        userId,
+        rows.map((i) => i.id)
+      )
+    ).map((r) => [r.itemId, r])
+  );
+  return rows.map((item) => asViewer(item, mine.get(item.id)));
+}
 
 async function currentDecisions(userId: number, notificationsRules: string) {
   return channelDecisions(bucketChannels(notificationsRules), await getChannelSettings(userId));
@@ -116,7 +156,7 @@ function groupIntoEvents(rows: JobRow[]): NotificationEvent[] {
 export async function getReminderBadges(
   userId: number,
   notificationsRules: string,
-  bucketItems: Item[]
+  bucketItems: ListItem[]
 ): Promise<Record<number, ReminderBadge>> {
   const dated = bucketItems.filter((i) => i.deadline && !i.deletedAt);
   if (dated.length === 0) return {};
@@ -129,9 +169,12 @@ export async function getReminderBadges(
           .select()
           .from(notificationQueue)
           .where(
-            inArray(
-              notificationQueue.itemId,
-              open.map((i) => i.id)
+            and(
+              eq(notificationQueue.userId, userId),
+              inArray(
+                notificationQueue.itemId,
+                open.map((i) => i.id)
+              )
             )
           )
           .orderBy(desc(notificationQueue.id));
@@ -171,7 +214,8 @@ export async function getItemReminderInfo(
     .innerJoin(buckets, eq(items.bucketId, buckets.id))
     .where(and(eq(items.id, itemId), eq(items.userId, userId)));
   if (!row?.item.deadline) return null;
-  const { item } = row;
+  const [mine] = await viewerRows(userId, [itemId]);
+  const item = asViewer(row.item, mine);
   const now = new Date();
 
   const decisions = await currentDecisions(userId, row.notificationsRules);
@@ -179,7 +223,7 @@ export async function getItemReminderInfo(
     .select({ job: notificationQueue, webhookName: outgoingWebhooks.name })
     .from(notificationQueue)
     .leftJoin(outgoingWebhooks, eq(outgoingWebhooks.id, notificationQueue.webhookId))
-    .where(eq(notificationQueue.itemId, itemId))
+    .where(and(eq(notificationQueue.itemId, itemId), eq(notificationQueue.userId, userId)))
     .orderBy(desc(notificationQueue.id))
     .limit(HISTORY_LIMIT * decisions.length);
   const actions = await db
@@ -218,7 +262,7 @@ export async function getItemReminderInfo(
     .slice(0, HISTORY_LIMIT);
 
   return {
-    next: reason ? null : item.nextReminderAt,
+    next: reason ? null : (item.nextReminderAt ?? null),
     nextChannels: reason ? null : decisions,
     completedAt: item.status === ITEM_STATUS.completed ? item.completedAt : null,
     reason,

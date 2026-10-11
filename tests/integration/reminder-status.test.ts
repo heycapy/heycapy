@@ -6,6 +6,7 @@ import { enqueueNotification, processPending } from "@/lib/notifications/queue";
 import {
   getItemReminderInfo,
   getReminderBadges,
+  withViewerReminders,
   type HistoryEvent,
   type NotificationEvent,
 } from "@/lib/reminders/status";
@@ -39,7 +40,7 @@ async function setup(medium: string[] = ["telegram"]) {
 
 async function badgesFor(userId: number, rules: string, bucketId: number) {
   const rows = await db.select().from(items).where(eq(items.bucketId, bucketId));
-  return getReminderBadges(userId, rules, rows);
+  return getReminderBadges(userId, rules, await withViewerReminders(userId, rows));
 }
 
 async function addJob(

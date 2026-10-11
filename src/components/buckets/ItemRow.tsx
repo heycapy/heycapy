@@ -6,9 +6,8 @@ import { useEffect, useRef, useState } from "react";
 import { Bell, BellOff, Ellipsis, GripVertical, TriangleAlert } from "lucide-react";
 import type { DragControls } from "framer-motion";
 import { cn } from "@/lib/utils";
-import type { items } from "@/lib/db/schema";
 import type { StatusDef, FieldDef } from "@/types/rules";
-import type { ReminderBadge } from "@/lib/reminders/status";
+import type { ListItem, ReminderBadge } from "@/lib/reminders/status";
 import { ReminderInfoDialog } from "./ReminderInfoDialog";
 import type { MenuAt } from "./ItemMenu";
 import { pendingRemindAgainAt } from "@/lib/reminders/remind-again";
@@ -17,7 +16,7 @@ import { itemDeadline } from "@/lib/time";
 import { parseRecurring } from "@/lib/items/occurrence";
 import { repeatLabel } from "@/lib/items/repeat-label";
 
-type ItemRow = typeof items.$inferSelect;
+type ItemRow = ListItem;
 
 type ItemRowProps = {
   item: ItemRow;
@@ -276,8 +275,8 @@ export function ItemRow({
         <button
           type="button"
           onClick={() => setReminderOpen(true)}
-          aria-label={reminderLabel(reminderBadge, item.nextReminderAt)}
-          title={reminderLabel(reminderBadge, item.nextReminderAt)}
+          aria-label={reminderLabel(reminderBadge, item.nextReminderAt ?? null)}
+          title={reminderLabel(reminderBadge, item.nextReminderAt ?? null)}
           className={cn(
             "flex shrink-0 items-center pl-2 transition-opacity hover:opacity-70",
             REMINDER_ICON[reminderBadge].className

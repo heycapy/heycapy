@@ -13,6 +13,7 @@ import {
   seedItem,
   seedUser,
   useSchedulerEnvironment,
+  reminderOf,
 } from "./helpers";
 
 const session = vi.hoisted(() => ({ userId: 0, email: "" }));
@@ -87,9 +88,10 @@ describe("all-day reminders", () => {
     await addItemAction(bucketId, "pay rent", "2026-03-11");
     const item = await latest(bucketId);
 
-    expect(item.nextReminderAt).toEqual(new Date("2026-03-11T03:30:00Z"));
+    const schedule = await reminderOf(item.id);
+    expect(schedule.nextReminderAt).toEqual(new Date("2026-03-11T03:30:00Z"));
     // Mar 12 00:00 in Kolkata, plus the default one-hour delay
-    expect(item.nextOverdueAt).toEqual(new Date("2026-03-11T19:30:00Z"));
+    expect(schedule.nextOverdueAt).toEqual(new Date("2026-03-11T19:30:00Z"));
   });
 
   it("an all-day item for today isn't overdue while the day lasts", async () => {
@@ -99,7 +101,7 @@ describe("all-day reminders", () => {
 
     expect(item.deadline).toEqual(MAR_10_ALL_DAY);
     expect(item.notifiedAt).toBeNull();
-    expect(item.nextOverdueAt).toEqual(new Date("2026-03-10T19:30:00Z"));
+    expect((await reminderOf(item.id)).nextOverdueAt).toEqual(new Date("2026-03-10T19:30:00Z"));
   });
 });
 
@@ -110,14 +112,14 @@ describe("editing on the web", () => {
       deadline: MAR_11_ALL_DAY,
       title: "pay rent",
     });
-    const before = await db.query.items.findFirst({ where: eq(items.id, itemId) });
+    const before = await reminderOf(itemId);
 
     // The editor sends an all-day date back as YYYY-MM-DD
     await updateItemAction(itemId, "pay the rent", "2026-03-11");
 
     const after = await db.query.items.findFirst({ where: eq(items.id, itemId) });
     expect(after?.deadline).toEqual(MAR_11_ALL_DAY);
-    expect(after?.nextReminderAt).toEqual(before?.nextReminderAt);
+    expect((await reminderOf(itemId)).nextReminderAt).toEqual(before.nextReminderAt);
   });
 });
 

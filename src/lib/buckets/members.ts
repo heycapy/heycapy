@@ -46,7 +46,9 @@ export async function listMembers(
   return rows.map((row) => ({ ...row, isYou: row.userId === viewerId }));
 }
 
-// Reminders already queued for them would still arrive for a bucket they can no longer see
+// Reminders already queued for them would still arrive for a bucket they can no longer see.
+// Their reminder schedules go when the caller refreshes the bucket, so whoever takes over an item
+// assigned to them starts from what they were already sent.
 function dropMember(tx: Tx, bucketId: number, userId: number): void {
   tx.delete(bucketMembers)
     .where(and(eq(bucketMembers.bucketId, bucketId), eq(bucketMembers.userId, userId)))

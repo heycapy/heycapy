@@ -8,6 +8,7 @@ import { findAccessibleItem } from "@/lib/buckets/access";
 import { dataEvents } from "@/lib/events";
 import { parseItemsRules } from "@/lib/rules";
 import {
+  lastNotifiedAt,
   refreshItemReminders,
   reminderContext,
   type ReminderContext,
@@ -170,7 +171,13 @@ export async function skipOccurrence(
       deadlineTimezone: timezone,
       scheduledAt: null,
       recurring: JSON.stringify(withAnchor(config, seriesDate(occurrence), timezone)),
-      ...reminderResetForDeadline(item, deadline, ctx, now, timezone),
+      ...reminderResetForDeadline(
+        { ...item, notifiedAt: await lastNotifiedAt(item.id) },
+        deadline,
+        ctx,
+        now,
+        timezone
+      ),
       updatedAt: now,
     })
     .where(eq(items.id, itemId));
@@ -203,7 +210,13 @@ export async function moveOccurrence(
       deadline,
       deadlineTimezone: due.deadlineTimezone,
       scheduledAt: scheduled && scheduled.getTime() !== deadline.getTime() ? scheduled : null,
-      ...reminderResetForDeadline(item, deadline, ctx, now, due.deadlineTimezone),
+      ...reminderResetForDeadline(
+        { ...item, notifiedAt: await lastNotifiedAt(item.id) },
+        deadline,
+        ctx,
+        now,
+        due.deadlineTimezone
+      ),
       updatedAt: now,
     })
     .where(eq(items.id, itemId));

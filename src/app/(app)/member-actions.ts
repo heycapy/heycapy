@@ -6,6 +6,7 @@ import { z } from "zod";
 import { requireSession } from "./action-helpers";
 import { publicAppUrl } from "@/lib/app-url";
 import { dataEvents } from "@/lib/events";
+import { refreshBucketReminders } from "@/lib/reminders/refresh";
 import {
   createInvite,
   listOpenInvites,
@@ -49,6 +50,7 @@ export async function joinBucketAction(
   const result = redeemInvite(session.userId, parsed.data);
   if (!result.ok) return { ok: false, error: JOIN_ERRORS[result.reason] };
 
+  if (!result.alreadyMember) await refreshBucketReminders(result.bucketId);
   dataEvents.emit("refresh", session.userId);
   revalidatePath("/");
   return {
@@ -99,6 +101,7 @@ export async function removeMemberAction(
   const session = await requireSession();
   const result = memberChange(removeMember(session.userId, bucketId, memberId));
   if (result.ok) {
+    await refreshBucketReminders(bucketId);
     dataEvents.emit("refresh", memberId);
     revalidatePath("/");
   }
@@ -109,6 +112,7 @@ export async function leaveBucketAction(bucketId: number): Promise<ActionResult>
   const session = await requireSession();
   const result = memberChange(leaveBucket(session.userId, bucketId));
   if (result.ok) {
+    await refreshBucketReminders(bucketId);
     dataEvents.emit("refresh", session.userId);
     revalidatePath("/");
   }

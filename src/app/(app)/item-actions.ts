@@ -11,7 +11,12 @@ import { findAccessibleBucket, findAccessibleItem, isBucketMember } from "@/lib/
 import { ITEM_STATUS, ITEM_TITLE_MAX_LENGTH } from "@/constants";
 import { RecurringConfig, ReminderOffsets } from "@/types/rules";
 import { initialReminderState, reminderResetForDeadline } from "@/lib/items/reminders";
-import { refreshItemReminders, reminderContext, userTimezone } from "@/lib/reminders/refresh";
+import {
+  lastNotifiedAt,
+  refreshItemReminders,
+  reminderContext,
+  userTimezone,
+} from "@/lib/reminders/refresh";
 import { resolveDeadline } from "@/lib/items/deadline";
 import { createNextOccurrence, moveOccurrence, skipOccurrence } from "@/lib/items/recurrence";
 import { onLastDayIfAnchored, parseRecurring } from "@/lib/items/occurrence";
@@ -21,13 +26,15 @@ import { dataEvents } from "@/lib/events";
 import {
   getItemReminderInfo,
   getReminderBadges,
+  withViewerReminders,
   type ItemReminderInfo,
+  type ListItem,
   type ReminderBadge,
 } from "@/lib/reminders/status";
 
 export async function getItemsForBucketAction(bucketId: number): Promise<
   ActionResult<{
-    items: (typeof items.$inferSelect)[];
+    items: ListItem[];
     reminderBadges: Record<number, ReminderBadge>;
   }>
 > {
@@ -64,8 +71,9 @@ export async function getItemsForBucketAction(bucketId: number): Promise<
             .where(condition)
             .orderBy(asc(items.sortOrder), asc(items.createdAt), asc(items.id));
 
-  const reminderBadges = await getReminderBadges(session.userId, bucket.notificationsRules, result);
-  return { ok: true, items: result, reminderBadges };
+  const viewed = await withViewerReminders(session.userId, result);
+  const reminderBadges = await getReminderBadges(session.userId, bucket.notificationsRules, viewed);
+  return { ok: true, items: viewed, reminderBadges };
 }
 
 export async function getItemReminderInfoAction(itemId: number): Promise<ItemReminderInfo | null> {
@@ -217,7 +225,7 @@ export async function updateItemAction(
       deadlineTimezone: due.deadlineTimezone,
       ...(!keepsMovedDate && { scheduledAt: null }),
       ...reminderResetForDeadline(
-        item,
+        { ...item, notifiedAt: await lastNotifiedAt(item.id) },
         newDeadline,
         ctx,
         new Date(),

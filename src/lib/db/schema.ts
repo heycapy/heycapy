@@ -235,54 +235,72 @@ export const inviteAttempts = sqliteTable("invite_attempts", {
 
 // items
 
-export const items = sqliteTable(
-  "items",
+export const items = sqliteTable("items", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  bucketId: integer("bucket_id")
+    .notNull()
+    .references(() => buckets.id, { onDelete: "cascade" }),
+  userId: integer("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  title: text("title").notNull(),
+  description: text("description"),
+  deadline: integer("deadline", { mode: "timestamp" }),
+  // The clock the deadline was set on; an all-day item is midnight here, so its date is the same for everyone
+  deadlineTimezone: text("deadline_timezone"),
+  scheduledAt: integer("scheduled_at", { mode: "timestamp" }),
+  status: text("status").notNull().default(ITEM_STATUS.active),
+  properties: text("properties"),
+  externalId: text("external_id"),
+  externalUrl: text("external_url"),
+  // Minutes before the deadline, largest first; null follows the bucket's default
+  reminderOffsets: text("reminder_offsets", { mode: "json" }).$type<number[]>(),
+  // Set for everyone: a trigger (migration 0034) copies each write to every item_reminders row
+  notifiedAt: integer("notified_at", { mode: "timestamp" }),
+  overdueNotifiedAt: integer("overdue_notified_at", { mode: "timestamp" }),
+  remindNotBefore: integer("remind_not_before", { mode: "timestamp" }),
+  sortOrder: integer("sort_order").notNull().default(0),
+  recurring: text("recurring"),
+  source: text("source", { enum: ["manual", "ai", "mcp", "webhook", "system"] })
+    .notNull()
+    .default("manual"),
+  completedAt: integer("completed_at", { mode: "timestamp" }),
+  deletedAt: integer("deleted_at", { mode: "timestamp" }),
+  // Who moved it to the trash, so a shared trash can say; null when it isn't known
+  deletedBy: integer("deleted_by").references(() => users.id, { onDelete: "set null" }),
+  // A member of the bucket who should do it; null means anyone can
+  assigneeId: integer("assignee_id").references(() => users.id, { onDelete: "set null" }),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .default(sql`(unixepoch())`),
+  updatedAt: integer("updated_at", { mode: "timestamp" })
+    .notNull()
+    .default(sql`(unixepoch())`),
+});
+
+// item_reminders — one reminder schedule per item and person reminded: the assignee, or every member
+// when nobody is
+
+export const itemReminders = sqliteTable(
+  "item_reminders",
   {
     id: integer("id").primaryKey({ autoIncrement: true }),
-    bucketId: integer("bucket_id")
+    itemId: integer("item_id")
       .notNull()
-      .references(() => buckets.id, { onDelete: "cascade" }),
+      .references(() => items.id, { onDelete: "cascade" }),
     userId: integer("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
-    title: text("title").notNull(),
-    description: text("description"),
-    deadline: integer("deadline", { mode: "timestamp" }),
-    // The clock the deadline was set on; an all-day item is midnight here, so its date is the same for everyone
-    deadlineTimezone: text("deadline_timezone"),
-    scheduledAt: integer("scheduled_at", { mode: "timestamp" }),
-    status: text("status").notNull().default(ITEM_STATUS.active),
-    properties: text("properties"),
-    externalId: text("external_id"),
-    externalUrl: text("external_url"),
-    // Minutes before the deadline, largest first; null follows the bucket's default
-    reminderOffsets: text("reminder_offsets", { mode: "json" }).$type<number[]>(),
     notifiedAt: integer("notified_at", { mode: "timestamp" }),
     overdueNotifiedAt: integer("overdue_notified_at", { mode: "timestamp" }),
-    remindNotBefore: integer("remind_not_before", { mode: "timestamp" }),
     nextReminderAt: integer("next_reminder_at", { mode: "timestamp" }),
     nextOverdueAt: integer("next_overdue_at", { mode: "timestamp" }),
-    sortOrder: integer("sort_order").notNull().default(0),
-    recurring: text("recurring"),
-    source: text("source", { enum: ["manual", "ai", "mcp", "webhook", "system"] })
-      .notNull()
-      .default("manual"),
-    completedAt: integer("completed_at", { mode: "timestamp" }),
-    deletedAt: integer("deleted_at", { mode: "timestamp" }),
-    // Who moved it to the trash, so a shared trash can say; null when it isn't known
-    deletedBy: integer("deleted_by").references(() => users.id, { onDelete: "set null" }),
-    // A member of the bucket who should do it; null means anyone can
-    assigneeId: integer("assignee_id").references(() => users.id, { onDelete: "set null" }),
-    createdAt: integer("created_at", { mode: "timestamp" })
-      .notNull()
-      .default(sql`(unixepoch())`),
-    updatedAt: integer("updated_at", { mode: "timestamp" })
-      .notNull()
-      .default(sql`(unixepoch())`),
   },
   (t) => [
-    index("idx_items_next_reminder_at").on(t.nextReminderAt),
-    index("idx_items_next_overdue_at").on(t.nextOverdueAt),
+    uniqueIndex("idx_item_reminders_item_user").on(t.itemId, t.userId),
+    index("idx_item_reminders_user_id").on(t.userId),
+    index("idx_item_reminders_next_reminder_at").on(t.nextReminderAt),
+    index("idx_item_reminders_next_overdue_at").on(t.nextOverdueAt),
   ]
 );
 

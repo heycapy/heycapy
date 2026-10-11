@@ -1,7 +1,7 @@
 import { ITEM_STATUS } from "@/constants";
-import { and, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { itemActions, items, userSettings } from "@/lib/db/schema";
+import { itemActions, itemReminders, items, userSettings } from "@/lib/db/schema";
 import { dataEvents } from "@/lib/events";
 import { formatWhen } from "@/lib/format-date";
 import { syncTelegramReminder } from "@/lib/notifications/telegram-sync";
@@ -42,6 +42,13 @@ export async function completeItem(
   await createNextOccurrence(itemId);
 }
 
+// Their own schedule when they are reminded about the item, else someone's who is
+function actorRow(userId: number, itemId: number) {
+  return selectReminderRows(and(eq(items.id, itemId), eq(items.userId, userId)))
+    .orderBy(desc(eq(itemReminders.userId, userId)))
+    .limit(1);
+}
+
 // Returns when the next ping will actually go out, or null if the item is gone
 export async function remindItemAgain(
   userId: number,
@@ -55,7 +62,7 @@ export async function remindItemAgain(
     choice === "tomorrow"
       ? addLocalDays(now, 1, timezone)
       : new Date(now.getTime() + Number(choice) * 60_000);
-  const [row] = await selectReminderRows(and(eq(items.id, itemId), eq(items.userId, userId)));
+  const [row] = await actorRow(userId, itemId);
   if (!row) return null;
   await db
     .update(items)
@@ -64,7 +71,9 @@ export async function remindItemAgain(
   await refreshItemReminders([itemId]);
 
   // Quiet hours or "remind at" can push the ping later than asked
-  const refreshed = await db.query.items.findFirst({ where: eq(items.id, itemId) });
+  const refreshed = await db.query.itemReminders.findFirst({
+    where: and(eq(itemReminders.itemId, itemId), eq(itemReminders.userId, userId)),
+  });
   const next =
     [refreshed?.nextReminderAt, refreshed?.nextOverdueAt]
       .filter((d): d is Date => d instanceof Date)
@@ -79,7 +88,7 @@ export async function cancelRemindAgain(
   source: ActionSource,
   now = new Date()
 ): Promise<boolean> {
-  const [row] = await selectReminderRows(and(eq(items.id, itemId), eq(items.userId, userId)));
+  const [row] = await actorRow(userId, itemId);
   const remindNotBefore = row?.item.remindNotBefore;
   if (!row || !remindNotBefore || remindNotBefore <= now) return false;
   const without = { ...toReminderInputs(row), remindNotBefore: null };

@@ -9,7 +9,9 @@ import {
   sendAccountDeletionCodeAction,
 } from "@/app/(app)/account-actions";
 import { deleteAccount } from "@/lib/account/delete";
+import { refreshItemReminders } from "@/lib/reminders/refresh";
 import {
+  reminderOf,
   resetSchedulerEnvironment,
   seedBucket,
   seedItem,
@@ -25,6 +27,7 @@ vi.mock("@/lib/auth/session", async (importOriginal) => ({
 }));
 
 const T0 = new Date("2026-03-10T12:00:00Z");
+const DAY = 24 * 60 * 60 * 1000;
 
 beforeEach(() => {
   useSchedulerEnvironment(T0);
@@ -139,5 +142,17 @@ describe("a member deleting their account", () => {
       .from(bucketMembers)
       .where(eq(bucketMembers.bucketId, bucketId));
     expect(members).toEqual([{ userId: owner }]);
+  });
+
+  it("passes what was assigned to them back to everyone left, to be reminded about", async () => {
+    const { owner, member, bucketId } = await sharedBucket();
+    const itemId = await seedItem(owner, bucketId, { deadline: new Date(T0.getTime() + DAY) });
+    await db.update(items).set({ assigneeId: member }).where(eq(items.id, itemId));
+    await refreshItemReminders([itemId]);
+    await signInAs(member);
+
+    await expect(deleteAccountAction(await deletionCode())).rejects.toThrow(/NEXT_REDIRECT/);
+
+    expect((await reminderOf(itemId, owner)).nextReminderAt).toEqual(new Date(T0.getTime() + DAY));
   });
 });

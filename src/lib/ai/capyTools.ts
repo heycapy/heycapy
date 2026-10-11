@@ -16,6 +16,7 @@ import { findBucketByName } from "@/lib/db/buckets";
 import { withDefaultChannels } from "@/lib/notifications/channels";
 import { initialReminderState, reminderResetForDeadline } from "@/lib/items/reminders";
 import {
+  lastNotifiedAt,
   refreshBucketReminders,
   refreshItemReminders,
   reminderContext,
@@ -489,7 +490,7 @@ async function executeToolCallInner(
         Object.assign(
           updates,
           reminderResetForDeadline(
-            item,
+            { ...item, notifiedAt: await lastNotifiedAt(item.id) },
             newDeadline,
             await reminderContext(item.bucketId),
             new Date(),

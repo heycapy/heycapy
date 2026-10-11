@@ -15,6 +15,7 @@ import {
   seedBucket,
   seedUser,
   useSchedulerEnvironment,
+  reminderOf,
 } from "./helpers";
 
 const session = vi.hoisted(() => ({ userId: 0, email: "" }));
@@ -103,7 +104,9 @@ describe("a date without a time in a bucket shared between India and London", ()
     await refreshUserReminders(owner);
 
     // 09:00 on 12 Oct on the creator's new clock, not the stored midnight read as a time
-    expect((await latest(bucketId)).nextReminderAt).toEqual(new Date("2026-10-12T08:00:00Z"));
+    expect((await reminderOf((await latest(bucketId)).id, owner)).nextReminderAt).toEqual(
+      new Date("2026-10-12T08:00:00Z")
+    );
   });
 });
 
