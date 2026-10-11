@@ -12,6 +12,7 @@ import { db } from "@/lib/db";
 import { users, userSettings } from "@/lib/db/schema";
 import { encryptValue, decryptValue } from "@/lib/crypto";
 import { refreshUserReminders } from "@/lib/reminders/refresh";
+import { isKnownTimezone } from "@/lib/timezones/valid";
 import { parseClock } from "@/lib/reminders/zoned";
 import { ALL_CHANNELS, getChannelSettings, workingChannels } from "@/lib/notifications/channels";
 import { sendEmail } from "@/lib/notifications/email";
@@ -153,6 +154,9 @@ export async function updateUserSettingsAction(
   const session = await getSession();
   if (!session) return { ok: false, error: "Unauthorized" };
 
+  if (data.timezone && !isKnownTimezone(data.timezone)) {
+    return { ok: false, error: `Unknown timezone "${data.timezone}" — use one like Europe/London` };
+  }
   const trimmedName = data.personalityName.trim();
   if (!trimmedName) return { ok: false, error: "Name is required" };
   if (trimmedName.length > 50) return { ok: false, error: "Name too long" };
@@ -393,7 +397,7 @@ export async function getNotifAvailabilityAction(): Promise<{
 export async function saveTimezoneIfDefaultAction(timezone: string): Promise<void> {
   const session = await getSession();
   if (!session) return;
-  if (!timezone || timezone === "UTC") return;
+  if (!timezone || timezone === "UTC" || !isKnownTimezone(timezone)) return;
   const updated = await db
     .update(userSettings)
     .set({ timezone })

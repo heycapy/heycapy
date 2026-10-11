@@ -27,3 +27,23 @@ test("updating an item without changes keeps its date and time", async ({ page }
   await page.reload();
   await expect.poll(() => itemRow(page, title).innerText()).toBe(before);
 });
+
+test("a timezone that doesn't exist is refused and the saved one stays", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "···" }).click();
+  await page.getByRole("button", { name: "tweaks" }).click();
+  const timezone = page.getByPlaceholder("America/New_York");
+  await expect(timezone).not.toHaveValue("");
+  const saved = await timezone.inputValue();
+
+  await timezone.fill("America/New_Yrok");
+  await page.getByRole("button", { name: /^\[\s*save\s*\]$/ }).click();
+
+  await expect(
+    page.getByText('Unknown timezone "America/New_Yrok" — use one like Europe/London')
+  ).toBeVisible();
+  await page.reload();
+  await page.getByRole("button", { name: "···" }).click();
+  await page.getByRole("button", { name: "tweaks" }).click();
+  await expect(timezone).toHaveValue(saved);
+});
