@@ -15,6 +15,7 @@ const REASONS: Record<NonNullable<Info["reason"]>, string> = {
   completed: "completed",
   onHold: "no reminders — item is on hold",
   missed: "missed — the next occurrence took its place",
+  notRecipient: "no reminders for you — it's assigned to someone else",
   noChannel: "no reminder — this bucket has no working channel",
   alreadyReminded: "no further reminders (repeat: once)",
 };
@@ -31,6 +32,7 @@ const OUTCOMES: Record<ChannelOutcome["outcome"], { text: string; className: str
   retrying: { text: "↻ retrying", className: "text-warning" },
   failed: { text: "✗ failed", className: "text-destructive" },
   closed: { text: "– not sent, item was closed first", className: "text-muted-foreground" },
+  handedOver: { text: "– not sent, it went to someone else", className: "text-muted-foreground" },
   notSelected: { text: "– not selected for this bucket", className: "text-muted-foreground" },
   notSetUp: { text: "– not set up at the time", className: "text-muted-foreground" },
 };

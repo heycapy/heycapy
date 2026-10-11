@@ -17,6 +17,8 @@ import {
   type ChannelDecision,
 } from "@/lib/notifications/channels";
 import { channelKey } from "@/lib/notifications/channel-key";
+import { NOT_RECIPIENT_ERROR } from "@/lib/notifications/constants";
+import { memberBucketIds } from "@/lib/buckets/access";
 import type { NotificationMedium } from "@/lib/notifications/queue";
 import { pendingRemindAgainAt } from "./remind-again";
 
@@ -30,7 +32,15 @@ export type ChannelOutcome = {
   medium: NotificationMedium;
   webhookId: number | null;
   label: string;
-  outcome: "sent" | "sending" | "retrying" | "failed" | "closed" | "notSelected" | "notSetUp";
+  outcome:
+    | "sent"
+    | "sending"
+    | "retrying"
+    | "failed"
+    | "closed"
+    | "handedOver"
+    | "notSelected"
+    | "notSetUp";
   error: string | null;
   retryAt: Date | null;
 };
@@ -58,7 +68,8 @@ export type ItemReminderInfo = {
   next: Date | null;
   nextChannels: ChannelDecision[] | null;
   completedAt: Date | null;
-  reason: "completed" | "missed" | "onHold" | "noChannel" | "alreadyReminded" | null;
+  reason:
+    "completed" | "missed" | "onHold" | "notRecipient" | "noChannel" | "alreadyReminded" | null;
   remindAgain: { at: Date; source: Action["source"] } | null;
   history: HistoryEvent[];
 };
@@ -112,7 +123,9 @@ function toOutcome({ job, webhookName }: JobRow): ChannelOutcome {
         : job.status === "dead"
           ? "failed"
           : job.status === "cancelled"
-            ? "closed"
+            ? job.lastError === NOT_RECIPIENT_ERROR
+              ? "handedOver"
+              : "closed"
             : job.attempts > 0
               ? "retrying"
               : "sending";
@@ -212,7 +225,7 @@ export async function getItemReminderInfo(
     .select({ item: items, notificationsRules: buckets.notificationsRules })
     .from(items)
     .innerJoin(buckets, eq(items.bucketId, buckets.id))
-    .where(and(eq(items.id, itemId), eq(items.userId, userId)));
+    .where(and(eq(items.id, itemId), inArray(items.bucketId, memberBucketIds(userId))));
   if (!row?.item.deadline) return null;
   const [mine] = await viewerRows(userId, [itemId]);
   const item = asViewer(row.item, mine);
@@ -240,11 +253,13 @@ export async function getItemReminderInfo(
         ? "missed"
         : item.status === ITEM_STATUS.onHold
           ? "onHold"
-          : !decisions.some((c) => c.state === "send")
-            ? "noChannel"
-            : item.nextReminderAt
-              ? null
-              : "alreadyReminded";
+          : !mine
+            ? "notRecipient"
+            : !decisions.some((c) => c.state === "send")
+              ? "noChannel"
+              : item.nextReminderAt
+                ? null
+                : "alreadyReminded";
 
   const remindAgainAt = pendingRemindAgainAt(item, now);
   const askedFrom = actions.find((a) => a.action === "remindAgain");

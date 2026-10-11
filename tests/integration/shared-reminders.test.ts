@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type * as SessionModule from "@/lib/auth/session";
-import { and, desc, eq, ne } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import {
   bucketMembers,
@@ -16,8 +16,18 @@ import {
   leaveBucketAction,
 } from "@/app/(app)/member-actions";
 import { newWebhookSecret } from "@/lib/notifications/webhook";
-import { remindItemAgain } from "@/lib/reminders/quick-actions";
-import { getReminderBadges, withViewerReminders } from "@/lib/reminders/status";
+import { NOT_RECIPIENT_ERROR } from "@/lib/notifications/constants";
+import type { ReminderAction } from "@/lib/reminders/action-token";
+import {
+  applyReminderAction,
+  cancelRemindAgain,
+  remindItemAgain,
+} from "@/lib/reminders/quick-actions";
+import {
+  getItemReminderInfo,
+  getReminderBadges,
+  withViewerReminders,
+} from "@/lib/reminders/status";
 import {
   reminderOf,
   resetSchedulerEnvironment,
@@ -90,7 +100,7 @@ async function sentTo(itemId: number) {
   const jobs = await db
     .select({ userId: notificationQueue.userId, medium: notificationQueue.medium })
     .from(notificationQueue)
-    .where(and(eq(notificationQueue.itemId, itemId), ne(notificationQueue.status, "skipped")));
+    .where(and(eq(notificationQueue.itemId, itemId), eq(notificationQueue.status, "sent")));
   return jobs;
 }
 
@@ -314,5 +324,113 @@ describe("the reminder icon", () => {
     const forOwner = await withViewerReminders(owner, rows);
     expect(forOwner[0].nextReminderAt).toBeNull();
     expect(await getReminderBadges(owner, rules, forOwner)).toEqual({ [itemId]: "history" });
+  });
+});
+
+describe("a member pressing a reminder's button", () => {
+  async function press(userId: number, itemId: number, action: ReminderAction, now: Date) {
+    const item = await db.query.items.findFirst({ where: eq(items.id, itemId) });
+    const deadline = item?.deadline?.getTime() ?? null;
+    return applyReminderAction({ userId, itemId, action, channel: "push", deadline }, now);
+  }
+
+  it("marks the item done for everyone", async () => {
+    const { owner, member, bucketId } = await sharedBucket();
+    session.userId = owner;
+    const itemId = await add(bucketId, "2026-10-26");
+    await runSchedulerAt(justAfter(OCT_26.india));
+
+    const done = await press(member, itemId, "done", justAfter(OCT_26.india));
+
+    expect(done).toMatchObject({ ok: true, message: '✓ "pay rent" done' });
+    expect((await db.query.items.findFirst({ where: eq(items.id, itemId) }))?.status).toBe(
+      "completed"
+    );
+    await runSchedulerAt(justAfter(OCT_26.london));
+    expect(await sentTo(itemId)).toEqual([{ userId: owner, medium: "telegram" }]);
+  });
+
+  it("reminds everyone later, and can cancel it from the app", async () => {
+    const { owner, member, bucketId } = await sharedBucket();
+    session.userId = owner;
+    const itemId = await add(bucketId, "2026-10-26");
+    const pressedAt = justAfter(OCT_26.london);
+    await runSchedulerAt(pressedAt);
+
+    const later = await press(member, itemId, "60", pressedAt);
+
+    const at = new Date(pressedAt.getTime() + 60 * MINUTE);
+    expect(later).toMatchObject({ ok: true });
+    expect((await reminderOf(itemId, owner)).nextReminderAt).toEqual(at);
+    expect((await reminderOf(itemId, member)).nextReminderAt).toEqual(at);
+    expect(await cancelRemindAgain(member, itemId, "app", pressedAt)).toBe(true);
+    expect((await reminderOf(itemId, owner)).nextReminderAt).toBeNull();
+  });
+
+  it("puts off until tomorrow on the presser's own clock", async () => {
+    const { owner, member, bucketId } = await sharedBucket();
+    session.userId = owner;
+    const itemId = await add(bucketId, "2026-10-24");
+    await runSchedulerAt(justAfter(OCT_24.london));
+
+    await press(member, itemId, "tomorrow", justAfter(OCT_24.london));
+
+    // 09:01 London on the 25th, after the clocks went back: 25 hours later
+    const tomorrow = new Date("2026-10-25T09:01:00Z");
+    expect((await reminderOf(itemId, member)).nextReminderAt).toEqual(tomorrow);
+  });
+
+  it("does nothing for someone who isn't in the bucket", async () => {
+    const { owner, bucketId } = await sharedBucket();
+    const stranger = await seedUser(LONDON);
+    session.userId = owner;
+    const itemId = await add(bucketId, "2026-10-26");
+
+    expect(await press(stranger, itemId, "done", NOW)).toEqual({
+      ok: false,
+      message: "this item no longer exists",
+    });
+    expect(await cancelRemindAgain(stranger, itemId, "app", NOW)).toBe(false);
+  });
+});
+
+describe("a reminder still queued for someone the item was taken from", () => {
+  it("isn't sent, and their item info says why", async () => {
+    const { owner, member, bucketId } = await sharedBucket();
+    session.userId = owner;
+    const itemId = await add(bucketId, "2026-10-26", member);
+    const [retry] = await db
+      .insert(notificationQueue)
+      .values({
+        userId: member,
+        itemId,
+        medium: "telegram",
+        kind: "reminder",
+        title: "[heycapy] reminder",
+        message: "pay rent",
+        attempts: 1,
+        nextRetryAt: OCT_26.london,
+      })
+      .returning();
+
+    await updateItemAction(
+      itemId,
+      "pay rent",
+      "2026-10-26",
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      owner
+    );
+    await runSchedulerAt(justAfter(OCT_26.london));
+
+    const job = await db.query.notificationQueue.findFirst({
+      where: eq(notificationQueue.id, retry.id),
+    });
+    expect(job).toMatchObject({ status: "cancelled", lastError: NOT_RECIPIENT_ERROR });
+    const info = await getItemReminderInfo(member, itemId);
+    expect(info?.reason).toBe("notRecipient");
+    expect(info?.history).toMatchObject([{ type: "sent", channels: [{ outcome: "handedOver" }] }]);
   });
 });

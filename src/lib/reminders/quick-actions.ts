@@ -1,11 +1,12 @@
 import { ITEM_STATUS } from "@/constants";
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, inArray } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { itemActions, itemReminders, items, userSettings } from "@/lib/db/schema";
 import { dataEvents } from "@/lib/events";
 import { formatWhen } from "@/lib/format-date";
 import { syncTelegramReminder } from "@/lib/notifications/telegram-sync";
 import { createNextOccurrence } from "@/lib/items/recurrence";
+import { memberBucketIds } from "@/lib/buckets/access";
 import type { QuickRemindChoice } from "@/lib/notifications/constants";
 import { refreshItemReminders, selectReminderRows, toReminderInputs } from "./refresh";
 import type { ReminderActionClaim } from "./action-token";
@@ -13,6 +14,8 @@ import { nextDeadlineReminder, nextOverdueAlert, remindAgainAt } from "./schedul
 import { addLocalDays } from "./zoned";
 
 export type ActionSource = (typeof itemActions.$inferInsert)["source"];
+
+const inTheirBuckets = (userId: number) => inArray(items.bucketId, memberBucketIds(userId));
 
 function record(
   userId: number,
@@ -36,7 +39,7 @@ export async function completeItem(
   await db
     .update(items)
     .set({ status: ITEM_STATUS.completed, completedAt: now, updatedAt: now })
-    .where(and(eq(items.id, itemId), eq(items.userId, userId)));
+    .where(and(eq(items.id, itemId), inTheirBuckets(userId)));
   await record(userId, itemId, "done", source, now);
   await refreshItemReminders([itemId]);
   await createNextOccurrence(itemId);
@@ -44,7 +47,7 @@ export async function completeItem(
 
 // Their own schedule when they are reminded about the item, else someone's who is
 function actorRow(userId: number, itemId: number) {
-  return selectReminderRows(and(eq(items.id, itemId), eq(items.userId, userId)))
+  return selectReminderRows(and(eq(items.id, itemId), inTheirBuckets(userId)))
     .orderBy(desc(eq(itemReminders.userId, userId)))
     .limit(1);
 }
@@ -120,8 +123,8 @@ export async function applyReminderAction(
   const [row] = await db
     .select({ item: items, timezone: userSettings.timezone })
     .from(items)
-    .innerJoin(userSettings, eq(userSettings.userId, items.userId))
-    .where(and(eq(items.id, claim.itemId), eq(items.userId, claim.userId)))
+    .leftJoin(userSettings, eq(userSettings.userId, claim.userId))
+    .where(and(eq(items.id, claim.itemId), inTheirBuckets(claim.userId)))
     .limit(1);
   const item = row && !row.item.deletedAt ? row.item : null;
   if (!item) return { ok: false, message: "this item no longer exists" };

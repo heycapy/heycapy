@@ -3,6 +3,7 @@ import { and, eq, inArray, isNull, lte, or } from "drizzle-orm";
 import { db } from "@/lib/db";
 import {
   bucketMembers,
+  itemReminders,
   items,
   notificationQueue,
   notificationLog,
@@ -10,6 +11,7 @@ import {
   users,
   userSettings,
 } from "@/lib/db/schema";
+import { NOT_RECIPIENT_ERROR } from "./constants";
 import { sendEmail } from "./email";
 import { buildNotificationEmail } from "@/lib/auth/notificationEmail";
 import { sendNtfy } from "./ntfy";
@@ -162,11 +164,20 @@ export async function processPending(): Promise<void> {
     if (job.itemId) {
       const itemId = job.itemId;
       const [itemRow] = await db
-        .select({ status: items.status, deletedAt: items.deletedAt, memberId: bucketMembers.id })
+        .select({
+          status: items.status,
+          deletedAt: items.deletedAt,
+          memberId: bucketMembers.id,
+          recipientId: itemReminders.id,
+        })
         .from(items)
         .leftJoin(
           bucketMembers,
           and(eq(bucketMembers.bucketId, items.bucketId), eq(bucketMembers.userId, job.userId))
+        )
+        .leftJoin(
+          itemReminders,
+          and(eq(itemReminders.itemId, items.id), eq(itemReminders.userId, job.userId))
         )
         .where(eq(items.id, itemId));
       if (!itemRow || itemRow.deletedAt || isClosedStatus(itemRow.status)) {
@@ -180,6 +191,15 @@ export async function processPending(): Promise<void> {
         await db
           .update(notificationQueue)
           .set({ status: "cancelled", lastError: "no longer a member of the bucket" })
+          .where(eq(notificationQueue.id, job.id));
+        continue;
+      }
+      // The bucket's webhook goes out under the owner even when only the assignee is reminded
+      const remindsThem = job.kind === "reminder" || job.kind === "overdue";
+      if (remindsThem && job.medium !== "webhook" && itemRow.recipientId === null) {
+        await db
+          .update(notificationQueue)
+          .set({ status: "cancelled", lastError: NOT_RECIPIENT_ERROR })
           .where(eq(notificationQueue.id, job.id));
         continue;
       }

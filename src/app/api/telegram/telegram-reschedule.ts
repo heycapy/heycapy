@@ -1,7 +1,8 @@
 import { bucketReminderButtons } from "@/lib/rules";
 import { formatSlot, formatWhen } from "@/lib/format-date";
 import { isClosedStatus } from "@/constants";
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
+import { memberBucketIds } from "@/lib/buckets/access";
 import { db } from "@/lib/db";
 import { buckets, items } from "@/lib/db/schema";
 import { dataEvents } from "@/lib/events";
@@ -62,7 +63,7 @@ async function loadItem(ctx: Ctx, itemId: number): Promise<Item | null> {
     })
     .from(items)
     .innerJoin(buckets, eq(buckets.id, items.bucketId))
-    .where(and(eq(items.id, itemId), eq(items.userId, ctx.userId)))
+    .where(and(eq(items.id, itemId), inArray(items.bucketId, memberBucketIds(ctx.userId))))
     .limit(1);
   return row && !row.deletedAt && !isClosedStatus(row.status) ? row : null;
 }
