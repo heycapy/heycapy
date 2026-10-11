@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { otherClock, placesOf, timeGap } from "@/lib/timezones/gap";
+import { clocksLine, otherClock, placesOf, timeGap } from "@/lib/timezones/gap";
 
 const INDIA = "Asia/Kolkata";
 const LONDON = "Europe/London";
@@ -60,5 +60,26 @@ describe("otherClock", () => {
     expect(otherClock(after, INDIA, { ...sam, timezone: INDIA }, setInIndia)).toBeNull();
     expect(otherClock(after, INDIA, { ...sam, timezone: "UTC" }, setInIndia)).toBeNull();
     expect(otherClock(after, LONDON, undefined, undefined)).toBeNull();
+  });
+});
+
+describe("clocksLine", () => {
+  const at = new Date("2026-10-26T03:30:00Z");
+  const you = { name: "ana", timezone: INDIA, isYou: true };
+  const sam = { name: "Sam", timezone: LONDON, isYou: false };
+
+  it("gives everyone's time, yours last, when a clock differs from the one it's set on", () => {
+    expect(clocksLine(at, INDIA, [you, sam])).toBe("3:30am for Sam · 9am for you");
+    expect(clocksLine(at, LONDON, [sam])).toBe(null);
+    expect(clocksLine(at, INDIA, [sam])).toBe("3:30am for Sam");
+  });
+
+  it("follows the UK clock change on 25 Oct 2026", () => {
+    expect(clocksLine(new Date("2026-10-24T03:30:00Z"), INDIA, [sam])).toBe("4:30am for Sam");
+  });
+
+  it("leaves out someone whose clock isn't set, and says nothing when all clocks match", () => {
+    expect(clocksLine(at, INDIA, [you, { ...sam, timezone: "UTC" }])).toBe(null);
+    expect(clocksLine(at, INDIA, [you, { ...sam, timezone: "Asia/Calcutta" }])).toBe(null);
   });
 });

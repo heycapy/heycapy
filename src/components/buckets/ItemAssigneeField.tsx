@@ -4,6 +4,7 @@ import type { BucketMember } from "@/lib/buckets/members";
 import { placesOf } from "@/lib/timezones/gap";
 
 export type AssigneeChoice = {
+  bucketId: number;
   members: BucketMember[];
   value: number | null;
   onChange: (assigneeId: number | null) => void;

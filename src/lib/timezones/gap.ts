@@ -41,3 +41,17 @@ export function otherClock(
   }
   return null;
 }
+
+// "9am for Sam · 1:30pm for you": the time for whoever it reminds, when their clocks aren't all
+// the one it's set on
+export function clocksLine(
+  at: Date,
+  setOn: string,
+  people: { name: string; timezone: string; isYou: boolean }[]
+): string | null {
+  const known = people.filter((p) => p.timezone !== UNSET_TIMEZONE);
+  if (known.every((p) => !differs(at, p.timezone, setOn))) return null;
+  return [...known.filter((p) => !p.isYou), ...known.filter((p) => p.isYou)]
+    .map((p) => `${clockTimeIn(at, p.timezone)} for ${p.isYou ? "you" : p.name}`)
+    .join(" · ");
+}

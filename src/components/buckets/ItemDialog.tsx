@@ -8,7 +8,7 @@ import { ItemDialogFrame } from "./ItemDialogFrame";
 import { ItemPageFrame } from "./ItemPageFrame";
 import { ItemTitleField } from "./ItemTitleField";
 import { ItemWhenSection } from "./ItemWhenSection";
-import { ItemClockField } from "./ItemClockField";
+import { ItemTimeHints } from "./ItemTimeHints";
 import { useItemClock } from "./useItemClock";
 import { useTitleDate } from "./useTitleDate";
 import type { RecurringConfig, StatusDef, FieldDef } from "@/types/rules";
@@ -213,11 +213,14 @@ export function ItemDialog({
       allDay={!deadline.includes("T")}
       time={time}
       clock={
-        clock.options.length > 0 && (
-          <ItemClockField
-            options={clock.options}
-            place={clock.place}
-            onPick={pickClock}
+        assignees &&
+        assignees.members.length > 1 && (
+          <ItemTimeHints
+            choice={assignees}
+            deadline={deadline}
+            clock={clock}
+            reminders={reminders ?? bucketReminders ?? null}
+            onPickClock={pickClock}
             disabled={pending}
           />
         )

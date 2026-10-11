@@ -117,7 +117,12 @@ export function BucketContent({ bucket, accentColor, addItemRef }: BucketContent
 
       <ItemDialog
         {...editor.dialogProps}
-        assigneeChoice={{ members, value: editor.assigneeId, onChange: editor.setAssigneeId }}
+        assigneeChoice={{
+          bucketId: bucket.id,
+          members,
+          value: editor.assigneeId,
+          onChange: editor.setAssigneeId,
+        }}
         bucketReminders={parseNotificationRules(bucket.notificationsRules).defaultReminders}
         statuses={statuses}
         fields={fields.length > 0 ? fields : undefined}

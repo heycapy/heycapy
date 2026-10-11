@@ -8,6 +8,12 @@ import { publicAppUrl } from "@/lib/app-url";
 import { dataEvents } from "@/lib/events";
 import { refreshBucketReminders } from "@/lib/reminders/refresh";
 import {
+  deadlineHints,
+  type DeadlineDraft,
+  type DeadlineHint,
+} from "@/lib/reminders/deadline-hints";
+import { isKnownTimezone } from "@/lib/timezones/valid";
+import {
   createInvite,
   listOpenInvites,
   redeemInvite,
@@ -92,6 +98,28 @@ export async function listMembersAction(
   const members = await listMembers(session.userId, bucketId);
   if (!members) return { ok: false, error: "Bucket not found" };
   return { ok: true, members };
+}
+
+const DeadlineDraftSchema = z.object({
+  deadline: z.string().nullable(),
+  clock: z.string().nullable(),
+  assigneeId: z.number().int().nullable(),
+  reminderOffsets: z.array(z.number().int()).nullable(),
+});
+
+export async function deadlineHintsAction(
+  bucketId: number,
+  draft: DeadlineDraft
+): Promise<ActionResult<{ hints: DeadlineHint[] }>> {
+  const session = await requireSession();
+  const parsed = DeadlineDraftSchema.safeParse(draft);
+  if (!parsed.success) return { ok: false, error: "Invalid deadline" };
+  if (parsed.data.clock && !isKnownTimezone(parsed.data.clock)) {
+    return { ok: false, error: "That timezone doesn't exist" };
+  }
+  const hints = await deadlineHints(session.userId, bucketId, parsed.data);
+  if (!hints) return { ok: false, error: "Bucket not found" };
+  return { ok: true, hints };
 }
 
 export async function removeMemberAction(

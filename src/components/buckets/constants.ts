@@ -162,3 +162,5 @@ export const RECURRENCE_MODE_OPTIONS: { value: RecurrenceMode; label: string; hi
     hint: "the next date counts from when you complete it — e.g. water plants 3 days after",
   },
 ];
+
+export const HINTS_DEBOUNCE_MS = 300;

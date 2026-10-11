@@ -187,3 +187,45 @@ test("a time for someone on another clock is set on theirs, unless picked by han
   expect(indias.zone).toBe("Asia/Kolkata");
   expect(indias.at("Asia/Kolkata")).toBe("09:00");
 });
+
+test("the time field shows everyone's time and warns softly about their nights", async ({
+  page,
+  browser,
+}) => {
+  const ownerEmail = uniqueEmail("e2e-tz-owner");
+  await login(page, ownerEmail);
+  const london = await browser.newContext({ timezoneId: "Europe/London" });
+  const memberEmail = uniqueEmail("e2e-tz-member");
+  await login(await london.newPage(), memberEmail);
+  await london.close();
+  const bucketId = seedSharedBucket(ownerEmail, memberEmail);
+  const db = new Database(E2E_DATABASE_FILE);
+  db.prepare(
+    "update user_settings set quiet_hours_from = '23:00', quiet_hours_to = '08:00' where user_id = (select id from users where email = ?)"
+  ).run(memberEmail);
+  db.close();
+  await page.goto(`/?bucket=${bucketId}`);
+  await expect(page.getByText("people here are in 2 timezones · India, UK")).toBeVisible();
+
+  const dialog = modal(page, /^new item$/);
+  const preview = dialog.getByTestId("time-preview");
+  const title = `call the bank ${Date.now()}`;
+  await addItemButton(page).click();
+  await dialog.locator("textarea").fill(`${title} tomorrow 9am`);
+  await expect(preview).toHaveText(/^\d{1,2}:30am for \S+ · 9am for you$/);
+  await expect(dialog.getByRole("status")).toHaveText(
+    /^⚠ at night for (\S+) · \1's quiet hours hold the reminder until after it's due$/
+  );
+
+  await dialog.getByRole("button", { name: /\sUK( · no reminders set up)?$/ }).click();
+  await expect(preview).toHaveText(/^9am for \S+ · \d{1,2}:30pm for you$/);
+  await expect(dialog.getByRole("status")).toHaveCount(0);
+
+  await dialog
+    .getByRole("group", { name: "time on" })
+    .getByRole("button", { name: "India" })
+    .click();
+  await expect(dialog.getByRole("status")).toHaveText(/quiet hours hold the reminder/);
+  await dialog.getByRole("button", { name: "[ add ]", exact: true }).click();
+  await expect(itemRow(page, title)).toBeVisible();
+});
