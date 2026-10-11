@@ -87,7 +87,7 @@ export function useItemEditor({
   }
 
   // The dialog passes the title without a date typed into it
-  function handleAdd(title = addTitle) {
+  function handleAdd(title = addTitle, clock: string | null = null) {
     if (!title.trim() || addPending) return;
     setAddError("");
     startAddTransition(async () => {
@@ -99,7 +99,8 @@ export function useItemEditor({
         addRecurring,
         Object.keys(addProperties).length > 0 ? addProperties : null,
         addReminders,
-        addAssignee
+        addAssignee,
+        clock
       );
       if (result.ok) {
         cancelAdding();
@@ -110,7 +111,7 @@ export function useItemEditor({
     });
   }
 
-  function handleUpdate() {
+  function handleUpdate(clock: string | null) {
     if (!editingItemId || !editTitle.trim() || editPending) return;
     startEditTransition(async () => {
       const result = await updateItemAction(
@@ -121,7 +122,8 @@ export function useItemEditor({
         editRecurring,
         Object.keys(editProperties).length > 0 ? editProperties : null,
         editReminders,
-        editAssignee
+        editAssignee,
+        clock
       );
       if (result.ok) {
         cancelEditing();
@@ -165,7 +167,8 @@ export function useItemEditor({
       onPropertiesChange: addingItem ? setAddProperties : setEditProperties,
       onRecurringChange: addingItem ? setAddRecurring : setEditRecurring,
       onRemindersChange: addingItem ? setAddReminders : setEditReminders,
-      onConfirm: addingItem ? handleAdd : handleUpdate,
+      onConfirm: (title: string | undefined, clock: string | null) =>
+        addingItem ? handleAdd(title, clock) : handleUpdate(clock),
       onCancel: addingItem ? cancelAdding : cancelEditing,
       onDelete: editingItemId !== null ? handleDelete : undefined,
     },

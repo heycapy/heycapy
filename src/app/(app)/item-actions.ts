@@ -18,6 +18,7 @@ import {
   userTimezone,
 } from "@/lib/reminders/refresh";
 import { resolveDeadline } from "@/lib/items/deadline";
+import { isKnownTimezone } from "@/lib/timezones/valid";
 import { createNextOccurrence, moveOccurrence, skipOccurrence } from "@/lib/items/recurrence";
 import { onLastDayIfAnchored, parseRecurring } from "@/lib/items/occurrence";
 import { cancelRemindAgain } from "@/lib/reminders/quick-actions";
@@ -92,6 +93,7 @@ export async function cancelRemindAgainAction(itemId: number): Promise<ActionRes
 }
 
 const NOT_A_MEMBER_ERROR = "That person isn't in this bucket";
+const UNKNOWN_CLOCK_ERROR = "That timezone doesn't exist";
 
 export async function addItemAction(
   bucketId: number,
@@ -101,7 +103,8 @@ export async function addItemAction(
   recurring?: RecurringConfig | null,
   properties?: Record<string, unknown> | null,
   reminders?: number[] | null,
-  assigneeId?: number | null
+  assigneeId?: number | null,
+  clock?: string | null
 ): Promise<ActionResult> {
   const session = await requireSession();
 
@@ -115,6 +118,7 @@ export async function addItemAction(
   if (parsedReminders && !parsedReminders.success) {
     return { ok: false, error: "Invalid reminders" };
   }
+  if (clock && !isKnownTimezone(clock)) return { ok: false, error: UNKNOWN_CLOCK_ERROR };
 
   const bucket = await findAccessibleBucket(session.userId, bucketId);
   if (!bucket) return { ok: false, error: "Bucket not found" };
@@ -127,7 +131,7 @@ export async function addItemAction(
     .from(items)
     .where(eq(items.bucketId, bucketId));
 
-  const due = resolveDeadline(deadline, await userTimezone(session.userId));
+  const due = resolveDeadline(deadline, clock ?? (await userTimezone(session.userId)));
   const parsedDeadline =
     due.deadline && due.deadlineTimezone
       ? onLastDayIfAnchored(due.deadline, recurring ?? null, due.deadlineTimezone)
@@ -172,7 +176,8 @@ export async function updateItemAction(
   recurring?: RecurringConfig | null,
   properties?: Record<string, unknown> | null,
   reminders?: number[] | null,
-  assigneeId?: number | null
+  assigneeId?: number | null,
+  clock?: string | null
 ): Promise<ActionResult> {
   const session = await requireSession();
 
@@ -186,6 +191,7 @@ export async function updateItemAction(
   if (parsedReminders && !parsedReminders.success) {
     return { ok: false, error: "Invalid reminders" };
   }
+  if (clock && !isKnownTimezone(clock)) return { ok: false, error: UNKNOWN_CLOCK_ERROR };
 
   const item = await findAccessibleItem(session.userId, itemId);
   if (!item) return { ok: false, error: "Item not found" };
@@ -200,7 +206,7 @@ export async function updateItemAction(
       : recurring?.enabled
         ? keepAnchor(recurring, item.recurring)
         : null;
-  const due = resolveDeadline(deadline, await userTimezone(session.userId), item);
+  const due = resolveDeadline(deadline, clock ?? (await userTimezone(session.userId)), item);
   const parsedDeadline = due.deadline;
   const keepsMovedDate =
     !!item.scheduledAt &&

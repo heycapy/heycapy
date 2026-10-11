@@ -1,33 +1,31 @@
 import { useEffect, useRef, useState } from "react";
-import { X } from "lucide-react";
-import { DatePicker } from "@/components/ui/DatePicker";
 import { BracketButton } from "@/components/ui/BracketButton";
-import { TimeField, type Ampm, type TimeValue } from "@/components/ui/TimeField";
-import { RecurringPicker } from "./RecurringPicker";
-import { ReminderPicker } from "./ReminderPicker";
+import { type Ampm, type TimeValue } from "@/components/ui/TimeField";
 import { ItemFieldsForm } from "./ItemFieldsForm";
-import { ItemStatusField } from "./ItemStatusField";
 import { ItemBucketField, type BucketChoice } from "./ItemBucketField";
 import { ItemAssigneeField, type AssigneeChoice } from "./ItemAssigneeField";
 import { ItemDialogFrame } from "./ItemDialogFrame";
 import { ItemPageFrame } from "./ItemPageFrame";
 import { ItemTitleField } from "./ItemTitleField";
+import { ItemWhenSection } from "./ItemWhenSection";
+import { ItemClockField } from "./ItemClockField";
+import { useItemClock } from "./useItemClock";
 import { useTitleDate } from "./useTitleDate";
 import type { RecurringConfig, StatusDef, FieldDef } from "@/types/rules";
 import { useScrollLock } from "@/hooks/useScrollLock";
 import { useScrollToFirst } from "@/hooks/useScrollToFirst";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import {
+  browserTimezone,
   buildDeadline,
   deadlineDate,
   defaultTimeFor,
   lastDayOfMonth,
+  moveClock,
   timeOfDeadline,
 } from "@/lib/time";
 import { isLastDayRepeat } from "@/lib/items/occurrence";
 import { MOBILE_MEDIA_QUERY } from "@/constants";
-
-const LABEL = "text-muted-foreground font-mono text-xs";
 
 function isEmpty(value: unknown): boolean {
   if (value === undefined || value === null) return true;
@@ -56,7 +54,7 @@ type ItemDialogProps = {
   onPropertiesChange?: (v: Record<string, unknown>) => void;
   onRecurringChange?: (v: RecurringConfig | null) => void;
   onRemindersChange?: (v: number[]) => void;
-  onConfirm: (title?: string) => void;
+  onConfirm: (title: string | undefined, clock: string | null) => void;
   onCancel: () => void;
   onDelete?: () => void;
   bucketChoice?: BucketChoice;
@@ -98,21 +96,29 @@ export function ItemDialog({
   const [timeAmpm, setTimeAmpm] = useState<Ampm>("am");
   const wasOpenRef = useRef(false);
   const [validationAttempted, setValidationAttempted] = useState(false);
+  const clock = useItemClock(assigneeChoice?.members ?? [], assigneeChoice?.value ?? null);
+  const zone = clock.zone;
   const titleDate = useTitleDate({
     active: mode === "add",
     title,
     deadline,
     onDeadlineChange: (next) => {
-      onDeadlineChange(next);
-      setTime(timeOfDeadline(next));
+      const onZone = moveClock(next, browserTimezone(), zone);
+      onDeadlineChange(onZone);
+      setTime(timeOfDeadline(onZone, zone));
     },
   });
   const resetTitleDate = titleDate.reset;
+  const resetClock = clock.reset;
+  const openingZone = clock.zoneFor(assigneeChoice?.value ?? null, null);
 
   const hasFields = !!(fields && fields.length > 0);
 
-  const datePart = deadlineDate(deadline);
-  const hasDate = datePart.length > 0;
+  const datePart = deadlineDate(deadline, zone);
+  // A set time is read from the deadline on the current clock; the state keeps it while all day
+  const time: TimeValue = deadline.includes("T")
+    ? timeOfDeadline(deadline, zone)
+    : { hour: timeHour, min: timeMin, ampm: timeAmpm };
 
   const hasEmptyRequired = !!fields?.some(
     (f) => f.validation?.required && isEmpty(properties?.[f.key])
@@ -125,10 +131,11 @@ export function ItemDialog({
     const id = setTimeout(() => {
       setValidationAttempted(false);
       resetTitleDate();
-      setTime(timeOfDeadline(deadline));
+      resetClock();
+      setTime(timeOfDeadline(deadline, openingZone));
     }, 0);
     return () => clearTimeout(id);
-  }, [open, deadline, resetTitleDate]);
+  }, [open, deadline, resetTitleDate, resetClock, openingZone]);
 
   function handleTitleChange(next: string) {
     onTitleChange(next);
@@ -138,9 +145,9 @@ export function ItemDialog({
   function handleDateChange(newDate: string) {
     titleDate.pickByHand();
     const date = newDate && isLastDayRepeat(recurring) ? lastDayOfMonth(newDate) : newDate;
-    const time = deadline ? { hour: timeHour, min: timeMin, ampm: timeAmpm } : defaultTimeFor(date);
-    if (!deadline) setTime(time);
-    onDeadlineChange(buildDeadline(date, time.hour, time.min, time.ampm));
+    const next = deadline ? time : defaultTimeFor(date, new Date(), zone);
+    if (!deadline) setTime(next);
+    onDeadlineChange(buildDeadline(date, next.hour, next.min, next.ampm, zone));
     if (!newDate) onRecurringChange?.(null);
   }
 
@@ -153,13 +160,28 @@ export function ItemDialog({
   function handleRecurringChange(next: RecurringConfig | null) {
     onRecurringChange?.(next);
     if (!datePart || !isLastDayRepeat(next)) return;
-    onDeadlineChange(buildDeadline(lastDayOfMonth(datePart), timeHour, timeMin, timeAmpm));
+    onDeadlineChange(buildDeadline(lastDayOfMonth(datePart), time.hour, time.min, time.ampm, zone));
   }
 
   function handleTimeChange(time: TimeValue) {
     titleDate.pickByHand();
     setTime(time);
-    if (datePart) onDeadlineChange(buildDeadline(datePart, time.hour, time.min, time.ampm));
+    if (datePart) onDeadlineChange(buildDeadline(datePart, time.hour, time.min, time.ampm, zone));
+  }
+
+  // The time shown stays as it is on the new clock
+  function changeClock(next: string) {
+    onDeadlineChange(moveClock(deadline, zone, next));
+  }
+
+  function changeAssignee(id: number | null) {
+    changeClock(clock.zoneFor(id));
+    assigneeChoice?.onChange(id);
+  }
+
+  function pickClock(timezone: string) {
+    changeClock(timezone);
+    clock.pick(timezone);
   }
 
   function handleConfirmClick() {
@@ -175,71 +197,43 @@ export function ItemDialog({
       if (firstEmpty) scrollToFirst(`[data-field-key="${firstEmpty.key}"]`);
       return;
     }
-    onConfirm(titleDate.match?.title);
+    onConfirm(titleDate.match?.title, clock.clock);
   }
 
   const titleHasError = validationAttempted && !title.trim();
+  const assignees = assigneeChoice && { ...assigneeChoice, onChange: changeAssignee };
   const mention =
-    assigneeChoice && assigneeChoice.members.length > 1
-      ? { members: assigneeChoice.members, onPick: assigneeChoice.onChange }
+    assignees && assignees.members.length > 1
+      ? { members: assignees.members, onPick: changeAssignee }
       : undefined;
 
   const whenAndStatus = (
-    <>
-      <div className="flex flex-col gap-1.5">
-        <label className={LABEL}>when</label>
-        <div className="flex items-center gap-3">
-          <div className="min-w-0 flex-1">
-            <DatePicker value={datePart} onChange={handleDateChange} disabled={pending} />
-          </div>
-          {hasDate && (
-            <TimeField
-              value={{ hour: timeHour, min: timeMin, ampm: timeAmpm }}
-              onChange={handleTimeChange}
-              allowAllDay
-              disabled={pending}
-            />
-          )}
-          {hasDate && !pending && (
-            <button
-              type="button"
-              onClick={() => handleDateChange("")}
-              aria-label="remove date"
-              className="text-muted-foreground hover:text-destructive -mr-1 shrink-0 p-1 transition-colors"
-            >
-              <X size={13} />
-            </button>
-          )}
-        </div>
-      </div>
-
-      {hasDate && onRemindersChange && bucketReminders && (
-        <ReminderPicker
-          reminders={reminders ?? bucketReminders}
-          followsBucket={!reminders}
-          allDay={!deadline.includes("T")}
-          disabled={pending}
-          onChange={onRemindersChange}
-        />
-      )}
-
-      {hasDate && onRecurringChange && (
-        <RecurringPicker
-          recurring={recurring}
-          deadlineDay={Number(datePart.slice(8, 10))}
-          initialShowEndDate={!!recurring?.endDate}
-          disabled={pending}
-          onChange={handleRecurringChange}
-        />
-      )}
-
-      <ItemStatusField
-        status={status}
-        statuses={statuses}
-        onChange={onStatusChange}
-        disabled={pending}
-      />
-    </>
+    <ItemWhenSection
+      datePart={datePart}
+      allDay={!deadline.includes("T")}
+      time={time}
+      clock={
+        clock.options.length > 0 && (
+          <ItemClockField
+            options={clock.options}
+            place={clock.place}
+            onPick={pickClock}
+            disabled={pending}
+          />
+        )
+      }
+      status={status}
+      statuses={statuses}
+      recurring={recurring}
+      reminders={reminders}
+      bucketReminders={bucketReminders}
+      pending={pending}
+      onDateChange={handleDateChange}
+      onTimeChange={handleTimeChange}
+      onStatusChange={onStatusChange}
+      onRecurringChange={onRecurringChange && handleRecurringChange}
+      onRemindersChange={onRemindersChange}
+    />
   );
 
   const confirmButton = (
@@ -280,8 +274,8 @@ export function ItemDialog({
 
       {bucketChoice && <ItemBucketField choice={bucketChoice} disabled={pending} />}
 
-      {assigneeChoice && assigneeChoice.members.length > 1 && (
-        <ItemAssigneeField choice={assigneeChoice} disabled={pending} />
+      {assignees && assignees.members.length > 1 && (
+        <ItemAssigneeField choice={assignees} disabled={pending} />
       )}
 
       {hasFields ? (

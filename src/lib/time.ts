@@ -1,4 +1,6 @@
-import { isAllDay, localDateString } from "@/lib/reminders/zoned";
+import { fromLocal, isAllDay, localDateString, toLocal } from "@/lib/reminders/zoned";
+
+export const browserTimezone = () => Intl.DateTimeFormat().resolvedOptions().timeZone;
 
 export type Ampm = "am" | "pm";
 
@@ -13,36 +15,48 @@ export function toH12(h24: number): { hour: string; ampm: Ampm } {
   return { hour: String(h), ampm: isPm ? "pm" : "am" };
 }
 
-export function deadlineDate(deadline: string): string {
+// The editor's times are read and built on one clock: the browser's, or the one the item is set on
+export function deadlineDate(deadline: string, timezone = browserTimezone()): string {
   if (!deadline.includes("T")) return deadline;
-  const d = new Date(deadline);
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  return localDateString(new Date(deadline), timezone);
 }
 
-export function buildDeadline(date: string, hour: string, min: string, ampm: Ampm): string {
+export function buildDeadline(
+  date: string,
+  hour: string,
+  min: string,
+  ampm: Ampm,
+  timezone = browserTimezone()
+): string {
   if (!date) return "";
   const h = parseInt(hour, 10);
   if (!hour.trim() || !Number.isFinite(h)) return date;
-  const local = `${date}T${String(toH24(h, ampm)).padStart(2, "0")}:${min.padStart(2, "0")}:00`;
-  const d = new Date(local);
-  return isNaN(d.getTime()) ? date : d.toISOString();
+  const [year, month, day] = date.split("-").map(Number);
+  const minute = parseInt(min, 10);
+  if (!year || !month || !day || !Number.isFinite(minute)) return date;
+  return fromLocal({ year, month, day, hour: toH24(h, ampm), minute }, timezone).toISOString();
 }
 
 // What the time field shows for a deadline: its time, or blank (all day) for a date alone
-export function timeOfDeadline(deadline: string): { hour: string; min: string; ampm: Ampm } {
+export function timeOfDeadline(
+  deadline: string,
+  timezone = browserTimezone()
+): { hour: string; min: string; ampm: Ampm } {
   if (!deadline.includes("T")) return { hour: deadline ? "" : "9", min: "00", ampm: "am" };
-  const d = new Date(deadline);
-  const { hour, ampm } = toH12(d.getHours());
-  return { hour, min: String(d.getMinutes()).padStart(2, "0"), ampm };
+  const local = toLocal(new Date(deadline), timezone);
+  const { hour, ampm } = toH12(local.hour);
+  return { hour, min: String(local.minute).padStart(2, "0"), ampm };
 }
 
 export function defaultTimeFor(
   date: string,
-  now = new Date()
+  now = new Date(),
+  timezone = browserTimezone()
 ): { hour: string; min: string; ampm: Ampm } {
   const nineAm = { hour: "9", min: "00", ampm: "am" as Ampm };
-  if (date !== deadlineDate(now.toISOString()) || now.getHours() < 9) return nineAm;
-  const next = (Math.floor((now.getHours() * 60 + now.getMinutes()) / 30) + 1) * 30;
+  const local = toLocal(now, timezone);
+  if (date !== deadlineDate(now.toISOString(), timezone) || local.hour < 9) return nineAm;
+  const next = (Math.floor((local.hour * 60 + local.minute) / 30) + 1) * 30;
   if (next >= 24 * 60) return { ...nineAm, hour: "" };
   const { hour, ampm } = toH12(Math.floor(next / 60));
   return { hour, min: String(next % 60).padStart(2, "0"), ampm };
@@ -59,7 +73,7 @@ export function itemDeadline(
   deadline: Date,
   deadlineTimezone: string | null
 ): { at: Date; allDay: boolean } {
-  const zone = deadlineTimezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const zone = deadlineTimezone ?? browserTimezone();
   if (!isAllDay(deadline, zone)) return { at: deadline, allDay: false };
   const [year = 0, month = 1, day = 1] = localDateString(deadline, zone).split("-").map(Number);
   return { at: new Date(year, month - 1, day), allDay: true };
@@ -69,4 +83,10 @@ export function itemDeadline(
 export function deadlineValue(deadline: Date, deadlineTimezone: string | null): string {
   const { at, allDay } = itemDeadline(deadline, deadlineTimezone);
   return allDay ? deadlineDate(at.toISOString()) : at.toISOString();
+}
+
+// The same wall time on another clock: 9:00 picked on one stays 9:00 on the other
+export function moveClock(deadline: string, from: string, to: string): string {
+  if (!deadline.includes("T") || from === to) return deadline;
+  return fromLocal(toLocal(new Date(deadline), from), to).toISOString();
 }

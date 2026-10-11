@@ -1,9 +1,16 @@
 import { test, expect } from "@playwright/test";
 import Database from "better-sqlite3";
 import { E2E_DATABASE_FILE } from "../helpers/env";
-import { createAndSelectBucket, itemRow, uniqueName } from "../helpers/buckets";
+import { addItemButton, createAndSelectBucket, itemRow, uniqueName } from "../helpers/buckets";
 import { login, uniqueEmail } from "../helpers/login";
-import { field, modal, openSettings, settingsDialog, switchTab } from "../helpers/settings";
+import {
+  closeDialog,
+  field,
+  modal,
+  openSettings,
+  settingsDialog,
+  switchTab,
+} from "../helpers/settings";
 
 test.use({ timezoneId: "Asia/Kolkata" });
 
@@ -74,6 +81,13 @@ test("a bucket on one clock doesn't mention clocks in its rules", async ({ page 
   const remindAt = field(settings, "remind at");
   await expect(remindAt).toContainText("the time of day for items without a time");
   await expect(remindAt).not.toContainText("each person gets this on their own clock");
+  await closeDialog(settings);
+
+  await addItemButton(page).click();
+  const dialog = modal(page, /^new item$/);
+  await dialog.locator("textarea").fill("water the plants tomorrow 9am");
+  await expect(dialog.getByRole("button", { name: "9 am" })).toBeVisible();
+  await expect(dialog.getByRole("group", { name: "time on" })).toHaveCount(0);
 });
 
 test("a timed item shows the time on the other clock that matters", async ({ page, browser }) => {
@@ -96,4 +110,80 @@ test("a timed item shows the time on the other clock that matters", async ({ pag
   await expect(picker.getByRole("button", { name: /\(you\)\s*India$/ })).toBeVisible();
   await expect(picker.getByRole("button", { name: /\sUK · no reminders set up$/ })).toBeVisible();
   await london.close();
+});
+
+// The deadline as it reads on a clock, from the database
+function savedDeadline(title: string): { zone: string; at: (zone: string) => string } {
+  const db = new Database(E2E_DATABASE_FILE);
+  const row = db
+    .prepare("select deadline, deadline_timezone from items where title = ?")
+    .get(title) as { deadline: number; deadline_timezone: string };
+  db.close();
+  return {
+    zone: row.deadline_timezone,
+    at: (zone) =>
+      new Intl.DateTimeFormat("en-GB", {
+        timeZone: zone,
+        hour: "2-digit",
+        minute: "2-digit",
+        hourCycle: "h23",
+      }).format(new Date(row.deadline * 1000)),
+  };
+}
+
+test("a time for someone on another clock is set on theirs, unless picked by hand", async ({
+  page,
+  browser,
+}) => {
+  const ownerEmail = uniqueEmail("e2e-tz-owner");
+  await login(page, ownerEmail);
+  const london = await browser.newContext({ timezoneId: "Europe/London" });
+  const memberEmail = uniqueEmail("e2e-tz-member");
+  await login(await london.newPage(), memberEmail);
+  await london.close();
+  const bucketId = seedSharedBucket(ownerEmail, memberEmail);
+  await page.goto(`/?bucket=${bucketId}`);
+  await expect(page.getByText("people here are in 2 timezones · India, UK")).toBeVisible();
+
+  const dialog = modal(page, /^new item$/);
+  const clocks = dialog.getByRole("group", { name: "time on" });
+  const assignTo = (name: RegExp) => dialog.getByRole("button", { name }).click();
+
+  const forSam = `call the bank ${Date.now()}`;
+  await addItemButton(page).click();
+  await dialog.locator("textarea").fill(`${forSam} tomorrow 9am`);
+  await expect(clocks.getByRole("button", { name: "India" })).toHaveAttribute(
+    "aria-pressed",
+    "true"
+  );
+  await assignTo(/\sUK( · no reminders set up)?$/);
+  await expect(clocks.getByRole("button", { name: "UK" })).toHaveAttribute("aria-pressed", "true");
+  await expect(dialog.getByRole("button", { name: "9 am" })).toBeVisible();
+  await dialog.getByRole("button", { name: "[ add ]", exact: true }).click();
+  await expect(itemRow(page, forSam)).toBeVisible();
+  const sams = savedDeadline(forSam);
+  expect(sams.zone).toBe("Europe/London");
+  expect(sams.at("Europe/London")).toBe("09:00");
+
+  const onIndia = `pay the gardener ${Date.now()}`;
+  await addItemButton(page).click();
+  await dialog.locator("textarea").fill(`${onIndia} tomorrow 9am`);
+  await assignTo(/\sUK( · no reminders set up)?$/);
+  await clocks.getByRole("button", { name: "India" }).click();
+  await assignTo(/^anyone$/);
+  await expect(clocks.getByRole("button", { name: "India" })).toHaveAttribute(
+    "aria-pressed",
+    "true"
+  );
+  await assignTo(/\sUK( · no reminders set up)?$/);
+  await expect(clocks.getByRole("button", { name: "India" })).toHaveAttribute(
+    "aria-pressed",
+    "true"
+  );
+  await expect(dialog.getByRole("button", { name: "9 am" })).toBeVisible();
+  await dialog.getByRole("button", { name: "[ add ]", exact: true }).click();
+  await expect(itemRow(page, onIndia)).toBeVisible();
+  const indias = savedDeadline(onIndia);
+  expect(indias.zone).toBe("Asia/Kolkata");
+  expect(indias.at("Asia/Kolkata")).toBe("09:00");
 });

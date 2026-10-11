@@ -4,9 +4,12 @@ import {
   toH12,
   buildDeadline,
   defaultTimeFor,
+  deadlineDate,
   deadlineValue,
   itemDeadline,
   lastDayOfMonth,
+  moveClock,
+  timeOfDeadline,
 } from "@/lib/time";
 
 describe("toH24", () => {
@@ -136,5 +139,44 @@ describe("an item's deadline in a London browser", () => {
 
   it("reads an item without a saved clock on this browser's clock", () => {
     expect(deadlineValue(new Date("2026-10-11T23:00:00Z"), null)).toBe("2026-10-12");
+  });
+});
+
+describe("times on another clock than the browser's", () => {
+  const LONDON = "Europe/London";
+  const INDIA = "Asia/Kolkata";
+
+  it("builds and reads a time on that clock, across the UK clock change", () => {
+    expect(buildDeadline("2026-10-24", "9", "00", "am", LONDON)).toBe("2026-10-24T08:00:00.000Z");
+    expect(buildDeadline("2026-10-26", "9", "00", "am", LONDON)).toBe("2026-10-26T09:00:00.000Z");
+    expect(timeOfDeadline("2026-10-26T09:00:00.000Z", LONDON)).toEqual({
+      hour: "9",
+      min: "00",
+      ampm: "am",
+    });
+    expect(timeOfDeadline("2026-10-26T09:00:00.000Z", INDIA)).toEqual({
+      hour: "2",
+      min: "30",
+      ampm: "pm",
+    });
+  });
+
+  it("reads the date on that clock", () => {
+    expect(deadlineDate("2026-10-26T20:00:00.000Z", LONDON)).toBe("2026-10-26");
+    expect(deadlineDate("2026-10-26T20:00:00.000Z", INDIA)).toBe("2026-10-27");
+    expect(deadlineDate("2026-10-27", INDIA)).toBe("2026-10-27");
+  });
+
+  it("keeps the wall time when the clock changes, and leaves a date alone", () => {
+    const nineIndia = buildDeadline("2026-10-26", "9", "00", "am", INDIA);
+    expect(moveClock(nineIndia, INDIA, LONDON)).toBe("2026-10-26T09:00:00.000Z");
+    expect(moveClock("2026-10-26", INDIA, LONDON)).toBe("2026-10-26");
+    expect(moveClock(nineIndia, INDIA, INDIA)).toBe(nineIndia);
+  });
+
+  it("starts today's default time from that clock's now", () => {
+    const now = new Date("2026-10-26T05:10:00Z");
+    expect(defaultTimeFor("2026-10-26", now, INDIA)).toEqual({ hour: "11", min: "00", ampm: "am" });
+    expect(defaultTimeFor("2026-10-26", now, LONDON)).toEqual({ hour: "9", min: "00", ampm: "am" });
   });
 });

@@ -16,6 +16,14 @@ function savedTimezone(email: string): string {
   return row.timezone;
 }
 
+test("someone with no buckets yet gets their browser's timezone saved", async ({ page }) => {
+  const email = uniqueEmail("e2e-tz-new");
+  await login(page, email);
+  await expect(page.getByRole("button", { name: "···" })).toBeVisible();
+
+  await expect.poll(() => savedTimezone(email)).toBe("Europe/London");
+});
+
 // Signed up in India, now opening the app in London
 async function backFromIndia(page: Page): Promise<string> {
   const email = uniqueEmail("e2e-tz-move");

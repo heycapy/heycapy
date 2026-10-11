@@ -143,3 +143,58 @@ describe("a repeating item keeps its series on the clock it was set on", () => {
     });
   });
 });
+
+describe("a time set on someone else's clock", () => {
+  it("is saved on the clock the editor sends, and an unknown one is refused", async () => {
+    const { owner, member, bucketId } = await sharedBucket();
+    session.userId = owner;
+
+    await addItemAction(
+      bucketId,
+      "call sam",
+      "2026-10-12",
+      undefined,
+      null,
+      null,
+      null,
+      member,
+      LONDON
+    );
+    expect(await latest(bucketId)).toMatchObject({
+      deadline: OCT_12_LONDON,
+      deadlineTimezone: LONDON,
+    });
+
+    const { id } = await latest(bucketId);
+    const nineLondon = "2026-10-12T08:00:00.000Z";
+    await updateItemAction(
+      id,
+      "call sam",
+      nineLondon,
+      undefined,
+      undefined,
+      null,
+      null,
+      null,
+      LONDON
+    );
+    expect(await latest(bucketId)).toMatchObject({
+      deadline: new Date(nineLondon),
+      deadlineTimezone: LONDON,
+    });
+
+    expect(
+      await addItemAction(
+        bucketId,
+        "x",
+        "2026-10-12",
+        undefined,
+        null,
+        null,
+        null,
+        null,
+        "Mars/Olympus"
+      )
+    ).toEqual({ ok: false, error: "That timezone doesn't exist" });
+  });
+});

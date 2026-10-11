@@ -15,7 +15,6 @@ import { useLayoutStore } from "@/store/layout";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { parseItemsRules } from "@/lib/rules";
 import { BOTTOM_BAR_MEDIA_QUERY } from "@/constants";
-import { saveTimezoneIfDefaultAction } from "@/app/(app)/user-settings-actions";
 import type { ViewerBucket } from "@/lib/buckets/access";
 
 type BucketsShellProps = {
@@ -77,11 +76,6 @@ export function BucketsShell({ buckets: rawBuckets, focusBucketId = null }: Buck
     setBottomBarShown(true);
     return () => setBottomBarShown(false);
   }, [setBottomBarShown]);
-
-  useEffect(() => {
-    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    void saveTimezoneIfDefaultAction(tz);
-  }, []);
 
   useEffect(() => {
     if (focusBucketId === null) return;

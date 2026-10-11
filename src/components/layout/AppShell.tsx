@@ -15,6 +15,7 @@ import { useUIStore } from "@/store/ui";
 import { useChatStore } from "@/store/chat";
 import { useTimezoneStore } from "@/store/timezone";
 import { TimezoneMoveBanner } from "./TimezoneMoveBanner";
+import { saveTimezoneIfDefaultAction } from "@/app/(app)/user-settings-actions";
 import { useServerEvents } from "@/hooks/useServerEvents";
 import { AssistantNameProvider } from "@/components/capy/assistant-name";
 import type { ChannelFailure } from "@/lib/notifications/failures";
@@ -49,6 +50,7 @@ export function AppShell({
     void useUIStore.persist.rehydrate();
     void useChatStore.persist.rehydrate();
     void useTimezoneStore.persist.rehydrate();
+    void saveTimezoneIfDefaultAction(Intl.DateTimeFormat().resolvedOptions().timeZone);
   }, []);
 
   return (
