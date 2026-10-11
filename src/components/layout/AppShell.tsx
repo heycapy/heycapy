@@ -13,6 +13,8 @@ import { JoinBucketDialog } from "@/components/buckets/JoinBucketDialog";
 import { SearchDrawer } from "@/components/search/SearchDrawer";
 import { useUIStore } from "@/store/ui";
 import { useChatStore } from "@/store/chat";
+import { useTimezoneStore } from "@/store/timezone";
+import { TimezoneMoveBanner } from "./TimezoneMoveBanner";
 import { useServerEvents } from "@/hooks/useServerEvents";
 import { AssistantNameProvider } from "@/components/capy/assistant-name";
 import type { ChannelFailure } from "@/lib/notifications/failures";
@@ -46,6 +48,7 @@ export function AppShell({
   useEffect(() => {
     void useUIStore.persist.rehydrate();
     void useChatStore.persist.rehydrate();
+    void useTimezoneStore.persist.rehydrate();
   }, []);
 
   return (
@@ -60,6 +63,7 @@ export function AppShell({
       />
       {!hasWorkingChannel && <NoChannelBanner onSetUp={() => setSettingsTab("notifications")} />}
       <DeliveryFailureBanner failures={failures} onFix={() => setSettingsTab("notifications")} />
+      <TimezoneMoveBanner />
       <main className="flex flex-1 flex-col overflow-y-auto">{children}</main>
       <SettingsSheet
         open={settingsTab !== null}

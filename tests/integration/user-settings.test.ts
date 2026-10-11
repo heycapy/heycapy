@@ -6,6 +6,8 @@ import { userSettings } from "@/lib/db/schema";
 import {
   getUserSettingsAction,
   saveTimezoneIfDefaultAction,
+  switchTimezoneAction,
+  timezoneMoveAction,
   updateUserSettingsAction,
 } from "@/app/(app)/user-settings-actions";
 import { decryptValue, encryptValue } from "@/lib/crypto";
@@ -15,6 +17,7 @@ import {
   CUSTOM_PROMPT_REQUIRED_ERROR,
 } from "@/constants";
 import {
+  reminderOf,
   resetSchedulerEnvironment,
   seedBucket,
   seedItem,
@@ -402,5 +405,44 @@ describe("the timezone", () => {
       aiChanged: false,
     });
     expect((await row(userId)).timezone).toBe("America/New_York");
+  });
+});
+
+describe("a browser on another clock than the saved one", () => {
+  it("is named by place, and not for another name of the same zone or one never set", async () => {
+    session = { userId: await seedUser("Asia/Kolkata") };
+    expect(await timezoneMoveAction("Europe/London")).toEqual({ here: "UK", saved: "India" });
+    expect(await timezoneMoveAction("Asia/Calcutta")).toBeNull();
+    expect(await timezoneMoveAction("Asia/Kolkata")).toBeNull();
+    expect(await timezoneMoveAction("Mars/Olympus")).toBeNull();
+
+    session = { userId: await seedUser() };
+    expect(await timezoneMoveAction("Europe/London")).toBeNull();
+  });
+
+  it("can be switched to, which moves the reminders onto the new clock", async () => {
+    const userId = await seedUser("Asia/Kolkata");
+    session = { userId };
+    const bucketId = await seedBucket(userId, {
+      medium: ["telegram"],
+      repeat: "once",
+      notifyAt: "09:00",
+    });
+    const itemId = await seedItem(userId, bucketId, {
+      deadline: new Date("2026-03-12T05:00:00Z"),
+      reminderOffsets: [0],
+    });
+    // 10:30 in India, 05:00 in London, where "remind at 09:00" holds it back
+    expect((await reminderOf(itemId)).nextReminderAt).toEqual(new Date("2026-03-12T05:00:00Z"));
+
+    expect(await switchTimezoneAction("Mars/Olympus")).toEqual({
+      ok: false,
+      error: 'Unknown timezone "Mars/Olympus" — use one like Europe/London',
+    });
+    expect((await row(userId)).timezone).toBe("Asia/Kolkata");
+
+    expect(await switchTimezoneAction("Europe/London")).toEqual({ ok: true });
+    expect((await row(userId)).timezone).toBe("Europe/London");
+    expect((await reminderOf(itemId)).nextReminderAt).toEqual(new Date("2026-03-12T09:00:00Z"));
   });
 });

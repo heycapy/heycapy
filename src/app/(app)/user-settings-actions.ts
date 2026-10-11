@@ -13,6 +13,7 @@ import { users, userSettings } from "@/lib/db/schema";
 import { encryptValue, decryptValue } from "@/lib/crypto";
 import { refreshUserReminders } from "@/lib/reminders/refresh";
 import { isKnownTimezone } from "@/lib/timezones/valid";
+import { placeName } from "@/lib/timezones/place";
 import { parseClock } from "@/lib/reminders/zoned";
 import { ALL_CHANNELS, getChannelSettings, workingChannels } from "@/lib/notifications/channels";
 import { sendEmail } from "@/lib/notifications/email";
@@ -404,6 +405,35 @@ export async function saveTimezoneIfDefaultAction(timezone: string): Promise<voi
     .where(and(eq(userSettings.userId, session.userId), eq(userSettings.timezone, "UTC")))
     .returning({ userId: userSettings.userId });
   if (updated.length > 0) await refreshUserReminders(session.userId);
+}
+
+export type TimezoneMove = { here: string; saved: string };
+
+// Compared by place, so another name for the same zone (Asia/Calcutta) isn't a move
+export async function timezoneMoveAction(browserTimezone: string): Promise<TimezoneMove | null> {
+  const session = await getSession();
+  if (!session || !isKnownTimezone(browserTimezone)) return null;
+  const settings = await db.query.userSettings.findFirst({
+    columns: { timezone: true },
+    where: eq(userSettings.userId, session.userId),
+  });
+  if (!settings) return null;
+  const here = placeName(browserTimezone);
+  const saved = placeName(settings.timezone);
+  if (!here || !saved || here === saved) return null;
+  return { here, saved };
+}
+
+export async function switchTimezoneAction(timezone: string): Promise<ActionResult> {
+  const session = await getSession();
+  if (!session) return { ok: false, error: "Unauthorized" };
+  if (!isKnownTimezone(timezone)) {
+    return { ok: false, error: `Unknown timezone "${timezone}" — use one like Europe/London` };
+  }
+  await db.update(userSettings).set({ timezone }).where(eq(userSettings.userId, session.userId));
+  await refreshUserReminders(session.userId);
+  revalidatePath("/");
+  return { ok: true };
 }
 
 export async function testSmtpAction(config: {

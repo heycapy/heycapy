@@ -52,6 +52,7 @@ src/
 └── types/                  # Shared TypeScript types
 tests/
 ├── e2e/                    # Playwright E2E tests
+├── integration/            # Vitest against a real SQLite DB (scheduler, write paths)
 └── unit/                   # Vitest unit tests (mirrors src/)
 ```
 
@@ -76,7 +77,11 @@ Title + deadline + recurring config + per-item notification override.
 ```
 
 ### Scheduler
-`node-cron` in `server.ts` runs every minute. Checks `deadline - offset <= now AND notified_at IS NULL`. Fires via configured notification provider. Respects `quiet_hours` and `snooze_until`.
+Each item stores when its next reminder and overdue alert are due (`next_reminder_at`, `next_overdue_at`, indexed). The rules — offset, `notify_at`, quiet hours, snooze, daily repeat in the user's timezone — live in one place: `lib/reminders/schedule.ts`.
+- **Any write that can change an item's reminders must call `refreshItemReminders` / `refreshBucketReminders` / `refreshUserReminders`** (`lib/reminders/refresh.ts`).
+- `node-cron` (started from `instrumentation.ts`) runs every minute and only fetches due rows, re-checking each against live state before sending.
+- A full `reconcile()` runs at startup (backfills) and hourly, so a missed refresh delays a reminder instead of losing it.
+- New migrations: keep `when` in `meta/_journal.json` increasing — `tests/integration/migrations.test.ts` enforces it.
 
 ### AI Layer
 Two jobs: (1) NL input → parse bucket + item, (2) bucket setup assistant. Unified interface — swap provider without changing app logic.
@@ -89,6 +94,16 @@ Two jobs: (1) NL input → parse bucket + item, (2) bucket setup assistant. Unif
 2. OTP sent via Resend (6-digit, 10-min TTL)
 3. User enters OTP → JWT issued → httpOnly cookie (30-day)
 4. All routes behind middleware auth check
+
+---
+
+## Workflow
+
+- **One change at a time.** Every bug fix, feature and its test cases is committed and pushed on its own before the next one starts. Never mix two changes in one commit.
+- The agent does not commit. When a change is done and verified, stop and remind the user to commit and push it, with the file list and a suggested Conventional Commit message.
+- Track work in `docs/progress.md` — one plain line per item under In progress / Next / Done. Update it when starting and finishing an item.
+- **Never over-engineer.** Pick the most straightforward solution that fully solves the problem; only add complexity once the simple approach is shown to be insufficient.
+- **Comments only for the non-obvious "why".** Never write comments that restate a name or what the code plainly does.
 
 ---
 
