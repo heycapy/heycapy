@@ -12,6 +12,7 @@ import type {
   TelegramRecurringDefault,
 } from "@/components/buckets/constants";
 import { dataEvents } from "@/lib/events";
+import { TELEGRAM_BUCKET_GONE } from "@/lib/notifications/constants";
 import { getBucketTelegramConfig, setFlowState, createItem } from "./telegram-utils";
 import type { FlowState } from "./telegram-utils";
 
@@ -242,8 +243,12 @@ export async function handleAfterTime(
     );
   } else {
     if (messageId) await removeMessageButtons(botToken, chatId, messageId);
-    await createItem(userId, state.bucketId, state.title, deadline);
+    const added = await createItem(userId, state.bucketId, state.title, deadline);
     await setFlowState(userId, null);
+    if (!added) {
+      await sendTelegramWithQuickActions(botToken, chatId, TELEGRAM_BUCKET_GONE);
+      return;
+    }
     dataEvents.emit("refresh", userId);
     await sendTelegramWithQuickActions(
       botToken,
@@ -284,8 +289,12 @@ export async function handleAfterDeadline(
     );
   } else {
     if (messageId) await removeMessageButtons(botToken, chatId, messageId);
-    await createItem(userId, state.bucketId, state.title, deadline);
+    const added = await createItem(userId, state.bucketId, state.title, deadline);
     await setFlowState(userId, null);
+    if (!added) {
+      await sendTelegramWithQuickActions(botToken, chatId, TELEGRAM_BUCKET_GONE);
+      return;
+    }
     const note = deadline ? ` (due ${formatWhen(deadline, new Date(), timezone)})` : "";
     dataEvents.emit("refresh", userId);
     await sendTelegramWithQuickActions(
@@ -311,8 +320,12 @@ export async function handleRepeatCallback(
       ? null
       : JSON.stringify({ enabled: true, frequency: freq, interval: 1, endDate: null });
   if (messageId) await removeMessageButtons(botToken, chatId, messageId);
-  await createItem(userId, state.bucketId, state.title, deadline, recurring);
+  const added = await createItem(userId, state.bucketId, state.title, deadline, recurring);
   await setFlowState(userId, null);
+  if (!added) {
+    await sendTelegramWithQuickActions(botToken, chatId, TELEGRAM_BUCKET_GONE);
+    return;
+  }
   dataEvents.emit("refresh", userId);
   const dateNote = deadline ? ` (due ${formatWhen(deadline, new Date(), timezone)})` : "";
   const recurNote = freq === "none" ? "" : `, repeats ${freq}`;

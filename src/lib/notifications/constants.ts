@@ -50,3 +50,6 @@ export const TELEGRAM_KEYBOARD = [
 ] as const;
 
 export const TELEGRAM_LIST_PAGE_SIZE = 6;
+
+export const TELEGRAM_BUCKET_GONE =
+  "That bucket isn't yours to add to any more. Nothing was added.";

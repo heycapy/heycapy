@@ -1,7 +1,9 @@
 import { ITEM_STATUS } from "@/constants";
-import { and, eq, isNull, sql } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { buckets, items, userSettings } from "@/lib/db/schema";
+import { items, userSettings } from "@/lib/db/schema";
+import { listLiveBuckets, memberBucketIds } from "@/lib/buckets/access";
+import { bucketsChanged } from "@/lib/events";
 import { initialReminderState } from "@/lib/items/reminders";
 import { refreshItemReminders, userTimezone } from "@/lib/reminders/refresh";
 import { dueOn } from "@/lib/items/deadline";
@@ -222,11 +224,12 @@ export function parseNaturalDeadline(input: string, timezone: string): Date | nu
 }
 
 export async function getUserBuckets(userId: number) {
-  return db
-    .select({ id: buckets.id, name: buckets.name, icon: buckets.icon })
-    .from(buckets)
-    .where(and(eq(buckets.userId, userId), isNull(buckets.deletedAt), isNull(buckets.archivedAt)))
-    .orderBy(buckets.sortOrder);
+  return (await listLiveBuckets(userId)).map(({ id, name, icon, isOwner }) => ({
+    id,
+    name,
+    icon,
+    isOwner,
+  }));
 }
 
 export async function updateItemTitle(
@@ -234,17 +237,20 @@ export async function updateItemTitle(
   itemId: number,
   title: string
 ): Promise<void> {
-  await db
+  const [renamed] = await db
     .update(items)
     .set({ title, updatedAt: new Date() })
-    .where(and(eq(items.id, itemId), eq(items.userId, userId)));
+    .where(and(eq(items.id, itemId), inArray(items.bucketId, memberBucketIds(userId))))
+    .returning({ bucketId: items.bucketId });
+  // A rename changes no reminders, so nothing else tells the other members' screens
+  if (renamed) bucketsChanged([renamed.bucketId]);
 }
 
 export async function softDeleteItemById(userId: number, itemId: number): Promise<void> {
   await db
     .update(items)
     .set({ deletedAt: new Date(), deletedBy: userId })
-    .where(and(eq(items.id, itemId), eq(items.userId, userId)));
+    .where(and(eq(items.id, itemId), inArray(items.bucketId, memberBucketIds(userId))));
   await refreshItemReminders([itemId]);
 }
 
@@ -254,7 +260,9 @@ export async function createItem(
   title: string,
   deadline: Date | null,
   recurring: string | null = null
-): Promise<void> {
+): Promise<boolean> {
+  // The bucket was picked a few messages ago; the person may have left it since
+  if (!(await getUserBuckets(userId)).some((b) => b.id === bucketId)) return false;
   const timezone = await userTimezone(userId);
   const [maxRow] = await db
     .select({ max: sql<number>`COALESCE(MAX(${items.sortOrder}), -1)` })
@@ -276,4 +284,5 @@ export async function createItem(
     })
     .returning({ id: items.id });
   if (created) await refreshItemReminders([created.id]);
+  return true;
 }

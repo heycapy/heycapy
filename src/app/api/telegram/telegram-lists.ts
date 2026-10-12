@@ -1,9 +1,10 @@
 import { formatDeadline } from "@/lib/format-date";
 import { CLOSED_ITEM_STATUSES } from "@/constants";
-import { and, asc, eq, gte, isNull, lt, lte, type SQL, notInArray } from "drizzle-orm";
+import { and, asc, eq, gte, inArray, isNull, lt, lte, type SQL, notInArray } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { buckets, items } from "@/lib/db/schema";
 import { inLiveBucket } from "@/lib/buckets/live";
+import { findAccessibleBucket, memberBucketIds } from "@/lib/buckets/access";
 import { TELEGRAM_LIST_PAGE_SIZE } from "@/lib/notifications/constants";
 import {
   editTelegramHtml,
@@ -49,7 +50,7 @@ async function loadList(
       .innerJoin(buckets, eq(items.bucketId, buckets.id))
       .where(
         and(
-          eq(items.userId, ctx.userId),
+          inArray(items.bucketId, memberBucketIds(ctx.userId)),
           isNull(items.deletedAt),
           inLiveBucket,
           notInArray(items.status, CLOSED_ITEM_STATUSES as string[]),
@@ -109,9 +110,7 @@ async function loadList(
   }
   const bucketId = Number(kind.slice(1));
   const rows = await select(eq(items.bucketId, bucketId), "manual");
-  const bucket = await db.query.buckets.findFirst({
-    where: and(eq(buckets.id, bucketId), eq(buckets.userId, ctx.userId)),
-  });
+  const bucket = await findAccessibleBucket(ctx.userId, bucketId);
   const name = bucket?.name ?? "Bucket";
   return { heading: name, empty: `No open items in ${name}.`, rows, perBucket: true };
 }
