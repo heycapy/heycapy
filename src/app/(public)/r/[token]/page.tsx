@@ -1,7 +1,5 @@
 import type { Metadata } from "next";
-import { and, eq, isNull } from "drizzle-orm";
-import { db } from "@/lib/db";
-import { items } from "@/lib/db/schema";
+import { findAccessibleItem } from "@/lib/buckets/access";
 import { reminderButtonLabel } from "@/lib/notifications/constants";
 import { verifyReminderAction, type ReminderAction } from "@/lib/reminders/action-token";
 import { publicAppUrl } from "@/lib/app-url";
@@ -27,16 +25,8 @@ export default async function ReminderActionPage({
 }) {
   const { token } = await params;
   const claim = verifyReminderAction(token);
-  const item = claim
-    ? await db.query.items.findFirst({
-        where: and(
-          eq(items.id, claim.itemId),
-          eq(items.userId, claim.userId),
-          isNull(items.deletedAt)
-        ),
-        columns: { title: true },
-      })
-    : undefined;
+  const found = claim ? await findAccessibleItem(claim.userId, claim.itemId) : undefined;
+  const item = found?.deletedAt === null ? found : undefined;
 
   return (
     <main className="flex flex-1 flex-col items-center justify-center p-6">

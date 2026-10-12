@@ -4,6 +4,7 @@ import {
   atLocalClock,
   endOfMonthDateString,
   fromLocal,
+  overdueFrom,
   parseClock,
   parseLocalDateTime,
   toLocal,
@@ -103,5 +104,28 @@ describe("shared date helpers", () => {
     // Still Feb 28 in New York, already Mar 1 in UTC
     expect(endOfMonthDateString(new Date("2027-03-01T03:00:00Z"), NY)).toBe("2027-02-28");
     expect(endOfMonthDateString(new Date("2028-02-10T12:00:00Z"), "UTC")).toBe("2028-02-29");
+  });
+});
+
+describe("an all-day item set on another clock", () => {
+  const INDIA = "Asia/Kolkata";
+  const LONDON = "Europe/London";
+
+  it("is overdue when its date ends on each person's own clock", () => {
+    const oct12 = new Date("2026-10-11T18:30:00Z");
+    expect(overdueFrom(oct12, INDIA).toISOString()).toBe("2026-10-12T18:30:00.000Z");
+    expect(overdueFrom(oct12, INDIA, LONDON).toISOString()).toBe("2026-10-12T23:00:00.000Z");
+  });
+
+  it("follows the UK clock change on 25 Oct 2026", () => {
+    const oct25 = new Date("2026-10-24T18:30:00Z");
+    const oct26 = new Date("2026-10-25T18:30:00Z");
+    expect(overdueFrom(oct25, INDIA, LONDON).toISOString()).toBe("2026-10-26T00:00:00.000Z");
+    expect(overdueFrom(oct26, INDIA, LONDON).toISOString()).toBe("2026-10-27T00:00:00.000Z");
+  });
+
+  it("is a time, not a date, when it only lands on midnight on the other clock", () => {
+    const halfPastFourIndia = new Date("2026-10-12T23:00:00Z");
+    expect(overdueFrom(halfPastFourIndia, INDIA, LONDON)).toEqual(halfPastFourIndia);
   });
 });

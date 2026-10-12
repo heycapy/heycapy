@@ -3,7 +3,7 @@ import type { NextRequest } from "next/server";
 import { verifySessionToken } from "@/lib/auth/session";
 import { SESSION_COOKIE_NAME } from "@/lib/auth/constants";
 
-const PUBLIC_PATHS = ["/r"];
+const PUBLIC_PATHS = ["/r", "/join"];
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;

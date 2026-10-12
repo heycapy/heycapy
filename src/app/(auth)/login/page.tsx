@@ -10,6 +10,7 @@ import { Sprite } from "@/components/capy/Sprite";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { OtpInput } from "@/components/ui/otp-input";
+import { safeNextPath } from "@/lib/auth/next-path";
 import { sendOtpAction, verifyOtpAction } from "./actions";
 
 type Step = "email" | "otp";
@@ -90,7 +91,8 @@ export default function LoginPage() {
       setError(result.error);
       return;
     }
-    startOpeningApp(() => router.push("/"));
+    const next = safeNextPath(new URLSearchParams(window.location.search).get("next"));
+    startOpeningApp(() => router.push(next));
     setLoading(false);
   }
 

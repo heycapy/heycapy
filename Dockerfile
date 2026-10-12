@@ -10,7 +10,8 @@ FROM base AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-RUN pnpm build
+# Each build gets its own id, so open apps can tell when a new version is live
+RUN NEXT_DEPLOYMENT_ID="$(date -u +%Y%m%d%H%M%S)" pnpm build
 
 FROM node:22-alpine AS runner
 WORKDIR /app

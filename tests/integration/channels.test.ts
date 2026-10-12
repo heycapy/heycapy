@@ -15,7 +15,12 @@ import { executeToolCall } from "@/lib/ai/capyTools";
 import { enqueue, processPending } from "@/lib/notifications/queue";
 import { refreshItemReminders } from "@/lib/reminders/refresh";
 import { getChannelSettings, getWorkingChannels } from "@/lib/notifications/channels";
-import { resetSchedulerEnvironment, seedUser, useSchedulerEnvironment } from "./helpers";
+import {
+  reminderOf,
+  resetSchedulerEnvironment,
+  seedUser,
+  useSchedulerEnvironment,
+} from "./helpers";
 
 const session = vi.hoisted(() => ({ userId: 0, email: "" }));
 vi.mock("@/lib/auth/session", () => ({ getSession: async () => session }));
@@ -88,8 +93,7 @@ describe("a bucket with no channel list", () => {
       .returning();
     await refreshItemReminders([item.id]);
 
-    const stored = await db.query.items.findFirst({ where: eq(items.id, item.id) });
-    expect(stored?.nextReminderAt).toBeNull();
+    expect((await reminderOf(item.id)).nextReminderAt).toBeNull();
   });
 });
 

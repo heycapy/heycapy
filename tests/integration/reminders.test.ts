@@ -11,6 +11,7 @@ import {
   runSchedulerAt,
   seedReminder,
   useSchedulerEnvironment,
+  reminderOf,
 } from "./helpers";
 
 const T0 = new Date("2026-03-10T12:00:00Z");
@@ -153,7 +154,7 @@ describe("several reminders per item", () => {
     expect(await update([0, 60, 60])).toMatchObject({ ok: true });
     const item = await db.query.items.findFirst({ where: eq(items.id, itemId) });
     expect(item?.reminderOffsets).toEqual([60, 0]);
-    expect(item?.nextReminderAt).toEqual(new Date(T0.getTime() + DAY - HOUR));
+    expect((await reminderOf(itemId)).nextReminderAt).toEqual(new Date(T0.getTime() + DAY - HOUR));
 
     expect(await update([-5])).toMatchObject({ ok: false });
     expect(await update([0, 5, 10, 15, 30])).toMatchObject({ ok: false });

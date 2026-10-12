@@ -7,14 +7,17 @@ import type {
   ChannelOutcome,
   ItemReminderInfo as Info,
   NotificationEvent,
+  OtherRecipient,
 } from "@/lib/reminders/status";
 import { formatShort } from "@/lib/format-date";
+import { otherClock } from "@/lib/timezones/gap";
 import { channelKey } from "@/lib/notifications/channel-key";
 
 const REASONS: Record<NonNullable<Info["reason"]>, string> = {
   completed: "completed",
   onHold: "no reminders — item is on hold",
   missed: "missed — the next occurrence took its place",
+  notRecipient: "no reminders for you — it's assigned to someone else",
   noChannel: "no reminder — this bucket has no working channel",
   alreadyReminded: "no further reminders (repeat: once)",
 };
@@ -31,12 +34,15 @@ const OUTCOMES: Record<ChannelOutcome["outcome"], { text: string; className: str
   retrying: { text: "↻ retrying", className: "text-warning" },
   failed: { text: "✗ failed", className: "text-destructive" },
   closed: { text: "– not sent, item was closed first", className: "text-muted-foreground" },
+  handedOver: { text: "– not sent, it went to someone else", className: "text-muted-foreground" },
   notSelected: { text: "– not selected for this bucket", className: "text-muted-foreground" },
   notSetUp: { text: "– not set up at the time", className: "text-muted-foreground" },
 };
 
+const HELD = " · held by quiet hours";
+
 function statusLine(info: Info): string {
-  if (info.next) return `next ${formatShort(info.next)}`;
+  if (info.next) return `next ${formatShort(info.next)}${info.heldByQuietHours ? HELD : ""}`;
   if (info.reason === "completed" && info.completedAt) {
     return `completed ${formatShort(info.completedAt)}`;
   }
@@ -59,7 +65,16 @@ function actionText(e: ActionEvent): string {
       : e.action === "cancelRemindAgain"
         ? "cancelled remind again"
         : `remind again${e.remindAt ? ` at ${formatShort(e.remindAt)}` : ""}`;
-  return `you: ${what} (from ${e.source})`;
+  return `${e.by}: ${what} (from ${e.source})`;
+}
+
+function otherLine(person: OtherRecipient): string {
+  if (!person.next) return `${person.name} · no further reminders`;
+  const yours = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const theirs = otherClock(person.next, yours, { ...person, isYou: false }, undefined);
+  return `${person.name} · next ${formatShort(person.next)}${theirs ? ` (${theirs})` : ""}${
+    person.heldByQuietHours ? HELD : ""
+  }`;
 }
 
 function outcomeText(c: ChannelOutcome): string {
@@ -116,6 +131,15 @@ export function ItemReminderInfo({ itemId }: { itemId: number }) {
         {cancelError && <p className="text-destructive">{cancelError}</p>}
         {route && <p className="text-muted-foreground">{route}</p>}
       </div>
+
+      {info.others.length > 0 && (
+        <div>
+          <p className="text-muted-foreground">also reminded</p>
+          {info.others.map((person, i) => (
+            <p key={i}>{otherLine(person)}</p>
+          ))}
+        </div>
+      )}
 
       <div>
         <p className="text-muted-foreground">history</p>

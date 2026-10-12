@@ -6,19 +6,20 @@ import { ItemList } from "./ItemList";
 import { BucketSettings } from "./BucketSettings";
 import type { SettingsTab } from "./BucketSettingsForm";
 import { RemindersOffNotice } from "./RemindersOffNotice";
+import { TimezonesNotice } from "./TimezonesNotice";
 import { useBucketItems } from "./useBucketItems";
 import { useItemEditor } from "./useItemEditor";
+import { useBucketMembers } from "./useBucketMembers";
 import { BracketButton } from "@/components/ui/BracketButton";
 import { daysToDisplayStr, parseDurationToDate } from "@/lib/duration";
 import { DEFAULT_BUCKET_STATUSES } from "./constants";
-import type { buckets } from "@/lib/db/schema";
+import type { ViewerBucket } from "@/lib/buckets/access";
 import { parseFields } from "./fields";
 import { useLayoutStore } from "@/store/layout";
-
-type BucketRow = typeof buckets.$inferSelect;
+import { placesOf } from "@/lib/timezones/gap";
 
 type BucketContentProps = {
-  bucket: BucketRow;
+  bucket: ViewerBucket;
   accentColor: string;
   addItemRef: RefObject<(() => void) | null>;
 };
@@ -43,6 +44,7 @@ export function BucketContent({ bucket, accentColor, addItemRef }: BucketContent
         : "",
     onSaved: list.refetch,
   });
+  const { members, names } = useBucketMembers(bucket.id, editor.dialogProps.open);
   useEffect(() => {
     addItemRef.current = editor.startAdding;
     return () => {
@@ -84,6 +86,8 @@ export function BucketContent({ bucket, accentColor, addItemRef }: BucketContent
         </div>
       </div>
 
+      <TimezonesNotice members={members} />
+
       <RemindersOffNotice
         notificationsRules={bucket.notificationsRules}
         hasDatedItems={list.items.some((i) => i.deadline && !isClosedStatus(i.status))}
@@ -101,6 +105,8 @@ export function BucketContent({ bucket, accentColor, addItemRef }: BucketContent
           fields={fields}
           editingItemId={editor.editingItemId}
           reminderBadges={list.reminderBadges}
+          assigneeNames={names}
+          members={members}
           onReorder={list.reorder}
           onEdit={editor.startEditing}
           onStatusChange={(item, status) => void list.changeStatus(item, status)}
@@ -111,6 +117,12 @@ export function BucketContent({ bucket, accentColor, addItemRef }: BucketContent
 
       <ItemDialog
         {...editor.dialogProps}
+        assigneeChoice={{
+          bucketId: bucket.id,
+          members,
+          value: editor.assigneeId,
+          onChange: editor.setAssigneeId,
+        }}
         bucketReminders={parseNotificationRules(bucket.notificationsRules).defaultReminders}
         statuses={statuses}
         fields={fields.length > 0 ? fields : undefined}
@@ -120,6 +132,7 @@ export function BucketContent({ bucket, accentColor, addItemRef }: BucketContent
         open={settingsTab !== null}
         initialTab={settingsTab ?? undefined}
         bucket={bucket}
+        clocksDiffer={placesOf(members).differ}
         onClose={() => setSettingsTab(null)}
       />
     </div>

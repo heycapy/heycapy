@@ -1,0 +1,1 @@
+ALTER TABLE `items` ADD `deleted_by` integer REFERENCES users(id) ON DELETE set null;

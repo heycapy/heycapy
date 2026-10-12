@@ -1,5 +1,8 @@
-import { asc, eq } from "drizzle-orm";
+import { and, asc, eq, inArray, or } from "drizzle-orm";
 import { db } from "@/lib/db";
+import { memberBucketIds, withoutOwnerSecrets } from "@/lib/buckets/access";
+import { inLiveBucket } from "@/lib/buckets/live";
+import { memberName } from "@/lib/buckets/member-name";
 import {
   aiUsage,
   buckets,
@@ -26,6 +29,30 @@ function parsed(raw: unknown): unknown {
   }
 }
 
+function exportedBucketIds(userId: number) {
+  return db
+    .select({ id: buckets.id })
+    .from(buckets)
+    .where(
+      or(
+        eq(buckets.userId, userId),
+        and(inArray(buckets.id, memberBucketIds(userId)), inLiveBucket)
+      )
+    );
+}
+
+async function namesOf(userId: number, ids: number[]): Promise<Map<number, string>> {
+  const people = ids.length
+    ? await db
+        .select({ id: users.id, displayName: users.displayName, username: users.username })
+        .from(users)
+        .where(inArray(users.id, ids))
+    : [];
+  const names = new Map(people.map((p) => [p.id, memberName(p)]));
+  names.set(userId, "you");
+  return names;
+}
+
 export async function buildAccountExport(userId: number, now = new Date()) {
   const [
     user,
@@ -44,8 +71,16 @@ export async function buildAccountExport(userId: number, now = new Date()) {
   ] = await Promise.all([
     db.query.users.findFirst({ where: eq(users.id, userId) }),
     db.query.userSettings.findFirst({ where: eq(userSettings.userId, userId) }),
-    db.select().from(buckets).where(eq(buckets.userId, userId)).orderBy(asc(buckets.id)),
-    db.select().from(items).where(eq(items.userId, userId)).orderBy(asc(items.id)),
+    db
+      .select()
+      .from(buckets)
+      .where(inArray(buckets.id, exportedBucketIds(userId)))
+      .orderBy(asc(buckets.id)),
+    db
+      .select()
+      .from(items)
+      .where(inArray(items.bucketId, exportedBucketIds(userId)))
+      .orderBy(asc(items.id)),
     db.select().from(templates).where(eq(templates.userId, userId)).orderBy(asc(templates.id)),
     db
       .select()
@@ -88,6 +123,14 @@ export async function buildAccountExport(userId: number, now = new Date()) {
       .where(eq(outgoingWebhooks.userId, userId))
       .orderBy(asc(outgoingWebhooks.id)),
   ]);
+
+  const names = await namesOf(userId, [
+    ...new Set([
+      ...bucketRows.map((b) => b.userId),
+      ...itemRows.flatMap((i) => (i.assigneeId === null ? [i.userId] : [i.userId, i.assigneeId])),
+    ]),
+  ]);
+  const nameOf = (id: number) => names.get(id) ?? "someone";
 
   return {
     exportedAt: now.toISOString(),
@@ -133,27 +176,35 @@ export async function buildAccountExport(userId: number, now = new Date()) {
         transcriptionModel: settings.transcriptionModel,
       },
     },
-    buckets: bucketRows.map((b) => ({
-      id: b.id,
-      name: b.name,
-      icon: b.icon,
-      color: b.color,
-      itemsRules: parsed(b.itemsRules),
-      notificationsRules: parsed(b.notificationsRules),
-      fields: parsed(b.fieldSchema),
-      telegram: parsed(b.telegramConfig),
-      webhookEnabled: b.webhookKey !== null,
-      archivedAt: b.archivedAt,
-      deletedAt: b.deletedAt,
-      createdAt: b.createdAt,
-    })),
+    buckets: bucketRows.map((row) => {
+      const b = withoutOwnerSecrets(row, userId);
+      const owned = row.userId === userId;
+      return {
+        id: b.id,
+        name: b.name,
+        icon: b.icon,
+        color: b.color,
+        owner: nameOf(b.userId),
+        itemsRules: parsed(b.itemsRules),
+        notificationsRules: parsed(b.notificationsRules),
+        fields: parsed(b.fieldSchema),
+        telegram: parsed(b.telegramConfig),
+        webhookEnabled: owned ? b.webhookKey !== null : null,
+        archivedAt: b.archivedAt,
+        deletedAt: b.deletedAt,
+        createdAt: b.createdAt,
+      };
+    }),
     items: itemRows.map((i) => ({
       id: i.id,
       bucketId: i.bucketId,
       title: i.title,
       description: i.description,
+      addedBy: nameOf(i.userId),
+      assignedTo: i.assigneeId === null ? null : nameOf(i.assigneeId),
       status: i.status,
       deadline: i.deadline,
+      deadlineTimezone: i.deadlineTimezone,
       scheduledAt: i.scheduledAt,
       recurring: parsed(i.recurring),
       reminderOffsets: i.reminderOffsets,

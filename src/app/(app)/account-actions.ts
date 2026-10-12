@@ -12,11 +12,29 @@ import {
   recordCodeSuccess,
 } from "@/lib/auth/rate-limit";
 import { sendEmail } from "@/lib/notifications/email";
-import { deleteAccount } from "@/lib/account/delete";
+import { db } from "@/lib/db";
+import { deleteAccount, ownedSharedBuckets, type SharedBucket } from "@/lib/account/delete";
+import { memberBucketIds } from "@/lib/buckets/access";
+import { refreshBucketReminders } from "@/lib/reminders/refresh";
+
+function sharedBucketsError(shared: SharedBucket[]): string {
+  const names = shared.map((bucket) => bucket.name).join(", ");
+  return `You own shared buckets (${names}). Delete them or remove their members first.`;
+}
+
+export async function getDeletionBlockersAction(): Promise<
+  ActionResult<{ buckets: SharedBucket[] }>
+> {
+  const session = await getSession();
+  if (!session) return { ok: false, error: "Unauthorized" };
+  return { ok: true, buckets: ownedSharedBuckets(db, session.userId) };
+}
 
 export async function sendAccountDeletionCodeAction(): Promise<ActionResult<{ devCode?: string }>> {
   const session = await getSession();
   if (!session) return { ok: false, error: "Unauthorized" };
+  const shared = ownedSharedBuckets(db, session.userId);
+  if (shared.length > 0) return { ok: false, error: sharedBucketsError(shared) };
   if (!(await allowCodeSend(session.email))) {
     return { ok: false, error: "Too many codes sent. Try again in 5 minutes." };
   }
@@ -35,6 +53,8 @@ export async function sendAccountDeletionCodeAction(): Promise<ActionResult<{ de
 export async function deleteAccountAction(code: string): Promise<ActionResult> {
   const session = await getSession();
   if (!session) return { ok: false, error: "Unauthorized" };
+  const shared = ownedSharedBuckets(db, session.userId);
+  if (shared.length > 0) return { ok: false, error: sharedBucketsError(shared) };
   if (await isCodeEntryLocked(session.email)) {
     return { ok: false, error: "Too many wrong codes. Try again in 15 minutes." };
   }
@@ -44,7 +64,11 @@ export async function deleteAccountAction(code: string): Promise<ActionResult> {
   }
   await recordCodeSuccess(session.email);
 
-  deleteAccount(session.userId, session.email);
+  const joined = await memberBucketIds(session.userId);
+  const stillShared = deleteAccount(session.userId, session.email);
+  if (stillShared.length > 0) return { ok: false, error: sharedBucketsError(stillShared) };
+
+  for (const { id } of joined) await refreshBucketReminders(id);
   await deleteSession();
   redirect("/login");
 }

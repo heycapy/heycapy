@@ -12,6 +12,7 @@ import {
   seedItem,
   seedUser,
   useSchedulerEnvironment,
+  reminderOf,
 } from "./helpers";
 import { callsTo, connectOwnChat, say, stubTelegram } from "./telegram-helpers";
 
@@ -94,9 +95,9 @@ describe("move on if missed", () => {
     const chat = await connectOwnChat(userId);
     await runSchedulerAt(new Date("2026-03-11T09:00:00Z"));
     const [missed] = await series(bucketId);
-    const row = await db.query.items.findFirst({ where: eq(items.id, missed.id) });
-    expect(row?.nextReminderAt).toBeNull();
-    expect(row?.nextOverdueAt).toBeNull();
+    const row = await reminderOf(missed.id);
+    expect(row.nextReminderAt).toBeNull();
+    expect(row.nextOverdueAt).toBeNull();
 
     await say("⚠️ Overdue", chat);
     await say("📋 Today", chat);

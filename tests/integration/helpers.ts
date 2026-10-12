@@ -1,7 +1,14 @@
 import { vi } from "vitest";
 import { and, eq, ne } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { buckets, items, notificationQueue, userSettings, users } from "@/lib/db/schema";
+import {
+  buckets,
+  itemReminders,
+  items,
+  notificationQueue,
+  userSettings,
+  users,
+} from "@/lib/db/schema";
 import { runNotifications } from "@/lib/scheduler";
 import { refreshItemReminders } from "@/lib/reminders/refresh";
 
@@ -92,6 +99,23 @@ export async function seedReminder(opts: {
   const bucketId = await seedBucket(userId);
   const itemId = await seedItem(userId, bucketId, opts);
   return { userId, bucketId, itemId };
+}
+
+// One person's reminder schedule for the item; without a person, the only one there is
+export async function reminderOf(itemId: number, userId?: number) {
+  const rows = await db
+    .select()
+    .from(itemReminders)
+    .where(
+      and(
+        eq(itemReminders.itemId, itemId),
+        userId === undefined ? undefined : eq(itemReminders.userId, userId)
+      )
+    );
+  if (rows.length !== 1) {
+    throw new Error(`item ${itemId}: expected one reminder schedule, found ${rows.length}`);
+  }
+  return rows[0];
 }
 
 export async function remindersQueued(itemId: number): Promise<number> {

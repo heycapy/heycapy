@@ -25,7 +25,11 @@ export async function syncTelegramReminder(
     .select({ messageId: notificationQueue.telegramMessageId })
     .from(notificationQueue)
     .where(
-      and(eq(notificationQueue.itemId, itemId), isNotNull(notificationQueue.telegramMessageId))
+      and(
+        eq(notificationQueue.itemId, itemId),
+        eq(notificationQueue.userId, userId),
+        isNotNull(notificationQueue.telegramMessageId)
+      )
     )
     .orderBy(desc(notificationQueue.id))
     .limit(1);

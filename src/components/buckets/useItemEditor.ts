@@ -2,18 +2,12 @@ import { useState, useTransition } from "react";
 import { offerUndoDelete } from "./undoDelete";
 import { addItemAction, deleteItemAction, updateItemAction } from "@/app/(app)/actions";
 import { parseRecurring } from "@/lib/items/occurrence";
+import { deadlineValue } from "@/lib/time";
 import type { items } from "@/lib/db/schema";
 import type { RecurringConfig } from "@/types/rules";
 import type { ItemStatus } from "./constants";
 
 type Item = typeof items.$inferSelect;
-
-function toDeadlineStr(d: Date): string {
-  if (d.getHours() !== 0 || d.getMinutes() !== 0) return d.toISOString();
-  const mo = String(d.getMonth() + 1).padStart(2, "0");
-  const dy = String(d.getDate()).padStart(2, "0");
-  return `${d.getFullYear()}-${mo}-${dy}`;
-}
 
 type ItemEditorOptions = {
   bucketId: number;
@@ -35,6 +29,7 @@ export function useItemEditor({
   const [addRecurring, setAddRecurring] = useState<RecurringConfig | null>(null);
   const [addProperties, setAddProperties] = useState<Record<string, unknown>>({});
   const [addReminders, setAddReminders] = useState<number[] | null>(null);
+  const [addAssignee, setAddAssignee] = useState<number | null>(null);
   const [addError, setAddError] = useState("");
   const [addPending, startAddTransition] = useTransition();
 
@@ -45,6 +40,7 @@ export function useItemEditor({
   const [editRecurring, setEditRecurring] = useState<RecurringConfig | null>(null);
   const [editProperties, setEditProperties] = useState<Record<string, unknown>>({});
   const [editReminders, setEditReminders] = useState<number[] | null>(null);
+  const [editAssignee, setEditAssignee] = useState<number | null>(null);
   const [editPending, startEditTransition] = useTransition();
 
   function cancelEditing() {
@@ -55,6 +51,7 @@ export function useItemEditor({
     setEditRecurring(null);
     setEditProperties({});
     setEditReminders(null);
+    setEditAssignee(null);
   }
 
   function cancelAdding() {
@@ -65,6 +62,7 @@ export function useItemEditor({
     setAddRecurring(null);
     setAddProperties({});
     setAddReminders(null);
+    setAddAssignee(null);
     setAddError("");
   }
 
@@ -78,17 +76,18 @@ export function useItemEditor({
     setAddingItem(false);
     setEditingItemId(item.id);
     setEditTitle(item.title);
-    setEditDeadline(item.deadline ? toDeadlineStr(item.deadline) : "");
+    setEditDeadline(item.deadline ? deadlineValue(item.deadline, item.deadlineTimezone) : "");
     setEditStatus((item.status as ItemStatus) || defaultStatus);
     setEditRecurring(parseRecurring(item.recurring));
     setEditReminders(item.reminderOffsets);
+    setEditAssignee(item.assigneeId);
     setEditProperties(
       item.properties ? (JSON.parse(item.properties) as Record<string, unknown>) : {}
     );
   }
 
   // The dialog passes the title without a date typed into it
-  function handleAdd(title = addTitle) {
+  function handleAdd(title = addTitle, clock: string | null = null) {
     if (!title.trim() || addPending) return;
     setAddError("");
     startAddTransition(async () => {
@@ -99,7 +98,9 @@ export function useItemEditor({
         addStatus,
         addRecurring,
         Object.keys(addProperties).length > 0 ? addProperties : null,
-        addReminders
+        addReminders,
+        addAssignee,
+        clock
       );
       if (result.ok) {
         cancelAdding();
@@ -110,7 +111,7 @@ export function useItemEditor({
     });
   }
 
-  function handleUpdate() {
+  function handleUpdate(clock: string | null) {
     if (!editingItemId || !editTitle.trim() || editPending) return;
     startEditTransition(async () => {
       const result = await updateItemAction(
@@ -120,7 +121,9 @@ export function useItemEditor({
         editStatus,
         editRecurring,
         Object.keys(editProperties).length > 0 ? editProperties : null,
-        editReminders
+        editReminders,
+        editAssignee,
+        clock
       );
       if (result.ok) {
         cancelEditing();
@@ -145,6 +148,8 @@ export function useItemEditor({
     editingItemId,
     startAdding,
     startEditing,
+    assigneeId: addingItem ? addAssignee : editAssignee,
+    setAssigneeId: addingItem ? setAddAssignee : setEditAssignee,
     dialogProps: {
       open: addingItem || editingItemId !== null,
       mode: addingItem ? ("add" as const) : ("edit" as const),
@@ -162,7 +167,8 @@ export function useItemEditor({
       onPropertiesChange: addingItem ? setAddProperties : setEditProperties,
       onRecurringChange: addingItem ? setAddRecurring : setEditRecurring,
       onRemindersChange: addingItem ? setAddReminders : setEditReminders,
-      onConfirm: addingItem ? handleAdd : handleUpdate,
+      onConfirm: (title: string | undefined, clock: string | null) =>
+        addingItem ? handleAdd(title, clock) : handleUpdate(clock),
       onCancel: addingItem ? cancelAdding : cancelEditing,
       onDelete: editingItemId !== null ? handleDelete : undefined,
     },

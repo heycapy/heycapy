@@ -1,5 +1,5 @@
 import { ITEM_STATUS } from "@/constants";
-import { db } from "@/lib/db";
+import { findAccessibleItem } from "@/lib/buckets/access";
 import { dataEvents } from "@/lib/events";
 import { QUICK_REMIND_OPTIONS, type QuickRemindChoice } from "@/lib/notifications/constants";
 import { editTelegramHtml } from "@/lib/notifications/telegram";
@@ -31,9 +31,7 @@ export async function handleReminderAction(
     return true;
   }
 
-  const found = await db.query.items.findFirst({
-    where: (i, { eq: qeq, and }) => and(qeq(i.id, itemId), qeq(i.userId, ctx.userId)),
-  });
+  const found = await findAccessibleItem(ctx.userId, itemId);
   const item = found && !found.deletedAt ? found : null;
   let html: string;
   if (!item) html = GONE;

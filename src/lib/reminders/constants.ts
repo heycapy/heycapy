@@ -17,3 +17,6 @@ export const REMINDER_UNITS = [
   { mins: 60, name: "hour" },
   { mins: 1, name: "min" },
 ] as const;
+// A time for someone else in these hours (on their clock) gets a soft warning in the item editor
+export const NIGHT_FROM_HOUR = 22;
+export const NIGHT_TO_HOUR = 7;
