@@ -8,6 +8,7 @@ import type { ViewerBucket } from "@/lib/buckets/access";
 import type { BucketMember } from "@/lib/buckets/members";
 import { clockTimeIn } from "@/lib/format-date";
 import { placesOf, timeGap } from "@/lib/timezones/gap";
+import { ConfirmRow } from "@/components/layout/ConfirmRow";
 import { InviteSection } from "./InviteSection";
 
 type Confirming = number | "leave" | null;
@@ -19,30 +20,6 @@ function whereTheyAre(member: BucketMember, you: BucketMember | undefined, now: 
   return [member.place, `${clockTimeIn(now, member.timezone)} now`, gap]
     .filter(Boolean)
     .join(" · ");
-}
-
-function ConfirmRow({
-  question,
-  pending,
-  onConfirm,
-  onCancel,
-}: {
-  question: string;
-  pending: boolean;
-  onConfirm: () => void;
-  onCancel: () => void;
-}) {
-  return (
-    <div className="flex flex-wrap items-center justify-end gap-2">
-      <span className="text-destructive font-mono text-xs">{question}</span>
-      <BracketButton variant="destructive" onClick={onConfirm} disabled={pending}>
-        confirm
-      </BracketButton>
-      <BracketButton onClick={onCancel} disabled={pending}>
-        cancel
-      </BracketButton>
-    </div>
-  );
 }
 
 export function BucketMembersPanel({
@@ -138,10 +115,11 @@ export function BucketMembersPanel({
               </div>
               {confirming === member.userId && (
                 <ConfirmRow
-                  question="remove them?"
-                  pending={pending}
+                  text="remove them?"
+                  disabled={pending}
                   onConfirm={() => remove(member.userId)}
                   onCancel={() => setConfirming(null)}
+                  className="justify-end"
                 />
               )}
             </li>
@@ -157,8 +135,8 @@ export function BucketMembersPanel({
         <div className="border-border flex flex-col gap-2 border-t pt-4">
           {confirming === "leave" ? (
             <ConfirmRow
-              question="leave? you'll lose access"
-              pending={pending}
+              text="leave? you'll lose access"
+              disabled={pending}
               onConfirm={leave}
               onCancel={() => setConfirming(null)}
             />
