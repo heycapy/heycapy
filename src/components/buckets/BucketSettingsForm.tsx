@@ -1,8 +1,10 @@
+import { ACCENT_BUTTONS } from "@/components/layout/settings-constants";
 import { useEffect, useId, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { charCountColor } from "@/components/ui/input";
 import { BracketButton } from "@/components/ui/BracketButton";
+import { BetaTag } from "@/components/ui/BetaTag";
 import { BucketRulesPanel } from "./BucketRulesPanel";
 import type { NotifAvailability } from "./BucketRulesPanel";
 import { parseBucketSettings, type BucketSettingsValues } from "./parseBucketSettings";
@@ -24,7 +26,7 @@ const OWNER_TABS: SettingsTab[] = ["items", "notifications", "advanced", "member
 const MEMBER_TABS: SettingsTab[] = ["members"];
 
 const tabCn = (active: boolean) =>
-  `font-mono text-xs px-2 py-1 transition-colors shrink-0 whitespace-nowrap ${active ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"}`;
+  `font-mono text-xs px-2 py-1 transition-colors shrink-0 whitespace-nowrap ${active ? "bg-foreground text-background" : "text-primary hover:text-foreground"}`;
 
 type BucketSettingsFormProps = {
   bucket: ViewerBucket;
@@ -126,7 +128,12 @@ export function BucketSettingsForm({
   const showSave = tab === "items" || tab === "notifications";
 
   return (
-    <div className="border-border bg-background flex max-h-[85vh] flex-col overflow-hidden border-2">
+    <div
+      className={cn(
+        "border-border bg-background flex max-h-[85vh] flex-col overflow-hidden border-2",
+        ACCENT_BUTTONS
+      )}
+    >
       <div className="bg-foreground text-background flex shrink-0 items-center justify-between gap-2 px-3 py-1.5">
         <span className="font-pixel min-w-0 truncate text-xs">bucket settings [{bucket.name}]</span>
         <BracketButton variant="inverted" onClick={onClose}>
@@ -165,6 +172,8 @@ export function BucketSettingsForm({
             {tabs.map((t) => (
               <button key={t} onClick={() => setTab(t)} className={tabCn(tab === t)}>
                 {t}
+                {/* the tab row is just wide enough for the four names on a phone */}
+                {t === "members" && <BetaTag feature="sharing" className="hidden sm:inline" />}
               </button>
             ))}
           </div>

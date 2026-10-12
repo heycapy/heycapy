@@ -1,3 +1,5 @@
+import { ACCENT_BUTTONS } from "@/components/layout/settings-constants";
+import { cn } from "@/lib/utils";
 import { useState, useTransition } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { BracketButton } from "@/components/ui/BracketButton";
@@ -78,7 +80,12 @@ function TelegramConfigForm({ bucket, onClose }: Omit<TelegramConfigDialogProps,
   }
 
   return (
-    <div className="border-border bg-background flex max-h-[85vh] flex-col overflow-hidden border-2">
+    <div
+      className={cn(
+        "border-border bg-background flex max-h-[85vh] flex-col overflow-hidden border-2",
+        ACCENT_BUTTONS
+      )}
+    >
       <div className="bg-foreground text-background flex shrink-0 items-center justify-between gap-2 px-3 py-1.5">
         <span className="font-pixel min-w-0 truncate text-xs">telegram config [{bucket.name}]</span>
         <BracketButton variant="inverted" onClick={onClose}>

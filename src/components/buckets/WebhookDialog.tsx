@@ -1,3 +1,5 @@
+import { ACCENT_BUTTONS } from "@/components/layout/settings-constants";
+import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { BracketButton } from "@/components/ui/BracketButton";
 import { WebhookPanel } from "./WebhookPanel";
@@ -34,7 +36,12 @@ export function WebhookDialog({ open, bucket, onClose }: WebhookDialogProps) {
             className="fixed top-[8%] left-1/2 z-[70] w-[calc(100%-2rem)] max-w-sm -translate-x-1/2 sm:top-[12%]"
             style={{ boxShadow: "5px 5px 0 var(--border)" }}
           >
-            <div className="border-border bg-background flex max-h-[85vh] flex-col overflow-hidden border-2">
+            <div
+              className={cn(
+                "border-border bg-background flex max-h-[85vh] flex-col overflow-hidden border-2",
+                ACCENT_BUTTONS
+              )}
+            >
               <div className="bg-foreground text-background flex shrink-0 items-center justify-between gap-2 px-3 py-1.5">
                 <span className="font-pixel min-w-0 truncate text-xs">webhook [{bucket.name}]</span>
                 <BracketButton variant="inverted" onClick={onClose}>

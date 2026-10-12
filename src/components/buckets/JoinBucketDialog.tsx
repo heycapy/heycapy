@@ -2,6 +2,9 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { BracketButton } from "@/components/ui/BracketButton";
+import { BetaTag } from "@/components/ui/BetaTag";
+import { ACCENT_BUTTONS } from "@/components/layout/settings-constants";
+import { cn } from "@/lib/utils";
 import { joinBucketAction } from "@/app/(app)/actions";
 import { INVITE_CODE_LENGTH } from "@/lib/buckets/constants";
 import { formatInviteCode, normalizeInviteCode } from "@/lib/buckets/invite-code";
@@ -64,10 +67,16 @@ export function JoinBucketDialog({ open, onClose }: JoinBucketDialogProps) {
                 e.preventDefault();
                 join();
               }}
-              className="border-border bg-background flex flex-col overflow-hidden border-2"
+              className={cn(
+                "border-border bg-background flex flex-col overflow-hidden border-2",
+                ACCENT_BUTTONS
+              )}
             >
               <div className="bg-foreground text-background flex items-center justify-between gap-2 px-3 py-1.5">
-                <span className="font-pixel text-xs">join a bucket</span>
+                <span className="font-pixel text-xs">
+                  join a bucket
+                  <BetaTag feature="sharing" />
+                </span>
                 <BracketButton type="button" variant="inverted" onClick={close}>
                   x
                 </BracketButton>
@@ -92,7 +101,9 @@ export function JoinBucketDialog({ open, onClose }: JoinBucketDialogProps) {
                     {error}
                   </p>
                 )}
-                <BracketButton type="submit" disabled={!ready || pending} className="w-fit">
+              </div>
+              <div className="border-border flex justify-end border-t px-3 py-2.5">
+                <BracketButton type="submit" disabled={!ready || pending}>
                   {pending ? "..." : "join"}
                 </BracketButton>
               </div>

@@ -7,8 +7,7 @@ import { formatInviteCode } from "@/lib/buckets/invite-code";
 import type { PendingInvite } from "@/lib/buckets/invites";
 
 const HINT = "text-muted-foreground font-mono text-[11px] leading-tight";
-const COPY_BUTTON =
-  "text-muted-foreground hover:text-foreground shrink-0 font-mono text-[11px] transition-colors";
+const COPY_BUTTON = "shrink-0 text-[11px]";
 const INVITE_QR_SIZE = 144;
 const HOUR_MS = 60 * 60 * 1000;
 
@@ -96,9 +95,13 @@ export function InviteSection({ bucketId }: { bucketId: number }) {
             >
               {formatInviteCode(fresh.code)}
             </span>
-            <button type="button" onClick={() => copy("code", fresh.code)} className={COPY_BUTTON}>
-              {copied === "code" ? "[copied]" : "[copy code]"}
-            </button>
+            <BracketButton
+              type="button"
+              onClick={() => copy("code", fresh.code)}
+              className={COPY_BUTTON}
+            >
+              {copied === "code" ? "copied" : "copy code"}
+            </BracketButton>
           </div>
           <div className="flex items-center gap-2">
             <input
@@ -108,9 +111,13 @@ export function InviteSection({ bucketId }: { bucketId: number }) {
               aria-label="invite link"
               className="border-border focus:border-foreground w-full border-b bg-transparent py-1.5 font-mono text-xs outline-none"
             />
-            <button type="button" onClick={() => copy("link", fresh.link)} className={COPY_BUTTON}>
-              {copied === "link" ? "[copied]" : "[copy link]"}
-            </button>
+            <BracketButton
+              type="button"
+              onClick={() => copy("link", fresh.link)}
+              className={COPY_BUTTON}
+            >
+              {copied === "link" ? "copied" : "copy link"}
+            </BracketButton>
           </div>
           <QRCodeSVG
             value={fresh.link}
