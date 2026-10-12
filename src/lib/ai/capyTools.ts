@@ -10,7 +10,7 @@ import {
 } from "@/lib/reminders/zoned";
 import { dueOn, resolveDeadline, type Due } from "@/lib/items/deadline";
 import { revalidatePath } from "next/cache";
-import { and, eq, gte, isNull, lte, or, sql, notInArray } from "drizzle-orm";
+import { and, eq, gte, inArray, isNull, lte, or, sql, notInArray } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { findBucketByName } from "@/lib/db/buckets";
 import { withDefaultChannels } from "@/lib/notifications/channels";
@@ -36,11 +36,21 @@ import {
 } from "@/constants";
 import { buckets, items } from "@/lib/db/schema";
 import { inLiveBucket } from "@/lib/buckets/live";
+import {
+  findAccessibleBucket,
+  findAccessibleItem,
+  listLiveBuckets,
+  memberBucketIds,
+} from "@/lib/buckets/access";
 import { BucketSchema, ReminderOffsets, buildPropertyValidator } from "@/types/rules";
 import type { ToolCall } from "./types";
 
 import { ITEM_AND_BUCKET_TOOLS } from "./capyToolDefs";
-import { BUCKET_SETTINGS_TOOLS, executeBucketSettingsTool } from "./bucketSettingsTools";
+import {
+  BUCKET_SETTINGS_TOOLS,
+  bucketNotOwnedError,
+  executeBucketSettingsTool,
+} from "./bucketSettingsTools";
 
 export const CAPY_TOOLS = [...ITEM_AND_BUCKET_TOOLS, ...BUCKET_SETTINGS_TOOLS];
 
@@ -252,13 +262,10 @@ async function executeToolCallInner(
 
   switch (call.name) {
     case "list_buckets": {
-      const result = await db
-        .select({ id: buckets.id, name: buckets.name, icon: buckets.icon })
-        .from(buckets)
-        .where(
-          and(eq(buckets.userId, userId), isNull(buckets.deletedAt), isNull(buckets.archivedAt))
-        );
-      return JSON.stringify(result);
+      const result = await listLiveBuckets(userId);
+      return JSON.stringify(
+        result.map(({ id, name, icon, isOwner }) => ({ id, name, icon, owned: isOwner }))
+      );
     }
 
     case "create_bucket": {
@@ -304,7 +311,7 @@ async function executeToolCallInner(
       const bucket = await db.query.buckets.findFirst({
         where: (b, { eq: qeq, and: qand }) => qand(qeq(b.id, bucketId), qeq(b.userId, userId)),
       });
-      if (!bucket) return JSON.stringify({ ok: false, error: "Bucket not found" });
+      if (!bucket) return bucketNotOwnedError(userId, bucketId);
 
       const updates: { updatedAt: Date; name?: string; icon?: string | null } = {
         updatedAt: new Date(),
@@ -341,7 +348,7 @@ async function executeToolCallInner(
       const bucket = await db.query.buckets.findFirst({
         where: (b, { eq: qeq, and: qand }) => qand(qeq(b.id, bucketId), qeq(b.userId, userId)),
       });
-      if (!bucket) return JSON.stringify({ ok: false, error: "Bucket not found" });
+      if (!bucket) return bucketNotOwnedError(userId, bucketId);
 
       if (!confirmDelete(userId, bucketId, turnId)) {
         return JSON.stringify({
@@ -366,9 +373,7 @@ async function executeToolCallInner(
       const title = String(args.title ?? "").trim();
       if (!title) return JSON.stringify({ ok: false, error: "Title is required" });
 
-      const bucket = await db.query.buckets.findFirst({
-        where: (b, { eq: qeq, and: qand }) => qand(qeq(b.id, bucketId), qeq(b.userId, userId)),
-      });
+      const bucket = await findAccessibleBucket(userId, bucketId);
       if (!bucket) return JSON.stringify({ ok: false, error: "Bucket not found" });
 
       const [maxRow] = await db
@@ -429,9 +434,7 @@ async function executeToolCallInner(
 
     case "update_item": {
       const itemId = Number(args.item_id);
-      const item = await db.query.items.findFirst({
-        where: (i, { eq: qeq, and: qand }) => qand(qeq(i.id, itemId), qeq(i.userId, userId)),
-      });
+      const item = await findAccessibleItem(userId, itemId);
       if (!item) return JSON.stringify({ ok: false, error: "Item not found" });
 
       const updates: {
@@ -534,10 +537,7 @@ async function executeToolCallInner(
         }
       }
 
-      await db
-        .update(items)
-        .set(updates)
-        .where(and(eq(items.id, itemId), eq(items.userId, userId)));
+      await db.update(items).set(updates).where(eq(items.id, itemId));
       await refreshItemReminders([itemId]);
       if (updates.status === ITEM_STATUS.completed) await createNextOccurrence(itemId);
 
@@ -547,9 +547,7 @@ async function executeToolCallInner(
 
     case "complete_item": {
       const itemId = Number(args.item_id);
-      const item = await db.query.items.findFirst({
-        where: (i, { eq: qeq, and: qand }) => qand(qeq(i.id, itemId), qeq(i.userId, userId)),
-      });
+      const item = await findAccessibleItem(userId, itemId);
       if (!item) return JSON.stringify({ ok: false, error: "Item not found" });
 
       const newStatus = await toggleItemCompleted(item);
@@ -560,15 +558,13 @@ async function executeToolCallInner(
 
     case "delete_item": {
       const itemId = Number(args.item_id);
-      const item = await db.query.items.findFirst({
-        where: (i, { eq: qeq, and: qand }) => qand(qeq(i.id, itemId), qeq(i.userId, userId)),
-      });
+      const item = await findAccessibleItem(userId, itemId);
       if (!item) return JSON.stringify({ ok: false, error: "Item not found" });
 
       await db
         .update(items)
         .set({ deletedAt: new Date(), deletedBy: userId })
-        .where(and(eq(items.id, itemId), eq(items.userId, userId)));
+        .where(eq(items.id, itemId));
       await refreshItemReminders([itemId]);
 
       revalidatePath("/");
@@ -580,13 +576,8 @@ async function executeToolCallInner(
       const destBucketId = Number(args.bucket_id);
 
       const [item, destBucket] = await Promise.all([
-        db.query.items.findFirst({
-          where: (i, { eq: qeq, and: qand }) => qand(qeq(i.id, itemId), qeq(i.userId, userId)),
-        }),
-        db.query.buckets.findFirst({
-          where: (b, { eq: qeq, and: qand }) =>
-            qand(qeq(b.id, destBucketId), qeq(b.userId, userId)),
-        }),
+        findAccessibleItem(userId, itemId),
+        findAccessibleBucket(userId, destBucketId),
       ]);
       if (!item) return JSON.stringify({ ok: false, error: "Item not found" });
       if (!destBucket) return JSON.stringify({ ok: false, error: "Destination bucket not found" });
@@ -604,7 +595,7 @@ async function executeToolCallInner(
           sortOrder: (maxRow?.max ?? -1) + 1,
           updatedAt: new Date(),
         })
-        .where(and(eq(items.id, itemId), eq(items.userId, userId)));
+        .where(eq(items.id, itemId));
       await refreshItemReminders([itemId]);
 
       revalidatePath("/");
@@ -618,7 +609,9 @@ async function executeToolCallInner(
       const [bucket] = await db
         .select({ id: buckets.id })
         .from(buckets)
-        .where(and(eq(buckets.id, bucketId), eq(buckets.userId, userId), inLiveBucket));
+        .where(
+          and(eq(buckets.id, bucketId), inArray(buckets.id, memberBucketIds(userId)), inLiveBucket)
+        );
       if (!bucket) return JSON.stringify({ ok: false, error: "Bucket not found" });
 
       const rows = await db
@@ -626,13 +619,8 @@ async function executeToolCallInner(
         .from(items)
         .where(
           includeCompleted
-            ? and(eq(items.bucketId, bucketId), eq(items.userId, userId), isNull(items.deletedAt))
-            : and(
-                eq(items.bucketId, bucketId),
-                eq(items.userId, userId),
-                isNull(items.deletedAt),
-                notCompleted
-              )
+            ? and(eq(items.bucketId, bucketId), isNull(items.deletedAt))
+            : and(eq(items.bucketId, bucketId), isNull(items.deletedAt), notCompleted)
         );
 
       return JSON.stringify(rows.map((row) => itemDetails(row, timezone)));
@@ -652,7 +640,7 @@ async function executeToolCallInner(
       const wantsCompleted = includeCompleted || completedWithinDays !== null;
 
       const conditions = [
-        eq(items.userId, userId),
+        inArray(items.bucketId, memberBucketIds(userId)),
         isNull(items.deletedAt),
         ...(wantsCompleted ? [] : [notCompleted]),
         ...(bucketId !== null ? [eq(items.bucketId, bucketId)] : []),
@@ -724,7 +712,7 @@ export async function getUpcomingItems(userId: number, timezone: string): Promis
     .innerJoin(buckets, eq(buckets.id, items.bucketId))
     .where(
       and(
-        eq(items.userId, userId),
+        inArray(items.bucketId, memberBucketIds(userId)),
         isNull(items.deletedAt),
         inLiveBucket,
         activeOnly,

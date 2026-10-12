@@ -1,9 +1,9 @@
 import { completeItem } from "@/lib/reminders/quick-actions";
-import { findAccessibleItem } from "@/lib/buckets/access";
+import { findAccessibleItem, listLiveBuckets } from "@/lib/buckets/access";
 import { recordSystemError } from "@/lib/system-errors";
 import { desc, eq } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { buckets, chatMessages, chatSessions, users } from "@/lib/db/schema";
+import { chatMessages, chatSessions, users } from "@/lib/db/schema";
 import { getAIProvider } from "@/lib/ai";
 import { decryptValue } from "@/lib/crypto";
 import { buildSystemPrompt } from "@/lib/ai/systemPrompt";
@@ -781,16 +781,7 @@ async function handleUpdate(botToken: string, body: TelegramUpdate): Promise<Res
 
   const [user, userBucketsFull] = await Promise.all([
     db.query.users.findFirst({ where: eq(users.id, userId) }),
-    db
-      .select({
-        id: buckets.id,
-        name: buckets.name,
-        icon: buckets.icon,
-        itemsRules: buckets.itemsRules,
-        notificationsRules: buckets.notificationsRules,
-      })
-      .from(buckets)
-      .where(eq(buckets.userId, userId)),
+    listLiveBuckets(userId),
   ]);
 
   let session = await db.query.chatSessions.findFirst({

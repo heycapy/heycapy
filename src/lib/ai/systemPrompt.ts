@@ -17,6 +17,7 @@ type BucketSummary = {
   icon: string | null;
   itemsRules?: string | null;
   notificationsRules?: string | null;
+  isOwner?: boolean;
 };
 
 export function buildSystemPrompt(
@@ -40,6 +41,7 @@ export function buildSystemPrompt(
       ? buckets
           .map((b) => {
             const tags: string[] = [];
+            if (b.isOwner === false) tags.push("joined: only its owner can change or delete it");
             const items = parseItemsRules(b.itemsRules);
             if (items.readonly) tags.push("readonly");
             if (items.defaultDeadlineOffsetDays) {

@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { findAccessibleBucket } from "@/lib/buckets/access";
 import { parseItemsRules } from "@/lib/rules";
 import {
   getChannelSettings,
@@ -180,6 +181,17 @@ function pick(args: Record<string, unknown>, key: string, current: unknown): unk
   return key in args && args[key] !== undefined ? args[key] : current;
 }
 
+// members can open a shared bucket but only its owner may change or read its rules
+export async function bucketNotOwnedError(userId: number, bucketId: number): Promise<string> {
+  const joined = await findAccessibleBucket(userId, bucketId);
+  return JSON.stringify({
+    ok: false,
+    error: joined
+      ? `Only the owner of "${joined.name}" can change it or see its settings. Tell the user that.`
+      : "Bucket not found",
+  });
+}
+
 export async function executeBucketSettingsTool(
   name: string,
   args: Record<string, unknown>,
@@ -189,7 +201,7 @@ export async function executeBucketSettingsTool(
 
   const bucketId = Number(args.bucket_id);
   const bucket = await findBucket(userId, bucketId);
-  if (!bucket) return JSON.stringify({ ok: false, error: "Bucket not found" });
+  if (!bucket) return bucketNotOwnedError(userId, bucketId);
 
   if (name === "get_bucket_settings") {
     return JSON.stringify({
