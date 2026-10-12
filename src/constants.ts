@@ -150,6 +150,9 @@ export function isClosedStatus(status: string): boolean {
   return CLOSED_ITEM_STATUSES.includes(status);
 }
 
+// Sent by /api/events when a connection opens, carrying the server's NEXT_DEPLOYMENT_ID
+export const SERVER_VERSION_EVENT = "version";
+
 // The words capy's tools take for an assignee besides a member's name
 export const CAPY_ASSIGNEE = { me: "me", anyone: "anyone" } as const;
 

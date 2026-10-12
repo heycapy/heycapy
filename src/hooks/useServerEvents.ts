@@ -1,10 +1,13 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useUIStore } from "@/store/ui";
+import { SERVER_VERSION_EVENT } from "@/constants";
 
-export function useServerEvents() {
+// Returns whether the server now runs a newer build than this page
+export function useServerEvents(): boolean {
   const router = useRouter();
   const tickAiRefresh = useUIStore((s) => s.tickAiRefresh);
+  const [newVersion, setNewVersion] = useState(false);
 
   useEffect(() => {
     let source: EventSource | null = null;
@@ -25,6 +28,10 @@ export function useServerEvents() {
       source.onmessage = (e) => {
         if (e.data === "refresh") refresh();
       };
+      source.addEventListener(SERVER_VERSION_EVENT, (e) => {
+        const ours = process.env.NEXT_DEPLOYMENT_ID;
+        if (ours && e.data !== ours) setNewVersion(true);
+      });
     }
 
     // Phones drop the connection while the app is in the background and don't always reconnect it
@@ -44,4 +51,6 @@ export function useServerEvents() {
       source?.close();
     };
   }, [router, tickAiRefresh]);
+
+  return newVersion;
 }

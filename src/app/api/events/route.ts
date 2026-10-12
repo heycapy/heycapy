@@ -2,6 +2,7 @@ import { requireApiSession } from "@/lib/auth/session";
 import { dataEvents } from "@/lib/events";
 import { isBucketMember } from "@/lib/buckets/access";
 import { recordSystemError } from "@/lib/system-errors";
+import { SERVER_VERSION_EVENT } from "@/constants";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -39,6 +40,12 @@ export async function GET() {
 
       dataEvents.on("refresh", onRefresh);
       dataEvents.on("bucket", onBucket);
+
+      // A deploy restarts the server, so every open app hears the new version as it reconnects
+      const version = process.env.NEXT_DEPLOYMENT_ID;
+      if (version) {
+        controller.enqueue(encoder.encode(`event: ${SERVER_VERSION_EVENT}\ndata: ${version}\n\n`));
+      }
 
       // Keepalive ping every 25s so proxies don't close the connection
       const ping = setInterval(() => {

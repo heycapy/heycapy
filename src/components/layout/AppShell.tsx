@@ -15,6 +15,7 @@ import { useUIStore } from "@/store/ui";
 import { useChatStore } from "@/store/chat";
 import { useTimezoneStore } from "@/store/timezone";
 import { TimezoneMoveBanner } from "./TimezoneMoveBanner";
+import { NewVersionBanner } from "./NewVersionBanner";
 import { saveTimezoneIfDefaultAction } from "@/app/(app)/user-settings-actions";
 import { useServerEvents } from "@/hooks/useServerEvents";
 import { AssistantNameProvider } from "@/components/capy/assistant-name";
@@ -44,7 +45,7 @@ export function AppShell({
   const [trashOpen, setTrashOpen] = useState(false);
   const [joinOpen, setJoinOpen] = useState(false);
 
-  useServerEvents();
+  const newVersion = useServerEvents();
 
   useEffect(() => {
     void useUIStore.persist.rehydrate();
@@ -63,6 +64,7 @@ export function AppShell({
         onTrashOpen={() => setTrashOpen(true)}
         onJoinOpen={() => setJoinOpen(true)}
       />
+      {newVersion && <NewVersionBanner />}
       {!hasWorkingChannel && <NoChannelBanner onSetUp={() => setSettingsTab("notifications")} />}
       <DeliveryFailureBanner failures={failures} onFix={() => setSettingsTab("notifications")} />
       <TimezoneMoveBanner />

@@ -1,6 +1,11 @@
 import { mkdirSync } from "node:fs";
 import { defineConfig, devices } from "@playwright/test";
-import { E2E_DATABASE_FILE, E2E_JWT_SECRET, E2E_SERVER_OLLAMA_PORT } from "./tests/e2e/helpers/env";
+import {
+  E2E_DATABASE_FILE,
+  E2E_DEPLOYMENT_ID,
+  E2E_JWT_SECRET,
+  E2E_SERVER_OLLAMA_PORT,
+} from "./tests/e2e/helpers/env";
 
 // Not 3000, so tests can run alongside `pnpm dev`
 const E2E_PORT = 3100;
@@ -66,6 +71,8 @@ export default defineConfig({
       GEMINI_API_KEY: "e2e-not-used",
       OLLAMA_URL: `http://127.0.0.1:${E2E_SERVER_OLLAMA_PORT}`,
       PORT: String(E2E_PORT),
+
+      NEXT_DEPLOYMENT_ID: E2E_DEPLOYMENT_ID,
     },
     reuseExistingServer: !process.env.CI,
     timeout: 120000,
