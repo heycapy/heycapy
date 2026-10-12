@@ -8,6 +8,7 @@ import { getAIProvider } from "@/lib/ai";
 import { decryptValue } from "@/lib/crypto";
 import { buildSystemPrompt } from "@/lib/ai/systemPrompt";
 import { getUpcomingItems } from "@/lib/ai/capyTools";
+import { withMemberNames } from "@/lib/ai/assigneeArgs";
 import { runAgent } from "@/lib/ai/runAgent";
 import {
   sendTelegram,
@@ -781,7 +782,7 @@ async function handleUpdate(botToken: string, body: TelegramUpdate): Promise<Res
 
   const [user, userBucketsFull] = await Promise.all([
     db.query.users.findFirst({ where: eq(users.id, userId) }),
-    listLiveBuckets(userId),
+    listLiveBuckets(userId).then((buckets) => withMemberNames(userId, buckets)),
   ]);
 
   let session = await db.query.chatSessions.findFirst({

@@ -29,15 +29,16 @@ export function otherClock(
   at: Date,
   yours: string,
   assignee: { name: string; timezone: string; isYou: boolean } | undefined,
-  setOn: { timezone: string; place: string } | undefined
+  setOn: { timezone: string; place: string } | undefined,
+  timeOn: (at: Date, timezone: string) => string = clockTimeIn
 ): string | null {
   if (assignee && !assignee.isYou && assignee.timezone !== UNSET_TIMEZONE) {
     if (differs(at, assignee.timezone, yours)) {
-      return `${clockTimeIn(at, assignee.timezone)} for ${assignee.name}`;
+      return `${timeOn(at, assignee.timezone)} for ${assignee.name}`;
     }
   }
   if (setOn && differs(at, setOn.timezone, yours)) {
-    return `${clockTimeIn(at, setOn.timezone)} ${setOn.place}`;
+    return `${timeOn(at, setOn.timezone)} ${setOn.place}`;
   }
   return null;
 }

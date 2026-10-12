@@ -1,9 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { bucketMembers, buckets, items } from "@/lib/db/schema";
+import { bucketMembers, buckets, items, users, userSettings } from "@/lib/db/schema";
 import { listLiveBuckets } from "@/lib/buckets/access";
 import { executeToolCall, getUpcomingItems } from "@/lib/ai/capyTools";
+import { withMemberNames } from "@/lib/ai/assigneeArgs";
 import { buildSystemPrompt } from "@/lib/ai/systemPrompt";
 import {
   HOUR,
@@ -33,8 +34,10 @@ async function sharedBucket() {
   return { owner, member, stranger, bucketId, itemId };
 }
 
-async function tool(userId: number, name: string, args: Record<string, unknown>) {
-  return JSON.parse(await executeToolCall({ id: "t", name, arguments: args }, userId)) as {
+async function tool(userId: number, name: string, args: Record<string, unknown>, timezone = "UTC") {
+  return JSON.parse(
+    await executeToolCall({ id: "t", name, arguments: args }, userId, timezone)
+  ) as {
     ok?: boolean;
     error?: string;
   } & Record<string, unknown>;
@@ -157,5 +160,176 @@ describe("capy in a shared bucket", () => {
 
     const [bucket] = await db.select().from(buckets).where(eq(buckets.id, bucketId));
     expect(bucket).toMatchObject({ name: "Home", deletedAt: null });
+  });
+});
+
+const INDIA = "Asia/Kolkata";
+const LONDON = "Europe/London";
+
+// An India owner and Sam in London; in March London is on UTC, India 5:30 ahead
+async function acrossClocks() {
+  const owner = await seedUser(INDIA);
+  const sam = await seedUser(LONDON);
+  const bucketId = await seedBucket(owner);
+  await db.update(buckets).set({ name: "Home" }).where(eq(buckets.id, bucketId));
+  const ownerUsername = `quiet-otter-${owner}`;
+  const samUsername = `brave-fox-${sam}`;
+  await db.update(users).set({ username: ownerUsername }).where(eq(users.id, owner));
+  await db
+    .update(users)
+    .set({ username: samUsername, displayName: "Sam" })
+    .where(eq(users.id, sam));
+  await db.insert(bucketMembers).values({ bucketId, userId: sam });
+  return { owner, sam, bucketId, ownerUsername, samUsername };
+}
+
+type SavedItem = { item: Record<string, unknown>; itemId: number } & Record<string, unknown>;
+
+async function addAs(userId: number, args: Record<string, unknown>) {
+  return (await tool(userId, "add_item", { title: "call mum", ...args }, INDIA)) as SavedItem;
+}
+
+describe("capy assigning items", () => {
+  it("assigns by name and reads the time on that person's clock", async () => {
+    const { owner, sam, bucketId } = await acrossClocks();
+
+    const added = await addAs(owner, {
+      bucket_id: bucketId,
+      assignee: "sam",
+      deadline: "2026-03-11T09:00:00",
+    });
+
+    expect(await itemOf(added.itemId)).toMatchObject({
+      assigneeId: sam,
+      deadline: new Date("2026-03-11T09:00:00Z"),
+      deadlineTimezone: LONDON,
+    });
+    expect(added.item).toMatchObject({
+      assignedTo: "Sam",
+      deadline: "Wed 2026-03-11 14:30",
+      deadlineOtherClock: "Wed 2026-03-11 09:00 for Sam",
+    });
+  });
+
+  it("matches the username too, and keeps the user's clock when asked", async () => {
+    const { owner, sam, bucketId, samUsername } = await acrossClocks();
+
+    const added = await addAs(owner, {
+      bucket_id: bucketId,
+      assignee: samUsername.toUpperCase(),
+      deadline: "2026-03-11T09:00:00",
+      deadline_on_my_clock: true,
+    });
+
+    expect(await itemOf(added.itemId)).toMatchObject({
+      assigneeId: sam,
+      deadline: new Date("2026-03-11T03:30:00Z"),
+      deadlineTimezone: INDIA,
+    });
+    expect(added.item).toMatchObject({ deadlineOtherClock: "Wed 2026-03-11 03:30 for Sam" });
+  });
+
+  it("takes me and anyone, on the user's own clock", async () => {
+    const { owner, bucketId } = await acrossClocks();
+
+    const mine = await addAs(owner, {
+      bucket_id: bucketId,
+      assignee: "me",
+      deadline: "2026-03-11T09:00:00",
+    });
+    expect(await itemOf(mine.itemId)).toMatchObject({
+      assigneeId: owner,
+      deadline: new Date("2026-03-11T03:30:00Z"),
+      deadlineTimezone: INDIA,
+    });
+    expect(mine.item).toMatchObject({ assignedTo: "the user", deadlineOtherClock: null });
+
+    const cleared = (await tool(
+      owner,
+      "update_item",
+      { item_id: mine.itemId, assignee: "anyone" },
+      INDIA
+    )) as SavedItem;
+    expect(cleared.item).toMatchObject({ assignedTo: null });
+    expect((await itemOf(mine.itemId))?.assigneeId).toBeNull();
+  });
+
+  it("refuses a name that isn't in the bucket, and any name in a bucket nobody shares", async () => {
+    const { owner, bucketId } = await acrossClocks();
+
+    expect(await addAs(owner, { bucket_id: bucketId, assignee: "Bob" })).toEqual({
+      ok: false,
+      error:
+        'No one called "Bob" in "Home". Its members: the user, Sam. Ask the user who they mean.',
+    });
+
+    const solo = await seedBucket(owner);
+    await db.update(buckets).set({ name: "Mine" }).where(eq(buckets.id, solo));
+    expect(await addAs(owner, { bucket_id: solo, assignee: "me" })).toEqual({
+      ok: false,
+      error: `"Mine" isn't shared with anyone, so its items can't be assigned.`,
+    });
+
+    const saved = await db.select().from(items).where(eq(items.bucketId, bucketId));
+    expect(saved).toEqual([]);
+  });
+
+  it("keeps the deadline when only the assignee changes, and reads a new time on theirs", async () => {
+    const { owner, sam, bucketId } = await acrossClocks();
+    const added = await addAs(owner, { bucket_id: bucketId, deadline: "2026-03-11T09:00:00" });
+    const onIndia = { deadline: new Date("2026-03-11T03:30:00Z"), deadlineTimezone: INDIA };
+    expect(await itemOf(added.itemId)).toMatchObject(onIndia);
+
+    await tool(owner, "update_item", { item_id: added.itemId, assignee: "Sam" }, INDIA);
+    expect(await itemOf(added.itemId)).toMatchObject({ ...onIndia, assigneeId: sam });
+
+    await tool(
+      owner,
+      "update_item",
+      { item_id: added.itemId, deadline: "2026-03-12T09:00:00" },
+      INDIA
+    );
+    expect(await itemOf(added.itemId)).toMatchObject({
+      deadline: new Date("2026-03-12T09:00:00Z"),
+      deadlineTimezone: LONDON,
+    });
+  });
+
+  it("uses the user's clock for someone whose timezone isn't set", async () => {
+    const { owner, sam, bucketId } = await acrossClocks();
+    await db.update(userSettings).set({ timezone: "UTC" }).where(eq(userSettings.userId, sam));
+
+    const added = await addAs(owner, {
+      bucket_id: bucketId,
+      assignee: "Sam",
+      deadline: "2026-03-11T09:00:00",
+    });
+    expect(await itemOf(added.itemId)).toMatchObject({
+      deadline: new Date("2026-03-11T03:30:00Z"),
+      deadlineTimezone: INDIA,
+    });
+  });
+
+  it("names the members of shared buckets in the prompt", async () => {
+    const { owner, sam, bucketId, ownerUsername } = await acrossClocks();
+    const solo = await seedBucket(owner);
+    await db.update(buckets).set({ name: "Mine" }).where(eq(buckets.id, solo));
+
+    const ownerPrompt = buildSystemPrompt(
+      null,
+      await withMemberNames(owner, await listLiveBuckets(owner)),
+      "",
+      NOW
+    );
+    expect(ownerPrompt).toContain(`- "Home" (id: ${bucketId}) [members: me (the user), Sam`);
+    expect(ownerPrompt).toMatch(new RegExp(`- "Mine" \\(id: ${solo}\\)(?! \\[members)`));
+
+    const samPrompt = buildSystemPrompt(
+      null,
+      await withMemberNames(sam, await listLiveBuckets(sam)),
+      "",
+      NOW
+    );
+    expect(samPrompt).toContain(`members: ${ownerUsername}, me (the user)`);
   });
 });

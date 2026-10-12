@@ -8,6 +8,7 @@ import { getAIProvider } from "@/lib/ai";
 import { decryptValue } from "@/lib/crypto";
 import { buildSystemPrompt } from "@/lib/ai/systemPrompt";
 import { getUpcomingItems } from "@/lib/ai/capyTools";
+import { withMemberNames } from "@/lib/ai/assigneeArgs";
 import { chatHistory, compactSessionIfNeeded } from "@/lib/ai/compact";
 import { runAgent, type AgentStep } from "@/lib/ai/runAgent";
 import { toolStatus } from "@/lib/ai/toolStatus";
@@ -74,7 +75,7 @@ async function answer(userId: number, request: ChatRequest, send: (event: ChatEv
   const [settings, user, userBuckets] = await Promise.all([
     db.query.userSettings.findFirst({ where: eq(userSettings.userId, userId) }),
     db.query.users.findFirst({ where: eq(users.id, userId) }),
-    listLiveBuckets(userId),
+    listLiveBuckets(userId).then((buckets) => withMemberNames(userId, buckets)),
   ]);
 
   const timezone = settings?.timezone ?? "UTC";
