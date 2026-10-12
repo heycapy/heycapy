@@ -3,6 +3,7 @@ import type * as SessionModule from "@/lib/auth/session";
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import {
+  bucketMembers,
   buckets,
   chatMessages,
   chatSessions,
@@ -85,6 +86,97 @@ describe("data export", () => {
       }),
     ]);
     expect(JSON.stringify(data)).not.toMatch(/SECRET-/);
+  });
+
+  describe("shared buckets", () => {
+    async function sharedBucket() {
+      const owner = await seedUser();
+      const member = await seedUser();
+      await db.update(users).set({ displayName: "Ana" }).where(eq(users.id, owner));
+      await db.update(users).set({ displayName: "Sam" }).where(eq(users.id, member));
+      const bucketId = await seedBucket(owner);
+      await db.insert(bucketMembers).values({ bucketId, userId: member });
+      await db
+        .update(buckets)
+        .set({ webhookKey: "SECRET-WEBHOOK-KEY", telegramConfig: '{"chat":"SECRET-TELEGRAM"}' })
+        .where(eq(buckets.id, bucketId));
+      const ownerItem = await seedItem(owner, bucketId, { deadline: T0, title: "book flights" });
+      await db.update(items).set({ assigneeId: member }).where(eq(items.id, ownerItem));
+      await seedItem(member, bucketId, { deadline: T0, title: "buy milk" });
+      return { owner, member, bucketId };
+    }
+
+    it("a member gets the joined bucket with everyone's items, without its owner's secrets", async () => {
+      const { member, bucketId } = await sharedBucket();
+
+      const data = await buildAccountExport(member, T0);
+
+      expect(data.buckets).toEqual([
+        expect.objectContaining({
+          id: bucketId,
+          owner: "Ana",
+          telegram: null,
+          webhookEnabled: null,
+        }),
+      ]);
+      expect(data.items).toEqual([
+        expect.objectContaining({
+          bucketId,
+          title: "book flights",
+          addedBy: "Ana",
+          assignedTo: "you",
+        }),
+        expect.objectContaining({
+          bucketId,
+          title: "buy milk",
+          addedBy: "you",
+          assignedTo: null,
+        }),
+      ]);
+      expect(JSON.stringify(data)).not.toMatch(/SECRET-/);
+    });
+
+    it("the owner gets the items members added to their bucket", async () => {
+      const { owner, bucketId } = await sharedBucket();
+
+      const data = await buildAccountExport(owner, T0);
+
+      expect(data.buckets).toEqual([
+        expect.objectContaining({ id: bucketId, owner: "you", webhookEnabled: true }),
+      ]);
+      expect(data.items.map((i) => [i.title, i.addedBy, i.assignedTo])).toEqual([
+        ["book flights", "you", "Sam"],
+        ["buy milk", "Sam", null],
+      ]);
+    });
+
+    it("leaves out joined buckets the member can't open: archived, deleted or left", async () => {
+      const { owner, member, bucketId } = await sharedBucket();
+      const archived = await seedBucket(owner);
+      const deleted = await seedBucket(owner);
+      await db.insert(bucketMembers).values([
+        { bucketId: archived, userId: member },
+        { bucketId: deleted, userId: member },
+      ]);
+      await seedItem(member, archived, { deadline: T0, title: "in archived" });
+      await seedItem(member, deleted, { deadline: T0, title: "in deleted" });
+      await db.update(buckets).set({ archivedAt: T0 }).where(eq(buckets.id, archived));
+      await db.update(buckets).set({ deletedAt: T0 }).where(eq(buckets.id, deleted));
+
+      expect((await buildAccountExport(member, T0)).buckets.map((b) => b.id)).toEqual([bucketId]);
+
+      await db.delete(bucketMembers).where(eq(bucketMembers.userId, member));
+      const afterLeaving = await buildAccountExport(member, T0);
+
+      expect(afterLeaving.buckets).toEqual([]);
+      expect(afterLeaving.items).toEqual([]);
+      expect((await buildAccountExport(owner, T0)).items.map((i) => i.title)).toEqual([
+        "book flights",
+        "buy milk",
+        "in archived",
+        "in deleted",
+      ]);
+    });
   });
 });
 
