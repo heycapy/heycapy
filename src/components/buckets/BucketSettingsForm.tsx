@@ -3,6 +3,7 @@ import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { charCountColor } from "@/components/ui/input";
 import { BracketButton } from "@/components/ui/BracketButton";
+import { BetaTag } from "@/components/ui/BetaTag";
 import { BucketRulesPanel } from "./BucketRulesPanel";
 import type { NotifAvailability } from "./BucketRulesPanel";
 import { parseBucketSettings, type BucketSettingsValues } from "./parseBucketSettings";
@@ -165,6 +166,8 @@ export function BucketSettingsForm({
             {tabs.map((t) => (
               <button key={t} onClick={() => setTab(t)} className={tabCn(tab === t)}>
                 {t}
+                {/* the tab row is just wide enough for the four names on a phone */}
+                {t === "members" && <BetaTag feature="sharing" className="hidden sm:inline" />}
               </button>
             ))}
           </div>

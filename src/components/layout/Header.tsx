@@ -1,6 +1,7 @@
 import { useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Archive, LogOut, SlidersHorizontal, Trash2, UserPlus } from "lucide-react";
+import { BetaTag } from "@/components/ui/BetaTag";
 import { BracketButton } from "@/components/ui/BracketButton";
 import { logoutAction, logoutEverywhereAction } from "@/app/(app)/actions";
 import { useScrollLock } from "@/hooks/useScrollLock";
@@ -150,7 +151,10 @@ function GlobalMenu({
                 className="text-foreground hover:bg-muted flex w-full items-center gap-2.5 px-3 py-2 font-mono text-xs transition-colors"
               >
                 <UserPlus size={11} />
-                join a bucket
+                <span>
+                  join a bucket
+                  <BetaTag feature="sharing" />
+                </span>
               </button>
               <button
                 onClick={() => pick(onArchive)}
