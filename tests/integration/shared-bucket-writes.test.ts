@@ -3,7 +3,7 @@ import type * as SessionModule from "@/lib/auth/session";
 import { asc, eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { bucketMembers, items } from "@/lib/db/schema";
-import { ITEM_STATUS } from "@/constants";
+import { ITEM_GONE_ERROR, ITEM_STATUS } from "@/constants";
 import {
   addItemAction,
   completeItemAction,
@@ -126,10 +126,10 @@ describe("a member changing someone else's item", () => {
       await moveItemAction(itemId, "2026-03-12"),
       await completeItemAction(itemId),
       await deleteItemAction(itemId),
-      await skipOccurrenceAction(itemId),
     ];
 
-    for (const result of results) expect(result).toEqual({ ok: false, error: "Item not found" });
+    for (const result of results) expect(result).toEqual({ ok: false, error: ITEM_GONE_ERROR });
+    expect(await skipOccurrenceAction(itemId)).toEqual({ ok: false, error: "Item not found" });
     expect(await itemOf(itemId)).toEqual(before);
   });
 });

@@ -179,6 +179,8 @@ export const TELEGRAM_RESERVED_COMMANDS = [
 ] as const;
 
 // Item / bucket field limits
+// Shown in the item dialog: someone else deleted the item, or the owner removed this person
+export const ITEM_GONE_ERROR = "this item was deleted, or you're no longer in its bucket";
 export const ITEM_TITLE_MAX_LENGTH = 500;
 export const BUCKET_NAME_MAX_LENGTH = 100;
 export const DUPLICATE_BUCKET_NAME_ERROR = "A bucket with this name already exists.";

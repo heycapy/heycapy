@@ -25,8 +25,7 @@ export default async function ReminderActionPage({
 }) {
   const { token } = await params;
   const claim = verifyReminderAction(token);
-  const found = claim ? await findAccessibleItem(claim.userId, claim.itemId) : undefined;
-  const item = found?.deletedAt === null ? found : undefined;
+  const item = claim ? await findAccessibleItem(claim.userId, claim.itemId) : undefined;
 
   return (
     <main className="flex flex-1 flex-col items-center justify-center p-6">

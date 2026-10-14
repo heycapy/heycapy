@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { ITEM_GONE_ERROR } from "@/constants";
 import { authState } from "../helpers/auth";
 import {
   activeBucketTitle,
@@ -8,6 +9,7 @@ import {
   createBucket,
   itemRow,
   openNewBucketModal,
+  selectBucket,
   uniqueName,
 } from "../helpers/buckets";
 
@@ -82,6 +84,47 @@ test.describe("items", () => {
     await page.getByRole("button", { name: /update/i }).click();
     await expect(itemRow(page, updated)).toBeVisible();
     await expect(itemRow(page, title)).not.toBeVisible();
+  });
+
+  test("says so when an item is gone before the edit is saved", async ({ page, context }) => {
+    const bucket = uniqueName("Gone");
+    const title = uniqueName("buy oat milk");
+    await createAndSelectBucket(page, bucket);
+    await addItem(page, title);
+    await itemRow(page, title).click();
+    await page.locator("textarea").fill(uniqueName("buy almond milk"));
+
+    const other = await context.newPage();
+    await other.goto("/");
+    await selectBucket(other, bucket);
+    await itemRow(other, title).click();
+    await other.getByRole("button", { name: "delete item" }).click();
+    await expect(itemRow(other, title)).not.toBeVisible();
+    await other.close();
+
+    await page.getByRole("button", { name: /update/i }).click();
+    await expect(page.getByText(ITEM_GONE_ERROR)).toBeVisible();
+    await expect(page.getByText("edit item", { exact: true })).toBeVisible();
+  });
+
+  test("says so when an item is gone before it is deleted", async ({ page, context }) => {
+    const bucket = uniqueName("Gone");
+    const title = uniqueName("buy oat milk");
+    await createAndSelectBucket(page, bucket);
+    await addItem(page, title);
+    await itemRow(page, title).click();
+
+    const other = await context.newPage();
+    await other.goto("/");
+    await selectBucket(other, bucket);
+    await itemRow(other, title).click();
+    await other.getByRole("button", { name: "delete item" }).click();
+    await expect(itemRow(other, title)).not.toBeVisible();
+    await other.close();
+
+    await page.getByRole("button", { name: "delete item" }).click();
+    await expect(page.getByText(ITEM_GONE_ERROR)).toBeVisible();
+    await expect(page.getByRole("button", { name: /undo/i })).not.toBeVisible();
   });
 
   test("item add dialog closes on cancel without adding", async ({ page }) => {

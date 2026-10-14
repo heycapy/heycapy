@@ -41,6 +41,7 @@ export function useItemEditor({
   const [editProperties, setEditProperties] = useState<Record<string, unknown>>({});
   const [editReminders, setEditReminders] = useState<number[] | null>(null);
   const [editAssignee, setEditAssignee] = useState<number | null>(null);
+  const [editError, setEditError] = useState("");
   const [editPending, startEditTransition] = useTransition();
 
   function cancelEditing() {
@@ -52,6 +53,7 @@ export function useItemEditor({
     setEditProperties({});
     setEditReminders(null);
     setEditAssignee(null);
+    setEditError("");
   }
 
   function cancelAdding() {
@@ -113,6 +115,7 @@ export function useItemEditor({
 
   function handleUpdate(clock: string | null) {
     if (!editingItemId || !editTitle.trim() || editPending) return;
+    setEditError("");
     startEditTransition(async () => {
       const result = await updateItemAction(
         editingItemId,
@@ -128,6 +131,8 @@ export function useItemEditor({
       if (result.ok) {
         cancelEditing();
         await onSaved();
+      } else {
+        setEditError(result.error);
       }
     });
   }
@@ -136,8 +141,13 @@ export function useItemEditor({
     if (!editingItemId || editPending) return;
     const itemId = editingItemId;
     const title = editTitle;
+    setEditError("");
     startEditTransition(async () => {
-      await deleteItemAction(itemId);
+      const result = await deleteItemAction(itemId);
+      if (!result.ok) {
+        setEditError(result.error);
+        return;
+      }
       cancelEditing();
       await onSaved();
       offerUndoDelete(itemId, title, onSaved);
@@ -159,7 +169,7 @@ export function useItemEditor({
       properties: addingItem ? addProperties : editProperties,
       recurring: addingItem ? addRecurring : editRecurring,
       reminders: addingItem ? addReminders : editReminders,
-      error: addingItem ? addError : undefined,
+      error: addingItem ? addError : editError,
       pending: addingItem ? addPending : editPending,
       onTitleChange: addingItem ? setAddTitle : setEditTitle,
       onDeadlineChange: addingItem ? setAddDeadline : setEditDeadline,

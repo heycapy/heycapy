@@ -193,7 +193,7 @@ export async function moveOccurrence(
   askedTimezone?: string
 ): Promise<ActionResult<{ next: Date | null }>> {
   const item = await findAccessibleItem(userId, itemId);
-  if (!item || item.deletedAt) return { ok: false, error: "Item not found" };
+  if (!item) return { ok: false, error: "Item not found" };
 
   const config = parseRecurring(item.recurring);
   const scheduled = config?.enabled && item.deadline ? (item.scheduledAt ?? item.deadline) : null;

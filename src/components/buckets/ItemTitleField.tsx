@@ -149,7 +149,7 @@ export function ItemTitleField({
             }
             if (e.key === "Escape") onEscape();
           }}
-          placeholder={error || "what needs doing?"}
+          placeholder="what needs doing?"
           maxLength={ITEM_TITLE_MAX_LENGTH}
           disabled={disabled}
           rows={1}
@@ -173,6 +173,11 @@ export function ItemTitleField({
         />
       )}
       {showRequired && <p className="text-destructive font-mono text-[11px]">title is required</p>}
+      {error && (
+        <p role="alert" className="text-destructive font-mono text-[11px]">
+          {error}
+        </p>
+      )}
       {typedDate && (
         <div className="flex items-center gap-2">
           <span className="border-primary text-foreground border px-2 py-1 font-mono text-xs">
