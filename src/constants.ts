@@ -51,7 +51,8 @@ export const EMAIL_COLORS = {
 // External API base URLs
 export const TELEGRAM_API_BASE = "https://api.telegram.org";
 export const TELEGRAM_LINK_BASE = "https://t.me";
-export const USELESS_FACTS_API_URL = "https://uselessfacts.jsph.pl/api/v2/facts/random?language=en";
+export const ON_THIS_DAY_API_BASE = "https://en.wikipedia.org/api/rest_v1/feed/onthisday/selected";
+export const ON_THIS_DAY_TIMEOUT_MS = 3000;
 // Per AI call; the SDKs give up at the same time, so a rate limit shows as itself, not as a timeout
 export const AI_REQUEST_TIMEOUT_MS = 30_000;
 export const OLLAMA_REQUEST_TIMEOUT_MS = 120_000;

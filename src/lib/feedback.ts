@@ -1,6 +1,9 @@
 import { Resend } from "resend";
 import { APP_EMAIL_FROM, FEEDBACK_SUBJECT } from "@/constants";
 import { isE2ETestMode } from "@/lib/e2e";
+import { buildFeedbackThanksEmail } from "@/lib/email/feedbackThanks";
+import { sendEmail } from "@/lib/notifications/email";
+import { recordSystemError } from "@/lib/system-errors";
 
 export type FeedbackResult =
   { ok: true } | { ok: false; reason: "not_configured" | "failed"; error?: string };
@@ -26,4 +29,13 @@ export async function sendFeedback(feedback: {
     ...(feedback.replyTo ? { replyTo: feedback.replyTo } : {}),
   });
   return error ? { ok: false, reason: "failed", error: error.message } : { ok: true };
+}
+
+export async function sendFeedbackThanks(to: string, message: string, userId: number) {
+  if (isE2ETestMode()) return;
+  try {
+    await sendEmail({ to, ...buildFeedbackThanksEmail(message) });
+  } catch (err) {
+    recordSystemError("feedback", "thank-you email failed", { level: "warning", userId, err });
+  }
 }

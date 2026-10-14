@@ -4,10 +4,10 @@ import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { systemErrors, users } from "@/lib/db/schema";
 import { sendFeedbackAction } from "@/app/(app)/feedback-actions";
-import { FEEDBACK_MAX_LENGTH, FEEDBACK_SUBJECT } from "@/constants";
+import { APP_NAME, FEEDBACK_MAX_LENGTH, FEEDBACK_SUBJECT } from "@/constants";
 import { seedUser } from "./helpers";
 
-type SentEmail = { to: string; subject: string; text: string; replyTo?: string };
+type SentEmail = { to: string; subject: string; text: string; html?: string; replyTo?: string };
 
 const send = vi.hoisted(() =>
   vi.fn(async (_email: SentEmail) => ({
@@ -61,7 +61,7 @@ describe("in-app feedback", () => {
       ok: true,
     });
 
-    expect(send).toHaveBeenCalledTimes(1);
+    expect(send).toHaveBeenCalledTimes(2);
     const email = send.mock.calls[0][0];
     expect(email.to).toBe("feedback@heycapy.test");
     expect(email.subject).toBe(FEEDBACK_SUBJECT);
@@ -71,6 +71,29 @@ describe("in-app feedback", () => {
     expect(email.text).toContain("page: /?bucket=3");
     expect(email.text).toMatch(/version: \d+\.\d+\.\d+ · build /);
     expect(email.text).toContain(`browser: ${BROWSER}`);
+  });
+
+  it("thanks the person by email, with what they sent", async () => {
+    await sendFeedbackAction("the <b>trash</b> won't open", "/");
+
+    const thanks = send.mock.calls[1][0];
+    expect(thanks.to).toBe(await userEmail());
+    expect(thanks.subject).toBe(`[${APP_NAME}] capy got your note`);
+    expect(thanks.text).toContain("the <b>trash</b> won't open");
+    expect(thanks.html).toContain("the &lt;b&gt;trash&lt;/b&gt; won't open");
+  });
+
+  it("still counts the feedback as sent when the thank-you email fails", async () => {
+    send
+      .mockResolvedValueOnce({ data: { id: "1" }, error: null })
+      .mockResolvedValueOnce({ data: { id: "2" }, error: { message: "bounced" } });
+
+    expect(await sendFeedbackAction("hello", "/")).toEqual({ ok: true });
+    const recorded = await db.query.systemErrors.findFirst({
+      where: eq(systemErrors.userId, session.userId),
+    });
+    expect(recorded?.level).toBe("warning");
+    expect(recorded?.message).toBe("thank-you email failed");
   });
 
   it("refuses an empty or too long message and sends nothing", async () => {
@@ -103,5 +126,6 @@ describe("in-app feedback", () => {
     });
     expect(recorded?.source).toBe("feedback");
     expect(recorded?.message).toBe("rate limited");
+    expect(send).toHaveBeenCalledTimes(1);
   });
 });

@@ -7,7 +7,7 @@ import type { ActionResult } from "@/types/result";
 import { requireSession } from "./action-helpers";
 import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";
-import { sendFeedback } from "@/lib/feedback";
+import { sendFeedback, sendFeedbackThanks } from "@/lib/feedback";
 import { memberName } from "@/lib/buckets/member-name";
 import { recordSystemError } from "@/lib/system-errors";
 import { FEEDBACK_MAX_LENGTH, FEEDBACK_PAGE_MAX_LENGTH } from "@/constants";
@@ -44,7 +44,10 @@ export async function sendFeedbackAction(message: string, page: string): Promise
 
   try {
     const result = await sendFeedback({ text, replyTo: user.email });
-    if (result.ok) return { ok: true };
+    if (result.ok) {
+      await sendFeedbackThanks(user.email, parsed.data.message, session.userId);
+      return { ok: true };
+    }
     if (result.reason === "not_configured") {
       return { ok: false, error: "Feedback isn't set up on this server" };
     }
