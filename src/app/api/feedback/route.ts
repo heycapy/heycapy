@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { Resend } from "resend";
-import { APP_DOMAIN, APP_EMAIL_FROM } from "@/constants";
+import { APP_DOMAIN } from "@/constants";
+import { sendFeedback } from "@/lib/feedback";
 
 // the website (a separate static site on the root domain) posts its feedback form here
 const SITE_ORIGIN = `https://${APP_DOMAIN}`;
@@ -27,29 +27,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Message is required" }, { status: 400, headers });
   }
 
-  const resendKey = process.env.RESEND_API_KEY;
-  if (!resendKey) {
-    return NextResponse.json({ error: "Email not configured" }, { status: 503, headers });
-  }
+  const text = email?.trim() ? `${message.trim()}\n\n— ${email.trim()}` : message.trim();
+  const result = await sendFeedback({ text });
 
-  const feedbackEmail = process.env.FEEDBACK_EMAIL;
-  if (!feedbackEmail) {
+  if (!result.ok && result.reason === "not_configured") {
     return NextResponse.json({ error: "Feedback not configured" }, { status: 503, headers });
   }
-
-  const from = process.env.EMAIL_FROM ?? APP_EMAIL_FROM;
-  const body = email?.trim() ? `${message.trim()}\n\n— ${email.trim()}` : message.trim();
-
-  const resend = new Resend(resendKey);
-  const { error } = await resend.emails.send({
-    from,
-    to: feedbackEmail,
-    subject: "feedback from heycapy",
-    text: body,
-  });
-
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500, headers });
+  if (!result.ok) {
+    return NextResponse.json({ error: result.error }, { status: 500, headers });
   }
 
   return NextResponse.json({ success: true }, { headers });

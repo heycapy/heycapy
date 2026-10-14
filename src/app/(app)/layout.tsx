@@ -7,6 +7,7 @@ import { AppShell } from "@/components/layout/AppShell";
 import { getChannelFailures } from "@/lib/notifications/failures";
 import { getChannelSettings, workingChannels } from "@/lib/notifications/channels";
 import { CreateBucketModal } from "@/components/buckets/CreateBucketModal";
+import { feedbackConfigured } from "@/lib/feedback";
 import type { ReactNode } from "react";
 
 export default async function AppLayout({ children }: { children: ReactNode }) {
@@ -39,6 +40,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
       <AppShell
         email={user?.email ?? ""}
         assistantName={settings?.personalityName ?? "capy"}
+        feedbackEnabled={feedbackConfigured()}
         failures={failures}
         hasWorkingChannel={
           !!channelSettings &&

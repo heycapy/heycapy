@@ -237,6 +237,10 @@ export const ADMIN_DIGEST_MAX_ERRORS = 30;
 export const STACK_LINES_IN_ALERT = 12;
 export const TELEGRAM_MESSAGE_MAX = 4000;
 
+export const FEEDBACK_SUBJECT = "feedback from heycapy";
+export const FEEDBACK_MAX_LENGTH = 1000;
+export const FEEDBACK_PAGE_MAX_LENGTH = 300;
+
 export const MOBILE_MEDIA_QUERY = "(max-width: 639px)";
 export const BOTTOM_BAR_MEDIA_QUERY = "(max-width: 767px)";
 export const SHEET_CLOSE_DRAG_PX = 100;

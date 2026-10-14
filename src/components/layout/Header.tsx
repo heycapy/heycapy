@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Archive, LogOut, SlidersHorizontal, Trash2, UserPlus } from "lucide-react";
+import { Archive, LogOut, MessageSquare, SlidersHorizontal, Trash2, UserPlus } from "lucide-react";
 import { BetaTag } from "@/components/ui/BetaTag";
 import { BracketButton } from "@/components/ui/BracketButton";
 import { logoutAction, logoutEverywhereAction } from "@/app/(app)/actions";
@@ -12,6 +12,7 @@ type HeaderProps = {
   onArchiveOpen: () => void;
   onTrashOpen: () => void;
   onJoinOpen: () => void;
+  onFeedbackOpen: (() => void) | null;
 };
 
 function getGreeting() {
@@ -80,12 +81,14 @@ function GlobalMenu({
   onArchive,
   onTrash,
   onJoin,
+  onFeedback,
 }: {
   email: string;
   onSettings: () => void;
   onArchive: () => void;
   onTrash: () => void;
   onJoin: () => void;
+  onFeedback: (() => void) | null;
 }) {
   const [open, setOpen] = useState(false);
   const [confirmLogout, setConfirmLogout] = useState<LogoutScope | null>(null);
@@ -170,6 +173,15 @@ function GlobalMenu({
                 <Trash2 size={11} />
                 trash
               </button>
+              {onFeedback && (
+                <button
+                  onClick={() => pick(onFeedback)}
+                  className="text-foreground hover:bg-muted flex w-full items-center gap-2.5 px-3 py-2 font-mono text-xs transition-colors"
+                >
+                  <MessageSquare size={11} />
+                  feedback
+                </button>
+              )}
               <div className="border-border my-1 border-t" />
               <button
                 onClick={() => pick(() => setConfirmLogout("here"))}
@@ -199,6 +211,7 @@ export function Header({
   onArchiveOpen,
   onTrashOpen,
   onJoinOpen,
+  onFeedbackOpen,
 }: HeaderProps) {
   const greeting = useMemo(() => getGreeting(), []);
   const date = useMemo(() => getDate(), []);
@@ -216,6 +229,7 @@ export function Header({
         onArchive={onArchiveOpen}
         onTrash={onTrashOpen}
         onJoin={onJoinOpen}
+        onFeedback={onFeedbackOpen}
       />
     </header>
   );
