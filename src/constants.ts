@@ -241,6 +241,8 @@ export const TELEGRAM_MESSAGE_MAX = 4000;
 export const FEEDBACK_SUBJECT = "feedback from heycapy";
 export const FEEDBACK_MAX_LENGTH = 1000;
 export const FEEDBACK_PAGE_MAX_LENGTH = 300;
+// The longest address email allows (RFC 5321)
+export const FEEDBACK_EMAIL_MAX_LENGTH = 254;
 export const FEEDBACK_LIMIT_WINDOW_MS = 60 * 60 * 1000;
 export const FEEDBACK_LIMIT_PER_USER = 5;
 export const FEEDBACK_LIMIT_PER_IP = 5;

@@ -8,6 +8,7 @@ import { POST } from "@/app/api/feedback/route";
 import { resetFeedbackLimits } from "@/lib/feedback";
 import {
   APP_NAME,
+  FEEDBACK_EMAIL_MAX_LENGTH,
   FEEDBACK_LIMIT_PER_IP,
   FEEDBACK_LIMIT_PER_USER,
   FEEDBACK_LIMIT_SITE_TOTAL,
@@ -221,5 +222,56 @@ describe("feedback limits", () => {
       await fromSite({ "Fly-Client-IP": `203.0.113.${i}` });
     }
     expect(await sendFeedbackAction("hello", "/")).toEqual({ ok: true });
+  });
+});
+
+describe("site feedback form", () => {
+  function postBody(body: string) {
+    return POST(
+      new Request("http://localhost/api/feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body,
+      })
+    );
+  }
+
+  it("sends the message with the email the person left", async () => {
+    const res = await postBody(JSON.stringify({ message: "  love it  ", email: " a@b.co " }));
+    expect(res.status).toBe(200);
+    expect(send.mock.calls[0][0].text).toBe("love it\n\n— a@b.co");
+  });
+
+  it("refuses a message longer than the form allows and sends nothing", async () => {
+    const res = await postBody(JSON.stringify({ message: "a".repeat(FEEDBACK_MAX_LENGTH + 1) }));
+    expect(res.status).toBe(400);
+    expect(await res.json()).toEqual({ error: "Message is too long" });
+    expect(send).not.toHaveBeenCalled();
+  });
+
+  it("accepts a message exactly at the limit", async () => {
+    const res = await postBody(JSON.stringify({ message: "a".repeat(FEEDBACK_MAX_LENGTH) }));
+    expect(res.status).toBe(200);
+  });
+
+  it("refuses an over-long email", async () => {
+    const email = `${"a".repeat(FEEDBACK_EMAIL_MAX_LENGTH)}@b.co`;
+    const res = await postBody(JSON.stringify({ message: "hi", email }));
+    expect(res.status).toBe(400);
+    expect(send).not.toHaveBeenCalled();
+  });
+
+  it("answers a broken or wrong-shaped body with 400, not a crash", async () => {
+    for (const body of ["{not json", "null", JSON.stringify({ message: 42 }), ""]) {
+      expect((await postBody(body)).status).toBe(400);
+    }
+    expect(send).not.toHaveBeenCalled();
+  });
+
+  it("doesn't count a refused message against the limit", async () => {
+    for (let i = 0; i < FEEDBACK_LIMIT_PER_IP; i++) {
+      await postBody(JSON.stringify({ message: "a".repeat(FEEDBACK_MAX_LENGTH + 1) }));
+    }
+    expect((await postBody(JSON.stringify({ message: "hi" }))).status).toBe(200);
   });
 });
