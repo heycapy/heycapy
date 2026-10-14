@@ -241,6 +241,11 @@ export const TELEGRAM_MESSAGE_MAX = 4000;
 export const FEEDBACK_SUBJECT = "feedback from heycapy";
 export const FEEDBACK_MAX_LENGTH = 1000;
 export const FEEDBACK_PAGE_MAX_LENGTH = 300;
+export const FEEDBACK_LIMIT_WINDOW_MS = 60 * 60 * 1000;
+export const FEEDBACK_LIMIT_PER_USER = 5;
+export const FEEDBACK_LIMIT_PER_IP = 5;
+// The site form needs no account, so a sender changing IPs is still stopped here
+export const FEEDBACK_LIMIT_SITE_TOTAL = 30;
 
 export const MOBILE_MEDIA_QUERY = "(max-width: 639px)";
 export const BOTTOM_BAR_MEDIA_QUERY = "(max-width: 767px)";

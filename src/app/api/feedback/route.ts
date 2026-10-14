@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { APP_DOMAIN } from "@/constants";
-import { sendFeedback } from "@/lib/feedback";
+import { APP_DOMAIN, FEEDBACK_LIMIT_PER_IP, FEEDBACK_LIMIT_SITE_TOTAL } from "@/constants";
+import { allowFeedback, sendFeedback } from "@/lib/feedback";
 
 // the website (a separate static site on the root domain) posts its feedback form here
 const SITE_ORIGIN = `https://${APP_DOMAIN}`;
@@ -15,6 +15,12 @@ function corsHeaders(request: Request): Record<string, string> {
   };
 }
 
+// Fly's proxy sets Fly-Client-IP itself; the last X-Forwarded-For entry is the one the nearest proxy added
+function clientIp(request: Request): string {
+  const forwarded = request.headers.get("x-forwarded-for")?.split(",").at(-1)?.trim();
+  return request.headers.get("fly-client-ip") ?? (forwarded || "unknown");
+}
+
 export function OPTIONS(request: Request) {
   return new NextResponse(null, { status: 204, headers: corsHeaders(request) });
 }
@@ -25,6 +31,14 @@ export async function POST(request: Request) {
 
   if (!message?.trim()) {
     return NextResponse.json({ error: "Message is required" }, { status: 400, headers });
+  }
+
+  const allowed = allowFeedback([
+    { key: `ip:${clientIp(request)}`, max: FEEDBACK_LIMIT_PER_IP },
+    { key: "site", max: FEEDBACK_LIMIT_SITE_TOTAL },
+  ]);
+  if (!allowed) {
+    return NextResponse.json({ error: "Too many messages" }, { status: 429, headers });
   }
 
   const text = email?.trim() ? `${message.trim()}\n\n— ${email.trim()}` : message.trim();

@@ -4,7 +4,17 @@ import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { systemErrors, users } from "@/lib/db/schema";
 import { sendFeedbackAction } from "@/app/(app)/feedback-actions";
-import { APP_NAME, FEEDBACK_MAX_LENGTH, FEEDBACK_SUBJECT } from "@/constants";
+import { POST } from "@/app/api/feedback/route";
+import { resetFeedbackLimits } from "@/lib/feedback";
+import {
+  APP_NAME,
+  FEEDBACK_LIMIT_PER_IP,
+  FEEDBACK_LIMIT_PER_USER,
+  FEEDBACK_LIMIT_SITE_TOTAL,
+  FEEDBACK_LIMIT_WINDOW_MS,
+  FEEDBACK_MAX_LENGTH,
+  FEEDBACK_SUBJECT,
+} from "@/constants";
 import { seedUser } from "./helpers";
 
 type SentEmail = { to: string; subject: string; text: string; html?: string; replyTo?: string };
@@ -35,6 +45,7 @@ const BROWSER = "Mozilla/5.0 (Test Browser)";
 const previous = { resend: process.env.RESEND_API_KEY, feedback: process.env.FEEDBACK_EMAIL };
 
 beforeEach(async () => {
+  resetFeedbackLimits();
   process.env.RESEND_API_KEY = "re_test";
   process.env.FEEDBACK_EMAIL = "feedback@heycapy.test";
   session.userId = await seedUser();
@@ -48,6 +59,7 @@ afterEach(() => {
   process.env.RESEND_API_KEY = previous.resend;
   process.env.FEEDBACK_EMAIL = previous.feedback;
   send.mockClear();
+  vi.restoreAllMocks();
 });
 
 async function userEmail(): Promise<string> {
@@ -127,5 +139,87 @@ describe("in-app feedback", () => {
     expect(recorded?.source).toBe("feedback");
     expect(recorded?.message).toBe("rate limited");
     expect(send).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("feedback limits", () => {
+  const TOO_MANY = { ok: false, error: "That's a lot of feedback at once. Try again in an hour." };
+
+  function fromSite(ip: Record<string, string>) {
+    return POST(
+      new Request("http://localhost/api/feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...ip },
+        body: JSON.stringify({ message: "hello" }),
+      })
+    );
+  }
+
+  it("stops a person after a few messages in an hour and sends nothing more", async () => {
+    for (let i = 0; i < FEEDBACK_LIMIT_PER_USER; i++) {
+      expect(await sendFeedbackAction(`note ${i}`, "/")).toEqual({ ok: true });
+    }
+    send.mockClear();
+
+    expect(await sendFeedbackAction("one more", "/")).toEqual(TOO_MANY);
+    expect(send).not.toHaveBeenCalled();
+  });
+
+  it("doesn't count a message that was refused as empty", async () => {
+    for (let i = 0; i < FEEDBACK_LIMIT_PER_USER; i++) await sendFeedbackAction("  ", "/");
+    expect(await sendFeedbackAction("hello", "/")).toEqual({ ok: true });
+  });
+
+  it("lets the person write again once the hour has passed, and never limits someone else", async () => {
+    const start = Date.now();
+    for (let i = 0; i < FEEDBACK_LIMIT_PER_USER; i++) await sendFeedbackAction("hi", "/");
+
+    const firstUser = session.userId;
+    session.userId = await seedUser();
+    expect(await sendFeedbackAction("hi", "/")).toEqual({ ok: true });
+
+    session.userId = firstUser;
+    vi.spyOn(Date, "now").mockReturnValue(start + FEEDBACK_LIMIT_WINDOW_MS);
+    expect(await sendFeedbackAction("hi", "/")).toEqual({ ok: true });
+  });
+
+  it("stops one address on the site form without blocking others", async () => {
+    const one = { "Fly-Client-IP": "203.0.113.1" };
+    for (let i = 0; i < FEEDBACK_LIMIT_PER_IP; i++) {
+      expect((await fromSite(one)).status).toBe(200);
+    }
+    send.mockClear();
+
+    expect((await fromSite(one)).status).toBe(429);
+    expect(send).not.toHaveBeenCalled();
+    expect((await fromSite({ "Fly-Client-IP": "203.0.113.2" })).status).toBe(200);
+  });
+
+  it("trusts Fly's client address over a forwarded one the sender can make up", async () => {
+    for (let i = 0; i < FEEDBACK_LIMIT_PER_IP; i++) {
+      await fromSite({ "Fly-Client-IP": "203.0.113.1", "X-Forwarded-For": `198.51.100.${i}` });
+    }
+    const spoofed = { "Fly-Client-IP": "203.0.113.1", "X-Forwarded-For": "198.51.100.99" };
+    expect((await fromSite(spoofed)).status).toBe(429);
+  });
+
+  it("caps the site form as a whole, so changing addresses doesn't get around it", async () => {
+    for (let i = 0; i < FEEDBACK_LIMIT_SITE_TOTAL; i++) {
+      expect((await fromSite({ "Fly-Client-IP": `203.0.113.${i}` })).status).toBe(200);
+    }
+    expect((await fromSite({ "Fly-Client-IP": "192.0.2.1" })).status).toBe(429);
+  });
+
+  it("doesn't let a blocked address use up the site form for everyone else", async () => {
+    const blocked = { "Fly-Client-IP": "203.0.113.1" };
+    for (let i = 0; i < FEEDBACK_LIMIT_SITE_TOTAL; i++) await fromSite(blocked);
+    expect((await fromSite({ "Fly-Client-IP": "203.0.113.2" })).status).toBe(200);
+  });
+
+  it("keeps the site form and the app apart", async () => {
+    for (let i = 0; i < FEEDBACK_LIMIT_SITE_TOTAL; i++) {
+      await fromSite({ "Fly-Client-IP": `203.0.113.${i}` });
+    }
+    expect(await sendFeedbackAction("hello", "/")).toEqual({ ok: true });
   });
 });

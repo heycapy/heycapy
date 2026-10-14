@@ -7,10 +7,14 @@ import type { ActionResult } from "@/types/result";
 import { requireSession } from "./action-helpers";
 import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";
-import { sendFeedback, sendFeedbackThanks } from "@/lib/feedback";
+import { allowFeedback, sendFeedback, sendFeedbackThanks } from "@/lib/feedback";
 import { memberName } from "@/lib/buckets/member-name";
 import { recordSystemError } from "@/lib/system-errors";
-import { FEEDBACK_MAX_LENGTH, FEEDBACK_PAGE_MAX_LENGTH } from "@/constants";
+import {
+  FEEDBACK_LIMIT_PER_USER,
+  FEEDBACK_MAX_LENGTH,
+  FEEDBACK_PAGE_MAX_LENGTH,
+} from "@/constants";
 import packageJson from "../../../package.json";
 
 const FeedbackInput = z.object({
@@ -24,6 +28,9 @@ export async function sendFeedbackAction(message: string, page: string): Promise
   const session = await requireSession();
   const parsed = FeedbackInput.safeParse({ message, page });
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0].message };
+  if (!allowFeedback([{ key: `user:${session.userId}`, max: FEEDBACK_LIMIT_PER_USER }])) {
+    return { ok: false, error: "That's a lot of feedback at once. Try again in an hour." };
+  }
 
   const user = await db.query.users.findFirst({
     where: eq(users.id, session.userId),
