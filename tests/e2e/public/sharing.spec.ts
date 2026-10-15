@@ -250,7 +250,9 @@ test("an owner can't delete their account while they still share a bucket", asyn
 
   await page.reload();
   await openAccountTab(page);
-  await expect(page.getByText(`you still share ${bucketName} with other people`)).toBeVisible();
+  await expect(
+    page.getByText(`you still own ${bucketName}, shared with other people`)
+  ).toBeVisible();
   await expect(page.getByRole("button", { name: /delete account/ })).toBeDisabled();
 
   await openMembers(friend);
@@ -260,7 +262,39 @@ test("an owner can't delete their account while they still share a bucket", asyn
 
   await page.reload();
   await openAccountTab(page);
-  await expect(page.getByText(/you still share/)).toHaveCount(0);
+  await expect(page.getByText(/you still own/)).toHaveCount(0);
+  await expect(page.getByRole("button", { name: /delete account/ })).toBeEnabled();
+  await friend.close();
+});
+
+test("an owner hands the bucket to a member, then can leave it", async ({ page, browser }) => {
+  const bucketName = `hand over ${Date.now()}`;
+  const { code } = await ownerWithInvite(page, bucketName);
+  const friend = await browser.newPage();
+  await joinWithCode(friend, code);
+  await friend.waitForURL(/\/\?bucket=\d+$/);
+
+  await page.reload();
+  await openMembers(page);
+  await expect(page.getByText("to leave, make someone else the owner first")).toBeVisible();
+  await page.getByRole("button", { name: bracket("make owner") }).click();
+  await expect(page.getByText("make them the owner? you stay in as a member")).toBeVisible();
+  await page.getByRole("button", { name: bracket("confirm") }).click();
+
+  await expect(page.getByRole("button", { name: bracket("leave bucket") })).toBeVisible();
+  await expect(page.getByRole("button", { name: bracket("create invite") })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: bracket("make owner") })).toHaveCount(0);
+
+  // The new owner's open page catches up on its own
+  await openMembers(friend);
+  await expect(friend.getByRole("button", { name: bracket("create invite") })).toBeVisible();
+  await expect(friend.getByRole("button", { name: bracket("remove") })).toBeVisible();
+
+  await page.getByRole("button", { name: bracket("leave bucket") }).click();
+  await page.getByRole("button", { name: bracket("confirm") }).click();
+  await expect(page.getByText(bucketName)).toHaveCount(0);
+  await openAccountTab(page);
+  await expect(page.getByText(/you still own/)).toHaveCount(0);
   await expect(page.getByRole("button", { name: /delete account/ })).toBeEnabled();
   await friend.close();
 });
