@@ -67,12 +67,13 @@ export function BucketRulesFields({
   return (
     <fieldset
       disabled
+      aria-label="set by the owner"
       className={cn(
-        "border-border flex min-w-0 flex-col gap-4 border border-dashed px-3 pt-1 pb-3",
+        "border-border flex min-w-0 flex-col gap-4 border border-dashed p-3",
         LOCKED_CONTROLS
       )}
     >
-      <legend className="text-muted-foreground px-1 font-mono text-[11px]">set by the owner</legend>
+      <p className="text-muted-foreground font-mono text-[11px]">set by the owner</p>
       {panel}
     </fieldset>
   );
