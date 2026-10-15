@@ -3,10 +3,12 @@ import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { buckets } from "@/lib/db/schema";
 import { updateBucketSchemaAction, updateBucketSettingsAction } from "@/app/(app)/bucket-actions";
+import { getMemberChannels } from "@/lib/notifications/channels";
 import {
   resetSchedulerEnvironment,
   seedBucket,
   seedItem,
+  seedMember,
   seedUser,
   useSchedulerEnvironment,
   reminderOf,
@@ -176,5 +178,30 @@ describe("checks shared with the assistant", () => {
     expect(result).toEqual({ ok: false, error: "Invalid sort by" });
     const after = await db.query.buckets.findFirst({ where: eq(buckets.id, bucketId) });
     expect(after?.itemsRules).toBe(before?.itemsRules);
+  });
+});
+
+describe("a member of the bucket", () => {
+  it("can't save its settings, though they see them", async () => {
+    const { bucketId } = await seedWorkBucket();
+    const before = await db.query.buckets.findFirst({ where: eq(buckets.id, bucketId) });
+    const member = await seedUser();
+    await seedMember(bucketId, member);
+    session.userId = member;
+
+    expect(
+      await updateBucketSettingsAction(
+        bucketId,
+        "Mine",
+        { readonly: true },
+        { repeat: "daily" },
+        undefined,
+        { medium: ["email"], webhooks: [] }
+      )
+    ).toEqual({ ok: false, error: "Bucket not found" });
+
+    const after = await db.query.buckets.findFirst({ where: eq(buckets.id, bucketId) });
+    expect(after).toEqual(before);
+    expect((await getMemberChannels(member, bucketId)).medium).toEqual(["telegram"]);
   });
 });

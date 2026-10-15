@@ -25,7 +25,8 @@ import { BucketMembersPanel } from "./BucketMembersPanel";
 export type SettingsTab = "items" | "notifications" | "advanced" | "members";
 
 const OWNER_TABS: SettingsTab[] = ["items", "notifications", "advanced", "members"];
-const MEMBER_TABS: SettingsTab[] = ["notifications", "members"];
+// A member sees the bucket's rules but changes only where their own reminders go
+const MEMBER_TABS: SettingsTab[] = ["items", "notifications", "members"];
 
 const toggled = <T,>(list: T[], value: T): T[] =>
   list.includes(value) ? list.filter((x) => x !== value) : [...list, value];
@@ -132,7 +133,7 @@ export function BucketSettingsForm({
     });
   }
 
-  const showSave = tab === "items" || tab === "notifications";
+  const showSave = tab === "notifications" || (bucket.isOwner && tab === "items");
 
   return (
     <div
@@ -202,42 +203,57 @@ export function BucketSettingsForm({
           />
         )}
 
-        {bucket.isOwner && (tab === "items" || tab === "notifications") && (
-          <BucketRulesPanel
-            activeTab={tab}
-            disabled={pending}
-            sortBy={values.sortBy}
-            drag={values.drag}
-            showCompleted={values.showCompleted}
-            recurrenceMode={values.recurrenceMode}
-            readonly={values.readonly}
-            defaultDeadlineOffset={values.defaultDeadlineOffset}
-            reminderButtons={values.reminderButtons}
-            notifyAt={values.notifyAt}
-            clocksDiffer={clocksDiffer}
-            defaultReminders={values.defaultReminders}
-            repeat={values.repeat}
-            notifyOnArrival={values.notifyOnArrival}
-            notifyWhenOverdue={values.notifyWhenOverdue}
-            overdueRepeatHours={values.overdueRepeatHours}
-            overdueFirstAlertMins={values.overdueFirstAlertMins}
-            onSortByChange={(v) => set("sortBy", v)}
-            onDragChange={(v) => set("drag", v)}
-            onShowCompletedChange={(v) => set("showCompleted", v)}
-            onRecurrenceModeChange={(v) => set("recurrenceMode", v)}
-            onReadonlyChange={(v) => set("readonly", v)}
-            onDefaultDeadlineOffsetChange={(v) => set("defaultDeadlineOffset", v)}
-            onReminderButtonToggle={(b) =>
-              setValues((prev) => ({ ...prev, reminderButtons: toggled(prev.reminderButtons, b) }))
-            }
-            onNotifyAtChange={(v) => set("notifyAt", v)}
-            onDefaultRemindersChange={(v) => set("defaultReminders", v)}
-            onRepeatChange={(v) => set("repeat", v)}
-            onNotifyOnArrivalChange={(v) => set("notifyOnArrival", v)}
-            onNotifyWhenOverdueChange={(v) => set("notifyWhenOverdue", v)}
-            onOverdueRepeatHoursChange={(v) => set("overdueRepeatHours", v)}
-            onOverdueFirstAlertMinsChange={(v) => set("overdueFirstAlertMins", v)}
-          />
+        {(tab === "items" || tab === "notifications") && (
+          <fieldset disabled={!bucket.isOwner} className="contents">
+            {!bucket.isOwner && (
+              <p
+                className={cn(
+                  "text-muted-foreground font-mono text-[11px] leading-tight",
+                  tab === "notifications" && "border-border border-t pt-4"
+                )}
+              >
+                set by the owner; only they can change these
+              </p>
+            )}
+            <BucketRulesPanel
+              activeTab={tab}
+              disabled={pending}
+              sortBy={values.sortBy}
+              drag={values.drag}
+              showCompleted={values.showCompleted}
+              recurrenceMode={values.recurrenceMode}
+              readonly={values.readonly}
+              defaultDeadlineOffset={values.defaultDeadlineOffset}
+              reminderButtons={values.reminderButtons}
+              notifyAt={values.notifyAt}
+              clocksDiffer={clocksDiffer}
+              defaultReminders={values.defaultReminders}
+              repeat={values.repeat}
+              notifyOnArrival={values.notifyOnArrival}
+              notifyWhenOverdue={values.notifyWhenOverdue}
+              overdueRepeatHours={values.overdueRepeatHours}
+              overdueFirstAlertMins={values.overdueFirstAlertMins}
+              onSortByChange={(v) => set("sortBy", v)}
+              onDragChange={(v) => set("drag", v)}
+              onShowCompletedChange={(v) => set("showCompleted", v)}
+              onRecurrenceModeChange={(v) => set("recurrenceMode", v)}
+              onReadonlyChange={(v) => set("readonly", v)}
+              onDefaultDeadlineOffsetChange={(v) => set("defaultDeadlineOffset", v)}
+              onReminderButtonToggle={(b) =>
+                setValues((prev) => ({
+                  ...prev,
+                  reminderButtons: toggled(prev.reminderButtons, b),
+                }))
+              }
+              onNotifyAtChange={(v) => set("notifyAt", v)}
+              onDefaultRemindersChange={(v) => set("defaultReminders", v)}
+              onRepeatChange={(v) => set("repeat", v)}
+              onNotifyOnArrivalChange={(v) => set("notifyOnArrival", v)}
+              onNotifyWhenOverdueChange={(v) => set("notifyWhenOverdue", v)}
+              onOverdueRepeatHoursChange={(v) => set("overdueRepeatHours", v)}
+              onOverdueFirstAlertMinsChange={(v) => set("overdueFirstAlertMins", v)}
+            />
+          </fieldset>
         )}
 
         {bucket.isOwner && tab === "notifications" && (

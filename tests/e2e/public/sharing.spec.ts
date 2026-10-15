@@ -11,6 +11,7 @@ import {
   openSettings as openSettingsDialog,
   option,
   saveSettings,
+  switchTab,
 } from "../helpers/settings";
 
 const bracket = (label: string) => new RegExp(`^\\[\\s*${label}\\s*\\]$`);
@@ -127,7 +128,10 @@ function channelsOf(bucketId: number, owner: boolean): string {
   return channels;
 }
 
-test("a member picks where their own reminders go, and nothing else", async ({ page, browser }) => {
+test("a member sees the bucket's rules and changes only where their own reminders go", async ({
+  page,
+  browser,
+}) => {
   const { bucketId, code } = await ownerWithInvite(page, `channels ${Date.now()}`);
   const ownerChannels = channelsOf(bucketId, true);
 
@@ -135,10 +139,14 @@ test("a member picks where their own reminders go, and nothing else", async ({ p
   await joinWithCode(friend, code);
   await friend.waitForURL(`/?bucket=${bucketId}`);
   const dialog = await openSettingsDialog(friend);
-  await expect(dialog.getByRole("button", { name: "items", exact: true })).toHaveCount(0);
-  await expect(field(dialog, "remind at")).toHaveCount(0);
-  await expect(dialog.getByRole("button", { name: bracket("configure telegram") })).toHaveCount(0);
+  await expect(dialog.getByText("set by the owner; only they can change these")).toBeVisible();
+  await expect(field(dialog, "sort by").getByRole("button").first()).toBeDisabled();
+  await expect(dialog.getByRole("button", { name: "[ save ]", exact: true })).toHaveCount(0);
+  await expect(dialog.getByRole("button", { name: "advanced", exact: true })).toHaveCount(0);
 
+  await switchTab(dialog, "notifications");
+  await expect(field(dialog, "remind at").getByRole("textbox")).toBeDisabled();
+  await expect(dialog.getByRole("button", { name: bracket("configure telegram") })).toHaveCount(0);
   const channels = field(dialog, "channels");
   await expect(channels).toContainText("where your reminders from this bucket go");
   // Joining starts them on the channels that work for them
@@ -148,6 +156,7 @@ test("a member picks where their own reminders go, and nothing else", async ({ p
   await saveSettings(dialog);
 
   const reopened = await openSettingsDialog(friend);
+  await switchTab(reopened, "notifications");
   await expectSelected(option(field(reopened, "channels"), "telegram"));
   await closeDialog(reopened);
   expect(JSON.parse(channelsOf(bucketId, false))).toMatchObject({ medium: ["email", "telegram"] });
