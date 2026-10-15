@@ -10,10 +10,14 @@ export function useServerEvents(): boolean {
   const [newVersion, setNewVersion] = useState(false);
 
   useEffect(() => {
+    const ours = process.env.NEXT_DEPLOYMENT_ID;
     let source: EventSource | null = null;
     let reconnecting = false;
+    let catchUp = false;
+    let outdated = false;
 
     function refresh() {
+      if (outdated) return;
       router.refresh();
       tickAiRefresh();
     }
@@ -22,23 +26,32 @@ export function useServerEvents(): boolean {
       source?.close();
       source = new EventSource("/api/events");
       source.onopen = () => {
-        if (reconnecting) refresh();
+        catchUp = reconnecting;
         reconnecting = true;
+        if (catchUp && !ours) {
+          catchUp = false;
+          refresh();
+        }
       };
       source.onmessage = (e) => {
         if (e.data === "refresh") refresh();
       };
       source.addEventListener(SERVER_VERSION_EVENT, (e) => {
-        const ours = process.env.NEXT_DEPLOYMENT_ID;
-        if (ours && e.data !== ours) setNewVersion(true);
+        if (ours && e.data !== ours) {
+          outdated = true;
+          setNewVersion(true);
+        }
+        if (catchUp) {
+          catchUp = false;
+          refresh();
+        }
       });
     }
 
     // Phones drop the connection while the app is in the background and don't always reconnect it
     function resume() {
       if (document.visibilityState !== "visible") return;
-      refresh();
-      reconnecting = false;
+      reconnecting = true;
       connect();
     }
 
