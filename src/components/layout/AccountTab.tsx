@@ -1,7 +1,7 @@
 import { useEffect, useState, useTransition } from "react";
 import { BracketButton } from "@/components/ui/BracketButton";
 import { BetaTag } from "@/components/ui/BetaTag";
-import { AvatarEditor } from "@/components/avatar/AvatarEditor";
+import { AvatarEditor, type AvatarDraft } from "@/components/avatar/AvatarEditor";
 import {
   deleteAccountAction,
   getDeletionBlockersAction,
@@ -12,7 +12,14 @@ import { BOX, INPUT, LABEL, SECTION } from "./settings-constants";
 
 type Step = "idle" | "confirm" | "code";
 
-export function AccountTab({ email, username }: { email: string; username: string | null }) {
+type AccountTabProps = {
+  email: string;
+  username: string | null;
+  avatarDraft: AvatarDraft;
+  onAvatarDraft: (draft: AvatarDraft) => void;
+};
+
+export function AccountTab({ email, username, avatarDraft, onAvatarDraft }: AccountTabProps) {
   const [step, setStep] = useState<Step>("idle");
   const [code, setCode] = useState("");
   const [devCode, setDevCode] = useState("");
@@ -78,7 +85,7 @@ export function AccountTab({ email, username }: { email: string; username: strin
           avatar
           <BetaTag feature="avatars" className="font-normal tracking-normal normal-case" />
         </span>
-        <AvatarEditor />
+        <AvatarEditor draft={avatarDraft} onDraft={onAvatarDraft} />
       </div>
 
       <div className={BOX}>

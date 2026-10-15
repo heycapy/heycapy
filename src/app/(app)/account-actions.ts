@@ -24,14 +24,16 @@ import { refreshBucketReminders } from "@/lib/reminders/refresh";
 
 const AvatarInput = z.string().regex(AVATAR_PATTERN).nullable();
 
-export async function getAvatarAction(): Promise<ActionResult<{ avatar: string | null }>> {
+export async function getAvatarAction(): Promise<
+  ActionResult<{ avatar: string | null; userId: number }>
+> {
   const session = await getSession();
   if (!session) return { ok: false, error: "Unauthorized" };
   const user = await db.query.users.findFirst({
     columns: { avatar: true },
     where: eq(users.id, session.userId),
   });
-  return { ok: true, avatar: user?.avatar ?? null };
+  return { ok: true, avatar: user?.avatar ?? null, userId: session.userId };
 }
 
 export async function saveAvatarAction(

@@ -33,6 +33,10 @@ async function drag(page: Page, canvas: Locator, from: [number, number], to: [nu
   await page.mouse.up();
 }
 
+function header(page: Page) {
+  return page.locator("header").getByRole("img", { name: "your avatar" });
+}
+
 function pixels(canvas: Locator) {
   return canvas.locator("rect");
 }
@@ -40,8 +44,16 @@ function pixels(canvas: Locator) {
 test("drawing with drag, mirror, fill and undo, then saving keeps the avatar", async ({ page }) => {
   const canvas = await openAvatarEditor(page);
   const save = page.getByRole("button", { name: "[ save avatar ]" });
+  const hint = page.getByTestId("avatar-hint");
   await expect(save).toBeDisabled();
+  await expect(hint).toHaveText(/this one was made for you/);
+  await expect(pixels(canvas)).toHaveCount(await header(page).locator("rect").count());
+
+  await page.getByRole("button", { name: "[ clear ]" }).click();
   await expect(pixels(canvas)).toHaveCount(0);
+  await expect(hint).toHaveText(/an empty avatar can't be saved/);
+  await expect(page.getByRole("button", { name: "[ use the one made for me ]" })).toBeEnabled();
+  await expect(page.getByTestId("avatar-previews").locator("rect")).not.toHaveCount(0);
 
   await page.getByRole("button", { name: "red", exact: true }).click();
   await drag(page, canvas, [0, 0], [7, 0]);
@@ -70,7 +82,7 @@ test("drawing with drag, mirror, fill and undo, then saving keeps the avatar", a
   await save.click();
   await expect(page.getByRole("status").filter({ hasText: "saved." })).toBeVisible();
   await expect(save).toBeDisabled();
-  await expect(page.locator("header").getByRole("img", { name: "your avatar" })).toBeVisible();
+  await expect(hint).toHaveCount(0);
 
   const saved = await canvas.innerHTML();
   const reopened = await openAvatarEditor(page);
@@ -78,26 +90,77 @@ test("drawing with drag, mirror, fill and undo, then saving keeps the avatar", a
   expect(await reopened.innerHTML()).toBe(saved);
 });
 
-test("removing the avatar clears it, and undo brings the drawing back to save again", async ({
+test("removing the avatar goes back to the generated one, and undo brings the drawing back", async ({
   page,
 }) => {
   const canvas = await openAvatarEditor(page);
-  await expect(pixels(canvas)).not.toHaveCount(0);
-  const header = page.locator("header").getByRole("img", { name: "your avatar" });
-  const drawn = await header.innerHTML();
+  await expect(canvas.locator("rect.fill-avatar-8")).toHaveCount(1);
+  const drawn = await header(page).innerHTML();
 
   await page.getByRole("button", { name: "[ remove avatar ]" }).click();
-  await expect(page.getByRole("status").filter({ hasText: "avatar removed." })).toBeVisible();
-  await expect(pixels(canvas)).toHaveCount(0);
+  await expect(
+    page.getByRole("status").filter({ hasText: "removed. people now see the one made for you." })
+  ).toBeVisible();
   await expect(page.getByRole("button", { name: "[ remove avatar ]" })).toHaveCount(0);
-  // back to the pattern made from the user id
-  await expect(header.locator("rect")).not.toHaveCount(0);
-  expect(await header.innerHTML()).not.toBe(drawn);
+  await expect(page.getByTestId("avatar-hint")).toHaveText(/this one was made for you/);
+  await expect.poll(() => header(page).innerHTML()).not.toBe(drawn);
+  await expect(pixels(canvas)).toHaveCount(await header(page).locator("rect").count());
 
   await page.getByRole("button", { name: "[ undo ]" }).click();
-  await expect(pixels(canvas)).not.toHaveCount(0);
+  await expect(canvas.locator("rect.fill-avatar-8")).toHaveCount(1);
   await expect(page.getByRole("button", { name: "[ save avatar ]" })).toBeEnabled();
 
   const reopened = await openAvatarEditor(page);
-  await expect(pixels(reopened)).toHaveCount(0);
+  await expect(page.getByTestId("avatar-hint")).toHaveText(/this one was made for you/);
+  await expect(pixels(reopened)).toHaveCount(await header(page).locator("rect").count());
+});
+
+test("saving an empty drawing goes back to the generated one too", async ({ page }) => {
+  const canvas = await openAvatarEditor(page);
+  await page.getByRole("button", { name: "red", exact: true }).click();
+  await drag(page, canvas, [0, 0], [15, 0]);
+  await page.getByRole("button", { name: "[ save avatar ]" }).click();
+  await expect(page.getByRole("status").filter({ hasText: "saved." })).toBeVisible();
+
+  await page.getByRole("button", { name: "[ clear ]" }).click();
+  await page.getByRole("button", { name: "[ use the one made for me ]" }).click();
+  await expect(
+    page.getByRole("status").filter({ hasText: "removed. people now see the one made for you." })
+  ).toBeVisible();
+  await expect(pixels(canvas)).not.toHaveCount(0);
+  await expect(page.getByRole("button", { name: "[ remove avatar ]" })).toHaveCount(0);
+});
+
+test("closing tweaks with an unsaved drawing asks first, and switching tabs keeps it", async ({
+  page,
+}) => {
+  const canvas = await openAvatarEditor(page);
+  await page.getByRole("button", { name: "[ clear ]" }).click();
+  await page.getByRole("button", { name: "green", exact: true }).click();
+  await drag(page, canvas, [0, 8], [15, 8]);
+
+  await page.getByRole("button", { name: "appearance", exact: true }).click();
+  await page.getByRole("button", { name: "account", exact: true }).click();
+  await expect(canvas.locator('rect.fill-avatar-b[width="16"]')).toHaveCount(1);
+
+  const close = page.locator("aside").getByRole("button", { name: "[ x ]", exact: true });
+  const warning = page.getByRole("alertdialog", { name: "unsaved changes" });
+  await close.click();
+  await expect(warning).toBeVisible();
+  await warning.getByRole("button", { name: "[ keep editing ]" }).click();
+  await expect(canvas.locator('rect.fill-avatar-b[width="16"]')).toHaveCount(1);
+
+  await close.click();
+  await warning.getByRole("button", { name: "[ discard ]" }).click();
+  await expect(page.locator("aside")).toHaveCount(0);
+  const reopened = await openAvatarEditor(page);
+  await expect(reopened.locator("rect.fill-avatar-b")).toHaveCount(0);
+
+  await page.getByRole("button", { name: "[ clear ]" }).click();
+  await page.getByRole("button", { name: "green", exact: true }).click();
+  await drag(page, reopened, [0, 8], [15, 8]);
+  await close.click();
+  await warning.getByRole("button", { name: "[ save ]" }).click();
+  await expect(page.locator("aside")).toHaveCount(0);
+  await expect(header(page).locator('rect.fill-avatar-b[width="16"]')).toHaveCount(1);
 });

@@ -1,11 +1,13 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { BracketButton } from "@/components/ui/BracketButton";
 import { getAvatarAction, saveAvatarAction } from "@/app/(app)/actions";
 import {
   avatarCode,
+  avatarFor,
   blankCells,
+  defaultAvatar,
   fill,
   paint,
   toAvatar,
@@ -25,10 +27,19 @@ import { AvatarToolbar } from "./AvatarToolbar";
 import type { AvatarTool } from "./avatar-constants";
 import { useAvatarDrawing } from "./useAvatarDrawing";
 
-export function AvatarEditor() {
+export type AvatarDraft = { avatar: string | null } | null;
+
+type AvatarEditorProps = {
+  draft: AvatarDraft;
+  onDraft: (draft: AvatarDraft) => void;
+};
+
+export function AvatarEditor({ draft, onDraft }: AvatarEditorProps) {
   const drawing = useAvatarDrawing();
+  const startDraft = useRef(draft);
   const loadDrawing = drawing.load;
   const [saved, setSaved] = useState<string | null>(null);
+  const [generated, setGenerated] = useState<AvatarCells>(blankCells);
   const [loaded, setLoaded] = useState(false);
   const [tool, setTool] = useState<AvatarTool>("pencil");
   const [colour, setColour] = useState(0);
@@ -42,7 +53,9 @@ export function AvatarEditor() {
       if (cancelled) return;
       if (result.ok) {
         setSaved(result.avatar);
-        loadDrawing(toCells(result.avatar));
+        setGenerated(defaultAvatar(result.userId));
+        const unsaved = startDraft.current;
+        loadDrawing(unsaved ? toCells(unsaved.avatar) : avatarFor(result.avatar, result.userId));
       } else {
         setMessage({ text: result.error, error: true });
       }
@@ -54,7 +67,16 @@ export function AvatarEditor() {
   }, [loadDrawing]);
 
   const current = toAvatar(drawing.cells);
-  const changed = current !== saved;
+  // What others see now: the saved drawing, or the generated one for someone who never drew
+  const shown = saved ?? generated.join("");
+  const changed = drawing.cells.join("") !== shown;
+  const empty = current === null;
+  const showingGenerated = saved === null && !changed;
+  const pendingAvatar = loaded && changed ? current : undefined;
+
+  useEffect(() => {
+    onDraft(pendingAvatar === undefined ? null : { avatar: pendingAvatar });
+  }, [pendingAvatar, onDraft]);
 
   function strokeAt(cells: AvatarCells, indexes: number[]): AvatarCells {
     if (tool === "fill") return cells;
@@ -84,13 +106,15 @@ export function AvatarEditor() {
         return;
       }
       setSaved(result.avatar);
-      setMessage({ text: result.avatar ? "saved." : "avatar removed.", error: false });
+      if (result.avatar) {
+        setMessage({ text: "saved.", error: false });
+        return;
+      }
+      drawing.replace(generated);
+      if (saved !== null) {
+        setMessage({ text: "removed. people now see the one made for you.", error: false });
+      }
     });
-  }
-
-  function remove() {
-    drawing.replace(blankCells());
-    save(null);
   }
 
   const busy = !loaded || pending;
@@ -135,7 +159,7 @@ export function AvatarEditor() {
             {AVATAR_DISPLAY_SIZES.map((size) => (
               <Avatar
                 key={size}
-                cells={drawing.cells}
+                cells={empty ? generated : drawing.cells}
                 size={size}
                 label={`preview on ${background.name}, ${size}px`}
               />
@@ -144,12 +168,19 @@ export function AvatarEditor() {
         ))}
       </div>
 
+      {loaded && (empty || showingGenerated) && (
+        <p className={LABEL} data-testid="avatar-hint">
+          {empty
+            ? "an empty avatar can't be saved. people will see the one made for you."
+            : "this one was made for you. draw over it, or clear it to start fresh."}
+        </p>
+      )}
       <div className="flex gap-3">
         <BracketButton onClick={() => save(current)} disabled={busy || !changed}>
-          {pending ? "saving..." : "save avatar"}
+          {pending ? "saving..." : empty ? "use the one made for me" : "save avatar"}
         </BracketButton>
         {saved !== null && (
-          <BracketButton variant="destructive" onClick={remove} disabled={busy}>
+          <BracketButton variant="destructive" onClick={() => save(null)} disabled={busy}>
             remove avatar
           </BracketButton>
         )}

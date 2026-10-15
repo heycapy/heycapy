@@ -23,10 +23,11 @@ async function storedAvatar(userId: number) {
 describe("avatar", () => {
   it("saves a drawing on the signed-in person and reads it back", async () => {
     session.userId = await seedUser();
-    expect(await getAvatarAction()).toEqual({ ok: true, avatar: null });
+    const userId = session.userId;
+    expect(await getAvatarAction()).toEqual({ ok: true, avatar: null, userId });
 
     expect(await saveAvatarAction(DRAWING)).toEqual({ ok: true, avatar: DRAWING });
-    expect(await getAvatarAction()).toEqual({ ok: true, avatar: DRAWING });
+    expect(await getAvatarAction()).toEqual({ ok: true, avatar: DRAWING, userId });
   });
 
   it("only ever changes the signed-in person's avatar", async () => {
