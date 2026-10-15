@@ -6,10 +6,18 @@ import {
   type MentionMember,
 } from "@/lib/items/mention";
 
+const SAM_AVATAR = "8".repeat(256);
+
 const members: MentionMember[] = [
-  { userId: 1, username: "dapper_squid_traveling", displayName: null, isYou: true },
-  { userId: 2, username: "wobbly_falcon_reading", displayName: "Sam", isYou: false },
-  { userId: 3, username: "sleepy_otter_juggling", displayName: "Sara", isYou: false },
+  { userId: 1, username: "dapper_squid_traveling", displayName: null, avatar: null, isYou: true },
+  {
+    userId: 2,
+    username: "wobbly_falcon_reading",
+    displayName: "Sam",
+    avatar: SAM_AVATAR,
+    isYou: false,
+  },
+  { userId: 3, username: "sleepy_otter_juggling", displayName: "Sara", avatar: null, isYou: false },
 ];
 
 describe("findMention", () => {
@@ -47,12 +55,12 @@ describe("mentionOptions", () => {
     ]);
   });
 
-  it("shows the username next to a name, and anyone only while it can still match", () => {
+  it("shows the username and avatar next to a name, and anyone only while it can still match", () => {
     expect(mentionOptions(members, "sam")).toEqual([
-      { userId: 2, label: "Sam", username: "wobbly_falcon_reading" },
+      { userId: 2, avatar: SAM_AVATAR, label: "Sam", username: "wobbly_falcon_reading" },
     ]);
     expect(mentionOptions(members, "any")).toEqual([
-      { userId: null, label: "anyone", username: null },
+      { userId: null, avatar: null, label: "anyone", username: null },
     ]);
   });
 

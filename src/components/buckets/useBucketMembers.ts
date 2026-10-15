@@ -1,6 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { listMembersAction } from "@/app/(app)/actions";
-import { memberName } from "@/lib/buckets/member-name";
 import type { BucketMember } from "@/lib/buckets/members";
 
 // Loaded again when `reloadKey` changes, so someone who joined while the bucket was open shows up
@@ -17,13 +16,5 @@ export function useBucketMembers(bucketId: number, reloadKey: unknown) {
     };
   }, [bucketId, reloadKey]);
 
-  const names = useMemo(
-    () =>
-      Object.fromEntries(
-        members.map((member) => [member.userId, member.isYou ? "you" : memberName(member)])
-      ),
-    [members]
-  );
-
-  return { members, names };
+  return members;
 }

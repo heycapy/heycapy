@@ -425,6 +425,9 @@ export const AVATAR_PALETTE = [
   { name: "purple", fill: "fill-avatar-e", swatch: "bg-avatar-e" },
   { name: "pink", fill: "fill-avatar-f", swatch: "bg-avatar-f" },
 ] as const;
+
+export const AVATAR_DEFAULT_BLOCKS = 6;
+export const AVATAR_DEFAULT_COLOURS = [8, 9, 10, 11, 12, 13, 14, 15] as const;
 export const AVATAR_DISPLAY_SIZES = [16, 32, 48] as const;
 export const AVATAR_PREVIEW_BACKGROUNDS = [
   { name: "light", className: "bg-avatar-light" },

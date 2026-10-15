@@ -12,6 +12,7 @@ import type {
 import { formatShort } from "@/lib/format-date";
 import { otherClock } from "@/lib/timezones/gap";
 import { channelKey } from "@/lib/notifications/channel-key";
+import { PersonAvatar } from "@/components/avatar/PersonAvatar";
 
 const REASONS: Record<NonNullable<Info["reason"]>, string> = {
   completed: "completed",
@@ -136,7 +137,14 @@ export function ItemReminderInfo({ itemId }: { itemId: number }) {
         <div>
           <p className="text-muted-foreground">also reminded</p>
           {info.others.map((person, i) => (
-            <p key={i}>{otherLine(person)}</p>
+            <p key={i}>
+              <PersonAvatar
+                userId={person.userId}
+                avatar={person.avatar}
+                className="mr-1.5 inline-block align-text-bottom"
+              />
+              {otherLine(person)}
+            </p>
           ))}
         </div>
       )}
@@ -151,7 +159,16 @@ export function ItemReminderInfo({ itemId }: { itemId: number }) {
               event.type === "action" ? (
                 <li key={i}>
                   <p>
-                    {formatShort(event.at)} · {actionText(event)}
+                    {formatShort(event.at)} ·{" "}
+                    {/* in a bucket of one every line is "you"; the picture is for telling people apart */}
+                    {event.by !== "you" && (
+                      <PersonAvatar
+                        userId={event.byId}
+                        avatar={event.byAvatar}
+                        className="mr-1 inline-block align-text-bottom"
+                      />
+                    )}
+                    {actionText(event)}
                   </p>
                 </li>
               ) : (

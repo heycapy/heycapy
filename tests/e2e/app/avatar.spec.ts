@@ -83,13 +83,16 @@ test("removing the avatar clears it, and undo brings the drawing back to save ag
 }) => {
   const canvas = await openAvatarEditor(page);
   await expect(pixels(canvas)).not.toHaveCount(0);
-  await expect(page.locator("header").getByRole("img", { name: "your avatar" })).toBeVisible();
+  const header = page.locator("header").getByRole("img", { name: "your avatar" });
+  const drawn = await header.innerHTML();
 
   await page.getByRole("button", { name: "[ remove avatar ]" }).click();
   await expect(page.getByRole("status").filter({ hasText: "avatar removed." })).toBeVisible();
   await expect(pixels(canvas)).toHaveCount(0);
   await expect(page.getByRole("button", { name: "[ remove avatar ]" })).toHaveCount(0);
-  await expect(page.locator("header").getByRole("img", { name: "your avatar" })).toHaveCount(0);
+  // back to the pattern made from the user id
+  await expect(header.locator("rect")).not.toHaveCount(0);
+  expect(await header.innerHTML()).not.toBe(drawn);
 
   await page.getByRole("button", { name: "[ undo ]" }).click();
   await expect(pixels(canvas)).not.toHaveCount(0);

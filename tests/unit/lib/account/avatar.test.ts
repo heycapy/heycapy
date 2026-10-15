@@ -2,16 +2,18 @@ import { describe, expect, it } from "vitest";
 import {
   AVATAR_PATTERN,
   avatarCode,
+  avatarFor,
   avatarRuns,
   blankCells,
   cellAt,
   cellsBetween,
+  defaultAvatar,
   fill,
   paint,
   toAvatar,
   toCells,
 } from "@/lib/account/avatar";
-import { AVATAR_PALETTE } from "@/lib/account/constants";
+import { AVATAR_DEFAULT_COLOURS, AVATAR_PALETTE } from "@/lib/account/constants";
 
 const RED = avatarCode(8);
 const BLUE = avatarCode(13);
@@ -99,5 +101,40 @@ describe("rendering", () => {
     const cells = paint(blankCells(), [cellAt(1, 0), cellAt(2, 0), cellAt(3, 0)], RED, false);
     expect(avatarRuns(cells)).toEqual([{ x: 1, y: 0, width: 3, fill: "fill-avatar-8" }]);
     expect(avatarRuns(blankCells())).toEqual([]);
+  });
+});
+
+describe("generated avatar", () => {
+  const codesOf = (cells: readonly string[]) => new Set(cells.filter((cell) => cell !== "."));
+
+  it("is the same picture every time for the same person", () => {
+    expect(defaultAvatar(42)).toEqual(defaultAvatar(42));
+  });
+
+  it("gives different people different pictures", () => {
+    const pictures = new Set(Array.from({ length: 50 }, (_, id) => defaultAvatar(id + 1).join("")));
+    expect(pictures.size).toBe(50);
+  });
+
+  it("is mirrored, one bright colour, never empty, and keeps a margin", () => {
+    for (let id = 1; id <= 200; id++) {
+      const cells = defaultAvatar(id);
+      const codes = codesOf(cells);
+      expect(codes.size).toBe(1);
+      expect(AVATAR_DEFAULT_COLOURS.map(avatarCode)).toContain([...codes][0]);
+      for (let y = 0; y < 16; y++) {
+        for (let x = 0; x < 16; x++) {
+          expect(cells[cellAt(x, y)]).toBe(cells[cellAt(15 - x, y)]);
+          if (x < 2 || y < 2 || x > 13 || y > 13) expect(cells[cellAt(x, y)]).toBe(".");
+        }
+      }
+    }
+  });
+
+  it("is only used when the person never drew one", () => {
+    const drawn = "8".repeat(256);
+    expect(avatarFor(drawn, 7).join("")).toBe(drawn);
+    expect(avatarFor(null, 7)).toEqual(defaultAvatar(7));
+    expect(avatarFor("broken", 7)).toEqual(defaultAvatar(7));
   });
 });

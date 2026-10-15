@@ -1,5 +1,6 @@
 import { useEffect, useState, useTransition } from "react";
 import { BracketButton } from "@/components/ui/BracketButton";
+import { BetaTag } from "@/components/ui/BetaTag";
 import { AvatarEditor } from "@/components/avatar/AvatarEditor";
 import {
   deleteAccountAction,
@@ -73,7 +74,10 @@ export function AccountTab({ email, username }: { email: string; username: strin
       )}
 
       <div className={BOX}>
-        <span className={SECTION}>avatar</span>
+        <span className={SECTION}>
+          avatar
+          <BetaTag feature="avatars" className="font-normal tracking-normal normal-case" />
+        </span>
         <AvatarEditor />
       </div>
 

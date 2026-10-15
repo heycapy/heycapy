@@ -569,7 +569,11 @@ describe("a reminder still queued for someone the item was taken from", () => {
 describe("item info", () => {
   it("shows who else is reminded and when, who acted, and a hold by their quiet hours", async () => {
     const { owner, member, bucketId } = await sharedBucket();
-    await db.update(users).set({ displayName: "Sam" }).where(eq(users.id, member));
+    const samAvatar = "d".repeat(256);
+    await db
+      .update(users)
+      .set({ displayName: "Sam", avatar: samAvatar })
+      .where(eq(users.id, member));
     await db
       .update(userSettings)
       .set({ quietHoursFrom: "22:00", quietHoursTo: "10:00" })
@@ -583,6 +587,8 @@ describe("item info", () => {
     // 09:00 London is inside Sam's quiet hours, so it waits until 10:00
     expect(forOwner?.others).toEqual([
       {
+        userId: member,
+        avatar: samAvatar,
         name: "Sam",
         timezone: LONDON,
         next: new Date("2026-10-26T10:00:00Z"),
@@ -590,7 +596,9 @@ describe("item info", () => {
       },
     ]);
     expect(forOwner?.heldByQuietHours).toBe(false);
-    expect(forOwner?.history).toMatchObject([{ type: "action", by: "Sam", source: "telegram" }]);
+    expect(forOwner?.history).toMatchObject([
+      { type: "action", by: "Sam", byId: member, byAvatar: samAvatar, source: "telegram" },
+    ]);
 
     const forSam = await getItemReminderInfo(member, itemId);
     expect(forSam?.heldByQuietHours).toBe(true);

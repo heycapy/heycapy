@@ -44,7 +44,7 @@ export function BucketContent({ bucket, accentColor, addItemRef }: BucketContent
         : "",
     onSaved: list.refetch,
   });
-  const { members, names } = useBucketMembers(bucket.id, editor.dialogProps.open);
+  const members = useBucketMembers(bucket.id, editor.dialogProps.open);
   useEffect(() => {
     addItemRef.current = editor.startAdding;
     return () => {
@@ -105,7 +105,6 @@ export function BucketContent({ bucket, accentColor, addItemRef }: BucketContent
           fields={fields}
           editingItemId={editor.editingItemId}
           reminderBadges={list.reminderBadges}
-          assigneeNames={names}
           members={members}
           onReorder={list.reorder}
           onEdit={editor.startEditing}

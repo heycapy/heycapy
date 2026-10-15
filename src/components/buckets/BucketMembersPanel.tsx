@@ -9,6 +9,7 @@ import {
 } from "@/app/(app)/actions";
 import { BUCKET_MEMBERS_MAX } from "@/lib/buckets/constants";
 import { memberName } from "@/lib/buckets/member-name";
+import { PersonAvatar } from "@/components/avatar/PersonAvatar";
 import type { ViewerBucket } from "@/lib/buckets/access";
 import type { BucketMember } from "@/lib/buckets/members";
 import { clockTimeIn } from "@/lib/format-date";
@@ -111,17 +112,20 @@ export function BucketMembersPanel({
           {members?.map((member) => (
             <li key={member.userId} className="flex flex-col gap-1.5 px-3 py-2">
               <div className="flex items-center justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="truncate font-mono text-xs">{memberName(member)}</p>
-                  <p className="text-muted-foreground truncate font-mono text-[11px]">
-                    {member.displayName && member.username ? `@${member.username} · ` : ""}
-                    {member.role}
-                  </p>
-                  {showZones && (
+                <div className="flex min-w-0 items-center gap-2.5">
+                  <PersonAvatar userId={member.userId} avatar={member.avatar} size={32} />
+                  <div className="min-w-0">
+                    <p className="truncate font-mono text-xs">{memberName(member)}</p>
                     <p className="text-muted-foreground truncate font-mono text-[11px]">
-                      {whereTheyAre(member, you, now)}
+                      {member.displayName && member.username ? `@${member.username} · ` : ""}
+                      {member.role}
                     </p>
-                  )}
+                    {showZones && (
+                      <p className="text-muted-foreground truncate font-mono text-[11px]">
+                        {whereTheyAre(member, you, now)}
+                      </p>
+                    )}
+                  </div>
                 </div>
                 {bucket.isOwner && member.role === "member" && !confirmingFor(member.userId) && (
                   <div className="flex shrink-0 gap-1">

@@ -1,4 +1,10 @@
-import { AVATAR_EMPTY, AVATAR_PALETTE, AVATAR_SIZE } from "./constants";
+import {
+  AVATAR_DEFAULT_BLOCKS,
+  AVATAR_DEFAULT_COLOURS,
+  AVATAR_EMPTY,
+  AVATAR_PALETTE,
+  AVATAR_SIZE,
+} from "./constants";
 
 export type AvatarCells = readonly string[];
 export type AvatarRun = { x: number; y: number; width: number; fill: string };
@@ -132,4 +138,45 @@ export function avatarRuns(cells: AvatarCells): AvatarRun[] {
     }
   }
   return runs;
+}
+
+// mulberry32: a few lines, same numbers on server and browser for the same id
+function seeded(seed: number): () => number {
+  let state = seed >>> 0;
+  return () => {
+    state = (state + 0x6d2b79f5) >>> 0;
+    let t = state;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 2 ** 32;
+  };
+}
+
+// For someone who never drew one: a mirrored pattern of 2x2 blocks with a margin, one colour
+export function defaultAvatar(userId: number): AvatarCells {
+  const random = seeded(userId);
+  const code = avatarCode(
+    AVATAR_DEFAULT_COLOURS[Math.floor(random() * AVATAR_DEFAULT_COLOURS.length)]
+  );
+  const half = AVATAR_DEFAULT_BLOCKS / 2;
+  let on: boolean[] = [];
+  while (!on.some(Boolean)) {
+    on = Array.from({ length: AVATAR_DEFAULT_BLOCKS * half }, () => random() < 0.5);
+  }
+  const margin = (AVATAR_SIZE - AVATAR_DEFAULT_BLOCKS * 2) / 2;
+  const indexes: number[] = [];
+  for (let row = 0; row < AVATAR_DEFAULT_BLOCKS; row++) {
+    for (let col = 0; col < AVATAR_DEFAULT_BLOCKS; col++) {
+      const mirrored = col < half ? col : AVATAR_DEFAULT_BLOCKS - 1 - col;
+      if (!on[row * half + mirrored]) continue;
+      const x = margin + col * 2;
+      const y = margin + row * 2;
+      indexes.push(cellAt(x, y), cellAt(x + 1, y), cellAt(x, y + 1), cellAt(x + 1, y + 1));
+    }
+  }
+  return paint(blankCells(), indexes, code, false);
+}
+
+export function avatarFor(avatar: string | null, userId: number): AvatarCells {
+  return avatar !== null && AVATAR_PATTERN.test(avatar) ? [...avatar] : defaultAvatar(userId);
 }
