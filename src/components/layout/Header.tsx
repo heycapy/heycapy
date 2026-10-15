@@ -5,9 +5,12 @@ import { BetaTag } from "@/components/ui/BetaTag";
 import { BracketButton } from "@/components/ui/BracketButton";
 import { logoutAction, logoutEverywhereAction } from "@/app/(app)/actions";
 import { useScrollLock } from "@/hooks/useScrollLock";
+import { Avatar } from "@/components/avatar/Avatar";
+import { toCells } from "@/lib/account/avatar";
 
 type HeaderProps = {
   email: string;
+  avatar: string | null;
   onSettingsOpen: () => void;
   onArchiveOpen: () => void;
   onTrashOpen: () => void;
@@ -207,6 +210,7 @@ function GlobalMenu({
 
 export function Header({
   email,
+  avatar,
   onSettingsOpen,
   onArchiveOpen,
   onTrashOpen,
@@ -218,9 +222,12 @@ export function Header({
 
   return (
     <header className="flex items-center justify-between px-5 pt-6 pb-2">
-      <div>
-        <h1 className="font-pixel text-base leading-snug">{greeting}</h1>
-        <p className="text-muted-foreground mt-0.5 text-xs">{date}</p>
+      <div className="flex items-center gap-3">
+        {avatar && <Avatar cells={toCells(avatar)} size={32} label="your avatar" />}
+        <div>
+          <h1 className="font-pixel text-base leading-snug">{greeting}</h1>
+          <p className="text-muted-foreground mt-0.5 text-xs">{date}</p>
+        </div>
       </div>
 
       <GlobalMenu

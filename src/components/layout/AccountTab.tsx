@@ -1,5 +1,6 @@
 import { useEffect, useState, useTransition } from "react";
 import { BracketButton } from "@/components/ui/BracketButton";
+import { AvatarEditor } from "@/components/avatar/AvatarEditor";
 import {
   deleteAccountAction,
   getDeletionBlockersAction,
@@ -70,6 +71,11 @@ export function AccountTab({ email, username }: { email: string; username: strin
           </p>
         </div>
       )}
+
+      <div className={BOX}>
+        <span className={SECTION}>avatar</span>
+        <AvatarEditor />
+      </div>
 
       <div className={BOX}>
         <span className={SECTION}>your data</span>

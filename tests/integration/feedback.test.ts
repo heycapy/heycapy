@@ -172,15 +172,16 @@ describe("feedback limits", () => {
   });
 
   it("lets the person write again once the hour has passed, and never limits someone else", async () => {
-    const start = Date.now();
     for (let i = 0; i < FEEDBACK_LIMIT_PER_USER; i++) await sendFeedbackAction("hi", "/");
+    // from the last send, not before the loop: on a busy run the sends land a few ms later
+    const lastSent = Date.now();
 
     const firstUser = session.userId;
     session.userId = await seedUser();
     expect(await sendFeedbackAction("hi", "/")).toEqual({ ok: true });
 
     session.userId = firstUser;
-    vi.spyOn(Date, "now").mockReturnValue(start + FEEDBACK_LIMIT_WINDOW_MS);
+    vi.spyOn(Date, "now").mockReturnValue(lastSent + FEEDBACK_LIMIT_WINDOW_MS);
     expect(await sendFeedbackAction("hi", "/")).toEqual({ ok: true });
   });
 

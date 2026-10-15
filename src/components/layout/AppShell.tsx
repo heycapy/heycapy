@@ -29,6 +29,7 @@ const CapyChat = dynamic(() => import("@/components/capy/CapyChat").then((m) => 
 type AppShellProps = {
   children: ReactNode;
   email: string;
+  avatar: string | null;
   failures: ChannelFailure[];
   hasWorkingChannel: boolean;
   assistantName: string;
@@ -38,6 +39,7 @@ type AppShellProps = {
 export function AppShell({
   children,
   email,
+  avatar,
   failures,
   hasWorkingChannel,
   assistantName,
@@ -63,6 +65,7 @@ export function AppShell({
       <PurchaseReturn onPaid={() => setSettingsTab("credits")} />
       <Header
         email={email}
+        avatar={avatar}
         onSettingsOpen={() => setSettingsTab("appearance")}
         onArchiveOpen={() => setArchivedOpen(true)}
         onTrashOpen={() => setTrashOpen(true)}

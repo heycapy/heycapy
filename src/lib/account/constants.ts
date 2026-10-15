@@ -403,3 +403,30 @@ export const USERNAME_ACTIVITIES = [
   "yodeling",
   "zooming",
 ] as const;
+
+export const AVATAR_SIZE = 16;
+export const AVATAR_EMPTY = ".";
+
+export const AVATAR_PALETTE = [
+  { name: "black", fill: "fill-avatar-0", swatch: "bg-avatar-0" },
+  { name: "white", fill: "fill-avatar-1", swatch: "bg-avatar-1" },
+  { name: "dark grey", fill: "fill-avatar-2", swatch: "bg-avatar-2" },
+  { name: "light grey", fill: "fill-avatar-3", swatch: "bg-avatar-3" },
+  { name: "light skin", fill: "fill-avatar-4", swatch: "bg-avatar-4" },
+  { name: "medium skin", fill: "fill-avatar-5", swatch: "bg-avatar-5" },
+  { name: "dark skin", fill: "fill-avatar-6", swatch: "bg-avatar-6" },
+  { name: "brown", fill: "fill-avatar-7", swatch: "bg-avatar-7" },
+  { name: "red", fill: "fill-avatar-8", swatch: "bg-avatar-8" },
+  { name: "orange", fill: "fill-avatar-9", swatch: "bg-avatar-9" },
+  { name: "yellow", fill: "fill-avatar-a", swatch: "bg-avatar-a" },
+  { name: "green", fill: "fill-avatar-b", swatch: "bg-avatar-b" },
+  { name: "teal", fill: "fill-avatar-c", swatch: "bg-avatar-c" },
+  { name: "blue", fill: "fill-avatar-d", swatch: "bg-avatar-d" },
+  { name: "purple", fill: "fill-avatar-e", swatch: "bg-avatar-e" },
+  { name: "pink", fill: "fill-avatar-f", swatch: "bg-avatar-f" },
+] as const;
+export const AVATAR_DISPLAY_SIZES = [16, 32, 48] as const;
+export const AVATAR_PREVIEW_BACKGROUNDS = [
+  { name: "light", className: "bg-avatar-light" },
+  { name: "dark", className: "bg-avatar-dark" },
+] as const;
