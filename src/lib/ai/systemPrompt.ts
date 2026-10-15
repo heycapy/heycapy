@@ -1,4 +1,4 @@
-import { bucketChannels, parseItemsRules } from "@/lib/rules";
+import { memberChannels, parseItemsRules } from "@/lib/rules";
 import { toLocal, utcOffset } from "@/lib/reminders/zoned";
 import { localDeadline, type UpcomingItem } from "./capyTools";
 import { CONDUCT_RULE, toneInstruction, type PersonalityTone } from "./personality";
@@ -16,7 +16,7 @@ type BucketSummary = {
   name: string;
   icon: string | null;
   itemsRules?: string | null;
-  notificationsRules?: string | null;
+  myChannels?: string | null;
   isOwner?: boolean;
   members?: string[];
 };
@@ -49,10 +49,10 @@ export function buildSystemPrompt(
             if (items.defaultDeadlineOffsetDays) {
               tags.push(`default deadline: ${items.defaultDeadlineOffsetDays}d from today`);
             }
-            const { medium, webhooks } = bucketChannels(b.notificationsRules);
+            const { medium, webhooks } = memberChannels(b.myChannels);
             const channels =
               webhooks.length > 0 ? [...medium, `${webhooks.length} webhook`] : medium;
-            if (channels.length > 0) tags.push(`notifications: ${channels.join("+")}`);
+            if (channels.length > 0) tags.push(`your notifications: ${channels.join("+")}`);
             const suffix = tags.length > 0 ? ` [${tags.join(", ")}]` : "";
             return `- "${b.name}" (id: ${b.id})${suffix}`;
           })

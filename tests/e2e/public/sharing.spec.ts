@@ -3,7 +3,15 @@ import Database from "better-sqlite3";
 import { E2E_DATABASE_FILE } from "../helpers/env";
 import { addItem, itemRow } from "../helpers/buckets";
 import { login, uniqueEmail } from "../helpers/login";
-import { modal, option } from "../helpers/settings";
+import {
+  closeDialog,
+  expectSelected,
+  field,
+  modal,
+  openSettings as openSettingsDialog,
+  option,
+  saveSettings,
+} from "../helpers/settings";
 
 const bracket = (label: string) => new RegExp(`^\\[\\s*${label}\\s*\\]$`);
 
@@ -73,7 +81,7 @@ test("an owner invites with a code, the friend joins from the menu and sees who 
   const itemTitle = `added by a member ${Date.now()}`;
   await addItem(friend, itemTitle);
 
-  await openSettings(friend);
+  await openMembers(friend);
   await expect(friend.getByText("people in this bucket (2/5)")).toBeVisible();
   await expect(friend.getByRole("button", { name: bracket("leave bucket") })).toBeVisible();
   await expect(friend.getByRole("button", { name: bracket("create invite") })).toHaveCount(0);
@@ -99,7 +107,7 @@ test("a member can leave a bucket", async ({ page, browser }) => {
   const friend = await browser.newPage();
   await joinWithCode(friend, code);
   await friend.waitForURL(/\/\?bucket=\d+$/);
-  await openSettings(friend);
+  await openMembers(friend);
   await friend.getByRole("button", { name: bracket("leave bucket") }).click();
   await friend.getByRole("button", { name: bracket("confirm") }).click();
 
@@ -107,6 +115,43 @@ test("a member can leave a bucket", async ({ page, browser }) => {
   await page.reload();
   await openMembers(page);
   await expect(page.getByText("people in this bucket (1/5)")).toBeVisible();
+  await friend.close();
+});
+
+function channelsOf(bucketId: number, owner: boolean): string {
+  const db = new Database(E2E_DATABASE_FILE);
+  const { channels } = db
+    .prepare("select channels from bucket_members where bucket_id = ? and role = ?")
+    .get(bucketId, owner ? "owner" : "member") as { channels: string };
+  db.close();
+  return channels;
+}
+
+test("a member picks where their own reminders go, and nothing else", async ({ page, browser }) => {
+  const { bucketId, code } = await ownerWithInvite(page, `channels ${Date.now()}`);
+  const ownerChannels = channelsOf(bucketId, true);
+
+  const friend = await browser.newPage();
+  await joinWithCode(friend, code);
+  await friend.waitForURL(`/?bucket=${bucketId}`);
+  const dialog = await openSettingsDialog(friend);
+  await expect(dialog.getByRole("button", { name: "items", exact: true })).toHaveCount(0);
+  await expect(field(dialog, "remind at")).toHaveCount(0);
+  await expect(dialog.getByRole("button", { name: bracket("configure telegram") })).toHaveCount(0);
+
+  const channels = field(dialog, "channels");
+  await expect(channels).toContainText("where your reminders from this bucket go");
+  // Joining starts them on the channels that work for them
+  await expectSelected(option(channels, "email"));
+  await expectSelected(option(channels, "telegram"), false);
+  await option(channels, "telegram").click();
+  await saveSettings(dialog);
+
+  const reopened = await openSettingsDialog(friend);
+  await expectSelected(option(field(reopened, "channels"), "telegram"));
+  await closeDialog(reopened);
+  expect(JSON.parse(channelsOf(bucketId, false))).toMatchObject({ medium: ["email", "telegram"] });
+  expect(channelsOf(bucketId, true)).toBe(ownerChannels);
   await friend.close();
 });
 
@@ -199,7 +244,7 @@ test("an owner can't delete their account while they still share a bucket", asyn
   await expect(page.getByText(`you still share ${bucketName} with other people`)).toBeVisible();
   await expect(page.getByRole("button", { name: /delete account/ })).toBeDisabled();
 
-  await openSettings(friend);
+  await openMembers(friend);
   await friend.getByRole("button", { name: bracket("leave bucket") }).click();
   await friend.getByRole("button", { name: bracket("confirm") }).click();
   await expect(friend.getByText("no buckets yet.")).toBeVisible();

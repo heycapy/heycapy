@@ -2,11 +2,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type * as SessionModule from "@/lib/auth/session";
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { bucketMembers, buckets, users, userSettings } from "@/lib/db/schema";
+import { buckets, users, userSettings } from "@/lib/db/schema";
 import { deadlineHintsAction } from "@/app/(app)/member-actions";
 import {
   resetSchedulerEnvironment,
   seedBucket,
+  seedMember,
   seedUser,
   useSchedulerEnvironment,
 } from "./helpers";
@@ -36,7 +37,7 @@ async function sharedBucket() {
     .set({ quietHoursFrom: "23:00", quietHoursTo: "08:00" })
     .where(eq(userSettings.userId, sam));
   const bucketId = await seedBucket(owner, { medium: ["telegram"], repeat: "once" });
-  await db.insert(bucketMembers).values({ bucketId, userId: sam });
+  await seedMember(bucketId, sam);
   session.userId = owner;
   return { owner, sam, bucketId };
 }

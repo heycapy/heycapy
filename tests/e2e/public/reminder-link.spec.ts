@@ -33,8 +33,13 @@ function seedSharedItem(title: string) {
     .prepare(
       "insert into buckets (user_id, name, notifications_rules) values (?, ?, ?) returning id"
     )
-    .get(owner, `shared ${Date.now()}`, JSON.stringify({ medium: ["email"] })) as { id: number };
+    .get(owner, `shared ${Date.now()}`, "{}") as { id: number };
   db.prepare("insert into bucket_members (bucket_id, user_id) values (?, ?)").run(bucketId, member);
+  // Everyone in it picked email for their reminders
+  db.prepare("update bucket_members set channels = ? where bucket_id = ?").run(
+    JSON.stringify({ medium: ["email"], webhooks: [] }),
+    bucketId
+  );
   const deadline = Math.floor(Date.now() / 1000) + 86_400;
   const { id: itemId } = db
     .prepare(

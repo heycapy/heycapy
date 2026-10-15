@@ -162,7 +162,8 @@ describe("migrations", () => {
       INSERT INTO templates (name, rules_json) VALUES ('Subs', '${template}');
     `);
 
-    migrate(db, { migrationsFolder: MIGRATIONS });
+    const memberChannels = journal.entries.findIndex((e) => e.tag === "0035_member_channels");
+    migrate(db, { migrationsFolder: migrationsUpTo(memberChannels) });
 
     const rules = sqlite
       .prepare("SELECT notifications_rules AS r FROM buckets ORDER BY id")
@@ -327,6 +328,51 @@ describe("migrations", () => {
         .prepare("SELECT overdue_notified_at FROM item_reminders WHERE item_id = 1 AND user_id = 1")
         .get()
     ).toEqual({ overdue_notified_at: null });
+    sqlite.close();
+  });
+
+  it("give each member the bucket's channels as their own, and the owner its webhooks", () => {
+    const journal = JSON.parse(
+      readFileSync(path.join(MIGRATIONS, "meta/_journal.json"), "utf8")
+    ) as Journal;
+    const memberChannels = journal.entries.findIndex((e) => e.tag === "0035_member_channels");
+    const dbPath = path.join(tempDir("heycapy-member-channels-"), "db.sqlite");
+    const sqlite = new Database(dbPath);
+    const db = drizzle(sqlite);
+    migrate(db, { migrationsFolder: migrationsUpTo(memberChannels) });
+
+    sqlite.exec(`
+      INSERT INTO users (id, email) VALUES (1, 'a@heycapy.test'), (2, 'b@heycapy.test');
+      INSERT INTO buckets (id, user_id, name, notifications_rules) VALUES
+        (1, 1, 'Home', '{"medium":["telegram","email"],"webhooks":[7],"repeat":"daily"}'),
+        (2, 1, 'Todo', '{"repeat":"once"}'),
+        (3, 1, 'Odd', '{"medium":"telegram"}'),
+        (4, 1, 'Broken', 'not json');
+      INSERT INTO bucket_members (bucket_id, user_id) VALUES (1, 2);
+    `);
+
+    migrate(db, { migrationsFolder: MIGRATIONS });
+
+    expect(
+      sqlite
+        .prepare(
+          "SELECT bucket_id, user_id, channels FROM bucket_members ORDER BY bucket_id, user_id"
+        )
+        .all()
+    ).toEqual([
+      { bucket_id: 1, user_id: 1, channels: '{"medium":["telegram","email"],"webhooks":[7]}' },
+      { bucket_id: 1, user_id: 2, channels: '{"medium":["telegram","email"],"webhooks":[]}' },
+      { bucket_id: 2, user_id: 1, channels: '{"medium":[],"webhooks":[]}' },
+      { bucket_id: 3, user_id: 1, channels: '{"medium":[],"webhooks":[]}' },
+      { bucket_id: 4, user_id: 1, channels: '{"medium":[],"webhooks":[]}' },
+    ]);
+    expect(
+      (
+        sqlite.prepare("SELECT notifications_rules AS r FROM buckets ORDER BY id").all() as {
+          r: string;
+        }[]
+      ).map((row) => row.r)
+    ).toEqual(['{"repeat":"daily"}', '{"repeat":"once"}', "{}", "not json"]);
     sqlite.close();
   });
 });

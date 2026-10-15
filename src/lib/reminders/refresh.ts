@@ -1,6 +1,7 @@
 import { recordSystemError } from "@/lib/system-errors";
-import { parseNotificationRules } from "@/lib/rules";
+import { memberChannels, parseNotificationRules } from "@/lib/rules";
 import { and, asc, eq, gt, inArray, max, type SQL } from "drizzle-orm";
+import { alias } from "drizzle-orm/sqlite-core";
 import { db } from "@/lib/db";
 import { bucketMembers, buckets, itemReminders, items, userSettings } from "@/lib/db/schema";
 import { memberBucketIds } from "@/lib/buckets/access";
@@ -10,11 +11,15 @@ import { bucketsChanged } from "@/lib/events";
 import { RECONCILE_BATCH_SIZE } from "./constants";
 import { nextDeadlineReminder, nextOverdueAlert, type ReminderInputs } from "./schedule";
 
+export const ownerMember = alias(bucketMembers, "owner_member");
+
 export const reminderRowFields = {
   item: items,
   reminder: itemReminders,
   bucketOwnerId: buckets.userId,
   notificationsRules: buckets.notificationsRules,
+  channels: bucketMembers.channels,
+  ownerChannels: ownerMember.channels,
   fieldSchema: buckets.fieldSchema,
   bucketDeletedAt: buckets.deletedAt,
   bucketArchivedAt: buckets.archivedAt,
@@ -28,6 +33,8 @@ export type ReminderRow = {
   reminder: typeof itemReminders.$inferSelect;
   bucketOwnerId: number;
   notificationsRules: string;
+  channels: string | null;
+  ownerChannels: string | null;
   fieldSchema: unknown;
   bucketDeletedAt: Date | null;
   bucketArchivedAt: Date | null;
@@ -36,13 +43,24 @@ export type ReminderRow = {
   quietTo: string | null;
 };
 
-// One row per item and person reminded, with that person's clock and quiet hours
+export const recipientMember = and(
+  eq(bucketMembers.bucketId, items.bucketId),
+  eq(bucketMembers.userId, itemReminders.userId)
+);
+export const bucketOwnerMember = and(
+  eq(ownerMember.bucketId, buckets.id),
+  eq(ownerMember.userId, buckets.userId)
+);
+
+// One row per item and person reminded, with that person's clock, quiet hours and channels
 export function selectReminderRows(where: SQL | undefined) {
   return db
     .select(reminderRowFields)
     .from(itemReminders)
     .innerJoin(items, eq(itemReminders.itemId, items.id))
     .innerJoin(buckets, eq(items.bucketId, buckets.id))
+    .leftJoin(bucketMembers, recipientMember)
+    .leftJoin(ownerMember, bucketOwnerMember)
     .leftJoin(userSettings, eq(userSettings.userId, itemReminders.userId))
     .where(where);
 }
@@ -94,6 +112,15 @@ export async function userTimezone(userId: number): Promise<string> {
   return row?.timezone ?? "UTC";
 }
 
+// The owner's webhooks post the bucket's reminders, so they also go out with the assignee's when the
+// owner isn't reminded about the item
+function sharedWebhooks(row: ReminderRow): number[] {
+  const assignee = row.item.assigneeId;
+  return assignee === row.reminder.userId && assignee !== row.bucketOwnerId
+    ? memberChannels(row.ownerChannels).webhooks
+    : [];
+}
+
 // Throws on invalid stored rules
 export function toReminderInputs(row: ReminderRow): ReminderInputs {
   const triggers = parseTriggers(row.fieldSchema);
@@ -108,6 +135,8 @@ export function toReminderInputs(row: ReminderRow): ReminderInputs {
     overdueNotifiedAt: row.reminder.overdueNotifiedAt,
     reminderOffsets: row.item.reminderOffsets,
     rules: NotificationRules.parse(JSON.parse(row.notificationsRules)),
+    channels: memberChannels(row.channels),
+    sharedWebhooks: sharedWebhooks(row),
     notifyWhenOverdue: triggers.notifyWhenOverdue,
     overdueRepeatHours: triggers.overdueRepeatHours,
     overdueFirstAlertMins: triggers.overdueFirstAlertMins,

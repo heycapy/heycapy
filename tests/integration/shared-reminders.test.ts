@@ -3,7 +3,6 @@ import type * as SessionModule from "@/lib/auth/session";
 import { and, desc, eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import {
-  bucketMembers,
   itemReminders,
   items,
   notificationQueue,
@@ -12,6 +11,8 @@ import {
   userSettings,
 } from "@/lib/db/schema";
 import { addItemAction, updateItemAction } from "@/app/(app)/item-actions";
+import { updateMyChannelsAction } from "@/app/(app)/bucket-actions";
+import { getMemberChannels } from "@/lib/notifications/channels";
 import {
   createInviteAction,
   joinBucketAction,
@@ -35,7 +36,9 @@ import {
   resetSchedulerEnvironment,
   runSchedulerAt,
   seedBucket,
+  seedMember,
   seedUser,
+  setChannels,
   useSchedulerEnvironment,
 } from "./helpers";
 
@@ -73,7 +76,7 @@ async function sharedBucket(webhooks: number[] = []) {
   const owner = await seedUser(INDIA);
   const member = await seedUser(LONDON);
   const bucketId = await seedBucket(owner, { medium: ["telegram"], webhooks, repeat: "once" });
-  await db.insert(bucketMembers).values({ bucketId, userId: member });
+  await seedMember(bucketId, member);
   return { owner, member, bucketId };
 }
 
@@ -260,6 +263,107 @@ describe("someone who joins", () => {
   });
 });
 
+describe("each member's own channels", () => {
+  const ownWebhook = async (userId: number, name: string) =>
+    (
+      await db
+        .insert(outgoingWebhooks)
+        .values({
+          userId,
+          name,
+          url: "https://discord.com/api/webhooks/1/x",
+          secret: newWebhookSecret(),
+        })
+        .returning()
+    )[0];
+
+  it("send each person's reminder where they picked, not where the owner did", async () => {
+    const owner = await seedUser(INDIA);
+    const member = await seedUser(LONDON);
+    await db
+      .update(userSettings)
+      .set({ notificationsPush: true, ntfyUrl: "https://ntfy.sh", ntfyTopic: "heycapy" })
+      .where(eq(userSettings.userId, member));
+    const bucketId = await seedBucket(owner, { medium: ["telegram"], repeat: "once" });
+    await seedMember(bucketId, member, ["ntfy"]);
+    session.userId = owner;
+    const itemId = await add(bucketId, "2026-10-26");
+
+    await runSchedulerAt(justAfter(OCT_26.india));
+    await runSchedulerAt(justAfter(OCT_26.london));
+
+    expect(await sentTo(itemId)).toEqual([
+      { userId: owner, medium: "telegram" },
+      { userId: member, medium: "ntfy" },
+    ]);
+  });
+
+  it("send a member's own webhook with their reminder", async () => {
+    const owner = await seedUser(INDIA);
+    const member = await seedUser(LONDON);
+    const hook = await ownWebhook(member, "my discord");
+    const bucketId = await seedBucket(owner, { medium: ["telegram"], repeat: "once" });
+    await seedMember(bucketId, member, []);
+    await setChannels(member, bucketId, [], [hook.id]);
+    session.userId = owner;
+    const itemId = await add(bucketId, "2026-10-26", member);
+
+    await runSchedulerAt(justAfter(OCT_26.london));
+
+    expect(await sentTo(itemId)).toEqual([{ userId: member, medium: "webhook" }]);
+  });
+
+  it("start as the channels that work for whoever joins", async () => {
+    const owner = await seedUser(INDIA);
+    const bucketId = await seedBucket(owner, { medium: [], repeat: "once" });
+    session.userId = owner;
+    const invite = await createInviteAction(bucketId);
+    if (!invite.ok) throw new Error(invite.error);
+
+    const friend = await seedUser(LONDON);
+    session.userId = friend;
+    await joinBucketAction(invite.code);
+
+    expect(await getMemberChannels(friend, bucketId)).toEqual({
+      medium: ["telegram"],
+      webhooks: [],
+    });
+  });
+
+  it("are saved by each member for themselves only", async () => {
+    const { owner, member, bucketId } = await sharedBucket();
+    const ownerHook = await ownWebhook(owner, "family discord");
+    const memberHook = await ownWebhook(member, "my discord");
+    session.userId = member;
+
+    expect(
+      await updateMyChannelsAction(bucketId, {
+        medium: ["email"],
+        webhooks: [memberHook.id, ownerHook.id],
+      })
+    ).toEqual({ ok: true });
+
+    expect(await getMemberChannels(member, bucketId)).toEqual({
+      medium: ["email"],
+      webhooks: [memberHook.id],
+    });
+    expect(await getMemberChannels(owner, bucketId)).toEqual({
+      medium: ["telegram"],
+      webhooks: [],
+    });
+  });
+
+  it("can't be saved for a bucket someone isn't in", async () => {
+    const { bucketId } = await sharedBucket();
+    session.userId = await seedUser(LONDON);
+
+    expect(await updateMyChannelsAction(bucketId, { medium: ["email"], webhooks: [] })).toEqual({
+      ok: false,
+      error: "Bucket not found",
+    });
+  });
+});
+
 describe("the bucket's webhook", () => {
   async function withWebhook() {
     const owner = await seedUser(INDIA);
@@ -278,7 +382,7 @@ describe("the bucket's webhook", () => {
       webhooks: [webhook.id],
       repeat: "once",
     });
-    await db.insert(bucketMembers).values({ bucketId, userId: member });
+    await seedMember(bucketId, member);
     return { owner, member, bucketId };
   }
 
@@ -343,15 +447,14 @@ describe("the reminder icon", () => {
     session.userId = owner;
     const itemId = await add(bucketId, "2026-10-26", member);
     const rows = await db.select().from(items).where(eq(items.id, itemId));
-    const rules = JSON.stringify({ medium: ["telegram"], webhooks: [], repeat: "once" });
 
     const forMember = await withViewerReminders(member, rows);
     expect(forMember[0].nextReminderAt).toEqual(OCT_26.london);
-    expect(await getReminderBadges(member, rules, forMember)).toEqual({ [itemId]: "upcoming" });
+    expect(await getReminderBadges(member, bucketId, forMember)).toEqual({ [itemId]: "upcoming" });
 
     const forOwner = await withViewerReminders(owner, rows);
     expect(forOwner[0].nextReminderAt).toBeNull();
-    expect(await getReminderBadges(owner, rules, forOwner)).toEqual({ [itemId]: "history" });
+    expect(await getReminderBadges(owner, bucketId, forOwner)).toEqual({ [itemId]: "history" });
   });
 });
 

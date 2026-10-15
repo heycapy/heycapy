@@ -1,9 +1,7 @@
-import { bucketChannels } from "@/lib/rules";
 import { ITEM_STATUS, isClosedStatus } from "@/constants";
 import { and, desc, eq, inArray } from "drizzle-orm";
 import { db } from "@/lib/db";
 import {
-  buckets,
   users,
   itemActions,
   itemReminders,
@@ -15,6 +13,7 @@ import {
   ALL_CHANNELS,
   channelDecisions,
   getChannelSettings,
+  getMemberChannels,
   type ChannelDecision,
 } from "@/lib/notifications/channels";
 import { channelKey } from "@/lib/notifications/channel-key";
@@ -124,8 +123,11 @@ export async function withViewerReminders(userId: number, rows: Item[]): Promise
   return rows.map((item) => asViewer(item, mine.get(item.id)));
 }
 
-async function currentDecisions(userId: number, notificationsRules: string) {
-  return channelDecisions(bucketChannels(notificationsRules), await getChannelSettings(userId));
+async function currentDecisions(userId: number, bucketId: number) {
+  return channelDecisions(
+    await getMemberChannels(userId, bucketId),
+    await getChannelSettings(userId)
+  );
 }
 
 type JobRow = { job: Job; webhookName: string | null };
@@ -184,7 +186,7 @@ function groupIntoEvents(rows: JobRow[]): NotificationEvent[] {
 
 export async function getReminderBadges(
   userId: number,
-  notificationsRules: string,
+  bucketId: number,
   bucketItems: ListItem[]
 ): Promise<Record<number, ReminderBadge>> {
   const dated = bucketItems.filter((i) => i.deadline && !i.deletedAt);
@@ -219,9 +221,7 @@ export async function getReminderBadges(
     if (job.status === "dead" && job.itemId) failed.add(job.itemId);
   }
 
-  const hasChannel = (await currentDecisions(userId, notificationsRules)).some(
-    (c) => c.state === "send"
-  );
+  const hasChannel = (await currentDecisions(userId, bucketId)).some((c) => c.state === "send");
   const badges: Record<number, ReminderBadge> = {};
   for (const item of dated) {
     const isOpen = !isClosedStatus(item.status);
@@ -238,16 +238,15 @@ export async function getItemReminderInfo(
   itemId: number
 ): Promise<ItemReminderInfo | null> {
   const [row] = await db
-    .select({ item: items, notificationsRules: buckets.notificationsRules })
+    .select({ item: items })
     .from(items)
-    .innerJoin(buckets, eq(items.bucketId, buckets.id))
     .where(and(eq(items.id, itemId), inArray(items.bucketId, memberBucketIds(userId))));
   if (!row?.item.deadline) return null;
   const [mine] = await viewerRows(userId, [itemId]);
   const item = asViewer(row.item, mine);
   const now = new Date();
 
-  const decisions = await currentDecisions(userId, row.notificationsRules);
+  const decisions = await currentDecisions(userId, row.item.bucketId);
   const jobs = await db
     .select({ job: notificationQueue, webhookName: outgoingWebhooks.name })
     .from(notificationQueue)

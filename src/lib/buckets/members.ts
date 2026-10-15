@@ -11,7 +11,7 @@ import {
 import { UNSET_TIMEZONE } from "@/lib/timezones/constants";
 import { placeName } from "@/lib/timezones/place";
 import { channelDecisions, getChannelSettings } from "@/lib/notifications/channels";
-import { bucketChannels } from "@/lib/rules";
+import { memberChannels } from "@/lib/rules";
 
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
@@ -24,7 +24,6 @@ export type BucketMember = {
   isYou: boolean;
   timezone: string;
   place: string | null;
-  // Whether any of this bucket's channels works for them
   remindable: boolean;
 };
 
@@ -49,6 +48,7 @@ export async function listMembers(
       displayName: users.displayName,
       role: bucketMembers.role,
       joinedAt: bucketMembers.createdAt,
+      channels: bucketMembers.channels,
       timezone: userSettings.timezone,
     })
     .from(bucketMembers)
@@ -60,18 +60,13 @@ export async function listMembers(
       asc(bucketMembers.createdAt),
       asc(bucketMembers.id)
     );
-  const bucket = await db.query.buckets.findFirst({
-    columns: { notificationsRules: true },
-    where: eq(buckets.id, bucketId),
-  });
-  const selected = bucketChannels(bucket?.notificationsRules);
   return Promise.all(
-    rows.map(async (row) => {
+    rows.map(async ({ channels, ...row }) => {
       const timezone = row.timezone ?? UNSET_TIMEZONE;
-      // The bucket's webhooks are the owner's; a member's own never fire for it
-      const remindable = channelDecisions(selected, await getChannelSettings(row.userId)).some(
-        (c) => c.state === "send" && (row.role === "owner" || c.medium !== "webhook")
-      );
+      const remindable = channelDecisions(
+        memberChannels(channels),
+        await getChannelSettings(row.userId)
+      ).some((c) => c.state === "send");
       return {
         ...row,
         timezone,

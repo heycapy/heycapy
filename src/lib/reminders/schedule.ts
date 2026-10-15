@@ -1,5 +1,5 @@
 import { ITEM_STATUS, isClosedStatus } from "@/constants";
-import type { NotificationRules } from "@/types/rules";
+import type { MemberChannels, NotificationRules } from "@/types/rules";
 import {
   ALL_DAY_REMINDER_MINS,
   MAX_DELIVERY_WINDOW_JUMPS,
@@ -28,6 +28,8 @@ export type ReminderInputs = {
   overdueNotifiedAt: Date | null;
   reminderOffsets: number[] | null;
   rules: NotificationRules;
+  channels: MemberChannels;
+  sharedWebhooks: number[];
   notifyWhenOverdue: boolean;
   overdueRepeatHours: number | undefined;
   overdueFirstAlertMins?: number;
@@ -121,7 +123,9 @@ export function reminderTimes(base: Date, offsets: number[]): Date[] {
 }
 
 function picksAChannel(i: ReminderInputs): boolean {
-  return i.rules.medium.length > 0 || i.rules.webhooks.length > 0;
+  return (
+    i.channels.medium.length > 0 || i.channels.webhooks.length > 0 || i.sharedWebhooks.length > 0
+  );
 }
 
 export function nextDeadlineReminder(i: ReminderInputs): Date | null {

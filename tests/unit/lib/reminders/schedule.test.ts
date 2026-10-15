@@ -24,8 +24,10 @@ function inputs(
     notifyWhenOverdue: false,
     overdueRepeatHours: undefined,
     timezone: "America/New_York",
+    channels: { medium: ["telegram"], webhooks: [] },
+    sharedWebhooks: [],
     ...rest,
-    rules: NotificationRules.parse({ medium: ["telegram"], ...rules }),
+    rules: NotificationRules.parse({ ...rules }),
   };
 }
 
@@ -59,8 +61,17 @@ describe("nextDeadlineReminder", () => {
     expect(nextOverdueAlert(inputs({ bucketLive: false, notifyWhenOverdue: true }))).toBeNull();
   });
 
-  it("sends nothing when the bucket has no channels", () => {
-    expect(nextDeadlineReminder(inputs({ rules: { medium: [] } }))).toBeNull();
+  it("sends nothing when the person picked no channels", () => {
+    const none = { medium: [], webhooks: [] };
+    expect(nextDeadlineReminder(inputs({ channels: none }))).toBeNull();
+    expect(
+      nextDeadlineReminder(inputs({ channels: { medium: [], webhooks: [4] } }))
+    ).not.toBeNull();
+  });
+
+  it("still reminds an assignee with no channels when the owner's webhooks post the bucket", () => {
+    const none = { medium: [], webhooks: [] };
+    expect(nextDeadlineReminder(inputs({ channels: none, sharedWebhooks: [4] }))).not.toBeNull();
   });
 
   it("'once' stops after the first reminder", () => {
@@ -200,8 +211,9 @@ describe("nextOverdueAlert", () => {
     expect(nextOverdueAlert(inputs())).toBeNull();
   });
 
-  it("is off when the bucket has no channels", () => {
-    expect(nextOverdueAlert(inputs({ notifyWhenOverdue: true, rules: { medium: [] } }))).toBeNull();
+  it("is off when the person picked no channels", () => {
+    const none = { medium: [], webhooks: [] };
+    expect(nextOverdueAlert(inputs({ notifyWhenOverdue: true, channels: none }))).toBeNull();
   });
 
   it("first fires an hour after the deadline", () => {

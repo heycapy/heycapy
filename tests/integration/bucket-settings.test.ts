@@ -37,7 +37,7 @@ function saveFromDialog(bucketId: number, notifyAt?: string) {
     bucketId,
     `Work ${Math.random()}`,
     { sortBy: "deadline", drag: false, readonly: false, showCompleted: true },
-    { medium: ["telegram"], notifyAt, repeat: "daily" },
+    { notifyAt, repeat: "daily" },
     { notifyOnArrival: false, notifyWhenOverdue: false }
   );
 }
@@ -81,7 +81,7 @@ describe("first overdue alert delay", () => {
       bucketId,
       `Bills ${Math.random()}`,
       { sortBy: "deadline", drag: false, readonly: false, showCompleted: true },
-      { medium: ["telegram"], repeat: "once" },
+      { repeat: "once" },
       { notifyOnArrival: false, notifyWhenOverdue: on, overdueFirstAlertMins }
     );
   }
@@ -126,7 +126,7 @@ describe("default reminders", () => {
       bucketId,
       `Bills ${Math.random()}`,
       { sortBy: "deadline", drag: false, readonly: false, showCompleted: true },
-      { medium: ["telegram"], repeat: "once", defaultReminders },
+      { repeat: "once", defaultReminders },
       { notifyOnArrival: false, notifyWhenOverdue: false }
     );
   }
@@ -170,7 +170,7 @@ describe("checks shared with the assistant", () => {
       bucketId,
       "Work",
       { sortBy: "random" as never },
-      { medium: ["telegram"], notifyAt: "25:00" }
+      { notifyAt: "25:00" }
     );
 
     expect(result).toEqual({ ok: false, error: "Invalid sort by" });

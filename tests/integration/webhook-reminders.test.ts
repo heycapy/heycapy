@@ -5,7 +5,7 @@ import { db } from "@/lib/db";
 import { buckets, notificationQueue, outgoingWebhooks } from "@/lib/db/schema";
 import { processPending } from "@/lib/notifications/queue";
 import { getChannelFailures } from "@/lib/notifications/failures";
-import { withDefaultChannels } from "@/lib/notifications/channels";
+import { getMemberChannels, startingChannels } from "@/lib/notifications/channels";
 import { newWebhookSecret } from "@/lib/notifications/webhook";
 import { saveBucketSettings } from "@/lib/buckets/settings";
 import { sendTestWebhookAction } from "@/app/(app)/webhook-actions";
@@ -169,8 +169,8 @@ it("new buckets get the webhooks that are on for new buckets", async () => {
   const onByDefault = await seedWebhook(userId, "discord", true);
   await seedWebhook(userId, "n8n", false);
 
-  expect(await withDefaultChannels(userId, {})).toMatchObject({ webhooks: [onByDefault.id] });
-  expect(await withDefaultChannels(userId, { webhooks: [] })).toMatchObject({ webhooks: [] });
+  expect((await startingChannels(userId, {})).channels.webhooks).toEqual([onByDefault.id]);
+  expect((await startingChannels(userId, { webhooks: [] })).channels.webhooks).toEqual([]);
 });
 
 it("bucket settings keep only the user's own webhooks, and leave them alone when not given", async () => {
@@ -182,12 +182,10 @@ it("bucket settings keep only the user's own webhooks, and leave them alone when
     saveBucketSettings(userId, bucketId, {
       name: `bucket ${bucketId}`,
       itemsRules: {},
-      notificationsRules: { medium: [], ...(webhooks && { webhooks }) },
+      notificationsRules: {},
+      ...(webhooks && { channels: { medium: [], webhooks } }),
     });
-  const stored = async () => {
-    const [row] = await db.select().from(buckets).where(eq(buckets.id, bucketId));
-    return (JSON.parse(row.notificationsRules) as { webhooks?: number[] }).webhooks;
-  };
+  const stored = async () => (await getMemberChannels(userId, bucketId)).webhooks;
 
   expect(await save([mine.id, theirs.id])).toEqual({ ok: true });
   expect(await stored()).toEqual([mine.id]);

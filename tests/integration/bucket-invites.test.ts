@@ -16,6 +16,7 @@ import {
 import { HOUR, MINUTE, seedBucket, seedUser } from "./helpers";
 
 const NOW = new Date("2026-03-10T12:00:00Z");
+const NO_CHANNELS = { medium: [], webhooks: [] };
 
 async function invite(ownerId: number, bucketId: number, now = NOW): Promise<string> {
   const result = await createInvite(ownerId, bucketId, now);
@@ -75,7 +76,7 @@ describe("creating an invite", () => {
 
     expect(await createInvite(owner, bucketId, NOW)).toMatchObject({ ok: false });
 
-    expect(redeemInvite(friend, codes[0], NOW)).toMatchObject({ ok: true });
+    expect(redeemInvite(friend, codes[0], NO_CHANNELS, NOW)).toMatchObject({ ok: true });
     expect(await createInvite(owner, bucketId, NOW)).toMatchObject({ ok: true });
     expect(await createInvite(owner, bucketId, NOW)).toMatchObject({ ok: false });
   });
@@ -89,13 +90,13 @@ describe("joining with a code", () => {
     const bucketId = await seedBucket(owner);
     const code = await invite(owner, bucketId);
 
-    expect(redeemInvite(friend, code, NOW)).toMatchObject({
+    expect(redeemInvite(friend, code, NO_CHANNELS, NOW)).toMatchObject({
       ok: true,
       bucketId,
       alreadyMember: false,
     });
     expect(await memberIds(bucketId)).toEqual([owner, friend].sort((a, b) => a - b));
-    expect(redeemInvite(other, code, NOW)).toEqual({ ok: false, reason: "invalid" });
+    expect(redeemInvite(other, code, NO_CHANNELS, NOW)).toEqual({ ok: false, reason: "invalid" });
     expect(await memberIds(bucketId)).not.toContain(other);
   });
 
@@ -107,7 +108,7 @@ describe("joining with a code", () => {
     const typed = `${code.slice(0, 4)}-${code.slice(4)}`.toLowerCase();
 
     expect(normalizeInviteCode(typed)).toBe(code);
-    expect(redeemInvite(friend, ` ${typed} `, NOW)).toMatchObject({ ok: true });
+    expect(redeemInvite(friend, ` ${typed} `, NO_CHANNELS, NOW)).toMatchObject({ ok: true });
   });
 
   it("does not accept an expired, revoked or unknown code, all with the same answer", async () => {
@@ -120,9 +121,18 @@ describe("joining with a code", () => {
     await revokeInvite(owner, revokedRow.id, NOW);
     const later = new Date(NOW.getTime() + INVITE_TTL_MS + MINUTE);
 
-    expect(redeemInvite(friend, expired, later)).toEqual({ ok: false, reason: "invalid" });
-    expect(redeemInvite(friend, revoked, NOW)).toEqual({ ok: false, reason: "invalid" });
-    expect(redeemInvite(friend, "ABCD2345", NOW)).toEqual({ ok: false, reason: "invalid" });
+    expect(redeemInvite(friend, expired, NO_CHANNELS, later)).toEqual({
+      ok: false,
+      reason: "invalid",
+    });
+    expect(redeemInvite(friend, revoked, NO_CHANNELS, NOW)).toEqual({
+      ok: false,
+      reason: "invalid",
+    });
+    expect(redeemInvite(friend, "ABCD2345", NO_CHANNELS, NOW)).toEqual({
+      ok: false,
+      reason: "invalid",
+    });
     expect(await memberIds(bucketId)).toEqual([owner]);
   });
 
@@ -136,8 +146,8 @@ describe("joining with a code", () => {
     await db.update(buckets).set({ deletedAt: NOW }).where(eq(buckets.id, deletedBucket));
     await db.update(buckets).set({ archivedAt: NOW }).where(eq(buckets.id, archivedBucket));
 
-    expect(redeemInvite(friend, deletedCode, NOW)).toMatchObject({ ok: false });
-    expect(redeemInvite(friend, archivedCode, NOW)).toMatchObject({ ok: false });
+    expect(redeemInvite(friend, deletedCode, NO_CHANNELS, NOW)).toMatchObject({ ok: false });
+    expect(redeemInvite(friend, archivedCode, NO_CHANNELS, NOW)).toMatchObject({ ok: false });
   });
 
   it("leaves the code unused when the person is already a member", async () => {
@@ -146,8 +156,14 @@ describe("joining with a code", () => {
     const bucketId = await seedBucket(owner);
     const code = await invite(owner, bucketId);
 
-    expect(redeemInvite(owner, code, NOW)).toMatchObject({ ok: true, alreadyMember: true });
-    expect(redeemInvite(friend, code, NOW)).toMatchObject({ ok: true, alreadyMember: false });
+    expect(redeemInvite(owner, code, NO_CHANNELS, NOW)).toMatchObject({
+      ok: true,
+      alreadyMember: true,
+    });
+    expect(redeemInvite(friend, code, NO_CHANNELS, NOW)).toMatchObject({
+      ok: true,
+      alreadyMember: false,
+    });
   });
 
   it("refuses a full bucket and keeps the code for later", async () => {
@@ -159,7 +175,7 @@ describe("joining with a code", () => {
     const late = await seedUser();
     const code = await invite(owner, bucketId);
 
-    expect(redeemInvite(late, code, NOW)).toEqual({ ok: false, reason: "full" });
+    expect(redeemInvite(late, code, NO_CHANNELS, NOW)).toEqual({ ok: false, reason: "full" });
 
     const [leaver] = await db
       .select()
@@ -168,7 +184,7 @@ describe("joining with a code", () => {
       .limit(1)
       .offset(1);
     await db.delete(bucketMembers).where(eq(bucketMembers.id, leaver.id));
-    expect(redeemInvite(late, code, NOW)).toMatchObject({ ok: true });
+    expect(redeemInvite(late, code, NO_CHANNELS, NOW)).toMatchObject({ ok: true });
   });
 });
 
@@ -179,25 +195,32 @@ describe("guessing codes", () => {
     const bucketId = await seedBucket(owner);
     const code = await invite(owner, bucketId);
     for (let i = 0; i < INVITE_FAIL_MAX; i++) {
-      expect(redeemInvite(guesser, "ABCD2345", NOW)).toEqual({ ok: false, reason: "invalid" });
+      expect(redeemInvite(guesser, "ABCD2345", NO_CHANNELS, NOW)).toEqual({
+        ok: false,
+        reason: "invalid",
+      });
     }
 
-    expect(redeemInvite(guesser, code, NOW)).toEqual({ ok: false, reason: "locked" });
+    expect(redeemInvite(guesser, code, NO_CHANNELS, NOW)).toEqual({ ok: false, reason: "locked" });
     const after = new Date(NOW.getTime() + INVITE_LOCKOUT_MS + MINUTE);
-    expect(redeemInvite(guesser, code, after)).toMatchObject({ ok: true });
+    expect(redeemInvite(guesser, code, NO_CHANNELS, after)).toMatchObject({ ok: true });
   });
 
   it("starts counting again after a right code", async () => {
     const owner = await seedUser();
     const friend = await seedUser();
     const bucketId = await seedBucket(owner);
-    for (let i = 0; i < INVITE_FAIL_MAX - 1; i++) redeemInvite(friend, "ABCD2345", NOW);
-    expect(redeemInvite(friend, await invite(owner, bucketId), NOW)).toMatchObject({ ok: true });
+    for (let i = 0; i < INVITE_FAIL_MAX - 1; i++)
+      redeemInvite(friend, "ABCD2345", NO_CHANNELS, NOW);
+    expect(redeemInvite(friend, await invite(owner, bucketId), NO_CHANNELS, NOW)).toMatchObject({
+      ok: true,
+    });
 
     const second = await seedBucket(owner);
     const secondCode = await invite(owner, second);
-    for (let i = 0; i < INVITE_FAIL_MAX - 1; i++) redeemInvite(friend, "ABCD2345", NOW);
-    expect(redeemInvite(friend, secondCode, NOW)).toMatchObject({ ok: true });
+    for (let i = 0; i < INVITE_FAIL_MAX - 1; i++)
+      redeemInvite(friend, "ABCD2345", NO_CHANNELS, NOW);
+    expect(redeemInvite(friend, secondCode, NO_CHANNELS, NOW)).toMatchObject({ ok: true });
   });
 
   it("counts each person on their own", async () => {
@@ -206,9 +229,9 @@ describe("guessing codes", () => {
     const friend = await seedUser();
     const bucketId = await seedBucket(owner);
     const code = await invite(owner, bucketId);
-    for (let i = 0; i < INVITE_FAIL_MAX; i++) redeemInvite(guesser, "ABCD2345", NOW);
+    for (let i = 0; i < INVITE_FAIL_MAX; i++) redeemInvite(guesser, "ABCD2345", NO_CHANNELS, NOW);
 
-    expect(redeemInvite(friend, code, NOW)).toMatchObject({ ok: true });
+    expect(redeemInvite(friend, code, NO_CHANNELS, NOW)).toMatchObject({ ok: true });
   });
 });
 
@@ -221,7 +244,7 @@ describe("open invites", () => {
     const used = await invite(owner, bucketId);
     await invite(owner, bucketId);
     await invite(owner, bucketId, new Date(NOW.getTime() - INVITE_TTL_MS - HOUR));
-    redeemInvite(friend, used, NOW);
+    redeemInvite(friend, used, NO_CHANNELS, NOW);
 
     expect(await listOpenInvites(owner, bucketId, NOW)).toHaveLength(1);
     expect(await listOpenInvites(stranger, bucketId, NOW)).toEqual([]);
@@ -237,6 +260,9 @@ describe("open invites", () => {
     expect(await revokeInvite(stranger, open.id, NOW)).toBe(false);
     expect(await revokeInvite(owner, open.id, NOW)).toBe(true);
     expect(await revokeInvite(owner, open.id, NOW)).toBe(false);
-    expect(redeemInvite(stranger, code, NOW)).toEqual({ ok: false, reason: "invalid" });
+    expect(redeemInvite(stranger, code, NO_CHANNELS, NOW)).toEqual({
+      ok: false,
+      reason: "invalid",
+    });
   });
 });

@@ -2,6 +2,7 @@ import { vi } from "vitest";
 import { and, eq, ne } from "drizzle-orm";
 import { db } from "@/lib/db";
 import {
+  bucketMembers,
   buckets,
   itemReminders,
   items,
@@ -46,21 +47,46 @@ export async function seedUser(timezone = "UTC"): Promise<number> {
   return user.id;
 }
 
+// The channels in `rules` are the owner's own
 export async function seedBucket(
   userId: number,
   rules: NotificationRulesInput = { medium: ["telegram"], repeat: "once" },
   fieldSchema?: Record<string, unknown>
 ): Promise<number> {
+  const { medium = [], webhooks = [], ...bucketRules } = rules;
   const [bucket] = await db
     .insert(buckets)
     .values({
       userId,
       name: `Bucket ${Math.random()}`,
-      notificationsRules: JSON.stringify(rules),
+      notificationsRules: JSON.stringify(bucketRules),
       ...(fieldSchema && { fieldSchema: JSON.stringify(fieldSchema) as never }),
     })
     .returning();
+  await setChannels(userId, bucket.id, medium, webhooks);
   return bucket.id;
+}
+
+export async function seedMember(
+  bucketId: number,
+  userId: number,
+  medium: string[] = ["telegram"]
+): Promise<void> {
+  await db
+    .insert(bucketMembers)
+    .values({ bucketId, userId, channels: JSON.stringify({ medium, webhooks: [] }) });
+}
+
+export async function setChannels(
+  userId: number,
+  bucketId: number,
+  medium: string[],
+  webhooks: number[] = []
+): Promise<void> {
+  await db
+    .update(bucketMembers)
+    .set({ channels: JSON.stringify({ medium, webhooks }) })
+    .where(and(eq(bucketMembers.bucketId, bucketId), eq(bucketMembers.userId, userId)));
 }
 
 export async function seedItem(

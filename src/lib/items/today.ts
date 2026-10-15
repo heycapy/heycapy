@@ -44,7 +44,7 @@ async function withBuckets(userId: number, found: Item[]): Promise<CrossBucketIt
       badges,
       await getReminderBadges(
         userId,
-        bucket.notificationsRules,
+        bucket.id,
         rows.filter((i) => i.bucketId === bucket.id)
       )
     );

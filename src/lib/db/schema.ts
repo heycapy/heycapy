@@ -185,6 +185,8 @@ export const bucketMembers = sqliteTable(
     role: text("role", { enum: ["owner", "member"] })
       .notNull()
       .default("member"),
+    // Where this person's reminders for the bucket go, see MemberChannels
+    channels: text("channels").notNull().default('{"medium":[],"webhooks":[]}'),
     createdAt: integer("created_at", { mode: "timestamp" })
       .notNull()
       .default(sql`(unixepoch())`),

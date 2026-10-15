@@ -3,8 +3,10 @@ import { db } from "@/lib/db";
 import { memberBucketIds, withoutOwnerSecrets } from "@/lib/buckets/access";
 import { inLiveBucket } from "@/lib/buckets/live";
 import { memberName } from "@/lib/buckets/member-name";
+import { memberChannels } from "@/lib/rules";
 import {
   aiUsage,
+  bucketMembers,
   buckets,
   chatMessages,
   chatSessions,
@@ -68,6 +70,8 @@ export async function buildAccountExport(userId: number, now = new Date()) {
     usage,
     credits,
     webhooks,
+    memberships,
+    webhookNames,
   ] = await Promise.all([
     db.query.users.findFirst({ where: eq(users.id, userId) }),
     db.query.userSettings.findFirst({ where: eq(userSettings.userId, userId) }),
@@ -122,7 +126,25 @@ export async function buildAccountExport(userId: number, now = new Date()) {
       .from(outgoingWebhooks)
       .where(eq(outgoingWebhooks.userId, userId))
       .orderBy(asc(outgoingWebhooks.id)),
+    db
+      .select({ bucketId: bucketMembers.bucketId, channels: bucketMembers.channels })
+      .from(bucketMembers)
+      .where(eq(bucketMembers.userId, userId)),
+    db
+      .select({ id: outgoingWebhooks.id, name: outgoingWebhooks.name })
+      .from(outgoingWebhooks)
+      .where(eq(outgoingWebhooks.userId, userId)),
   ]);
+
+  const yourChannels = (bucketId: number) => {
+    const membership = memberships.find((m) => m.bucketId === bucketId);
+    if (!membership) return null;
+    const { medium, webhooks: ids } = memberChannels(membership.channels);
+    return {
+      medium,
+      webhooks: webhookNames.filter((w) => ids.includes(w.id)).map((w) => w.name),
+    };
+  };
 
   const names = await namesOf(userId, [
     ...new Set([
@@ -187,6 +209,7 @@ export async function buildAccountExport(userId: number, now = new Date()) {
         owner: nameOf(b.userId),
         itemsRules: parsed(b.itemsRules),
         notificationsRules: parsed(b.notificationsRules),
+        yourChannels: yourChannels(b.id),
         fields: parsed(b.fieldSchema),
         telegram: parsed(b.telegramConfig),
         webhookEnabled: owned ? b.webhookKey !== null : null,

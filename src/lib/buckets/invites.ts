@@ -5,6 +5,7 @@ import { bucketInvites, bucketMembers, buckets, inviteAttempts } from "@/lib/db/
 import { ownedBucketIds } from "@/lib/buckets/access";
 import { inLiveBucket } from "@/lib/buckets/live";
 import { normalizeInviteCode } from "./invite-code";
+import type { MemberChannels } from "@/types/rules";
 import {
   BUCKET_MEMBERS_MAX,
   INVITE_ACTIVE_MAX,
@@ -129,6 +130,7 @@ function recordFailure(tx: Tx, userId: number, now: Date): void {
 export function redeemInvite(
   userId: number,
   rawCode: string,
+  channels: MemberChannels,
   now = new Date()
 ): RedeemInviteResult {
   return db.transaction((tx) => {
@@ -177,7 +179,9 @@ export function redeemInvite(
       .get();
     if ((size?.n ?? 0) >= BUCKET_MEMBERS_MAX) return { ok: false, reason: "full" };
 
-    tx.insert(bucketMembers).values({ bucketId, userId }).run();
+    tx.insert(bucketMembers)
+      .values({ bucketId, userId, channels: JSON.stringify(channels) })
+      .run();
     tx.update(bucketInvites)
       .set({ usedAt: now, usedBy: userId })
       .where(eq(bucketInvites.id, invite.id))

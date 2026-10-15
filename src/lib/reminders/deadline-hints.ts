@@ -4,6 +4,7 @@ import { bucketMembers, buckets, users, userSettings } from "@/lib/db/schema";
 import { memberName } from "@/lib/buckets/member-name";
 import { resolveDeadline } from "@/lib/items/deadline";
 import { NotificationRules } from "@/types/rules";
+import { memberChannels } from "@/lib/rules";
 import { UNSET_TIMEZONE } from "@/lib/timezones/constants";
 import { NIGHT_FROM_HOUR, NIGHT_TO_HOUR } from "./constants";
 import { afterQuietHours, nextDeadlineReminder, type QuietHours } from "./schedule";
@@ -41,6 +42,7 @@ export async function deadlineHints(
       quietFrom: userSettings.quietHoursFrom,
       quietTo: userSettings.quietHoursTo,
       rules: buckets.notificationsRules,
+      channels: bucketMembers.channels,
     })
     .from(bucketMembers)
     .innerJoin(buckets, eq(buckets.id, bucketMembers.bucketId))
@@ -81,6 +83,8 @@ export async function deadlineHints(
       overdueNotifiedAt: null,
       reminderOffsets: draft.reminderOffsets,
       rules,
+      channels: memberChannels(r.channels),
+      sharedWebhooks: [],
       notifyWhenOverdue: false,
       overdueRepeatHours: undefined,
       timezone,

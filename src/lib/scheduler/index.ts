@@ -6,7 +6,7 @@ import { schedule } from "node-cron";
 import { asc, eq, lte } from "drizzle-orm";
 import { backupDatabase, databaseFilePath, db } from "@/lib/db";
 import { alertAdminsNow, sendErrorDigest } from "@/lib/admin-alerts";
-import { itemReminders, items, buckets, users, userSettings } from "@/lib/db/schema";
+import { bucketMembers, itemReminders, items, buckets, users, userSettings } from "@/lib/db/schema";
 import { APP_NAME } from "@/constants";
 import { errorMessage } from "@/lib/errors";
 import { dataEvents } from "@/lib/events";
@@ -20,8 +20,19 @@ import {
   userWebhooks,
   type ChannelDecision,
 } from "@/lib/notifications/channels";
-import { nextDeadlineReminder, nextOverdueAlert } from "@/lib/reminders/schedule";
-import { reconcile, reminderRowFields, toReminderInputs } from "@/lib/reminders/refresh";
+import {
+  nextDeadlineReminder,
+  nextOverdueAlert,
+  type ReminderInputs,
+} from "@/lib/reminders/schedule";
+import {
+  bucketOwnerMember,
+  ownerMember,
+  reconcile,
+  recipientMember,
+  reminderRowFields,
+  toReminderInputs,
+} from "@/lib/reminders/refresh";
 import {
   REMINDER_BATCH_SIZE,
   REMINDER_MAX_BATCHES_PER_RUN,
@@ -29,7 +40,6 @@ import {
 } from "@/lib/reminders/constants";
 import { SCHEDULER_AI_TIMEOUT_MS, SCHEDULER_STALE_MS, SCHEDULER_WATCHDOG_MS } from "./constants";
 import type { AgentMessage } from "@/lib/ai/types";
-import type { NotificationRules } from "@/types/rules";
 import { CONDUCT_RULE, toneInstruction, type PersonalityTone } from "@/lib/ai/personality";
 
 type PersonalityRow = {
@@ -130,6 +140,8 @@ function selectDue(key: DueKey, now: Date) {
     .from(itemReminders)
     .innerJoin(items, eq(itemReminders.itemId, items.id))
     .innerJoin(buckets, eq(items.bucketId, buckets.id))
+    .leftJoin(bucketMembers, recipientMember)
+    .leftJoin(ownerMember, bucketOwnerMember)
     .innerJoin(users, eq(itemReminders.userId, users.id))
     .innerJoin(userSettings, eq(itemReminders.userId, userSettings.userId))
     .where(lte(itemReminders[key], now))
@@ -176,16 +188,13 @@ async function drainDue(
 
 type Delivery = { userId: number; channels: ChannelDecision[] };
 
-// The bucket's webhooks are the owner's and go out once per reminder: with the owner's own, or
-// with the assignee's when the owner isn't reminded about the item
-async function deliveries(rules: NotificationRules, row: DueRow): Promise<Delivery[]> {
-  const own = channelDecisions(rules, row);
-  if (row.userId === row.bucketOwnerId) return [{ userId: row.userId, channels: own }];
-  const personal = { userId: row.userId, channels: own.filter((c) => c.medium !== "webhook") };
-  if (row.item.assigneeId !== row.userId) return [personal];
-  const ownerHooks = channelDecisions(rules, await getChannelSettings(row.bucketOwnerId)).filter(
-    (c) => c.medium === "webhook"
-  );
+async function deliveries(inputs: ReminderInputs, row: DueRow): Promise<Delivery[]> {
+  const personal = { userId: row.userId, channels: channelDecisions(inputs.channels, row) };
+  if (inputs.sharedWebhooks.length === 0) return [personal];
+  const ownerHooks = channelDecisions(
+    { medium: [], webhooks: inputs.sharedWebhooks },
+    await getChannelSettings(row.bucketOwnerId)
+  ).filter((c) => c.medium === "webhook");
   return ownerHooks.length > 0
     ? [personal, { userId: row.bucketOwnerId, channels: ownerHooks }]
     : [personal];
@@ -218,7 +227,7 @@ async function sendDeadlineReminder(row: DueRow, now: Date): Promise<void> {
     return;
   }
 
-  const list = await deliveries(inputs.rules, row);
+  const list = await deliveries(inputs, row);
   const sending = sends(list);
   const deadlineStr = deadlineOnBothClocks(deadline, inputs.deadlineTimezone, now, inputs.timezone);
   const message =
@@ -261,7 +270,7 @@ async function sendOverdueAlert(row: DueRow, now: Date): Promise<void> {
   }
 
   await enqueueAll(
-    await deliveries(inputs.rules, row),
+    await deliveries(inputs, row),
     row.item.id,
     "overdue",
     `[${APP_NAME}] Overdue: ${shortTitle(row.item.title)}`,

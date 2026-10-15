@@ -3,6 +3,7 @@ import { findAccessibleBucket } from "@/lib/buckets/access";
 import { parseItemsRules } from "@/lib/rules";
 import {
   getChannelSettings,
+  getMemberChannels,
   workingChannels,
   type UserWebhook,
 } from "@/lib/notifications/channels";
@@ -12,6 +13,7 @@ import { saveBucketSettings, type BucketSettingsInput } from "@/lib/buckets/sett
 import { parseBucketSettings } from "@/components/buckets/parseBucketSettings";
 import { MEDIUM_OPTIONS, RECURRENCE_MODE_OPTIONS } from "@/components/buckets/constants";
 import type { buckets } from "@/lib/db/schema";
+import type { MemberChannels } from "@/types/rules";
 import type { Tool } from "./types";
 
 type BucketRow = typeof buckets.$inferSelect;
@@ -52,7 +54,8 @@ const SETTING_PROPERTIES = {
     type: "array",
     items: { type: "string", enum: MEDIUM_OPTIONS.map((o) => o.value) },
     description:
-      "The full list of channels this bucket's notifications go to ([] for none). " +
+      "The full list of channels the user's own reminders from this bucket go to ([] for none). " +
+      "Other members pick their own. " +
       "Only channels in working_channels actually deliver; the others need setting up in tweaks first. " +
       "Confirm before removing one.",
   },
@@ -133,16 +136,17 @@ export const BUCKET_SETTINGS_TOOLS: Tool[] = [
   },
 ];
 
-type UserChannels = { working: string[]; webhooks: UserWebhook[] };
+type UserChannels = { working: string[]; webhooks: UserWebhook[]; mine: MemberChannels };
 
-async function userChannels(userId: number): Promise<UserChannels> {
+async function userChannels(userId: number, bucketId: number): Promise<UserChannels> {
   const settings = await getChannelSettings(userId);
+  const mine = await getMemberChannels(userId, bucketId);
   return settings
-    ? { working: workingChannels(settings), webhooks: settings.webhooks }
-    : { working: [], webhooks: [] };
+    ? { working: workingChannels(settings), webhooks: settings.webhooks, mine }
+    : { working: [], webhooks: [], mine };
 }
 
-function describeSettings(bucket: BucketRow, { working, webhooks }: UserChannels) {
+function describeSettings(bucket: BucketRow, { working, webhooks, mine }: UserChannels) {
   const s = parseBucketSettings(bucket);
   return {
     bucket_id: bucket.id,
@@ -154,11 +158,11 @@ function describeSettings(bucket: BucketRow, { working, webhooks }: UserChannels
     read_only: s.readonly,
     default_deadline_offset_days:
       parseItemsRules(bucket.itemsRules).defaultDeadlineOffsetDays ?? null,
-    channels: s.mediums,
-    channels_not_working: s.mediums.filter((m) => !working.includes(m)),
+    channels: mine.medium,
+    channels_not_working: mine.medium.filter((m) => !working.includes(m)),
     working_channels: working,
     // read only for capy: the user turns webhooks on in bucket settings
-    webhooks_on: webhooks.filter((w) => s.webhooks.includes(w.id)).map((w) => w.name),
+    webhooks_on: webhooks.filter((w) => mine.webhooks.includes(w.id)).map((w) => w.name),
     reminder_buttons: s.reminderButtons,
     default_reminders_mins: s.defaultReminders,
     remind_at: s.notifyAt || null,
@@ -206,11 +210,12 @@ export async function executeBucketSettingsTool(
   if (name === "get_bucket_settings") {
     return JSON.stringify({
       ok: true,
-      settings: describeSettings(bucket, await userChannels(userId)),
+      settings: describeSettings(bucket, await userChannels(userId, bucketId)),
     });
   }
 
-  const current = describeSettings(bucket, { working: [], webhooks: [] });
+  const mine = await getMemberChannels(userId, bucketId);
+  const current = describeSettings(bucket, { working: [], webhooks: [], mine });
   const remindAt = pick(args, "remind_at", current.remind_at);
   // Checked by saveBucketSettings, the same checks the settings dialog goes through
   const input = {
@@ -227,8 +232,8 @@ export async function executeBucketSettingsTool(
         current.default_deadline_offset_days
       ),
     },
+    channels: { medium: pick(args, "channels", current.channels), webhooks: mine.webhooks },
     notificationsRules: {
-      medium: pick(args, "channels", current.channels),
       reminderButtons: pick(args, "reminder_buttons", current.reminder_buttons),
       notifyAt: remindAt === null || remindAt === "" ? undefined : remindAt,
       defaultReminders: pick(args, "default_reminders_mins", current.default_reminders_mins),
@@ -250,6 +255,6 @@ export async function executeBucketSettingsTool(
   const saved = await findBucket(userId, bucketId);
   return JSON.stringify({
     ok: true,
-    settings: saved && describeSettings(saved, await userChannels(userId)),
+    settings: saved && describeSettings(saved, await userChannels(userId, bucketId)),
   });
 }

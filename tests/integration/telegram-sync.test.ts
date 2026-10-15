@@ -1,13 +1,14 @@
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { bucketMembers, items } from "@/lib/db/schema";
+import { items } from "@/lib/db/schema";
 import { signReminderAction, verifyReminderAction } from "@/lib/reminders/action-token";
 import { applyReminderAction } from "@/lib/reminders/quick-actions";
 import {
   resetSchedulerEnvironment,
   runSchedulerAt,
   seedBucket,
+  seedMember,
   seedItem,
   seedUser,
   useSchedulerEnvironment,
@@ -85,7 +86,7 @@ describe("in a shared bucket", () => {
     const ownerChat = await connectOwnChat(owner);
     const memberChat = await connectOwnChat(member);
     const bucketId = await seedBucket(owner, { medium: ["telegram"], repeat: "once" });
-    await db.insert(bucketMembers).values({ bucketId, userId: member });
+    await seedMember(bucketId, member);
     const itemId = await seedItem(owner, bucketId, { deadline: T0, title: "pay rent" });
     await runSchedulerAt(T0);
     const sent = callsTo(api, "sendMessage");
