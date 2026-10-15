@@ -80,7 +80,7 @@ export function AccountTab({ email, username }: { email: string; username: strin
         <a
           href="/api/account/export"
           download
-          className="text-muted-foreground hover:text-foreground self-start font-mono text-xs"
+          className="text-primary hover:text-foreground self-start font-mono text-xs transition-colors"
         >
           <span className="opacity-50">[</span>download my data<span className="opacity-50">]</span>
         </a>

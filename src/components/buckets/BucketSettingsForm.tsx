@@ -21,6 +21,7 @@ import type { ViewerBucket } from "@/lib/buckets/access";
 import { memberChannels } from "@/lib/rules";
 import type { MemberChannels } from "@/types/rules";
 import { BucketMembersPanel } from "./BucketMembersPanel";
+import { LOCKED_CONTROLS } from "./constants";
 
 export type SettingsTab = "items" | "notifications" | "advanced" | "members";
 
@@ -204,7 +205,10 @@ export function BucketSettingsForm({
         )}
 
         {(tab === "items" || tab === "notifications") && (
-          <fieldset disabled={!bucket.isOwner} className="contents">
+          <fieldset
+            disabled={!bucket.isOwner}
+            className={cn("contents", !bucket.isOwner && LOCKED_CONTROLS)}
+          >
             {!bucket.isOwner && (
               <p
                 className={cn(

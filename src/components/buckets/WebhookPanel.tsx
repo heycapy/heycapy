@@ -132,12 +132,9 @@ export function WebhookPanel({ bucket }: WebhookPanelProps) {
           <code className="text-muted-foreground flex-1 overflow-hidden bg-transparent px-2 py-1 font-mono text-[11px] text-ellipsis">
             {webhookUrl}
           </code>
-          <button
-            onClick={copyUrl}
-            className="text-muted-foreground hover:text-foreground shrink-0 px-2 font-mono text-[11px] transition-colors"
-          >
-            {urlCopied ? "[copied]" : "[copy]"}
-          </button>
+          <BracketButton onClick={copyUrl} className="shrink-0 px-2 text-[11px]">
+            {urlCopied ? "copied" : "copy"}
+          </BracketButton>
         </div>
       </div>
 
@@ -164,13 +161,9 @@ export function WebhookPanel({ bucket }: WebhookPanelProps) {
           >
             {revealed ? <EyeOff size={11} /> : <Eye size={11} />}
           </button>
-          <button
-            onClick={copyKey}
-            disabled={!key}
-            className="text-muted-foreground hover:text-foreground shrink-0 px-2 font-mono text-[11px] transition-colors disabled:opacity-30"
-          >
-            {copied ? "[copied]" : "[copy]"}
-          </button>
+          <BracketButton onClick={copyKey} disabled={!key} className="shrink-0 px-2 text-[11px]">
+            {copied ? "copied" : "copy"}
+          </BracketButton>
         </div>
         <BracketButton
           onClick={handleRotate}
@@ -192,7 +185,7 @@ export function WebhookPanel({ bucket }: WebhookPanelProps) {
               : buildExamplePayload(schema)}
           </pre>
           {key && (
-            <button
+            <BracketButton
               onClick={() => {
                 void navigator.clipboard
                   .writeText(buildCurlCommand(webhookUrl, key, schema))
@@ -201,10 +194,10 @@ export function WebhookPanel({ bucket }: WebhookPanelProps) {
                     setTimeout(() => setCurlCopied(false), 2000);
                   });
               }}
-              className="text-muted-foreground hover:text-foreground absolute right-1.5 bottom-1.5 font-mono text-[11px] transition-colors"
+              className="absolute right-1.5 bottom-1.5 text-[11px]"
             >
-              {curlCopied ? "[copied]" : "[copy]"}
-            </button>
+              {curlCopied ? "copied" : "copy"}
+            </BracketButton>
           )}
         </div>
       </div>

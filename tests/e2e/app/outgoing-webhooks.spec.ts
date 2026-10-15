@@ -23,7 +23,7 @@ async function addWebhook(box: Locator, name: string, url: string) {
   await box.getByPlaceholder(NAME).fill(name);
   await box.getByPlaceholder(URL_FIELD).fill(url);
   await box.getByRole("button", { name: "[ save ]" }).click();
-  await expect(box.getByRole("button", { name: "[send test]" })).toBeVisible();
+  await expect(box.getByRole("button", { name: "[ send test ]" })).toBeVisible();
 }
 
 test("a webhook is added once in tweaks, tested, kept and deleted", async ({ page }) => {
@@ -37,7 +37,7 @@ test("a webhook is added once in tweaks, tested, kept and deleted", async ({ pag
   await expect(box.getByText(/^whsec_•+$/)).toBeVisible();
   await box.getByRole("button", { name: "[ show ]" }).click();
   await expect(box.getByText(/^whsec_[A-Za-z0-9+/]{43}=$/)).toBeVisible();
-  await box.getByRole("button", { name: "[send test]" }).click();
+  await box.getByRole("button", { name: "[ send test ]" }).click();
   await expect(box.getByText("sent ✓ — check that it arrived")).toBeVisible();
   await box.getByRole("button", { name: "[ done ]" }).click();
   await expect(box.getByText("example.com · on for new buckets")).toBeVisible();
