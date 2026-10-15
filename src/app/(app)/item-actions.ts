@@ -8,7 +8,7 @@ import { requireSession } from "./action-helpers";
 import { db } from "@/lib/db";
 import { items } from "@/lib/db/schema";
 import { findAccessibleBucket, findAccessibleItem, isBucketMember } from "@/lib/buckets/access";
-import { ITEM_STATUS, ITEM_TITLE_MAX_LENGTH } from "@/constants";
+import { ITEM_GONE_ERROR, ITEM_STATUS, ITEM_TITLE_MAX_LENGTH } from "@/constants";
 import { RecurringConfig, ReminderOffsets } from "@/types/rules";
 import { initialReminderState, reminderResetForDeadline } from "@/lib/items/reminders";
 import {
@@ -194,7 +194,7 @@ export async function updateItemAction(
   if (clock && !isKnownTimezone(clock)) return { ok: false, error: UNKNOWN_CLOCK_ERROR };
 
   const item = await findAccessibleItem(session.userId, itemId);
-  if (!item) return { ok: false, error: "Item not found" };
+  if (!item) return { ok: false, error: ITEM_GONE_ERROR };
   if (assigneeId && !(await isBucketMember(assigneeId, item.bucketId))) {
     return { ok: false, error: NOT_A_MEMBER_ERROR };
   }
@@ -269,7 +269,7 @@ export async function moveItemAction(itemId: number, deadline: string): Promise<
   const session = await requireSession();
 
   const item = await findAccessibleItem(session.userId, itemId);
-  if (!item) return { ok: false, error: "Item not found" };
+  if (!item) return { ok: false, error: ITEM_GONE_ERROR };
 
   const due = resolveDeadline(deadline, await userTimezone(session.userId), item);
   if (!due.deadline || isNaN(due.deadline.getTime())) return { ok: false, error: "Invalid date" };
@@ -290,7 +290,7 @@ export async function completeItemAction(itemId: number): Promise<ActionResult> 
   const session = await requireSession();
 
   const item = await findAccessibleItem(session.userId, itemId);
-  if (!item) return { ok: false, error: "Item not found" };
+  if (!item) return { ok: false, error: ITEM_GONE_ERROR };
 
   await toggleItemCompleted(item);
 
@@ -325,7 +325,7 @@ export async function deleteItemAction(itemId: number): Promise<ActionResult> {
   const session = await requireSession();
 
   const item = await findAccessibleItem(session.userId, itemId);
-  if (!item) return { ok: false, error: "Item not found" };
+  if (!item) return { ok: false, error: ITEM_GONE_ERROR };
 
   await db
     .update(items)

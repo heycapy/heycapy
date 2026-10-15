@@ -1,21 +1,8 @@
-import { APP_NAME, EMAIL_COLORS as C, USELESS_FACTS_API_URL } from "@/constants";
+import { APP_NAME, EMAIL_COLORS as C } from "@/constants";
 import { emailLayout } from "@/lib/email/layout";
+import { onThisDay } from "@/lib/email/onThisDay";
 import { OTP_TTL_MINUTES } from "./constants";
 import { escapeHtml } from "@/lib/notifications/telegram-message";
-
-async function fetchRandomFact(): Promise<string | null> {
-  try {
-    const res = await fetch(USELESS_FACTS_API_URL, {
-      headers: { Accept: "application/json" },
-      signal: AbortSignal.timeout(3000),
-    });
-    if (!res.ok) return null;
-    const data = (await res.json()) as { text?: string };
-    return data.text ?? null;
-  } catch {
-    return null;
-  }
-}
 
 export type OtpPurpose = "sign-in" | "delete-account";
 
@@ -36,7 +23,7 @@ export async function buildOtpEmail(
   purpose: OtpPurpose = "sign-in"
 ): Promise<{ subject: string; text: string; html: string }> {
   const copy = PURPOSE_COPY[purpose];
-  const fact = purpose === "sign-in" ? await fetchRandomFact() : null;
+  const fact = purpose === "sign-in" ? await onThisDay() : null;
 
   const subject = `[${APP_NAME}] your ${copy.label} code`;
 
@@ -45,13 +32,15 @@ export async function buildOtpEmail(
     ``,
     `expires in ${OTP_TTL_MINUTES} minutes.`,
     copy.ignore,
-    ...(fact ? [``, `did you know? ${fact}`, `(please check yourself, please :| )`] : []),
+    ...(fact
+      ? [``, `on this day in ${fact.year}: ${fact.text}`, ...(fact.url ? [`(${fact.url})`] : [])]
+      : []),
   ].join("\n");
 
   const factHtml = fact
-    ? `<p style="margin:24px 0 0;padding-top:18px;border-top:1px solid ${C.border};font-size:11px;color:${C.accent};">[ did you know ]</p>
-              <p style="margin:6px 0 0;font-size:13px;line-height:1.6;color:${C.text};">${escapeHtml(fact)}</p>
-              <p style="margin:6px 0 0;font-size:11px;font-style:italic;color:${C.muted};">please check yourself, please :|</p>`
+    ? `<p style="margin:24px 0 0;padding-top:18px;border-top:1px solid ${C.border};font-size:11px;color:${C.accent};">[ on this day in ${fact.year} ]</p>
+              <p style="margin:6px 0 0;font-size:13px;line-height:1.6;color:${C.text};">${escapeHtml(fact.text)}</p>
+              ${fact.url ? `<p style="margin:8px 0 0;font-size:11px;"><a href="${escapeHtml(fact.url)}" style="color:${C.muted};text-decoration:underline;">read on wikipedia</a></p>` : ""}`
     : "";
 
   const html = emailLayout({

@@ -63,6 +63,7 @@ export default defineConfig({
       JWT_SECRET: E2E_JWT_SECRET,
       ENCRYPTION_KEY: "e2e0".repeat(16),
       RESEND_API_KEY: "e2e-not-used",
+      FEEDBACK_EMAIL: "e2e-feedback@heycapy.test",
       TELEGRAM_BOT_TOKEN: "e2e-not-used",
       ADMIN_EMAILS: "e2e-system@heycapy.test",
       HOSTED: "true",

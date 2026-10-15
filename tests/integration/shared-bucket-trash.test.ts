@@ -3,7 +3,14 @@ import type * as SessionModule from "@/lib/auth/session";
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { bucketMembers, buckets, items, users } from "@/lib/db/schema";
-import { deleteItemAction } from "@/app/(app)/item-actions";
+import {
+  completeItemAction,
+  deleteItemAction,
+  moveItemAction,
+  updateItemAction,
+} from "@/app/(app)/item-actions";
+import { executeToolCall } from "@/lib/ai/capyTools";
+import { ITEM_GONE_ERROR } from "@/constants";
 import {
   deleteItemForeverAction,
   emptyTrashAction,
@@ -159,5 +166,52 @@ describe("deleting forever from a shared trash", () => {
     session.userId = owner;
     expect(await emptyTrashAction()).toEqual({ ok: true });
     expect(await itemOf(itemId)).toBeUndefined();
+  });
+});
+
+describe("an item someone else already put in the trash", () => {
+  async function trashedByMember() {
+    const shared = await sharedBucket();
+    session.userId = shared.member;
+    await deleteItemAction(shared.itemId);
+    session.userId = shared.owner;
+    return { ...shared, before: await itemOf(shared.itemId) };
+  }
+
+  it("can't be edited, moved or completed from an edit left open", async () => {
+    const { itemId, before } = await trashedByMember();
+    const gone = { ok: false, error: ITEM_GONE_ERROR };
+
+    expect(await updateItemAction(itemId, "buy oat milk", null)).toEqual(gone);
+    expect(await moveItemAction(itemId, "2026-03-12")).toEqual(gone);
+    expect(await completeItemAction(itemId)).toEqual(gone);
+    expect(await itemOf(itemId)).toEqual(before);
+  });
+
+  it("isn't deleted a second time, so who deleted it and when stay as they were", async () => {
+    const { itemId, before } = await trashedByMember();
+    vi.setSystemTime(new Date(NOW.getTime() + HOUR));
+
+    expect(await deleteItemAction(itemId)).toEqual({ ok: false, error: ITEM_GONE_ERROR });
+    expect(await itemOf(itemId)).toEqual(before);
+  });
+
+  it("is out of capy's reach too", async () => {
+    const { owner, itemId, before } = await trashedByMember();
+    for (const [name, args] of [
+      ["update_item", { item_id: itemId, title: "buy oat milk" }],
+      ["complete_item", { item_id: itemId }],
+      ["delete_item", { item_id: itemId }],
+    ] as const) {
+      const answer = await executeToolCall({ id: "t", name, arguments: args }, owner);
+      expect(JSON.parse(answer)).toMatchObject({ ok: false, error: "Item not found" });
+    }
+    expect(await itemOf(itemId)).toEqual(before);
+  });
+
+  it("can still be restored", async () => {
+    const { itemId } = await trashedByMember();
+    expect(await restoreItemAction(itemId)).toEqual({ ok: true });
+    expect((await itemOf(itemId)).deletedAt).toBeNull();
   });
 });

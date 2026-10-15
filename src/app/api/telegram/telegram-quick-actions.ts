@@ -31,8 +31,7 @@ export async function handleReminderAction(
     return true;
   }
 
-  const found = await findAccessibleItem(ctx.userId, itemId);
-  const item = found && !found.deletedAt ? found : null;
+  const item = await findAccessibleItem(ctx.userId, itemId);
   let html: string;
   if (!item) html = GONE;
   else if (item.status === ITEM_STATUS.completed) html = itemDoneHtml(item.title, true);

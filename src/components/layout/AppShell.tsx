@@ -16,6 +16,7 @@ import { useChatStore } from "@/store/chat";
 import { useTimezoneStore } from "@/store/timezone";
 import { TimezoneMoveBanner } from "./TimezoneMoveBanner";
 import { NewVersionBanner } from "./NewVersionBanner";
+import { FeedbackDialog } from "./FeedbackDialog";
 import { saveTimezoneIfDefaultAction } from "@/app/(app)/user-settings-actions";
 import { useServerEvents } from "@/hooks/useServerEvents";
 import { AssistantNameProvider } from "@/components/capy/assistant-name";
@@ -31,6 +32,7 @@ type AppShellProps = {
   failures: ChannelFailure[];
   hasWorkingChannel: boolean;
   assistantName: string;
+  feedbackEnabled: boolean;
 };
 
 export function AppShell({
@@ -39,11 +41,13 @@ export function AppShell({
   failures,
   hasWorkingChannel,
   assistantName,
+  feedbackEnabled,
 }: AppShellProps) {
   const [settingsTab, setSettingsTab] = useState<SettingsTab | null>(null);
   const [archivedOpen, setArchivedOpen] = useState(false);
   const [trashOpen, setTrashOpen] = useState(false);
   const [joinOpen, setJoinOpen] = useState(false);
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
 
   const newVersion = useServerEvents();
 
@@ -63,6 +67,7 @@ export function AppShell({
         onArchiveOpen={() => setArchivedOpen(true)}
         onTrashOpen={() => setTrashOpen(true)}
         onJoinOpen={() => setJoinOpen(true)}
+        onFeedbackOpen={feedbackEnabled ? () => setFeedbackOpen(true) : null}
       />
       {newVersion && <NewVersionBanner />}
       {!hasWorkingChannel && <NoChannelBanner onSetUp={() => setSettingsTab("notifications")} />}
@@ -77,6 +82,7 @@ export function AppShell({
       <ArchivedBucketsSheet open={archivedOpen} onClose={() => setArchivedOpen(false)} />
       <TrashSheet open={trashOpen} onClose={() => setTrashOpen(false)} />
       <JoinBucketDialog open={joinOpen} onClose={() => setJoinOpen(false)} />
+      <FeedbackDialog open={feedbackOpen} onClose={() => setFeedbackOpen(false)} />
       <SearchDrawer />
       <AssistantNameProvider name={assistantName}>
         <CapyChat />

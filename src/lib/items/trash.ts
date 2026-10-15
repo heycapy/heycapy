@@ -2,7 +2,7 @@ import { and, count, desc, eq, inArray, isNotNull, isNull, lt, or, sql } from "d
 import { TRASH_RETENTION_DAYS } from "@/constants";
 import { db } from "@/lib/db";
 import { buckets, items, users } from "@/lib/db/schema";
-import { findAccessibleItem, memberBucketIds, ownedBucketIds } from "@/lib/buckets/access";
+import { findTrashedItem, memberBucketIds, ownedBucketIds } from "@/lib/buckets/access";
 import { memberName } from "@/lib/buckets/member-name";
 import { initialReminderState } from "@/lib/items/reminders";
 import { refreshItemReminders } from "@/lib/reminders/refresh";
@@ -110,8 +110,8 @@ export async function listTrash(
 
 // A due date that passed while it was in the trash comes back overdue, without a late "due now"
 export async function restoreItem(userId: number, itemId: number, now = new Date()) {
-  const item = await findAccessibleItem(userId, itemId);
-  if (!item?.deletedAt) return false;
+  const item = await findTrashedItem(userId, itemId);
+  if (!item) return false;
   await db
     .update(items)
     .set({
@@ -131,8 +131,8 @@ export async function deleteItemForever(
   userId: number,
   itemId: number
 ): Promise<DeleteForeverResult> {
-  const item = await findAccessibleItem(userId, itemId);
-  if (!item?.deletedAt) return "not_found";
+  const item = await findTrashedItem(userId, itemId);
+  if (!item) return "not_found";
   const [removed] = await db
     .delete(items)
     .where(and(eq(items.id, itemId), inArray(items.bucketId, ownedBucketIds(userId))))

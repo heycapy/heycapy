@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray } from "drizzle-orm";
+import { and, asc, eq, inArray, isNotNull, isNull } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { bucketMembers, buckets, items } from "@/lib/db/schema";
 import { inLiveBucket } from "@/lib/buckets/live";
@@ -40,7 +40,21 @@ export function findAccessibleBucket(
 
 export function findAccessibleItem(userId: number, itemId: number): Promise<Item | undefined> {
   return db.query.items.findFirst({
-    where: and(eq(items.id, itemId), inArray(items.bucketId, memberBucketIds(userId))),
+    where: and(
+      eq(items.id, itemId),
+      inArray(items.bucketId, memberBucketIds(userId)),
+      isNull(items.deletedAt)
+    ),
+  });
+}
+
+export function findTrashedItem(userId: number, itemId: number): Promise<Item | undefined> {
+  return db.query.items.findFirst({
+    where: and(
+      eq(items.id, itemId),
+      inArray(items.bucketId, memberBucketIds(userId)),
+      isNotNull(items.deletedAt)
+    ),
   });
 }
 
