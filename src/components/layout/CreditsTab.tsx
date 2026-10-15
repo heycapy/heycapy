@@ -40,11 +40,21 @@ export function CreditsTab() {
       <BuyCredits />
       <p className={HINT}>
         questions about prices or refunds? see{" "}
-        <a href={PRICING_URL} target="_blank" rel="noreferrer" className="underline">
+        <a
+          href={PRICING_URL}
+          target="_blank"
+          rel="noreferrer"
+          className="text-primary hover:text-foreground underline"
+        >
           pricing
         </a>{" "}
         and{" "}
-        <a href={REFUNDS_URL} target="_blank" rel="noreferrer" className="underline">
+        <a
+          href={REFUNDS_URL}
+          target="_blank"
+          rel="noreferrer"
+          className="text-primary hover:text-foreground underline"
+        >
           refunds
         </a>
         .

@@ -78,7 +78,11 @@ describe("data export", () => {
 
     expect(data.account.email).toBe(session.email);
     expect(data.items.map((i) => i.title)).toEqual(["pay rent"]);
-    expect(data.buckets[0]).toMatchObject({ id: bucketId, webhookEnabled: true });
+    expect(data.buckets[0]).toMatchObject({
+      id: bucketId,
+      webhookEnabled: true,
+      yourChannels: { medium: ["telegram"], webhooks: [] },
+    });
     expect(data.chats).toEqual([
       expect.objectContaining({
         title: "planning",

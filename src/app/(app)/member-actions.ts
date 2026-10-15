@@ -7,6 +7,7 @@ import { requireSession } from "./action-helpers";
 import { publicAppUrl } from "@/lib/app-url";
 import { dataEvents } from "@/lib/events";
 import { refreshBucketReminders } from "@/lib/reminders/refresh";
+import { startingChannels } from "@/lib/notifications/channels";
 import {
   deadlineHints,
   type DeadlineDraft,
@@ -24,6 +25,7 @@ import {
   leaveBucket,
   listMembers,
   removeMember,
+  transferOwnership,
   type BucketMember,
   type MemberChangeResult,
 } from "@/lib/buckets/members";
@@ -39,7 +41,8 @@ const JOIN_ERRORS = {
 const MEMBER_ERRORS = {
   not_found: "That person isn't in this bucket.",
   not_owner: "Only the owner can do that.",
-  is_owner: "The owner can't be removed or leave. Delete the bucket instead.",
+  is_owner: "The owner can't be removed or leave. Make someone else the owner first.",
+  name_taken: "They already have a bucket with this name. Rename this one first.",
 } as const;
 
 function memberChange(result: MemberChangeResult): ActionResult {
@@ -53,7 +56,8 @@ export async function joinBucketAction(
   const parsed = InviteCode.safeParse(code);
   if (!parsed.success) return { ok: false, error: JOIN_ERRORS.invalid };
 
-  const result = redeemInvite(session.userId, parsed.data);
+  const { channels } = await startingChannels(session.userId, {});
+  const result = redeemInvite(session.userId, parsed.data, channels);
   if (!result.ok) return { ok: false, error: JOIN_ERRORS[result.reason] };
 
   if (!result.alreadyMember) await refreshBucketReminders(result.bucketId);
@@ -142,6 +146,20 @@ export async function leaveBucketAction(bucketId: number): Promise<ActionResult>
   if (result.ok) {
     await refreshBucketReminders(bucketId);
     dataEvents.emit("refresh", session.userId);
+    revalidatePath("/");
+  }
+  return result;
+}
+
+export async function transferOwnershipAction(
+  bucketId: number,
+  newOwnerId: number
+): Promise<ActionResult> {
+  const session = await requireSession();
+  const result = memberChange(transferOwnership(session.userId, bucketId, newOwnerId));
+  if (result.ok) {
+    await refreshBucketReminders(bucketId);
+    dataEvents.emit("refresh", newOwnerId);
     revalidatePath("/");
   }
   return result;

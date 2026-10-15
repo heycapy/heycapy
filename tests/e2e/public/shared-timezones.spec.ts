@@ -26,12 +26,17 @@ function seedSharedBucket(ownerEmail: string, memberEmail: string, title?: strin
     .prepare(
       "insert into buckets (user_id, name, notifications_rules) values (?, ?, ?) returning id"
     )
-    .get(id(ownerEmail), `family ${Date.now()}`, JSON.stringify({ medium: ["email"] })) as {
+    .get(id(ownerEmail), `family ${Date.now()}`, "{}") as {
     id: number;
   };
   db.prepare("insert into bucket_members (bucket_id, user_id) values (?, ?)").run(
     bucketId,
     id(memberEmail)
+  );
+  // Everyone in it picked email for their reminders
+  db.prepare("update bucket_members set channels = ? where bucket_id = ?").run(
+    JSON.stringify({ medium: ["email"], webhooks: [] }),
+    bucketId
   );
   if (title) {
     // Set in India for 09:00 UTC in three days, and assigned to the member, who has no email

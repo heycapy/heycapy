@@ -1,7 +1,12 @@
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { BracketButton } from "@/components/ui/BracketButton";
-import { leaveBucketAction, listMembersAction, removeMemberAction } from "@/app/(app)/actions";
+import {
+  leaveBucketAction,
+  listMembersAction,
+  removeMemberAction,
+  transferOwnershipAction,
+} from "@/app/(app)/actions";
 import { BUCKET_MEMBERS_MAX } from "@/lib/buckets/constants";
 import { memberName } from "@/lib/buckets/member-name";
 import type { ViewerBucket } from "@/lib/buckets/access";
@@ -11,7 +16,7 @@ import { placesOf, timeGap } from "@/lib/timezones/gap";
 import { ConfirmRow } from "@/components/layout/ConfirmRow";
 import { InviteSection } from "./InviteSection";
 
-type Confirming = number | "leave" | null;
+type Confirming = { userId: number; action: "remove" | "owner" } | "leave" | null;
 
 function whereTheyAre(member: BucketMember, you: BucketMember | undefined, now: Date): string {
   if (!member.place) return "timezone not set";
@@ -63,6 +68,17 @@ export function BucketMembersPanel({
     });
   }
 
+  function makeOwner(memberId: number) {
+    setError("");
+    startTransition(async () => {
+      const result = await transferOwnershipAction(bucket.id, memberId);
+      if (!result.ok) setError(result.error);
+      setConfirming(null);
+      router.refresh();
+      await load();
+    });
+  }
+
   function leave() {
     setError("");
     startTransition(async () => {
@@ -80,6 +96,10 @@ export function BucketMembersPanel({
   const now = new Date();
   const you = members?.find((m) => m.isYou);
   const showZones = members !== null && placesOf(members).differ;
+  const confirmingFor = (userId: number) =>
+    confirming !== null && confirming !== "leave" && confirming.userId === userId
+      ? confirming.action
+      : null;
 
   return (
     <div className="flex flex-col gap-4">
@@ -103,21 +123,38 @@ export function BucketMembersPanel({
                     </p>
                   )}
                 </div>
-                {bucket.isOwner && member.role === "member" && confirming !== member.userId && (
-                  <BracketButton
-                    variant="destructive"
-                    onClick={() => setConfirming(member.userId)}
-                    disabled={pending}
-                  >
-                    remove
-                  </BracketButton>
+                {bucket.isOwner && member.role === "member" && !confirmingFor(member.userId) && (
+                  <div className="flex shrink-0 gap-1">
+                    <BracketButton
+                      onClick={() => setConfirming({ userId: member.userId, action: "owner" })}
+                      disabled={pending}
+                    >
+                      make owner
+                    </BracketButton>
+                    <BracketButton
+                      variant="destructive"
+                      onClick={() => setConfirming({ userId: member.userId, action: "remove" })}
+                      disabled={pending}
+                    >
+                      remove
+                    </BracketButton>
+                  </div>
                 )}
               </div>
-              {confirming === member.userId && (
+              {confirmingFor(member.userId) === "remove" && (
                 <ConfirmRow
                   text="remove them?"
                   disabled={pending}
                   onConfirm={() => remove(member.userId)}
+                  onCancel={() => setConfirming(null)}
+                  className="justify-end"
+                />
+              )}
+              {confirmingFor(member.userId) === "owner" && (
+                <ConfirmRow
+                  text="make them the owner? you stay in as a member"
+                  disabled={pending}
+                  onConfirm={() => makeOwner(member.userId)}
                   onCancel={() => setConfirming(null)}
                   className="justify-end"
                 />
@@ -128,6 +165,12 @@ export function BucketMembersPanel({
       </div>
 
       {error && <span className="text-destructive font-mono text-xs">{error}</span>}
+
+      {bucket.isOwner && members !== null && members.length > 1 && (
+        <p className="text-muted-foreground font-mono text-[11px] leading-tight">
+          to leave, make someone else the owner first
+        </p>
+      )}
 
       {bucket.isOwner ? (
         <InviteSection bucketId={bucket.id} />

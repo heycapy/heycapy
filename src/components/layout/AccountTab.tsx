@@ -80,7 +80,7 @@ export function AccountTab({ email, username }: { email: string; username: strin
         <a
           href="/api/account/export"
           download
-          className="text-muted-foreground hover:text-foreground self-start font-mono text-xs"
+          className="text-primary hover:text-foreground self-start font-mono text-xs transition-colors"
         >
           <span className="opacity-50">[</span>download my data<span className="opacity-50">]</span>
         </a>
@@ -93,9 +93,10 @@ export function AccountTab({ email, username }: { email: string; username: strin
             <p className={LABEL}>permanently deletes {email} and everything in it.</p>
             {sharedBuckets.length > 0 && (
               <p className="text-muted-foreground font-mono text-[11px] leading-relaxed">
-                you still share {sharedBuckets.map((bucket) => bucket.name).join(", ")} with other
-                people. delete {sharedBuckets.length === 1 ? "it" : "them"}, or remove everyone from{" "}
-                {sharedBuckets.length === 1 ? "it" : "them"}, before you delete your account.
+                you still own {sharedBuckets.map((bucket) => bucket.name).join(", ")}, shared with
+                other people. make someone else the owner (bucket settings → members), delete{" "}
+                {sharedBuckets.length === 1 ? "it" : "them"}, or remove everyone before you delete
+                your account.
               </p>
             )}
             <BracketButton

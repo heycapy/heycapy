@@ -24,8 +24,6 @@ describe("parseBucketSettings", () => {
       showCompleted: true,
       readonly: false,
       defaultDeadlineOffset: "",
-      mediums: [],
-      webhooks: [],
       reminderButtons: ["60", "tomorrow"],
       notifyAt: "",
       defaultReminders: [0],
@@ -47,7 +45,6 @@ describe("parseBucketSettings", () => {
           defaultDeadlineOffsetDays: 14,
         }),
         notificationsRules: JSON.stringify({
-          medium: ["email", "telegram"],
           notifyAt: "08:15",
           defaultReminders: [1440, 180],
           repeat: "daily",
@@ -60,7 +57,6 @@ describe("parseBucketSettings", () => {
       showCompleted: false,
       readonly: true,
       defaultDeadlineOffset: "2 weeks",
-      mediums: ["email", "telegram"],
       notifyAt: "08:15",
       defaultReminders: [1440, 180],
       repeat: "daily",
@@ -100,7 +96,6 @@ describe("parseBucketSettings", () => {
       bucket({ itemsRules: "{not json", notificationsRules: "", fieldSchema: "nope" as never })
     );
     expect(values.sortBy).toBe("created_at");
-    expect(values.mediums).toEqual([]);
     expect(values.notifyOnArrival).toBe(false);
   });
 

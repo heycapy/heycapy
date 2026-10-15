@@ -1,4 +1,5 @@
 import { useEffect, useState, useTransition } from "react";
+import { BracketButton } from "@/components/ui/BracketButton";
 import {
   getPushSetupAction,
   removePushDeviceAction,
@@ -12,8 +13,6 @@ import { TestSendButton } from "./TestSendButton";
 type Support = "checking" | "supported" | "iosNeedsInstall" | "unsupported";
 
 const HINT = "text-muted-foreground font-mono text-[11px]";
-const ACTION =
-  "text-muted-foreground hover:text-foreground font-mono text-[11px] disabled:opacity-40";
 
 function detectSupport(): Support {
   if ("serviceWorker" in navigator && "PushManager" in window && "Notification" in window) {
@@ -162,23 +161,23 @@ export function PushSettings({ pending }: { pending: boolean }) {
             <span className={HINT}>{thisDevice ? "on" : "off"}</span>
           </div>
           {thisDevice ? (
-            <button
+            <BracketButton
               type="button"
               onClick={() => handleRemove(thisDevice)}
               disabled={working || pending}
-              className={ACTION}
+              className="text-[11px]"
             >
-              [turn off]
-            </button>
+              turn off
+            </BracketButton>
           ) : (
-            <button
+            <BracketButton
               type="button"
               onClick={handleEnable}
               disabled={working || pending || !publicKey}
-              className={ACTION}
+              className="text-[11px]"
             >
-              {working ? "[turning on...]" : "[turn on]"}
-            </button>
+              {working ? "turning on..." : "turn on"}
+            </BracketButton>
           )}
         </div>
       )}
@@ -210,15 +209,15 @@ export function PushSettings({ pending }: { pending: boolean }) {
                     })}
                   </span>
                 </span>
-                <button
+                <BracketButton
                   type="button"
                   onClick={() => handleRemove(device)}
                   disabled={working || pending}
                   aria-label={`remove ${device.name}`}
-                  className={ACTION}
+                  className="text-[11px]"
                 >
-                  [x]
-                </button>
+                  x
+                </BracketButton>
               </li>
             ))}
           </ul>

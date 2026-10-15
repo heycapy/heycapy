@@ -1,4 +1,5 @@
 import type { ActionResult } from "@/types/result";
+import { BracketButton } from "@/components/ui/BracketButton";
 import { useState, useTransition } from "react";
 
 type TestSendButtonProps = {
@@ -17,14 +18,14 @@ export function TestSendButton({ onSend, disabled }: TestSendButtonProps) {
 
   return (
     <div className="flex flex-col gap-1">
-      <button
+      <BracketButton
         type="button"
         onClick={handleClick}
         disabled={disabled || pending}
-        className="text-muted-foreground hover:text-foreground self-start font-mono text-xs disabled:opacity-40"
+        className="self-start"
       >
-        {pending ? "[sending...]" : "[send test]"}
-      </button>
+        {pending ? "sending..." : "send test"}
+      </BracketButton>
       {result && (
         <p
           role="status"

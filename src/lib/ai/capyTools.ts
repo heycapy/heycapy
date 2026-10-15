@@ -12,8 +12,7 @@ import { dueOn, resolveDeadline, type Due } from "@/lib/items/deadline";
 import { revalidatePath } from "next/cache";
 import { and, eq, gte, inArray, isNull, lte, or, sql, notInArray } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { findBucketByName } from "@/lib/db/buckets";
-import { withDefaultChannels } from "@/lib/notifications/channels";
+import { createBucket, findBucketByName } from "@/lib/db/buckets";
 import { initialReminderState, reminderResetForDeadline } from "@/lib/items/reminders";
 import {
   lastNotifiedAt,
@@ -346,20 +345,19 @@ async function executeToolCallInner(
         .from(buckets)
         .where(eq(buckets.userId, userId));
 
-      const [inserted] = await db
-        .insert(buckets)
-        .values({
+      const bucketId = await createBucket(
+        {
           userId,
           name,
           icon: args.icon ? String(args.icon) : null,
-          notificationsRules: JSON.stringify(await withDefaultChannels(userId, {})),
           sortOrder: (maxRow?.max ?? -1) + 1,
           webhookKey: encryptValue(generateWebhookKey()),
-        })
-        .returning({ id: buckets.id });
+        },
+        {}
+      );
 
       revalidatePath("/");
-      return JSON.stringify({ ok: true, bucketId: inserted?.id });
+      return JSON.stringify({ ok: true, bucketId });
     }
 
     case "update_bucket": {

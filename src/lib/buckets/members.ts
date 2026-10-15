@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray, sql } from "drizzle-orm";
+import { and, asc, eq, inArray, isNull, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import {
   bucketMembers,
@@ -11,7 +11,8 @@ import {
 import { UNSET_TIMEZONE } from "@/lib/timezones/constants";
 import { placeName } from "@/lib/timezones/place";
 import { channelDecisions, getChannelSettings } from "@/lib/notifications/channels";
-import { bucketChannels } from "@/lib/rules";
+import { memberChannels } from "@/lib/rules";
+import { encryptValue, generateWebhookKey } from "@/lib/crypto";
 
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
@@ -24,12 +25,11 @@ export type BucketMember = {
   isYou: boolean;
   timezone: string;
   place: string | null;
-  // Whether any of this bucket's channels works for them
   remindable: boolean;
 };
 
 export type MemberChangeResult =
-  { ok: true } | { ok: false; reason: "not_found" | "not_owner" | "is_owner" };
+  { ok: true } | { ok: false; reason: "not_found" | "not_owner" | "is_owner" | "name_taken" };
 
 // Never the email: members only know each other by name
 export async function listMembers(
@@ -49,6 +49,7 @@ export async function listMembers(
       displayName: users.displayName,
       role: bucketMembers.role,
       joinedAt: bucketMembers.createdAt,
+      channels: bucketMembers.channels,
       timezone: userSettings.timezone,
     })
     .from(bucketMembers)
@@ -60,18 +61,13 @@ export async function listMembers(
       asc(bucketMembers.createdAt),
       asc(bucketMembers.id)
     );
-  const bucket = await db.query.buckets.findFirst({
-    columns: { notificationsRules: true },
-    where: eq(buckets.id, bucketId),
-  });
-  const selected = bucketChannels(bucket?.notificationsRules);
   return Promise.all(
-    rows.map(async (row) => {
+    rows.map(async ({ channels, ...row }) => {
       const timezone = row.timezone ?? UNSET_TIMEZONE;
-      // The bucket's webhooks are the owner's; a member's own never fire for it
-      const remindable = channelDecisions(selected, await getChannelSettings(row.userId)).some(
-        (c) => c.state === "send" && (row.role === "owner" || c.medium !== "webhook")
-      );
+      const remindable = channelDecisions(
+        memberChannels(channels),
+        await getChannelSettings(row.userId)
+      ).some((c) => c.state === "send");
       return {
         ...row,
         timezone,
@@ -145,6 +141,78 @@ export function leaveBucket(userId: number, bucketId: number): MemberChangeResul
     if (member.role === "owner") return { ok: false, reason: "is_owner" };
 
     dropMember(tx, bucketId, userId);
+    return { ok: true };
+  });
+}
+
+function telegramAlias(raw: string | null): string | null {
+  try {
+    const alias = raw ? (JSON.parse(raw) as { alias?: unknown }).alias : null;
+    return typeof alias === "string" ? alias : null;
+  } catch {
+    return null;
+  }
+}
+
+// The old owner stays a member. What only the owner held moves with the bucket, except the incoming
+// webhook key, which the old owner still knows, and a Telegram alias the new owner already uses.
+// Everyone's own channels stay theirs.
+export function transferOwnership(
+  ownerId: number,
+  bucketId: number,
+  newOwnerId: number
+): MemberChangeResult {
+  return db.transaction((tx) => {
+    const bucket = tx
+      .select({
+        userId: buckets.userId,
+        name: buckets.name,
+        webhookKey: buckets.webhookKey,
+        telegramConfig: buckets.telegramConfig,
+      })
+      .from(buckets)
+      .where(and(eq(buckets.id, bucketId), isNull(buckets.deletedAt)))
+      .get();
+    if (!bucket || bucket.userId !== ownerId) return { ok: false, reason: "not_owner" };
+    if (newOwnerId === ownerId) return { ok: false, reason: "is_owner" };
+    const member = tx
+      .select({ id: bucketMembers.id })
+      .from(bucketMembers)
+      .where(and(eq(bucketMembers.bucketId, bucketId), eq(bucketMembers.userId, newOwnerId)))
+      .get();
+    if (!member) return { ok: false, reason: "not_found" };
+
+    const theirs = tx
+      .select({ name: buckets.name, telegramConfig: buckets.telegramConfig })
+      .from(buckets)
+      .where(and(eq(buckets.userId, newOwnerId), isNull(buckets.deletedAt)))
+      .all();
+    const sameName = (name: string) => name.toLowerCase() === bucket.name.toLowerCase();
+    if (theirs.some((b) => sameName(b.name))) return { ok: false, reason: "name_taken" };
+
+    const alias = telegramAlias(bucket.telegramConfig);
+    const aliasTaken =
+      alias !== null && theirs.some((b) => telegramAlias(b.telegramConfig) === alias);
+    const telegramConfig =
+      aliasTaken && bucket.telegramConfig
+        ? JSON.stringify({ ...(JSON.parse(bucket.telegramConfig) as object), alias: null })
+        : bucket.telegramConfig;
+
+    tx.update(buckets)
+      .set({
+        userId: newOwnerId,
+        webhookKey: bucket.webhookKey ? encryptValue(generateWebhookKey()) : null,
+        telegramConfig,
+        updatedAt: new Date(),
+      })
+      .where(eq(buckets.id, bucketId))
+      .run();
+    tx.update(bucketMembers)
+      .set({
+        role: sql`case when ${bucketMembers.userId} = ${newOwnerId} then 'owner' else 'member' end`,
+      })
+      .where(eq(bucketMembers.bucketId, bucketId))
+      .run();
     return { ok: true };
   });
 }

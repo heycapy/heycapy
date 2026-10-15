@@ -1,17 +1,17 @@
-import { bucketChannels } from "@/lib/rules";
+import { memberChannels } from "@/lib/rules";
 import { useEffect, useState } from "react";
 import { BracketButton } from "@/components/ui/BracketButton";
 import { getNotifAvailabilityAction } from "@/app/(app)/actions";
 import { MEDIUM_OPTIONS, type NotificationMedium } from "./constants";
 
 type RemindersOffNoticeProps = {
-  notificationsRules: string;
+  myChannels: string;
   hasDatedItems: boolean;
   onSetUp: () => void;
 };
 
 export function RemindersOffNotice({
-  notificationsRules,
+  myChannels,
   hasDatedItems,
   onSetUp,
 }: RemindersOffNoticeProps) {
@@ -32,11 +32,11 @@ export function RemindersOffNotice({
     return () => {
       cancelled = true;
     };
-  }, [notificationsRules]);
+  }, [myChannels]);
 
   if (!hasDatedItems || working === null) return null;
   if (working.channels.length === 0 && working.webhookIds.length === 0) return null;
-  const picked = bucketChannels(notificationsRules);
+  const picked = memberChannels(myChannels);
   if (
     picked.medium.some((m) => working.channels.includes(m)) ||
     picked.webhooks.some((id) => working.webhookIds.includes(id))
@@ -49,7 +49,7 @@ export function RemindersOffNotice({
       role="status"
       className="border-border text-warning mx-4 mb-3 flex items-center justify-between gap-3 border border-dashed px-3 py-2 font-mono text-xs"
     >
-      <span>⚠ this bucket won&apos;t send reminders — no working notification channel</span>
+      <span>⚠ this bucket won&apos;t send you reminders — none of your channels for it work</span>
       <BracketButton onClick={onSetUp} className="shrink-0">
         set up
       </BracketButton>

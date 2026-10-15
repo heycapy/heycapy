@@ -6,7 +6,8 @@ import { inLiveBucket } from "@/lib/buckets/live";
 type Bucket = typeof buckets.$inferSelect;
 type Item = typeof items.$inferSelect;
 
-export type ViewerBucket = Bucket & { isOwner: boolean };
+// myChannels: the viewer's own channels for the bucket, as stored
+export type ViewerBucket = Bucket & { isOwner: boolean; myChannels: string };
 
 // Every bucket the user can use, owned or joined
 export function memberBucketIds(userId: number) {
@@ -72,12 +73,17 @@ export function withoutOwnerSecrets(bucket: Bucket, viewerId: number): Bucket {
 
 export async function listLiveBuckets(userId: number): Promise<ViewerBucket[]> {
   const rows = await db
-    .select()
+    .select({ bucket: buckets, myChannels: bucketMembers.channels })
     .from(buckets)
-    .where(and(inArray(buckets.id, memberBucketIds(userId)), inLiveBucket))
+    .innerJoin(
+      bucketMembers,
+      and(eq(bucketMembers.bucketId, buckets.id), eq(bucketMembers.userId, userId))
+    )
+    .where(inLiveBucket)
     .orderBy(asc(buckets.sortOrder), asc(buckets.createdAt));
-  return rows.map((bucket) => ({
+  return rows.map(({ bucket, myChannels }) => ({
     ...withoutOwnerSecrets(bucket, userId),
     isOwner: bucket.userId === userId,
+    myChannels,
   }));
 }

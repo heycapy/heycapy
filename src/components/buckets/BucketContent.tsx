@@ -89,7 +89,7 @@ export function BucketContent({ bucket, accentColor, addItemRef }: BucketContent
       <TimezonesNotice members={members} />
 
       <RemindersOffNotice
-        notificationsRules={bucket.notificationsRules}
+        myChannels={bucket.myChannels}
         hasDatedItems={list.items.some((i) => i.deadline && !isClosedStatus(i.status))}
         onSetUp={() => setSettingsTab("notifications")}
       />

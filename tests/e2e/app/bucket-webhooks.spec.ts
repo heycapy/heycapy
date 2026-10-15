@@ -36,7 +36,7 @@ async function addWebhookInTweaks(page: Page, name: string, url: string) {
   await box.getByPlaceholder("work slack").fill(name);
   await box.getByPlaceholder("https://example.com/hooks/heycapy").fill(url);
   await box.getByRole("button", { name: "[ save ]" }).click();
-  await expect(box.getByRole("button", { name: "[send test]" })).toBeVisible();
+  await expect(box.getByRole("button", { name: "[ send test ]" })).toBeVisible();
 }
 
 test("webhooks set up in tweaks are picked per bucket, and new buckets get the default ones", async ({

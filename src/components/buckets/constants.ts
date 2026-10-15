@@ -164,3 +164,14 @@ export const RECURRENCE_MODE_OPTIONS: { value: RecurrenceMode; label: string; hi
 ];
 
 export const HINTS_DEBOUNCE_MS = 300;
+
+export const LOCKED_CONTROLS = [
+  "opacity-60",
+  "[&_*]:cursor-not-allowed",
+  "[&_:disabled]:opacity-100!",
+  "[&_button[aria-pressed=false]]:text-muted-foreground!",
+  "[&_button[aria-pressed=false]]:shadow-none!",
+  "[&_button[aria-pressed=false]]:border-border!",
+  "[&_[data-variant]]:hidden",
+  "[&_[data-remove]]:hidden",
+].join(" ");

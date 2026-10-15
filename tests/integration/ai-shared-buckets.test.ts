@@ -3,6 +3,8 @@ import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { bucketMembers, buckets, items, users, userSettings } from "@/lib/db/schema";
 import { listLiveBuckets } from "@/lib/buckets/access";
+import { getMemberChannels } from "@/lib/notifications/channels";
+import { parseItemsRules } from "@/lib/rules";
 import { executeToolCall, getUpcomingItems } from "@/lib/ai/capyTools";
 import { withMemberNames } from "@/lib/ai/assigneeArgs";
 import { buildSystemPrompt } from "@/lib/ai/systemPrompt";
@@ -142,24 +144,52 @@ describe("capy in a shared bucket", () => {
     const { member, stranger, bucketId } = await sharedBucket();
     const ownerOnly = {
       ok: false,
-      error: 'Only the owner of "Home" can change it or see its settings. Tell the user that.',
+      error: 'Only the owner of "Home" can change it. Tell the user that.',
     };
 
     expect(await tool(member, "update_bucket", { bucket_id: bucketId, name: "Mine" })).toEqual(
       ownerOnly
     );
     expect(await tool(member, "delete_bucket", { bucket_id: bucketId })).toEqual(ownerOnly);
-    expect(await tool(member, "get_bucket_settings", { bucket_id: bucketId })).toEqual(ownerOnly);
     expect(
-      await tool(member, "update_bucket_settings", { bucket_id: bucketId, read_only: true })
-    ).toEqual(ownerOnly);
+      await tool(member, "update_bucket_settings", {
+        bucket_id: bucketId,
+        read_only: true,
+        channels: ["email"],
+      })
+    ).toEqual({
+      ok: false,
+      error:
+        'Only the owner of "Home" can change its settings; the user can change only their own channels. Tell the user that.',
+    });
     expect(await tool(stranger, "get_bucket_settings", { bucket_id: bucketId })).toEqual({
       ok: false,
       error: "Bucket not found",
     });
+    expect(
+      await tool(stranger, "update_bucket_settings", { bucket_id: bucketId, channels: ["email"] })
+    ).toEqual({ ok: false, error: "Bucket not found" });
 
     const [bucket] = await db.select().from(buckets).where(eq(buckets.id, bucketId));
     expect(bucket).toMatchObject({ name: "Home", deletedAt: null });
+    expect(parseItemsRules(bucket.itemsRules).readonly).not.toBe(true);
+    expect(await getMemberChannels(member, bucketId)).toMatchObject({ medium: [] });
+  });
+
+  it("lets a member read the bucket's settings and change only their own channels", async () => {
+    const { owner, member, bucketId } = await sharedBucket();
+    const ownerBefore = await getMemberChannels(owner, bucketId);
+
+    expect(await tool(member, "get_bucket_settings", { bucket_id: bucketId })).toMatchObject({
+      ok: true,
+      settings: { bucket_id: bucketId, name: "Home", is_owner: false, deadline_repeat: "once" },
+    });
+    expect(
+      await tool(member, "update_bucket_settings", { bucket_id: bucketId, channels: ["email"] })
+    ).toMatchObject({ ok: true, settings: { channels: ["email"], is_owner: false } });
+
+    expect(await getMemberChannels(member, bucketId)).toEqual({ medium: ["email"], webhooks: [] });
+    expect(await getMemberChannels(owner, bucketId)).toEqual(ownerBefore);
   });
 });
 

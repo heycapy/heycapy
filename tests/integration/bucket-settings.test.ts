@@ -3,10 +3,12 @@ import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { buckets } from "@/lib/db/schema";
 import { updateBucketSchemaAction, updateBucketSettingsAction } from "@/app/(app)/bucket-actions";
+import { getMemberChannels } from "@/lib/notifications/channels";
 import {
   resetSchedulerEnvironment,
   seedBucket,
   seedItem,
+  seedMember,
   seedUser,
   useSchedulerEnvironment,
   reminderOf,
@@ -37,7 +39,7 @@ function saveFromDialog(bucketId: number, notifyAt?: string) {
     bucketId,
     `Work ${Math.random()}`,
     { sortBy: "deadline", drag: false, readonly: false, showCompleted: true },
-    { medium: ["telegram"], notifyAt, repeat: "daily" },
+    { notifyAt, repeat: "daily" },
     { notifyOnArrival: false, notifyWhenOverdue: false }
   );
 }
@@ -81,7 +83,7 @@ describe("first overdue alert delay", () => {
       bucketId,
       `Bills ${Math.random()}`,
       { sortBy: "deadline", drag: false, readonly: false, showCompleted: true },
-      { medium: ["telegram"], repeat: "once" },
+      { repeat: "once" },
       { notifyOnArrival: false, notifyWhenOverdue: on, overdueFirstAlertMins }
     );
   }
@@ -126,7 +128,7 @@ describe("default reminders", () => {
       bucketId,
       `Bills ${Math.random()}`,
       { sortBy: "deadline", drag: false, readonly: false, showCompleted: true },
-      { medium: ["telegram"], repeat: "once", defaultReminders },
+      { repeat: "once", defaultReminders },
       { notifyOnArrival: false, notifyWhenOverdue: false }
     );
   }
@@ -170,11 +172,36 @@ describe("checks shared with the assistant", () => {
       bucketId,
       "Work",
       { sortBy: "random" as never },
-      { medium: ["telegram"], notifyAt: "25:00" }
+      { notifyAt: "25:00" }
     );
 
     expect(result).toEqual({ ok: false, error: "Invalid sort by" });
     const after = await db.query.buckets.findFirst({ where: eq(buckets.id, bucketId) });
     expect(after?.itemsRules).toBe(before?.itemsRules);
+  });
+});
+
+describe("a member of the bucket", () => {
+  it("can't save its settings, though they see them", async () => {
+    const { bucketId } = await seedWorkBucket();
+    const before = await db.query.buckets.findFirst({ where: eq(buckets.id, bucketId) });
+    const member = await seedUser();
+    await seedMember(bucketId, member);
+    session.userId = member;
+
+    expect(
+      await updateBucketSettingsAction(
+        bucketId,
+        "Mine",
+        { readonly: true },
+        { repeat: "daily" },
+        undefined,
+        { medium: ["email"], webhooks: [] }
+      )
+    ).toEqual({ ok: false, error: "Bucket not found" });
+
+    const after = await db.query.buckets.findFirst({ where: eq(buckets.id, bucketId) });
+    expect(after).toEqual(before);
+    expect((await getMemberChannels(member, bucketId)).medium).toEqual(["telegram"]);
   });
 });

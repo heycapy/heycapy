@@ -73,7 +73,7 @@ export async function getItemsForBucketAction(bucketId: number): Promise<
             .orderBy(asc(items.sortOrder), asc(items.createdAt), asc(items.id));
 
   const viewed = await withViewerReminders(session.userId, result);
-  const reminderBadges = await getReminderBadges(session.userId, bucket.notificationsRules, viewed);
+  const reminderBadges = await getReminderBadges(session.userId, bucket.id, viewed);
   return { ok: true, items: viewed, reminderBadges };
 }
 

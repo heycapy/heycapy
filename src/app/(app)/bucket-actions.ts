@@ -15,10 +15,14 @@ import {
   TELEGRAM_ALIAS_MAX_LENGTH,
   TELEGRAM_RESERVED_COMMANDS,
 } from "@/constants";
-import { findBucketByName } from "@/lib/db/buckets";
+import { createBucket, findBucketByName } from "@/lib/db/buckets";
 import { refreshBucketReminders } from "@/lib/reminders/refresh";
-import { withDefaultChannels } from "@/lib/notifications/channels";
-import { saveBucketSettings, type BucketSettingsInput } from "@/lib/buckets/settings";
+import {
+  saveBucketSettings,
+  saveMemberChannels,
+  type BucketSettingsInput,
+  type MemberChannelsInput,
+} from "@/lib/buckets/settings";
 import {
   TELEGRAM_DEADLINE_PRESETS,
   TELEGRAM_RECURRING_OPTIONS,
@@ -77,25 +81,22 @@ export async function createBucketAction(
     .from(buckets)
     .where(eq(buckets.userId, session.userId));
 
-  const [newBucket] = await db
-    .insert(buckets)
-    .values({
+  const bucketId = await createBucket(
+    {
       userId: session.userId,
       name: trimmed,
-      notificationsRules: JSON.stringify(
-        await withDefaultChannels(session.userId, rules.notifications)
-      ),
       itemsRules: JSON.stringify(rules.items ?? {}),
       mcpRules: rules.mcp ? JSON.stringify(rules.mcp) : null,
       personalityRules: JSON.stringify(rules.personality ?? {}),
       fieldSchema: (template.fieldSchemaJson ?? null) as unknown as BucketSchema,
       webhookKey: encryptValue(generateWebhookKey()),
       sortOrder: maxRow.max + 1,
-    })
-    .returning({ id: buckets.id });
+    },
+    rules.notifications
+  );
 
   revalidatePath("/");
-  return { ok: true, bucketId: newBucket.id };
+  return { ok: true, bucketId };
 }
 
 export async function updateBucketSettingsAction(
@@ -103,7 +104,8 @@ export async function updateBucketSettingsAction(
   name: string,
   itemsRules: BucketSettingsInput["itemsRules"],
   notificationsRules: BucketSettingsInput["notificationsRules"],
-  notificationTriggers?: BucketSettingsInput["notificationTriggers"]
+  notificationTriggers?: BucketSettingsInput["notificationTriggers"],
+  channels?: MemberChannelsInput
 ): Promise<ActionResult> {
   const session = await requireSession();
   return saveBucketSettings(session.userId, bucketId, {
@@ -111,7 +113,16 @@ export async function updateBucketSettingsAction(
     itemsRules,
     notificationsRules,
     notificationTriggers,
+    channels,
   });
+}
+
+export async function updateMyChannelsAction(
+  bucketId: number,
+  channels: MemberChannelsInput
+): Promise<ActionResult> {
+  const session = await requireSession();
+  return saveMemberChannels(session.userId, bucketId, channels);
 }
 
 export async function updateBucketTelegramConfigAction(

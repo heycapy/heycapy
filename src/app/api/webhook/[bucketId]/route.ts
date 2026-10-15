@@ -1,5 +1,5 @@
 import { recordSystemError } from "@/lib/system-errors";
-import { bucketChannels, parseNotificationRules } from "@/lib/rules";
+import { parseNotificationRules } from "@/lib/rules";
 import { afterQuietHours } from "@/lib/reminders/schedule";
 import { db } from "@/lib/db";
 import { items } from "@/lib/db/schema";
@@ -12,7 +12,11 @@ import {
 } from "@/lib/notifications/constants";
 import { errorMessage } from "@/lib/errors";
 import { ITEM_STATUS, ITEM_TITLE_MAX_LENGTH } from "@/constants";
-import { channelDecisions, getChannelSettings } from "@/lib/notifications/channels";
+import {
+  channelDecisions,
+  getChannelSettings,
+  getMemberChannels,
+} from "@/lib/notifications/channels";
 import { initialReminderState } from "@/lib/items/reminders";
 import { dataEvents } from "@/lib/events";
 import { refreshItemReminders, reminderContext } from "@/lib/reminders/refresh";
@@ -181,7 +185,7 @@ export async function POST(
         kind: "arrival",
         title: `New item in ${bucket.name}`,
         message: `"${title}" was added via webhook.`,
-        channels: channelDecisions(bucketChannels(bucket.notificationsRules), userRow),
+        channels: channelDecisions(await getMemberChannels(bucket.userId, bucketId), userRow),
         notBefore: afterQuietHours(
           new Date(),
           [

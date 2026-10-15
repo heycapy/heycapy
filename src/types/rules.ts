@@ -8,10 +8,16 @@ export const ReminderOffsets = z
   .max(MAX_REMINDERS_PER_ITEM)
   .transform((offsets) => [...new Set(offsets)].sort((a, b) => b - a));
 
-export const NotificationRules = z.object({
+// One person's channels for one bucket, kept on their bucket_members row
+export const MemberChannels = z.object({
   medium: z.array(z.enum(["ntfy", "email", "telegram", "push"])).default([]),
-  // ids of the user's outgoing webhooks, set up once in tweaks
+  // ids of the person's own outgoing webhooks, set up once in tweaks
   webhooks: z.array(z.number().int().positive()).default([]),
+});
+
+export type MemberChannels = z.infer<typeof MemberChannels>;
+
+export const NotificationRules = z.object({
   notifyAt: z.string().default(""),
   quietHours: z.object({ from: z.string(), to: z.string() }).nullable().default(null),
   // For items that haven't picked their own

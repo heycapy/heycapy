@@ -14,7 +14,11 @@ import { createBucketAction } from "@/app/(app)/bucket-actions";
 import { executeToolCall } from "@/lib/ai/capyTools";
 import { enqueue, processPending } from "@/lib/notifications/queue";
 import { refreshItemReminders } from "@/lib/reminders/refresh";
-import { getChannelSettings, getWorkingChannels } from "@/lib/notifications/channels";
+import {
+  getChannelSettings,
+  getMemberChannels,
+  getWorkingChannels,
+} from "@/lib/notifications/channels";
 import {
   reminderOf,
   resetSchedulerEnvironment,
@@ -50,22 +54,24 @@ async function seedTemplate(medium: string[]): Promise<number> {
   return template.id;
 }
 
-async function bucketMedium(bucketId: number): Promise<unknown> {
+// The bucket's own rules keep no channels; they go to the owner's membership
+async function ownerMedium(bucketId: number): Promise<unknown> {
   const bucket = await db.query.buckets.findFirst({ where: eq(buckets.id, bucketId) });
-  return (JSON.parse(bucket?.notificationsRules ?? "{}") as { medium?: unknown }).medium;
+  expect(JSON.parse(bucket?.notificationsRules ?? "{}")).not.toHaveProperty("medium");
+  return bucket && (await getMemberChannels(bucket.userId, bucketId)).medium;
 }
 
 describe("new buckets get working channels by default", () => {
   it("a template without channels (like Blank) uses the user's working channels", async () => {
     await signIn();
     const result = await createBucketAction(await seedTemplate([]), `Blank ${Math.random()}`);
-    expect(result.ok && (await bucketMedium(result.bucketId))).toEqual(["telegram"]);
+    expect(result.ok && (await ownerMedium(result.bucketId))).toEqual(["telegram"]);
   });
 
   it("a template that lists channels keeps them", async () => {
     await signIn();
     const result = await createBucketAction(await seedTemplate(["email"]), `Work ${Math.random()}`);
-    expect(result.ok && (await bucketMedium(result.bucketId))).toEqual(["email"]);
+    expect(result.ok && (await ownerMedium(result.bucketId))).toEqual(["email"]);
   });
 
   it("buckets created by the assistant use the user's working channels", async () => {
@@ -76,7 +82,7 @@ describe("new buckets get working channels by default", () => {
         userId
       )
     ) as { ok: boolean; bucketId: number };
-    expect(await bucketMedium(result.bucketId)).toEqual(["telegram"]);
+    expect(await ownerMedium(result.bucketId)).toEqual(["telegram"]);
   });
 });
 
