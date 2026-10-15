@@ -139,7 +139,8 @@ test("a member sees the bucket's rules and changes only where their own reminder
   await joinWithCode(friend, code);
   await friend.waitForURL(`/?bucket=${bucketId}`);
   const dialog = await openSettingsDialog(friend);
-  await expect(dialog.getByText("set by the owner; only they can change these")).toBeVisible();
+  await expect(dialog.getByRole("note")).toContainText("view only");
+  await expect(dialog.getByRole("group", { name: "set by the owner" })).toBeVisible();
   await expect(field(dialog, "sort by").getByRole("button").first()).toBeDisabled();
   await expect(dialog.getByRole("button", { name: "[ save ]", exact: true })).toHaveCount(0);
   await expect(dialog.getByRole("button", { name: "advanced", exact: true })).toHaveCount(0);

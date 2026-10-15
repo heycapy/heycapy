@@ -1,11 +1,12 @@
 import { ACCENT_BUTTONS } from "@/components/layout/settings-constants";
 import { useEffect, useId, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { cn } from "@/lib/utils";
+import { cn, toggled } from "@/lib/utils";
 import { charCountColor } from "@/components/ui/input";
 import { BracketButton } from "@/components/ui/BracketButton";
 import { BetaTag } from "@/components/ui/BetaTag";
-import { BucketRulesPanel } from "./BucketRulesPanel";
+import { BucketRulesFields } from "./BucketRulesFields";
+import { ViewOnlyNotice } from "./ViewOnlyNotice";
 import { MyChannelsPicker, type NotifAvailability } from "./MyChannelsPicker";
 import { parseBucketSettings, type BucketSettingsValues } from "./parseBucketSettings";
 import { parseDurationToDays } from "@/lib/duration";
@@ -21,16 +22,12 @@ import type { ViewerBucket } from "@/lib/buckets/access";
 import { memberChannels } from "@/lib/rules";
 import type { MemberChannels } from "@/types/rules";
 import { BucketMembersPanel } from "./BucketMembersPanel";
-import { LOCKED_CONTROLS } from "./constants";
 
 export type SettingsTab = "items" | "notifications" | "advanced" | "members";
 
 const OWNER_TABS: SettingsTab[] = ["items", "notifications", "advanced", "members"];
 // A member sees the bucket's rules but changes only where their own reminders go
 const MEMBER_TABS: SettingsTab[] = ["items", "notifications", "members"];
-
-const toggled = <T,>(list: T[], value: T): T[] =>
-  list.includes(value) ? list.filter((x) => x !== value) : [...list, value];
 
 const tabCn = (active: boolean) =>
   `font-mono text-xs px-2 py-1 transition-colors shrink-0 whitespace-nowrap ${active ? "bg-foreground text-background" : "text-primary hover:text-foreground"}`;
@@ -190,6 +187,10 @@ export function BucketSettingsForm({
       </div>
 
       <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-4 py-4">
+        {!bucket.isOwner && (tab === "items" || tab === "notifications") && (
+          <ViewOnlyNotice tab={tab} />
+        )}
+
         {tab === "notifications" && (
           <MyChannelsPicker
             mediums={channels.medium}
@@ -205,59 +206,14 @@ export function BucketSettingsForm({
         )}
 
         {(tab === "items" || tab === "notifications") && (
-          <fieldset
-            disabled={!bucket.isOwner}
-            className={cn("contents", !bucket.isOwner && LOCKED_CONTROLS)}
-          >
-            {!bucket.isOwner && (
-              <p
-                className={cn(
-                  "text-muted-foreground font-mono text-[11px] leading-tight",
-                  tab === "notifications" && "border-border border-t pt-4"
-                )}
-              >
-                set by the owner; only they can change these
-              </p>
-            )}
-            <BucketRulesPanel
-              activeTab={tab}
-              disabled={pending}
-              sortBy={values.sortBy}
-              drag={values.drag}
-              showCompleted={values.showCompleted}
-              recurrenceMode={values.recurrenceMode}
-              readonly={values.readonly}
-              defaultDeadlineOffset={values.defaultDeadlineOffset}
-              reminderButtons={values.reminderButtons}
-              notifyAt={values.notifyAt}
-              clocksDiffer={clocksDiffer}
-              defaultReminders={values.defaultReminders}
-              repeat={values.repeat}
-              notifyOnArrival={values.notifyOnArrival}
-              notifyWhenOverdue={values.notifyWhenOverdue}
-              overdueRepeatHours={values.overdueRepeatHours}
-              overdueFirstAlertMins={values.overdueFirstAlertMins}
-              onSortByChange={(v) => set("sortBy", v)}
-              onDragChange={(v) => set("drag", v)}
-              onShowCompletedChange={(v) => set("showCompleted", v)}
-              onRecurrenceModeChange={(v) => set("recurrenceMode", v)}
-              onReadonlyChange={(v) => set("readonly", v)}
-              onDefaultDeadlineOffsetChange={(v) => set("defaultDeadlineOffset", v)}
-              onReminderButtonToggle={(b) =>
-                setValues((prev) => ({
-                  ...prev,
-                  reminderButtons: toggled(prev.reminderButtons, b),
-                }))
-              }
-              onNotifyAtChange={(v) => set("notifyAt", v)}
-              onDefaultRemindersChange={(v) => set("defaultReminders", v)}
-              onRepeatChange={(v) => set("repeat", v)}
-              onNotifyOnArrivalChange={(v) => set("notifyOnArrival", v)}
-              onNotifyWhenOverdueChange={(v) => set("notifyWhenOverdue", v)}
-              onOverdueRepeatHoursChange={(v) => set("overdueRepeatHours", v)}
-              onOverdueFirstAlertMinsChange={(v) => set("overdueFirstAlertMins", v)}
-            />
-          </fieldset>
+          <BucketRulesFields
+            activeTab={tab}
+            values={values}
+            setValues={setValues}
+            clocksDiffer={clocksDiffer}
+            disabled={pending}
+            locked={!bucket.isOwner}
+          />
         )}
 
         {bucket.isOwner && tab === "notifications" && (
