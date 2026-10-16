@@ -5,7 +5,7 @@
 <h1 align="center">heycapy</h1>
 
 <p align="center">
-  a capy to help you with your day. buckets, deadlines, reminders on the channels you already use, and an ai to chat with.
+  a capy to help you with your day. buckets, deadlines, reminders on the channels you already use, and an capy to chat with.
 </p>
 
 <p align="center">
