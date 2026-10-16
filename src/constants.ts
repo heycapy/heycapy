@@ -151,9 +151,9 @@ export function isClosedStatus(status: string): boolean {
   return CLOSED_ITEM_STATUSES.includes(status);
 }
 
-export type BetaFeature = "sharing" | "avatars";
+export type BetaFeature = "sharing";
 // Features shown with a [beta] tag; take one out to drop its tags everywhere
-export const BETA_FEATURES: readonly BetaFeature[] = ["sharing", "avatars"];
+export const BETA_FEATURES: readonly BetaFeature[] = ["sharing"];
 
 // Sent by /api/events when a connection opens, carrying the server's NEXT_DEPLOYMENT_ID
 export const SERVER_VERSION_EVENT = "version";

@@ -1,6 +1,5 @@
 import { useEffect, useState, useTransition } from "react";
 import { BracketButton } from "@/components/ui/BracketButton";
-import { BetaTag } from "@/components/ui/BetaTag";
 import { AvatarEditor, type AvatarDraft } from "@/components/avatar/AvatarEditor";
 import {
   deleteAccountAction,
@@ -81,10 +80,7 @@ export function AccountTab({ email, username, avatarDraft, onAvatarDraft }: Acco
       )}
 
       <div className={BOX}>
-        <span className={SECTION}>
-          avatar
-          <BetaTag feature="avatars" className="font-normal tracking-normal normal-case" />
-        </span>
+        <span className={SECTION}>avatar</span>
         <AvatarEditor draft={avatarDraft} onDraft={onAvatarDraft} />
       </div>
 
