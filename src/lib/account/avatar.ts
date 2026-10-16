@@ -32,6 +32,10 @@ export function toCells(avatar: string | null): AvatarCells {
   return avatar !== null && AVATAR_PATTERN.test(avatar) ? [...avatar] : blankCells();
 }
 
+export function presetCells(rows: readonly string[], background: number): AvatarCells {
+  return toCells(rows.join("").replaceAll(AVATAR_EMPTY, avatarCode(background)));
+}
+
 // A drawing with nothing on it is saved as no avatar
 export function toAvatar(cells: AvatarCells): string | null {
   return cells.every((cell) => cell === AVATAR_EMPTY) ? null : cells.join("");

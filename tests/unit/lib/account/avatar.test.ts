@@ -10,9 +10,11 @@ import {
   defaultAvatar,
   fill,
   paint,
+  presetCells,
   toAvatar,
   toCells,
 } from "@/lib/account/avatar";
+import { AVATAR_PRESETS } from "@/lib/account/avatar-presets";
 import { AVATAR_DEFAULT_COLOURS, AVATAR_PALETTE } from "@/lib/account/constants";
 
 const RED = avatarCode(8);
@@ -136,5 +138,28 @@ describe("generated avatar", () => {
     expect(avatarFor(drawn, 7).join("")).toBe(drawn);
     expect(avatarFor(null, 7)).toEqual(defaultAvatar(7));
     expect(avatarFor("broken", 7)).toEqual(defaultAvatar(7));
+  });
+});
+
+describe("presets", () => {
+  it("are 16 rows of 16 palette codes, never empty, each with its own name", () => {
+    expect(new Set(AVATAR_PRESETS.map((preset) => preset.name)).size).toBe(AVATAR_PRESETS.length);
+    for (const preset of AVATAR_PRESETS) {
+      expect(preset.rows.map((row) => row.length)).toEqual(Array(16).fill(16));
+      const avatar = preset.rows.join("");
+      expect(AVATAR_PATTERN.test(avatar)).toBe(true);
+      expect(toAvatar(toCells(avatar))).toBe(avatar);
+    }
+  });
+
+  it("fills every empty cell with the background, so they look the same on every theme", () => {
+    for (const preset of AVATAR_PRESETS) {
+      const drawn = preset.rows.join("");
+      const background = avatarCode(preset.background);
+      const cells = presetCells(preset.rows, preset.background);
+      expect(cells).not.toContain(".");
+      expect(cells.join("")).toBe(drawn.replaceAll(".", background));
+      expect(drawn).not.toContain(background);
+    }
   });
 });

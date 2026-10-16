@@ -23,6 +23,7 @@ import { cn } from "@/lib/utils";
 import { LABEL } from "@/components/layout/settings-constants";
 import { Avatar } from "./Avatar";
 import { AvatarCanvas } from "./AvatarCanvas";
+import { AvatarPresets } from "./AvatarPresets";
 import { AvatarToolbar } from "./AvatarToolbar";
 import type { AvatarTool } from "./avatar-constants";
 import { useAvatarDrawing } from "./useAvatarDrawing";
@@ -45,6 +46,7 @@ export function AvatarEditor({ draft, onDraft }: AvatarEditorProps) {
   const [colour, setColour] = useState(0);
   const [mirror, setMirror] = useState(false);
   const [message, setMessage] = useState<{ text: string; error: boolean } | null>(null);
+  const [confirmingRemove, setConfirmingRemove] = useState(false);
   const [pending, startTransition] = useTransition();
 
   useEffect(() => {
@@ -99,6 +101,7 @@ export function AvatarEditor({ draft, onDraft }: AvatarEditorProps) {
 
   function save(avatar: string | null) {
     setMessage(null);
+    setConfirmingRemove(false);
     startTransition(async () => {
       const result = await saveAvatarAction(avatar);
       if (!result.ok) {
@@ -148,6 +151,13 @@ export function AvatarEditor({ draft, onDraft }: AvatarEditorProps) {
           onRedo={drawing.redo}
           onClear={() => drawing.replace(blankCells())}
         />
+        <AvatarPresets
+          disabled={busy}
+          onPick={(cells) => {
+            setMessage(null);
+            drawing.replace(cells);
+          }}
+        />
       </div>
 
       <div className="flex flex-wrap gap-2" data-testid="avatar-previews">
@@ -175,16 +185,38 @@ export function AvatarEditor({ draft, onDraft }: AvatarEditorProps) {
             : "this one was made for you. draw over it, or clear it to start fresh."}
         </p>
       )}
-      <div className="flex gap-3">
+      <div>
         <BracketButton onClick={() => save(current)} disabled={busy || !changed}>
           {pending ? "saving..." : empty ? "use the one made for me" : "save avatar"}
         </BracketButton>
-        {saved !== null && (
-          <BracketButton variant="destructive" onClick={() => save(null)} disabled={busy}>
-            remove avatar
-          </BracketButton>
-        )}
       </div>
+      {saved !== null &&
+        (confirmingRemove ? (
+          <div className="flex flex-col gap-2">
+            <p className={LABEL}>remove your avatar? people will see the one made for you.</p>
+            <div className="flex gap-3">
+              <BracketButton variant="destructive" onClick={() => save(null)} disabled={busy}>
+                confirm
+              </BracketButton>
+              <BracketButton onClick={() => setConfirmingRemove(false)} disabled={busy}>
+                cancel
+              </BracketButton>
+            </div>
+          </div>
+        ) : (
+          <div>
+            <BracketButton
+              variant="destructive"
+              onClick={() => {
+                setMessage(null);
+                setConfirmingRemove(true);
+              }}
+              disabled={busy}
+            >
+              remove avatar
+            </BracketButton>
+          </div>
+        ))}
 
       {message && (
         <p

@@ -98,6 +98,15 @@ test("removing the avatar goes back to the generated one, and undo brings the dr
   const drawn = await header(page).innerHTML();
 
   await page.getByRole("button", { name: "[ remove avatar ]" }).click();
+  await page.getByRole("button", { name: "[ cancel ]" }).click();
+  await expect(canvas.locator("rect.fill-avatar-8")).toHaveCount(1);
+  await expect(header(page).locator("rect.fill-avatar-8")).toHaveCount(1);
+
+  await page.getByRole("button", { name: "[ remove avatar ]" }).click();
+  await expect(
+    page.getByText("remove your avatar? people will see the one made for you.")
+  ).toBeVisible();
+  await page.getByRole("button", { name: "[ confirm ]" }).click();
   await expect(
     page.getByRole("status").filter({ hasText: "removed. people now see the one made for you." })
   ).toBeVisible();
@@ -163,4 +172,26 @@ test("closing tweaks with an unsaved drawing asks first, and switching tabs keep
   await warning.getByRole("button", { name: "[ save ]" }).click();
   await expect(page.locator("aside")).toHaveCount(0);
   await expect(header(page).locator('rect.fill-avatar-b[width="16"]')).toHaveCount(1);
+});
+
+test("picking a preset draws it on the canvas, undo takes it back, and it saves like a drawing", async ({
+  page,
+}) => {
+  const canvas = await openAvatarEditor(page);
+  const before = await canvas.innerHTML();
+  const presets = page.getByRole("group", { name: "start from" });
+  await expect(presets.getByRole("button")).toHaveCount(12);
+
+  await presets.getByRole("button", { name: "frog", exact: true }).click();
+  await expect(canvas.locator("rect.fill-avatar-b").first()).toBeVisible();
+  await page.getByRole("button", { name: "[ undo ]" }).click();
+  expect(await canvas.innerHTML()).toBe(before);
+  await page.getByRole("button", { name: "[ redo ]" }).click();
+
+  await page.getByRole("button", { name: "red", exact: true }).click();
+  await drag(page, canvas, [0, 15], [15, 15]);
+  await page.getByRole("button", { name: "[ save avatar ]" }).click();
+  await expect(page.getByRole("status").filter({ hasText: "saved." })).toBeVisible();
+  await expect(header(page).locator("rect.fill-avatar-b").first()).toBeVisible();
+  await expect(header(page).locator('rect.fill-avatar-8[y="15"][width="16"]')).toHaveCount(1);
 });
