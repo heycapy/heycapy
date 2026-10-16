@@ -17,6 +17,8 @@ import { useTimezoneStore } from "@/store/timezone";
 import { TimezoneMoveBanner } from "./TimezoneMoveBanner";
 import { NewVersionBanner } from "./NewVersionBanner";
 import { FeedbackDialog } from "./FeedbackDialog";
+import { WhatsNewDialog } from "./WhatsNewDialog";
+import { markReleasesSeenAction } from "@/app/(app)/account-actions";
 import { saveTimezoneIfDefaultAction } from "@/app/(app)/user-settings-actions";
 import { useServerEvents } from "@/hooks/useServerEvents";
 import { AssistantNameProvider } from "@/components/capy/assistant-name";
@@ -35,6 +37,7 @@ type AppShellProps = {
   hasWorkingChannel: boolean;
   assistantName: string;
   feedbackEnabled: boolean;
+  unseenRelease: boolean;
 };
 
 export function AppShell({
@@ -46,12 +49,22 @@ export function AppShell({
   hasWorkingChannel,
   assistantName,
   feedbackEnabled,
+  unseenRelease,
 }: AppShellProps) {
   const [settingsTab, setSettingsTab] = useState<SettingsTab | null>(null);
   const [archivedOpen, setArchivedOpen] = useState(false);
   const [trashOpen, setTrashOpen] = useState(false);
   const [joinOpen, setJoinOpen] = useState(false);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
+  const [whatsNewOpen, setWhatsNewOpen] = useState(false);
+  const [releaseUnseen, setReleaseUnseen] = useState(unseenRelease);
+
+  function openWhatsNew() {
+    setWhatsNewOpen(true);
+    if (!releaseUnseen) return;
+    setReleaseUnseen(false);
+    void markReleasesSeenAction();
+  }
 
   const newVersion = useServerEvents();
 
@@ -74,6 +87,8 @@ export function AppShell({
         onTrashOpen={() => setTrashOpen(true)}
         onJoinOpen={() => setJoinOpen(true)}
         onFeedbackOpen={feedbackEnabled ? () => setFeedbackOpen(true) : null}
+        onWhatsNewOpen={openWhatsNew}
+        unseenRelease={releaseUnseen}
       />
       {newVersion && <NewVersionBanner />}
       {!hasWorkingChannel && <NoChannelBanner onSetUp={() => setSettingsTab("notifications")} />}
@@ -89,6 +104,7 @@ export function AppShell({
       <TrashSheet open={trashOpen} onClose={() => setTrashOpen(false)} />
       <JoinBucketDialog open={joinOpen} onClose={() => setJoinOpen(false)} />
       <FeedbackDialog open={feedbackOpen} onClose={() => setFeedbackOpen(false)} />
+      <WhatsNewDialog open={whatsNewOpen} onClose={() => setWhatsNewOpen(false)} />
       <SearchDrawer />
       <AssistantNameProvider name={assistantName}>
         <CapyChat />

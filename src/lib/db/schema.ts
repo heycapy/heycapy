@@ -19,6 +19,9 @@ export const users = sqliteTable("users", {
   username: text("username").unique(),
   // 256 palette codes, one per cell (lib/account/avatar.ts), null until the person draws one
   avatar: text("avatar"),
+  // The newest "what's new" release this person has opened, a dot shows until it's the latest.
+  // Sign-up starts on the latest, accounts from before 0.4.0 were set to 0.3.0 so they see it
+  lastSeenRelease: text("last_seen_release"),
   // Bumped by "log out everywhere", sessions issued under an older version stop working
   sessionVersion: integer("session_version").notNull().default(1),
   createdAt: integer("created_at", { mode: "timestamp" })

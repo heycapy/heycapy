@@ -2,6 +2,7 @@ import { Archive } from "pixelarticons/react/Archive.js";
 import { Logout } from "pixelarticons/react/Logout.js";
 import { Message } from "pixelarticons/react/Message.js";
 import { SlidersHorizontal } from "pixelarticons/react/SlidersHorizontal.js";
+import { Megaphone } from "pixelarticons/react/Megaphone.js";
 import { Trash } from "pixelarticons/react/Trash.js";
 import { UserPlus } from "pixelarticons/react/UserPlus.js";
 import { PixelIcon } from "@/components/ui/PixelIcon";
@@ -11,6 +12,7 @@ import { BetaTag } from "@/components/ui/BetaTag";
 import { BracketButton } from "@/components/ui/BracketButton";
 import { logoutAction, logoutEverywhereAction } from "@/app/(app)/actions";
 import { useScrollLock } from "@/hooks/useScrollLock";
+import { cn } from "@/lib/utils";
 import { PersonAvatar } from "@/components/avatar/PersonAvatar";
 
 type HeaderProps = {
@@ -22,6 +24,8 @@ type HeaderProps = {
   onTrashOpen: () => void;
   onJoinOpen: () => void;
   onFeedbackOpen: (() => void) | null;
+  onWhatsNewOpen: () => void;
+  unseenRelease: boolean;
 };
 
 function getGreeting() {
@@ -84,6 +88,10 @@ function LogoutConfirm({
   );
 }
 
+function NewDot({ className }: { className?: string }) {
+  return <span aria-hidden className={cn("bg-primary size-1.5 shrink-0", className)} />;
+}
+
 function GlobalMenu({
   email,
   onSettings,
@@ -91,6 +99,8 @@ function GlobalMenu({
   onTrash,
   onJoin,
   onFeedback,
+  onWhatsNew,
+  unseenRelease,
 }: {
   email: string;
   onSettings: () => void;
@@ -98,6 +108,8 @@ function GlobalMenu({
   onTrash: () => void;
   onJoin: () => void;
   onFeedback: (() => void) | null;
+  onWhatsNew: () => void;
+  unseenRelease: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [confirmLogout, setConfirmLogout] = useState<LogoutScope | null>(null);
@@ -119,10 +131,11 @@ function GlobalMenu({
 
   return (
     <>
-      <div ref={containerRef}>
+      <div ref={containerRef} className="relative">
         <BracketButton onClick={toggle} className="px-1 py-1.5">
           ···
         </BracketButton>
+        {unseenRelease && <NewDot className="absolute top-1 right-0" />}
       </div>
 
       {confirmLogout && (
@@ -191,6 +204,19 @@ function GlobalMenu({
                   feedback
                 </button>
               )}
+              <button
+                onClick={() => pick(onWhatsNew)}
+                className="text-foreground hover:bg-muted flex w-full items-center gap-2.5 px-3 py-2 font-mono text-xs transition-colors"
+              >
+                <PixelIcon icon={Megaphone} />
+                what&apos;s new
+                {unseenRelease && (
+                  <>
+                    <NewDot />
+                    <span className="sr-only">(new)</span>
+                  </>
+                )}
+              </button>
               <div className="border-border my-1 border-t" />
               <button
                 onClick={() => pick(() => setConfirmLogout("here"))}
@@ -223,6 +249,8 @@ export function Header({
   onTrashOpen,
   onJoinOpen,
   onFeedbackOpen,
+  onWhatsNewOpen,
+  unseenRelease,
 }: HeaderProps) {
   const greeting = useMemo(() => getGreeting(), []);
   const date = useMemo(() => getDate(), []);
@@ -246,6 +274,8 @@ export function Header({
         onTrash={onTrashOpen}
         onJoin={onJoinOpen}
         onFeedback={onFeedbackOpen}
+        onWhatsNew={onWhatsNewOpen}
+        unseenRelease={unseenRelease}
       />
     </header>
   );

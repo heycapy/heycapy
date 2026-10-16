@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";
 import { createOtp } from "@/lib/auth/otp";
 import { verifyOtpAction } from "@/app/(auth)/login/actions";
+import { LATEST_RELEASE } from "@/lib/whats-new/constants";
 
 const createContact = vi.hoisted(() => vi.fn(async () => ({ data: null, error: null })));
 vi.mock("resend", () => ({
@@ -34,4 +35,14 @@ it("signing up never adds the email to the Resend contact list", async () => {
 
   expect(await db.query.users.findFirst({ where: eq(users.email, email) })).toBeDefined();
   expect(createContact).not.toHaveBeenCalled();
+});
+
+it("a new account starts on the latest release, so what's new has no dot for it", async () => {
+  const email = "new-release-reader@heycapy.test";
+  const code = await createOtp(email);
+
+  expect(await verifyOtpAction(email, code)).toEqual({ ok: true });
+
+  const user = await db.query.users.findFirst({ where: eq(users.email, email) });
+  expect(user?.lastSeenRelease).toBe(LATEST_RELEASE);
 });
