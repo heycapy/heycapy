@@ -40,7 +40,7 @@ describe("the member list", () => {
     const { owner, friend, bucketId } = await sharedBucket();
     await db
       .update(users)
-      .set({ displayName: "Sam", username: "sleepy_otter_juggling" })
+      .set({ displayName: "Sam", username: "sleepy_otter_juggling", avatar: "d".repeat(256) })
       .where(eq(users.id, friend));
 
     const asFriend = await listMembers(friend, bucketId);
@@ -50,7 +50,12 @@ describe("the member list", () => {
       [owner, "owner"],
       [friend, "member"],
     ]);
-    expect(asFriend?.[1]).toMatchObject({ displayName: "Sam", username: "sleepy_otter_juggling" });
+    expect(asFriend?.[1]).toMatchObject({
+      displayName: "Sam",
+      username: "sleepy_otter_juggling",
+      avatar: "d".repeat(256),
+    });
+    expect(asFriend?.[0].avatar).toBeNull();
     expect(JSON.stringify(asFriend)).not.toContain("@heycapy.test");
     expect(asOwner?.map((m) => [m.userId, m.isYou])).toEqual([
       [owner, true],

@@ -48,7 +48,7 @@ async function ownerWithInvite(page: Page, bucketName: string) {
   return { bucketId, code };
 }
 
-async function joinWithCode(page: Page, code: string, displayName?: string) {
+async function joinWithCode(page: Page, code: string, displayName?: string): Promise<string> {
   const email = uniqueEmail("e2e-share-friend");
   await login(page, email);
   if (displayName) {
@@ -60,6 +60,7 @@ async function joinWithCode(page: Page, code: string, displayName?: string) {
   await page.getByRole("button", { name: "join a bucket" }).click();
   await page.getByRole("textbox", { name: "invite code" }).fill(code.toLowerCase());
   await page.getByRole("button", { name: bracket("join") }).click();
+  return email;
 }
 
 test("an owner invites with a code, the friend joins from the menu and sees who is in", async ({
@@ -413,4 +414,62 @@ test("typing @ in the title picks a member in a shared bucket, and does nothing 
     "aria-pressed",
     "true"
   );
+});
+
+test("people see each other's avatars next to their names, a generated one if never drawn", async ({
+  page,
+  browser,
+}) => {
+  const { bucketId, code } = await ownerWithInvite(page, `avatars ${Date.now()}`);
+  const friend = await browser.newPage();
+  const friendEmail = await joinWithCode(friend, code, "Sam");
+  await friend.waitForURL(`/?bucket=${bucketId}`);
+  await friend.close();
+  // a full-width red row; the owner never drew, and a generated avatar keeps a margin so has none
+  const db = new Database(E2E_DATABASE_FILE);
+  db.prepare("update users set avatar = ? where email = ?").run(
+    ".".repeat(64) + "8".repeat(16) + ".".repeat(176),
+    friendEmail
+  );
+  db.close();
+  const sams = (scope: Locator) => scope.locator('svg:has(rect.fill-avatar-8[width="16"])');
+
+  await page.goto(`/?bucket=${bucketId}`);
+  await openMembers(page);
+  const rows = page.getByRole("listitem");
+  await expect(rows).toHaveCount(2);
+  await expect(rows.nth(0).locator('svg[width="32"] rect')).not.toHaveCount(0);
+  await expect(sams(rows.nth(1))).toHaveAttribute("width", "32");
+  await closeDialog(modal(page, /^bucket settings \[/));
+
+  await page.getByRole("button", { name: "[ add + ]", exact: true }).click();
+  const dialog = newItemDialog(page);
+  await expect(sams(dialog.getByRole("button", { name: "Sam", exact: true }))).toHaveAttribute(
+    "width",
+    "16"
+  );
+  await dialog.locator("textarea").fill("call @sa");
+  await expect(sams(page.getByRole("listbox", { name: "assign to" }))).toHaveCount(1);
+  await page.keyboard.press("Enter");
+  const title = `call ${Date.now()}`;
+  await dialog.locator("textarea").fill(title);
+  await dialog.getByRole("button", { name: "Sam", exact: true }).click();
+  await dialog.getByRole("button", { name: "[ add ]", exact: true }).click();
+  await expect(itemRow(page, title)).toContainText("→ Sam");
+  await expect(sams(itemRow(page, title))).toHaveAttribute("width", "16");
+
+  await itemRow(page, title).click();
+  await modal(page, /^edit item$/)
+    .getByRole("button", { name: "delete item" })
+    .click();
+  await expect(itemRow(page, title)).toHaveCount(0);
+  await page.getByRole("button", { name: "[ ··· ]", exact: true }).click();
+  await page.getByRole("button", { name: "trash", exact: true }).click();
+  const trashed = page
+    .locator("aside")
+    .getByRole("region", { name: "items" })
+    .locator("div.flex.items-center")
+    .filter({ has: page.getByText(title, { exact: true }) });
+  await expect(trashed).toContainText("deleted by you");
+  await expect(trashed.locator('svg[width="16"] rect')).not.toHaveCount(0);
 });

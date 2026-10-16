@@ -156,7 +156,11 @@ export async function buildAccountExport(userId: number, now = new Date()) {
 
   return {
     exportedAt: now.toISOString(),
-    account: { email: user?.email ?? null, createdAt: user?.createdAt ?? null },
+    account: {
+      email: user?.email ?? null,
+      createdAt: user?.createdAt ?? null,
+      avatar: user?.avatar ?? null,
+    },
     settings: settings && {
       timezone: settings.timezone,
       theme: settings.theme,

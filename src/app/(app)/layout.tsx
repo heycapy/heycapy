@@ -39,6 +39,8 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
     <div className="flex h-full flex-col">
       <AppShell
         email={user?.email ?? ""}
+        userId={session.userId}
+        avatar={user?.avatar ?? null}
         assistantName={settings?.personalityName ?? "capy"}
         feedbackEnabled={feedbackConfigured()}
         failures={failures}

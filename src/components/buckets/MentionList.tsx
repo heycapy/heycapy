@@ -1,5 +1,6 @@
 import { cn } from "@/lib/utils";
 import type { MentionOption } from "@/lib/items/mention";
+import { PersonAvatar } from "@/components/avatar/PersonAvatar";
 
 type MentionListProps = {
   options: MentionOption[];
@@ -27,11 +28,16 @@ export function MentionList({ options, highlighted, onPick, onHover }: MentionLi
           }}
           onMouseEnter={() => onHover(index)}
           className={cn(
-            "flex cursor-pointer items-baseline justify-between gap-3 px-3 py-1.5 font-mono text-xs",
+            "flex cursor-pointer items-center justify-between gap-3 px-3 py-1.5 font-mono text-xs",
             index === highlighted ? "bg-foreground text-background" : "text-foreground"
           )}
         >
-          <span className="truncate">{option.label}</span>
+          <span className="flex min-w-0 items-center gap-1.5">
+            {option.userId !== null && (
+              <PersonAvatar userId={option.userId} avatar={option.avatar} />
+            )}
+            <span className="truncate">{option.label}</span>
+          </span>
           {option.username && (
             <span
               className={cn(

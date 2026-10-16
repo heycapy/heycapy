@@ -17,6 +17,8 @@ export type TrashedItem = {
   bucketInTrash: boolean;
   // Only in a bucket with other people: who deleted it, "you" for the viewer
   deletedBy: string | null;
+  deletedById: number | null;
+  deletedByAvatar: string | null;
   // Only the bucket's owner can delete forever
   canDelete: boolean;
 };
@@ -56,6 +58,7 @@ export async function listTrash(
       deletedById: items.deletedBy,
       deleterName: users.displayName,
       deleterUsername: users.username,
+      deleterAvatar: users.avatar,
       memberCount: sql<number>`(select count(*) from bucket_members where bucket_id = ${items.bucketId})`,
     })
     .from(items)
@@ -84,27 +87,29 @@ export async function listTrash(
           ]
         : []
     ),
-    items: itemRows.flatMap((i) =>
-      i.deletedAt
-        ? [
-            {
-              id: i.id,
-              title: i.title,
-              deletedAt: i.deletedAt,
-              bucketId: i.bucketId,
-              bucketName: i.bucketName,
-              bucketInTrash: i.bucketDeletedAt !== null,
-              deletedBy:
-                i.memberCount > 1 && i.deletedById !== null
-                  ? i.deletedById === userId
-                    ? "you"
-                    : memberName({ displayName: i.deleterName, username: i.deleterUsername })
-                  : null,
-              canDelete: i.bucketOwnerId === userId,
-            },
-          ]
-        : []
-    ),
+    items: itemRows.flatMap((i) => {
+      if (!i.deletedAt) return [];
+      const deleterId = i.memberCount > 1 ? i.deletedById : null;
+      return [
+        {
+          id: i.id,
+          title: i.title,
+          deletedAt: i.deletedAt,
+          bucketId: i.bucketId,
+          bucketName: i.bucketName,
+          bucketInTrash: i.bucketDeletedAt !== null,
+          deletedBy:
+            deleterId === null
+              ? null
+              : deleterId === userId
+                ? "you"
+                : memberName({ displayName: i.deleterName, username: i.deleterUsername }),
+          deletedById: deleterId,
+          deletedByAvatar: deleterId === null ? null : i.deleterAvatar,
+          canDelete: i.bucketOwnerId === userId,
+        },
+      ];
+    }),
   };
 }
 

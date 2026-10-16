@@ -20,6 +20,7 @@ export type BucketMember = {
   userId: number;
   username: string | null;
   displayName: string | null;
+  avatar: string | null;
   role: "owner" | "member";
   joinedAt: Date;
   isYou: boolean;
@@ -47,6 +48,7 @@ export async function listMembers(
       userId: users.id,
       username: users.username,
       displayName: users.displayName,
+      avatar: users.avatar,
       role: bucketMembers.role,
       joinedAt: bucketMembers.createdAt,
       channels: bucketMembers.channels,

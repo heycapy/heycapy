@@ -25,6 +25,28 @@
   --font-pixel: var(--font-pixel), monospace;
 }
 
+/* Avatar colours are the same on every theme so everyone sees the drawing as it was made */
+@theme {
+  --color-avatar-0: #1a1a1a;
+  --color-avatar-1: #f5f5f5;
+  --color-avatar-2: #5c5c5c;
+  --color-avatar-3: #a8a8a8;
+  --color-avatar-4: #f6d2b4;
+  --color-avatar-5: #d9a066;
+  --color-avatar-6: #8d5524;
+  --color-avatar-7: #5a3820;
+  --color-avatar-8: #d93a3a;
+  --color-avatar-9: #f08a24;
+  --color-avatar-a: #f5d03b;
+  --color-avatar-b: #4caf50;
+  --color-avatar-c: #2bb3a6;
+  --color-avatar-d: #3a6fd9;
+  --color-avatar-e: #8a4fd1;
+  --color-avatar-f: #f27cb0;
+  --color-avatar-light: #ffffff;
+  --color-avatar-dark: #0a0a0a;
+}
+
 :root,
 [data-theme="capy"] {
   --radius: 2px;

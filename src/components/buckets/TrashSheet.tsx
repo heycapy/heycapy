@@ -13,6 +13,7 @@ import {
 } from "@/app/(app)/actions";
 import { TRASH_RETENTION_DAYS } from "@/constants";
 import type { TrashedBucket, TrashedItem } from "@/lib/items/trash";
+import { PersonAvatar } from "@/components/avatar/PersonAvatar";
 
 type TrashSheetProps = {
   open: boolean;
@@ -40,7 +41,7 @@ function TrashRow({
   onCancel,
 }: {
   title: ReactNode;
-  meta: string;
+  meta: ReactNode;
   confirming: boolean;
   pending: boolean;
   canRestore?: boolean;
@@ -252,9 +253,25 @@ export function TrashSheet({ open, onClose }: TrashSheetProps) {
                           key={item.id}
                           title={<p className="truncate font-mono text-xs">{item.title}</p>}
                           meta={
-                            item.bucketInTrash
-                              ? `${item.bucketName} · restore its bucket first`
-                              : `${item.bucketName} · deleted ${item.deletedBy ? `by ${item.deletedBy} ` : ""}${deletedOn(item.deletedAt)}`
+                            item.bucketInTrash ? (
+                              `${item.bucketName} · restore its bucket first`
+                            ) : (
+                              <>
+                                {item.bucketName} · deleted{" "}
+                                {item.deletedBy && item.deletedById !== null && (
+                                  <>
+                                    by{" "}
+                                    <PersonAvatar
+                                      userId={item.deletedById}
+                                      avatar={item.deletedByAvatar}
+                                      className="mr-1 inline-block align-text-bottom"
+                                    />
+                                    {item.deletedBy}{" "}
+                                  </>
+                                )}
+                                {deletedOn(item.deletedAt)}
+                              </>
+                            )
                           }
                           confirming={confirming === `item:${item.id}`}
                           pending={pending}

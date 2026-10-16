@@ -65,10 +65,14 @@ export type ActionEvent = {
   source: Action["source"];
   remindAt: Date | null;
   by: string;
+  byId: number;
+  byAvatar: string | null;
 };
 
 // Someone else reminded about the item, as the viewer sees them
 export type OtherRecipient = {
+  userId: number;
+  avatar: string | null;
   name: string;
   timezone: string;
   next: Date | null;
@@ -280,7 +284,12 @@ export async function getItemReminderInfo(
     ? []
     : await selectReminderRows(eq(items.id, itemId));
   const people = await db
-    .select({ id: users.id, displayName: users.displayName, username: users.username })
+    .select({
+      id: users.id,
+      displayName: users.displayName,
+      username: users.username,
+      avatar: users.avatar,
+    })
     .from(users)
     .where(
       inArray(users.id, [
@@ -293,6 +302,7 @@ export async function getItemReminderInfo(
     const person = people.find((p) => p.id === id);
     return person ? memberName(person) : "someone";
   };
+  const avatarOf = (id: number) => people.find((p) => p.id === id)?.avatar ?? null;
   const held = (id: number) => {
     const row = recipients.find((r) => r.reminder.userId === id);
     return row !== undefined && heldByQuietHours(toReminderInputs(row));
@@ -300,6 +310,8 @@ export async function getItemReminderInfo(
   const others = recipients
     .filter((r) => r.reminder.userId !== userId)
     .map((r) => ({
+      userId: r.reminder.userId,
+      avatar: avatarOf(r.reminder.userId),
       name: nameOf(r.reminder.userId),
       timezone: r.timezone ?? UNSET_TIMEZONE,
       next: r.reminder.nextReminderAt,
@@ -317,6 +329,8 @@ export async function getItemReminderInfo(
       source: a.source,
       remindAt: a.remindAt,
       by: nameOf(a.userId),
+      byId: a.userId,
+      byAvatar: avatarOf(a.userId),
     })),
   ]
     .sort((a, b) => b.at.getTime() - a.at.getTime())

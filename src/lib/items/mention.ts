@@ -4,10 +4,16 @@ export type MentionMember = {
   userId: number;
   username: string | null;
   displayName: string | null;
+  avatar: string | null;
   isYou: boolean;
 };
 
-export type MentionOption = { userId: number | null; label: string; username: string | null };
+export type MentionOption = {
+  userId: number | null;
+  avatar: string | null;
+  label: string;
+  username: string | null;
+};
 
 // An @ that starts a word, up to the cursor; an @ inside a word is an address, not a mention
 export function findMention(text: string, caret: number): Mention | null {
@@ -29,10 +35,13 @@ export function mentionOptions(members: MentionMember[], query: string): Mention
     })
     .map((member) => ({
       userId: member.userId,
+      avatar: member.avatar,
       label: `${member.displayName ?? member.username ?? "someone"}${member.isYou ? " (you)" : ""}`,
       username: member.displayName ? member.username : null,
     }));
-  const anyone = ANYONE.startsWith(q) ? [{ userId: null, label: ANYONE, username: null }] : [];
+  const anyone = ANYONE.startsWith(q)
+    ? [{ userId: null, avatar: null, label: ANYONE, username: null }]
+    : [];
   return [...people, ...anyone];
 }
 

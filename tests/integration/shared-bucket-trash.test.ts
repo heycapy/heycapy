@@ -63,14 +63,25 @@ async function itemOf(itemId: number) {
   return row;
 }
 
+const SAM_AVATAR = "d".repeat(256);
+
 describe("the trash of a shared bucket", () => {
   it("shows an item a member deleted to everyone in the bucket, with who deleted it", async () => {
     const { owner, member, itemId } = await sharedBucket();
+    await db.update(users).set({ avatar: SAM_AVATAR }).where(eq(users.id, member));
     session.userId = member;
     expect(await deleteItemAction(itemId)).toEqual({ ok: true });
 
     const forOwner = (await trashFor(owner)).items;
-    expect(forOwner).toMatchObject([{ id: itemId, deletedBy: "Sam", canDelete: true }]);
+    expect(forOwner).toMatchObject([
+      {
+        id: itemId,
+        deletedBy: "Sam",
+        deletedById: member,
+        deletedByAvatar: SAM_AVATAR,
+        canDelete: true,
+      },
+    ]);
     const forMember = (await trashFor(member)).items;
     expect(forMember).toMatchObject([{ id: itemId, deletedBy: "you", canDelete: false }]);
   });
@@ -90,7 +101,9 @@ describe("the trash of a shared bucket", () => {
     session.userId = owner;
     await deleteItemAction(itemId);
 
-    expect((await trashFor(owner)).items).toMatchObject([{ id: itemId, deletedBy: null }]);
+    expect((await trashFor(owner)).items).toMatchObject([
+      { id: itemId, deletedBy: null, deletedById: null, deletedByAvatar: null },
+    ]);
   });
 
   it("keeps a deleted bucket and its trashed items out of its members' trash", async () => {

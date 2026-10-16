@@ -2,6 +2,7 @@ import { OptionButton } from "@/components/ui/OptionButton";
 import { memberName } from "@/lib/buckets/member-name";
 import type { BucketMember } from "@/lib/buckets/members";
 import { placesOf } from "@/lib/timezones/gap";
+import { PersonAvatar } from "@/components/avatar/PersonAvatar";
 
 export type AssigneeChoice = {
   bucketId: number;
@@ -40,8 +41,11 @@ export function ItemAssigneeField({
             disabled={disabled}
             className="text-left"
           >
-            {memberName(member)}
-            {member.isYou ? " (you)" : ""}
+            <span className="flex items-center gap-1.5">
+              <PersonAvatar userId={member.userId} avatar={member.avatar} />
+              {memberName(member)}
+              {member.isYou ? " (you)" : ""}
+            </span>
             {(showPlaces || leftOut(member)) && (
               <span className="block text-[11px] opacity-70">
                 {[

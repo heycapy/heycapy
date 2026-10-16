@@ -1,6 +1,6 @@
 import { useState, type RefObject } from "react";
 import { Reorder } from "framer-motion";
-import { ItemRow } from "./ItemRow";
+import { ItemRow, type ItemAssignee } from "./ItemRow";
 import { SwipeableRow } from "./SwipeableRow";
 import { completionToggle } from "./completion";
 import { DraggableItem } from "./DraggableItem";
@@ -25,7 +25,6 @@ type ItemListProps = {
   fields: FieldDef[];
   editingItemId: number | null;
   reminderBadges: Record<number, ReminderBadge>;
-  assigneeNames: Record<number, string>;
   members: BucketMember[];
   onReorder: (items: Item[]) => void;
   onEdit: (item: Item) => void;
@@ -44,7 +43,6 @@ export function ItemList({
   fields,
   editingItemId,
   reminderBadges,
-  assigneeNames,
   members,
   onReorder,
   onEdit,
@@ -78,6 +76,17 @@ export function ItemList({
     );
   };
 
+  const assigneeOf = (item: Item): ItemAssignee | undefined => {
+    const member = members.find((m) => m.userId === item.assigneeId);
+    return (
+      member && {
+        userId: member.userId,
+        name: member.isYou ? "you" : memberName(member),
+        avatar: member.avatar,
+      }
+    );
+  };
+
   const rowProps = (item: Item) => ({
     item,
     statuses,
@@ -87,7 +96,7 @@ export function ItemList({
     onEditStart: readonly ? undefined : () => onEdit(item),
     onStatusChange: readonly ? undefined : (s: string) => onStatusChange(item, s),
     reminderBadge: reminderBadges[item.id],
-    assignee: item.assigneeId ? assigneeNames[item.assigneeId] : undefined,
+    assignee: assigneeOf(item),
     otherClock: clockHint(item),
     onMenu: (at: MenuAt) => setMenu({ item, at }),
   });

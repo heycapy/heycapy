@@ -15,6 +15,9 @@ import { relativeTime } from "@/lib/items/relative-day";
 import { itemDeadline } from "@/lib/time";
 import { parseRecurring } from "@/lib/items/occurrence";
 import { repeatLabel } from "@/lib/items/repeat-label";
+import { PersonAvatar } from "@/components/avatar/PersonAvatar";
+
+export type ItemAssignee = { userId: number; name: string; avatar: string | null };
 
 type ItemRow = ListItem;
 
@@ -28,7 +31,7 @@ type ItemRowProps = {
   onEditStart?: () => void;
   onStatusChange?: (status: string) => void;
   reminderBadge?: ReminderBadge;
-  assignee?: string;
+  assignee?: ItemAssignee;
   // The time on another clock that matters for this item, e.g. "9am for Sam"
   otherClock?: string;
   bucket?: { name: string; color: string };
@@ -224,7 +227,17 @@ export function ItemRow({
         )}
         <span className="mt-0.5 flex flex-wrap items-center gap-x-1 gap-y-0.5 font-mono text-xs *:whitespace-nowrap">
           <span className="text-muted-foreground/60">#{item.id}</span>
-          {assignee && <span className="text-muted-foreground">→ {assignee}</span>}
+          {assignee && (
+            <span className="text-muted-foreground">
+              →{" "}
+              <PersonAvatar
+                userId={assignee.userId}
+                avatar={assignee.avatar}
+                className="mr-1 inline-block align-text-bottom"
+              />
+              {assignee.name}
+            </span>
+          )}
           {bucket && (
             <span className="text-muted-foreground flex items-center gap-1">
               ·
