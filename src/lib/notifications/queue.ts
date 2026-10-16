@@ -12,7 +12,7 @@ import {
   userSettings,
 } from "@/lib/db/schema";
 import { NOT_RECIPIENT_ERROR } from "./constants";
-import { sendEmail } from "./email";
+import { sendNotificationEmail } from "./email";
 import { buildNotificationEmail } from "@/lib/auth/notificationEmail";
 import { sendNtfy } from "./ntfy";
 import { sendWebPush } from "./web-push";
@@ -258,7 +258,7 @@ export async function processPending(): Promise<void> {
                     ]
                   : []
               );
-              await sendEmail(
+              await sendNotificationEmail(
                 {
                   to: userRow.notificationEmailTo ?? userRow.email,
                   subject: job.title,

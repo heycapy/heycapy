@@ -1,6 +1,7 @@
 import { isIP } from "node:net";
 import { APP_EMAIL_FROM } from "@/constants";
 import { publicAddress } from "./public-address";
+import { NO_NOTIFICATION_SMTP_ERROR } from "./constants";
 
 export type EmailPayload = {
   to: string;
@@ -73,7 +74,22 @@ async function sendViaSmtp(
   });
 }
 
-export async function sendEmail(
+// Mail from heycapy itself, like sign-in codes: the server's smtp, else resend
+export async function sendEmail(payload: EmailPayload): Promise<void> {
+  const smtpHost = process.env.SMTP_HOST;
+  const resendKey = process.env.RESEND_API_KEY;
+  if (smtpHost) {
+    await sendViaSmtp(payload, smtpHost);
+    return;
+  }
+  if (resendKey) {
+    await sendViaResend(payload, resendKey);
+    return;
+  }
+}
+
+// Never resend: on the hosted app that account is only for sign-in codes. A self-hosted server's smtp is its owner's own
+export async function sendNotificationEmail(
   payload: EmailPayload,
   userConfig?: UserEmailConfig
 ): Promise<void> {
@@ -92,13 +108,6 @@ export async function sendEmail(
     return;
   }
   const smtpHost = process.env.SMTP_HOST;
-  const resendKey = process.env.RESEND_API_KEY;
-  if (smtpHost) {
-    await sendViaSmtp(payload, smtpHost);
-    return;
-  }
-  if (resendKey) {
-    await sendViaResend(payload, resendKey);
-    return;
-  }
+  if (!smtpHost) throw new Error(NO_NOTIFICATION_SMTP_ERROR);
+  await sendViaSmtp(payload, smtpHost);
 }

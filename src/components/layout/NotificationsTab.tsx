@@ -86,6 +86,9 @@ export function NotificationsTab({
       <QuietHoursSettings value={quietHours} onChange={setQuietHours} pending={pending} />
       <div className={BOX}>
         <span className={SECTION}>email</span>
+        <p className="text-muted-foreground font-mono text-[11px] leading-tight">
+          reminder emails go out through your own email account. gmail works with an app password
+        </p>
 
         <div className="flex items-center justify-between">
           <label className={LABEL}>enabled</label>

@@ -1,6 +1,7 @@
 import { readdirSync } from "node:fs";
 import { chromium, request, type FullConfig } from "@playwright/test";
 import { login } from "./helpers/login";
+import { giveOwnSmtp } from "./helpers/email";
 import { APP_SPECS_DIR, authState, specUserEmail } from "./helpers/auth";
 
 export default async function globalSetup(config: FullConfig) {
@@ -24,6 +25,7 @@ export default async function globalSetup(config: FullConfig) {
     const context = await browser.newContext({ baseURL });
     const page = await context.newPage();
     await login(page, specUserEmail(spec));
+    giveOwnSmtp(specUserEmail(spec));
     await context.storageState({ path: authState(spec) });
     await context.close();
   }

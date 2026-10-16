@@ -3,6 +3,7 @@ import Database from "better-sqlite3";
 import { E2E_DATABASE_FILE } from "../helpers/env";
 import { addItemButton, createAndSelectBucket, itemRow, uniqueName } from "../helpers/buckets";
 import { login, uniqueEmail } from "../helpers/login";
+import { giveOwnSmtp } from "../helpers/email";
 import {
   closeDialog,
   field,
@@ -16,6 +17,7 @@ test.use({ timezoneId: "Asia/Kolkata" });
 
 // A bucket the India owner shares with a member in London
 function seedSharedBucket(ownerEmail: string, memberEmail: string, title?: string): number {
+  giveOwnSmtp(ownerEmail);
   const db = new Database(E2E_DATABASE_FILE);
   const id = (email: string) =>
     (db.prepare("select id from users where email = ?").get(email) as { id: number }).id;

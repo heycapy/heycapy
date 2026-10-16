@@ -5,7 +5,7 @@ import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { notificationQueue, userSettings } from "@/lib/db/schema";
 import { enqueue, processPending } from "@/lib/notifications/queue";
-import { sendEmail } from "@/lib/notifications/email";
+import { sendNotificationEmail } from "@/lib/notifications/email";
 import { publicAddress } from "@/lib/notifications/public-address";
 import {
   sendTestNotificationAction,
@@ -128,7 +128,9 @@ it("the ntfy send test refuses it too", async () => {
 });
 
 it("smtp on our own network is refused before connecting, on a send and on the test", async () => {
-  await expect(sendEmail(email, smtp("127.0.0.1"))).rejects.toThrow("points to a private network");
+  await expect(sendNotificationEmail(email, smtp("127.0.0.1"))).rejects.toThrow(
+    "points to a private network"
+  );
   expect(
     await testSmtpAction({
       smtpHost: "169.254.169.254",
@@ -143,13 +145,13 @@ it("smtp on our own network is refused before connecting, on a send and on the t
 });
 
 it("smtp connects to the address that was checked, with the certificate checked for the name", async () => {
-  await sendEmail(email, smtp(PUBLIC_MAIL));
+  await sendNotificationEmail(email, smtp(PUBLIC_MAIL));
   expect(transports).toEqual([
     expect.objectContaining({ host: "93.184.215.14", tls: { servername: PUBLIC_MAIL } }),
   ]);
 
   vi.stubEnv("HOSTED", "false");
-  await sendEmail(email, smtp("localhost"));
+  await sendNotificationEmail(email, smtp("localhost"));
   expect(transports[1]).toMatchObject({ host: "localhost" });
   expect(transports[1]).not.toHaveProperty("tls");
 });
