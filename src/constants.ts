@@ -21,13 +21,13 @@ export const TODAY_FETCH_AHEAD_DAYS = 1;
 export const SEARCH_RESULTS_MAX = 50;
 
 // Dates typed into an item's title
-// Short day names that are also everyday words ("sat exam", "sun cream"); typed alone they're left as text
+// Short day names that are also everyday words ("sat exam", "sun cream"), typed alone they're left as text
 export const TITLE_DATE_AMBIGUOUS_WORDS = ["sat", "sun", "wed", "now"];
 // Removed with the date so "pay rent by friday" becomes "pay rent"
 export const TITLE_DATE_LEAD_WORDS = ["by", "on", "at", "due", "before"];
-// A time of day given in words; the date library's time for it is kept
+// A time of day given in words, the date library's time for it is kept
 export const TITLE_DATE_TIME_WORDS = /\b(morning|afternoon|evening|tonight|night)\b/i;
-// The library's "morning" is 6am; ours matches the 9am a picked date starts at
+// The library's "morning" is 6am, ours matches the 9am a picked date starts at
 export const TITLE_DATE_MORNING = /\bmorning\b/i;
 export const TITLE_DATE_MORNING_HOUR = 9;
 
@@ -37,7 +37,7 @@ export const OG_COLORS = {
   muted: "#bda675",
 } as const;
 
-// Emails; the capy theme, as hex because mail clients ignore CSS variables
+// Emails, the capy theme, as hex because mail clients ignore CSS variables
 export const EMAIL_COLORS = {
   page: "#fdf6e3",
   card: "#fffcf4",
@@ -53,7 +53,7 @@ export const TELEGRAM_API_BASE = "https://api.telegram.org";
 export const TELEGRAM_LINK_BASE = "https://t.me";
 export const ON_THIS_DAY_API_BASE = "https://en.wikipedia.org/api/rest_v1/feed/onthisday/selected";
 export const ON_THIS_DAY_TIMEOUT_MS = 3000;
-// Per AI call; the SDKs give up at the same time, so a rate limit shows as itself, not as a timeout
+// Per AI call, the SDKs give up at the same time, so a rate limit shows as itself, not as a timeout
 export const AI_REQUEST_TIMEOUT_MS = 30_000;
 export const OLLAMA_REQUEST_TIMEOUT_MS = 120_000;
 
@@ -71,7 +71,7 @@ export const AI_COMPACT_THRESHOLD_MIN = 10;
 export const AI_COMPACT_THRESHOLD_MAX = 500;
 // only on a hosted server for answers on our ai and placeholder amounts until real prices exist
 export const CREDITS_FREE_GRANT = 50;
-// what a pack buys; the payment provider's product id for each lives in the environment since test and live differ
+// what a pack buys, the payment provider's product id for each lives in the environment since test and live differ
 export const CREDIT_PACKS = {
   pack_5: { usd: 5, credits: 600, productEnv: "DODO_PRODUCT_ID_PACK_5" },
   pack_10: { usd: 10, credits: 1400, productEnv: "DODO_PRODUCT_ID_PACK_10" },
@@ -129,7 +129,7 @@ export const VOICE_NO_SPEECH_ERROR = "Nothing was heard. Try again a bit closer 
 export const OLLAMA_DEFAULT_URL = "https://ollama.yourdomain.com";
 export const NTFY_DEFAULT_URL = "https://ntfy.sh";
 
-// Built-in item statuses; "on hold" pauses reminders until changed
+// Built-in item statuses, "on hold" pauses reminders until changed
 export const ITEM_STATUS = {
   active: "active",
   completed: "completed",
@@ -152,7 +152,7 @@ export function isClosedStatus(status: string): boolean {
 }
 
 export type BetaFeature = "sharing";
-// Features shown with a [beta] tag; take one out to drop its tags everywhere
+// Features shown with a [beta] tag, take one out to drop its tags everywhere
 export const BETA_FEATURES: readonly BetaFeature[] = ["sharing"];
 
 // Sent by /api/events when a connection opens, carrying the server's NEXT_DEPLOYMENT_ID

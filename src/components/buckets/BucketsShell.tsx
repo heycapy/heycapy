@@ -63,7 +63,7 @@ export function BucketsShell({ buckets: rawBuckets, focusBucketId = null }: Buck
   const clearNewBucket = useUIStore((s) => s.clearNewBucket);
   const todayOpen = useUIStore((s) => s.todayOpen);
   const openToday = useUIStore((s) => s.openToday);
-  // The open view is remembered per session; wait for it rather than flash the default
+  // The open view is remembered per session, wait for it rather than flash the default
   const hydrated = useSyncExternalStore(
     (onChange) => useUIStore.persist.onFinishHydration(onChange),
     () => useUIStore.persist.hasHydrated(),

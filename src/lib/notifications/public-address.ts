@@ -19,7 +19,7 @@ for (const [net, prefix] of [
 ] as const) {
   PRIVATE.addSubnet(net, prefix, "ipv4");
 }
-// fc00::/7 covers fly's private network (fdaa::/16); 64:ff9b:: is nat64, which can reach private ipv4
+// fc00::/7 covers fly's private network (fdaa::/16), 64:ff9b:: is nat64, which can reach private ipv4
 for (const [net, prefix] of [
   ["::", 128],
   ["::1", 128],
@@ -32,7 +32,7 @@ for (const [net, prefix] of [
   PRIVATE.addSubnet(net, prefix, "ipv6");
 }
 
-// on hosted servers a user-typed host must not reach our own network; returns the checked
+// on hosted servers a user-typed host must not reach our own network, returns the checked
 // address to connect to, so a name can't resolve differently between the check and the connect
 export async function publicAddress(host: string): Promise<LookupAddress | null> {
   if (!isHosted()) return null;

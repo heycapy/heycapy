@@ -48,7 +48,7 @@ export function QuietHoursSettings({ value, onChange, pending }: QuietHoursSetti
       )}
       <p className={HINT}>
         {enabled
-          ? `nothing is sent ${formatSlot(from)}–${formatSlot(to)}, on any channel; reminders due then arrive at ${formatSlot(to)}`
+          ? `nothing is sent ${formatSlot(from)}–${formatSlot(to)}, on any channel, reminders due then arrive at ${formatSlot(to)}`
           : "reminders and alerts can arrive at any time"}
       </p>
     </div>

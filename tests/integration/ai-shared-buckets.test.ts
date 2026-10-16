@@ -196,7 +196,7 @@ describe("capy in a shared bucket", () => {
 const INDIA = "Asia/Kolkata";
 const LONDON = "Europe/London";
 
-// An India owner and Sam in London; in March London is on UTC, India 5:30 ahead
+// An India owner and Sam in London, in March London is on UTC, India 5:30 ahead
 async function acrossClocks() {
   const owner = await seedUser(INDIA);
   const sam = await seedUser(LONDON);

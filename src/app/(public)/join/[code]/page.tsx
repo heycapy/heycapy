@@ -10,7 +10,7 @@ export const metadata: Metadata = {
   referrer: "no-referrer",
 };
 
-// Opening the link changes nothing, so a link preview can't use up the code; joining is the button
+// Opening the link changes nothing, so a link preview can't use up the code, joining is the button
 export default async function JoinPage({ params }: { params: Promise<{ code: string }> }) {
   const { code } = await params;
   const session = await getSession();

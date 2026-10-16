@@ -159,7 +159,7 @@ export function BucketRulesPanel({
       <div className="flex flex-col gap-1.5">
         <label className={LABEL}>reminder buttons</label>
         <span className={HINT}>
-          done is always there; pick when to be reminded again. push (android, desktop) shows done +
+          done is always there, pick when to be reminded again. push (android, desktop) shows done +
           the first one, ntfy done + two, email and telegram all of them
         </span>
         <OptionGroup
@@ -172,7 +172,7 @@ export function BucketRulesPanel({
       </div>
       <ReminderPicker
         reminders={defaultReminders}
-        hint="new items start with these; items whose reminders you've changed keep their own"
+        hint="new items start with these, items whose reminders you've changed keep their own"
         allDay={false}
         disabled={disabled}
         onChange={onDefaultRemindersChange}
@@ -180,7 +180,7 @@ export function BucketRulesPanel({
       <div className="flex flex-col gap-1.5">
         <label className={LABEL}>remind at</label>
         <span className={HINT}>
-          the time of day for items without a time; this bucket also never reminds earlier than it
+          the time of day for items without a time, this bucket also never reminds earlier than it
           {clocksDiffer && " · each person gets this on their own clock"}
         </span>
         <TimePicker value={notifyAt} onChange={onNotifyAtChange} disabled={disabled} />

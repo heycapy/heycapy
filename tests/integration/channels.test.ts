@@ -54,7 +54,7 @@ async function seedTemplate(medium: string[]): Promise<number> {
   return template.id;
 }
 
-// The bucket's own rules keep no channels; they go to the owner's membership
+// The bucket's own rules keep no channels, they go to the owner's membership
 async function ownerMedium(bucketId: number): Promise<unknown> {
   const bucket = await db.query.buckets.findFirst({ where: eq(buckets.id, bucketId) });
   expect(JSON.parse(bucket?.notificationsRules ?? "{}")).not.toHaveProperty("medium");

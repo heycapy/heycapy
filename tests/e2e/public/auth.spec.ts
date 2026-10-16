@@ -19,7 +19,7 @@ test.describe("login page", () => {
   });
 
   test("only the active step can take focus", async ({ page }) => {
-    // The hidden step is `inert`; Playwright's role queries ignore inert, so assert focus instead
+    // The hidden step is `inert`, Playwright's role queries ignore inert, so assert focus instead
     const signIn = page.getByRole("button", { name: "Sign in", exact: true });
     const sendCodeButton = page.getByRole("button", { name: "Send code", exact: true });
 
@@ -80,7 +80,7 @@ test.describe("login page", () => {
   }) => {
     await sendCode(page, uniqueEmail("e2e-slow-app"));
     const code = await readDevCode(page);
-    // the live server takes a second or more to send the app page; hold it back so the wait shows
+    // the live server takes a second or more to send the app page, hold it back so the wait shows
     let releaseApp = () => {};
     const appHeld = new Promise<void>((resolve) => (releaseApp = resolve));
     await page.route("**/*", async (route) => {

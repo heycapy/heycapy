@@ -68,7 +68,7 @@ export function TimeField({ value, onChange, disabled, allowAllDay = false }: Ti
     }
     const [h24, m] = parsed.split(":").map(Number) as [number, number];
     const typedHour = parseInt(typed, 10);
-    // "4:30" with no am/pm keeps whichever is selected; 13–23 and 0 are read as 24-hour times
+    // "4:30" with no am/pm keeps whichever is selected, 13–23 and 0 are read as 24-hour times
     const keepMeridiem = !/[ap]/i.test(typed) && typedHour >= 1 && typedHour <= 12;
     onChange({
       hour: String(h24 % 12 === 0 ? 12 : h24 % 12),

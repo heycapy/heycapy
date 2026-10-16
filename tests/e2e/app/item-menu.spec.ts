@@ -39,7 +39,7 @@ test.beforeEach(async ({ page }) => {
   await createAndSelectBucket(page, uniqueName("Item menu"));
 });
 
-test("quick dates move an item, and a picked date too; back returns from the calendar", async ({
+test("quick dates move an item, and a picked date too, back returns from the calendar", async ({
   page,
 }) => {
   const title = uniqueName("call mom");

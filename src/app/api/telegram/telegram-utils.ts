@@ -261,7 +261,7 @@ export async function createItem(
   deadline: Date | null,
   recurring: string | null = null
 ): Promise<boolean> {
-  // The bucket was picked a few messages ago; the person may have left it since
+  // The bucket was picked a few messages ago, the person may have left it since
   if (!(await getUserBuckets(userId)).some((b) => b.id === bucketId)) return false;
   const timezone = await userTimezone(userId);
   const [maxRow] = await db

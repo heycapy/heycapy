@@ -425,7 +425,7 @@ test("people see each other's avatars next to their names, a generated one if ne
   const friendEmail = await joinWithCode(friend, code, "Sam");
   await friend.waitForURL(`/?bucket=${bucketId}`);
   await friend.close();
-  // a full-width red row; the owner never drew, and a generated avatar keeps a margin so has none
+  // a full-width red row, the owner never drew, and a generated avatar keeps a margin so has none
   const db = new Database(E2E_DATABASE_FILE);
   db.prepare("update users set avatar = ? where email = ?").run(
     ".".repeat(64) + "8".repeat(16) + ".".repeat(176),

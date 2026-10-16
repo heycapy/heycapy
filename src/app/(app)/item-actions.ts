@@ -159,7 +159,7 @@ export async function addItemAction(
   return { ok: true };
 }
 
-// The editor doesn't know the series anchor; keep it while the frequency stays the same
+// The editor doesn't know the series anchor, keep it while the frequency stays the same
 function keepAnchor(config: RecurringConfig, saved: string | null): RecurringConfig {
   if (config.anchorDay) return config;
   const previous = parseRecurring(saved);

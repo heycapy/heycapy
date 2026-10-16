@@ -11,7 +11,7 @@ export type TierModel<P extends AIProviderName = AIProviderName> = {
 type Tier<P extends AIProviderName> = { primary: TierModel<P>; fallback?: TierModel<P> };
 export type Tiers = { quick: Tier<AIProviderName>; voice: Tier<TranscriptionProvider> };
 
-// millionths of a dollar so sums stay whole numbers; calls that reported no tokens count as free
+// millionths of a dollar so sums stay whole numbers, calls that reported no tokens count as free
 export function costMicros(price: Price, calls: TokenUsage[]): number {
   let total = 0;
   for (const c of calls) {
@@ -27,7 +27,7 @@ export function costMicros(price: Price, calls: TokenUsage[]): number {
 //TODO: needs to keep this updated
 const GEMINI_FLASH_LITE: Price = { input: 0.3, cachedInput: 0.03, output: 2.5 };
 
-// what hosted servers answer with; a model changes here together with its price
+// what hosted servers answer with, a model changes here together with its price
 export const AI_TIERS: Tiers = {
   quick: {
     primary: { provider: "gemini", model: "gemini-3.5-flash-lite", price: GEMINI_FLASH_LITE },

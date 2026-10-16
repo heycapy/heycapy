@@ -5,7 +5,7 @@ import { overdueFrom } from "@/lib/reminders/zoned";
 type ReminderState = { deadline: Date | null; notifiedAt: Date | null };
 type OffsetState = ReminderState & { reminderOffsets: number[] | null };
 
-// A date that's already past gets no "due" reminder; its overdue alert still fires
+// A date that's already past gets no "due" reminder, its overdue alert still fires
 export function initialReminderState(
   deadline: Date | null | undefined,
   deadlineTimezone: string,

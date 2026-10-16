@@ -21,7 +21,7 @@ function weekdayIndex(name: unknown): number {
   );
 }
 
-// Arguments left out keep the saved repeat's value; a new frequency drops its weekdays and day of month
+// Arguments left out keep the saved repeat's value, a new frequency drops its weekdays and day of month
 export function repeatFromArgs(
   args: Record<string, unknown>,
   saved: RecurringConfig | null

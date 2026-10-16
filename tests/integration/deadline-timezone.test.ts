@@ -136,7 +136,7 @@ describe("a repeating item keeps its series on the clock it was set on", () => {
     session.userId = member;
     await completeItemAction(id);
 
-    // Still 09:00 in India; on London's clock it moved from 04:30 to 03:30
+    // Still 09:00 in India, on London's clock it moved from 04:30 to 03:30
     expect(await latest(bucketId)).toMatchObject({
       deadline: new Date("2026-10-25T03:30:00Z"),
       deadlineTimezone: INDIA,

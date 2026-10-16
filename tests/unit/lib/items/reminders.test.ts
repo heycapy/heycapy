@@ -106,7 +106,7 @@ describe("reminderResetForDeadline with several reminders", () => {
   const reminded = { ...item, reminderOffsets: [24 * 60, 60, 0] };
 
   it("holds an already-reminded item until the next reminder still ahead", () => {
-    // 1 day before has passed; 1 hour before (13:00) is still ahead
+    // 1 day before has passed, 1 hour before (13:00) is still ahead
     expect(reminderResetForDeadline(reminded, inTwoHours, ctx(0), now)).toMatchObject({
       notifiedAt: null,
       remindNotBefore: new Date("2026-03-10T13:00:00Z"),

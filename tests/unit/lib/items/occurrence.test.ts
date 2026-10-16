@@ -77,7 +77,7 @@ describe("nextOccurrenceDate at the edges", () => {
   });
 
   it("keeps the local clock time across a daylight-saving change", () => {
-    // 9:00 EST on Mar 7; clocks spring forward on Mar 8, so 9:00 EDT is 13:00 UTC
+    // 9:00 EST on Mar 7, clocks spring forward on Mar 8, so 9:00 EDT is 13:00 UTC
     const next = nextOccurrenceDate(
       new Date("2026-03-07T14:00:00Z"),
       daily,

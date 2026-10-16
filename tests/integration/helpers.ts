@@ -127,7 +127,7 @@ export async function seedReminder(opts: {
   return { userId, bucketId, itemId };
 }
 
-// One person's reminder schedule for the item; without a person, the only one there is
+// One person's reminder schedule for the item, without a person, the only one there is
 export async function reminderOf(itemId: number, userId?: number) {
   const rows = await db
     .select()

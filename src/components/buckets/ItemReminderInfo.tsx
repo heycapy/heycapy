@@ -160,7 +160,7 @@ export function ItemReminderInfo({ itemId }: { itemId: number }) {
                 <li key={i}>
                   <p>
                     {formatShort(event.at)} ·{" "}
-                    {/* in a bucket of one every line is "you"; the picture is for telling people apart */}
+                    {/* in a bucket of one every line is "you", the picture is for telling people apart */}
                     {event.by !== "you" && (
                       <PersonAvatar
                         userId={event.byId}
