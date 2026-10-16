@@ -1,9 +1,14 @@
+import { Bell } from "pixelarticons/react/Bell.js";
+import { BellOff } from "pixelarticons/react/BellOff.js";
+import { MoreHorizontal } from "pixelarticons/react/MoreHorizontal.js";
+import { MoreVertical } from "pixelarticons/react/MoreVertical.js";
+import { WarningDiamond } from "pixelarticons/react/WarningDiamond.js";
+import { PixelIcon, type PixelIconComponent } from "@/components/ui/PixelIcon";
 import { formatShort, formatShortTime } from "@/lib/format-date";
 import { ITEM_STATUS, isClosedStatus } from "@/constants";
 import { ITEM_HIGHLIGHT_MS } from "./constants";
 import { StatusPicker, type StatusAnchor } from "./StatusPicker";
 import { useEffect, useRef, useState } from "react";
-import { Bell, BellOff, Ellipsis, GripVertical, TriangleAlert } from "lucide-react";
 import type { DragControls } from "framer-motion";
 import { cn } from "@/lib/utils";
 import type { StatusDef, FieldDef } from "@/types/rules";
@@ -82,11 +87,11 @@ function getShowInRowBadges(
     });
 }
 
-const REMINDER_ICON: Record<ReminderBadge, { Icon: typeof Bell; className: string }> = {
-  upcoming: { Icon: Bell, className: "text-muted-foreground" },
-  noChannel: { Icon: BellOff, className: "text-muted-foreground" },
-  failed: { Icon: TriangleAlert, className: "text-warning" },
-  history: { Icon: Bell, className: "text-muted-foreground/50" },
+const REMINDER_ICON: Record<ReminderBadge, { icon: PixelIconComponent; className: string }> = {
+  upcoming: { icon: Bell, className: "text-muted-foreground" },
+  noChannel: { icon: BellOff, className: "text-muted-foreground" },
+  failed: { icon: WarningDiamond, className: "text-warning" },
+  history: { icon: Bell, className: "text-muted-foreground/50" },
 };
 
 function remindAgainLabel(item: ItemRow): string | null {
@@ -119,7 +124,7 @@ export function ItemRow({
 }: ItemRowProps) {
   const [pickerAnchor, setPickerAnchor] = useState<StatusAnchor | null>(null);
   const [reminderOpen, setReminderOpen] = useState(false);
-  const ReminderIcon = reminderBadge ? REMINDER_ICON[reminderBadge].Icon : null;
+  const reminderIcon = reminderBadge ? REMINDER_ICON[reminderBadge].icon : null;
   const dotRef = useRef<HTMLButtonElement>(null);
   const rowRef = useRef<HTMLDivElement>(null);
   const anchor = `item-${item.id}`;
@@ -166,7 +171,7 @@ export function ItemRow({
           onPointerDown={(e) => dragControls.start(e)}
           aria-label="drag to reorder"
         >
-          <GripVertical size={13} />
+          <PixelIcon icon={MoreVertical} />
         </button>
       )}
 
@@ -288,7 +293,7 @@ export function ItemRow({
         </span>
       )}
 
-      {reminderBadge && ReminderIcon && (
+      {reminderBadge && reminderIcon && (
         <button
           type="button"
           onClick={() => setReminderOpen(true)}
@@ -299,7 +304,7 @@ export function ItemRow({
             REMINDER_ICON[reminderBadge].className
           )}
         >
-          <ReminderIcon size={11} aria-hidden />
+          <PixelIcon icon={reminderIcon} />
         </button>
       )}
       {onMenu && (
@@ -312,7 +317,7 @@ export function ItemRow({
           aria-label="item menu"
           className="text-muted-foreground hover:text-foreground -mr-3 flex shrink-0 items-center px-3 transition-colors"
         >
-          <Ellipsis size={14} aria-hidden />
+          <PixelIcon icon={MoreHorizontal} />
         </button>
       )}
       {reminderOpen && (

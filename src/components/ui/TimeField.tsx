@@ -1,6 +1,7 @@
+import { Clock } from "pixelarticons/react/Clock.js";
+import { PixelIcon } from "@/components/ui/PixelIcon";
 import { useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
-import { Clock } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { formatTypedTime, parseTimeInput } from "@/lib/time-input";
@@ -193,7 +194,7 @@ export function TimeField({ value, onChange, disabled, allowAllDay = false }: Ti
         )}
       >
         <span>{display}</span>
-        <Clock size={13} className="opacity-60" aria-hidden />
+        <PixelIcon icon={Clock} className="opacity-60" />
       </button>
       {portalTarget && createPortal(panel, portalTarget)}
     </div>

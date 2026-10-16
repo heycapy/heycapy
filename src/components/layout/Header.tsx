@@ -1,6 +1,12 @@
+import { Archive } from "pixelarticons/react/Archive.js";
+import { Logout } from "pixelarticons/react/Logout.js";
+import { Message } from "pixelarticons/react/Message.js";
+import { SlidersHorizontal } from "pixelarticons/react/SlidersHorizontal.js";
+import { Trash } from "pixelarticons/react/Trash.js";
+import { UserPlus } from "pixelarticons/react/UserPlus.js";
+import { PixelIcon } from "@/components/ui/PixelIcon";
 import { useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Archive, LogOut, MessageSquare, SlidersHorizontal, Trash2, UserPlus } from "lucide-react";
 import { BetaTag } from "@/components/ui/BetaTag";
 import { BracketButton } from "@/components/ui/BracketButton";
 import { logoutAction, logoutEverywhereAction } from "@/app/(app)/actions";
@@ -149,14 +155,14 @@ function GlobalMenu({
                 onClick={() => pick(onSettings)}
                 className="text-foreground hover:bg-muted flex w-full items-center gap-2.5 px-3 py-2 font-mono text-xs transition-colors"
               >
-                <SlidersHorizontal size={11} />
+                <PixelIcon icon={SlidersHorizontal} />
                 tweaks
               </button>
               <button
                 onClick={() => pick(onJoin)}
                 className="text-foreground hover:bg-muted flex w-full items-center gap-2.5 px-3 py-2 font-mono text-xs transition-colors"
               >
-                <UserPlus size={11} />
+                <PixelIcon icon={UserPlus} />
                 <span>
                   join a bucket
                   <BetaTag feature="sharing" />
@@ -166,14 +172,14 @@ function GlobalMenu({
                 onClick={() => pick(onArchive)}
                 className="text-foreground hover:bg-muted flex w-full items-center gap-2.5 px-3 py-2 font-mono text-xs transition-colors"
               >
-                <Archive size={11} />
+                <PixelIcon icon={Archive} />
                 archived
               </button>
               <button
                 onClick={() => pick(onTrash)}
                 className="text-foreground hover:bg-muted flex w-full items-center gap-2.5 px-3 py-2 font-mono text-xs transition-colors"
               >
-                <Trash2 size={11} />
+                <PixelIcon icon={Trash} />
                 trash
               </button>
               {onFeedback && (
@@ -181,7 +187,7 @@ function GlobalMenu({
                   onClick={() => pick(onFeedback)}
                   className="text-foreground hover:bg-muted flex w-full items-center gap-2.5 px-3 py-2 font-mono text-xs transition-colors"
                 >
-                  <MessageSquare size={11} />
+                  <PixelIcon icon={Message} />
                   feedback
                 </button>
               )}
@@ -190,14 +196,14 @@ function GlobalMenu({
                 onClick={() => pick(() => setConfirmLogout("here"))}
                 className="text-destructive hover:bg-muted flex w-full items-center gap-2.5 px-3 py-2 font-mono text-xs transition-colors"
               >
-                <LogOut size={11} />
+                <PixelIcon icon={Logout} />
                 logout
               </button>
               <button
                 onClick={() => pick(() => setConfirmLogout("everywhere"))}
                 className="text-destructive hover:bg-muted flex w-full items-center gap-2.5 px-3 py-2 font-mono text-xs transition-colors"
               >
-                <LogOut size={11} />
+                <PixelIcon icon={Logout} />
                 logout everywhere
               </button>
             </div>

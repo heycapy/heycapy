@@ -1,4 +1,5 @@
-import { X } from "lucide-react";
+import { Close } from "pixelarticons/react/Close.js";
+import { PixelIcon } from "@/components/ui/PixelIcon";
 import { DatePicker } from "@/components/ui/DatePicker";
 import { OptionButton } from "@/components/ui/OptionButton";
 import type { FieldDef } from "@/types/rules";
@@ -148,7 +149,7 @@ function FieldInput({
               onClick={() => onChange(undefined)}
               className="text-muted-foreground hover:text-destructive shrink-0 transition-colors"
             >
-              <X size={11} />
+              <PixelIcon icon={Close} />
             </button>
           )}
         </div>

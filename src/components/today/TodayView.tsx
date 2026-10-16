@@ -1,5 +1,6 @@
+import { Clock } from "pixelarticons/react/Clock.js";
+import { PixelIcon } from "@/components/ui/PixelIcon";
 import { useEffect, type RefObject } from "react";
-import { Clock } from "lucide-react";
 import { BracketButton } from "@/components/ui/BracketButton";
 import { ItemDialog } from "@/components/buckets/ItemDialog";
 import { useItemEditor } from "@/components/buckets/useItemEditor";
@@ -65,7 +66,7 @@ export function TodayView({ buckets, addItemRef }: TodayViewProps) {
     <div className="flex flex-col">
       <div className="flex items-center justify-between px-4 py-3">
         <h2 className="flex items-center gap-1.5 font-mono text-sm font-normal">
-          <Clock size={13} aria-hidden />
+          <PixelIcon icon={Clock} />
           today
         </h2>
         <div className="flex items-center gap-2">
