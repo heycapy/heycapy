@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { BracketButton } from "@/components/ui/BracketButton";
 import { Toggle } from "@/components/ui/Toggle";
+import { EMAIL_GUIDE_URL } from "@/constants";
 import { LABEL, INPUT, SECTION, BOX } from "./settings-constants";
 import { NtfySettings } from "./NtfySettings";
 import { PushSettings } from "./PushSettings";
@@ -85,7 +86,15 @@ export function NotificationsTab({
       <div className={BOX}>
         <span className={SECTION}>email</span>
         <p className="text-muted-foreground font-mono text-[11px] leading-tight">
-          reminder emails go out through your own email account. gmail works with an app password
+          reminder emails go out through your own email account. gmail works with an app password ·{" "}
+          <a
+            href={EMAIL_GUIDE_URL}
+            target="_blank"
+            rel="noreferrer"
+            className="text-primary hover:text-foreground whitespace-nowrap underline"
+          >
+            how to set it up
+          </a>
         </p>
 
         <div className="flex items-center justify-between">

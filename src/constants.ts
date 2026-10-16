@@ -81,6 +81,7 @@ export const CREDIT_PACK_IDS = Object.keys(CREDIT_PACKS) as [CreditPackId, ...Cr
 export const BILLING_PROVIDER = "dodo";
 export const PRICING_URL = `https://${APP_DOMAIN}/pricing`;
 export const REFUNDS_URL = `https://${APP_DOMAIN}/refunds`;
+export const EMAIL_GUIDE_URL = `https://${APP_DOMAIN}/guides/email`;
 // Dodo sends the buyer back with these in the address, and they are cleared once read
 export const CHECKOUT_RETURN_PARAMS = ["status", "payment_id", "email", "session_id"] as const;
 // the balance is looked at again at these seconds while the webhook is on its way

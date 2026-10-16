@@ -1,6 +1,6 @@
 import { test, expect, type Locator, type Page } from "@playwright/test";
 import { authState } from "../helpers/auth";
-import { NTFY_DEFAULT_URL } from "@/constants";
+import { EMAIL_GUIDE_URL, NTFY_DEFAULT_URL } from "@/constants";
 
 test.use({ storageState: authState("test-send") });
 
@@ -53,4 +53,14 @@ test("ntfy send test reports an invalid server url", async ({ page }) => {
   await expect(ntfy.getByRole("status")).toHaveText(
     "server url must start with http:// or https://"
   );
+});
+
+test("the email section links to the guide for setting up your own email", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "···" }).click();
+  await page.getByRole("button", { name: "tweaks" }).click();
+  await page.getByRole("button", { name: "notifications", exact: true }).click();
+  const guide = page.getByRole("link", { name: "how to set it up" });
+  await expect(guide).toHaveAttribute("href", EMAIL_GUIDE_URL);
+  await expect(guide).toHaveAttribute("target", "_blank");
 });
