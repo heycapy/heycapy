@@ -84,7 +84,7 @@ test("a bucket on one clock doesn't mention clocks in its rules", async ({ page 
   const settings = await openSettings(page);
   await switchTab(settings, "notifications");
   const remindAt = field(settings, "remind at");
-  await expect(remindAt).toContainText("the time of day for items without a time");
+  await expect(remindAt).toContainText("all-day items are reminded at this time");
   await expect(remindAt).not.toContainText("each person gets this on their own clock");
   await closeDialog(settings);
 

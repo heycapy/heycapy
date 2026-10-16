@@ -25,7 +25,7 @@ test.beforeEach(async ({ page }) => {
 async function reminderButtons(page: Page) {
   const dialog = await openSettings(page);
   await switchTab(dialog, "notifications");
-  return { dialog, buttons: field(dialog, "reminder buttons") };
+  return { dialog, buttons: field(dialog, "remind me again in") };
 }
 
 test("reminder buttons default to 1 hour + tomorrow and are saved per bucket", async ({ page }) => {

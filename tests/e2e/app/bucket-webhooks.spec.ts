@@ -49,7 +49,7 @@ test("webhooks set up in tweaks are picked per bucket, and new buckets get the d
   let settings = await openSettings(page);
   await switchTab(settings, "notifications");
   await expect(field(settings, "channels")).toContainText(
-    "add discord, slack or your own server in tweaks"
+    "discord, slack or your own server: tweaks"
   );
   await closeDialog(settings);
 
