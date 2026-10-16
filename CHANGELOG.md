@@ -2,6 +2,33 @@
 
 all notable changes to heycapy. versions follow [semver](https://semver.org): a patch version (0.3.1) only fixes things, a minor version (0.4.0) adds features. the database migrates itself on start and migrations only go forward, so back up before upgrading (see the README).
 
+## 0.4.0
+
+reminder emails now go out through each person's own email account, and the app gets pixel icons and a what's new list. if your server sends reminders through resend, read upgrading before you update.
+
+### new
+
+- what's new in the ··· menu, with a dot until you open it after an update
+- every icon is pixel art (pixelarticons)
+- bucket settings → notifications is split into sections (where, when to remind, if it's overdue, reminder buttons) with clearer names
+- tweaks → notifications → email links to a setup guide for gmail and other providers
+
+### fixes
+
+- your own smtp on port 465 works. ssl now follows the port: 465 uses ssl, anything else starttls, a blank port means 587
+- feedback reports the right app version, it said 0.2.0
+
+### changes
+
+- resend no longer sends reminders. it only sends sign-in codes, admin alerts and feedback. reminder emails use the person's own smtp from tweaks, else the server's SMTP_HOST, else they fail with a message pointing to tweaks
+- without their own smtp or SMTP_HOST, email no longer counts as a working channel, so the "no notification channel works" banner shows until another channel is set up
+
+### upgrading
+
+- migration 0037 runs on start. it adds the last seen release to users, existing accounts see the what's new dot once
+- if reminders went out through RESEND_API_KEY, set SMTP_HOST (with SMTP_PORT, SMTP_USER, SMTP_PASS) or have each person add their own smtp in tweaks. reminders already queued for people without one fail
+- the "use ssl" setting for a person's own smtp is no longer read, the port decides
+
 ## 0.3.0
 
 share a bucket with family or friends, and draw the pixel avatar they see next to your name. sharing is in beta. back up the database before upgrading: migration 0034 moves the reminder schedule out of items.

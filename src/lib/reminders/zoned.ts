@@ -33,7 +33,7 @@ function offsetMs(date: Date, timezone: string): number {
   return asUtc - Math.floor(date.getTime() / 60_000) * 60_000;
 }
 
-// Overflowing fields roll over; a time skipped by DST moves past the gap
+// Overflowing fields roll over, a time skipped by DST moves past the gap
 export function fromLocal(local: LocalDateTime, timezone: string): Date {
   const naive = Date.UTC(local.year, local.month - 1, local.day, local.hour, local.minute);
   const first = naive - offsetMs(new Date(naive), timezone);
@@ -134,7 +134,7 @@ export function localDateTimeToDate(
   return fromLocal({ year: year ?? 0, month: month ?? 1, day: day ?? 1, hour, minute }, timezone);
 }
 
-// Date-only is all day; a naive datetime is local time; anything with Z or an offset is exact
+// Date-only is all day, a naive datetime is local time, anything with Z or an offset is exact
 export function parseLocalDateTime(value: string, timezone: string): Date {
   const s = value.trim();
   if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return localDateToDate(s, timezone);

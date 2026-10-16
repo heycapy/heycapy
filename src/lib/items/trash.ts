@@ -68,7 +68,7 @@ export async function listTrash(
       and(
         inArray(items.bucketId, memberBucketIds(userId)),
         isNotNull(items.deletedAt),
-        // A deleted bucket is gone for its members; only the owner can bring it back
+        // A deleted bucket is gone for its members, only the owner can bring it back
         or(eq(buckets.userId, userId), isNull(buckets.deletedAt))
       )
     )

@@ -3,6 +3,7 @@ import Database from "better-sqlite3";
 import { E2E_DATABASE_FILE } from "../helpers/env";
 import { itemRow } from "../helpers/buckets";
 import { login, uniqueEmail } from "../helpers/login";
+import { giveOwnSmtp } from "../helpers/email";
 import { modal } from "../helpers/settings";
 
 const DAY_S = 86_400;
@@ -13,6 +14,8 @@ function userId(db: Database.Database, email: string): number {
 
 // A shared bucket with an item assigned to the member, who alone is reminded about it
 function seedAssignedItem(ownerEmail: string, memberEmail: string, title: string) {
+  giveOwnSmtp(ownerEmail);
+  giveOwnSmtp(memberEmail);
   const db = new Database(E2E_DATABASE_FILE);
   const owner = userId(db, ownerEmail);
   const member = userId(db, memberEmail);

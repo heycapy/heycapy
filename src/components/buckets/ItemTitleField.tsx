@@ -33,7 +33,7 @@ type ItemTitleFieldProps = {
   showRequired: boolean;
   disabled?: boolean;
   typedDate: TitleDate | null;
-  // Typing @ in a shared bucket offers its members; picking one assigns the item
+  // Typing @ in a shared bucket offers its members, picking one assigns the item
   mention?: { members: MentionMember[]; onPick: (userId: number | null) => void };
   onChange: (v: string) => void;
   onEnter: () => void;

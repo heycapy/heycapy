@@ -32,7 +32,7 @@ async function recipients() {
 }
 
 // Both channels, each on its own: whichever is broken, the other still gets through.
-// Failures only go to stderr; recording them would alert about alerting.
+// Failures only go to stderr, recording them would alert about alerting.
 async function deliver(subject: string, text: string): Promise<boolean> {
   if (isE2ETestMode()) return false;
   const admins = await recipients();

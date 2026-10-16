@@ -72,7 +72,7 @@ function withinEnd(next: Date, config: RecurringConfig, timezone: string): Date 
   return next < endsAfter ? next : null;
 }
 
-// Skips past dates; null once the series has ended (the end date counts as a whole day)
+// Skips past dates, null once the series has ended (the end date counts as a whole day)
 export function nextOccurrenceDate(
   deadline: Date,
   config: RecurringConfig,

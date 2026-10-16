@@ -15,7 +15,7 @@ export type MentionOption = {
   username: string | null;
 };
 
-// An @ that starts a word, up to the cursor; an @ inside a word is an address, not a mention
+// An @ that starts a word, up to the cursor, an @ inside a word is an address, not a mention
 export function findMention(text: string, caret: number): Mention | null {
   const match = /(?:^|\s)@(\S*)$/.exec(text.slice(0, caret));
   if (!match) return null;

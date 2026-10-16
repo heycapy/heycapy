@@ -6,7 +6,7 @@ export function dueOn(deadline: Date | null, timezone: string): Due {
   return { deadline, deadlineTimezone: deadline ? timezone : null };
 }
 
-// Read on the setter's clock; a value naming the saved deadline keeps it as it is, so re-saving
+// Read on the setter's clock, a value naming the saved deadline keeps it as it is, so re-saving
 // someone else's all-day item can't move it to another clock
 export function resolveDeadline(value: string | null, timezone: string, saved?: Due): Due {
   if (!value) return { deadline: null, deadlineTimezone: null };

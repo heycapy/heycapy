@@ -1,6 +1,7 @@
 import { isIP } from "node:net";
 import { APP_EMAIL_FROM } from "@/constants";
 import { publicAddress } from "./public-address";
+import { NO_NOTIFICATION_SMTP_ERROR, SMTP_DEFAULT_PORT, SMTP_SSL_PORT } from "./constants";
 
 export type EmailPayload = {
   to: string;
@@ -15,7 +16,6 @@ export type UserEmailConfig = {
   smtpPort?: number | null;
   smtpUser?: string | null;
   smtpPass?: string | null;
-  smtpSecure?: boolean | null;
   smtpFrom?: string | null;
 };
 
@@ -46,8 +46,8 @@ async function sendViaSmtp(
   }
 ): Promise<void> {
   const nodemailer = await import("nodemailer");
-  const port = opts?.port ?? parseInt(process.env.SMTP_PORT ?? "587");
-  const secure = opts?.secure ?? (process.env.SMTP_SECURE === "true" || port === 465);
+  const port = opts?.port ?? parseInt(process.env.SMTP_PORT ?? String(SMTP_DEFAULT_PORT));
+  const secure = opts?.secure ?? (process.env.SMTP_SECURE === "true" || port === SMTP_SSL_PORT);
   const user = opts?.user ?? process.env.SMTP_USER;
   const pass = opts?.pass ?? process.env.SMTP_PASS;
   const from =
@@ -73,24 +73,8 @@ async function sendViaSmtp(
   });
 }
 
-export async function sendEmail(
-  payload: EmailPayload,
-  userConfig?: UserEmailConfig
-): Promise<void> {
-  if (userConfig?.emailProvider === "smtp" && userConfig.smtpHost) {
-    const host = userConfig.smtpHost;
-    const pinned = await publicAddress(host);
-    await sendViaSmtp(payload, pinned?.address ?? host, {
-      port: userConfig.smtpPort,
-      user: userConfig.smtpUser,
-      pass: userConfig.smtpPass,
-      secure: userConfig.smtpSecure,
-      from: userConfig.smtpFrom,
-      // connecting by the checked address, so the certificate is still checked against the name
-      ...(pinned && !isIP(host) && { servername: host }),
-    });
-    return;
-  }
+// Mail from heycapy itself, like sign-in codes: the server's smtp, else resend
+export async function sendEmail(payload: EmailPayload): Promise<void> {
   const smtpHost = process.env.SMTP_HOST;
   const resendKey = process.env.RESEND_API_KEY;
   if (smtpHost) {
@@ -101,4 +85,30 @@ export async function sendEmail(
     await sendViaResend(payload, resendKey);
     return;
   }
+}
+
+// Never resend: on the hosted app that account is only for sign-in codes. A self-hosted server's smtp is its owner's own
+export async function sendNotificationEmail(
+  payload: EmailPayload,
+  userConfig?: UserEmailConfig
+): Promise<void> {
+  if (userConfig?.emailProvider === "smtp" && userConfig.smtpHost) {
+    const host = userConfig.smtpHost;
+    const port = userConfig.smtpPort ?? SMTP_DEFAULT_PORT;
+    const pinned = await publicAddress(host);
+    await sendViaSmtp(payload, pinned?.address ?? host, {
+      port,
+      user: userConfig.smtpUser,
+      pass: userConfig.smtpPass,
+      // tweaks only asks for the port, ssl follows from it like the hint there says
+      secure: port === SMTP_SSL_PORT,
+      from: userConfig.smtpFrom,
+      // connecting by the checked address, so the certificate is still checked against the name
+      ...(pinned && !isIP(host) && { servername: host }),
+    });
+    return;
+  }
+  const smtpHost = process.env.SMTP_HOST;
+  if (!smtpHost) throw new Error(NO_NOTIFICATION_SMTP_ERROR);
+  await sendViaSmtp(payload, smtpHost);
 }

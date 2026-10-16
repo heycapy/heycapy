@@ -158,7 +158,7 @@ describe("dialog details", () => {
 describe("history records each channel as it was at send time", () => {
   it("a channel set up later still shows as not set up for older notifications", async () => {
     process.env.E2E_TEST_MODE = "1";
-    process.env.RESEND_API_KEY = "test-key";
+    process.env.SMTP_HOST = "smtp.self-hosted.test";
     const { userId, bucketId } = await setup(["email", "telegram"]);
     await db
       .update(userSettings)
@@ -193,7 +193,7 @@ describe("history records each channel as it was at send time", () => {
       "telegram",
     ]);
     delete process.env.E2E_TEST_MODE;
-    delete process.env.RESEND_API_KEY;
+    delete process.env.SMTP_HOST;
   });
 
   it("groups a reminder and an overdue alert sent together into two notifications", async () => {

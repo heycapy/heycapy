@@ -34,7 +34,7 @@ function corsHeaders(request: Request): Record<string, string> {
   };
 }
 
-// Fly's proxy sets Fly-Client-IP itself; the last X-Forwarded-For entry is the one the nearest proxy added
+// Fly's proxy sets Fly-Client-IP itself, the last X-Forwarded-For entry is the one the nearest proxy added
 function clientIp(request: Request): string {
   const forwarded = request.headers.get("x-forwarded-for")?.split(",").at(-1)?.trim();
   return request.headers.get("fly-client-ip") ?? (forwarded || "unknown");

@@ -1,5 +1,7 @@
+import { ArrowUp } from "pixelarticons/react/ArrowUp.js";
+import { Mic } from "pixelarticons/react/Mic.js";
+import { PixelIcon } from "@/components/ui/PixelIcon";
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState, createElement } from "react";
-import { ArrowUp, Mic } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Sprite } from "./Sprite";
@@ -221,7 +223,7 @@ export const ChatInputBar = forwardRef<ChatInputBarHandle, Props>(function ChatI
             aria-label="Record voice"
             className="border-border text-muted-foreground hover:border-foreground hover:text-foreground mb-0.5 shrink-0 border p-2.5 transition-colors disabled:cursor-not-allowed disabled:opacity-40 md:p-1"
           >
-            <Mic size={14} />
+            <PixelIcon icon={Mic} />
           </button>
           {streaming ? (
             <button
@@ -243,7 +245,7 @@ export const ChatInputBar = forwardRef<ChatInputBarHandle, Props>(function ChatI
               )}
               aria-label="Send"
             >
-              <ArrowUp size={14} />
+              <PixelIcon icon={ArrowUp} />
             </button>
           )}
         </div>

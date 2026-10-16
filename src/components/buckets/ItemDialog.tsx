@@ -115,7 +115,7 @@ export function ItemDialog({
   const hasFields = !!(fields && fields.length > 0);
 
   const datePart = deadlineDate(deadline, zone);
-  // A set time is read from the deadline on the current clock; the state keeps it while all day
+  // A set time is read from the deadline on the current clock, the state keeps it while all day
   const time: TimeValue = deadline.includes("T")
     ? timeOfDeadline(deadline, zone)
     : { hour: timeHour, min: timeMin, ampm: timeAmpm };

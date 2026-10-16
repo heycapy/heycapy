@@ -1,4 +1,4 @@
-import { ACCENT_BUTTONS } from "@/components/layout/settings-constants";
+import { ACCENT_BUTTONS, BOX, SECTION } from "@/components/layout/settings-constants";
 import { useEffect, useId, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { cn, toggled } from "@/lib/utils";
@@ -192,17 +192,20 @@ export function BucketSettingsForm({
         )}
 
         {tab === "notifications" && (
-          <MyChannelsPicker
-            mediums={channels.medium}
-            webhooks={channels.webhooks}
-            onMediumToggle={(m) =>
-              setChannels((prev) => ({ ...prev, medium: toggled(prev.medium, m) }))
-            }
-            onWebhookToggle={(id) =>
-              setChannels((prev) => ({ ...prev, webhooks: toggled(prev.webhooks, id) }))
-            }
-            notifAvailability={notifAvailability}
-          />
+          <div className={BOX}>
+            <span className={SECTION}>where</span>
+            <MyChannelsPicker
+              mediums={channels.medium}
+              webhooks={channels.webhooks}
+              onMediumToggle={(m) =>
+                setChannels((prev) => ({ ...prev, medium: toggled(prev.medium, m) }))
+              }
+              onWebhookToggle={(id) =>
+                setChannels((prev) => ({ ...prev, webhooks: toggled(prev.webhooks, id) }))
+              }
+              notifAvailability={notifAvailability}
+            />
+          </div>
         )}
 
         {(tab === "items" || tab === "notifications") && (
@@ -217,8 +220,8 @@ export function BucketSettingsForm({
         )}
 
         {bucket.isOwner && tab === "notifications" && (
-          <div className="border-border flex flex-col gap-1.5 border-t pt-4">
-            <p className="text-muted-foreground font-mono text-xs">telegram bot</p>
+          <div className={BOX}>
+            <span className={SECTION}>telegram bot</span>
             <p className="text-muted-foreground font-mono text-[11px] leading-tight">
               set an alias shortcut, deadline buttons, time slots, and recurring options
             </p>

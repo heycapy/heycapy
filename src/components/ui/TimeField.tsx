@@ -1,6 +1,7 @@
+import { Clock } from "pixelarticons/react/Clock.js";
+import { PixelIcon } from "@/components/ui/PixelIcon";
 import { useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
-import { Clock } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { formatTypedTime, parseTimeInput } from "@/lib/time-input";
@@ -67,7 +68,7 @@ export function TimeField({ value, onChange, disabled, allowAllDay = false }: Ti
     }
     const [h24, m] = parsed.split(":").map(Number) as [number, number];
     const typedHour = parseInt(typed, 10);
-    // "4:30" with no am/pm keeps whichever is selected; 13–23 and 0 are read as 24-hour times
+    // "4:30" with no am/pm keeps whichever is selected, 13–23 and 0 are read as 24-hour times
     const keepMeridiem = !/[ap]/i.test(typed) && typedHour >= 1 && typedHour <= 12;
     onChange({
       hour: String(h24 % 12 === 0 ? 12 : h24 % 12),
@@ -193,7 +194,7 @@ export function TimeField({ value, onChange, disabled, allowAllDay = false }: Ti
         )}
       >
         <span>{display}</span>
-        <Clock size={13} className="opacity-60" aria-hidden />
+        <PixelIcon icon={Clock} className="opacity-60" />
       </button>
       {portalTarget && createPortal(panel, portalTarget)}
     </div>

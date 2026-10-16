@@ -13,6 +13,7 @@ import type { SortBy, RepeatMode } from "./constants";
 import { SORT_OPTIONS, REPEAT_OPTIONS, RECURRENCE_MODE_OPTIONS } from "./constants";
 import type { RecurrenceMode } from "@/types/rules";
 import { OVERDUE_FIRST_ALERT_DEFAULT_MINS } from "@/lib/reminders/constants";
+import { BOX, SECTION } from "@/components/layout/settings-constants";
 
 const LABEL = "text-muted-foreground font-mono text-xs";
 const HINT = "text-muted-foreground font-mono text-[11px] leading-tight";
@@ -156,57 +157,38 @@ export function BucketRulesPanel({
 
   return (
     <>
-      <div className="flex flex-col gap-1.5">
-        <label className={LABEL}>reminder buttons</label>
-        <span className={HINT}>
-          done is always there; pick when to be reminded again. push (android, desktop) shows done +
-          the first one, ntfy done + two, email and telegram all of them
-        </span>
-        <OptionGroup
-          options={QUICK_REMIND_VALUES.map((v) => ({ value: v, label: reminderButtonLabel(v) }))}
-          value={reminderButtons}
-          onChange={onReminderButtonToggle}
-          multi
+      <div className={BOX}>
+        <span className={SECTION}>when to remind</span>
+        <ReminderPicker
+          reminders={defaultReminders}
+          hint="when each item reminds you, e.g. 1 day before and at the deadline. you can still change it on any item"
+          allDay={false}
           disabled={disabled}
+          onChange={onDefaultRemindersChange}
         />
-      </div>
-      <ReminderPicker
-        reminders={defaultReminders}
-        hint="new items start with these; items whose reminders you've changed keep their own"
-        allDay={false}
-        disabled={disabled}
-        onChange={onDefaultRemindersChange}
-      />
-      <div className="flex flex-col gap-1.5">
-        <label className={LABEL}>remind at</label>
-        <span className={HINT}>
-          the time of day for items without a time; this bucket also never reminds earlier than it
-          {clocksDiffer && " · each person gets this on their own clock"}
-        </span>
-        <TimePicker value={notifyAt} onChange={onNotifyAtChange} disabled={disabled} />
-      </div>
-      <div className="flex flex-col gap-1.5">
-        <label className={LABEL}>deadline repeat</label>
-        <span className={HINT}>
-          daily = re-send the deadline reminder every day until the item is completed
-        </span>
-        <OptionGroup options={REPEAT_OPTIONS} value={repeat} onChange={onRepeatChange} />
-      </div>
-
-      <div className="border-border flex flex-col gap-4 border-t pt-4">
-        <p className={LABEL}>triggers</p>
         <div className="flex flex-col gap-1.5">
-          <label className={LABEL}>notify on arrival</label>
+          <label className={LABEL}>remind at</label>
           <span className={HINT}>
-            send a notification every time a new item arrives via webhook
+            all-day items are reminded at this time, and nothing from this bucket arrives earlier in
+            the day
+            {clocksDiffer && " · each person gets this on their own clock"}
           </span>
-          <Toggle value={notifyOnArrival} onChange={onNotifyOnArrivalChange} disabled={disabled} />
+          <TimePicker value={notifyAt} onChange={onNotifyAtChange} disabled={disabled} />
         </div>
         <div className="flex flex-col gap-1.5">
-          <label className={LABEL}>notify when overdue</label>
+          <label className={LABEL}>keep reminding</label>
           <span className={HINT}>
-            send a notification when an item passes its deadline without being completed
+            daily sends the reminder again every day until the item is done
           </span>
+          <OptionGroup options={REPEAT_OPTIONS} value={repeat} onChange={onRepeatChange} />
+        </div>
+      </div>
+
+      <div className={BOX}>
+        <span className={SECTION}>if it&apos;s overdue</span>
+        <div className="flex flex-col gap-1.5">
+          <label className={LABEL}>notify when overdue</label>
+          <span className={HINT}>alert when an item passes its deadline and isn&apos;t done</span>
           <Toggle
             value={notifyWhenOverdue}
             onChange={onNotifyWhenOverdueChange}
@@ -214,8 +196,9 @@ export function BucketRulesPanel({
           />
           {notifyWhenOverdue && (
             <div className="mt-1.5 flex flex-col gap-3">
-              <div role="group" aria-label="first alert after" className="flex flex-col gap-1.5">
-                <span className={HINT}>first alert after the deadline</span>
+              <div role="group" aria-label="first alert" className="flex flex-col gap-1.5">
+                <span className={LABEL}>first alert</span>
+                <span className={HINT}>how long after the deadline</span>
                 <div className="flex flex-wrap gap-1.5">
                   {OVERDUE_FIRST_ALERT_OPTIONS.map((opt) => (
                     <OptionButton
@@ -231,8 +214,9 @@ export function BucketRulesPanel({
                   ))}
                 </div>
               </div>
-              <div role="group" aria-label="repeat every" className="flex flex-col gap-1.5">
-                <span className={HINT}>repeat every — leave unset to notify once</span>
+              <div role="group" aria-label="then repeat every" className="flex flex-col gap-1.5">
+                <span className={LABEL}>then repeat every</span>
+                <span className={HINT}>pick none to alert just once</span>
                 <div className="flex flex-wrap gap-1.5">
                   {OVERDUE_REPEAT_OPTIONS.map((opt) => {
                     const active = String(overdueRepeatHours) === opt.value;
@@ -253,6 +237,33 @@ export function BucketRulesPanel({
               </div>
             </div>
           )}
+        </div>
+      </div>
+
+      <div className={BOX}>
+        <span className={SECTION}>reminder buttons</span>
+        <div className="flex flex-col gap-1.5">
+          <label className={LABEL}>remind me again in</label>
+          <span className={HINT}>
+            every reminder has a done button, plus the snooze times you pick here. phone push only
+            fits the first one, ntfy the first two, email and telegram show all of them
+          </span>
+          <OptionGroup
+            options={QUICK_REMIND_VALUES.map((v) => ({ value: v, label: reminderButtonLabel(v) }))}
+            value={reminderButtons}
+            onChange={onReminderButtonToggle}
+            multi
+            disabled={disabled}
+          />
+        </div>
+      </div>
+
+      <div className={BOX}>
+        <span className={SECTION}>webhook items</span>
+        <div className="flex flex-col gap-1.5">
+          <label className={LABEL}>notify on arrival</label>
+          <span className={HINT}>send a notification when a webhook adds an item</span>
+          <Toggle value={notifyOnArrival} onChange={onNotifyOnArrivalChange} disabled={disabled} />
         </div>
       </div>
     </>

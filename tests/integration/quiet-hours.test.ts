@@ -40,7 +40,6 @@ async function saveQuietHours(from: string | null, to: string | null) {
     aiKeyEdits: {},
     transcriptionKeyEdit: { newKey: null, clear: false },
     smtpPass: null,
-    smtpSecure: settings.smtpSecure ?? false,
     quietHoursFrom: from,
     quietHoursTo: to,
   });

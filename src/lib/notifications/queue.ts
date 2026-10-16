@@ -12,7 +12,7 @@ import {
   userSettings,
 } from "@/lib/db/schema";
 import { NOT_RECIPIENT_ERROR } from "./constants";
-import { sendEmail } from "./email";
+import { sendNotificationEmail } from "./email";
 import { buildNotificationEmail } from "@/lib/auth/notificationEmail";
 import { sendNtfy } from "./ntfy";
 import { sendWebPush } from "./web-push";
@@ -144,7 +144,6 @@ export async function processPending(): Promise<void> {
         smtpPort: userSettings.smtpPort,
         smtpUser: userSettings.smtpUser,
         smtpPass: userSettings.smtpPass,
-        smtpSecure: userSettings.smtpSecure,
         smtpFrom: userSettings.smtpFrom,
       })
       .from(users)
@@ -240,7 +239,6 @@ export async function processPending(): Promise<void> {
                       smtpPort: userRow.smtpPort,
                       smtpUser: userRow.smtpUser,
                       smtpPass: userRow.smtpPass ? decryptValue(userRow.smtpPass) : null,
-                      smtpSecure: userRow.smtpSecure,
                       smtpFrom: userRow.smtpFrom,
                     }
                   : undefined;
@@ -258,7 +256,7 @@ export async function processPending(): Promise<void> {
                     ]
                   : []
               );
-              await sendEmail(
+              await sendNotificationEmail(
                 {
                   to: userRow.notificationEmailTo ?? userRow.email,
                   subject: job.title,

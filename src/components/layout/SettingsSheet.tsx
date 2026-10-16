@@ -66,7 +66,6 @@ export function SettingsSheet({ open, initialTab, onClose }: SettingsSheetProps)
   const [smtpUser, setSmtpUser] = useState("");
   const [smtpPass, setSmtpPass] = useState("");
   const [smtpPassSaved, setSmtpPassSaved] = useState(false);
-  const [smtpSecure, setSmtpSecure] = useState(false);
   const [notificationsPush, setNotificationsPush] = useState(true);
   const [ntfyUrl, setNtfyUrl] = useState("");
   const [ntfyTopic, setNtfyTopic] = useState("");
@@ -100,7 +99,6 @@ export function SettingsSheet({ open, initialTab, onClose }: SettingsSheetProps)
     setSmtpPort(s.smtpPort !== null ? String(s.smtpPort) : "");
     setSmtpUser(s.smtpUser ?? "");
     setSmtpPass(""); // write-only — never populated from server
-    setSmtpSecure(s.smtpSecure ?? false);
     setNotificationsPush(s.notificationsPush);
     setNtfyUrl(s.ntfyUrl ?? "");
     setNtfyTopic(s.ntfyTopic ?? "");
@@ -182,7 +180,6 @@ export function SettingsSheet({ open, initialTab, onClose }: SettingsSheetProps)
       smtpPort: parsedPort && !isNaN(parsedPort) ? parsedPort : null,
       smtpUser: smtpUser || null,
       smtpPass: smtpPass || null,
-      smtpSecure,
       smtpFrom: smtpUser || null,
       notificationsPush,
       ntfyUrl: ntfyUrl || null,
@@ -259,7 +256,6 @@ export function SettingsSheet({ open, initialTab, onClose }: SettingsSheetProps)
                 smtpPass={smtpPass}
                 setSmtpPass={setSmtpPass}
                 smtpPassSaved={smtpPassSaved}
-                smtpSecure={smtpSecure}
                 notificationsPush={notificationsPush}
                 setNotificationsPush={setNotificationsPush}
                 ntfyUrl={ntfyUrl}

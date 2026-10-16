@@ -4,7 +4,11 @@ export const QUEUE_RETRY_DELAY_MINS = [1, 5, 15] as const;
 export const QUEUE_SENDING_LEASE_MS = 10 * 60 * 1000;
 export const DELIVERY_TIMEOUT_MS = 30_000;
 export const NOT_RECIPIENT_ERROR = "no longer reminded about this item";
-// a reminder older than a day is stale; the push service drops it instead of delivering late
+export const SMTP_DEFAULT_PORT = 587;
+export const SMTP_SSL_PORT = 465;
+export const NO_NOTIFICATION_SMTP_ERROR =
+  "reminder emails need your own email account (smtp), set it up in tweaks";
+// a reminder older than a day is stale, the push service drops it instead of delivering late
 export const PUSH_TTL_SECONDS = 24 * 60 * 60;
 export const PUSH_DEVICE_NAME_MAX_LENGTH = 60;
 export const PUSH_DEVICES_MAX = 20;

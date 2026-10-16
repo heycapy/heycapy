@@ -29,7 +29,7 @@ test("quiet hours are off by default and saved with the save bar", async ({ page
 
   await box.getByRole("button", { name: "on", exact: true }).click();
   await expect(
-    box.getByText("nothing is sent 10pm–7am, on any channel; reminders due then arrive at 7am")
+    box.getByText("nothing is sent 10pm–7am, on any channel, reminders due then arrive at 7am")
   ).toBeVisible();
   await expect(saveBar(page)).toBeVisible();
   await barButton(page, "save").click();

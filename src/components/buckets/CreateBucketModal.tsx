@@ -1,14 +1,16 @@
 "use client";
 
+import { ArrowLeft } from "pixelarticons/react/ArrowLeft.js";
+import { Close } from "pixelarticons/react/Close.js";
+import { Package } from "pixelarticons/react/Package.js";
+import { PixelIcon } from "@/components/ui/PixelIcon";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { motion, AnimatePresence, type Transition } from "framer-motion";
-import { ArrowLeft, X } from "lucide-react";
 import { useUIStore } from "@/store/ui";
 import { useScrollLock } from "@/hooks/useScrollLock";
 import { Button } from "@/components/ui/button";
 import { BracketButton } from "@/components/ui/BracketButton";
 import { createBucketAction } from "@/app/(app)/actions";
-import { Package } from "lucide-react";
 import { TEMPLATE_ICONS } from "./constants";
 import { BUCKET_NAME_MAX_LENGTH } from "@/constants";
 import { cn } from "@/lib/utils";
@@ -108,7 +110,7 @@ export function CreateBucketModal({ templates }: CreateBucketModalProps) {
                       </p>
                     </div>
                     <BracketButton onClick={closeCreateBucket}>
-                      <X size={12} />
+                      <PixelIcon icon={Close} />
                     </BracketButton>
                   </div>
 
@@ -124,12 +126,10 @@ export function CreateBucketModal({ templates }: CreateBucketModalProps) {
                           onClick={() => handlePickTemplate(t)}
                           className="border-border bg-card hover:bg-muted flex flex-col gap-1 rounded border p-2 text-left transition-colors sm:gap-1.5 sm:p-3"
                         >
-                          {(() => {
-                            const Icon = TEMPLATE_ICONS[t.name] ?? Package;
-                            return (
-                              <Icon size={12} className="text-muted-foreground sm:size-[15px]" />
-                            );
-                          })()}
+                          <PixelIcon
+                            icon={TEMPLATE_ICONS[t.name] ?? Package}
+                            className="text-muted-foreground"
+                          />
                           <span className="font-pixel truncate text-xs sm:text-xs">{t.name}</span>
                           {t.description && (
                             <span className="text-muted-foreground line-clamp-2 text-[11px] leading-snug sm:text-xs">
@@ -158,12 +158,12 @@ export function CreateBucketModal({ templates }: CreateBucketModalProps) {
                         }}
                         className="text-muted-foreground hover:text-foreground transition-colors"
                       >
-                        <ArrowLeft size={14} />
+                        <PixelIcon icon={ArrowLeft} />
                       </button>
                       <p className="font-pixel text-sm">Name it</p>
                     </div>
                     <BracketButton onClick={closeCreateBucket}>
-                      <X size={12} />
+                      <PixelIcon icon={Close} />
                     </BracketButton>
                   </div>
                   <div className="flex flex-col gap-3 p-4">

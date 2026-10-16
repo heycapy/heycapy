@@ -27,7 +27,7 @@ describe("toLocal / fromLocal", () => {
   });
 
   it("resolves times right after spring-forward correctly", () => {
-    // DST starts 2026-03-08 02:00 in New York; 04:00 EDT is 08:00 UTC
+    // DST starts 2026-03-08 02:00 in New York, 04:00 EDT is 08:00 UTC
     const instant = fromLocal({ year: 2026, month: 3, day: 8, hour: 4, minute: 0 }, NY);
     expect(instant.toISOString()).toBe("2026-03-08T08:00:00.000Z");
   });
@@ -38,7 +38,7 @@ describe("toLocal / fromLocal", () => {
   });
 
   it("resolves times right after fall-back correctly", () => {
-    // DST ends 2026-11-01 02:00 in New York; 03:00 EST is 08:00 UTC
+    // DST ends 2026-11-01 02:00 in New York, 03:00 EST is 08:00 UTC
     const instant = fromLocal({ year: 2026, month: 11, day: 1, hour: 3, minute: 0 }, NY);
     expect(instant.toISOString()).toBe("2026-11-01T08:00:00.000Z");
   });

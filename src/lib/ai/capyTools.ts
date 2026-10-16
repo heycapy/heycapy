@@ -137,7 +137,7 @@ function invalidStatusError(status: string): string {
   });
 }
 
-// Checked against the bucket's fields; a bucket without fields keeps any values
+// Checked against the bucket's fields, a bucket without fields keeps any values
 function validateProperties(
   fieldSchema: unknown,
   properties: Record<string, unknown>
@@ -253,7 +253,7 @@ function itemDetails(row: ItemDetailRow, userId: number, timezone: string) {
   };
 }
 
-// Models sometimes invent "today" (e.g. from their training data); a past day is almost always that
+// Models sometimes invent "today" (e.g. from their training data), a past day is almost always that
 function pastDayError(
   deadline: Date | null,
   args: Record<string, unknown>,

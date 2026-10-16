@@ -21,7 +21,7 @@ import {
   users,
 } from "@/lib/db/schema";
 
-// Stored rules are JSON strings; export them as objects so the file is readable
+// Stored rules are JSON strings, export them as objects so the file is readable
 function parsed(raw: unknown): unknown {
   if (typeof raw !== "string") return raw ?? null;
   try {
@@ -172,7 +172,6 @@ export async function buildAccountExport(userId: number, now = new Date()) {
           host: settings.smtpHost,
           port: settings.smtpPort,
           user: settings.smtpUser,
-          secure: settings.smtpSecure,
           from: settings.smtpFrom,
         },
         ntfy: {

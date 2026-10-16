@@ -1,4 +1,5 @@
-import { ChevronDown } from "lucide-react";
+import { ChevronDown } from "pixelarticons/react/ChevronDown.js";
+import { PixelIcon } from "@/components/ui/PixelIcon";
 
 export type BucketChoice = {
   options: { id: number; name: string; color: string }[];
@@ -39,9 +40,8 @@ export function ItemBucketField({
             </option>
           ))}
         </select>
-        <ChevronDown
-          size={13}
-          aria-hidden
+        <PixelIcon
+          icon={ChevronDown}
           className="text-muted-foreground pointer-events-none absolute right-0"
         />
       </div>

@@ -34,7 +34,7 @@ export function MyChannelsPicker({
       <span className={HINT}>
         where your reminders from this bucket go
         {notifAvailability?.webhooks.length === 0 &&
-          " · add discord, slack or your own server in tweaks → notifications → other apps"}
+          " · discord, slack or your own server: tweaks → notifications → other apps"}
       </span>
       <div className="flex flex-wrap gap-1.5">
         {MEDIUM_OPTIONS.map((option) => (

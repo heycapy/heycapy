@@ -27,7 +27,7 @@ export function callsTo(api: TelegramApi, method: string) {
 
 let chatId = 1000;
 
-// Seeded users share a chat id; the bot resolves the user by it
+// Seeded users share a chat id, the bot resolves the user by it
 export async function connectOwnChat(userId: number): Promise<number> {
   chatId += 1;
   await db

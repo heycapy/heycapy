@@ -37,7 +37,7 @@ export function timeIn(date: Date, timezone: string): string {
   }).format(date);
 }
 
-// An item's deadline on the viewer's clock; an all-day item shows its own date to everyone
+// An item's deadline on the viewer's clock, an all-day item shows its own date to everyone
 export function formatDeadline(
   deadline: Date,
   deadlineTimezone: string | null | undefined,

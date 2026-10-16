@@ -58,7 +58,7 @@ export function hasOwnAI(config?: AIConfig): boolean {
   return !!config.apiKey;
 }
 
-// Self-hosted only: the ai in .env for users without their own; ollama needs no key
+// Self-hosted only: the ai in .env for users without their own, ollama needs no key
 export function hasServerAI(): boolean {
   const provider = process.env.AI_PROVIDER;
   if (!provider) return false;

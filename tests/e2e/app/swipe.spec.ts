@@ -24,7 +24,7 @@ function statusDot(page: Page, title: string) {
     .getByRole("button", { name: /^status: / });
 }
 
-test("swiping right finishes an item, and again reopens it; a short swipe does nothing", async ({
+test("swiping right finishes an item, and again reopens it, a short swipe does nothing", async ({
   page,
 }) => {
   await page.goto("/");

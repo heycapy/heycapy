@@ -1,6 +1,9 @@
+import { Check } from "pixelarticons/react/Check.js";
+import { Clock } from "pixelarticons/react/Clock.js";
+import { Plus } from "pixelarticons/react/Plus.js";
+import { PixelIcon } from "@/components/ui/PixelIcon";
 import type { ReactNode } from "react";
 import { Drawer } from "vaul";
-import { Check, Clock, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { BUCKET_PALETTE } from "./constants";
 import { useUIStore } from "@/store/ui";
@@ -39,7 +42,7 @@ function PlaceRow({
       )}
     >
       {children}
-      {active && <Check size={12} className="text-foreground shrink-0" />}
+      {active && <PixelIcon icon={Check} className="text-foreground shrink-0" />}
     </button>
   );
 }
@@ -71,7 +74,7 @@ export function PlacePicker({
           </Drawer.Title>
           <div className="border-border max-h-[60vh] overflow-y-auto border-t pb-[env(safe-area-inset-bottom)]">
             <PlaceRow active={todayOpen} onClick={() => pick(onSelectToday)} className="border-b-2">
-              <Clock size={12} className="text-foreground shrink-0" aria-hidden />
+              <PixelIcon icon={Clock} className="text-foreground shrink-0" />
               <span className="font-pixel text-foreground flex-1 text-xs">today</span>
             </PlaceRow>
             {buckets.map((bucket, i) => (
@@ -93,7 +96,7 @@ export function PlacePicker({
               onClick={() => pick(openCreateBucket)}
               className="text-muted-foreground hover:bg-muted hover:text-foreground flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors"
             >
-              <Plus size={12} className="shrink-0" aria-hidden />
+              <PixelIcon icon={Plus} className="shrink-0" />
               <span className="font-mono text-xs">new bucket</span>
             </button>
           </div>

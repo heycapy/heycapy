@@ -57,10 +57,9 @@ export async function getMemberChannels(userId: number, bucketId: number): Promi
 
 // built-in channels only: webhooks are picked one by one, see channelDecisions
 export function workingChannels(settings: ChannelSettings): NotificationMedium[] {
+  // resend doesn't count, it only sends sign-in codes (see sendNotificationEmail)
   const emailConfigured =
-    !!process.env.RESEND_API_KEY ||
-    !!process.env.SMTP_HOST ||
-    (settings.emailProvider === "smtp" && !!settings.smtpHost);
+    !!process.env.SMTP_HOST || (settings.emailProvider === "smtp" && !!settings.smtpHost);
 
   const channels: NotificationMedium[] = [];
   if (settings.notificationsEmail && emailConfigured) channels.push("email");

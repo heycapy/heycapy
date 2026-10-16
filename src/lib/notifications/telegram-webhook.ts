@@ -1,6 +1,6 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 
-// Sent by Telegram in a header on every update; derived so there is nothing extra to store
+// Sent by Telegram in a header on every update, derived so there is nothing extra to store
 export function telegramWebhookSecret(botToken: string): string {
   return createHmac("sha256", botToken).update("heycapy-telegram-webhook").digest("hex");
 }

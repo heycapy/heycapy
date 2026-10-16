@@ -375,4 +375,23 @@ describe("migrations", () => {
     ).toEqual(['{"repeat":"daily"}', '{"repeat":"once"}', "{}", "not json"]);
     sqlite.close();
   });
+
+  it("show the 0.4.0 what's new to everyone who signed up before it", () => {
+    const journal = JSON.parse(
+      readFileSync(path.join(MIGRATIONS, "meta/_journal.json"), "utf8")
+    ) as Journal;
+    const lastSeen = journal.entries.findIndex((e) => e.tag === "0037_last_seen_release");
+    const dbPath = path.join(tempDir("heycapy-last-seen-release-"), "db.sqlite");
+    const sqlite = new Database(dbPath);
+    const db = drizzle(sqlite);
+    migrate(db, { migrationsFolder: migrationsUpTo(lastSeen) });
+    sqlite.exec("INSERT INTO users (id, email) VALUES (1, 'a@heycapy.test')");
+
+    migrate(db, { migrationsFolder: MIGRATIONS });
+
+    expect(sqlite.prepare("SELECT last_seen_release FROM users").all()).toEqual([
+      { last_seen_release: "0.3.0" },
+    ]);
+    sqlite.close();
+  });
 });

@@ -31,7 +31,7 @@ export function readSavedAIKeys(raw: string | null | undefined): SavedAIKeys {
     try {
       keys[provider] = { apiKey: entry.apiKey && decryptValue(entry.apiKey), model: entry.model };
     } catch {
-      // a key encrypted with an older ENCRYPTION_KEY can't be read; keep the model at least
+      // a key encrypted with an older ENCRYPTION_KEY can't be read, keep the model at least
       keys[provider] = { apiKey: null, model: entry.model };
     }
   }
