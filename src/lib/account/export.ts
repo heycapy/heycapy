@@ -172,7 +172,6 @@ export async function buildAccountExport(userId: number, now = new Date()) {
           host: settings.smtpHost,
           port: settings.smtpPort,
           user: settings.smtpUser,
-          secure: settings.smtpSecure,
           from: settings.smtpFrom,
         },
         ntfy: {

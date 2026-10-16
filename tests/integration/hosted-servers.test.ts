@@ -137,7 +137,6 @@ it("smtp on our own network is refused before connecting, on a send and on the t
       smtpPort: "25",
       smtpUser: "",
       smtpPass: null,
-      smtpSecure: false,
       sendTo: "someone@heycapy.test",
     })
   ).toMatchObject({ ok: false, error: expect.stringContaining("private network") });
@@ -156,6 +155,25 @@ it("smtp connects to the address that was checked, with the certificate checked 
   expect(transports[1]).not.toHaveProperty("tls");
 });
 
+it("port 465 connects with ssl and 587 with starttls, on a send and on the test", async () => {
+  await sendNotificationEmail(email, { ...smtp(PUBLIC_MAIL), smtpPort: 465 });
+  await sendNotificationEmail(email, smtp(PUBLIC_MAIL));
+  expect(
+    await testSmtpAction({
+      smtpHost: PUBLIC_MAIL,
+      smtpPort: "465",
+      smtpUser: "",
+      smtpPass: null,
+      sendTo: "someone@heycapy.test",
+    })
+  ).toEqual({ ok: true });
+  expect(transports.map((t) => [t.port, t.secure])).toEqual([
+    [465, true],
+    [587, false],
+    [465, true],
+  ]);
+});
+
 it("saving an ntfy url or smtp host on our own network is refused", async () => {
   const settings = await db.query.userSettings.findFirst({
     where: eq(userSettings.userId, session.userId),
@@ -165,7 +183,6 @@ it("saving an ntfy url or smtp host on our own network is refused", async () => 
     ...settings,
     aiKeyEdits: {},
     smtpPass: null,
-    smtpSecure: settings.smtpSecure ?? false,
     transcriptionKeyEdit: { newKey: null, clear: false },
   };
   fakeDns.set("my-app.internal", [{ address: "fdaa:0:1:a7b::2", family: 6 }]);

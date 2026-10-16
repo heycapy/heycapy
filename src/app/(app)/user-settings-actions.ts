@@ -81,7 +81,6 @@ type UserSettingsUpdate = {
   smtpPort: number | null;
   smtpUser: string | null;
   smtpPass: string | null;
-  smtpSecure: boolean;
   smtpFrom: string | null;
   quietHoursFrom: string | null;
   quietHoursTo: string | null;
@@ -247,7 +246,6 @@ export async function updateUserSettingsAction(
       smtpPort: data.smtpPort || null,
       smtpUser: data.smtpUser || null,
       ...(data.smtpPass ? { smtpPass: encryptValue(data.smtpPass) } : {}),
-      smtpSecure: data.smtpSecure,
       smtpFrom: data.smtpFrom || null,
       quietHoursFrom: data.quietHoursFrom,
       quietHoursTo: data.quietHoursTo,
@@ -441,7 +439,6 @@ export async function testSmtpAction(config: {
   smtpPort: string;
   smtpUser: string;
   smtpPass: string | null; // null = use saved encrypted value from DB
-  smtpSecure: boolean;
   sendTo: string;
 }): Promise<ActionResult> {
   const session = await getSession();
@@ -478,7 +475,6 @@ export async function testSmtpAction(config: {
         smtpPort: parsedPort && !isNaN(parsedPort) ? parsedPort : null,
         smtpUser: config.smtpUser || null,
         smtpPass,
-        smtpSecure: config.smtpSecure,
         smtpFrom: config.smtpUser || null,
       }
     );

@@ -1,7 +1,7 @@
 import { isIP } from "node:net";
 import { APP_EMAIL_FROM } from "@/constants";
 import { publicAddress } from "./public-address";
-import { NO_NOTIFICATION_SMTP_ERROR } from "./constants";
+import { NO_NOTIFICATION_SMTP_ERROR, SMTP_DEFAULT_PORT, SMTP_SSL_PORT } from "./constants";
 
 export type EmailPayload = {
   to: string;
@@ -16,7 +16,6 @@ export type UserEmailConfig = {
   smtpPort?: number | null;
   smtpUser?: string | null;
   smtpPass?: string | null;
-  smtpSecure?: boolean | null;
   smtpFrom?: string | null;
 };
 
@@ -47,8 +46,8 @@ async function sendViaSmtp(
   }
 ): Promise<void> {
   const nodemailer = await import("nodemailer");
-  const port = opts?.port ?? parseInt(process.env.SMTP_PORT ?? "587");
-  const secure = opts?.secure ?? (process.env.SMTP_SECURE === "true" || port === 465);
+  const port = opts?.port ?? parseInt(process.env.SMTP_PORT ?? String(SMTP_DEFAULT_PORT));
+  const secure = opts?.secure ?? (process.env.SMTP_SECURE === "true" || port === SMTP_SSL_PORT);
   const user = opts?.user ?? process.env.SMTP_USER;
   const pass = opts?.pass ?? process.env.SMTP_PASS;
   const from =
@@ -95,12 +94,14 @@ export async function sendNotificationEmail(
 ): Promise<void> {
   if (userConfig?.emailProvider === "smtp" && userConfig.smtpHost) {
     const host = userConfig.smtpHost;
+    const port = userConfig.smtpPort ?? SMTP_DEFAULT_PORT;
     const pinned = await publicAddress(host);
     await sendViaSmtp(payload, pinned?.address ?? host, {
-      port: userConfig.smtpPort,
+      port,
       user: userConfig.smtpUser,
       pass: userConfig.smtpPass,
-      secure: userConfig.smtpSecure,
+      // tweaks only asks for the port, ssl follows from it like the hint there says
+      secure: port === SMTP_SSL_PORT,
       from: userConfig.smtpFrom,
       // connecting by the checked address, so the certificate is still checked against the name
       ...(pinned && !isIP(host) && { servername: host }),

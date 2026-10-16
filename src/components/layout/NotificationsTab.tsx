@@ -24,7 +24,6 @@ type NotificationsTabProps = {
   smtpPass: string;
   setSmtpPass: (v: string) => void;
   smtpPassSaved: boolean;
-  smtpSecure: boolean;
   notificationsPush: boolean;
   setNotificationsPush: (v: boolean) => void;
   ntfyUrl: string;
@@ -58,7 +57,6 @@ export function NotificationsTab({
   smtpPass,
   setSmtpPass,
   smtpPassSaved,
-  smtpSecure,
   notificationsPush,
   setNotificationsPush,
   ntfyUrl,
@@ -210,7 +208,6 @@ export function NotificationsTab({
         smtpPort={smtpPort}
         smtpUser={smtpUser}
         smtpPass={smtpPass || null}
-        smtpSecure={smtpSecure}
       />
     </div>
   );
