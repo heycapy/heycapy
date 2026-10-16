@@ -10,6 +10,7 @@ import {
 import type { ReminderBadge } from "@/lib/reminders/status";
 import type { items } from "@/lib/db/schema";
 import { useUIStore } from "@/store/ui";
+import { deadlineValue } from "@/lib/time";
 import { offerUndoDelete } from "./undoDelete";
 
 type Item = typeof items.$inferSelect;
@@ -59,7 +60,7 @@ export function useBucketItems(bucketId: number, itemsRules: string, showComplet
     await updateItemAction(
       item.id,
       item.title,
-      item.deadline ? item.deadline.toISOString() : null,
+      item.deadline ? deadlineValue(item.deadline, item.deadlineTimezone) : null,
       status
     );
     await refetch();

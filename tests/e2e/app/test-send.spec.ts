@@ -21,7 +21,7 @@ async function openNtfySettings(page: Page): Promise<Locator> {
 
 test("ntfy send test is disabled until a server url and topic are entered", async ({ page }) => {
   const ntfy = await openNtfySettings(page);
-  const sendTest = ntfy.getByRole("button", { name: "[send test]" });
+  const sendTest = ntfy.getByRole("button", { name: "[ send test ]" });
   const [url, topic] = ntfyInputs(ntfy);
 
   await url.fill("");
@@ -39,7 +39,7 @@ test("ntfy send test confirms the send", async ({ page }) => {
   await url.fill("https://ntfy.example.com");
   await topic.fill("capy-test");
 
-  await ntfy.getByRole("button", { name: "[send test]" }).click();
+  await ntfy.getByRole("button", { name: "[ send test ]" }).click();
   await expect(ntfy.getByRole("status")).toHaveText("sent ✓ — check that it arrived");
 });
 
@@ -49,7 +49,7 @@ test("ntfy send test reports an invalid server url", async ({ page }) => {
   await url.fill("ftp://ntfy.example.com");
   await topic.fill("capy-test");
 
-  await ntfy.getByRole("button", { name: "[send test]" }).click();
+  await ntfy.getByRole("button", { name: "[ send test ]" }).click();
   await expect(ntfy.getByRole("status")).toHaveText(
     "server url must start with http:// or https://"
   );

@@ -51,7 +51,8 @@ export const EMAIL_COLORS = {
 // External API base URLs
 export const TELEGRAM_API_BASE = "https://api.telegram.org";
 export const TELEGRAM_LINK_BASE = "https://t.me";
-export const USELESS_FACTS_API_URL = "https://uselessfacts.jsph.pl/api/v2/facts/random?language=en";
+export const ON_THIS_DAY_API_BASE = "https://en.wikipedia.org/api/rest_v1/feed/onthisday/selected";
+export const ON_THIS_DAY_TIMEOUT_MS = 3000;
 // Per AI call; the SDKs give up at the same time, so a rate limit shows as itself, not as a timeout
 export const AI_REQUEST_TIMEOUT_MS = 30_000;
 export const OLLAMA_REQUEST_TIMEOUT_MS = 120_000;
@@ -150,6 +151,16 @@ export function isClosedStatus(status: string): boolean {
   return CLOSED_ITEM_STATUSES.includes(status);
 }
 
+export type BetaFeature = "sharing";
+// Features shown with a [beta] tag; take one out to drop its tags everywhere
+export const BETA_FEATURES: readonly BetaFeature[] = ["sharing"];
+
+// Sent by /api/events when a connection opens, carrying the server's NEXT_DEPLOYMENT_ID
+export const SERVER_VERSION_EVENT = "version";
+
+// The words capy's tools take for an assignee besides a member's name
+export const CAPY_ASSIGNEE = { me: "me", anyone: "anyone" } as const;
+
 export const WEBHOOK_KEY_PREFIX = "hc_live_";
 // Telegram command limit
 export const TELEGRAM_ALIAS_MAX_LENGTH = 32;
@@ -168,6 +179,8 @@ export const TELEGRAM_RESERVED_COMMANDS = [
 ] as const;
 
 // Item / bucket field limits
+// Shown in the item dialog: someone else deleted the item, or the owner removed this person
+export const ITEM_GONE_ERROR = "this item was deleted, or you're no longer in its bucket";
 export const ITEM_TITLE_MAX_LENGTH = 500;
 export const BUCKET_NAME_MAX_LENGTH = 100;
 export const DUPLICATE_BUCKET_NAME_ERROR = "A bucket with this name already exists.";
@@ -226,6 +239,17 @@ export const OUTGOING_TIMEOUT_MS = 15_000;
 export const ADMIN_DIGEST_MAX_ERRORS = 30;
 export const STACK_LINES_IN_ALERT = 12;
 export const TELEGRAM_MESSAGE_MAX = 4000;
+
+export const FEEDBACK_SUBJECT = "feedback from heycapy";
+export const FEEDBACK_MAX_LENGTH = 1000;
+export const FEEDBACK_PAGE_MAX_LENGTH = 300;
+// The longest address email allows (RFC 5321)
+export const FEEDBACK_EMAIL_MAX_LENGTH = 254;
+export const FEEDBACK_LIMIT_WINDOW_MS = 60 * 60 * 1000;
+export const FEEDBACK_LIMIT_PER_USER = 5;
+export const FEEDBACK_LIMIT_PER_IP = 5;
+// The site form needs no account, so a sender changing IPs is still stopped here
+export const FEEDBACK_LIMIT_SITE_TOTAL = 30;
 
 export const MOBILE_MEDIA_QUERY = "(max-width: 639px)";
 export const BOTTOM_BAR_MEDIA_QUERY = "(max-width: 767px)";

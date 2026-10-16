@@ -1,4 +1,4 @@
-import { ItemsRules, NotificationRules } from "@/types/rules";
+import { ItemsRules, MemberChannels, NotificationRules } from "@/types/rules";
 import { QUICK_REMIND_VALUES, type QuickRemindChoice } from "@/lib/notifications/constants";
 
 function parseJson(raw: string | null | undefined): Record<string, unknown> {
@@ -15,11 +15,9 @@ export function parseNotificationRules(raw: string | null | undefined): Notifica
   return parsed.success ? parsed.data : NotificationRules.parse({});
 }
 
-export type BucketChannels = Pick<NotificationRules, "medium" | "webhooks">;
-
-export function bucketChannels(raw: string | null | undefined): BucketChannels {
-  const { medium, webhooks } = parseNotificationRules(raw);
-  return { medium, webhooks };
+export function memberChannels(raw: string | null | undefined): MemberChannels {
+  const parsed = MemberChannels.safeParse(parseJson(raw));
+  return parsed.success ? parsed.data : MemberChannels.parse({});
 }
 
 export function bucketReminderButtons(raw: string | null | undefined): QuickRemindChoice[] {

@@ -1,11 +1,32 @@
 import type { Tool } from "./types";
-import { SETTABLE_ITEM_STATUSES, WEEKDAY_NAMES } from "@/constants";
+import { CAPY_ASSIGNEE, SETTABLE_ITEM_STATUSES, WEEKDAY_NAMES } from "@/constants";
 import { MAX_REMINDER_OFFSET_MINS, MAX_REMINDERS_PER_ITEM } from "@/lib/reminders/constants";
 
 const ITEM_RESULT =
   "Each item comes with everything the item form shows: its custom field values (properties, " +
   "keyed by the bucket's field keys), repeat (recurring), reminders (reminderOffsets, minutes before " +
-  "the deadline; null = the bucket's default reminders) and status. ";
+  "the deadline; null = the bucket's default reminders) and status. " +
+  "assignedTo is who it's for in a shared bucket (null = anyone in it). deadlineOtherClock is the " +
+  "same deadline on the clock of whoever it's assigned to, or the one it was set on, when that " +
+  "isn't the user's clock. ";
+
+const ASSIGNEE_PROPERTIES = {
+  assignee: {
+    type: ["string", "null"],
+    description:
+      `Shared buckets only: who the item is for, by a name from the bucket's members, '${CAPY_ASSIGNEE.me}' ` +
+      `for the user, or '${CAPY_ASSIGNEE.anyone}' (or null) for everyone in it. Only that person is ` +
+      "reminded; for anyone, every member is. A deadline for someone else is read on their clock: " +
+      "'remind Sam at 9am' is 9am for Sam.",
+  },
+  deadline_on_my_clock: {
+    type: "boolean",
+    description:
+      "Only with a deadline for an item assigned to someone else: true when the time is on the " +
+      "user's clock (they say 'my time', or you worked it out from the item's deadline field, " +
+      "which is in the user's time), so it isn't read on the other person's.",
+  },
+};
 
 const REPEAT_PROPERTIES = {
   recurring_frequency: {
@@ -173,6 +194,7 @@ export const ITEM_AND_BUCKET_TOOLS: Tool[] = [
             "Keys must match the field keys in the bucket's fieldSchema. " +
             "Only provide this if the user mentions specific field values or you know the bucket has custom fields.",
         },
+        ...ASSIGNEE_PROPERTIES,
       },
       required: ["bucket_id", "title"],
     },
@@ -180,7 +202,8 @@ export const ITEM_AND_BUCKET_TOOLS: Tool[] = [
   {
     name: "update_item",
     description:
-      "Update an existing item's title, deadline, reminders, or repeat. " +
+      "Update an existing item's title, deadline, reminders, repeat, or who it's assigned to. " +
+      "Changing only the assignee keeps the deadline where it is; leave deadline out then. " +
       "Only include fields you want to change — omitted fields are left as-is, including each repeat field " +
       "(e.g. only recurring_interval: 2 makes a monthly item every 2 months). " +
       "Changing recurring_frequency drops the old weekdays / last-day choice. " +
@@ -234,6 +257,7 @@ export const ITEM_AND_BUCKET_TOOLS: Tool[] = [
             "Custom field values to change, as field key-value pairs; fields left out keep their value. " +
             "Pass null to clear all of them.",
         },
+        ...ASSIGNEE_PROPERTIES,
       },
       required: ["item_id"],
     },

@@ -1,9 +1,15 @@
-import { and, asc, eq, isNotNull, isNull, like, lt, notInArray, sql } from "drizzle-orm";
+import { and, asc, eq, inArray, isNotNull, isNull, like, lt, notInArray, sql } from "drizzle-orm";
 import { CLOSED_ITEM_STATUSES, SEARCH_RESULTS_MAX, TODAY_FETCH_AHEAD_DAYS } from "@/constants";
 import { db } from "@/lib/db";
 import { buckets, items } from "@/lib/db/schema";
+import { memberBucketIds } from "@/lib/buckets/access";
 import { inLiveBucket } from "@/lib/buckets/live";
-import { getReminderBadges, type ReminderBadge } from "@/lib/reminders/status";
+import {
+  getReminderBadges,
+  withViewerReminders,
+  type ListItem,
+  type ReminderBadge,
+} from "@/lib/reminders/status";
 import { parseItemsRules, parseNotificationRules } from "@/lib/rules";
 
 type Item = typeof items.$inferSelect;
@@ -19,16 +25,17 @@ export type ItemBucket = {
 };
 
 export type CrossBucketItems = {
-  items: Item[];
+  items: ListItem[];
   buckets: ItemBucket[];
   reminderBadges: Record<number, ReminderBadge>;
 };
 
-async function withBuckets(userId: number, rows: Item[]): Promise<CrossBucketItems> {
+async function withBuckets(userId: number, found: Item[]): Promise<CrossBucketItems> {
+  const rows = await withViewerReminders(userId, found);
   const all = await db
     .select()
     .from(buckets)
-    .where(and(eq(buckets.userId, userId), inLiveBucket))
+    .where(and(inArray(buckets.id, memberBucketIds(userId)), inLiveBucket))
     .orderBy(asc(buckets.sortOrder), asc(buckets.createdAt));
   const used = new Set(rows.map((i) => i.bucketId));
   const badges: Record<number, ReminderBadge> = {};
@@ -37,7 +44,7 @@ async function withBuckets(userId: number, rows: Item[]): Promise<CrossBucketIte
       badges,
       await getReminderBadges(
         userId,
-        bucket.notificationsRules,
+        bucket.id,
         rows.filter((i) => i.bucketId === bucket.id)
       )
     );
@@ -71,7 +78,7 @@ export async function listToday(userId: number, now = new Date()): Promise<Cross
     .innerJoin(buckets, eq(buckets.id, items.bucketId))
     .where(
       and(
-        eq(items.userId, userId),
+        inArray(items.bucketId, memberBucketIds(userId)),
         isNull(items.deletedAt),
         inLiveBucket,
         isNotNull(items.deadline),
@@ -96,7 +103,7 @@ export async function searchItems(userId: number, query: string): Promise<CrossB
     .innerJoin(buckets, eq(buckets.id, items.bucketId))
     .where(
       and(
-        eq(items.userId, userId),
+        inArray(items.bucketId, memberBucketIds(userId)),
         isNull(items.deletedAt),
         inLiveBucket,
         notInArray(items.status, [...CLOSED_ITEM_STATUSES]),

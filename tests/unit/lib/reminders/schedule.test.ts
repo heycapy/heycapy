@@ -24,8 +24,10 @@ function inputs(
     notifyWhenOverdue: false,
     overdueRepeatHours: undefined,
     timezone: "America/New_York",
+    channels: { medium: ["telegram"], webhooks: [] },
+    sharedWebhooks: [],
     ...rest,
-    rules: NotificationRules.parse({ medium: ["telegram"], ...rules }),
+    rules: NotificationRules.parse({ ...rules }),
   };
 }
 
@@ -59,8 +61,17 @@ describe("nextDeadlineReminder", () => {
     expect(nextOverdueAlert(inputs({ bucketLive: false, notifyWhenOverdue: true }))).toBeNull();
   });
 
-  it("sends nothing when the bucket has no channels", () => {
-    expect(nextDeadlineReminder(inputs({ rules: { medium: [] } }))).toBeNull();
+  it("sends nothing when the person picked no channels", () => {
+    const none = { medium: [], webhooks: [] };
+    expect(nextDeadlineReminder(inputs({ channels: none }))).toBeNull();
+    expect(
+      nextDeadlineReminder(inputs({ channels: { medium: [], webhooks: [4] } }))
+    ).not.toBeNull();
+  });
+
+  it("still reminds an assignee with no channels when the owner's webhooks post the bucket", () => {
+    const none = { medium: [], webhooks: [] };
+    expect(nextDeadlineReminder(inputs({ channels: none, sharedWebhooks: [4] }))).not.toBeNull();
   });
 
   it("'once' stops after the first reminder", () => {
@@ -200,8 +211,9 @@ describe("nextOverdueAlert", () => {
     expect(nextOverdueAlert(inputs())).toBeNull();
   });
 
-  it("is off when the bucket has no channels", () => {
-    expect(nextOverdueAlert(inputs({ notifyWhenOverdue: true, rules: { medium: [] } }))).toBeNull();
+  it("is off when the person picked no channels", () => {
+    const none = { medium: [], webhooks: [] };
+    expect(nextOverdueAlert(inputs({ notifyWhenOverdue: true, channels: none }))).toBeNull();
   });
 
   it("first fires an hour after the deadline", () => {
@@ -274,5 +286,25 @@ describe("your own quiet hours", () => {
     expect(iso(nextDeadlineReminder(inputs({ userQuietHours: null })))).toBe(
       "2026-06-10T13:00:00.000Z"
     );
+  });
+});
+
+describe("an all-day item set in India", () => {
+  const oct26India = new Date("2026-10-25T18:30:00Z");
+  const allDay = (timezone: string) =>
+    inputs({
+      deadline: oct26India,
+      deadlineTimezone: "Asia/Kolkata",
+      timezone,
+      rules: { notifyAt: "09:00" },
+    });
+
+  it("reminds each recipient at 09:00 on that date on their own clock, after the UK clock change", () => {
+    expect(iso(nextDeadlineReminder(allDay("Asia/Kolkata")))).toBe("2026-10-26T03:30:00.000Z");
+    expect(iso(nextDeadlineReminder(allDay("Europe/London")))).toBe("2026-10-26T09:00:00.000Z");
+  });
+
+  it("stays all day for someone who moved to another timezone after setting it", () => {
+    expect(iso(nextDeadlineReminder(allDay("America/New_York")))).toBe("2026-10-26T13:00:00.000Z");
   });
 });

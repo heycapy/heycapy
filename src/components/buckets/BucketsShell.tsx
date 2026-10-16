@@ -15,13 +15,10 @@ import { useLayoutStore } from "@/store/layout";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { parseItemsRules } from "@/lib/rules";
 import { BOTTOM_BAR_MEDIA_QUERY } from "@/constants";
-import { saveTimezoneIfDefaultAction } from "@/app/(app)/user-settings-actions";
-import type { buckets } from "@/lib/db/schema";
-
-type BucketRow = typeof buckets.$inferSelect;
+import type { ViewerBucket } from "@/lib/buckets/access";
 
 type BucketsShellProps = {
-  buckets: BucketRow[];
+  buckets: ViewerBucket[];
   focusBucketId?: number | null;
 };
 
@@ -70,7 +67,7 @@ export function BucketsShell({ buckets: rawBuckets, focusBucketId = null }: Buck
     () => useUIStore.persist.hasHydrated(),
     () => false
   );
-  const prevBucketsRef = useRef<BucketRow[]>(buckets);
+  const prevBucketsRef = useRef<ViewerBucket[]>(buckets);
   const [pickerOpen, setPickerOpen] = useState(false);
   const addItemRef = useRef<(() => void) | null>(null);
   const hasBottomBar = useMediaQuery(BOTTOM_BAR_MEDIA_QUERY);
@@ -79,11 +76,6 @@ export function BucketsShell({ buckets: rawBuckets, focusBucketId = null }: Buck
     setBottomBarShown(true);
     return () => setBottomBarShown(false);
   }, [setBottomBarShown]);
-
-  useEffect(() => {
-    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    void saveTimezoneIfDefaultAction(tz);
-  }, []);
 
   useEffect(() => {
     if (focusBucketId === null) return;

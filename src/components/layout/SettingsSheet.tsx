@@ -1,11 +1,9 @@
 import { useEffect, useState, useTransition } from "react";
 import { useScrollLock } from "@/hooks/useScrollLock";
 import { useTheme } from "next-themes";
-import { motion, AnimatePresence } from "framer-motion";
-import { cn } from "@/lib/utils";
-import { BracketButton } from "@/components/ui/BracketButton";
 import {
   checkAIKeyAction,
+  saveAvatarAction,
   getUserSettingsAction,
   updateUserSettingsAction,
   disconnectTelegramAction,
@@ -14,17 +12,15 @@ import { useUIStore } from "@/store/ui";
 import { useAIStatus } from "@/hooks/useAIStatus";
 import { AppearanceTab, NotificationsTab, AITab, PersonalityTab } from "./SettingsTabs";
 import { AccountTab } from "./AccountTab";
+import { SettingsTabBar } from "./SettingsTabBar";
+import { SettingsFrame } from "./SettingsFrame";
+import type { AvatarDraft } from "@/components/avatar/AvatarEditor";
 import { CreditsTab } from "./CreditsTab";
 import { SystemTab } from "./SystemTab";
 import { useAISettings } from "./useAISettings";
 import type { QuietHours } from "./QuietHoursSettings";
 import { CloseWarning, SaveBar, useUnsavedChanges } from "./UnsavedChanges";
-import {
-  ACCENT_BUTTONS,
-  DEFAULT_QUIET_FROM,
-  DEFAULT_QUIET_TO,
-  type UserTone,
-} from "./settings-constants";
+import { DEFAULT_QUIET_FROM, DEFAULT_QUIET_TO, type UserTone } from "./settings-constants";
 import type { userSettings } from "@/lib/db/schema";
 
 type Settings = typeof userSettings.$inferSelect;
@@ -63,6 +59,7 @@ export function SettingsSheet({ open, initialTab, onClose }: SettingsSheetProps)
   const [notificationsEmail, setNotificationsEmail] = useState(true);
   const [notificationEmailTo, setNotificationEmailTo] = useState("");
   const [userEmail, setUserEmail] = useState("");
+  const [username, setUsername] = useState<string | null>(null);
   const [adminUser, setAdminUser] = useState(false);
   const [smtpHost, setSmtpHost] = useState("");
   const [smtpPort, setSmtpPort] = useState("");
@@ -85,6 +82,7 @@ export function SettingsSheet({ open, initialTab, onClose }: SettingsSheetProps)
   const [reloads, setReloads] = useState(0);
   const [wasOpen, setWasOpen] = useState(open);
   const [confirmClose, setConfirmClose] = useState(false);
+  const [avatarDraft, setAvatarDraft] = useState<AvatarDraft>(null);
   const unsaved = useUnsavedChanges(loaded ? JSON.stringify(formValues()) : null);
   const resetUnsaved = unsaved.reset;
 
@@ -126,6 +124,7 @@ export function SettingsSheet({ open, initialTab, onClose }: SettingsSheetProps)
       setError("");
       setLoaded(false);
       resetUnsaved();
+      setAvatarDraft(null);
       setConfirmClose(false);
       setTelegramBotConfigured(false);
       getUserSettingsAction().then((result) => {
@@ -133,6 +132,7 @@ export function SettingsSheet({ open, initialTab, onClose }: SettingsSheetProps)
           populate(result.settings);
           populateAI(result.settings, result.hosted, result.aiKeys, result.transcriptionKey);
           setUserEmail(result.userEmail);
+          setUsername(result.username);
           setAdminUser(result.isAdmin);
           setSmtpPassSaved(result.smtpPassSaved);
           setTelegramBotConfigured(result.telegramBotConfigured);
@@ -194,7 +194,7 @@ export function SettingsSheet({ open, initialTab, onClose }: SettingsSheetProps)
   }
 
   function requestClose() {
-    if (unsaved.dirty) setConfirmClose(true);
+    if (unsaved.dirty || avatarDraft) setConfirmClose(true);
     else onClose();
   }
 
@@ -213,148 +213,108 @@ export function SettingsSheet({ open, initialTab, onClose }: SettingsSheetProps)
         return;
       }
       if (result.aiChanged) void checkAIKeyAction().then(tickAiRefresh);
+      if (avatarDraft) {
+        const avatarResult = await saveAvatarAction(avatarDraft.avatar);
+        if (!avatarResult.ok) {
+          setError(avatarResult.error);
+          setConfirmClose(false);
+          return;
+        }
+      }
       onClose();
     });
   }
 
-  const tabBtn = (t: SettingsTab) =>
-    cn(
-      "font-mono text-xs px-2 py-1.5 whitespace-nowrap transition-colors shrink-0",
-      tab === t ? "bg-foreground text-background" : "text-primary hover:text-foreground"
-    );
-
   return (
-    <AnimatePresence>
-      {open && (
-        <>
-          <motion.div
-            key="backdrop"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 0.45 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.15 }}
-            className="fixed inset-0 z-[55] bg-black"
-            onClick={requestClose}
-          />
-          <motion.aside
-            key="sheet"
-            initial={{ x: "100%" }}
-            animate={{ x: 0 }}
-            exit={{ x: "100%" }}
-            transition={{ duration: 0.2, ease: "easeInOut" }}
-            className={cn(
-              "bg-background border-border fixed top-0 right-0 z-[60] flex h-full w-full flex-col border-l-2 sm:w-80",
-              ACCENT_BUTTONS
-            )}
-            style={{ boxShadow: "-4px 0 0 var(--border)" }}
-          >
-            <div className="bg-foreground text-background flex items-center justify-between px-3 py-1.5">
-              <span className="font-pixel text-xs">tweaks</span>
-              <BracketButton variant="inverted" onClick={requestClose}>
-                x
-              </BracketButton>
-            </div>
+    <SettingsFrame open={open} onRequestClose={requestClose}>
+      <SettingsTabBar tab={tab} hasCredits={hasCredits} adminUser={adminUser} onTab={setTab} />
 
-            <div className="border-border flex flex-wrap gap-0.5 border-b px-2 py-1">
-              {(
-                [
-                  "appearance",
-                  "ai",
-                  ...(hasCredits ? ["credits"] : []),
-                  "notifications",
-                  "personality",
-                  "account",
-                  ...(adminUser ? ["system"] : []),
-                ] as SettingsTab[]
-              ).map((t) => (
-                <button key={t} onClick={() => setTab(t)} className={tabBtn(t)}>
-                  {t}
-                </button>
-              ))}
-            </div>
-
-            <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-4 py-4">
-              {!loaded ? (
-                <p className="text-muted-foreground font-mono text-xs">loading...</p>
-              ) : (
-                <>
-                  {tab === "appearance" && (
-                    <AppearanceTab
-                      theme={theme}
-                      setTheme={setTheme}
-                      timezone={timezone}
-                      setTimezone={setTimezone}
-                      pending={pending}
-                    />
-                  )}
-                  {tab === "notifications" && (
-                    <NotificationsTab
-                      notificationsEmail={notificationsEmail}
-                      setNotificationsEmail={setNotificationsEmail}
-                      notificationEmailTo={notificationEmailTo}
-                      setNotificationEmailTo={setNotificationEmailTo}
-                      userEmail={userEmail}
-                      smtpHost={smtpHost}
-                      setSmtpHost={setSmtpHost}
-                      smtpPort={smtpPort}
-                      setSmtpPort={setSmtpPort}
-                      smtpUser={smtpUser}
-                      setSmtpUser={setSmtpUser}
-                      smtpPass={smtpPass}
-                      setSmtpPass={setSmtpPass}
-                      smtpPassSaved={smtpPassSaved}
-                      smtpSecure={smtpSecure}
-                      notificationsPush={notificationsPush}
-                      setNotificationsPush={setNotificationsPush}
-                      ntfyUrl={ntfyUrl}
-                      setNtfyUrl={setNtfyUrl}
-                      ntfyTopic={ntfyTopic}
-                      setNtfyTopic={setNtfyTopic}
-                      notificationsTelegram={notificationsTelegram}
-                      setNotificationsTelegram={setNotificationsTelegram}
-                      telegramChatId={telegramChatId}
-                      telegramBotConfigured={telegramBotConfigured}
-                      onDisconnectTelegram={handleDisconnectTelegram}
-                      onRecheckTelegram={handleRecheckTelegram}
-                      telegramActionPending={telegramActionPending}
-                      quietHours={quietHours}
-                      setQuietHours={setQuietHours}
-                      pending={pending}
-                    />
-                  )}
-                  {tab === "ai" && <AITab ai={ai} pending={pending} />}
-                  {tab === "credits" && hasCredits && <CreditsTab />}
-                  {tab === "personality" && (
-                    <PersonalityTab
-                      personalityName={personalityName}
-                      setPersonalityName={setPersonalityName}
-                      personalityTone={personalityTone}
-                      setPersonalityTone={setPersonalityTone}
-                      personalityCustomPrompt={personalityCustomPrompt}
-                      setPersonalityCustomPrompt={setPersonalityCustomPrompt}
-                      personalityEmoji={personalityEmoji}
-                      setPersonalityEmoji={setPersonalityEmoji}
-                      pending={pending}
-                    />
-                  )}
-                  {tab === "account" && <AccountTab email={userEmail} />}
-                  {tab === "system" && adminUser && <SystemTab />}
-                  {error && <span className="text-destructive font-mono text-xs">{error}</span>}
-                </>
-              )}
-            </div>
-            {unsaved.dirty && <SaveBar pending={pending} onSave={handleSave} onDiscard={discard} />}
-            {confirmClose && (
-              <CloseWarning
+      <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-4 py-4">
+        {!loaded ? (
+          <p className="text-muted-foreground font-mono text-xs">loading...</p>
+        ) : (
+          <>
+            {tab === "appearance" && (
+              <AppearanceTab
+                theme={theme}
+                setTheme={setTheme}
+                timezone={timezone}
+                setTimezone={setTimezone}
                 pending={pending}
-                onSave={handleSave}
-                onDiscard={onClose}
-                onKeepEditing={() => setConfirmClose(false)}
               />
             )}
-          </motion.aside>
-        </>
+            {tab === "notifications" && (
+              <NotificationsTab
+                notificationsEmail={notificationsEmail}
+                setNotificationsEmail={setNotificationsEmail}
+                notificationEmailTo={notificationEmailTo}
+                setNotificationEmailTo={setNotificationEmailTo}
+                userEmail={userEmail}
+                smtpHost={smtpHost}
+                setSmtpHost={setSmtpHost}
+                smtpPort={smtpPort}
+                setSmtpPort={setSmtpPort}
+                smtpUser={smtpUser}
+                setSmtpUser={setSmtpUser}
+                smtpPass={smtpPass}
+                setSmtpPass={setSmtpPass}
+                smtpPassSaved={smtpPassSaved}
+                smtpSecure={smtpSecure}
+                notificationsPush={notificationsPush}
+                setNotificationsPush={setNotificationsPush}
+                ntfyUrl={ntfyUrl}
+                setNtfyUrl={setNtfyUrl}
+                ntfyTopic={ntfyTopic}
+                setNtfyTopic={setNtfyTopic}
+                notificationsTelegram={notificationsTelegram}
+                setNotificationsTelegram={setNotificationsTelegram}
+                telegramChatId={telegramChatId}
+                telegramBotConfigured={telegramBotConfigured}
+                onDisconnectTelegram={handleDisconnectTelegram}
+                onRecheckTelegram={handleRecheckTelegram}
+                telegramActionPending={telegramActionPending}
+                quietHours={quietHours}
+                setQuietHours={setQuietHours}
+                pending={pending}
+              />
+            )}
+            {tab === "ai" && <AITab ai={ai} pending={pending} />}
+            {tab === "credits" && hasCredits && <CreditsTab />}
+            {tab === "personality" && (
+              <PersonalityTab
+                personalityName={personalityName}
+                setPersonalityName={setPersonalityName}
+                personalityTone={personalityTone}
+                setPersonalityTone={setPersonalityTone}
+                personalityCustomPrompt={personalityCustomPrompt}
+                setPersonalityCustomPrompt={setPersonalityCustomPrompt}
+                personalityEmoji={personalityEmoji}
+                setPersonalityEmoji={setPersonalityEmoji}
+                pending={pending}
+              />
+            )}
+            {tab === "account" && (
+              <AccountTab
+                email={userEmail}
+                username={username}
+                avatarDraft={avatarDraft}
+                onAvatarDraft={setAvatarDraft}
+              />
+            )}
+            {tab === "system" && adminUser && <SystemTab />}
+            {error && <span className="text-destructive font-mono text-xs">{error}</span>}
+          </>
+        )}
+      </div>
+      {unsaved.dirty && <SaveBar pending={pending} onSave={handleSave} onDiscard={discard} />}
+      {confirmClose && (
+        <CloseWarning
+          pending={pending}
+          onSave={handleSave}
+          onDiscard={onClose}
+          onKeepEditing={() => setConfirmClose(false)}
+        />
       )}
-    </AnimatePresence>
+    </SettingsFrame>
   );
 }

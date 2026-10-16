@@ -1,10 +1,10 @@
 import { isClosedStatus } from "@/constants";
 import type { items } from "@/lib/db/schema";
 
-type Item = Pick<
-  typeof items.$inferSelect,
-  "status" | "remindNotBefore" | "nextReminderAt" | "nextOverdueAt"
->;
+type Item = Pick<typeof items.$inferSelect, "status" | "remindNotBefore"> & {
+  nextReminderAt?: Date | null;
+  nextOverdueAt?: Date | null;
+};
 
 export function pendingRemindAgainAt(item: Item, now: Date): Date | null {
   if (isClosedStatus(item.status) || !item.remindNotBefore) return null;

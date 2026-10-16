@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { BracketButton } from "@/components/ui/BracketButton";
 import { Toggle } from "@/components/ui/Toggle";
 import { LABEL, INPUT, SECTION, BOX } from "./settings-constants";
 import { NtfySettings } from "./NtfySettings";
@@ -166,14 +167,14 @@ export function NotificationsTab({
           </p>
         </div>
 
-        <button
+        <BracketButton
           type="button"
           onClick={() => setTestDialogOpen(true)}
           disabled={pending || !smtpHost}
-          className="text-muted-foreground hover:text-foreground self-start font-mono text-xs disabled:opacity-40"
+          className="self-start"
         >
-          [send test email]
-        </button>
+          send test email
+        </BracketButton>
       </div>
 
       <PushSettings pending={pending} />

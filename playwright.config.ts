@@ -1,6 +1,11 @@
 import { mkdirSync } from "node:fs";
 import { defineConfig, devices } from "@playwright/test";
-import { E2E_DATABASE_FILE, E2E_JWT_SECRET, E2E_SERVER_OLLAMA_PORT } from "./tests/e2e/helpers/env";
+import {
+  E2E_DATABASE_FILE,
+  E2E_DEPLOYMENT_ID,
+  E2E_JWT_SECRET,
+  E2E_SERVER_OLLAMA_PORT,
+} from "./tests/e2e/helpers/env";
 
 // Not 3000, so tests can run alongside `pnpm dev`
 const E2E_PORT = 3100;
@@ -48,7 +53,7 @@ export default defineConfig({
       : []),
   ],
   webServer: {
-    command: `pnpm build && cp -r public .next/standalone/ && cp -r .next/static .next/standalone/.next/ && cp -r src/lib/db/migrations .next/standalone/migrations && DATABASE_URL=file:$PWD/${E2E_DATABASE_FILE} node .next/standalone/server.js`,
+    command: `pnpm build && cp -r public .next/standalone/ && cp -r .next/static .next/standalone/.next/ && cp -r src/lib/db/migrations .next/standalone/migrations && NODE_OPTIONS=--require=$PWD/tests/e2e/helpers/fake-dns.cjs DATABASE_URL=file:$PWD/${E2E_DATABASE_FILE} node .next/standalone/server.js`,
     url: BASE_URL,
     // Dummy keys override .env: channels count as configured, and nothing reaches real services.
     // The build copies a local .env into the server but CI has none, so secrets are set here too
@@ -58,6 +63,7 @@ export default defineConfig({
       JWT_SECRET: E2E_JWT_SECRET,
       ENCRYPTION_KEY: "e2e0".repeat(16),
       RESEND_API_KEY: "e2e-not-used",
+      FEEDBACK_EMAIL: "e2e-feedback@heycapy.test",
       TELEGRAM_BOT_TOKEN: "e2e-not-used",
       ADMIN_EMAILS: "e2e-system@heycapy.test",
       HOSTED: "true",
@@ -66,6 +72,8 @@ export default defineConfig({
       GEMINI_API_KEY: "e2e-not-used",
       OLLAMA_URL: `http://127.0.0.1:${E2E_SERVER_OLLAMA_PORT}`,
       PORT: String(E2E_PORT),
+
+      NEXT_DEPLOYMENT_ID: E2E_DEPLOYMENT_ID,
     },
     reuseExistingServer: !process.env.CI,
     timeout: 120000,

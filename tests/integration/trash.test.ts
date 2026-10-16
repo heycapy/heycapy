@@ -18,6 +18,7 @@ import {
   seedItem,
   seedUser,
   useSchedulerEnvironment,
+  reminderOf,
 } from "./helpers";
 
 const T0 = new Date("2026-03-10T12:00:00Z");
@@ -47,7 +48,7 @@ describe("restoring an item", () => {
     expect(await restoreItem(userId, itemId, T0)).toBe(true);
     const item = await db.query.items.findFirst({ where: eq(items.id, itemId) });
     expect(item?.deletedAt).toBeNull();
-    expect(item?.nextReminderAt).toEqual(new Date(T0.getTime() + DAY));
+    expect((await reminderOf(itemId)).nextReminderAt).toEqual(new Date(T0.getTime() + DAY));
   });
 
   it("doesn't send a late 'due now' when its date passed while in the trash", async () => {
@@ -83,12 +84,20 @@ describe("the trash list", () => {
     await trashItem(loose);
     await trashItem(inside);
     await trashBucket(gone);
-    await trashItem(await seedItem(await seedUser(), kept, { deadline: T0 }));
+    const leftBehind = await seedItem(await seedUser(), kept, {
+      deadline: T0,
+      title: "left by someone who left",
+    });
+    await trashItem(leftBehind);
+    const stranger = await seedUser();
+    const theirBucket = await seedBucket(stranger);
+    await trashItem(await seedItem(stranger, theirBucket, { deadline: T0, title: "not mine" }));
 
     const trash = await listTrash(userId);
     expect(trash.buckets).toMatchObject([{ id: gone, itemCount: 2 }]);
     expect(trash.items.map((i) => [i.title, i.bucketInTrash]).sort()).toEqual([
       ["inside", true],
+      ["left by someone who left", false],
       ["pay rent", false],
     ]);
   });

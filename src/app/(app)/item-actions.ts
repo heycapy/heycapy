@@ -7,43 +7,46 @@ import { and, asc, eq, isNull, sql } from "drizzle-orm";
 import { requireSession } from "./action-helpers";
 import { db } from "@/lib/db";
 import { items } from "@/lib/db/schema";
-import { ITEM_STATUS, ITEM_TITLE_MAX_LENGTH } from "@/constants";
+import { findAccessibleBucket, findAccessibleItem, isBucketMember } from "@/lib/buckets/access";
+import { ITEM_GONE_ERROR, ITEM_STATUS, ITEM_TITLE_MAX_LENGTH } from "@/constants";
 import { RecurringConfig, ReminderOffsets } from "@/types/rules";
-import { parseLocalDateTime } from "@/lib/reminders/zoned";
 import { initialReminderState, reminderResetForDeadline } from "@/lib/items/reminders";
-import { refreshItemReminders, reminderContext } from "@/lib/reminders/refresh";
+import {
+  lastNotifiedAt,
+  refreshItemReminders,
+  reminderContext,
+  userTimezone,
+} from "@/lib/reminders/refresh";
+import { resolveDeadline } from "@/lib/items/deadline";
+import { isKnownTimezone } from "@/lib/timezones/valid";
 import { createNextOccurrence, moveOccurrence, skipOccurrence } from "@/lib/items/recurrence";
 import { onLastDayIfAnchored, parseRecurring } from "@/lib/items/occurrence";
 import { cancelRemindAgain } from "@/lib/reminders/quick-actions";
 import { toggleItemCompleted } from "@/lib/items/complete";
-import { dataEvents } from "@/lib/events";
+import { bucketsChanged, dataEvents } from "@/lib/events";
 import {
   getItemReminderInfo,
   getReminderBadges,
+  withViewerReminders,
   type ItemReminderInfo,
+  type ListItem,
   type ReminderBadge,
 } from "@/lib/reminders/status";
 
 export async function getItemsForBucketAction(bucketId: number): Promise<
   ActionResult<{
-    items: (typeof items.$inferSelect)[];
+    items: ListItem[];
     reminderBadges: Record<number, ReminderBadge>;
   }>
 > {
   const session = await requireSession();
 
-  const bucket = await db.query.buckets.findFirst({
-    where: (b, { eq: qeq, and: qand }) => qand(qeq(b.id, bucketId), qeq(b.userId, session.userId)),
-  });
+  const bucket = await findAccessibleBucket(session.userId, bucketId);
   if (!bucket) return { ok: false, error: "Bucket not found" };
 
   const sortBy = parseItemsRules(bucket.itemsRules).sortBy ?? "manual";
 
-  const condition = and(
-    eq(items.bucketId, bucketId),
-    eq(items.userId, session.userId),
-    isNull(items.deletedAt)
-  );
+  const condition = and(eq(items.bucketId, bucketId), isNull(items.deletedAt));
 
   const result =
     sortBy === "deadline"
@@ -69,8 +72,9 @@ export async function getItemsForBucketAction(bucketId: number): Promise<
             .where(condition)
             .orderBy(asc(items.sortOrder), asc(items.createdAt), asc(items.id));
 
-  const reminderBadges = await getReminderBadges(session.userId, bucket.notificationsRules, result);
-  return { ok: true, items: result, reminderBadges };
+  const viewed = await withViewerReminders(session.userId, result);
+  const reminderBadges = await getReminderBadges(session.userId, bucket.id, viewed);
+  return { ok: true, items: viewed, reminderBadges };
 }
 
 export async function getItemReminderInfoAction(itemId: number): Promise<ItemReminderInfo | null> {
@@ -88,6 +92,9 @@ export async function cancelRemindAgainAction(itemId: number): Promise<ActionRes
   return { ok: true };
 }
 
+const NOT_A_MEMBER_ERROR = "That person isn't in this bucket";
+const UNKNOWN_CLOCK_ERROR = "That timezone doesn't exist";
+
 export async function addItemAction(
   bucketId: number,
   title: string,
@@ -95,7 +102,9 @@ export async function addItemAction(
   status?: string,
   recurring?: RecurringConfig | null,
   properties?: Record<string, unknown> | null,
-  reminders?: number[] | null
+  reminders?: number[] | null,
+  assigneeId?: number | null,
+  clock?: string | null
 ): Promise<ActionResult> {
   const session = await requireSession();
 
@@ -109,25 +118,24 @@ export async function addItemAction(
   if (parsedReminders && !parsedReminders.success) {
     return { ok: false, error: "Invalid reminders" };
   }
+  if (clock && !isKnownTimezone(clock)) return { ok: false, error: UNKNOWN_CLOCK_ERROR };
 
-  const bucket = await db.query.buckets.findFirst({
-    where: (b, { eq: qeq, and: qand }) => qand(qeq(b.id, bucketId), qeq(b.userId, session.userId)),
-  });
+  const bucket = await findAccessibleBucket(session.userId, bucketId);
   if (!bucket) return { ok: false, error: "Bucket not found" };
+  if (assigneeId && !(await isBucketMember(assigneeId, bucketId))) {
+    return { ok: false, error: NOT_A_MEMBER_ERROR };
+  }
 
   const [maxRow] = await db
     .select({ max: sql<number>`COALESCE(MAX(${items.sortOrder}), -1)` })
     .from(items)
     .where(eq(items.bucketId, bucketId));
 
-  const ctx = await reminderContext(bucketId);
-  const parsedDeadline = deadline
-    ? onLastDayIfAnchored(
-        parseLocalDateTime(deadline, ctx.timezone),
-        recurring ?? null,
-        ctx.timezone
-      )
-    : null;
+  const due = resolveDeadline(deadline, clock ?? (await userTimezone(session.userId)));
+  const parsedDeadline =
+    due.deadline && due.deadlineTimezone
+      ? onLastDayIfAnchored(due.deadline, recurring ?? null, due.deadlineTimezone)
+      : null;
   const [created] = await db
     .insert(items)
     .values({
@@ -135,12 +143,14 @@ export async function addItemAction(
       userId: session.userId,
       title: trimmed,
       deadline: parsedDeadline,
-      ...initialReminderState(parsedDeadline, ctx.timezone),
+      deadlineTimezone: due.deadlineTimezone,
+      ...initialReminderState(parsedDeadline, due.deadlineTimezone ?? "UTC"),
       status: status ?? ITEM_STATUS.active,
       sortOrder: maxRow.max + 1,
       recurring: recurring?.enabled ? JSON.stringify(recurring) : null,
       properties: properties ? JSON.stringify(properties) : null,
       reminderOffsets: parsedReminders?.data ?? null,
+      assigneeId: assigneeId ?? null,
     })
     .returning({ id: items.id });
   if (created) await refreshItemReminders([created.id]);
@@ -165,7 +175,9 @@ export async function updateItemAction(
   status?: string,
   recurring?: RecurringConfig | null,
   properties?: Record<string, unknown> | null,
-  reminders?: number[] | null
+  reminders?: number[] | null,
+  assigneeId?: number | null,
+  clock?: string | null
 ): Promise<ActionResult> {
   const session = await requireSession();
 
@@ -179,11 +191,13 @@ export async function updateItemAction(
   if (parsedReminders && !parsedReminders.success) {
     return { ok: false, error: "Invalid reminders" };
   }
+  if (clock && !isKnownTimezone(clock)) return { ok: false, error: UNKNOWN_CLOCK_ERROR };
 
-  const item = await db.query.items.findFirst({
-    where: (i, { eq: qeq, and: qand }) => qand(qeq(i.id, itemId), qeq(i.userId, session.userId)),
-  });
-  if (!item) return { ok: false, error: "Item not found" };
+  const item = await findAccessibleItem(session.userId, itemId);
+  if (!item) return { ok: false, error: ITEM_GONE_ERROR };
+  if (assigneeId && !(await isBucketMember(assigneeId, item.bucketId))) {
+    return { ok: false, error: NOT_A_MEMBER_ERROR };
+  }
 
   const ctx = await reminderContext(item.bucketId);
   const savedRecurring =
@@ -192,14 +206,15 @@ export async function updateItemAction(
       : recurring?.enabled
         ? keepAnchor(recurring, item.recurring)
         : null;
-  const parsedDeadline = deadline ? parseLocalDateTime(deadline, ctx.timezone) : null;
+  const due = resolveDeadline(deadline, clock ?? (await userTimezone(session.userId)), item);
+  const parsedDeadline = due.deadline;
   const keepsMovedDate =
     !!item.scheduledAt &&
     !!savedRecurring &&
     parsedDeadline?.getTime() === item.deadline?.getTime();
   const newDeadline =
-    parsedDeadline && !keepsMovedDate
-      ? onLastDayIfAnchored(parsedDeadline, savedRecurring, ctx.timezone)
+    parsedDeadline && due.deadlineTimezone && !keepsMovedDate
+      ? onLastDayIfAnchored(parsedDeadline, savedRecurring, due.deadlineTimezone)
       : parsedDeadline;
   const statusChanged = status !== undefined && status !== item.status;
 
@@ -213,8 +228,15 @@ export async function updateItemAction(
     .set({
       title: trimmed,
       deadline: newDeadline,
+      deadlineTimezone: due.deadlineTimezone,
       ...(!keepsMovedDate && { scheduledAt: null }),
-      ...reminderResetForDeadline(item, newDeadline, ctx),
+      ...reminderResetForDeadline(
+        { ...item, notifiedAt: await lastNotifiedAt(item.id) },
+        newDeadline,
+        ctx,
+        new Date(),
+        due.deadlineTimezone ?? undefined
+      ),
       ...(status !== undefined && { status }),
       ...(nowCompleted && { completedAt: new Date() }),
       ...(nowUncompleted && { completedAt: null }),
@@ -225,9 +247,10 @@ export async function updateItemAction(
         properties: properties ? JSON.stringify(properties) : null,
       }),
       ...(reminders !== undefined && { reminderOffsets: parsedReminders?.data ?? null }),
+      ...(assigneeId !== undefined && { assigneeId }),
       updatedAt: new Date(),
     })
-    .where(and(eq(items.id, itemId), eq(items.userId, session.userId)));
+    .where(eq(items.id, itemId));
   await refreshItemReminders([itemId]);
   if (nowCompleted) await createNextOccurrence(itemId);
 
@@ -245,17 +268,19 @@ export async function skipOccurrenceAction(itemId: number): Promise<ActionResult
 export async function moveItemAction(itemId: number, deadline: string): Promise<ActionResult> {
   const session = await requireSession();
 
-  const item = await db.query.items.findFirst({
-    where: (i, { eq: qeq, and: qand }) => qand(qeq(i.id, itemId), qeq(i.userId, session.userId)),
-    columns: { bucketId: true },
-  });
-  if (!item) return { ok: false, error: "Item not found" };
+  const item = await findAccessibleItem(session.userId, itemId);
+  if (!item) return { ok: false, error: ITEM_GONE_ERROR };
 
-  const ctx = await reminderContext(item.bucketId);
-  const parsed = parseLocalDateTime(deadline, ctx.timezone);
-  if (isNaN(parsed.getTime())) return { ok: false, error: "Invalid date" };
+  const due = resolveDeadline(deadline, await userTimezone(session.userId), item);
+  if (!due.deadline || isNaN(due.deadline.getTime())) return { ok: false, error: "Invalid date" };
 
-  const result = await moveOccurrence(session.userId, itemId, parsed);
+  const result = await moveOccurrence(
+    session.userId,
+    itemId,
+    due.deadline,
+    new Date(),
+    due.deadlineTimezone ?? undefined
+  );
   if (!result.ok) return result;
   revalidatePath("/");
   return { ok: true };
@@ -264,10 +289,8 @@ export async function moveItemAction(itemId: number, deadline: string): Promise<
 export async function completeItemAction(itemId: number): Promise<ActionResult> {
   const session = await requireSession();
 
-  const item = await db.query.items.findFirst({
-    where: (i, { eq: qeq, and: qand }) => qand(qeq(i.id, itemId), qeq(i.userId, session.userId)),
-  });
-  if (!item) return { ok: false, error: "Item not found" };
+  const item = await findAccessibleItem(session.userId, itemId);
+  if (!item) return { ok: false, error: ITEM_GONE_ERROR };
 
   await toggleItemCompleted(item);
 
@@ -281,9 +304,7 @@ export async function reorderItemsAction(
 ): Promise<ActionResult> {
   const session = await requireSession();
 
-  const bucket = await db.query.buckets.findFirst({
-    where: (b, { eq: qeq, and: qand }) => qand(qeq(b.id, bucketId), qeq(b.userId, session.userId)),
-  });
+  const bucket = await findAccessibleBucket(session.userId, bucketId);
   if (!bucket) return { ok: false, error: "Bucket not found" };
 
   await Promise.all(
@@ -291,9 +312,10 @@ export async function reorderItemsAction(
       db
         .update(items)
         .set({ sortOrder: i })
-        .where(and(eq(items.id, id), eq(items.userId, session.userId)))
+        .where(and(eq(items.id, id), eq(items.bucketId, bucketId)))
     )
   );
+  bucketsChanged([bucketId]);
 
   revalidatePath("/");
   return { ok: true };
@@ -302,15 +324,13 @@ export async function reorderItemsAction(
 export async function deleteItemAction(itemId: number): Promise<ActionResult> {
   const session = await requireSession();
 
-  const item = await db.query.items.findFirst({
-    where: (i, { eq: qeq, and: qand }) => qand(qeq(i.id, itemId), qeq(i.userId, session.userId)),
-  });
-  if (!item) return { ok: false, error: "Item not found" };
+  const item = await findAccessibleItem(session.userId, itemId);
+  if (!item) return { ok: false, error: ITEM_GONE_ERROR };
 
   await db
     .update(items)
-    .set({ deletedAt: new Date() })
-    .where(and(eq(items.id, itemId), eq(items.userId, session.userId)));
+    .set({ deletedAt: new Date(), deletedBy: session.userId })
+    .where(eq(items.id, itemId));
   await refreshItemReminders([itemId]);
 
   revalidatePath("/");

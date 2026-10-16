@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { buckets, items } from "@/lib/db/schema";
+import { buckets } from "@/lib/db/schema";
 import { executeToolCall } from "@/lib/ai/capyTools";
 import {
   resetSchedulerEnvironment,
@@ -9,6 +9,7 @@ import {
   seedItem,
   seedUser,
   useSchedulerEnvironment,
+  reminderOf,
 } from "./helpers";
 
 const QUIET = { from: "22:00", to: "07:00" };
@@ -104,8 +105,7 @@ describe("update_bucket_settings", () => {
       default_reminders_mins: [1440],
     });
 
-    const item = await db.query.items.findFirst({ where: eq(items.id, itemId) });
-    expect(item?.nextReminderAt).toEqual(new Date("2026-03-12T15:00:00Z"));
+    expect((await reminderOf(itemId)).nextReminderAt).toEqual(new Date("2026-03-12T15:00:00Z"));
   });
 
   it("turns on overdue alerts with a first alert delay", async () => {

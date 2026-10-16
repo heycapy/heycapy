@@ -6,18 +6,23 @@ import { BucketSettingsForm, type SettingsTab } from "./BucketSettingsForm";
 import { SchemaEditorDialog } from "./SchemaEditorDialog";
 import { TelegramConfigDialog } from "./TelegramConfigDialog";
 import { WebhookDialog } from "./WebhookDialog";
-import type { buckets } from "@/lib/db/schema";
-
-type BucketRow = typeof buckets.$inferSelect;
+import type { ViewerBucket } from "@/lib/buckets/access";
 
 type BucketSettingsProps = {
   open: boolean;
-  bucket: BucketRow;
+  bucket: ViewerBucket;
+  clocksDiffer: boolean;
   onClose: () => void;
   initialTab?: SettingsTab;
 };
 
-export function BucketSettings({ open, bucket, onClose, initialTab }: BucketSettingsProps) {
+export function BucketSettings({
+  open,
+  bucket,
+  clocksDiffer,
+  onClose,
+  initialTab,
+}: BucketSettingsProps) {
   useScrollLock(open);
   const [schemaOpen, setSchemaOpen] = useState(false);
   const [telegramOpen, setTelegramOpen] = useState(false);
@@ -48,6 +53,7 @@ export function BucketSettings({ open, bucket, onClose, initialTab }: BucketSett
             >
               <BucketSettingsForm
                 bucket={bucket}
+                clocksDiffer={clocksDiffer}
                 onClose={onClose}
                 initialTab={initialTab}
                 onOpenSchema={() => setSchemaOpen(true)}

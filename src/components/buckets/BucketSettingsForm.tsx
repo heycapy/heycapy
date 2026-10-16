@@ -1,31 +1,40 @@
+import { ACCENT_BUTTONS } from "@/components/layout/settings-constants";
 import { useEffect, useId, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { cn } from "@/lib/utils";
+import { cn, toggled } from "@/lib/utils";
 import { charCountColor } from "@/components/ui/input";
 import { BracketButton } from "@/components/ui/BracketButton";
-import { BucketRulesPanel } from "./BucketRulesPanel";
-import type { NotifAvailability } from "./BucketRulesPanel";
+import { BetaTag } from "@/components/ui/BetaTag";
+import { BucketRulesFields } from "./BucketRulesFields";
+import { ViewOnlyNotice } from "./ViewOnlyNotice";
+import { MyChannelsPicker, type NotifAvailability } from "./MyChannelsPicker";
 import { parseBucketSettings, type BucketSettingsValues } from "./parseBucketSettings";
 import { parseDurationToDays } from "@/lib/duration";
 import {
   updateBucketSettingsAction,
+  updateMyChannelsAction,
   archiveBucketAction,
   deleteBucketAction,
   getNotifAvailabilityAction,
 } from "@/app/(app)/actions";
 import { BUCKET_NAME_MAX_LENGTH } from "@/constants";
-import type { buckets } from "@/lib/db/schema";
+import type { ViewerBucket } from "@/lib/buckets/access";
+import { memberChannels } from "@/lib/rules";
+import type { MemberChannels } from "@/types/rules";
+import { BucketMembersPanel } from "./BucketMembersPanel";
 
-type BucketRow = typeof buckets.$inferSelect;
-export type SettingsTab = "items" | "notifications" | "advanced";
+export type SettingsTab = "items" | "notifications" | "advanced" | "members";
 
-const TABS: SettingsTab[] = ["items", "notifications", "advanced"];
+const OWNER_TABS: SettingsTab[] = ["items", "notifications", "advanced", "members"];
+// A member sees the bucket's rules but changes only where their own reminders go
+const MEMBER_TABS: SettingsTab[] = ["items", "notifications", "members"];
 
 const tabCn = (active: boolean) =>
-  `font-mono text-xs px-2 py-1 transition-colors shrink-0 whitespace-nowrap ${active ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"}`;
+  `font-mono text-xs px-2 py-1 transition-colors shrink-0 whitespace-nowrap ${active ? "bg-foreground text-background" : "text-primary hover:text-foreground"}`;
 
 type BucketSettingsFormProps = {
-  bucket: BucketRow;
+  bucket: ViewerBucket;
+  clocksDiffer: boolean;
   onClose: () => void;
   onOpenSchema: () => void;
   onOpenTelegram: () => void;
@@ -36,6 +45,7 @@ type BucketSettingsFormProps = {
 // Mounted fresh on every open, so the form always starts from the saved settings
 export function BucketSettingsForm({
   bucket,
+  clocksDiffer,
   onClose,
   onOpenSchema,
   onOpenTelegram,
@@ -44,8 +54,10 @@ export function BucketSettingsForm({
 }: BucketSettingsFormProps) {
   const router = useRouter();
   const nameId = useId();
-  const [tab, setTab] = useState<SettingsTab>(initialTab);
+  const tabs = bucket.isOwner ? OWNER_TABS : MEMBER_TABS;
+  const [tab, setTab] = useState<SettingsTab>(tabs.includes(initialTab) ? initialTab : tabs[0]);
   const [values, setValues] = useState<BucketSettingsValues>(() => parseBucketSettings(bucket));
+  const [channels, setChannels] = useState<MemberChannels>(() => memberChannels(bucket.myChannels));
   const [error, setError] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [notifAvailability, setNotifAvailability] = useState<NotifAvailability>();
@@ -69,32 +81,33 @@ export function BucketSettingsForm({
     if (pending) return;
     setError("");
     startTransition(async () => {
-      const result = await updateBucketSettingsAction(
-        bucket.id,
-        values.name,
-        {
-          sortBy: values.sortBy,
-          drag: values.drag,
-          readonly: values.readonly,
-          showCompleted: values.showCompleted,
-          recurrenceMode: values.recurrenceMode,
-          defaultDeadlineOffsetDays: parseDurationToDays(values.defaultDeadlineOffset),
-        },
-        {
-          medium: values.mediums,
-          webhooks: values.webhooks,
-          reminderButtons: values.reminderButtons,
-          notifyAt: values.notifyAt || undefined,
-          defaultReminders: values.defaultReminders,
-          repeat: values.repeat,
-        },
-        {
-          notifyOnArrival: values.notifyOnArrival,
-          notifyWhenOverdue: values.notifyWhenOverdue,
-          overdueRepeatHours: values.overdueRepeatHours,
-          overdueFirstAlertMins: values.overdueFirstAlertMins,
-        }
-      );
+      const result = !bucket.isOwner
+        ? await updateMyChannelsAction(bucket.id, channels)
+        : await updateBucketSettingsAction(
+            bucket.id,
+            values.name,
+            {
+              sortBy: values.sortBy,
+              drag: values.drag,
+              readonly: values.readonly,
+              showCompleted: values.showCompleted,
+              recurrenceMode: values.recurrenceMode,
+              defaultDeadlineOffsetDays: parseDurationToDays(values.defaultDeadlineOffset),
+            },
+            {
+              reminderButtons: values.reminderButtons,
+              notifyAt: values.notifyAt || undefined,
+              defaultReminders: values.defaultReminders,
+              repeat: values.repeat,
+            },
+            {
+              notifyOnArrival: values.notifyOnArrival,
+              notifyWhenOverdue: values.notifyWhenOverdue,
+              overdueRepeatHours: values.overdueRepeatHours,
+              overdueFirstAlertMins: values.overdueFirstAlertMins,
+            },
+            channels
+          );
       if (result.ok) onClose();
       else setError(result.error);
     });
@@ -118,10 +131,15 @@ export function BucketSettingsForm({
     });
   }
 
-  const showSave = tab === "items" || tab === "notifications";
+  const showSave = tab === "notifications" || (bucket.isOwner && tab === "items");
 
   return (
-    <div className="border-border bg-background flex max-h-[85vh] flex-col overflow-hidden border-2">
+    <div
+      className={cn(
+        "border-border bg-background flex max-h-[85vh] flex-col overflow-hidden border-2",
+        ACCENT_BUTTONS
+      )}
+    >
       <div className="bg-foreground text-background flex shrink-0 items-center justify-between gap-2 px-3 py-1.5">
         <span className="font-pixel min-w-0 truncate text-xs">bucket settings [{bucket.name}]</span>
         <BracketButton variant="inverted" onClick={onClose}>
@@ -130,103 +148,75 @@ export function BucketSettingsForm({
       </div>
 
       <div className="flex shrink-0 flex-col gap-4 px-4 pt-4 pb-0">
-        <div className="flex flex-col gap-1.5">
-          <label htmlFor={nameId} className="text-muted-foreground font-mono text-xs">
-            name
-          </label>
-          <input
-            id={nameId}
-            type="text"
-            value={values.name}
-            onChange={(e) => set("name", e.target.value)}
-            maxLength={BUCKET_NAME_MAX_LENGTH}
-            disabled={pending}
-            className="border-border focus:border-foreground w-full border-b bg-transparent py-1.5 font-mono text-xs outline-none disabled:opacity-50"
-          />
-          {values.name.length > 0 && (
-            <p
-              className={cn(
-                "text-right font-mono text-[11px] transition-colors",
-                charCountColor(values.name.length, BUCKET_NAME_MAX_LENGTH)
-              )}
-            >
-              {values.name.length}/{BUCKET_NAME_MAX_LENGTH}
-            </p>
-          )}
-          {error && <span className="text-destructive font-mono text-xs">{error}</span>}
-        </div>
+        {bucket.isOwner && (
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor={nameId} className="text-muted-foreground font-mono text-xs">
+              name
+            </label>
+            <input
+              id={nameId}
+              type="text"
+              value={values.name}
+              onChange={(e) => set("name", e.target.value)}
+              maxLength={BUCKET_NAME_MAX_LENGTH}
+              disabled={pending}
+              className="border-border focus:border-foreground w-full border-b bg-transparent py-1.5 font-mono text-xs outline-none disabled:opacity-50"
+            />
+            {values.name.length > 0 && (
+              <p
+                className={cn(
+                  "text-right font-mono text-[11px] transition-colors",
+                  charCountColor(values.name.length, BUCKET_NAME_MAX_LENGTH)
+                )}
+              >
+                {values.name.length}/{BUCKET_NAME_MAX_LENGTH}
+              </p>
+            )}
+            {error && <span className="text-destructive font-mono text-xs">{error}</span>}
+          </div>
+        )}
         <div className="border-border flex overflow-x-auto border-b">
-          {TABS.map((t) => (
+          {tabs.map((t) => (
             <button key={t} onClick={() => setTab(t)} className={tabCn(tab === t)}>
               {t}
+              {/* the tab row is just wide enough for the four names on a phone */}
+              {t === "members" && <BetaTag feature="sharing" className="hidden sm:inline" />}
             </button>
           ))}
         </div>
       </div>
 
       <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-4 py-4">
-        {(tab === "items" || tab === "notifications") && (
-          <BucketRulesPanel
-            activeTab={tab}
-            disabled={pending}
-            sortBy={values.sortBy}
-            drag={values.drag}
-            showCompleted={values.showCompleted}
-            recurrenceMode={values.recurrenceMode}
-            readonly={values.readonly}
-            defaultDeadlineOffset={values.defaultDeadlineOffset}
-            mediums={values.mediums}
-            webhooks={values.webhooks}
-            reminderButtons={values.reminderButtons}
-            notifyAt={values.notifyAt}
-            defaultReminders={values.defaultReminders}
-            repeat={values.repeat}
-            notifyOnArrival={values.notifyOnArrival}
-            notifyWhenOverdue={values.notifyWhenOverdue}
-            overdueRepeatHours={values.overdueRepeatHours}
-            overdueFirstAlertMins={values.overdueFirstAlertMins}
-            onSortByChange={(v) => set("sortBy", v)}
-            onDragChange={(v) => set("drag", v)}
-            onShowCompletedChange={(v) => set("showCompleted", v)}
-            onRecurrenceModeChange={(v) => set("recurrenceMode", v)}
-            onReadonlyChange={(v) => set("readonly", v)}
-            onDefaultDeadlineOffsetChange={(v) => set("defaultDeadlineOffset", v)}
+        {!bucket.isOwner && (tab === "items" || tab === "notifications") && (
+          <ViewOnlyNotice tab={tab} />
+        )}
+
+        {tab === "notifications" && (
+          <MyChannelsPicker
+            mediums={channels.medium}
+            webhooks={channels.webhooks}
             onMediumToggle={(m) =>
-              setValues((prev) => ({
-                ...prev,
-                mediums: prev.mediums.includes(m)
-                  ? prev.mediums.filter((x) => x !== m)
-                  : [...prev.mediums, m],
-              }))
+              setChannels((prev) => ({ ...prev, medium: toggled(prev.medium, m) }))
             }
             onWebhookToggle={(id) =>
-              setValues((prev) => ({
-                ...prev,
-                webhooks: prev.webhooks.includes(id)
-                  ? prev.webhooks.filter((x) => x !== id)
-                  : [...prev.webhooks, id],
-              }))
+              setChannels((prev) => ({ ...prev, webhooks: toggled(prev.webhooks, id) }))
             }
-            onReminderButtonToggle={(b) =>
-              setValues((prev) => ({
-                ...prev,
-                reminderButtons: prev.reminderButtons.includes(b)
-                  ? prev.reminderButtons.filter((x) => x !== b)
-                  : [...prev.reminderButtons, b],
-              }))
-            }
-            onNotifyAtChange={(v) => set("notifyAt", v)}
-            onDefaultRemindersChange={(v) => set("defaultReminders", v)}
-            onRepeatChange={(v) => set("repeat", v)}
-            onNotifyOnArrivalChange={(v) => set("notifyOnArrival", v)}
-            onNotifyWhenOverdueChange={(v) => set("notifyWhenOverdue", v)}
-            onOverdueRepeatHoursChange={(v) => set("overdueRepeatHours", v)}
-            onOverdueFirstAlertMinsChange={(v) => set("overdueFirstAlertMins", v)}
             notifAvailability={notifAvailability}
           />
         )}
 
-        {tab === "notifications" && (
+        {(tab === "items" || tab === "notifications") && (
+          <BucketRulesFields
+            activeTab={tab}
+            values={values}
+            setValues={setValues}
+            clocksDiffer={clocksDiffer}
+            disabled={pending}
+            locked={!bucket.isOwner}
+          />
+        )}
+
+        {bucket.isOwner && tab === "notifications" && (
           <div className="border-border flex flex-col gap-1.5 border-t pt-4">
             <p className="text-muted-foreground font-mono text-xs">telegram bot</p>
             <p className="text-muted-foreground font-mono text-[11px] leading-tight">
@@ -237,6 +227,8 @@ export function BucketSettingsForm({
             </BracketButton>
           </div>
         )}
+
+        {tab === "members" && <BucketMembersPanel bucket={bucket} onLeft={onClose} />}
 
         {tab === "advanced" && (
           <div className="flex flex-col gap-5">
@@ -300,7 +292,10 @@ export function BucketSettingsForm({
       </div>
 
       {showSave && (
-        <div className="border-border flex shrink-0 justify-end border-t px-3 py-2.5">
+        <div className="border-border flex shrink-0 items-center justify-end gap-3 border-t px-3 py-2.5">
+          {!bucket.isOwner && error && (
+            <span className="text-destructive mr-auto font-mono text-xs">{error}</span>
+          )}
           <BracketButton onClick={handleSave} disabled={!values.name.trim() || pending}>
             save
           </BracketButton>

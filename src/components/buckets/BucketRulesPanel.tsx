@@ -9,8 +9,8 @@ import { OptionGroup } from "@/components/ui/OptionGroup";
 import { TimePicker } from "@/components/ui/TimePicker";
 import { DurationInput } from "@/components/ui/DurationInput";
 import { ReminderPicker } from "./ReminderPicker";
-import type { SortBy, NotificationMedium, RepeatMode } from "./constants";
-import { SORT_OPTIONS, MEDIUM_OPTIONS, REPEAT_OPTIONS, RECURRENCE_MODE_OPTIONS } from "./constants";
+import type { SortBy, RepeatMode } from "./constants";
+import { SORT_OPTIONS, REPEAT_OPTIONS, RECURRENCE_MODE_OPTIONS } from "./constants";
 import type { RecurrenceMode } from "@/types/rules";
 import { OVERDUE_FIRST_ALERT_DEFAULT_MINS } from "@/lib/reminders/constants";
 
@@ -35,14 +35,6 @@ const OVERDUE_FIRST_ALERT_OPTIONS = [
   { value: 1440, label: "1 day" },
 ] as const;
 
-export type NotifAvailability = {
-  email: boolean;
-  ntfy: boolean;
-  telegram: boolean;
-  push: boolean;
-  webhooks: { id: number; name: string }[];
-};
-
 type BucketRulesPanelProps = {
   activeTab: "items" | "notifications";
   disabled?: boolean;
@@ -52,10 +44,9 @@ type BucketRulesPanelProps = {
   recurrenceMode: RecurrenceMode;
   readonly: boolean;
   defaultDeadlineOffset: string;
-  mediums: NotificationMedium[];
-  webhooks: number[];
   reminderButtons: QuickRemindChoice[];
   notifyAt: string;
+  clocksDiffer: boolean;
   defaultReminders: number[];
   repeat: RepeatMode;
   notifyOnArrival: boolean;
@@ -68,8 +59,6 @@ type BucketRulesPanelProps = {
   onRecurrenceModeChange: (v: RecurrenceMode) => void;
   onReadonlyChange: (v: boolean) => void;
   onDefaultDeadlineOffsetChange: (v: string) => void;
-  onMediumToggle: (m: NotificationMedium) => void;
-  onWebhookToggle: (id: number) => void;
   onReminderButtonToggle: (b: QuickRemindChoice) => void;
   onNotifyAtChange: (v: string) => void;
   onDefaultRemindersChange: (v: number[]) => void;
@@ -78,7 +67,6 @@ type BucketRulesPanelProps = {
   onNotifyWhenOverdueChange: (v: boolean) => void;
   onOverdueRepeatHoursChange: (v: number | undefined) => void;
   onOverdueFirstAlertMinsChange: (v: number) => void;
-  notifAvailability?: NotifAvailability;
 };
 
 export function BucketRulesPanel({
@@ -90,10 +78,9 @@ export function BucketRulesPanel({
   recurrenceMode,
   readonly,
   defaultDeadlineOffset,
-  mediums,
-  webhooks,
   reminderButtons,
   notifyAt,
+  clocksDiffer,
   defaultReminders,
   repeat,
   notifyOnArrival,
@@ -106,8 +93,6 @@ export function BucketRulesPanel({
   onRecurrenceModeChange,
   onReadonlyChange,
   onDefaultDeadlineOffsetChange,
-  onMediumToggle,
-  onWebhookToggle,
   onReminderButtonToggle,
   onNotifyAtChange,
   onDefaultRemindersChange,
@@ -116,7 +101,6 @@ export function BucketRulesPanel({
   onNotifyWhenOverdueChange,
   onOverdueRepeatHoursChange,
   onOverdueFirstAlertMinsChange,
-  notifAvailability,
 }: BucketRulesPanelProps) {
   if (activeTab === "items") {
     return (
@@ -173,58 +157,6 @@ export function BucketRulesPanel({
   return (
     <>
       <div className="flex flex-col gap-1.5">
-        <label className={LABEL}>channels</label>
-        <span className={HINT}>
-          where to send notifications for this bucket
-          {notifAvailability?.webhooks.length === 0 &&
-            " · add discord, slack or your own server in tweaks → notifications → other apps"}
-        </span>
-        <div className="flex flex-wrap gap-1.5">
-          {MEDIUM_OPTIONS.map((option) => (
-            <OptionButton
-              key={option.value}
-              active={mediums.includes(option.value)}
-              onClick={() => onMediumToggle(option.value)}
-            >
-              {option.label}
-            </OptionButton>
-          ))}
-          {notifAvailability?.webhooks.map((webhook) => (
-            <OptionButton
-              key={`webhook:${webhook.id}`}
-              active={webhooks.includes(webhook.id)}
-              onClick={() => onWebhookToggle(webhook.id)}
-            >
-              {webhook.name}
-            </OptionButton>
-          ))}
-        </div>
-        {notifAvailability && mediums.length > 0 && (
-          <div className="mt-0.5 flex flex-col gap-0.5">
-            {mediums.includes("email") && !notifAvailability.email && (
-              <span className="text-warning font-mono text-[11px]">
-                ⚠ email not configured — set up in tweaks
-              </span>
-            )}
-            {mediums.includes("ntfy") && !notifAvailability.ntfy && (
-              <span className="text-warning font-mono text-[11px]">
-                ⚠ ntfy not configured — add server url + topic in tweaks
-              </span>
-            )}
-            {mediums.includes("telegram") && !notifAvailability.telegram && (
-              <span className="text-warning font-mono text-[11px]">
-                ⚠ telegram not connected — set up in tweaks
-              </span>
-            )}
-            {mediums.includes("push") && !notifAvailability.push && (
-              <span className="text-warning font-mono text-[11px]">
-                ⚠ push is off on every device — turn it on in tweaks
-              </span>
-            )}
-          </div>
-        )}
-      </div>
-      <div className="flex flex-col gap-1.5">
         <label className={LABEL}>reminder buttons</label>
         <span className={HINT}>
           done is always there; pick when to be reminded again. push (android, desktop) shows done +
@@ -249,6 +181,7 @@ export function BucketRulesPanel({
         <label className={LABEL}>remind at</label>
         <span className={HINT}>
           the time of day for items without a time; this bucket also never reminds earlier than it
+          {clocksDiffer && " · each person gets this on their own clock"}
         </span>
         <TimePicker value={notifyAt} onChange={onNotifyAtChange} disabled={disabled} />
       </div>

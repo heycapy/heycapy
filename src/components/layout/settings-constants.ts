@@ -11,6 +11,10 @@ export const BOX = "border-border flex flex-col gap-3 border p-3";
 export const ACCENT_BUTTONS = [
   "[&_[data-variant=default]]:text-primary",
   "[&_[data-variant=default]:hover]:text-foreground",
+  "[&_[data-variant=destructive]]:text-primary",
+  "[&_[data-variant=destructive]:hover]:text-destructive",
+  "[&_[data-variant=warning]]:text-primary",
+  "[&_[data-variant=warning]:hover]:text-warning",
   "[&_button[aria-pressed=false]]:text-primary",
   "[&_button[aria-pressed=false]:hover]:text-foreground",
 ].join(" ");

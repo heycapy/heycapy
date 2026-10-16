@@ -1,15 +1,21 @@
 import { useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Archive, LogOut, SlidersHorizontal, Trash2 } from "lucide-react";
+import { Archive, LogOut, MessageSquare, SlidersHorizontal, Trash2, UserPlus } from "lucide-react";
+import { BetaTag } from "@/components/ui/BetaTag";
 import { BracketButton } from "@/components/ui/BracketButton";
 import { logoutAction, logoutEverywhereAction } from "@/app/(app)/actions";
 import { useScrollLock } from "@/hooks/useScrollLock";
+import { PersonAvatar } from "@/components/avatar/PersonAvatar";
 
 type HeaderProps = {
   email: string;
+  userId: number;
+  avatar: string | null;
   onSettingsOpen: () => void;
   onArchiveOpen: () => void;
   onTrashOpen: () => void;
+  onJoinOpen: () => void;
+  onFeedbackOpen: (() => void) | null;
 };
 
 function getGreeting() {
@@ -77,11 +83,15 @@ function GlobalMenu({
   onSettings,
   onArchive,
   onTrash,
+  onJoin,
+  onFeedback,
 }: {
   email: string;
   onSettings: () => void;
   onArchive: () => void;
   onTrash: () => void;
+  onJoin: () => void;
+  onFeedback: (() => void) | null;
 }) {
   const [open, setOpen] = useState(false);
   const [confirmLogout, setConfirmLogout] = useState<LogoutScope | null>(null);
@@ -143,6 +153,16 @@ function GlobalMenu({
                 tweaks
               </button>
               <button
+                onClick={() => pick(onJoin)}
+                className="text-foreground hover:bg-muted flex w-full items-center gap-2.5 px-3 py-2 font-mono text-xs transition-colors"
+              >
+                <UserPlus size={11} />
+                <span>
+                  join a bucket
+                  <BetaTag feature="sharing" />
+                </span>
+              </button>
+              <button
                 onClick={() => pick(onArchive)}
                 className="text-foreground hover:bg-muted flex w-full items-center gap-2.5 px-3 py-2 font-mono text-xs transition-colors"
               >
@@ -156,6 +176,15 @@ function GlobalMenu({
                 <Trash2 size={11} />
                 trash
               </button>
+              {onFeedback && (
+                <button
+                  onClick={() => pick(onFeedback)}
+                  className="text-foreground hover:bg-muted flex w-full items-center gap-2.5 px-3 py-2 font-mono text-xs transition-colors"
+                >
+                  <MessageSquare size={11} />
+                  feedback
+                </button>
+              )}
               <div className="border-border my-1 border-t" />
               <button
                 onClick={() => pick(() => setConfirmLogout("here"))}
@@ -179,15 +208,29 @@ function GlobalMenu({
   );
 }
 
-export function Header({ email, onSettingsOpen, onArchiveOpen, onTrashOpen }: HeaderProps) {
+export function Header({
+  email,
+  userId,
+  avatar,
+  onSettingsOpen,
+  onArchiveOpen,
+  onTrashOpen,
+  onJoinOpen,
+  onFeedbackOpen,
+}: HeaderProps) {
   const greeting = useMemo(() => getGreeting(), []);
   const date = useMemo(() => getDate(), []);
 
   return (
     <header className="flex items-center justify-between px-5 pt-6 pb-2">
-      <div>
-        <h1 className="font-pixel text-base leading-snug">{greeting}</h1>
-        <p className="text-muted-foreground mt-0.5 text-xs">{date}</p>
+      <div className="flex items-center gap-3">
+        <span role="img" aria-label="your avatar" className="flex">
+          <PersonAvatar userId={userId} avatar={avatar} size={32} />
+        </span>
+        <div>
+          <h1 className="font-pixel text-base leading-snug">{greeting}</h1>
+          <p className="text-muted-foreground mt-0.5 text-xs">{date}</p>
+        </div>
       </div>
 
       <GlobalMenu
@@ -195,6 +238,8 @@ export function Header({ email, onSettingsOpen, onArchiveOpen, onTrashOpen }: He
         onSettings={onSettingsOpen}
         onArchive={onArchiveOpen}
         onTrash={onTrashOpen}
+        onJoin={onJoinOpen}
+        onFeedback={onFeedbackOpen}
       />
     </header>
   );

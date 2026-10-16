@@ -1,6 +1,6 @@
 import { formatWhen } from "@/lib/format-date";
 import { CLOSED_ITEM_STATUSES } from "@/constants";
-import { and, eq, isNull, sql, notInArray } from "drizzle-orm";
+import { and, inArray, isNull, sql, notInArray } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { items } from "@/lib/db/schema";
 import { sendTelegramButtons, sendTelegramWithQuickActions } from "@/lib/notifications/telegram";
@@ -12,6 +12,7 @@ import {
   createItem,
 } from "./telegram-utils";
 import { dataEvents } from "@/lib/events";
+import { TELEGRAM_BUCKET_GONE } from "@/lib/notifications/constants";
 
 export async function cmdBuckets(
   botToken: string,
@@ -28,7 +29,10 @@ export async function cmdBuckets(
     .from(items)
     .where(
       and(
-        eq(items.userId, userId),
+        inArray(
+          items.bucketId,
+          rows.map((b) => b.id)
+        ),
         isNull(items.deletedAt),
         notInArray(items.status, CLOSED_ITEM_STATUSES as string[])
       )
@@ -71,7 +75,7 @@ export async function cmdAddDirect(
     if (!deadline)
       return `Couldn't parse deadline: "${deadlinePart}". Try "tomorrow", "next friday", "dec 25", or "in 3 days".`;
   }
-  await createItem(userId, bucket.id, title, deadline);
+  if (!(await createItem(userId, bucket.id, title, deadline))) return TELEGRAM_BUCKET_GONE;
   dataEvents.emit("refresh", userId);
   const note = deadline ? ` (due ${formatWhen(deadline, new Date(), timezone)})` : "";
   return `Added "${title}" to ${bucket.name}${note} ✓`;
@@ -80,7 +84,8 @@ export async function cmdAddDirect(
 export async function buildHelpText(userId: number): Promise<string> {
   const allBuckets = await getUserBuckets(userId);
   const aliases: string[] = [];
-  for (const b of allBuckets) {
+  // A joined bucket's shortcut is its owner's, not this person's
+  for (const b of allBuckets.filter((bucket) => bucket.isOwner)) {
     const cfg = await getBucketTelegramConfig(b.id);
     if (cfg.alias) aliases.push(`/${cfg.alias} — add to ${b.name}`);
   }
