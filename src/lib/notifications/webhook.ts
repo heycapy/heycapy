@@ -20,7 +20,7 @@ export function signWebhook(secret: string, id: string, timestamp: number, body:
   return `v1,${signature}`;
 }
 
-// id stays the same on every retry so receivers can drop repeats; the timestamp is per attempt
+// id stays the same on every retry so receivers can drop repeats, the timestamp is per attempt
 export async function sendWebhook(
   url: string,
   secret: string,

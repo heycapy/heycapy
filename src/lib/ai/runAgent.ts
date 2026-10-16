@@ -29,7 +29,7 @@ async function completeWithin(
   ]).finally(() => clearTimeout(timer));
 }
 
-// Calls the model, runs the tools it asks for and repeats until it answers or runs out of rounds; throws the provider's error
+// Calls the model, runs the tools it asks for and repeats until it answers or runs out of rounds, throws the provider's error
 export async function runAgent({
   provider,
   messages,
@@ -42,7 +42,7 @@ export async function runAgent({
   const turnId = nextTurnId();
   let lastContent = "";
   for (let round = 0; round < AGENT_MAX_ROUNDS; round++) {
-    // After tools, their line stays up while the model reads the results; a fresh "thinking" would hide it
+    // After tools, their line stays up while the model reads the results, a fresh "thinking" would hide it
     if (round === 0) onStep?.({ kind: "thinking" });
     const result = await completeWithin(provider, messages, timeoutMs);
     onUsage?.(result.usage);

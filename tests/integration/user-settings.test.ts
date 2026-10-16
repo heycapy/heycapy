@@ -81,7 +81,6 @@ const saved = {
   smtpPort: null,
   smtpUser: null,
   smtpPass: null,
-  smtpSecure: false,
   smtpFrom: null,
   quietHoursFrom: null,
   quietHoursTo: null,

@@ -3,7 +3,7 @@ import { toast } from "sonner";
 import { CHECKOUT_BALANCE_RECHECK_SECONDS, CHECKOUT_RETURN_PARAMS } from "@/constants";
 import { useUIStore } from "@/store/ui";
 
-//NOTE: dodo sends the buyer back with the result in the address; it only decides the message, the credits come from the webhook
+//NOTE: dodo sends the buyer back with the result in the address, it only decides the message, the credits come from the webhook
 export function PurchaseReturn({ onPaid }: { onPaid: () => void }) {
   const tickAiRefresh = useUIStore((s) => s.tickAiRefresh);
 

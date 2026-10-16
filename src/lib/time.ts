@@ -68,7 +68,7 @@ export function lastDayOfMonth(date: string): string {
   return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 }
 
-// An item's deadline on this browser's clock; an all-day item is midnight of its own date here
+// An item's deadline on this browser's clock, an all-day item is midnight of its own date here
 export function itemDeadline(
   deadline: Date,
   deadlineTimezone: string | null

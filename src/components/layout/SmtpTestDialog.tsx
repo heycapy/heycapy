@@ -14,7 +14,6 @@ type SmtpTestDialogProps = {
   smtpPort: string;
   smtpUser: string;
   smtpPass: string | null;
-  smtpSecure: boolean;
 };
 
 export function SmtpTestDialog({
@@ -26,7 +25,6 @@ export function SmtpTestDialog({
   smtpPort,
   smtpUser,
   smtpPass,
-  smtpSecure,
 }: SmtpTestDialogProps) {
   const [sendTo, setSendTo] = useState(defaultTo);
   const [pending, startTransition] = useTransition();
@@ -40,7 +38,6 @@ export function SmtpTestDialog({
         smtpPort,
         smtpUser,
         smtpPass: smtpPass || null,
-        smtpSecure,
         sendTo,
       });
       setResult(

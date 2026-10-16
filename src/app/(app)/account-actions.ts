@@ -21,6 +21,7 @@ import { AVATAR_PATTERN, toAvatar } from "@/lib/account/avatar";
 import { deleteAccount, ownedSharedBuckets, type SharedBucket } from "@/lib/account/delete";
 import { memberBucketIds } from "@/lib/buckets/access";
 import { refreshBucketReminders } from "@/lib/reminders/refresh";
+import { LATEST_RELEASE } from "@/lib/whats-new/constants";
 
 const AvatarInput = z.string().regex(AVATAR_PATTERN).nullable();
 
@@ -104,4 +105,15 @@ export async function deleteAccountAction(code: string): Promise<ActionResult> {
   for (const { id } of joined) await refreshBucketReminders(id);
   await deleteSession();
   redirect("/login");
+}
+
+export async function markReleasesSeenAction(): Promise<ActionResult> {
+  const session = await getSession();
+  if (!session) return { ok: false, error: "Unauthorized" };
+  await db
+    .update(users)
+    .set({ lastSeenRelease: LATEST_RELEASE })
+    .where(eq(users.id, session.userId));
+  revalidatePath("/");
+  return { ok: true };
 }

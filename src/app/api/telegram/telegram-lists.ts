@@ -81,7 +81,7 @@ async function loadList(
     };
   }
   if (kind === "td") {
-    // Wide enough for an all-day item set on any clock; its own date decides
+    // Wide enough for an all-day item set on any clock, its own date decides
     const today = localDateString(now, ctx.timezone);
     const rows = (
       await select(
@@ -123,7 +123,7 @@ function entry(row: ListRow, n: number, perBucket: boolean, now: Date, timezone:
   return `${n}. ${escapeHtml(row.title)}\n     <i>${detail}</i>`;
 }
 
-// Titles live in the text so they wrap; the buttons only carry numbers
+// Titles live in the text so they wrap, the buttons only carry numbers
 export async function showItemListPage(
   ctx: Ctx,
   kind: ItemListKind,

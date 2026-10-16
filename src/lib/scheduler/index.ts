@@ -217,7 +217,7 @@ async function enqueueAll(
 async function sendDeadlineReminder(row: DueRow, now: Date): Promise<void> {
   const inputs = toReminderInputs(row);
   const due = nextDeadlineReminder(inputs);
-  // Re-check live state; the stored time may be stale
+  // Re-check live state, the stored time may be stale
   const deadline = row.item.deadline;
   if (!due || due > now || !deadline) {
     await db

@@ -3,6 +3,7 @@ import Database from "better-sqlite3";
 import { E2E_DATABASE_FILE } from "../helpers/env";
 import { addItemButton, createAndSelectBucket, itemRow, uniqueName } from "../helpers/buckets";
 import { login, uniqueEmail } from "../helpers/login";
+import { giveOwnSmtp } from "../helpers/email";
 import {
   closeDialog,
   field,
@@ -16,6 +17,7 @@ test.use({ timezoneId: "Asia/Kolkata" });
 
 // A bucket the India owner shares with a member in London
 function seedSharedBucket(ownerEmail: string, memberEmail: string, title?: string): number {
+  giveOwnSmtp(ownerEmail);
   const db = new Database(E2E_DATABASE_FILE);
   const id = (email: string) =>
     (db.prepare("select id from users where email = ?").get(email) as { id: number }).id;
@@ -84,7 +86,7 @@ test("a bucket on one clock doesn't mention clocks in its rules", async ({ page 
   const settings = await openSettings(page);
   await switchTab(settings, "notifications");
   const remindAt = field(settings, "remind at");
-  await expect(remindAt).toContainText("the time of day for items without a time");
+  await expect(remindAt).toContainText("all-day items are reminded at this time");
   await expect(remindAt).not.toContainText("each person gets this on their own clock");
   await closeDialog(settings);
 

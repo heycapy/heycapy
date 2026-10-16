@@ -6,7 +6,7 @@ import { errorMessage } from "@/lib/errors";
 
 const Body = z.object({ token: z.string().max(1024) });
 
-// buttons on push and ntfy notifications land here; the signed token is the only credential
+// buttons on push and ntfy notifications land here, the signed token is the only credential
 export async function POST(request: Request) {
   const parsed = Body.safeParse(await request.json().catch(() => null));
   const claim = parsed.success ? verifyReminderAction(parsed.data.token) : null;

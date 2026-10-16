@@ -8,7 +8,7 @@ import { recordUsage } from "@/lib/ai/usage";
 import { connectOwnChat, say } from "./telegram-helpers";
 import { seedUser } from "./helpers";
 
-// a user's ollama is reached through postJson; here it goes to the stubbed fetch like the rest
+// a user's ollama is reached through postJson, here it goes to the stubbed fetch like the rest
 vi.mock("@/lib/notifications/post-json", () => ({
   postJson: async (url: URL, body: string) => {
     const res = await fetch(url.href, { method: "POST", body });

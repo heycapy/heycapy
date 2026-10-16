@@ -1,5 +1,8 @@
+import { Eye } from "pixelarticons/react/Eye.js";
+import { EyeOff } from "pixelarticons/react/EyeOff.js";
+import { Reload } from "pixelarticons/react/Reload.js";
+import { PixelIcon } from "@/components/ui/PixelIcon";
 import { useEffect, useState, useTransition } from "react";
-import { Eye, EyeOff, RefreshCw } from "lucide-react";
 import { BracketButton } from "@/components/ui/BracketButton";
 import { getWebhookKeyAction, rotateWebhookKeyAction } from "@/app/(app)/actions";
 import type { buckets } from "@/lib/db/schema";
@@ -159,7 +162,7 @@ export function WebhookPanel({ bucket }: WebhookPanelProps) {
             aria-label={revealed ? "hide key" : "show key"}
             className="text-muted-foreground hover:text-foreground shrink-0 px-2 transition-colors disabled:opacity-30"
           >
-            {revealed ? <EyeOff size={11} /> : <Eye size={11} />}
+            {revealed ? <PixelIcon icon={EyeOff} /> : <PixelIcon icon={Eye} />}
           </button>
           <BracketButton onClick={copyKey} disabled={!key} className="shrink-0 px-2 text-[11px]">
             {copied ? "copied" : "copy"}
@@ -170,7 +173,7 @@ export function WebhookPanel({ bucket }: WebhookPanelProps) {
           disabled={pending}
           className="mt-1 flex w-fit items-center gap-1.5"
         >
-          <RefreshCw size={10} />
+          <PixelIcon icon={Reload} />
           rotate key
         </BracketButton>
       </div>

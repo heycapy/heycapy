@@ -20,7 +20,7 @@ sqlite.pragma("foreign_keys = ON");
 
 export const db: DB = drizzle(sqlite, { schema });
 
-// Daily copy next to the database; keeps the newest few
+// Daily copy next to the database, keeps the newest few
 export async function backupDatabase(now = new Date()): Promise<string> {
   const dir = path.join(path.dirname(path.resolve(databaseFilePath())), "backups");
   mkdirSync(dir, { recursive: true });

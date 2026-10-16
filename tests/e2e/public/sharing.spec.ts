@@ -3,6 +3,7 @@ import Database from "better-sqlite3";
 import { E2E_DATABASE_FILE } from "../helpers/env";
 import { addItem, itemRow } from "../helpers/buckets";
 import { login, uniqueEmail } from "../helpers/login";
+import { giveOwnSmtp } from "../helpers/email";
 import {
   closeDialog,
   expectSelected,
@@ -40,6 +41,7 @@ async function openMembers(page: Page) {
 async function ownerWithInvite(page: Page, bucketName: string) {
   const email = uniqueEmail("e2e-share-owner");
   await login(page, email);
+  giveOwnSmtp(email);
   const bucketId = addBucket(email, bucketName);
   await page.goto(`/?bucket=${bucketId}`);
   await openMembers(page);
@@ -51,6 +53,7 @@ async function ownerWithInvite(page: Page, bucketName: string) {
 async function joinWithCode(page: Page, code: string, displayName?: string): Promise<string> {
   const email = uniqueEmail("e2e-share-friend");
   await login(page, email);
+  giveOwnSmtp(email);
   if (displayName) {
     const db = new Database(E2E_DATABASE_FILE);
     db.prepare("update users set display_name = ? where email = ?").run(displayName, email);
@@ -425,7 +428,7 @@ test("people see each other's avatars next to their names, a generated one if ne
   const friendEmail = await joinWithCode(friend, code, "Sam");
   await friend.waitForURL(`/?bucket=${bucketId}`);
   await friend.close();
-  // a full-width red row; the owner never drew, and a generated avatar keeps a margin so has none
+  // a full-width red row, the owner never drew, and a generated avatar keeps a margin so has none
   const db = new Database(E2E_DATABASE_FILE);
   db.prepare("update users set avatar = ? where email = ?").run(
     ".".repeat(64) + "8".repeat(16) + ".".repeat(176),

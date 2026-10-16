@@ -18,7 +18,7 @@ import {
 
 export type ReminderInputs = {
   deadline: Date | null;
-  // The clock the deadline was set on; the recipient's own when left out
+  // The clock the deadline was set on, the recipient's own when left out
   deadlineTimezone?: string;
   status: string;
   deletedAt: Date | null;

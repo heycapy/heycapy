@@ -26,7 +26,7 @@ export type DeadlineDraft = {
   reminderOffsets: number[] | null;
 };
 
-// What a deadline being edited means for each person it would remind; quiet hours themselves
+// What a deadline being edited means for each person it would remind, quiet hours themselves
 // stay on the server, only whether they get in the way is told
 export async function deadlineHints(
   viewerId: number,

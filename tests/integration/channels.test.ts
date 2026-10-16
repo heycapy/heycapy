@@ -54,7 +54,7 @@ async function seedTemplate(medium: string[]): Promise<number> {
   return template.id;
 }
 
-// The bucket's own rules keep no channels; they go to the owner's membership
+// The bucket's own rules keep no channels, they go to the owner's membership
 async function ownerMedium(bucketId: number): Promise<unknown> {
   const bucket = await db.query.buckets.findFirst({ where: eq(buckets.id, bucketId) });
   expect(JSON.parse(bucket?.notificationsRules ?? "{}")).not.toHaveProperty("medium");
@@ -144,6 +144,9 @@ describe("working channels", () => {
     expect(await getWorkingChannels(userId)).toEqual([]);
 
     process.env.RESEND_API_KEY = "test-key";
+    expect(await getWorkingChannels(userId)).toEqual([]);
+
+    process.env.SMTP_HOST = "smtp.self-hosted.test";
     expect(await getWorkingChannels(userId)).toEqual(["email"]);
 
     const smtpUser = await userWith({
@@ -151,7 +154,7 @@ describe("working channels", () => {
       emailProvider: "smtp",
       smtpHost: "smtp.example.com",
     });
-    delete process.env.RESEND_API_KEY;
+    delete process.env.SMTP_HOST;
     expect(await getWorkingChannels(smtpUser)).toEqual(["email"]);
   });
 
@@ -174,7 +177,7 @@ describe("working channels", () => {
   });
 
   it("a channel that is turned off never counts", async () => {
-    process.env.RESEND_API_KEY = "test-key";
+    process.env.SMTP_HOST = "smtp.self-hosted.test";
     const userId = await userWith({
       telegramChatId: "42",
       ntfyUrl: "https://ntfy.sh",

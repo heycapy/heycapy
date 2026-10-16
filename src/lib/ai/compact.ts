@@ -19,12 +19,12 @@ async function unsummarized(sessionId: number) {
     .where(
       and(eq(chatMessages.sessionId, sessionId), gt(chatMessages.id, session?.summaryThrough ?? 0))
     )
-    // A question and its reply share a created_at second; ids keep their order
+    // A question and its reply share a created_at second, ids keep their order
     .orderBy(asc(chatMessages.id));
   return { summary: session?.summary ?? null, messages };
 }
 
-// The summary stands in for everything it covers; every message after it goes to the model as is
+// The summary stands in for everything it covers, every message after it goes to the model as is
 export async function chatHistory(sessionId: number): Promise<AgentMessage[]> {
   const { summary, messages } = await unsummarized(sessionId);
   return [

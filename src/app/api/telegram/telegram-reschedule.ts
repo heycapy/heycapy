@@ -205,7 +205,7 @@ async function applyTime(
   await finish(ctx, item, deadline, messageId, now);
 }
 
-// Closes a reschedule the user walked away from; a reminder gets its own buttons back
+// Closes a reschedule the user walked away from, a reminder gets its own buttons back
 export async function abandonReschedule(
   ctx: Ctx,
   state: RescheduleState,

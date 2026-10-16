@@ -1,8 +1,10 @@
 "use client";
 
+import { ChevronDown } from "pixelarticons/react/ChevronDown.js";
+import { Clock } from "pixelarticons/react/Clock.js";
+import { PixelIcon } from "@/components/ui/PixelIcon";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { ChevronDown, Clock } from "lucide-react";
 import { BracketButton } from "@/components/ui/BracketButton";
 import { cn } from "@/lib/utils";
 import { BucketContent } from "./BucketContent";
@@ -43,7 +45,7 @@ function TodayButton({
         className
       )}
     >
-      <Clock size={12} aria-hidden />
+      <PixelIcon icon={Clock} />
       today
     </button>
   );
@@ -61,7 +63,7 @@ export function BucketsShell({ buckets: rawBuckets, focusBucketId = null }: Buck
   const clearNewBucket = useUIStore((s) => s.clearNewBucket);
   const todayOpen = useUIStore((s) => s.todayOpen);
   const openToday = useUIStore((s) => s.openToday);
-  // The open view is remembered per session; wait for it rather than flash the default
+  // The open view is remembered per session, wait for it rather than flash the default
   const hydrated = useSyncExternalStore(
     (onChange) => useUIStore.persist.onFinishHydration(onChange),
     () => useUIStore.persist.hasHydrated(),
@@ -170,7 +172,7 @@ export function BucketsShell({ buckets: rawBuckets, focusBucketId = null }: Buck
               style={{ backgroundColor: `color-mix(in oklab, ${placeColor} 18%, transparent)` }}
               className="flex h-10 max-w-28 min-w-0 items-center gap-1 px-2"
             >
-              {todayOpen && <Clock size={13} className="shrink-0" aria-hidden />}
+              {todayOpen && <PixelIcon icon={Clock} className="shrink-0" />}
               <span className="text-foreground truncate font-mono text-base">
                 {todayOpen
                   ? "today"
@@ -178,7 +180,7 @@ export function BucketsShell({ buckets: rawBuckets, focusBucketId = null }: Buck
                     ? `${activeBucket.icon} ${activeBucket.name}`
                     : activeBucket.name}
               </span>
-              <ChevronDown size={13} className="text-muted-foreground shrink-0" aria-hidden />
+              <PixelIcon icon={ChevronDown} className="text-muted-foreground shrink-0" />
             </span>
           </button>
           <div className="flex justify-center">

@@ -1,5 +1,7 @@
+import { Plus } from "pixelarticons/react/Plus.js";
+import { Trash } from "pixelarticons/react/Trash.js";
+import { PixelIcon } from "@/components/ui/PixelIcon";
 import { useEffect, useRef, useState } from "react";
-import { Trash2, Plus } from "lucide-react";
 import { Toggle } from "@/components/ui/Toggle";
 import { BracketButton } from "@/components/ui/BracketButton";
 import { charCountColor } from "@/components/ui/input";
@@ -95,7 +97,7 @@ function FieldRow({
           aria-label="remove field"
           className="text-muted-foreground hover:text-destructive shrink-0 transition-colors disabled:opacity-40"
         >
-          <Trash2 size={11} />
+          <PixelIcon icon={Trash} />
         </button>
       </div>
       {hasError && <p className="text-destructive font-mono text-[11px]">field name is required</p>}
@@ -216,7 +218,7 @@ export function FieldsSection({
           aria-label="add field"
           className="text-muted-foreground hover:text-foreground shrink-0 transition-colors disabled:opacity-40"
         >
-          <Plus size={12} />
+          <PixelIcon icon={Plus} />
         </button>
       </div>
       {fields.length === 0 && (

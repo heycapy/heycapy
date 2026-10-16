@@ -19,7 +19,7 @@ export function ItemAssigneeField({
   disabled?: boolean;
 }) {
   const showPlaces = placesOf(choice.members).differ;
-  // When nobody gets reminders the bucket itself says so; here it only marks who is left out
+  // When nobody gets reminders the bucket itself says so, here it only marks who is left out
   const someoneReminded = choice.members.some((m) => m.remindable);
   const leftOut = (member: BucketMember) => someoneReminded && !member.remindable;
   return (

@@ -70,7 +70,7 @@ export function refundMessageCredit(holdId: number): void {
     .run();
 }
 
-// the provider's id makes a retried webhook a no-op; the free credits come first so a buyer with no ledger yet keeps them
+// the provider's id makes a retried webhook a no-op, the free credits come first so a buyer with no ledger yet keeps them
 export function grantPurchasedCredits(
   userId: number,
   credits: number,
@@ -90,7 +90,7 @@ export function grantPurchasedCredits(
   });
 }
 
-// takes back the credits of a payment that was refunded or lost in a dispute; the balance may end below zero
+// takes back the credits of a payment that was refunded or lost in a dispute, the balance may end below zero
 // since credits already spent can't be recalled, and that just keeps capy off until they buy more
 export function reversePurchase(
   provider: string,

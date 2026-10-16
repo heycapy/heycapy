@@ -10,7 +10,7 @@ import {
 // Not 3000, so tests can run alongside `pnpm dev`
 const E2E_PORT = 3100;
 const BASE_URL = `http://localhost:${E2E_PORT}`;
-// The server gets its own database, separate from dev; the build step keeps the default
+// The server gets its own database, separate from dev, the build step keeps the default
 mkdirSync(".e2e", { recursive: true });
 
 export default defineConfig({
