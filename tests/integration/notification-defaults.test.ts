@@ -327,3 +327,115 @@ describe("a channel set up later", () => {
     expect((await getMemberChannels(userId, following)).medium).not.toContain("push");
   });
 });
+
+describe("capy reading bucket settings", () => {
+  async function settingsFor(userId: number, bucketId: number) {
+    const result = JSON.parse(
+      await executeToolCall(
+        { id: "g", name: "get_bucket_settings", arguments: { bucket_id: bucketId } },
+        userId
+      )
+    ) as { settings: { from_tweaks: string[] } };
+    return result.settings;
+  }
+
+  it("sees which settings follow tweaks, and that one it changes no longer does", async () => {
+    const userId = await signIn();
+    const bucketId = await newBucket();
+    expect((await settingsFor(userId, bucketId)).from_tweaks).toEqual([
+      "channels",
+      "default_reminders_mins",
+      "remind_at",
+      "deadline_repeat",
+      "notify_when_overdue",
+      "overdue_first_alert_mins",
+      "overdue_repeat_hours",
+    ]);
+
+    await executeToolCall(
+      {
+        id: "u",
+        name: "update_bucket_settings",
+        arguments: { bucket_id: bucketId, remind_at: "08:00" },
+      },
+      userId
+    );
+    expect((await settingsFor(userId, bucketId)).from_tweaks).not.toContain("remind_at");
+    expect((await settingsFor(userId, bucketId)).from_tweaks).toContain("deadline_repeat");
+  });
+
+  it("sees only a member's own channels following their tweaks, not the owner's rules", async () => {
+    const owner = await signIn();
+    const bucketId = await newBucket();
+    const invite = await createInviteAction(bucketId);
+    if (!invite.ok) throw new Error(invite.error);
+
+    const member = await signIn();
+    await joinBucketAction(invite.code);
+    expect((await settingsFor(member, bucketId)).from_tweaks).toEqual(["channels"]);
+    expect((await settingsFor(owner, bucketId)).from_tweaks).toContain("remind_at");
+  });
+
+  async function update(userId: number, args: Record<string, unknown>) {
+    return JSON.parse(
+      await executeToolCall({ id: "u", name: "update_bucket_settings", arguments: args }, userId)
+    ) as {
+      ok: boolean;
+      error?: string;
+      settings?: Record<string, unknown> & { from_tweaks: string[] };
+    };
+  }
+
+  it("puts settings back on tweaks with use_tweaks, the overdue ones together", async () => {
+    const userId = await signIn();
+    await saveDefaults({ notifyAt: "18:00", medium: ["email"] });
+    const bucketId = await newBucket();
+    await update(userId, {
+      bucket_id: bucketId,
+      remind_at: "08:00",
+      channels: ["push"],
+      notify_when_overdue: true,
+    });
+    expect((await settingsFor(userId, bucketId)).from_tweaks).toEqual([
+      "default_reminders_mins",
+      "deadline_repeat",
+    ]);
+
+    const result = await update(userId, {
+      bucket_id: bucketId,
+      use_tweaks: ["remind_at", "channels", "overdue_repeat_hours"],
+    });
+    expect(result.settings).toMatchObject({
+      remind_at: "18:00",
+      channels: ["email"],
+      notify_when_overdue: false,
+    });
+    expect(result.settings?.from_tweaks).toHaveLength(7);
+  });
+
+  it("lets a member put only their own channels back on tweaks", async () => {
+    await signIn();
+    const bucketId = await newBucket();
+    const invite = await createInviteAction(bucketId);
+    if (!invite.ok) throw new Error(invite.error);
+    const member = await signIn();
+    await saveDefaults({ medium: ["email"] });
+    await joinBucketAction(invite.code);
+    await update(member, { bucket_id: bucketId, channels: ["push"] });
+
+    expect(await update(member, { bucket_id: bucketId, use_tweaks: ["remind_at"] })).toMatchObject({
+      ok: false,
+    });
+    const result = await update(member, { bucket_id: bucketId, use_tweaks: ["channels"] });
+    expect(result.settings).toMatchObject({ channels: ["email"], from_tweaks: ["channels"] });
+  });
+
+  it("refuses a setting that can't follow tweaks", async () => {
+    const userId = await signIn();
+    const bucketId = await newBucket();
+    expect(await update(userId, { bucket_id: bucketId, use_tweaks: ["sort_by"] })).toEqual({
+      ok: false,
+      error: "use_tweaks can't take: sort_by",
+    });
+  });
+});

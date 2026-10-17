@@ -68,6 +68,8 @@ export const BucketSettingsInput = z.object({
   channels: MemberChannelsInput.optional(),
   // Left out (capy), a setting keeps following tweaks unless this save changes it
   followsTweaks: z.array(z.enum(FOLLOWABLE_SETTINGS)).optional(),
+  // capy's "use tweaks": put back on tweaks on top of what keeps following
+  useTweaks: z.array(z.enum(FOLLOWABLE_SETTINGS)).optional(),
 });
 
 export type BucketSettingsInput = z.input<typeof BucketSettingsInput>;
@@ -144,8 +146,15 @@ export async function saveBucketSettings(
   if (!parsed.success) {
     return { ok: false, error: settingsError(parsed.error.issues[0]) };
   }
-  const { name, itemsRules, notificationsRules, notificationTriggers, channels, followsTweaks } =
-    parsed.data;
+  const {
+    name,
+    itemsRules,
+    notificationsRules,
+    notificationTriggers,
+    channels,
+    followsTweaks,
+    useTweaks = [],
+  } = parsed.data;
 
   const bucket = await db.query.buckets.findFirst({
     where: (b, { eq: qeq, and: qand }) => qand(qeq(b.id, bucketId), qeq(b.userId, userId)),
@@ -169,13 +178,14 @@ export async function saveBucketSettings(
   };
   const rules = { ...storedRules, ...notificationsRules, notifyAt: notificationsRules.notifyAt };
   const schema = { ...storedSchema, ...triggers };
+  const kept = keepFollowing(
+    parseNotificationRules(bucket.notificationsRules).followsTweaks,
+    bucketValues(storedRules, storedSchema),
+    bucketValues(rules, schema)
+  );
   const follows =
     followsTweaks ??
-    keepFollowing(
-      parseNotificationRules(bucket.notificationsRules).followsTweaks,
-      bucketValues(storedRules, storedSchema),
-      bucketValues(rules, schema)
-    );
+    FOLLOWABLE_SETTINGS.filter((key) => kept.includes(key) || useTweaks.includes(key));
   const followed = followedRules(follows, defaultValues(await getNotificationDefaults(userId)));
   // capy keeps any item values in a bucket without a field schema, so "off" doesn't add one
   const writeSchema =
