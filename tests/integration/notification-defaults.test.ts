@@ -1,14 +1,19 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { buckets, templates, userSettings } from "@/lib/db/schema";
+import { buckets, pushSubscriptions, templates, userSettings } from "@/lib/db/schema";
 import { createBucketAction } from "@/app/(app)/bucket-actions";
 import { joinBucketAction, createInviteAction } from "@/app/(app)/member-actions";
-import { updateUserSettingsAction } from "@/app/(app)/user-settings-actions";
+import { removePushDeviceAction, savePushDeviceAction } from "@/app/(app)/push-actions";
+import {
+  disconnectTelegramAction,
+  updateUserSettingsAction,
+} from "@/app/(app)/user-settings-actions";
 import { executeToolCall } from "@/lib/ai/capyTools";
 import { saveBucketSettings, saveMemberChannels } from "@/lib/buckets/settings";
 import { parseNotificationDefaults } from "@/lib/buckets/follow";
 import { getMemberChannels } from "@/lib/notifications/channels";
+import { createTelegramLinkCode } from "@/lib/notifications/telegram-link";
 import { parseNotificationRules } from "@/lib/rules";
 import type { NotificationDefaults } from "@/types/rules";
 import {
@@ -20,6 +25,7 @@ import {
   seedUser,
   useSchedulerEnvironment,
 } from "./helpers";
+import { say } from "./telegram-helpers";
 
 const session = vi.hoisted(() => ({ userId: 0, email: "" }));
 vi.mock("@/lib/auth/session", () => ({ getSession: async () => session }));
@@ -270,5 +276,54 @@ describe("someone joining a shared bucket", () => {
     await saveDefaults({ medium: ["telegram"] });
     expect((await getMemberChannels(friend, bucketId)).medium).toEqual(["telegram"]);
     expect((await getMemberChannels(owner, bucketId)).medium).toEqual(["telegram"]);
+  });
+});
+
+describe("a channel set up later", () => {
+  async function withoutChannels(): Promise<number> {
+    const userId = await signIn();
+    await db
+      .update(userSettings)
+      .set({ telegramChatId: null, notificationsTelegram: false })
+      .where(eq(userSettings.userId, userId));
+    return userId;
+  }
+
+  it("reaches buckets that follow tweaks once telegram connects, and leaves when it disconnects", async () => {
+    const userId = await withoutChannels();
+    const following = await newBucket();
+    const picked = await newBucket();
+    await saveMemberChannels(userId, picked, { medium: [], webhooks: [], followsTweaks: false });
+
+    await say(`/start ${await createTelegramLinkCode(userId, T0)}`, 7001);
+    expect((await getMemberChannels(userId, following)).medium).toContain("telegram");
+    expect((await getMemberChannels(userId, picked)).medium).toEqual([]);
+
+    await disconnectTelegramAction();
+    expect((await getMemberChannels(userId, following)).medium).not.toContain("telegram");
+  });
+
+  it("reaches buckets that follow tweaks once push is on, and leaves when the device is removed", async () => {
+    const userId = await withoutChannels();
+    const following = await newBucket();
+
+    await savePushDeviceAction(
+      {
+        endpoint: "https://fcm.googleapis.com/fcm/send/defaults",
+        keys: {
+          p256dh: "BNcRdreALRFXTkOOUHK1EtK2wtaz5Ry4YfYCA_0QTpQt",
+          auth: "tBHItJI5svbpez7KI4CCXg",
+        },
+      },
+      "Chrome on Linux"
+    );
+    expect((await getMemberChannels(userId, following)).medium).toContain("push");
+
+    const [device] = await db
+      .select({ id: pushSubscriptions.id })
+      .from(pushSubscriptions)
+      .where(eq(pushSubscriptions.userId, userId));
+    await removePushDeviceAction(device.id);
+    expect((await getMemberChannels(userId, following)).medium).not.toContain("push");
   });
 });

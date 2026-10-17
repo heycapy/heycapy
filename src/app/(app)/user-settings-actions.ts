@@ -388,6 +388,7 @@ export async function disconnectTelegramAction(): Promise<ActionResult> {
     .update(userSettings)
     .set({ telegramChatId: null, notificationsTelegram: false })
     .where(eq(userSettings.userId, session.userId));
+  await applyNotificationDefaults(session.userId);
 
   revalidatePath("/");
   return { ok: true };
