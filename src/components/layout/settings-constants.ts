@@ -1,15 +1,14 @@
 import { GEMINI_DEFAULT_MODEL, type TranscriptionProvider } from "@/constants";
 
-export const LABEL = "text-muted-foreground font-mono text-xs";
+export const LABEL = "text-foreground font-mono text-xs font-medium";
 export const HINT = "text-muted-foreground font-mono text-[11px] leading-tight";
 
 export const MUTED = "text-muted-foreground font-mono text-xs";
 export const INPUT =
   "border-b border-border w-full bg-transparent py-1.5 font-mono text-xs outline-none placeholder:text-muted-foreground/50 focus:border-foreground disabled:opacity-50";
 
-export const SECTION =
-  "text-muted-foreground font-mono text-xs font-semibold tracking-widest uppercase";
-export const BOX = "border-border flex flex-col gap-3 border p-3";
+export const SECTION = "text-foreground font-mono text-xs font-semibold tracking-widest uppercase";
+export const BOX = "border-border flex flex-col gap-4 border p-3";
 // every button in tweaks in the theme's accent so they read as buttons, without touching a picked option or tab
 export const ACCENT_BUTTONS = [
   "[&_[data-variant=default]]:text-primary",
