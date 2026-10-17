@@ -1,3 +1,4 @@
+import { cn } from "@/lib/utils";
 import { useEffect, useState, useTransition } from "react";
 import { BracketButton } from "@/components/ui/BracketButton";
 import { AvatarEditor, type AvatarDraft } from "@/components/avatar/AvatarEditor";
@@ -7,7 +8,7 @@ import {
   sendAccountDeletionCodeAction,
 } from "@/app/(app)/actions";
 import type { SharedBucket } from "@/lib/account/delete";
-import { BOX, INPUT, LABEL, SECTION } from "./settings-constants";
+import { BOX, INPUT, SECTION, MUTED, HINT } from "./settings-constants";
 
 type Step = "idle" | "confirm" | "code";
 
@@ -73,7 +74,7 @@ export function AccountTab({ email, username, avatarDraft, onAvatarDraft }: Acco
           <p className="font-mono text-xs" data-testid="username">
             {username}
           </p>
-          <p className={LABEL}>
+          <p className={MUTED}>
             the name other people will see when you share a bucket. you can&apos;t change it yet.
           </p>
         </div>
@@ -86,7 +87,7 @@ export function AccountTab({ email, username, avatarDraft, onAvatarDraft }: Acco
 
       <div className={BOX}>
         <span className={SECTION}>your data</span>
-        <p className={LABEL}>
+        <p className={MUTED}>
           one file with your buckets, items, settings, notification history and chats. secrets like
           api keys and passwords are never included.
         </p>
@@ -103,9 +104,9 @@ export function AccountTab({ email, username, avatarDraft, onAvatarDraft }: Acco
         <span className={SECTION}>delete account</span>
         {step === "idle" && (
           <>
-            <p className={LABEL}>permanently deletes {email} and everything in it.</p>
+            <p className={MUTED}>permanently deletes {email} and everything in it.</p>
             {sharedBuckets.length > 0 && (
-              <p className="text-muted-foreground font-mono text-[11px] leading-relaxed">
+              <p className={cn(HINT, "leading-relaxed")}>
                 you still own {sharedBuckets.map((bucket) => bucket.name).join(", ")}, shared with
                 other people. make someone else the owner (bucket settings → members), delete{" "}
                 {sharedBuckets.length === 1 ? "it" : "them"}, or remove everyone before you delete
@@ -143,8 +144,8 @@ export function AccountTab({ email, username, avatarDraft, onAvatarDraft }: Acco
 
         {step === "code" && (
           <>
-            <p className={LABEL}>enter the 6-digit code we sent to {email}</p>
-            {devCode && <p className={LABEL}>dev code: {devCode}</p>}
+            <p className={MUTED}>enter the 6-digit code we sent to {email}</p>
+            {devCode && <p className={MUTED}>dev code: {devCode}</p>}
             <input
               value={code}
               onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}

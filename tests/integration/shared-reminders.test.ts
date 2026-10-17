@@ -327,6 +327,7 @@ describe("each member's own channels", () => {
     expect(await getMemberChannels(friend, bucketId)).toEqual({
       medium: ["telegram"],
       webhooks: [],
+      followsTweaks: true,
     });
   });
 
@@ -346,6 +347,7 @@ describe("each member's own channels", () => {
     expect(await getMemberChannels(member, bucketId)).toEqual({
       medium: ["email"],
       webhooks: [memberHook.id],
+      followsTweaks: false,
     });
     expect(await getMemberChannels(owner, bucketId)).toEqual({
       medium: ["telegram"],

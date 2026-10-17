@@ -9,12 +9,10 @@ import {
 } from "@/app/(app)/actions";
 import { chatWebhookApp } from "@/lib/notifications/webhook-app";
 import { SETTINGS_URL_MAX_LENGTH, WEBHOOK_NAME_MAX_LENGTH } from "@/constants";
-import { INPUT, LABEL } from "./settings-constants";
+import { INPUT, LABEL, HINT } from "./settings-constants";
 import { ConfirmRow } from "./ConfirmRow";
 import { TestSendButton } from "./TestSendButton";
 import { WebhookSecret } from "./WebhookSecret";
-
-const HINT = "text-muted-foreground font-mono text-[11px]";
 
 type WebhookFormProps = {
   webhook: OutgoingWebhook | null;
@@ -91,7 +89,7 @@ export function WebhookForm({ webhook, onSaved, onDeleted, onClose }: WebhookFor
         )}
       </div>
       <div className="flex items-center justify-between">
-        <label className={LABEL}>on for new buckets</label>
+        <label className={LABEL}>on by default</label>
         <Toggle value={isDefault} onChange={setIsDefault} disabled={pending} />
       </div>
 

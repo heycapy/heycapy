@@ -1,9 +1,7 @@
 import { useAIStatus } from "@/hooks/useAIStatus";
 import { CREDITS_PER_MESSAGE, PRICING_URL, REFUNDS_URL } from "@/constants";
 import { BuyCredits } from "./BuyCredits";
-import { BOX } from "./settings-constants";
-
-const HINT = "text-muted-foreground font-mono text-[11px]";
+import { BOX, HINT } from "./settings-constants";
 
 export function CreditsTab() {
   const status = useAIStatus();

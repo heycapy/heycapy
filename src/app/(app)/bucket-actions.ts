@@ -105,7 +105,8 @@ export async function updateBucketSettingsAction(
   itemsRules: BucketSettingsInput["itemsRules"],
   notificationsRules: BucketSettingsInput["notificationsRules"],
   notificationTriggers?: BucketSettingsInput["notificationTriggers"],
-  channels?: MemberChannelsInput
+  channels?: MemberChannelsInput,
+  followsTweaks?: BucketSettingsInput["followsTweaks"]
 ): Promise<ActionResult> {
   const session = await requireSession();
   return saveBucketSettings(session.userId, bucketId, {
@@ -114,6 +115,7 @@ export async function updateBucketSettingsAction(
     notificationsRules,
     notificationTriggers,
     channels,
+    followsTweaks,
   });
 }
 

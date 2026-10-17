@@ -8,11 +8,9 @@ import { getWebhookKeyAction, rotateWebhookKeyAction } from "@/app/(app)/actions
 import type { buckets } from "@/lib/db/schema";
 import { BucketSchema } from "@/types/rules";
 import { ITEM_STATUS, WEBHOOK_KEY_MASK } from "@/constants";
+import { HINT, LABEL } from "@/components/layout/settings-constants";
 
 type BucketRow = typeof buckets.$inferSelect;
-
-const LABEL = "text-muted-foreground font-mono text-xs";
-const HINT = "text-muted-foreground font-mono text-[11px] leading-tight";
 
 function buildWebhookUrl(bucketId: number): string {
   if (typeof window === "undefined") return "";

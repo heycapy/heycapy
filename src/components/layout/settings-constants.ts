@@ -1,6 +1,9 @@
 import { GEMINI_DEFAULT_MODEL, type TranscriptionProvider } from "@/constants";
 
 export const LABEL = "text-muted-foreground font-mono text-xs";
+export const HINT = "text-muted-foreground font-mono text-[11px] leading-tight";
+
+export const MUTED = "text-muted-foreground font-mono text-xs";
 export const INPUT =
   "border-b border-border w-full bg-transparent py-1.5 font-mono text-xs outline-none placeholder:text-muted-foreground/50 focus:border-foreground disabled:opacity-50";
 

@@ -2,13 +2,15 @@ import { useState } from "react";
 import { BracketButton } from "@/components/ui/BracketButton";
 import { Toggle } from "@/components/ui/Toggle";
 import { EMAIL_GUIDE_URL } from "@/constants";
-import { LABEL, INPUT, SECTION, BOX } from "./settings-constants";
+import { LABEL, INPUT, SECTION, BOX, HINT } from "./settings-constants";
 import { NtfySettings } from "./NtfySettings";
 import { PushSettings } from "./PushSettings";
 import { QuietHoursSettings, type QuietHours } from "./QuietHoursSettings";
 import { TelegramSettings } from "./TelegramSettings";
 import { WebhookSettings } from "./WebhookSettings";
 import { SmtpTestDialog } from "./SmtpTestDialog";
+import { BucketDefaultsSettings } from "./BucketDefaultsSettings";
+import type { NotificationDefaults } from "@/types/rules";
 
 type NotificationsTabProps = {
   notificationsEmail: boolean;
@@ -40,6 +42,9 @@ type NotificationsTabProps = {
   telegramActionPending: boolean;
   quietHours: QuietHours;
   setQuietHours: (v: QuietHours) => void;
+  bucketDefaults: NotificationDefaults;
+  setBucketDefaults: (v: NotificationDefaults) => void;
+  workingChannels: NonNullable<NotificationDefaults["medium"]>;
   pending: boolean;
 };
 
@@ -73,6 +78,9 @@ export function NotificationsTab({
   telegramActionPending,
   quietHours,
   setQuietHours,
+  bucketDefaults,
+  setBucketDefaults,
+  workingChannels,
   pending,
 }: NotificationsTabProps) {
   const [testDialogOpen, setTestDialogOpen] = useState(false);
@@ -83,9 +91,15 @@ export function NotificationsTab({
   return (
     <div className="flex flex-col gap-3">
       <QuietHoursSettings value={quietHours} onChange={setQuietHours} pending={pending} />
+      <BucketDefaultsSettings
+        value={bucketDefaults}
+        onChange={setBucketDefaults}
+        workingChannels={workingChannels}
+        pending={pending}
+      />
       <div className={BOX}>
         <span className={SECTION}>email</span>
-        <p className="text-muted-foreground font-mono text-[11px] leading-tight">
+        <p className={HINT}>
           reminder emails go out through your own email account. gmail works with an app password ·{" "}
           <a
             href={EMAIL_GUIDE_URL}
@@ -172,9 +186,7 @@ export function NotificationsTab({
             disabled={pending}
             className={INPUT}
           />
-          <p className="text-muted-foreground font-mono text-[11px]">
-            where notifications are sent · defaults to your account email
-          </p>
+          <p className={HINT}>where notifications are sent · defaults to your account email</p>
         </div>
 
         <BracketButton

@@ -7,9 +7,7 @@ import { useUIStore } from "@/store/ui";
 import { aiStatusIsProblem, aiStatusLabel, creditsLabel } from "@/lib/ai/status-label";
 import { formatShort } from "@/lib/format-date";
 import { CREDITS_PER_MESSAGE } from "@/constants";
-import { BOX, LABEL } from "./settings-constants";
-
-const HINT = "text-muted-foreground font-mono text-[11px]";
+import { BOX, HINT, MUTED } from "./settings-constants";
 
 export function AIStatusBox({ ownKeyPicked }: { ownKeyPicked: boolean }) {
   const status = useAIStatus();
@@ -88,7 +86,7 @@ export function AIStatusBox({ ownKeyPicked }: { ownKeyPicked: boolean }) {
       )}
 
       {!heycapyPicked && balance !== null && balance > 0 && (
-        <p className={LABEL}>{balance} capy credits kept for heycapy ai</p>
+        <p className={MUTED}>{balance} capy credits kept for heycapy ai</p>
       )}
       {!heycapyPicked && status.kind === "credits" && (
         <p className={HINT}>
@@ -99,7 +97,7 @@ export function AIStatusBox({ ownKeyPicked }: { ownKeyPicked: boolean }) {
         <p className="text-destructive font-mono text-[11px] break-words">{status.error}</p>
       )}
       {!heycapyPicked && status.kind === "own" && status.checkedAt && (
-        <p className={LABEL}>last checked: {formatShort(new Date(status.checkedAt))}</p>
+        <p className={MUTED}>last checked: {formatShort(new Date(status.checkedAt))}</p>
       )}
 
       {status.kind === "server" && (

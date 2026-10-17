@@ -13,9 +13,15 @@ export const MemberChannels = z.object({
   medium: z.array(z.enum(["ntfy", "email", "telegram", "push"])).default([]),
   // ids of the person's own outgoing webhooks, set up once in tweaks
   webhooks: z.array(z.number().int().positive()).default([]),
+  // Saving tweaks copies the person's default channels into the rows that follow them
+  followsTweaks: z.boolean().optional(),
 });
 
 export type MemberChannels = z.infer<typeof MemberChannels>;
+
+// "overdue" covers notifyWhenOverdue, overdueFirstAlertMins and overdueRepeatHours together
+export const FOLLOWABLE_SETTINGS = ["defaultReminders", "notifyAt", "repeat", "overdue"] as const;
+export type FollowableSetting = (typeof FOLLOWABLE_SETTINGS)[number];
 
 export const NotificationRules = z.object({
   notifyAt: z.string().default(""),
@@ -25,7 +31,23 @@ export const NotificationRules = z.object({
   repeat: z.enum(["once", "daily"]).default("once"),
   // "Remind again" buttons shown next to Done on every channel, as much as each has room for
   reminderButtons: z.array(z.enum(QUICK_REMIND_VALUES)).default(DEFAULT_REMINDER_BUTTONS),
+  // Saving tweaks copies the owner's defaults into these, buckets from before defaults have none
+  followsTweaks: z.array(z.enum(FOLLOWABLE_SETTINGS)).default([]),
 });
+
+// The defaults in tweaks → notifications. The starting values are what buckets had built in
+export const NotificationDefaults = z.object({
+  defaultReminders: ReminderOffsets.default([0]),
+  notifyAt: z.string().default(""),
+  repeat: z.enum(["once", "daily"]).default("once"),
+  notifyWhenOverdue: z.boolean().default(false),
+  overdueFirstAlertMins: z.number().int().positive().optional(),
+  overdueRepeatHours: z.number().positive().optional(),
+  // null until picked in tweaks: every channel set up at the time, as before defaults existed
+  medium: MemberChannels.shape.medium.unwrap().nullable().default(null),
+});
+
+export type NotificationDefaults = z.infer<typeof NotificationDefaults>;
 
 export const ItemsRules = z.object({
   sortBy: z.enum(["deadline", "created_at", "manual"]).default("deadline"),

@@ -12,6 +12,13 @@ import { db } from "@/lib/db";
 import { users, userSettings } from "@/lib/db/schema";
 import { encryptValue, decryptValue } from "@/lib/crypto";
 import { refreshUserReminders } from "@/lib/reminders/refresh";
+import {
+  applyNotificationDefaults,
+  defaultChannels,
+  getNotificationDefaults,
+} from "@/lib/notifications/defaults";
+import { parseNotificationDefaults } from "@/lib/buckets/follow";
+import { MemberChannels, NotificationDefaults } from "@/types/rules";
 import { isKnownTimezone } from "@/lib/timezones/valid";
 import { placeName } from "@/lib/timezones/place";
 import { parseClock } from "@/lib/reminders/zoned";
@@ -84,6 +91,7 @@ type UserSettingsUpdate = {
   smtpFrom: string | null;
   quietHoursFrom: string | null;
   quietHoursTo: string | null;
+  notificationDefaults: NotificationDefaults;
 };
 
 export async function getUserSettingsAction(): Promise<
@@ -97,16 +105,19 @@ export async function getUserSettingsAction(): Promise<
     hosted: boolean;
     aiKeys: AIKeyViews;
     transcriptionKey: KeyView;
+    notificationDefaults: NotificationDefaults;
+    workingChannels: NonNullable<NotificationDefaults["medium"]>;
   }>
 > {
   const session = await getSession();
   if (!session) return { ok: false, error: "Unauthorized" };
 
-  const [settings, user] = await Promise.all([
+  const [settings, user, channelSettings] = await Promise.all([
     db.query.userSettings.findFirst({
       where: (s, { eq: qeq }) => qeq(s.userId, session.userId),
     }),
     db.query.users.findFirst({ where: eq(users.id, session.userId) }),
+    getChannelSettings(session.userId),
   ]);
   if (!settings) return { ok: false, error: "Settings not found" };
 
@@ -121,6 +132,10 @@ export async function getUserSettingsAction(): Promise<
     aiKeys: aiKeyViews(savedAIKeysOf(settings)),
     transcriptionKey: keyView(
       settings.transcriptionApiKey ? decryptValue(settings.transcriptionApiKey) : null
+    ),
+    notificationDefaults: parseNotificationDefaults(settings.notificationDefaults),
+    workingChannels: MemberChannels.shape.medium.parse(
+      channelSettings ? workingChannels(channelSettings) : []
     ),
     // keys and passwords are write-only: once saved they never go back to the browser
     settings: {
@@ -180,6 +195,13 @@ export async function updateUserSettingsAction(
 
   const quietError = quietHoursError(data.quietHoursFrom, data.quietHoursTo);
   if (quietError) return { ok: false, error: quietError };
+  const notificationDefaults = NotificationDefaults.safeParse(data.notificationDefaults);
+  if (
+    !notificationDefaults.success ||
+    (notificationDefaults.data.notifyAt && parseClock(notificationDefaults.data.notifyAt) === null)
+  ) {
+    return { ok: false, error: "Invalid bucket defaults" };
+  }
 
   const keyEdits = AIKeyEditsSchema.safeParse(data.aiKeyEdits);
   const transcriptionKeyEdit = KeyEditSchema.safeParse(data.transcriptionKeyEdit);
@@ -249,10 +271,11 @@ export async function updateUserSettingsAction(
       smtpFrom: data.smtpFrom || null,
       quietHoursFrom: data.quietHoursFrom,
       quietHoursTo: data.quietHoursTo,
+      notificationDefaults: JSON.stringify(notificationDefaults.data),
       updatedAt: new Date(),
     })
     .where(eq(userSettings.userId, session.userId));
-  await refreshUserReminders(session.userId);
+  await applyNotificationDefaults(session.userId);
   revalidatePath("/");
 
   return { ok: true, aiChanged };
@@ -368,6 +391,17 @@ export async function disconnectTelegramAction(): Promise<ActionResult> {
 
   revalidatePath("/");
   return { ok: true };
+}
+
+//"use tweaks" in bucket settings switches a setting to
+export async function getBucketDefaultsAction(): Promise<{
+  rules: NotificationDefaults;
+  channels: MemberChannels;
+} | null> {
+  const session = await getSession();
+  if (!session) return null;
+  const rules = await getNotificationDefaults(session.userId);
+  return { rules, channels: await defaultChannels(session.userId, rules) };
 }
 
 export async function getNotifAvailabilityAction(): Promise<{

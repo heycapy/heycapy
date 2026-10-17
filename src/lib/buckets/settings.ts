@@ -8,13 +8,18 @@ import { refreshBucketReminders } from "@/lib/reminders/refresh";
 import { parseClock } from "@/lib/reminders/zoned";
 import { QUICK_REMIND_VALUES } from "@/lib/notifications/constants";
 import { BUCKET_NAME_MAX_LENGTH, DUPLICATE_BUCKET_NAME_ERROR } from "@/constants";
+import { getMemberChannels } from "@/lib/notifications/channels";
+import { defaultChannels, getNotificationDefaults } from "@/lib/notifications/defaults";
+import { parseNotificationRules } from "@/lib/rules";
 import {
   BucketSchema,
+  FOLLOWABLE_SETTINGS,
   ItemsRules,
   MemberChannels,
   NotificationRules,
   ReminderOffsets,
 } from "@/types/rules";
+import { bucketValues, defaultValues, followedRules, keepFollowing, sameChannels } from "./follow";
 import type { ActionResult } from "@/types/result";
 import { SETTING_LABELS } from "./constants";
 
@@ -22,9 +27,11 @@ const itemsShape = ItemsRules.shape;
 const notificationsShape = NotificationRules.shape;
 const channelsShape = MemberChannels.shape;
 
+// followsTweaks left out: it keeps following unless the channels changed
 export const MemberChannelsInput = z.object({
   medium: channelsShape.medium.unwrap(),
   webhooks: channelsShape.webhooks.unwrap(),
+  followsTweaks: channelsShape.followsTweaks,
 });
 
 // The rules' own checks without their defaults, so a rule left out isn't overwritten by one
@@ -59,6 +66,8 @@ export const BucketSettingsInput = z.object({
   }).optional(),
   // The saver's own channels for the bucket
   channels: MemberChannelsInput.optional(),
+  // Left out (capy), a setting keeps following tweaks unless this save changes it
+  followsTweaks: z.array(z.enum(FOLLOWABLE_SETTINGS)).optional(),
 });
 
 export type BucketSettingsInput = z.input<typeof BucketSettingsInput>;
@@ -91,6 +100,18 @@ async function ownWebhookIds(userId: number): Promise<number[]> {
   return rows.map((w) => w.id);
 }
 
+// Channels that follow tweaks are the person's defaults, whatever was sent
+async function channelsToSave(
+  userId: number,
+  bucketId: number,
+  input: z.output<typeof MemberChannelsInput>
+): Promise<MemberChannels> {
+  const stored = await getMemberChannels(userId, bucketId);
+  const follows = input.followsTweaks ?? (!!stored.followsTweaks && sameChannels(stored, input));
+  if (!follows) return { ...input, followsTweaks: false };
+  return defaultChannels(userId, await getNotificationDefaults(userId));
+}
+
 // ids of deleted or someone else's webhooks are dropped. False when they aren't a member
 function writeChannels(
   tx: Tx,
@@ -105,6 +126,7 @@ function writeChannels(
       channels: JSON.stringify({
         medium: channels.medium,
         webhooks: channels.webhooks.filter((id) => webhookIds.includes(id)),
+        followsTweaks: channels.followsTweaks,
       }),
     })
     .where(and(eq(bucketMembers.bucketId, bucketId), eq(bucketMembers.userId, userId)))
@@ -122,7 +144,8 @@ export async function saveBucketSettings(
   if (!parsed.success) {
     return { ok: false, error: settingsError(parsed.error.issues[0]) };
   }
-  const { name, itemsRules, notificationsRules, notificationTriggers, channels } = parsed.data;
+  const { name, itemsRules, notificationsRules, notificationTriggers, channels, followsTweaks } =
+    parsed.data;
 
   const bucket = await db.query.buckets.findFirst({
     where: (b, { eq: qeq, and: qand }) => qand(qeq(b.id, bucketId), qeq(b.userId, userId)),
@@ -132,8 +155,9 @@ export async function saveBucketSettings(
     return { ok: false, error: DUPLICATE_BUCKET_NAME_ERROR };
   }
 
-  const fieldSchema = notificationTriggers && {
-    ...parseStored(bucket.fieldSchema),
+  const storedRules = parseStored(bucket.notificationsRules);
+  const storedSchema = parseStored(bucket.fieldSchema);
+  const triggers = notificationTriggers && {
     notifyOnArrival: notificationTriggers.notifyOnArrival ?? false,
     notifyWhenOverdue: notificationTriggers.notifyWhenOverdue ?? false,
     overdueRepeatHours: notificationTriggers.notifyWhenOverdue
@@ -143,7 +167,22 @@ export async function saveBucketSettings(
       ? notificationTriggers.overdueFirstAlertMins
       : undefined,
   };
+  const rules = { ...storedRules, ...notificationsRules, notifyAt: notificationsRules.notifyAt };
+  const schema = { ...storedSchema, ...triggers };
+  const follows =
+    followsTweaks ??
+    keepFollowing(
+      parseNotificationRules(bucket.notificationsRules).followsTweaks,
+      bucketValues(storedRules, storedSchema),
+      bucketValues(rules, schema)
+    );
+  const followed = followedRules(follows, defaultValues(await getNotificationDefaults(userId)));
+  // capy keeps any item values in a bucket without a field schema, so "off" doesn't add one
+  const writeSchema =
+    !!triggers ||
+    (follows.includes("overdue") && (!!bucket.fieldSchema || !!followed.overdue.notifyWhenOverdue));
   const webhookIds = channels ? await ownWebhookIds(userId) : [];
+  const myChannels = channels && (await channelsToSave(userId, bucketId, channels));
 
   db.transaction((tx) => {
     tx.update(buckets)
@@ -151,16 +190,21 @@ export async function saveBucketSettings(
         name,
         itemsRules: JSON.stringify(itemsRules),
         notificationsRules: JSON.stringify({
-          ...parseStored(bucket.notificationsRules),
-          ...notificationsRules,
-          notifyAt: notificationsRules.notifyAt,
+          ...rules,
+          ...followed.notifications,
+          followsTweaks: follows,
         }),
-        ...(fieldSchema && { fieldSchema: JSON.stringify(fieldSchema) as unknown as BucketSchema }),
+        ...(writeSchema && {
+          fieldSchema: JSON.stringify({
+            ...schema,
+            ...followed.overdue,
+          }) as unknown as BucketSchema,
+        }),
         updatedAt: new Date(),
       })
       .where(and(eq(buckets.id, bucketId), eq(buckets.userId, userId)))
       .run();
-    if (channels) writeChannels(tx, userId, bucketId, channels, webhookIds);
+    if (myChannels) writeChannels(tx, userId, bucketId, myChannels, webhookIds);
   });
   await refreshBucketReminders(bucketId);
 
@@ -178,9 +222,8 @@ export async function saveMemberChannels(
   if (!parsed.success) return { ok: false, error: "Invalid channels" };
 
   const webhookIds = await ownWebhookIds(userId);
-  const saved = db.transaction((tx) =>
-    writeChannels(tx, userId, bucketId, parsed.data, webhookIds)
-  );
+  const channels = await channelsToSave(userId, bucketId, parsed.data);
+  const saved = db.transaction((tx) => writeChannels(tx, userId, bucketId, channels, webhookIds));
   if (!saved) return { ok: false, error: "Bucket not found" };
   await refreshBucketReminders(bucketId);
 

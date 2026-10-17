@@ -1,12 +1,10 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { BracketButton } from "@/components/ui/BracketButton";
 import { OptionButton } from "@/components/ui/OptionButton";
 import { describeReminder } from "@/lib/items/reminder-label";
 import { MAX_REMINDER_OFFSET_MINS, MAX_REMINDERS_PER_ITEM } from "@/lib/reminders/constants";
 import { CUSTOM_REMINDER_UNITS, REMINDER_PRESETS } from "./constants";
-
-const LABEL = "text-muted-foreground font-mono text-xs";
-const HINT = "text-muted-foreground font-mono text-[11px] leading-tight";
+import { HINT, LABEL, MUTED } from "@/components/layout/settings-constants";
 
 type ReminderPickerProps = {
   reminders: number[];
@@ -14,6 +12,7 @@ type ReminderPickerProps = {
   hint?: string;
   allDay: boolean;
   disabled?: boolean;
+  labelTag?: ReactNode;
   onChange: (v: number[]) => void;
 };
 
@@ -23,6 +22,7 @@ export function ReminderPicker({
   hint,
   allDay,
   disabled,
+  labelTag,
   onChange,
 }: ReminderPickerProps) {
   const [adding, setAdding] = useState(false);
@@ -60,11 +60,11 @@ export function ReminderPicker({
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-2">
         <label className={LABEL}>reminders</label>
-        <span className={`${LABEL} shrink-0`}>
-          {followsBucket && "bucket default · "}
-          {reminders.length} of {MAX_REMINDERS_PER_ITEM}
+        <span className="flex shrink-0 items-center gap-2">
+          {labelTag}
+          {followsBucket && <span className={MUTED}>bucket default</span>}
         </span>
       </div>
       {hint && <span className={HINT}>{hint}</span>}
@@ -84,14 +84,14 @@ export function ReminderPicker({
             </OptionButton>
           );
         })}
-        {reminders.length === 0 && <span className={LABEL}>none</span>}
+        {reminders.length === 0 && <span className={MUTED}>none</span>}
         {!full && !adding && (
           <BracketButton onClick={() => setAdding(true)} disabled={disabled} className="px-1">
             + add
           </BracketButton>
         )}
       </div>
-      {full && <p className={LABEL}>that&apos;s the max — remove one to add another</p>}
+      {full && <p className={MUTED}>that&apos;s the max — remove one to add another</p>}
 
       {adding && (
         <div className="border-border flex flex-col gap-2 border-l-2 pl-3">
@@ -136,7 +136,7 @@ export function ReminderPicker({
                 </OptionButton>
               ))}
             </div>
-            <span className={`${LABEL} pl-0.5`}>before</span>
+            <span className={`${MUTED} pl-0.5`}>before</span>
           </div>
           <div className="flex items-center gap-3">
             <BracketButton

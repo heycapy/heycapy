@@ -2,7 +2,7 @@ import { DEFAULT_REMINDER_BUTTONS, type QuickRemindChoice } from "@/lib/notifica
 import { daysToDisplayStr } from "@/lib/duration";
 import type { RepeatMode, SortBy } from "./constants";
 import type { buckets } from "@/lib/db/schema";
-import type { RecurrenceMode } from "@/types/rules";
+import { FOLLOWABLE_SETTINGS, type FollowableSetting, type RecurrenceMode } from "@/types/rules";
 
 type BucketRow = typeof buckets.$inferSelect;
 
@@ -24,6 +24,7 @@ type RawNotifRules = {
   notify_at?: string;
   defaultReminders?: number[];
   repeat?: RepeatMode;
+  followsTweaks?: string[];
 };
 
 export type BucketSettingsValues = {
@@ -42,6 +43,7 @@ export type BucketSettingsValues = {
   notifyWhenOverdue: boolean;
   overdueRepeatHours: number | undefined;
   overdueFirstAlertMins: number | undefined;
+  followsTweaks: FollowableSetting[];
 };
 
 function parseJson<T>(json: string | null | undefined, fallback: T): T {
@@ -90,5 +92,6 @@ export function parseBucketSettings(bucket: BucketRow): BucketSettingsValues {
       typeof fs.overdueRepeatHours === "number" ? fs.overdueRepeatHours : undefined,
     overdueFirstAlertMins:
       typeof fs.overdueFirstAlertMins === "number" ? fs.overdueFirstAlertMins : undefined,
+    followsTweaks: FOLLOWABLE_SETTINGS.filter((key) => nr.followsTweaks?.includes(key)),
   };
 }
