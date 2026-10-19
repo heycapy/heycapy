@@ -11,7 +11,7 @@ const PackSchema = z.enum(CREDIT_PACK_IDS);
 export async function getCreditPacksAction(): Promise<ActionResult<{ packs: PackOffer[] }>> {
   const session = await getSession();
   if (!session) return { ok: false, error: "Unauthorized" };
-  return { ok: true, packs: availablePacks() };
+  return { ok: true, packs: availablePacks(session.email) };
 }
 
 export async function startCheckoutAction(pack: string): Promise<ActionResult<{ url: string }>> {
