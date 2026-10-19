@@ -25,6 +25,9 @@ export async function register() {
     const migrationsFolder = findMigrationsFolder();
     if (migrationsFolder) {
       const { db } = await import("@/lib/db");
+      const { databaseAheadOfCode } = await import("@/lib/db/migration-check");
+      const ahead = databaseAheadOfCode(db, migrationsFolder);
+      if (ahead) refuseToStart([ahead], "the database is newer than this version");
       const { migrate } = await import("drizzle-orm/better-sqlite3/migrator");
       migrate(db, { migrationsFolder });
       const { backfillUsernames } = await import("@/lib/account/username");

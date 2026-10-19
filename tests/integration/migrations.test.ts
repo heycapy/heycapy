@@ -5,6 +5,7 @@ import path from "node:path";
 import Database from "better-sqlite3";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import { migrate } from "drizzle-orm/better-sqlite3/migrator";
+import { databaseAheadOfCode } from "@/lib/db/migration-check";
 
 const MIGRATIONS = path.join(import.meta.dirname, "../../src/lib/db/migrations");
 
@@ -392,6 +393,37 @@ describe("migrations", () => {
     expect(sqlite.prepare("SELECT last_seen_release FROM users").all()).toEqual([
       { last_seen_release: "0.3.0" },
     ]);
+    sqlite.close();
+  });
+});
+
+describe("a database newer than the code", () => {
+  it("is refused, naming the newest migration the code knows", () => {
+    const journal = JSON.parse(
+      readFileSync(path.join(MIGRATIONS, "meta/_journal.json"), "utf8")
+    ) as Journal;
+    const sqlite = new Database(path.join(tempDir("heycapy-ahead-"), "db.sqlite"));
+    const db = drizzle(sqlite);
+    migrate(db, { migrationsFolder: MIGRATIONS });
+
+    const olderCode = migrationsUpTo(journal.entries.length - 1);
+    expect(databaseAheadOfCode(db, olderCode)).toContain(journal.entries.at(-2)?.tag);
+    sqlite.close();
+  });
+
+  it("is not reported for a new, older or current database", () => {
+    const journal = JSON.parse(
+      readFileSync(path.join(MIGRATIONS, "meta/_journal.json"), "utf8")
+    ) as Journal;
+    const sqlite = new Database(path.join(tempDir("heycapy-not-ahead-"), "db.sqlite"));
+    const db = drizzle(sqlite);
+    expect(databaseAheadOfCode(db, MIGRATIONS)).toBeNull();
+
+    migrate(db, { migrationsFolder: migrationsUpTo(journal.entries.length - 1) });
+    expect(databaseAheadOfCode(db, MIGRATIONS)).toBeNull();
+
+    migrate(db, { migrationsFolder: MIGRATIONS });
+    expect(databaseAheadOfCode(db, MIGRATIONS)).toBeNull();
     sqlite.close();
   });
 });
