@@ -15,7 +15,6 @@ import type { BucketSchema } from "@/types/rules";
 export const users = sqliteTable("users", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   email: text("email").notNull().unique(),
-  displayName: text("display_name"),
   username: text("username").unique(),
   // 256 palette codes, one per cell (lib/account/avatar.ts), null until the person draws one
   avatar: text("avatar"),

@@ -37,7 +37,6 @@ export async function deadlineHints(
     .select({
       userId: users.id,
       username: users.username,
-      displayName: users.displayName,
       timezone: userSettings.timezone,
       quietFrom: userSettings.quietHoursFrom,
       quietTo: userSettings.quietHoursTo,

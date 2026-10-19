@@ -41,7 +41,10 @@ async function sharedBucket() {
   const owner = await seedUser();
   const member = await seedUser();
   const stranger = await seedUser();
-  await db.update(users).set({ displayName: "Sam" }).where(eq(users.id, member));
+  await db
+    .update(users)
+    .set({ username: `sam_${member}` })
+    .where(eq(users.id, member));
   const bucketId = await seedBucket(owner);
   await db.insert(bucketMembers).values({ bucketId, userId: member });
   const itemId = await seedItem(owner, bucketId, {
@@ -76,7 +79,7 @@ describe("the trash of a shared bucket", () => {
     expect(forOwner).toMatchObject([
       {
         id: itemId,
-        deletedBy: "Sam",
+        deletedBy: `sam_${member}`,
         deletedById: member,
         deletedByAvatar: SAM_AVATAR,
         canDelete: true,

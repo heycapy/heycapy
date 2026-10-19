@@ -56,7 +56,6 @@ export async function listTrash(
       bucketDeletedAt: buckets.deletedAt,
       bucketOwnerId: buckets.userId,
       deletedById: items.deletedBy,
-      deleterName: users.displayName,
       deleterUsername: users.username,
       deleterAvatar: users.avatar,
       memberCount: sql<number>`(select count(*) from bucket_members where bucket_id = ${items.bucketId})`,
@@ -103,7 +102,7 @@ export async function listTrash(
               ? null
               : deleterId === userId
                 ? "you"
-                : memberName({ displayName: i.deleterName, username: i.deleterUsername }),
+                : memberName({ username: i.deleterUsername }),
           deletedById: deleterId,
           deletedByAvatar: deleterId === null ? null : i.deleterAvatar,
           canDelete: i.bucketOwnerId === userId,

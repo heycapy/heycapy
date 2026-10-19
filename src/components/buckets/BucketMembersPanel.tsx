@@ -117,7 +117,6 @@ export function BucketMembersPanel({
                   <div className="min-w-0">
                     <p className="truncate font-mono text-xs">{memberName(member)}</p>
                     <p className="text-muted-foreground truncate font-mono text-[11px]">
-                      {member.displayName && member.username ? `@${member.username} · ` : ""}
                       {member.role}
                     </p>
                     {showZones && (

@@ -17,7 +17,7 @@ export async function voiceContext(userId: number, assistantName: string): Promi
       .where(and(inArray(buckets.id, memberBucketIds(userId)), isNull(buckets.deletedAt))),
     // The others in the user's buckets, so "assign it to Sam" is heard right
     db
-      .selectDistinct({ username: users.username, displayName: users.displayName })
+      .selectDistinct({ username: users.username })
       .from(bucketMembers)
       .innerJoin(users, eq(users.id, bucketMembers.userId))
       .innerJoin(buckets, eq(buckets.id, bucketMembers.bucketId))

@@ -179,7 +179,6 @@ const ITEM_DETAIL_COLUMNS = {
   completedAt: items.completedAt,
   assigneeId: items.assigneeId,
   assigneeUsername: users.username,
-  assigneeDisplayName: users.displayName,
   assigneeTimezone: userSettings.timezone,
 };
 
@@ -201,7 +200,6 @@ type ItemDetailRow = {
   completedAt: Date | null;
   assigneeId: number | null;
   assigneeUsername: string | null;
-  assigneeDisplayName: string | null;
   assigneeTimezone: string | null;
 };
 
@@ -214,10 +212,7 @@ function deadlineOtherClock(row: ItemDetailRow, userId: number, timezone: string
     row.assigneeId === null
       ? undefined
       : {
-          name: memberName({
-            displayName: row.assigneeDisplayName,
-            username: row.assigneeUsername,
-          }),
+          name: memberName({ username: row.assigneeUsername }),
           timezone: row.assigneeTimezone ?? UNSET_TIMEZONE,
           isYou: row.assigneeId === userId,
         };
@@ -245,7 +240,7 @@ function itemDetails(row: ItemDetailRow, userId: number, timezone: string) {
         ? null
         : row.assigneeId === userId
           ? "the user"
-          : memberName({ displayName: row.assigneeDisplayName, username: row.assigneeUsername }),
+          : memberName({ username: row.assigneeUsername }),
     reminderOffsets: row.reminderOffsets,
     recurring: parseRecurring(row.recurring),
     properties: row.properties ? (JSON.parse(row.properties) as unknown) : null,

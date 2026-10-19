@@ -27,7 +27,10 @@ async function sharedBucket() {
     .update(users)
     .set({ username: `quiet-otter-${owner}` })
     .where(eq(users.id, owner));
-  await db.update(users).set({ displayName: "Sam" }).where(eq(users.id, member));
+  await db
+    .update(users)
+    .set({ username: `sam_${member}` })
+    .where(eq(users.id, member));
   await db.insert(bucketMembers).values({ bucketId, userId: member });
   await seedItem(owner, bucketId, {
     title: "book flights",
@@ -44,20 +47,20 @@ describe("voice hints", () => {
     expect(forMember).toEqual(
       expect.arrayContaining(["Home", "book flights", `quiet-otter-${owner}`])
     );
-    expect(forMember).not.toContain("Sam");
+    expect(forMember).not.toContain(`sam_${member}`);
 
     const forOwner = (await voiceContext(owner, "capy")).names;
-    expect(forOwner).toEqual(expect.arrayContaining(["Home", "book flights", "Sam"]));
+    expect(forOwner).toEqual(expect.arrayContaining(["Home", "book flights", `sam_${member}`]));
     expect(forOwner).not.toContain(`quiet-otter-${owner}`);
   });
 
   it("gives someone outside the bucket none of it", async () => {
-    const { stranger, owner } = await sharedBucket();
+    const { stranger, owner, member } = await sharedBucket();
 
     const names = (await voiceContext(stranger, "capy")).names;
     expect(names).not.toContain("Home");
     expect(names).not.toContain("book flights");
-    expect(names).not.toContain("Sam");
+    expect(names).not.toContain(`sam_${member}`);
     expect(names).not.toContain(`quiet-otter-${owner}`);
   });
 });

@@ -207,12 +207,9 @@ async function acrossClocks() {
   const bucketId = await seedBucket(owner);
   await db.update(buckets).set({ name: "Home" }).where(eq(buckets.id, bucketId));
   const ownerUsername = `quiet-otter-${owner}`;
-  const samUsername = `brave-fox-${sam}`;
+  const samUsername = `sam_${sam}`;
   await db.update(users).set({ username: ownerUsername }).where(eq(users.id, owner));
-  await db
-    .update(users)
-    .set({ username: samUsername, displayName: "Sam" })
-    .where(eq(users.id, sam));
+  await db.update(users).set({ username: samUsername }).where(eq(users.id, sam));
   await db.insert(bucketMembers).values({ bucketId, userId: sam });
   return { owner, sam, bucketId, ownerUsername, samUsername };
 }
@@ -224,12 +221,12 @@ async function addAs(userId: number, args: Record<string, unknown>) {
 }
 
 describe("capy assigning items", () => {
-  it("assigns by name and reads the time on that person's clock", async () => {
-    const { owner, sam, bucketId } = await acrossClocks();
+  it("assigns by username and reads the time on that person's clock", async () => {
+    const { owner, sam, bucketId, samUsername } = await acrossClocks();
 
     const added = await addAs(owner, {
       bucket_id: bucketId,
-      assignee: "sam",
+      assignee: samUsername,
       deadline: "2026-03-11T09:00:00",
     });
 
@@ -239,13 +236,13 @@ describe("capy assigning items", () => {
       deadlineTimezone: LONDON,
     });
     expect(added.item).toMatchObject({
-      assignedTo: "Sam",
+      assignedTo: samUsername,
       deadline: "Wed 2026-03-11 14:30",
-      deadlineOtherClock: "Wed 2026-03-11 09:00 for Sam",
+      deadlineOtherClock: `Wed 2026-03-11 09:00 for ${samUsername}`,
     });
   });
 
-  it("matches the username too, and keeps the user's clock when asked", async () => {
+  it("matches the username in any case, and keeps the user's clock when asked", async () => {
     const { owner, sam, bucketId, samUsername } = await acrossClocks();
 
     const added = await addAs(owner, {
@@ -260,7 +257,9 @@ describe("capy assigning items", () => {
       deadline: new Date("2026-03-11T03:30:00Z"),
       deadlineTimezone: INDIA,
     });
-    expect(added.item).toMatchObject({ deadlineOtherClock: "Wed 2026-03-11 03:30 for Sam" });
+    expect(added.item).toMatchObject({
+      deadlineOtherClock: `Wed 2026-03-11 03:30 for ${samUsername}`,
+    });
   });
 
   it("takes me and anyone, on the user's own clock", async () => {
@@ -289,12 +288,11 @@ describe("capy assigning items", () => {
   });
 
   it("refuses a name that isn't in the bucket, and any name in a bucket nobody shares", async () => {
-    const { owner, bucketId } = await acrossClocks();
+    const { owner, bucketId, samUsername } = await acrossClocks();
 
     expect(await addAs(owner, { bucket_id: bucketId, assignee: "Bob" })).toEqual({
       ok: false,
-      error:
-        'No one called "Bob" in "Home". Its members: the user, Sam. Ask the user who they mean.',
+      error: `No one called "Bob" in "Home". Its members: the user, ${samUsername}. Ask the user who they mean.`,
     });
 
     const solo = await seedBucket(owner);
@@ -309,12 +307,12 @@ describe("capy assigning items", () => {
   });
 
   it("keeps the deadline when only the assignee changes, and reads a new time on theirs", async () => {
-    const { owner, sam, bucketId } = await acrossClocks();
+    const { owner, sam, bucketId, samUsername } = await acrossClocks();
     const added = await addAs(owner, { bucket_id: bucketId, deadline: "2026-03-11T09:00:00" });
     const onIndia = { deadline: new Date("2026-03-11T03:30:00Z"), deadlineTimezone: INDIA };
     expect(await itemOf(added.itemId)).toMatchObject(onIndia);
 
-    await tool(owner, "update_item", { item_id: added.itemId, assignee: "Sam" }, INDIA);
+    await tool(owner, "update_item", { item_id: added.itemId, assignee: samUsername }, INDIA);
     expect(await itemOf(added.itemId)).toMatchObject({ ...onIndia, assigneeId: sam });
 
     await tool(
@@ -330,12 +328,12 @@ describe("capy assigning items", () => {
   });
 
   it("uses the user's clock for someone whose timezone isn't set", async () => {
-    const { owner, sam, bucketId } = await acrossClocks();
+    const { owner, sam, bucketId, samUsername } = await acrossClocks();
     await db.update(userSettings).set({ timezone: "UTC" }).where(eq(userSettings.userId, sam));
 
     const added = await addAs(owner, {
       bucket_id: bucketId,
-      assignee: "Sam",
+      assignee: samUsername,
       deadline: "2026-03-11T09:00:00",
     });
     expect(await itemOf(added.itemId)).toMatchObject({
@@ -345,7 +343,7 @@ describe("capy assigning items", () => {
   });
 
   it("names the members of shared buckets in the prompt", async () => {
-    const { owner, sam, bucketId, ownerUsername } = await acrossClocks();
+    const { owner, sam, bucketId, ownerUsername, samUsername } = await acrossClocks();
     const solo = await seedBucket(owner);
     await db.update(buckets).set({ name: "Mine" }).where(eq(buckets.id, solo));
 
@@ -355,7 +353,9 @@ describe("capy assigning items", () => {
       "",
       NOW
     );
-    expect(ownerPrompt).toContain(`- "Home" (id: ${bucketId}) [members: me (the user), Sam`);
+    expect(ownerPrompt).toContain(
+      `- "Home" (id: ${bucketId}) [members: me (the user), ${samUsername}`
+    );
     expect(ownerPrompt).toMatch(new RegExp(`- "Mine" \\(id: ${solo}\\)(?! \\[members)`));
 
     const samPrompt = buildSystemPrompt(
