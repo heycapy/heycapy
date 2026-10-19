@@ -22,6 +22,7 @@ import type { QuietHours } from "./QuietHoursSettings";
 import { CloseWarning, SaveBar, useUnsavedChanges } from "./UnsavedChanges";
 import { DEFAULT_QUIET_FROM, DEFAULT_QUIET_TO, type UserTone } from "./settings-constants";
 import type { userSettings } from "@/lib/db/schema";
+import { NotificationDefaults } from "@/types/rules";
 
 type Settings = typeof userSettings.$inferSelect;
 export type SettingsTab =
@@ -78,6 +79,10 @@ export function SettingsSheet({ open, initialTab, onClose }: SettingsSheetProps)
     from: DEFAULT_QUIET_FROM,
     to: DEFAULT_QUIET_TO,
   });
+  const [bucketDefaults, setBucketDefaults] = useState(() => NotificationDefaults.parse({}));
+  const [workingChannels, setWorkingChannels] = useState<
+    NonNullable<NotificationDefaults["medium"]>
+  >([]);
   const [reloads, setReloads] = useState(0);
   const [wasOpen, setWasOpen] = useState(open);
   const [confirmClose, setConfirmClose] = useState(false);
@@ -134,6 +139,8 @@ export function SettingsSheet({ open, initialTab, onClose }: SettingsSheetProps)
           setAdminUser(result.isAdmin);
           setSmtpPassSaved(result.smtpPassSaved);
           setTelegramBotConfigured(result.telegramBotConfigured);
+          setBucketDefaults(result.notificationDefaults);
+          setWorkingChannels(result.workingChannels);
           if (!result.settings.notificationEmailTo) {
             setNotificationEmailTo(result.userEmail);
           }
@@ -187,6 +194,7 @@ export function SettingsSheet({ open, initialTab, onClose }: SettingsSheetProps)
       notificationsTelegram,
       quietHoursFrom: quietHours.enabled ? quietHours.from : null,
       quietHoursTo: quietHours.enabled ? quietHours.to : null,
+      notificationDefaults: bucketDefaults,
     };
   }
 
@@ -271,6 +279,9 @@ export function SettingsSheet({ open, initialTab, onClose }: SettingsSheetProps)
                 telegramActionPending={telegramActionPending}
                 quietHours={quietHours}
                 setQuietHours={setQuietHours}
+                bucketDefaults={bucketDefaults}
+                setBucketDefaults={setBucketDefaults}
+                workingChannels={workingChannels}
                 pending={pending}
               />
             )}

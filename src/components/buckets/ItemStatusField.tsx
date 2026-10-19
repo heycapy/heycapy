@@ -1,6 +1,7 @@
 import { ITEM_STATUS } from "@/constants";
 import { OptionButton } from "@/components/ui/OptionButton";
 import type { StatusDef } from "@/types/rules";
+import { LABEL } from "@/components/layout/settings-constants";
 
 type ItemStatusFieldProps = {
   status: string;
@@ -12,7 +13,7 @@ type ItemStatusFieldProps = {
 export function ItemStatusField({ status, statuses, onChange, disabled }: ItemStatusFieldProps) {
   return (
     <div className="flex flex-col gap-1.5">
-      <label className="text-muted-foreground font-mono text-xs">status</label>
+      <label className={LABEL}>status</label>
       <div className="flex flex-wrap gap-1.5">
         {statuses.map((s) => (
           <OptionButton

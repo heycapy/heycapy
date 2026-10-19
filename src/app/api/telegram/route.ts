@@ -48,6 +48,7 @@ import {
 } from "./telegram-utils";
 import type { TelegramUpdate } from "./telegram-utils";
 import { redeemTelegramLinkCode } from "@/lib/notifications/telegram-link";
+import { applyNotificationDefaults } from "@/lib/notifications/defaults";
 import { isTelegramWebhookSecret } from "@/lib/notifications/telegram-webhook";
 import { handleReminderAction } from "./telegram-quick-actions";
 import {
@@ -133,6 +134,7 @@ async function handleUpdate(botToken: string, body: TelegramUpdate): Promise<Res
     const code = text.slice("/start".length).trim();
     const linkedUserId = code ? redeemTelegramLinkCode(code, chatIdStr) : null;
     if (linkedUserId !== null) {
+      await applyNotificationDefaults(linkedUserId);
       dataEvents.emit("refresh", linkedUserId);
       await sendTelegramWithQuickActions(
         botToken,

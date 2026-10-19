@@ -1,8 +1,33 @@
 import type { Dispatch, SetStateAction } from "react";
 import { cn, toggled } from "@/lib/utils";
+import type { FollowableSetting, NotificationDefaults } from "@/types/rules";
 import { BucketRulesPanel } from "./BucketRulesPanel";
+import { FollowTag } from "./FollowTag";
 import type { BucketSettingsValues } from "./parseBucketSettings";
 import { LOCKED_CONTROLS } from "./constants";
+import { HINT } from "@/components/layout/settings-constants";
+
+const FOLLOWED_BY: Partial<Record<keyof BucketSettingsValues, FollowableSetting>> = {
+  defaultReminders: "defaultReminders",
+  notifyAt: "notifyAt",
+  repeat: "repeat",
+  notifyWhenOverdue: "overdue",
+  overdueRepeatHours: "overdue",
+  overdueFirstAlertMins: "overdue",
+};
+
+function fromTweaks(key: FollowableSetting, defaults: NotificationDefaults) {
+  switch (key) {
+    case "overdue":
+      return {
+        notifyWhenOverdue: defaults.notifyWhenOverdue,
+        overdueRepeatHours: defaults.overdueRepeatHours,
+        overdueFirstAlertMins: defaults.overdueFirstAlertMins,
+      };
+    default:
+      return { [key]: defaults[key] };
+  }
+}
 
 type BucketRulesFieldsProps = {
   activeTab: "items" | "notifications";
@@ -11,6 +36,8 @@ type BucketRulesFieldsProps = {
   clocksDiffer: boolean;
   disabled: boolean;
   locked: boolean;
+  // The owner's tweaks, once loaded
+  defaults?: NotificationDefaults;
 };
 
 export function BucketRulesFields({
@@ -20,9 +47,24 @@ export function BucketRulesFields({
   clocksDiffer,
   disabled,
   locked,
+  defaults,
 }: BucketRulesFieldsProps) {
   function set<K extends keyof BucketSettingsValues>(key: K, value: BucketSettingsValues[K]) {
-    setValues((prev) => ({ ...prev, [key]: value }));
+    const followed = FOLLOWED_BY[key];
+    setValues((prev) => ({
+      ...prev,
+      [key]: value,
+      followsTweaks: prev.followsTweaks.filter((k) => k !== followed),
+    }));
+  }
+
+  function followTweaks(key: FollowableSetting) {
+    if (!defaults) return;
+    setValues((prev) => ({
+      ...prev,
+      ...fromTweaks(key, defaults),
+      followsTweaks: [...prev.followsTweaks, key],
+    }));
   }
 
   const panel = (
@@ -44,6 +86,17 @@ export function BucketRulesFields({
       notifyWhenOverdue={values.notifyWhenOverdue}
       overdueRepeatHours={values.overdueRepeatHours}
       overdueFirstAlertMins={values.overdueFirstAlertMins}
+      tagFor={
+        locked
+          ? undefined
+          : (key) => (
+              <FollowTag
+                following={values.followsTweaks.includes(key)}
+                onUseTweaks={() => followTweaks(key)}
+                disabled={disabled || !defaults}
+              />
+            )
+      }
       onSortByChange={(v) => set("sortBy", v)}
       onDragChange={(v) => set("drag", v)}
       onShowCompletedChange={(v) => set("showCompleted", v)}
@@ -73,7 +126,7 @@ export function BucketRulesFields({
         LOCKED_CONTROLS
       )}
     >
-      <p className="text-muted-foreground font-mono text-[11px]">set by the owner</p>
+      <p className={HINT}>set by the owner</p>
       {panel}
     </fieldset>
   );

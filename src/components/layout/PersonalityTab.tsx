@@ -2,7 +2,7 @@ import { cn } from "@/lib/utils";
 import { charCountColor } from "@/components/ui/input";
 import { Toggle } from "@/components/ui/Toggle";
 import { OptionGroup } from "@/components/ui/OptionGroup";
-import { LABEL, INPUT, TONE_OPTIONS, FAVORITE_TONE_OPTIONS } from "./settings-constants";
+import { LABEL, INPUT, TONE_OPTIONS, FAVORITE_TONE_OPTIONS, HINT } from "./settings-constants";
 import type { UserTone } from "./settings-constants";
 import { PERSONALITY_NAME_MAX_LENGTH, CUSTOM_PROMPT_MAX_LENGTH } from "@/constants";
 
@@ -83,7 +83,7 @@ export function PersonalityTab({
             rows={4}
             className="border-border placeholder:text-muted-foreground/50 focus:border-foreground w-full resize-none border-b bg-transparent py-1.5 font-mono text-xs outline-none disabled:opacity-50"
           />
-          <p className="text-muted-foreground font-mono text-[11px]">
+          <p className={HINT}>
             only how it should sound, like &quot;talk like a pirate&quot;. keep it friendly: prompts
             that ask for anything else are refused.
           </p>

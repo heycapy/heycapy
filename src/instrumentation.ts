@@ -29,6 +29,9 @@ export async function register() {
       migrate(db, { migrationsFolder });
       const { backfillUsernames } = await import("@/lib/account/username");
       await backfillUsernames();
+      // Built-in templates live in code, a deploy brings their changes without waiting for a sign-up
+      const { seed } = await import("@/lib/db/seed");
+      await seed(0);
     }
     const { startScheduler } = await import("@/lib/scheduler");
     startScheduler();

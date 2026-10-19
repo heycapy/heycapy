@@ -1,6 +1,7 @@
 import type { LookupAddress } from "node:dns";
 import type * as dnsPromises from "node:dns/promises";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import { NotificationDefaults } from "@/types/rules";
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { notificationQueue, userSettings } from "@/lib/db/schema";
@@ -184,6 +185,7 @@ it("saving an ntfy url or smtp host on our own network is refused", async () => 
     aiKeyEdits: {},
     smtpPass: null,
     transcriptionKeyEdit: { newKey: null, clear: false },
+    notificationDefaults: NotificationDefaults.parse({}),
   };
   fakeDns.set("my-app.internal", [{ address: "fdaa:0:1:a7b::2", family: 6 }]);
 

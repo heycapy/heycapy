@@ -1,5 +1,7 @@
+import type { ReactNode } from "react";
 import { OptionButton } from "@/components/ui/OptionButton";
 import { MEDIUM_OPTIONS, type NotificationMedium } from "./constants";
+import { HINT, LABEL } from "@/components/layout/settings-constants";
 
 export type NotifAvailability = {
   email: boolean;
@@ -9,8 +11,6 @@ export type NotifAvailability = {
   webhooks: { id: number; name: string }[];
 };
 
-const LABEL = "text-muted-foreground font-mono text-xs";
-const HINT = "text-muted-foreground font-mono text-[11px] leading-tight";
 const WARNING = "text-warning font-mono text-[11px]";
 
 type MyChannelsPickerProps = {
@@ -19,6 +19,7 @@ type MyChannelsPickerProps = {
   onMediumToggle: (m: NotificationMedium) => void;
   onWebhookToggle: (id: number) => void;
   notifAvailability?: NotifAvailability;
+  labelTag?: ReactNode;
 };
 
 export function MyChannelsPicker({
@@ -27,10 +28,14 @@ export function MyChannelsPicker({
   onMediumToggle,
   onWebhookToggle,
   notifAvailability,
+  labelTag,
 }: MyChannelsPickerProps) {
   return (
     <div className="flex flex-col gap-1.5">
-      <label className={LABEL}>channels</label>
+      <div data-label-row className="flex items-center justify-between gap-2">
+        <label className={LABEL}>channels</label>
+        {labelTag}
+      </div>
       <span className={HINT}>
         where your reminders from this bucket go
         {notifAvailability?.webhooks.length === 0 &&

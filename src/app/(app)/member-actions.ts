@@ -7,7 +7,7 @@ import { requireSession } from "./action-helpers";
 import { publicAppUrl } from "@/lib/app-url";
 import { dataEvents } from "@/lib/events";
 import { refreshBucketReminders } from "@/lib/reminders/refresh";
-import { startingChannels } from "@/lib/notifications/channels";
+import { defaultChannels, getNotificationDefaults } from "@/lib/notifications/defaults";
 import {
   deadlineHints,
   type DeadlineDraft,
@@ -56,7 +56,10 @@ export async function joinBucketAction(
   const parsed = InviteCode.safeParse(code);
   if (!parsed.success) return { ok: false, error: JOIN_ERRORS.invalid };
 
-  const { channels } = await startingChannels(session.userId, {});
+  const channels = await defaultChannels(
+    session.userId,
+    await getNotificationDefaults(session.userId)
+  );
   const result = redeemInvite(session.userId, parsed.data, channels);
   if (!result.ok) return { ok: false, error: JOIN_ERRORS[result.reason] };
 

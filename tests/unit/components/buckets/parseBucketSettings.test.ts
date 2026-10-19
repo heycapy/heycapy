@@ -31,6 +31,7 @@ describe("parseBucketSettings", () => {
       notifyOnArrival: false,
       notifyWhenOverdue: false,
       overdueRepeatHours: undefined,
+      followsTweaks: [],
     });
   });
 

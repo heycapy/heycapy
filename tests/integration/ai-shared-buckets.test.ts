@@ -188,7 +188,11 @@ describe("capy in a shared bucket", () => {
       await tool(member, "update_bucket_settings", { bucket_id: bucketId, channels: ["email"] })
     ).toMatchObject({ ok: true, settings: { channels: ["email"], is_owner: false } });
 
-    expect(await getMemberChannels(member, bucketId)).toEqual({ medium: ["email"], webhooks: [] });
+    expect(await getMemberChannels(member, bucketId)).toEqual({
+      medium: ["email"],
+      webhooks: [],
+      followsTweaks: false,
+    });
     expect(await getMemberChannels(owner, bucketId)).toEqual(ownerBefore);
   });
 });

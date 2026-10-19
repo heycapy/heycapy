@@ -39,7 +39,7 @@ async function addWebhookInTweaks(page: Page, name: string, url: string) {
   await expect(box.getByRole("button", { name: "[ send test ]" })).toBeVisible();
 }
 
-test("webhooks set up in tweaks are picked per bucket, and new buckets get the default ones", async ({
+test("webhooks on by default reach buckets that follow tweaks, and each bucket can pick its own", async ({
   page,
 }) => {
   const older = uniqueName("Work");
@@ -60,13 +60,16 @@ test("webhooks set up in tweaks are picked per bucket, and new buckets get the d
   settings = await openSettings(page);
   await switchTab(settings, "notifications");
   const teamChat = option(field(settings, "channels"), "team chat");
-  await expectSelected(teamChat, false);
+  await expectSelected(teamChat);
   await teamChat.click();
+  await expect(
+    field(settings, "channels").getByRole("button", { name: "use tweaks" })
+  ).toBeVisible();
   await saveSettings(settings);
 
   settings = await openSettings(page);
   await switchTab(settings, "notifications");
-  await expectSelected(option(field(settings, "channels"), "team chat"));
+  await expectSelected(option(field(settings, "channels"), "team chat"), false);
   await closeDialog(settings);
 
   await createAndSelectBucket(page, uniqueName("Fresh"));

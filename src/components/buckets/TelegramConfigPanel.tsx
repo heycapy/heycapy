@@ -13,6 +13,7 @@ import type {
   TelegramDeadlinePreset,
   TelegramRecurringDefault,
 } from "./constants";
+import { HINT, LABEL } from "@/components/layout/settings-constants";
 
 type TelegramConfigPanelProps = {
   config: TelegramBotConfig;
@@ -96,13 +97,13 @@ export function TelegramConfigPanel({ config, onChange, disabled }: TelegramConf
 
   return (
     <div className="flex flex-col gap-5">
-      <div className="text-muted-foreground font-mono text-[11px] leading-relaxed">
+      <div className={cn(HINT, "leading-relaxed")}>
         configure how this bucket behaves in the telegram bot — set a shortcut alias, choose which
         deadline buttons appear, and whether to ask about recurring.
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <label className="text-muted-foreground font-mono text-xs">alias</label>
+        <label className={LABEL}>alias</label>
         <input
           type="text"
           value={config.alias ?? ""}
@@ -114,7 +115,7 @@ export function TelegramConfigPanel({ config, onChange, disabled }: TelegramConf
           maxLength={TELEGRAM_ALIAS_MAX_LENGTH}
           className="border-border focus:border-foreground w-full border-b bg-transparent py-1.5 font-mono text-xs outline-none placeholder:opacity-40 disabled:opacity-50"
         />
-        <p className="text-muted-foreground font-mono text-[11px]">
+        <p className={HINT}>
           {config.alias
             ? `type /${config.alias} title in telegram to skip the bucket picker`
             : "optional — lets you skip the bucket picker with a shortcut"}
@@ -122,10 +123,8 @@ export function TelegramConfigPanel({ config, onChange, disabled }: TelegramConf
       </div>
 
       <div className="flex flex-col gap-2">
-        <label className="text-muted-foreground font-mono text-xs">deadline buttons</label>
-        <p className="text-muted-foreground font-mono text-[11px]">
-          choose which options appear when adding an item to this bucket
-        </p>
+        <label className={LABEL}>deadline buttons</label>
+        <p className={HINT}>choose which options appear when adding an item to this bucket</p>
         <div className="flex flex-wrap gap-1.5">
           {TELEGRAM_DEADLINE_PRESETS.map(({ value, label }) => {
             const active = config.deadlinePresets.includes(value);
@@ -149,14 +148,14 @@ export function TelegramConfigPanel({ config, onChange, disabled }: TelegramConf
             );
           })}
         </div>
-        <p className="text-muted-foreground font-mono text-[11px]">
+        <p className={HINT}>
           {config.deadlinePresets.length} selected — buttons appear in the order above
         </p>
       </div>
 
       <div className="flex flex-col gap-2">
-        <label className="text-muted-foreground font-mono text-xs">time buttons</label>
-        <p className="text-muted-foreground font-mono text-[11px]">
+        <label className={LABEL}>time buttons</label>
+        <p className={HINT}>
           choose which times appear in telegram — toggle hourly presets or add a custom time
         </p>
         <div className="flex flex-wrap gap-1.5">
@@ -231,16 +230,14 @@ export function TelegramConfigPanel({ config, onChange, disabled }: TelegramConf
           </button>
         </div>
         {customError && <p className="text-destructive font-mono text-[11px]">{customError}</p>}
-        <p className="text-muted-foreground font-mono text-[11px]">
+        <p className={HINT}>
           {config.timeSlots.length} time{config.timeSlots.length === 1 ? "" : "s"} configured
         </p>
       </div>
 
       <div className="flex flex-col gap-2">
         <div className="flex items-center justify-between">
-          <label className="text-muted-foreground font-mono text-xs">
-            ask &quot;repeats?&quot;
-          </label>
+          <label className={LABEL}>ask &quot;repeats?&quot;</label>
           <button
             onClick={() => set("showRecurring", !config.showRecurring)}
             aria-pressed={config.showRecurring}
@@ -255,13 +252,13 @@ export function TelegramConfigPanel({ config, onChange, disabled }: TelegramConf
             {config.showRecurring ? "on" : "off"}
           </button>
         </div>
-        <p className="text-muted-foreground font-mono text-[11px]">
+        <p className={HINT}>
           after picking a deadline, show a &quot;Repeats?&quot; step — good for subscriptions
         </p>
 
         {config.showRecurring && (
           <div className="flex flex-col gap-1.5 pt-1">
-            <label className="text-muted-foreground font-mono text-xs">default selection</label>
+            <label className={LABEL}>default selection</label>
             <div className="flex flex-wrap gap-1.5">
               {TELEGRAM_RECURRING_OPTIONS.map(({ value, label }) => (
                 <button
@@ -280,9 +277,7 @@ export function TelegramConfigPanel({ config, onChange, disabled }: TelegramConf
                 </button>
               ))}
             </div>
-            <p className="text-muted-foreground font-mono text-[11px]">
-              pre-selected in telegram — user can still pick any option
-            </p>
+            <p className={HINT}>pre-selected in telegram — user can still pick any option</p>
           </div>
         )}
       </div>

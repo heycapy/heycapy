@@ -1,3 +1,4 @@
+import { parseNotificationDefaults } from "@/lib/buckets/follow";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type * as SessionModule from "@/lib/auth/session";
 import { and, eq } from "drizzle-orm";
@@ -42,6 +43,7 @@ async function saveQuietHours(from: string | null, to: string | null) {
     smtpPass: null,
     quietHoursFrom: from,
     quietHoursTo: to,
+    notificationDefaults: parseNotificationDefaults(settings.notificationDefaults),
   });
 }
 

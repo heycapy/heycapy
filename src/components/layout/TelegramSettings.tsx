@@ -3,7 +3,7 @@ import { BracketButton } from "@/components/ui/BracketButton";
 import { QRCodeSVG } from "qrcode.react";
 import { Toggle } from "@/components/ui/Toggle";
 import { createTelegramLinkAction, sendTestNotificationAction } from "@/app/(app)/actions";
-import { BOX, INPUT, LABEL, SECTION, TELEGRAM_QR_SIZE } from "./settings-constants";
+import { BOX, INPUT, LABEL, SECTION, TELEGRAM_QR_SIZE, HINT } from "./settings-constants";
 import { TestSendButton } from "./TestSendButton";
 
 type TelegramSettingsProps = {
@@ -62,7 +62,7 @@ export function TelegramSettings({
       <span className={SECTION}>telegram</span>
 
       {!telegramBotConfigured ? (
-        <p className="text-muted-foreground font-mono text-[11px]">
+        <p className={HINT}>
           set <code className="font-mono">TELEGRAM_BOT_TOKEN</code> in .env to enable telegram
         </p>
       ) : telegramConnected ? (
@@ -70,9 +70,7 @@ export function TelegramSettings({
           <div className="flex items-center justify-between">
             <div className="flex flex-col gap-0.5">
               <span className={LABEL}>status</span>
-              <span className="text-muted-foreground font-mono text-[11px]">
-                connected · chat id: {telegramChatId}
-              </span>
+              <span className={HINT}>connected · chat id: {telegramChatId}</span>
             </div>
             <BracketButton
               type="button"
@@ -101,7 +99,7 @@ export function TelegramSettings({
           <div className="flex items-center justify-between">
             <div className="flex flex-col gap-0.5">
               <span className={LABEL}>status</span>
-              <span className="text-muted-foreground font-mono text-[11px]">not connected</span>
+              <span className={HINT}>not connected</span>
             </div>
             <div className="flex items-center gap-2">
               <BracketButton
@@ -148,7 +146,7 @@ export function TelegramSettings({
                 role="img"
                 className="self-start"
               />
-              <p className="text-muted-foreground font-mono text-[11px]">
+              <p className={HINT}>
                 <a
                   href={link}
                   target="_blank"

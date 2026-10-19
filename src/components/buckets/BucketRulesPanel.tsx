@@ -4,37 +4,13 @@ import {
   type QuickRemindChoice,
 } from "@/lib/notifications/constants";
 import { Toggle } from "@/components/ui/Toggle";
-import { OptionButton } from "@/components/ui/OptionButton";
 import { OptionGroup } from "@/components/ui/OptionGroup";
-import { TimePicker } from "@/components/ui/TimePicker";
 import { DurationInput } from "@/components/ui/DurationInput";
-import { ReminderPicker } from "./ReminderPicker";
+import { OverdueFields, WhenToRemindFields, type FollowTagFor } from "./NotificationRuleFields";
 import type { SortBy, RepeatMode } from "./constants";
-import { SORT_OPTIONS, REPEAT_OPTIONS, RECURRENCE_MODE_OPTIONS } from "./constants";
+import { SORT_OPTIONS, RECURRENCE_MODE_OPTIONS } from "./constants";
 import type { RecurrenceMode } from "@/types/rules";
-import { OVERDUE_FIRST_ALERT_DEFAULT_MINS } from "@/lib/reminders/constants";
-import { BOX, SECTION } from "@/components/layout/settings-constants";
-
-const LABEL = "text-muted-foreground font-mono text-xs";
-const HINT = "text-muted-foreground font-mono text-[11px] leading-tight";
-
-const OVERDUE_REPEAT_OPTIONS = [
-  { value: "0.25", label: "15 min" },
-  { value: "0.5", label: "30 min" },
-  { value: "1", label: "1 hour" },
-  { value: "2", label: "2 hours" },
-  { value: "4", label: "4 hours" },
-  { value: "8", label: "8 hours" },
-] as const;
-
-const OVERDUE_FIRST_ALERT_OPTIONS = [
-  { value: 15, label: "15 min" },
-  { value: 30, label: "30 min" },
-  { value: 60, label: "1 hour" },
-  { value: 120, label: "2 hours" },
-  { value: 240, label: "4 hours" },
-  { value: 1440, label: "1 day" },
-] as const;
+import { BOX, SECTION, HINT, LABEL } from "@/components/layout/settings-constants";
 
 type BucketRulesPanelProps = {
   activeTab: "items" | "notifications";
@@ -54,6 +30,7 @@ type BucketRulesPanelProps = {
   notifyWhenOverdue: boolean;
   overdueRepeatHours: number | undefined;
   overdueFirstAlertMins: number | undefined;
+  tagFor?: FollowTagFor;
   onSortByChange: (v: SortBy) => void;
   onDragChange: (v: boolean) => void;
   onShowCompletedChange: (v: boolean) => void;
@@ -88,6 +65,7 @@ export function BucketRulesPanel({
   notifyWhenOverdue,
   overdueRepeatHours,
   overdueFirstAlertMins,
+  tagFor,
   onSortByChange,
   onDragChange,
   onShowCompletedChange,
@@ -159,85 +137,31 @@ export function BucketRulesPanel({
     <>
       <div className={BOX}>
         <span className={SECTION}>when to remind</span>
-        <ReminderPicker
-          reminders={defaultReminders}
-          hint="when each item reminds you, e.g. 1 day before and at the deadline. you can still change it on any item"
-          allDay={false}
+        <WhenToRemindFields
+          defaultReminders={defaultReminders}
+          notifyAt={notifyAt}
+          repeat={repeat}
+          clocksDiffer={clocksDiffer}
           disabled={disabled}
-          onChange={onDefaultRemindersChange}
+          tagFor={tagFor}
+          onDefaultRemindersChange={onDefaultRemindersChange}
+          onNotifyAtChange={onNotifyAtChange}
+          onRepeatChange={onRepeatChange}
         />
-        <div className="flex flex-col gap-1.5">
-          <label className={LABEL}>remind at</label>
-          <span className={HINT}>
-            all-day items are reminded at this time, and nothing from this bucket arrives earlier in
-            the day
-            {clocksDiffer && " · each person gets this on their own clock"}
-          </span>
-          <TimePicker value={notifyAt} onChange={onNotifyAtChange} disabled={disabled} />
-        </div>
-        <div className="flex flex-col gap-1.5">
-          <label className={LABEL}>keep reminding</label>
-          <span className={HINT}>
-            daily sends the reminder again every day until the item is done
-          </span>
-          <OptionGroup options={REPEAT_OPTIONS} value={repeat} onChange={onRepeatChange} />
-        </div>
       </div>
 
       <div className={BOX}>
         <span className={SECTION}>if it&apos;s overdue</span>
-        <div className="flex flex-col gap-1.5">
-          <label className={LABEL}>notify when overdue</label>
-          <span className={HINT}>alert when an item passes its deadline and isn&apos;t done</span>
-          <Toggle
-            value={notifyWhenOverdue}
-            onChange={onNotifyWhenOverdueChange}
-            disabled={disabled}
-          />
-          {notifyWhenOverdue && (
-            <div className="mt-1.5 flex flex-col gap-3">
-              <div role="group" aria-label="first alert" className="flex flex-col gap-1.5">
-                <span className={LABEL}>first alert</span>
-                <span className={HINT}>how long after the deadline</span>
-                <div className="flex flex-wrap gap-1.5">
-                  {OVERDUE_FIRST_ALERT_OPTIONS.map((opt) => (
-                    <OptionButton
-                      key={opt.value}
-                      active={
-                        (overdueFirstAlertMins ?? OVERDUE_FIRST_ALERT_DEFAULT_MINS) === opt.value
-                      }
-                      disabled={disabled}
-                      onClick={() => onOverdueFirstAlertMinsChange(opt.value)}
-                    >
-                      {opt.label}
-                    </OptionButton>
-                  ))}
-                </div>
-              </div>
-              <div role="group" aria-label="then repeat every" className="flex flex-col gap-1.5">
-                <span className={LABEL}>then repeat every</span>
-                <span className={HINT}>pick none to alert just once</span>
-                <div className="flex flex-wrap gap-1.5">
-                  {OVERDUE_REPEAT_OPTIONS.map((opt) => {
-                    const active = String(overdueRepeatHours) === opt.value;
-                    return (
-                      <OptionButton
-                        key={opt.value}
-                        active={active}
-                        disabled={disabled}
-                        onClick={() =>
-                          onOverdueRepeatHoursChange(active ? undefined : parseFloat(opt.value))
-                        }
-                      >
-                        {opt.label}
-                      </OptionButton>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
+        <OverdueFields
+          notifyWhenOverdue={notifyWhenOverdue}
+          overdueRepeatHours={overdueRepeatHours}
+          overdueFirstAlertMins={overdueFirstAlertMins}
+          disabled={disabled}
+          tagFor={tagFor}
+          onNotifyWhenOverdueChange={onNotifyWhenOverdueChange}
+          onOverdueRepeatHoursChange={onOverdueRepeatHoursChange}
+          onOverdueFirstAlertMinsChange={onOverdueFirstAlertMinsChange}
+        />
       </div>
 
       <div className={BOX}>

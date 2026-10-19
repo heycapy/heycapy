@@ -7,12 +7,10 @@ import {
   sendTestNotificationAction,
   type PushDevice,
 } from "@/app/(app)/actions";
-import { BOX, LABEL, SECTION } from "./settings-constants";
+import { BOX, LABEL, SECTION, HINT } from "./settings-constants";
 import { TestSendButton } from "./TestSendButton";
 
 type Support = "checking" | "supported" | "iosNeedsInstall" | "unsupported";
-
-const HINT = "text-muted-foreground font-mono text-[11px]";
 
 function detectSupport(): Support {
   if ("serviceWorker" in navigator && "PushManager" in window && "Notification" in window) {

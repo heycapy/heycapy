@@ -2,6 +2,7 @@
 
 import type { ActionResult } from "@/types/result";
 import { revalidatePath } from "next/cache";
+import { applyNotificationDefaults } from "@/lib/notifications/defaults";
 import { and, asc, eq } from "drizzle-orm";
 import { z } from "zod";
 import { getSession } from "@/lib/auth/session";
@@ -97,6 +98,7 @@ export async function saveWebhookAction(
       .update(outgoingWebhooks)
       .set({ name, url, isDefault })
       .where(and(eq(outgoingWebhooks.id, saved.id), eq(outgoingWebhooks.userId, session.userId)));
+    if (isDefault !== saved.isDefault) await applyNotificationDefaults(session.userId);
     revalidatePath("/");
     return { ok: true, webhook: { ...saved, name, url, isDefault } };
   }
@@ -106,6 +108,7 @@ export async function saveWebhookAction(
     .insert(outgoingWebhooks)
     .values({ userId: session.userId, name, url, isDefault, secret: encryptValue(secret) })
     .returning({ id: outgoingWebhooks.id });
+  if (isDefault) await applyNotificationDefaults(session.userId);
   revalidatePath("/");
   return { ok: true, webhook: { id: row.id, name, url, secret, isDefault } };
 }

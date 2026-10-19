@@ -20,7 +20,7 @@ import {
   AVATAR_PREVIEW_BACKGROUNDS,
 } from "@/lib/account/constants";
 import { cn } from "@/lib/utils";
-import { LABEL } from "@/components/layout/settings-constants";
+import { LABEL, MUTED } from "@/components/layout/settings-constants";
 import { Avatar } from "./Avatar";
 import { AvatarCanvas } from "./AvatarCanvas";
 import { AvatarPresets } from "./AvatarPresets";
@@ -124,7 +124,7 @@ export function AvatarEditor({ draft, onDraft }: AvatarEditorProps) {
 
   return (
     <div className="flex flex-col gap-3">
-      <p className={LABEL}>
+      <p className={MUTED}>
         draw the picture people see next to your name in shared buckets. empty squares are
         see-through, so check it on both backgrounds below.
       </p>
@@ -179,7 +179,7 @@ export function AvatarEditor({ draft, onDraft }: AvatarEditorProps) {
       </div>
 
       {loaded && (empty || showingGenerated) && (
-        <p className={LABEL} data-testid="avatar-hint">
+        <p className={MUTED} data-testid="avatar-hint">
           {empty
             ? "an empty avatar can't be saved. people will see the one made for you."
             : "this one was made for you. draw over it, or clear it to start fresh."}
@@ -193,7 +193,7 @@ export function AvatarEditor({ draft, onDraft }: AvatarEditorProps) {
       {saved !== null &&
         (confirmingRemove ? (
           <div className="flex flex-col gap-2">
-            <p className={LABEL}>remove your avatar? people will see the one made for you.</p>
+            <p className={MUTED}>remove your avatar? people will see the one made for you.</p>
             <div className="flex gap-3">
               <BracketButton variant="destructive" onClick={() => save(null)} disabled={busy}>
                 confirm

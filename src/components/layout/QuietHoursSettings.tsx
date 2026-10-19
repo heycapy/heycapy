@@ -1,9 +1,7 @@
 import { Toggle } from "@/components/ui/Toggle";
 import { TimePicker } from "@/components/ui/TimePicker";
 import { formatSlot } from "@/lib/format-date";
-import { BOX, LABEL, SECTION } from "./settings-constants";
-
-const HINT = "text-muted-foreground font-mono text-[11px]";
+import { BOX, LABEL, SECTION, HINT, MUTED } from "./settings-constants";
 
 export type QuietHours = { enabled: boolean; from: string; to: string };
 
@@ -29,7 +27,7 @@ export function QuietHoursSettings({ value, onChange, pending }: QuietHoursSetti
       {enabled && (
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
           <div className="flex items-baseline gap-2">
-            <span className={LABEL}>from</span>
+            <span className={MUTED}>from</span>
             <TimePicker
               value={from}
               onChange={(v) => onChange({ ...value, from: v })}
@@ -37,7 +35,7 @@ export function QuietHoursSettings({ value, onChange, pending }: QuietHoursSetti
             />
           </div>
           <div className="flex items-baseline gap-2">
-            <span className={LABEL}>to</span>
+            <span className={MUTED}>to</span>
             <TimePicker
               value={to}
               onChange={(v) => onChange({ ...value, to: v })}

@@ -12,8 +12,8 @@ import type { TitleDate } from "@/lib/items/title-date";
 import { ITEM_TITLE_MAX_LENGTH } from "@/constants";
 import { cn } from "@/lib/utils";
 import { MentionList } from "./MentionList";
+import { LABEL } from "@/components/layout/settings-constants";
 
-const LABEL = "text-muted-foreground font-mono text-xs";
 // Shared by the textarea and the highlight layer behind it, so their text lines up exactly
 const TEXT = "w-full border-b py-1.5 text-base break-words whitespace-pre-wrap sm:text-sm";
 

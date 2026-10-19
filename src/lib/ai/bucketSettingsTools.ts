@@ -18,10 +18,22 @@ import {
 import { parseBucketSettings } from "@/components/buckets/parseBucketSettings";
 import { MEDIUM_OPTIONS, RECURRENCE_MODE_OPTIONS } from "@/components/buckets/constants";
 import type { buckets } from "@/lib/db/schema";
-import type { MemberChannels } from "@/types/rules";
+import { FOLLOWABLE_SETTINGS, type FollowableSetting, type MemberChannels } from "@/types/rules";
 import type { Tool } from "./types";
 
 type BucketRow = typeof buckets.$inferSelect;
+
+const TOOL_NAMES_OF: Record<FollowableSetting, string[]> = {
+  defaultReminders: ["default_reminders_mins"],
+  notifyAt: ["remind_at"],
+  repeat: ["deadline_repeat"],
+  overdue: ["notify_when_overdue", "overdue_first_alert_mins", "overdue_repeat_hours"],
+};
+const FOLLOWABLE_TOOL_NAMES = ["channels", ...Object.values(TOOL_NAMES_OF).flat()];
+
+function followableSettings(names: string[]): FollowableSetting[] {
+  return FOLLOWABLE_SETTINGS.filter((key) => TOOL_NAMES_OF[key].some((n) => names.includes(n)));
+}
 
 const SETTING_PROPERTIES = {
   sort_by: {
@@ -119,7 +131,9 @@ export const BUCKET_SETTINGS_TOOLS: Tool[] = [
       "Call it before changing settings, when the user asks how a bucket is set up, or before promising " +
       "a notification will arrive. webhooks_on lists the user's webhooks (discord, slack, their own server) " +
       "this bucket also sends to; you can't change those, the user turns them on in bucket settings → notifications. " +
-      "is_owner false means the user joined someone else's bucket: they can change only their own channels.",
+      "is_owner false means the user joined someone else's bucket: they can change only their own channels. " +
+      "from_tweaks lists the settings that follow the user's bucket defaults (tweaks → notifications → bucket defaults); " +
+      "changing one here makes it this bucket's own, and it stops following.",
     parameters: {
       type: "object",
       properties: { bucket_id: { type: "number", description: "The bucket's ID." } },
@@ -137,6 +151,13 @@ export const BUCKET_SETTINGS_TOOLS: Tool[] = [
       properties: {
         bucket_id: { type: "number", description: "The bucket's ID." },
         ...SETTING_PROPERTIES,
+        use_tweaks: {
+          type: "array",
+          items: { type: "string", enum: FOLLOWABLE_TOOL_NAMES },
+          description:
+            "Settings to put back on the user's bucket defaults from tweaks, so they follow them again. " +
+            "The overdue settings go back together. Wins over a value given for the same setting.",
+        },
       },
       required: ["bucket_id"],
     },
@@ -160,11 +181,12 @@ async function userChannels(userId: number, bucketId: number): Promise<UserChann
 
 function describeSettings(bucket: BucketRow, { userId, working, webhooks, mine }: UserChannels) {
   const s = parseBucketSettings(bucket);
+  const isOwner = bucket.userId === userId;
   return {
     bucket_id: bucket.id,
     name: s.name,
     // a member changes only their own channels
-    is_owner: bucket.userId === userId,
+    is_owner: isOwner,
     sort_by: s.sortBy,
     allow_drag: s.drag,
     show_completed: s.showCompleted,
@@ -185,6 +207,11 @@ function describeSettings(bucket: BucketRow, { userId, working, webhooks, mine }
     notify_when_overdue: s.notifyWhenOverdue,
     overdue_first_alert_mins: s.overdueFirstAlertMins ?? null,
     overdue_repeat_hours: s.overdueRepeatHours ?? null,
+    // a member's bucket rules follow the owner's tweaks, not theirs
+    from_tweaks: [
+      ...(mine.followsTweaks ? ["channels"] : []),
+      ...(isOwner ? s.followsTweaks.flatMap((key) => TOOL_NAMES_OF[key]) : []),
+    ],
   };
 }
 
@@ -215,9 +242,10 @@ const SETTING_NAMES = Object.keys(SETTING_PROPERTIES);
 async function updateMemberChannels(
   bucket: BucketRow,
   args: Record<string, unknown>,
+  useTweaks: string[],
   userId: number
 ): Promise<string> {
-  const changing = SETTING_NAMES.filter((key) => args[key] !== undefined);
+  const changing = [...SETTING_NAMES.filter((key) => args[key] !== undefined), ...useTweaks];
   if (changing.some((key) => key !== "channels")) {
     return JSON.stringify({
       ok: false,
@@ -230,6 +258,7 @@ async function updateMemberChannels(
   const result = await saveMemberChannels(userId, bucket.id, {
     medium: pick(args, "channels", mine.medium),
     webhooks: mine.webhooks,
+    ...(useTweaks.includes("channels") && { followsTweaks: true }),
   } as MemberChannelsInput);
   if (!result.ok) return JSON.stringify(result);
   return JSON.stringify({
@@ -256,8 +285,14 @@ export async function executeBucketSettingsTool(
     });
   }
 
+  const useTweaks = Array.isArray(args.use_tweaks) ? args.use_tweaks.map(String) : [];
+  const unknown = useTweaks.filter((n) => !FOLLOWABLE_TOOL_NAMES.includes(n));
+  if (unknown.length > 0) {
+    return JSON.stringify({ ok: false, error: `use_tweaks can't take: ${unknown.join(", ")}` });
+  }
+
   const bucket = await findBucket(userId, bucketId);
-  if (!bucket) return updateMemberChannels(joined, args, userId);
+  if (!bucket) return updateMemberChannels(joined, args, useTweaks, userId);
 
   const mine = await getMemberChannels(userId, bucketId);
   const current = describeSettings(bucket, { userId, working: [], webhooks: [], mine });
@@ -277,7 +312,12 @@ export async function executeBucketSettingsTool(
         current.default_deadline_offset_days
       ),
     },
-    channels: { medium: pick(args, "channels", current.channels), webhooks: mine.webhooks },
+    channels: {
+      medium: pick(args, "channels", current.channels),
+      webhooks: mine.webhooks,
+      ...(useTweaks.includes("channels") && { followsTweaks: true }),
+    },
+    useTweaks: followableSettings(useTweaks),
     notificationsRules: {
       reminderButtons: pick(args, "reminder_buttons", current.reminder_buttons),
       notifyAt: remindAt === null || remindAt === "" ? undefined : remindAt,

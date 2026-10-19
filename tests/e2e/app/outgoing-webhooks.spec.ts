@@ -40,7 +40,7 @@ test("a webhook is added once in tweaks, tested, kept and deleted", async ({ pag
   await box.getByRole("button", { name: "[ send test ]" }).click();
   await expect(box.getByText("sent ✓ — check that it arrived")).toBeVisible();
   await box.getByRole("button", { name: "[ done ]" }).click();
-  await expect(box.getByText("example.com · on for new buckets")).toBeVisible();
+  await expect(box.getByText("example.com · on by default")).toBeVisible();
 
   box = await openWebhooks(page);
   await box.getByRole("button", { name: "[ edit ]" }).click();
@@ -62,8 +62,8 @@ test("discord and slack webhooks show as rows and have no signing secret", async
   await addWebhook(box, "work", "https://hooks.slack.com/services/T0/B0/x");
   await box.getByRole("button", { name: "[ done ]" }).click();
 
-  await expect(box.getByText("discord · on for new buckets")).toBeVisible();
-  await expect(box.getByText("slack · on for new buckets")).toBeVisible();
+  await expect(box.getByText("discord · on by default")).toBeVisible();
+  await expect(box.getByText("slack · on by default")).toBeVisible();
   await expect(box.getByPlaceholder(NAME)).toBeHidden();
 
   for (const name of ["team", "work"]) {

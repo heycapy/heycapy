@@ -22,12 +22,12 @@ test("an item can have several reminders, added from presets or typed, and remov
   await dialog.getByRole("button", { name: "pick date" }).click();
   await page.getByRole("button", { name: String(morning.getDate()), exact: true }).click();
 
-  await expect(dialog.getByText("bucket default · 1 of 4")).toBeVisible();
+  await expect(dialog.getByText("bucket default", { exact: true })).toBeVisible();
   await expect(dialog.getByRole("button", { name: "remove reminder at time" })).toBeVisible();
 
   await dialog.getByRole("button", { name: "[ + add ]", exact: true }).click();
   await dialog.getByRole("button", { name: "1 hour before", exact: true }).click();
-  await expect(dialog.getByText("2 of 4", { exact: true })).toBeVisible();
+  await expect(dialog.getByText("bucket default", { exact: true })).toHaveCount(0);
 
   await dialog.getByRole("button", { name: "[ + add ]", exact: true }).click();
   await dialog.getByRole("textbox", { name: "custom reminder amount" }).fill("3");
@@ -78,12 +78,10 @@ test("a typed reminder over 90 days is refused, and four is the limit", async ({
     await dialog.getByRole("button", { name: preset, exact: true }).click();
   }
   await expect(dialog.getByRole("button", { name: /^remove reminder / })).toHaveCount(4);
-  await expect(dialog.getByText("4 of 4", { exact: true })).toBeVisible();
   await expect(dialog.getByRole("button", { name: "[ + add ]", exact: true })).toHaveCount(0);
   await expect(dialog.getByText(/remove one to add another/)).toBeVisible();
 
   await dialog.getByRole("button", { name: "remove reminder 15 min before" }).click();
-  await expect(dialog.getByText("3 of 4", { exact: true })).toBeVisible();
   await expect(dialog.getByRole("button", { name: "[ + add ]", exact: true })).toBeVisible();
 });
 
@@ -101,7 +99,7 @@ test("new items start with the bucket's default reminders", async ({ page }) => 
   await dialog.locator("textarea").first().fill(uniqueName("electricity"));
   await dialog.getByRole("button", { name: "pick date" }).click();
   await page.getByRole("button", { name: "20", exact: true }).click();
-  await expect(dialog.getByText("bucket default · 2 of 4")).toBeVisible();
+  await expect(dialog.getByText("bucket default", { exact: true })).toBeVisible();
   await expect(dialog.getByRole("button", { name: /^remove reminder / })).toHaveText([
     "2 days before ×",
     /^(at time|on the day) ×$/,
