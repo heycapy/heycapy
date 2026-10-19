@@ -7,6 +7,8 @@ import { AppShell } from "@/components/layout/AppShell";
 import { getChannelFailures } from "@/lib/notifications/failures";
 import { getChannelSettings, workingChannels } from "@/lib/notifications/channels";
 import { CreateBucketModal } from "@/components/buckets/CreateBucketModal";
+import { feedbackConfigured } from "@/lib/feedback";
+import { LATEST_RELEASE } from "@/lib/whats-new/constants";
 import type { ReactNode } from "react";
 
 export default async function AppLayout({ children }: { children: ReactNode }) {
@@ -38,7 +40,11 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
     <div className="flex h-full flex-col">
       <AppShell
         email={user?.email ?? ""}
+        userId={session.userId}
+        avatar={user?.avatar ?? null}
         assistantName={settings?.personalityName ?? "capy"}
+        feedbackEnabled={feedbackConfigured()}
+        unseenRelease={!!user && user.lastSeenRelease !== LATEST_RELEASE}
         failures={failures}
         hasWorkingChannel={
           !!channelSettings &&

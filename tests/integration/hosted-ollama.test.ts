@@ -159,7 +159,6 @@ it("saving an ollama url on a private address is refused, a public one is fine",
       aiProvider: "ollama",
       aiOllamaUrl,
       smtpPass: null,
-      smtpSecure: false,
     });
 
   expect(await save(INTERNAL)).toEqual({

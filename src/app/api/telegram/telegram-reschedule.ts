@@ -1,7 +1,8 @@
 import { bucketReminderButtons } from "@/lib/rules";
 import { formatSlot, formatWhen } from "@/lib/format-date";
 import { isClosedStatus } from "@/constants";
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
+import { memberBucketIds } from "@/lib/buckets/access";
 import { db } from "@/lib/db";
 import { buckets, items } from "@/lib/db/schema";
 import { dataEvents } from "@/lib/events";
@@ -18,7 +19,9 @@ import {
   endOfMonthDateString,
   localDateString,
   localDateTimeToDate,
+  isAllDay,
   localDateToDate,
+  onViewerClock,
   toLocal,
 } from "@/lib/reminders/zoned";
 import {
@@ -36,6 +39,7 @@ type Item = {
   id: number;
   title: string;
   deadline: Date | null;
+  deadlineTimezone: string | null;
   bucketId: number;
   bucketName: string;
   rules: string;
@@ -50,6 +54,7 @@ async function loadItem(ctx: Ctx, itemId: number): Promise<Item | null> {
       id: items.id,
       title: items.title,
       deadline: items.deadline,
+      deadlineTimezone: items.deadlineTimezone,
       bucketId: items.bucketId,
       bucketName: buckets.name,
       rules: buckets.notificationsRules,
@@ -58,7 +63,7 @@ async function loadItem(ctx: Ctx, itemId: number): Promise<Item | null> {
     })
     .from(items)
     .innerJoin(buckets, eq(buckets.id, items.bucketId))
-    .where(and(eq(items.id, itemId), eq(items.userId, ctx.userId)))
+    .where(and(eq(items.id, itemId), inArray(items.bucketId, memberBucketIds(ctx.userId))))
     .limit(1);
   return row && !row.deletedAt && !isClosedStatus(row.status) ? row : null;
 }
@@ -70,6 +75,7 @@ function heading(item: Item, now: Date, timezone: string): string {
       kind: "reminder",
       title: item.title,
       deadline: item.deadline,
+      deadlineTimezone: item.deadlineTimezone,
       bucketName: item.bucketName,
       note: null,
     },
@@ -121,9 +127,10 @@ async function showTimes(ctx: Ctx, item: Item, date: string, messageId: number, 
 
   const rows: InlineButton[][] = [];
   if (item.deadline) {
-    const kept = toLocal(item.deadline, ctx.timezone);
+    const zone = item.deadlineTimezone ?? ctx.timezone;
+    const allDay = isAllDay(item.deadline, zone);
+    const kept = allDay ? { hour: 0, minute: 0 } : toLocal(item.deadline, ctx.timezone);
     const keptHhmm = `${String(kept.hour).padStart(2, "0")}:${String(kept.minute).padStart(2, "0")}`;
-    const allDay = kept.hour === 0 && kept.minute === 0;
     if (stillAhead(keptHhmm)) {
       rows.push([
         {
@@ -153,7 +160,7 @@ async function showTimes(ctx: Ctx, item: Item, date: string, messageId: number, 
 }
 
 async function finish(ctx: Ctx, item: Item, deadline: Date, messageId: number, now: Date) {
-  const moved = await moveOccurrence(ctx.userId, item.id, deadline, now);
+  const moved = await moveOccurrence(ctx.userId, item.id, deadline, now, ctx.timezone);
   await setFlowState(ctx.userId, null);
   dataEvents.emit("refresh", ctx.userId);
   await editTelegramHtml(
@@ -161,7 +168,14 @@ async function finish(ctx: Ctx, item: Item, deadline: Date, messageId: number, n
     ctx.chatId,
     messageId,
     moved.ok
-      ? itemMovedHtml(item.title, deadline, moved.next, now, ctx.timezone)
+      ? itemMovedHtml(
+          item.title,
+          { deadline, deadlineTimezone: ctx.timezone },
+          // A move keeps the series on its own clock
+          moved.next && { deadline: moved.next, deadlineTimezone: item.deadlineTimezone },
+          now,
+          ctx.timezone
+        )
       : "this item is done or no longer exists"
   );
 }
@@ -191,7 +205,7 @@ async function applyTime(
   await finish(ctx, item, deadline, messageId, now);
 }
 
-// Closes a reschedule the user walked away from; a reminder gets its own buttons back
+// Closes a reschedule the user walked away from, a reminder gets its own buttons back
 export async function abandonReschedule(
   ctx: Ctx,
   state: RescheduleState,
@@ -306,7 +320,12 @@ export async function handleRescheduleCallback(
             ? localDateString(addLocalDays(now, 7, ctx.timezone), ctx.timezone)
             : choice === "end_of_month"
               ? endOfMonthDateString(now, ctx.timezone)
-              : localDateString(item.deadline ?? now, ctx.timezone);
+              : item.deadline
+                ? localDateString(
+                    onViewerClock(item.deadline, item.deadlineTimezone, ctx.timezone),
+                    ctx.timezone
+                  )
+                : localDateString(now, ctx.timezone);
     await showTimes(ctx, item, date, messageId, now);
     await setFlowState(ctx.userId, { ...state, date }, messageId);
     return;

@@ -10,6 +10,7 @@ import { POST } from "@/app/api/reminder-action/route";
 import { bucketReminderButtons } from "@/lib/rules";
 import { enqueue, processPending } from "@/lib/notifications/queue";
 import { updateBucketSettingsAction } from "@/app/(app)/bucket-actions";
+import { getMemberChannels } from "@/lib/notifications/channels";
 import {
   HOUR,
   resetSchedulerEnvironment,
@@ -254,11 +255,11 @@ it("saving bucket settings drops unknown reminder buttons instead of losing the 
     bucketId,
     "Bills",
     {},
-    { medium: ["push"], reminderButtons: ["60", "2 days" as never] }
+    { reminderButtons: ["60", "2 days" as never] }
   );
 
   const [bucket] = await db.select().from(buckets).where(eq(buckets.id, bucketId));
   const rules = JSON.parse(bucket?.notificationsRules ?? "{}") as Record<string, unknown>;
   expect(rules.reminderButtons).toEqual(["60"]);
-  expect(rules.medium).toEqual(["push"]);
+  expect((await getMemberChannels(session.userId, bucketId)).medium).toEqual(["push"]);
 });

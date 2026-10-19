@@ -12,9 +12,11 @@ import { db } from "@/lib/db";
 import { users, userSettings } from "@/lib/db/schema";
 import { encryptValue, decryptValue } from "@/lib/crypto";
 import { refreshUserReminders } from "@/lib/reminders/refresh";
+import { isKnownTimezone } from "@/lib/timezones/valid";
+import { placeName } from "@/lib/timezones/place";
 import { parseClock } from "@/lib/reminders/zoned";
 import { ALL_CHANNELS, getChannelSettings, workingChannels } from "@/lib/notifications/channels";
-import { sendEmail } from "@/lib/notifications/email";
+import { sendNotificationEmail } from "@/lib/notifications/email";
 import { sendNtfy } from "@/lib/notifications/ntfy";
 import { publicAddress } from "@/lib/notifications/public-address";
 import { sendWebPush } from "@/lib/notifications/web-push";
@@ -79,7 +81,6 @@ type UserSettingsUpdate = {
   smtpPort: number | null;
   smtpUser: string | null;
   smtpPass: string | null;
-  smtpSecure: boolean;
   smtpFrom: string | null;
   quietHoursFrom: string | null;
   quietHoursTo: string | null;
@@ -89,6 +90,7 @@ export async function getUserSettingsAction(): Promise<
   ActionResult<{
     settings: typeof userSettings.$inferSelect;
     userEmail: string;
+    username: string | null;
     smtpPassSaved: boolean;
     telegramBotConfigured: boolean;
     isAdmin: boolean;
@@ -111,6 +113,7 @@ export async function getUserSettingsAction(): Promise<
   return {
     ok: true,
     userEmail: user?.email ?? session.email,
+    username: user?.username ?? null,
     smtpPassSaved: !!settings.smtpPass,
     telegramBotConfigured: !!process.env.TELEGRAM_BOT_TOKEN,
     isAdmin: isAdmin(session.email),
@@ -151,6 +154,9 @@ export async function updateUserSettingsAction(
   const session = await getSession();
   if (!session) return { ok: false, error: "Unauthorized" };
 
+  if (data.timezone && !isKnownTimezone(data.timezone)) {
+    return { ok: false, error: `Unknown timezone "${data.timezone}" — use one like Europe/London` };
+  }
   const trimmedName = data.personalityName.trim();
   if (!trimmedName) return { ok: false, error: "Name is required" };
   if (trimmedName.length > 50) return { ok: false, error: "Name too long" };
@@ -240,7 +246,6 @@ export async function updateUserSettingsAction(
       smtpPort: data.smtpPort || null,
       smtpUser: data.smtpUser || null,
       ...(data.smtpPass ? { smtpPass: encryptValue(data.smtpPass) } : {}),
-      smtpSecure: data.smtpSecure,
       smtpFrom: data.smtpFrom || null,
       quietHoursFrom: data.quietHoursFrom,
       quietHoursTo: data.quietHoursTo,
@@ -391,7 +396,7 @@ export async function getNotifAvailabilityAction(): Promise<{
 export async function saveTimezoneIfDefaultAction(timezone: string): Promise<void> {
   const session = await getSession();
   if (!session) return;
-  if (!timezone || timezone === "UTC") return;
+  if (!timezone || timezone === "UTC" || !isKnownTimezone(timezone)) return;
   const updated = await db
     .update(userSettings)
     .set({ timezone })
@@ -400,12 +405,40 @@ export async function saveTimezoneIfDefaultAction(timezone: string): Promise<voi
   if (updated.length > 0) await refreshUserReminders(session.userId);
 }
 
+export type TimezoneMove = { here: string; saved: string };
+
+// Compared by place, so another name for the same zone (Asia/Calcutta) isn't a move
+export async function timezoneMoveAction(browserTimezone: string): Promise<TimezoneMove | null> {
+  const session = await getSession();
+  if (!session || !isKnownTimezone(browserTimezone)) return null;
+  const settings = await db.query.userSettings.findFirst({
+    columns: { timezone: true },
+    where: eq(userSettings.userId, session.userId),
+  });
+  if (!settings) return null;
+  const here = placeName(browserTimezone);
+  const saved = placeName(settings.timezone);
+  if (!here || !saved || here === saved) return null;
+  return { here, saved };
+}
+
+export async function switchTimezoneAction(timezone: string): Promise<ActionResult> {
+  const session = await getSession();
+  if (!session) return { ok: false, error: "Unauthorized" };
+  if (!isKnownTimezone(timezone)) {
+    return { ok: false, error: `Unknown timezone "${timezone}" — use one like Europe/London` };
+  }
+  await db.update(userSettings).set({ timezone }).where(eq(userSettings.userId, session.userId));
+  await refreshUserReminders(session.userId);
+  revalidatePath("/");
+  return { ok: true };
+}
+
 export async function testSmtpAction(config: {
   smtpHost: string;
   smtpPort: string;
   smtpUser: string;
   smtpPass: string | null; // null = use saved encrypted value from DB
-  smtpSecure: boolean;
   sendTo: string;
 }): Promise<ActionResult> {
   const session = await getSession();
@@ -425,7 +458,7 @@ export async function testSmtpAction(config: {
   }
 
   try {
-    await sendEmail(
+    await sendNotificationEmail(
       {
         to: config.sendTo,
         subject: `[${APP_NAME}] smtp test`,
@@ -442,7 +475,6 @@ export async function testSmtpAction(config: {
         smtpPort: parsedPort && !isNaN(parsedPort) ? parsedPort : null,
         smtpUser: config.smtpUser || null,
         smtpPass,
-        smtpSecure: config.smtpSecure,
         smtpFrom: config.smtpUser || null,
       }
     );

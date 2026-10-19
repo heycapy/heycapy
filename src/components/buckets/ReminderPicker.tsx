@@ -79,7 +79,8 @@ export function ReminderPicker({
               disabled={disabled}
               aria-label={`remove reminder ${label}`}
             >
-              {label} ×
+              {label}
+              <span data-remove> ×</span>
             </OptionButton>
           );
         })}

@@ -16,7 +16,13 @@ export const users = sqliteTable("users", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   email: text("email").notNull().unique(),
   displayName: text("display_name"),
-  // Bumped by "log out everywhere"; sessions issued under an older version stop working
+  username: text("username").unique(),
+  // 256 palette codes, one per cell (lib/account/avatar.ts), null until the person draws one
+  avatar: text("avatar"),
+  // The newest "what's new" release this person has opened, a dot shows until it's the latest.
+  // Sign-up starts on the latest, accounts from before 0.4.0 were set to 0.3.0 so they see it
+  lastSeenRelease: text("last_seen_release"),
+  // Bumped by "log out everywhere", sessions issued under an older version stop working
   sessionVersion: integer("session_version").notNull().default(1),
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
@@ -68,7 +74,7 @@ export const userSettings = sqliteTable("user_settings", {
   aiApiKey: text("ai_api_key"),
   aiModel: text("ai_model"),
   // every provider's key (encrypted) and model the user typed, so switching providers in
-  // tweaks brings them back; ai_api_key / ai_model above stay the ones capy actually uses
+  // tweaks brings them back, ai_api_key / ai_model above stay the ones capy actually uses
   aiSavedKeys: text("ai_saved_keys"),
   aiOllamaUrl: text("ai_ollama_url"),
   aiCompactThreshold: integer("ai_compact_threshold").notNull().default(40),
@@ -101,7 +107,7 @@ export const userSettings = sqliteTable("user_settings", {
   smtpPass: text("smtp_pass"),
   smtpSecure: integer("smtp_secure", { mode: "boolean" }).default(false),
   smtpFrom: text("smtp_from"),
-  // "HH:MM" in the user's timezone; nothing is sent in between, whatever the bucket
+  // "HH:MM" in the user's timezone, nothing is sent in between, whatever the bucket
   quietHoursFrom: text("quiet_hours_from"),
   quietHoursTo: text("quiet_hours_to"),
   updatedAt: integer("updated_at", { mode: "timestamp" })
@@ -168,10 +174,11 @@ export const buckets = sqliteTable("buckets", {
     .default(sql`(unixepoch())`),
 });
 
-// items
+// bucket_members — who can use a bucket. The owner has a row too: a trigger (migration 0029) adds it
+// when a bucket is created, so no insert site can forget it. buckets.user_id stays the owner.
 
-export const items = sqliteTable(
-  "items",
+export const bucketMembers = sqliteTable(
+  "bucket_members",
   {
     id: integer("id").primaryKey({ autoIncrement: true }),
     bucketId: integer("bucket_id")
@@ -180,38 +187,127 @@ export const items = sqliteTable(
     userId: integer("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
-    title: text("title").notNull(),
-    description: text("description"),
-    deadline: integer("deadline", { mode: "timestamp" }),
-    scheduledAt: integer("scheduled_at", { mode: "timestamp" }),
-    status: text("status").notNull().default(ITEM_STATUS.active),
-    properties: text("properties"),
-    externalId: text("external_id"),
-    externalUrl: text("external_url"),
-    // Minutes before the deadline, largest first; null follows the bucket's default
-    reminderOffsets: text("reminder_offsets", { mode: "json" }).$type<number[]>(),
-    notifiedAt: integer("notified_at", { mode: "timestamp" }),
-    overdueNotifiedAt: integer("overdue_notified_at", { mode: "timestamp" }),
-    remindNotBefore: integer("remind_not_before", { mode: "timestamp" }),
-    nextReminderAt: integer("next_reminder_at", { mode: "timestamp" }),
-    nextOverdueAt: integer("next_overdue_at", { mode: "timestamp" }),
-    sortOrder: integer("sort_order").notNull().default(0),
-    recurring: text("recurring"),
-    source: text("source", { enum: ["manual", "ai", "mcp", "webhook", "system"] })
+    role: text("role", { enum: ["owner", "member"] })
       .notNull()
-      .default("manual"),
-    completedAt: integer("completed_at", { mode: "timestamp" }),
-    deletedAt: integer("deleted_at", { mode: "timestamp" }),
+      .default("member"),
+    // Where this person's reminders for the bucket go, see MemberChannels
+    channels: text("channels").notNull().default('{"medium":[],"webhooks":[]}'),
     createdAt: integer("created_at", { mode: "timestamp" })
-      .notNull()
-      .default(sql`(unixepoch())`),
-    updatedAt: integer("updated_at", { mode: "timestamp" })
       .notNull()
       .default(sql`(unixepoch())`),
   },
   (t) => [
-    index("idx_items_next_reminder_at").on(t.nextReminderAt),
-    index("idx_items_next_overdue_at").on(t.nextOverdueAt),
+    uniqueIndex("idx_bucket_members_bucket_user").on(t.bucketId, t.userId),
+    index("idx_bucket_members_user_id").on(t.userId),
+  ]
+);
+
+// bucket_invites — a code the owner hands out to let one person join, only its hash is stored, so a
+// code can be shown once and never again
+
+export const bucketInvites = sqliteTable(
+  "bucket_invites",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    bucketId: integer("bucket_id")
+      .notNull()
+      .references(() => buckets.id, { onDelete: "cascade" }),
+    createdBy: integer("created_by")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    codeHash: text("code_hash").notNull(),
+    expiresAt: integer("expires_at", { mode: "timestamp" }).notNull(),
+    usedAt: integer("used_at", { mode: "timestamp" }),
+    usedBy: integer("used_by").references(() => users.id, { onDelete: "set null" }),
+    revokedAt: integer("revoked_at", { mode: "timestamp" }),
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .default(sql`(unixepoch())`),
+  },
+  (t) => [
+    uniqueIndex("idx_bucket_invites_code_hash").on(t.codeHash),
+    index("idx_bucket_invites_bucket_id").on(t.bucketId),
+  ]
+);
+
+// invite_attempts — wrong codes per signed in user, so a code can't be guessed by trying many
+
+export const inviteAttempts = sqliteTable("invite_attempts", {
+  userId: integer("user_id")
+    .primaryKey()
+    .references(() => users.id, { onDelete: "cascade" }),
+  failCount: integer("fail_count").notNull().default(0),
+  lockedUntil: integer("locked_until", { mode: "timestamp" }),
+});
+
+// items
+
+export const items = sqliteTable("items", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  bucketId: integer("bucket_id")
+    .notNull()
+    .references(() => buckets.id, { onDelete: "cascade" }),
+  userId: integer("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  title: text("title").notNull(),
+  description: text("description"),
+  deadline: integer("deadline", { mode: "timestamp" }),
+  // The clock the deadline was set on, an all-day item is midnight here, so its date is the same for everyone
+  deadlineTimezone: text("deadline_timezone"),
+  scheduledAt: integer("scheduled_at", { mode: "timestamp" }),
+  status: text("status").notNull().default(ITEM_STATUS.active),
+  properties: text("properties"),
+  externalId: text("external_id"),
+  externalUrl: text("external_url"),
+  // Minutes before the deadline, largest first, null follows the bucket's default
+  reminderOffsets: text("reminder_offsets", { mode: "json" }).$type<number[]>(),
+  // Set for everyone: a trigger (migration 0034) copies each write to every item_reminders row
+  notifiedAt: integer("notified_at", { mode: "timestamp" }),
+  overdueNotifiedAt: integer("overdue_notified_at", { mode: "timestamp" }),
+  remindNotBefore: integer("remind_not_before", { mode: "timestamp" }),
+  sortOrder: integer("sort_order").notNull().default(0),
+  recurring: text("recurring"),
+  source: text("source", { enum: ["manual", "ai", "mcp", "webhook", "system"] })
+    .notNull()
+    .default("manual"),
+  completedAt: integer("completed_at", { mode: "timestamp" }),
+  deletedAt: integer("deleted_at", { mode: "timestamp" }),
+  // Who moved it to the trash, so a shared trash can say, null when it isn't known
+  deletedBy: integer("deleted_by").references(() => users.id, { onDelete: "set null" }),
+  // A member of the bucket who should do it, null means anyone can
+  assigneeId: integer("assignee_id").references(() => users.id, { onDelete: "set null" }),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .default(sql`(unixepoch())`),
+  updatedAt: integer("updated_at", { mode: "timestamp" })
+    .notNull()
+    .default(sql`(unixepoch())`),
+});
+
+// item_reminders — one reminder schedule per item and person reminded: the assignee, or every member
+// when nobody is
+
+export const itemReminders = sqliteTable(
+  "item_reminders",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    itemId: integer("item_id")
+      .notNull()
+      .references(() => items.id, { onDelete: "cascade" }),
+    userId: integer("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    notifiedAt: integer("notified_at", { mode: "timestamp" }),
+    overdueNotifiedAt: integer("overdue_notified_at", { mode: "timestamp" }),
+    nextReminderAt: integer("next_reminder_at", { mode: "timestamp" }),
+    nextOverdueAt: integer("next_overdue_at", { mode: "timestamp" }),
+  },
+  (t) => [
+    uniqueIndex("idx_item_reminders_item_user").on(t.itemId, t.userId),
+    index("idx_item_reminders_user_id").on(t.userId),
+    index("idx_item_reminders_next_reminder_at").on(t.nextReminderAt),
+    index("idx_item_reminders_next_overdue_at").on(t.nextOverdueAt),
   ]
 );
 
@@ -278,7 +374,7 @@ export const chatSessions = sqliteTable("chat_sessions", {
     .notNull()
     .default("web"),
   summary: text("summary"),
-  // Id of the last message the summary covers; every later message is given to the model as is
+  // Id of the last message the summary covers, every later message is given to the model as is
   summaryThrough: integer("summary_through"),
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
@@ -322,7 +418,7 @@ export const templates = sqliteTable("templates", {
     .default(sql`(unixepoch())`),
 });
 
-// Server-side problems for the admin view; kept for a couple of weeks
+// Server-side problems for the admin view, kept for a couple of weeks
 export const systemErrors = sqliteTable(
   "system_errors",
   {
@@ -362,7 +458,7 @@ export const pushSubscriptions = sqliteTable(
   (t) => [index("idx_push_subscriptions_user_id").on(t.userId)]
 );
 
-// outgoing webhooks a user sets up once in tweaks; buckets pick them by name
+// outgoing webhooks a user sets up once in tweaks, buckets pick them by name
 export const outgoingWebhooks = sqliteTable(
   "outgoing_webhooks",
   {

@@ -1,16 +1,40 @@
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { BracketButton } from "@/components/ui/BracketButton";
-import { deleteAccountAction, sendAccountDeletionCodeAction } from "@/app/(app)/actions";
+import { AvatarEditor, type AvatarDraft } from "@/components/avatar/AvatarEditor";
+import {
+  deleteAccountAction,
+  getDeletionBlockersAction,
+  sendAccountDeletionCodeAction,
+} from "@/app/(app)/actions";
+import type { SharedBucket } from "@/lib/account/delete";
 import { BOX, INPUT, LABEL, SECTION } from "./settings-constants";
 
 type Step = "idle" | "confirm" | "code";
 
-export function AccountTab({ email }: { email: string }) {
+type AccountTabProps = {
+  email: string;
+  username: string | null;
+  avatarDraft: AvatarDraft;
+  onAvatarDraft: (draft: AvatarDraft) => void;
+};
+
+export function AccountTab({ email, username, avatarDraft, onAvatarDraft }: AccountTabProps) {
   const [step, setStep] = useState<Step>("idle");
   const [code, setCode] = useState("");
   const [devCode, setDevCode] = useState("");
   const [error, setError] = useState("");
   const [pending, startTransition] = useTransition();
+  const [sharedBuckets, setSharedBuckets] = useState<SharedBucket[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void getDeletionBlockersAction().then((result) => {
+      if (!cancelled && result.ok) setSharedBuckets(result.buckets);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   function reset() {
     setStep("idle");
@@ -43,6 +67,23 @@ export function AccountTab({ email }: { email: string }) {
 
   return (
     <div className="flex flex-col gap-3">
+      {username && (
+        <div className={BOX}>
+          <span className={SECTION}>username</span>
+          <p className="font-mono text-xs" data-testid="username">
+            {username}
+          </p>
+          <p className={LABEL}>
+            the name other people will see when you share a bucket. you can&apos;t change it yet.
+          </p>
+        </div>
+      )}
+
+      <div className={BOX}>
+        <span className={SECTION}>avatar</span>
+        <AvatarEditor draft={avatarDraft} onDraft={onAvatarDraft} />
+      </div>
+
       <div className={BOX}>
         <span className={SECTION}>your data</span>
         <p className={LABEL}>
@@ -52,7 +93,7 @@ export function AccountTab({ email }: { email: string }) {
         <a
           href="/api/account/export"
           download
-          className="text-muted-foreground hover:text-foreground self-start font-mono text-xs"
+          className="text-primary hover:text-foreground self-start font-mono text-xs transition-colors"
         >
           <span className="opacity-50">[</span>download my data<span className="opacity-50">]</span>
         </a>
@@ -63,9 +104,18 @@ export function AccountTab({ email }: { email: string }) {
         {step === "idle" && (
           <>
             <p className={LABEL}>permanently deletes {email} and everything in it.</p>
+            {sharedBuckets.length > 0 && (
+              <p className="text-muted-foreground font-mono text-[11px] leading-relaxed">
+                you still own {sharedBuckets.map((bucket) => bucket.name).join(", ")}, shared with
+                other people. make someone else the owner (bucket settings → members), delete{" "}
+                {sharedBuckets.length === 1 ? "it" : "them"}, or remove everyone before you delete
+                your account.
+              </p>
+            )}
             <BracketButton
               variant="destructive"
               onClick={() => setStep("confirm")}
+              disabled={sharedBuckets.length > 0}
               className="self-start"
             >
               delete account

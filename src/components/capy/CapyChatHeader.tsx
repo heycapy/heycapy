@@ -1,4 +1,7 @@
-import { Maximize2, Minimize2, Minus } from "lucide-react";
+import { Collapse } from "pixelarticons/react/Collapse.js";
+import { Minus } from "pixelarticons/react/Minus.js";
+import { Scale } from "pixelarticons/react/Scale.js";
+import { PixelIcon } from "@/components/ui/PixelIcon";
 import { BracketButton } from "@/components/ui/BracketButton";
 import { Sprite } from "./Sprite";
 import { HEADER_H } from "./chatTypes";
@@ -11,6 +14,8 @@ type Props = {
   onClose: () => void;
   onMinimize?: () => void;
   onFullscreen?: () => void;
+  sidebarOpen?: boolean;
+  onToggleSidebar?: () => void;
   onHistoryOpen: () => void;
   onNewChat: () => void;
 };
@@ -21,6 +26,8 @@ export function CapyChatHeader({
   onClose,
   onMinimize,
   onFullscreen,
+  sidebarOpen,
+  onToggleSidebar,
   onHistoryOpen,
   onNewChat,
 }: Props) {
@@ -34,21 +41,37 @@ export function CapyChatHeader({
       )}
       onClick={onMinimize}
     >
+      {fullscreen && onToggleSidebar && (
+        <BracketButton
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggleSidebar();
+          }}
+          aria-label={sidebarOpen ? "Hide history" : "Show history"}
+          aria-expanded={sidebarOpen}
+          className="px-1"
+        >
+          {sidebarOpen ? "sidebar >" : "sidebar <"}
+        </BracketButton>
+      )}
+
       <div className="flex items-center gap-1 pr-1">
         <Sprite id="capy-idle-blink" size={24} />
       </div>
 
       <span className="font-pixel flex-1 truncate text-[11px]">{name}</span>
 
-      <BracketButton
-        onClick={(e) => {
-          e.stopPropagation();
-          onHistoryOpen();
-        }}
-        className="px-1"
-      >
-        history
-      </BracketButton>
+      {!fullscreen && (
+        <BracketButton
+          onClick={(e) => {
+            e.stopPropagation();
+            onHistoryOpen();
+          }}
+          className="px-1"
+        >
+          history
+        </BracketButton>
+      )}
 
       <BracketButton
         onClick={(e) => {
@@ -69,7 +92,7 @@ export function CapyChatHeader({
           className="text-muted-foreground hover:text-foreground flex h-6 w-6 items-center justify-center transition-colors"
           aria-label={minimized ? "Expand" : "Collapse"}
         >
-          <Minus size={13} />
+          <PixelIcon icon={Minus} />
         </button>
       )}
       {onFullscreen && (
@@ -81,7 +104,7 @@ export function CapyChatHeader({
           className="text-muted-foreground hover:text-foreground flex h-6 w-6 items-center justify-center transition-colors"
           aria-label={fullscreen ? "Exit fullscreen" : "Fullscreen"}
         >
-          {fullscreen ? <Minimize2 size={13} /> : <Maximize2 size={13} />}
+          {fullscreen ? <PixelIcon icon={Collapse} /> : <PixelIcon icon={Scale} />}
         </button>
       )}
       <BracketButton

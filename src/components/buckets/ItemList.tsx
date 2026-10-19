@@ -1,6 +1,6 @@
 import { useState, type RefObject } from "react";
 import { Reorder } from "framer-motion";
-import { ItemRow } from "./ItemRow";
+import { ItemRow, type ItemAssignee } from "./ItemRow";
 import { SwipeableRow } from "./SwipeableRow";
 import { completionToggle } from "./completion";
 import { DraggableItem } from "./DraggableItem";
@@ -8,6 +8,10 @@ import { ItemMenu, type MenuAt } from "./ItemMenu";
 import type { ReminderBadge } from "@/lib/reminders/status";
 import type { items } from "@/lib/db/schema";
 import type { StatusDef, FieldDef } from "@/types/rules";
+import type { BucketMember } from "@/lib/buckets/members";
+import { memberName } from "@/lib/buckets/member-name";
+import { otherClock } from "@/lib/timezones/gap";
+import { itemDeadline } from "@/lib/time";
 
 type Item = typeof items.$inferSelect;
 
@@ -21,6 +25,7 @@ type ItemListProps = {
   fields: FieldDef[];
   editingItemId: number | null;
   reminderBadges: Record<number, ReminderBadge>;
+  members: BucketMember[];
   onReorder: (items: Item[]) => void;
   onEdit: (item: Item) => void;
   onStatusChange: (item: Item, status: string) => void;
@@ -38,6 +43,7 @@ export function ItemList({
   fields,
   editingItemId,
   reminderBadges,
+  members,
   onReorder,
   onEdit,
   onStatusChange,
@@ -54,6 +60,33 @@ export function ItemList({
     );
   }
 
+  const yours = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const clockHint = (item: Item) => {
+    const due = item.deadline && itemDeadline(item.deadline, item.deadlineTimezone);
+    if (!due || due.allDay) return undefined;
+    const assignee = members.find((m) => m.userId === item.assigneeId);
+    const setter = members.find((m) => m.timezone === item.deadlineTimezone && m.place);
+    return (
+      otherClock(
+        due.at,
+        yours,
+        assignee && { ...assignee, name: memberName(assignee) },
+        setter?.place ? { timezone: setter.timezone, place: setter.place } : undefined
+      ) ?? undefined
+    );
+  };
+
+  const assigneeOf = (item: Item): ItemAssignee | undefined => {
+    const member = members.find((m) => m.userId === item.assigneeId);
+    return (
+      member && {
+        userId: member.userId,
+        name: member.isYou ? "you" : memberName(member),
+        avatar: member.avatar,
+      }
+    );
+  };
+
   const rowProps = (item: Item) => ({
     item,
     statuses,
@@ -63,6 +96,8 @@ export function ItemList({
     onEditStart: readonly ? undefined : () => onEdit(item),
     onStatusChange: readonly ? undefined : (s: string) => onStatusChange(item, s),
     reminderBadge: reminderBadges[item.id],
+    assignee: assigneeOf(item),
+    otherClock: clockHint(item),
     onMenu: (at: MenuAt) => setMenu({ item, at }),
   });
 

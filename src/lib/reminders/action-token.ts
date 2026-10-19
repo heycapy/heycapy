@@ -11,7 +11,7 @@ export type ReminderActionClaim = {
   itemId: number;
   action: ReminderAction;
   channel: ReminderChannel;
-  // The deadline the reminder was about; a later occurrence or a moved date makes the button outdated
+  // The deadline the reminder was about, a later occurrence or a moved date makes the button outdated
   deadline: number | null;
 };
 

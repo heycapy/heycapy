@@ -1,12 +1,14 @@
 import { completeItem } from "@/lib/reminders/quick-actions";
+import { findAccessibleItem, listLiveBuckets } from "@/lib/buckets/access";
 import { recordSystemError } from "@/lib/system-errors";
 import { desc, eq } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { buckets, chatMessages, chatSessions, users } from "@/lib/db/schema";
+import { chatMessages, chatSessions, users } from "@/lib/db/schema";
 import { getAIProvider } from "@/lib/ai";
 import { decryptValue } from "@/lib/crypto";
 import { buildSystemPrompt } from "@/lib/ai/systemPrompt";
 import { getUpcomingItems } from "@/lib/ai/capyTools";
+import { withMemberNames } from "@/lib/ai/assigneeArgs";
 import { runAgent } from "@/lib/ai/runAgent";
 import {
   sendTelegram,
@@ -175,12 +177,9 @@ async function handleUpdate(botToken: string, body: TelegramUpdate): Promise<Res
     }
 
     if (callbackData.startsWith("ab:")) {
-      const bucket = await db.query.buckets.findFirst({
-        where: (b, { eq: qeq, and: qand }) =>
-          qand(qeq(b.id, Number(callbackData.slice(3).split(":")[0])), qeq(b.userId, userId)),
-      });
+      const bucketId = Number(callbackData.slice(3).split(":")[0]);
+      const bucket = (await getUserBuckets(userId)).find((b) => b.id === bucketId);
       if (!bucket) return new Response("OK");
-      const bucketId = bucket.id;
       const bucketName = bucket.name;
       const newMsgId = await sendOrEditButtons(
         botToken,
@@ -394,9 +393,7 @@ async function handleUpdate(botToken: string, body: TelegramUpdate): Promise<Res
 
     if (callbackData.startsWith("mi:")) {
       const itemId = parseInt(callbackData.slice(3), 10);
-      const itemRow = await db.query.items.findFirst({
-        where: (i, { eq: qeq, and: qand }) => qand(qeq(i.id, itemId), qeq(i.userId, userId)),
-      });
+      const itemRow = await findAccessibleItem(userId, itemId);
       if (!itemRow) {
         await setFlowState(userId, null);
         await sendTelegramWithQuickActions(botToken, chatIdStr, "Item not found.");
@@ -412,7 +409,12 @@ async function handleUpdate(botToken: string, body: TelegramUpdate): Promise<Res
       const newMsgId = await showItemActionMenu(
         botToken,
         chatIdStr,
-        { title: itemRow.title, deadline: itemRow.deadline, bucketName },
+        {
+          title: itemRow.title,
+          deadline: itemRow.deadline,
+          deadlineTimezone: itemRow.deadlineTimezone,
+          bucketName,
+        },
         timezone,
         menuMsgId
       );
@@ -658,7 +660,7 @@ async function handleUpdate(botToken: string, body: TelegramUpdate): Promise<Res
     const titlePart = text.slice(1 + command.length).trim();
     const allUserBuckets = await getUserBuckets(userId);
     let matchedBucket: (typeof allUserBuckets)[0] | undefined;
-    for (const b of allUserBuckets) {
+    for (const b of allUserBuckets.filter((bucket) => bucket.isOwner)) {
       const cfg = await getBucketTelegramConfig(b.id);
       if (cfg.alias === command) {
         matchedBucket = b;
@@ -780,16 +782,7 @@ async function handleUpdate(botToken: string, body: TelegramUpdate): Promise<Res
 
   const [user, userBucketsFull] = await Promise.all([
     db.query.users.findFirst({ where: eq(users.id, userId) }),
-    db
-      .select({
-        id: buckets.id,
-        name: buckets.name,
-        icon: buckets.icon,
-        itemsRules: buckets.itemsRules,
-        notificationsRules: buckets.notificationsRules,
-      })
-      .from(buckets)
-      .where(eq(buckets.userId, userId)),
+    listLiveBuckets(userId).then((buckets) => withMemberNames(userId, buckets)),
   ]);
 
   let session = await db.query.chatSessions.findFirst({

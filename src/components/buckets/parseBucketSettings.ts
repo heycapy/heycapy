@@ -1,6 +1,6 @@
 import { DEFAULT_REMINDER_BUTTONS, type QuickRemindChoice } from "@/lib/notifications/constants";
 import { daysToDisplayStr } from "@/lib/duration";
-import type { NotificationMedium, RepeatMode, SortBy } from "./constants";
+import type { RepeatMode, SortBy } from "./constants";
 import type { buckets } from "@/lib/db/schema";
 import type { RecurrenceMode } from "@/types/rules";
 
@@ -19,8 +19,6 @@ type RawItemsRules = {
 };
 
 type RawNotifRules = {
-  medium?: NotificationMedium[];
-  webhooks?: number[];
   reminderButtons?: QuickRemindChoice[];
   notifyAt?: string;
   notify_at?: string;
@@ -36,8 +34,6 @@ export type BucketSettingsValues = {
   showCompleted: boolean;
   readonly: boolean;
   defaultDeadlineOffset: string;
-  mediums: NotificationMedium[];
-  webhooks: number[];
   reminderButtons: QuickRemindChoice[];
   notifyAt: string;
   defaultReminders: number[];
@@ -84,8 +80,6 @@ export function parseBucketSettings(bucket: BucketRow): BucketSettingsValues {
       ir.defaultDeadlineOffsetDays !== null && ir.defaultDeadlineOffsetDays !== undefined
         ? daysToDisplayStr(ir.defaultDeadlineOffsetDays)
         : (ir.default_deadline_offset ?? ""),
-    mediums: nr.medium ?? [],
-    webhooks: nr.webhooks ?? [],
     reminderButtons: nr.reminderButtons ?? DEFAULT_REMINDER_BUTTONS,
     notifyAt: nr.notifyAt ?? nr.notify_at ?? "",
     defaultReminders: nr.defaultReminders ?? [0],

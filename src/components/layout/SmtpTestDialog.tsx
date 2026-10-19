@@ -1,4 +1,5 @@
 import { APP_TAGLINE } from "@/constants";
+import { BracketButton } from "@/components/ui/BracketButton";
 import { useState, useTransition } from "react";
 import { cn } from "@/lib/utils";
 import { INPUT, LABEL } from "./settings-constants";
@@ -13,7 +14,6 @@ type SmtpTestDialogProps = {
   smtpPort: string;
   smtpUser: string;
   smtpPass: string | null;
-  smtpSecure: boolean;
 };
 
 export function SmtpTestDialog({
@@ -25,7 +25,6 @@ export function SmtpTestDialog({
   smtpPort,
   smtpUser,
   smtpPass,
-  smtpSecure,
 }: SmtpTestDialogProps) {
   const [sendTo, setSendTo] = useState(defaultTo);
   const [pending, startTransition] = useTransition();
@@ -39,7 +38,6 @@ export function SmtpTestDialog({
         smtpPort,
         smtpUser,
         smtpPass: smtpPass || null,
-        smtpSecure,
         sendTo,
       });
       setResult(
@@ -60,9 +58,9 @@ export function SmtpTestDialog({
       <div className="bg-background border-border relative z-10 flex w-full max-w-md flex-col gap-0 border-2">
         <div className="bg-foreground text-background flex items-center justify-between px-3 py-1.5">
           <span className="font-pixel text-xs">send test email</span>
-          <button type="button" onClick={onClose} className="font-mono text-xs hover:opacity-70">
-            [x]
-          </button>
+          <BracketButton type="button" variant="inverted" onClick={onClose}>
+            x
+          </BracketButton>
         </div>
 
         <div className="flex flex-col gap-3 p-4">
@@ -120,14 +118,13 @@ export function SmtpTestDialog({
           )}
 
           <div className="flex justify-end">
-            <button
+            <BracketButton
               type="button"
               onClick={handleSend}
               disabled={pending || !sendTo || !smtpHost}
-              className="text-muted-foreground hover:text-foreground font-mono text-xs disabled:opacity-40"
             >
-              {pending ? "[sending...]" : "[send]"}
-            </button>
+              {pending ? "sending..." : "send"}
+            </BracketButton>
           </div>
         </div>
       </div>

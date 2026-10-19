@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { useChatStream } from "./useChatStream";
@@ -6,6 +6,7 @@ import { ChatMessageList } from "./ChatMessageList";
 import { ChatInputBar, type ChatInputBarHandle } from "./ChatInputBar";
 import { CapyChatHeader } from "./CapyChatHeader";
 import { ChatHistorySheet } from "./ChatHistorySheet";
+import { ChatSessionList } from "./ChatSessionList";
 import { CapyChatDrawer } from "./CapyChatDrawer";
 import { Sprite } from "./Sprite";
 import { AIStatusStrip } from "./AIStatusStrip";
@@ -17,6 +18,7 @@ export function CapyChat() {
   const setChatState = useLayoutStore((s) => s.setChatState);
   const bottomBarShown = useLayoutStore((s) => s.bottomBarShown);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
@@ -38,6 +40,7 @@ export function CapyChat() {
     stopStreaming,
     clearChat,
     loadSession,
+    sessionId,
   } = useChatStream();
 
   useEffect(() => {
@@ -85,29 +88,39 @@ export function CapyChat() {
     chatState === "fullscreen" ? "inset-2" : "right-6 bottom-0 w-[308px]"
   );
 
+  const fullscreen = chatState === "fullscreen";
+  const centered = (node: ReactNode) =>
+    fullscreen ? <div className="mx-auto w-full max-w-[720px]">{node}</div> : node;
+
+  const inputBar = (
+    <ChatInputBar
+      ref={inputBarRef}
+      input={input}
+      setInput={setInput}
+      streaming={streaming}
+      onSend={() => void sendMessage()}
+      onStop={stopStreaming}
+      boxed={!isMobile}
+    />
+  );
+
   const body = (
     <>
-      <AIStatusStrip />
+      {centered(<AIStatusStrip />)}
       <ChatMessageList
         messages={messages}
         streaming={streaming}
         status={status}
-        fullscreen={chatState === "fullscreen"}
+        fullscreen={fullscreen}
       />
-      <ChatInputBar
-        ref={inputBarRef}
-        input={input}
-        setInput={setInput}
-        streaming={streaming}
-        onSend={() => void sendMessage()}
-        onStop={stopStreaming}
-      />
+      {isMobile ? inputBar : <div className="px-3 pb-3">{centered(inputBar)}</div>}
     </>
   );
 
   const history = (
     <ChatHistorySheet
       open={historyOpen}
+      activeId={sessionId}
       onClose={() => setHistoryOpen(false)}
       onLoadSession={loadSession}
       onNewChat={clearChat}
@@ -149,12 +162,30 @@ export function CapyChat() {
           onClose={() => setChatState("closed")}
           onMinimize={() => setChatState((s) => (s === "minimized" ? "open" : "minimized"))}
           onFullscreen={() => setChatState((s) => (s === "fullscreen" ? "open" : "fullscreen"))}
+          sidebarOpen={sidebarOpen}
+          onToggleSidebar={() => setSidebarOpen((v) => !v)}
           onHistoryOpen={() => setHistoryOpen(true)}
           onNewChat={clearChat}
         />
 
         {chatState === "fullscreen" ? (
-          <div className="flex min-h-0 flex-1 flex-col overflow-hidden">{body}</div>
+          <div className="flex min-h-0 flex-1 overflow-hidden">
+            {sidebarOpen && (
+              <aside
+                aria-label="chat history"
+                className="border-border bg-card flex w-72 shrink-0 flex-col border-r-2"
+              >
+                <ChatSessionList
+                  enabled
+                  refreshKey={`${sessionId}-${streaming}`}
+                  activeId={sessionId}
+                  onLoadSession={loadSession}
+                  onNewChat={clearChat}
+                />
+              </aside>
+            )}
+            <div className="flex min-h-0 min-w-0 flex-1 flex-col">{body}</div>
+          </div>
         ) : (
           <motion.div
             initial={false}

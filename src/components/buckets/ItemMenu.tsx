@@ -12,7 +12,7 @@ import { cn } from "@/lib/utils";
 import { Calendar } from "@/components/ui/Calendar";
 import { BracketButton } from "@/components/ui/BracketButton";
 import { clockTime, formatWeekdayDate } from "@/lib/format-date";
-import { deadlineDate } from "@/lib/time";
+import { deadlineDate, itemDeadline } from "@/lib/time";
 import { deadlineOn, quickDates } from "@/lib/items/quick-dates";
 import { parseRecurring } from "@/lib/items/occurrence";
 import { repeatLabel } from "@/lib/items/repeat-label";
@@ -66,6 +66,7 @@ function MenuBody({ item, readonly, onMove, onDelete, onClose }: Omit<ItemMenuPr
   const [moving, setMoving] = useState(false);
   const recurring = parseRecurring(item.recurring);
   const repeat = recurring?.enabled && item.deadline ? repeatLabel(recurring) : null;
+  const current = item.deadline ? itemDeadline(item.deadline, item.deadlineTimezone).at : null;
   const section = "border-border border-t border-dashed py-1";
 
   function run(action: () => void) {
@@ -116,15 +117,15 @@ function MenuBody({ item, readonly, onMove, onDelete, onClose }: Omit<ItemMenuPr
             back
           </BracketButton>
           <Calendar
-            value={item.deadline ? deadlineDate(item.deadline.toISOString()) : ""}
-            onSelect={(date) => void move(deadlineOn(date, item.deadline))}
+            value={current ? deadlineDate(current.toISOString()) : ""}
+            onSelect={(date) => void move(deadlineOn(date, current))}
           />
         </div>
       )}
 
       {!readonly && !picking && (
         <div className={section}>
-          {quickDates(item.deadline).map((option) => {
+          {quickDates(current).map((option) => {
             const day = formatWeekdayDate(option.at);
             const time = option.allDay ? "all day" : clockTime(option.at);
             return (

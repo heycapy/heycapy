@@ -1,14 +1,17 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { buckets, items } from "@/lib/db/schema";
+import { buckets } from "@/lib/db/schema";
 import { updateBucketSchemaAction, updateBucketSettingsAction } from "@/app/(app)/bucket-actions";
+import { getMemberChannels } from "@/lib/notifications/channels";
 import {
   resetSchedulerEnvironment,
   seedBucket,
   seedItem,
+  seedMember,
   seedUser,
   useSchedulerEnvironment,
+  reminderOf,
 } from "./helpers";
 
 const session = vi.hoisted(() => ({ userId: 0, email: "" }));
@@ -36,7 +39,7 @@ function saveFromDialog(bucketId: number, notifyAt?: string) {
     bucketId,
     `Work ${Math.random()}`,
     { sortBy: "deadline", drag: false, readonly: false, showCompleted: true },
-    { medium: ["telegram"], notifyAt, repeat: "daily" },
+    { notifyAt, repeat: "daily" },
     { notifyOnArrival: false, notifyWhenOverdue: false }
   );
 }
@@ -62,8 +65,9 @@ describe("saving bucket settings", () => {
     const itemId = await seedItem(userId, bucketId, { deadline: new Date("2026-03-10T20:00:00Z") });
     await saveFromDialog(bucketId, "08:00");
 
-    const item = await db.query.items.findFirst({ where: eq(items.id, itemId) });
-    expect(item?.nextReminderAt?.toISOString()).toBe("2026-03-11T09:00:00.000Z");
+    expect((await reminderOf(itemId)).nextReminderAt?.toISOString()).toBe(
+      "2026-03-11T09:00:00.000Z"
+    );
   });
 
   it("still clears a field the dialog manages", async () => {
@@ -79,7 +83,7 @@ describe("first overdue alert delay", () => {
       bucketId,
       `Bills ${Math.random()}`,
       { sortBy: "deadline", drag: false, readonly: false, showCompleted: true },
-      { medium: ["telegram"], repeat: "once" },
+      { repeat: "once" },
       { notifyOnArrival: false, notifyWhenOverdue: on, overdueFirstAlertMins }
     );
   }
@@ -90,12 +94,14 @@ describe("first overdue alert delay", () => {
     const itemId = await seedItem(userId, bucketId, { deadline });
 
     await saveOverdue(bucketId, 30);
-    let item = await db.query.items.findFirst({ where: eq(items.id, itemId) });
-    expect(item?.nextOverdueAt?.toISOString()).toBe("2026-03-10T15:30:00.000Z");
+    expect((await reminderOf(itemId)).nextOverdueAt?.toISOString()).toBe(
+      "2026-03-10T15:30:00.000Z"
+    );
 
     await saveOverdue(bucketId, undefined);
-    item = await db.query.items.findFirst({ where: eq(items.id, itemId) });
-    expect(item?.nextOverdueAt?.toISOString()).toBe("2026-03-10T16:00:00.000Z");
+    expect((await reminderOf(itemId)).nextOverdueAt?.toISOString()).toBe(
+      "2026-03-10T16:00:00.000Z"
+    );
   });
 
   it("is cleared when overdue alerts are turned off", async () => {
@@ -122,14 +128,13 @@ describe("default reminders", () => {
       bucketId,
       `Bills ${Math.random()}`,
       { sortBy: "deadline", drag: false, readonly: false, showCompleted: true },
-      { medium: ["telegram"], repeat: "once", defaultReminders },
+      { repeat: "once", defaultReminders },
       { notifyOnArrival: false, notifyWhenOverdue: false }
     );
   }
 
   async function nextReminder(itemId: number) {
-    const item = await db.query.items.findFirst({ where: eq(items.id, itemId) });
-    return item?.nextReminderAt;
+    return (await reminderOf(itemId)).nextReminderAt;
   }
 
   it("re-schedule items that follow the bucket, and leave the rest alone", async () => {
@@ -167,11 +172,36 @@ describe("checks shared with the assistant", () => {
       bucketId,
       "Work",
       { sortBy: "random" as never },
-      { medium: ["telegram"], notifyAt: "25:00" }
+      { notifyAt: "25:00" }
     );
 
     expect(result).toEqual({ ok: false, error: "Invalid sort by" });
     const after = await db.query.buckets.findFirst({ where: eq(buckets.id, bucketId) });
     expect(after?.itemsRules).toBe(before?.itemsRules);
+  });
+});
+
+describe("a member of the bucket", () => {
+  it("can't save its settings, though they see them", async () => {
+    const { bucketId } = await seedWorkBucket();
+    const before = await db.query.buckets.findFirst({ where: eq(buckets.id, bucketId) });
+    const member = await seedUser();
+    await seedMember(bucketId, member);
+    session.userId = member;
+
+    expect(
+      await updateBucketSettingsAction(
+        bucketId,
+        "Mine",
+        { readonly: true },
+        { repeat: "daily" },
+        undefined,
+        { medium: ["email"], webhooks: [] }
+      )
+    ).toEqual({ ok: false, error: "Bucket not found" });
+
+    const after = await db.query.buckets.findFirst({ where: eq(buckets.id, bucketId) });
+    expect(after).toEqual(before);
+    expect((await getMemberChannels(member, bucketId)).medium).toEqual(["telegram"]);
   });
 });

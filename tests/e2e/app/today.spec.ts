@@ -97,7 +97,7 @@ test("items can be edited from today", async ({ page }) => {
   await expect(itemRow(page, `${title} back`)).toBeVisible();
 });
 
-test("adding from today goes into the bucket viewed last, due today; a picked bucket sticks", async ({
+test("adding from today goes into the bucket viewed last, due today, a picked bucket sticks", async ({
   page,
 }) => {
   await page.goto("/");

@@ -1,7 +1,12 @@
+import { Bell } from "pixelarticons/react/Bell.js";
+import { Briefcase } from "pixelarticons/react/Briefcase.js";
+import { Bulletlist } from "pixelarticons/react/Bulletlist.js";
+import { ChartLine } from "pixelarticons/react/ChartLine.js";
+import { CreditCard } from "pixelarticons/react/CreditCard.js";
+import { Square } from "pixelarticons/react/Square.js";
+import type { PixelIconComponent } from "@/components/ui/PixelIcon";
 import { ITEM_STATUS } from "@/constants";
 import type { QuickRemindChoice } from "@/lib/notifications/constants";
-import type { LucideIcon } from "lucide-react";
-import { Activity, Bell, Briefcase, CreditCard, ListTodo, Square } from "lucide-react";
 import type { RecurrenceMode, StatusDef } from "@/types/rules";
 import { REMINDER_UNITS } from "@/lib/reminders/constants";
 
@@ -28,13 +33,13 @@ export type NotificationsRulesConfig = {
   quietHours?: { from: string; to: string } | null;
 };
 
-export const TEMPLATE_ICONS: Record<string, LucideIcon> = {
+export const TEMPLATE_ICONS: Record<string, PixelIconComponent> = {
   Blank: Square,
   Subscriptions: CreditCard,
   Reminders: Bell,
-  Todo: ListTodo,
+  Todo: Bulletlist,
   Work: Briefcase,
-  "CI/CD Monitor": Activity,
+  "CI/CD Monitor": ChartLine,
 };
 
 export type ItemStatus = string;
@@ -162,3 +167,16 @@ export const RECURRENCE_MODE_OPTIONS: { value: RecurrenceMode; label: string; hi
     hint: "the next date counts from when you complete it — e.g. water plants 3 days after",
   },
 ];
+
+export const HINTS_DEBOUNCE_MS = 300;
+
+export const LOCKED_CONTROLS = [
+  "opacity-60",
+  "[&_*]:cursor-not-allowed",
+  "[&_:disabled]:opacity-100!",
+  "[&_button[aria-pressed=false]]:text-muted-foreground!",
+  "[&_button[aria-pressed=false]]:shadow-none!",
+  "[&_button[aria-pressed=false]]:border-border!",
+  "[&_[data-variant]]:hidden",
+  "[&_[data-remove]]:hidden",
+].join(" ");

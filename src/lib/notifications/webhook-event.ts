@@ -35,7 +35,9 @@ export async function webhookEvent(job: Job, timezone: string): Promise<WebhookE
             title: row.item.title,
             status: row.item.status,
             deadline: row.item.deadline?.toISOString() ?? null,
-            allDay: row.item.deadline ? isAllDay(row.item.deadline, timezone) : false,
+            allDay: row.item.deadline
+              ? isAllDay(row.item.deadline, row.item.deadlineTimezone ?? timezone)
+              : false,
             timezone,
             url: base && `${base}/?bucket=${row.item.bucketId}#item-${row.item.id}`,
           }

@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterAll, vi } from "vitest";
 
-// Set before @/lib/db loads; one database per test file
+// Set before @/lib/db loads, one database per test file
 const dir = mkdtempSync(path.join(tmpdir(), "heycapy-integration-"));
 process.env.DATABASE_URL = `file:${path.join(dir, "test.db")}`;
 

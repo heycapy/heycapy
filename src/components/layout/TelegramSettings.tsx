@@ -1,4 +1,5 @@
 import { useState, useTransition } from "react";
+import { BracketButton } from "@/components/ui/BracketButton";
 import { QRCodeSVG } from "qrcode.react";
 import { Toggle } from "@/components/ui/Toggle";
 import { createTelegramLinkAction, sendTestNotificationAction } from "@/app/(app)/actions";
@@ -73,14 +74,14 @@ export function TelegramSettings({
                 connected · chat id: {telegramChatId}
               </span>
             </div>
-            <button
+            <BracketButton
               type="button"
               onClick={() => void onDisconnectTelegram()}
               disabled={telegramActionPending || pending}
-              className="text-muted-foreground hover:text-foreground font-mono text-[11px] disabled:opacity-40"
+              className="text-[11px]"
             >
-              [disconnect]
-            </button>
+              disconnect
+            </BracketButton>
           </div>
           <div className="flex items-center justify-between">
             <label className={LABEL}>notifications enabled</label>
@@ -103,22 +104,22 @@ export function TelegramSettings({
               <span className="text-muted-foreground font-mono text-[11px]">not connected</span>
             </div>
             <div className="flex items-center gap-2">
-              <button
+              <BracketButton
                 type="button"
                 onClick={() => void onRecheckTelegram()}
                 disabled={telegramActionPending || pending}
-                className="text-muted-foreground hover:text-foreground font-mono text-[11px] disabled:opacity-40"
+                className="text-[11px]"
               >
-                [recheck]
-              </button>
-              <button
+                recheck
+              </BracketButton>
+              <BracketButton
                 type="button"
                 onClick={handleConnect}
                 disabled={connecting || telegramActionPending || pending}
-                className="text-muted-foreground hover:text-foreground font-mono text-[11px] disabled:opacity-40"
+                className="text-[11px]"
               >
-                {connecting ? "[connecting...]" : "[connect]"}
-              </button>
+                {connecting ? "connecting..." : "connect"}
+              </BracketButton>
             </div>
           </div>
           {link && (
@@ -131,13 +132,13 @@ export function TelegramSettings({
                   aria-label="telegram connect link"
                   className={INPUT}
                 />
-                <button
+                <BracketButton
                   type="button"
                   onClick={handleCopyLink}
-                  className="text-muted-foreground hover:text-foreground shrink-0 font-mono text-[11px]"
+                  className="shrink-0 text-[11px]"
                 >
-                  {copyState === "copied" ? "[copied]" : "[copy]"}
-                </button>
+                  {copyState === "copied" ? "copied" : "copy"}
+                </BracketButton>
               </div>
               <QRCodeSVG
                 value={link}
@@ -152,7 +153,7 @@ export function TelegramSettings({
                   href={link}
                   target="_blank"
                   rel="noreferrer"
-                  className="text-foreground/80 hover:text-foreground underline"
+                  className="text-primary hover:text-foreground underline"
                 >
                   open in telegram
                 </a>{" "}

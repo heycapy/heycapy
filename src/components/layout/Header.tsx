@@ -1,15 +1,31 @@
+import { Archive } from "pixelarticons/react/Archive.js";
+import { Logout } from "pixelarticons/react/Logout.js";
+import { Message } from "pixelarticons/react/Message.js";
+import { SlidersHorizontal } from "pixelarticons/react/SlidersHorizontal.js";
+import { Megaphone } from "pixelarticons/react/Megaphone.js";
+import { Trash } from "pixelarticons/react/Trash.js";
+import { UserPlus } from "pixelarticons/react/UserPlus.js";
+import { PixelIcon } from "@/components/ui/PixelIcon";
 import { useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Archive, LogOut, SlidersHorizontal, Trash2 } from "lucide-react";
+import { BetaTag } from "@/components/ui/BetaTag";
 import { BracketButton } from "@/components/ui/BracketButton";
 import { logoutAction, logoutEverywhereAction } from "@/app/(app)/actions";
 import { useScrollLock } from "@/hooks/useScrollLock";
+import { cn } from "@/lib/utils";
+import { PersonAvatar } from "@/components/avatar/PersonAvatar";
 
 type HeaderProps = {
   email: string;
+  userId: number;
+  avatar: string | null;
   onSettingsOpen: () => void;
   onArchiveOpen: () => void;
   onTrashOpen: () => void;
+  onJoinOpen: () => void;
+  onFeedbackOpen: (() => void) | null;
+  onWhatsNewOpen: () => void;
+  unseenRelease: boolean;
 };
 
 function getGreeting() {
@@ -72,16 +88,28 @@ function LogoutConfirm({
   );
 }
 
+function NewDot({ className }: { className?: string }) {
+  return <span aria-hidden className={cn("bg-primary size-1.5 shrink-0", className)} />;
+}
+
 function GlobalMenu({
   email,
   onSettings,
   onArchive,
   onTrash,
+  onJoin,
+  onFeedback,
+  onWhatsNew,
+  unseenRelease,
 }: {
   email: string;
   onSettings: () => void;
   onArchive: () => void;
   onTrash: () => void;
+  onJoin: () => void;
+  onFeedback: (() => void) | null;
+  onWhatsNew: () => void;
+  unseenRelease: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [confirmLogout, setConfirmLogout] = useState<LogoutScope | null>(null);
@@ -103,10 +131,11 @@ function GlobalMenu({
 
   return (
     <>
-      <div ref={containerRef}>
+      <div ref={containerRef} className="relative">
         <BracketButton onClick={toggle} className="px-1 py-1.5">
           ···
         </BracketButton>
+        {unseenRelease && <NewDot className="absolute top-1 right-0" />}
       </div>
 
       {confirmLogout && (
@@ -139,36 +168,68 @@ function GlobalMenu({
                 onClick={() => pick(onSettings)}
                 className="text-foreground hover:bg-muted flex w-full items-center gap-2.5 px-3 py-2 font-mono text-xs transition-colors"
               >
-                <SlidersHorizontal size={11} />
+                <PixelIcon icon={SlidersHorizontal} />
                 tweaks
+              </button>
+              <button
+                onClick={() => pick(onJoin)}
+                className="text-foreground hover:bg-muted flex w-full items-center gap-2.5 px-3 py-2 font-mono text-xs transition-colors"
+              >
+                <PixelIcon icon={UserPlus} />
+                <span>
+                  join a bucket
+                  <BetaTag feature="sharing" />
+                </span>
               </button>
               <button
                 onClick={() => pick(onArchive)}
                 className="text-foreground hover:bg-muted flex w-full items-center gap-2.5 px-3 py-2 font-mono text-xs transition-colors"
               >
-                <Archive size={11} />
+                <PixelIcon icon={Archive} />
                 archived
               </button>
               <button
                 onClick={() => pick(onTrash)}
                 className="text-foreground hover:bg-muted flex w-full items-center gap-2.5 px-3 py-2 font-mono text-xs transition-colors"
               >
-                <Trash2 size={11} />
+                <PixelIcon icon={Trash} />
                 trash
+              </button>
+              {onFeedback && (
+                <button
+                  onClick={() => pick(onFeedback)}
+                  className="text-foreground hover:bg-muted flex w-full items-center gap-2.5 px-3 py-2 font-mono text-xs transition-colors"
+                >
+                  <PixelIcon icon={Message} />
+                  feedback
+                </button>
+              )}
+              <button
+                onClick={() => pick(onWhatsNew)}
+                className="text-foreground hover:bg-muted flex w-full items-center gap-2.5 px-3 py-2 font-mono text-xs transition-colors"
+              >
+                <PixelIcon icon={Megaphone} />
+                what&apos;s new
+                {unseenRelease && (
+                  <>
+                    <NewDot />
+                    <span className="sr-only">(new)</span>
+                  </>
+                )}
               </button>
               <div className="border-border my-1 border-t" />
               <button
                 onClick={() => pick(() => setConfirmLogout("here"))}
                 className="text-destructive hover:bg-muted flex w-full items-center gap-2.5 px-3 py-2 font-mono text-xs transition-colors"
               >
-                <LogOut size={11} />
+                <PixelIcon icon={Logout} />
                 logout
               </button>
               <button
                 onClick={() => pick(() => setConfirmLogout("everywhere"))}
                 className="text-destructive hover:bg-muted flex w-full items-center gap-2.5 px-3 py-2 font-mono text-xs transition-colors"
               >
-                <LogOut size={11} />
+                <PixelIcon icon={Logout} />
                 logout everywhere
               </button>
             </div>
@@ -179,15 +240,31 @@ function GlobalMenu({
   );
 }
 
-export function Header({ email, onSettingsOpen, onArchiveOpen, onTrashOpen }: HeaderProps) {
+export function Header({
+  email,
+  userId,
+  avatar,
+  onSettingsOpen,
+  onArchiveOpen,
+  onTrashOpen,
+  onJoinOpen,
+  onFeedbackOpen,
+  onWhatsNewOpen,
+  unseenRelease,
+}: HeaderProps) {
   const greeting = useMemo(() => getGreeting(), []);
   const date = useMemo(() => getDate(), []);
 
   return (
     <header className="flex items-center justify-between px-5 pt-6 pb-2">
-      <div>
-        <h1 className="font-pixel text-base leading-snug">{greeting}</h1>
-        <p className="text-muted-foreground mt-0.5 text-xs">{date}</p>
+      <div className="flex items-center gap-3">
+        <span role="img" aria-label="your avatar" className="flex">
+          <PersonAvatar userId={userId} avatar={avatar} size={32} />
+        </span>
+        <div>
+          <h1 className="font-pixel text-base leading-snug">{greeting}</h1>
+          <p className="text-muted-foreground mt-0.5 text-xs">{date}</p>
+        </div>
       </div>
 
       <GlobalMenu
@@ -195,6 +272,10 @@ export function Header({ email, onSettingsOpen, onArchiveOpen, onTrashOpen }: He
         onSettings={onSettingsOpen}
         onArchive={onArchiveOpen}
         onTrash={onTrashOpen}
+        onJoin={onJoinOpen}
+        onFeedback={onFeedbackOpen}
+        onWhatsNew={onWhatsNewOpen}
+        unseenRelease={unseenRelease}
       />
     </header>
   );

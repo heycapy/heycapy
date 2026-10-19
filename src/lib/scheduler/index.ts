@@ -1,21 +1,38 @@
 import { pruneSystemErrors, recordSystemError } from "@/lib/system-errors";
 import { purgeOldTrash } from "@/lib/items/trash";
 import { moveOnMissedOccurrences } from "@/lib/items/recurrence";
-import { formatWhen } from "@/lib/format-date";
+import { deadlineOnBothClocks } from "@/lib/timezones/deadline-text";
 import { schedule } from "node-cron";
 import { asc, eq, lte } from "drizzle-orm";
 import { backupDatabase, databaseFilePath, db } from "@/lib/db";
 import { alertAdminsNow, sendErrorDigest } from "@/lib/admin-alerts";
-import { items, buckets, users, userSettings } from "@/lib/db/schema";
+import { bucketMembers, itemReminders, items, buckets, users, userSettings } from "@/lib/db/schema";
 import { APP_NAME } from "@/constants";
 import { errorMessage } from "@/lib/errors";
 import { dataEvents } from "@/lib/events";
 import { decryptValue } from "@/lib/crypto";
 import { getAIProvider } from "@/lib/ai";
 import { enqueueNotification, processPending } from "@/lib/notifications/queue";
-import { channelDecisions, hasPushDevice, userWebhooks } from "@/lib/notifications/channels";
-import { nextDeadlineReminder, nextOverdueAlert } from "@/lib/reminders/schedule";
-import { reconcile, reminderRowFields, toReminderInputs } from "@/lib/reminders/refresh";
+import {
+  channelDecisions,
+  getChannelSettings,
+  hasPushDevice,
+  userWebhooks,
+  type ChannelDecision,
+} from "@/lib/notifications/channels";
+import {
+  nextDeadlineReminder,
+  nextOverdueAlert,
+  type ReminderInputs,
+} from "@/lib/reminders/schedule";
+import {
+  bucketOwnerMember,
+  ownerMember,
+  reconcile,
+  recipientMember,
+  reminderRowFields,
+  toReminderInputs,
+} from "@/lib/reminders/refresh";
 import {
   REMINDER_BATCH_SIZE,
   REMINDER_MAX_BATCHES_PER_RUN,
@@ -120,12 +137,15 @@ type DueRow = Awaited<ReturnType<typeof selectDue>>[number];
 function selectDue(key: DueKey, now: Date) {
   return db
     .select(dueRowFields)
-    .from(items)
+    .from(itemReminders)
+    .innerJoin(items, eq(itemReminders.itemId, items.id))
     .innerJoin(buckets, eq(items.bucketId, buckets.id))
-    .innerJoin(users, eq(items.userId, users.id))
-    .innerJoin(userSettings, eq(items.userId, userSettings.userId))
-    .where(lte(items[key], now))
-    .orderBy(asc(items[key]))
+    .leftJoin(bucketMembers, recipientMember)
+    .leftJoin(ownerMember, bucketOwnerMember)
+    .innerJoin(users, eq(itemReminders.userId, users.id))
+    .innerJoin(userSettings, eq(itemReminders.userId, userSettings.userId))
+    .where(lte(itemReminders[key], now))
+    .orderBy(asc(itemReminders[key]))
     .limit(REMINDER_BATCH_SIZE);
 }
 
@@ -154,9 +174,9 @@ async function drainDue(
           },
         });
         await db
-          .update(items)
+          .update(itemReminders)
           .set({ [key]: new Date(now.getTime() + REMINDER_RETRY_DELAY_MS) })
-          .where(eq(items.id, row.item.id));
+          .where(eq(itemReminders.id, row.reminder.id));
       }
     }
   }
@@ -166,42 +186,74 @@ async function drainDue(
   });
 }
 
+type Delivery = { userId: number; channels: ChannelDecision[] };
+
+async function deliveries(inputs: ReminderInputs, row: DueRow): Promise<Delivery[]> {
+  const personal = { userId: row.userId, channels: channelDecisions(inputs.channels, row) };
+  if (inputs.sharedWebhooks.length === 0) return [personal];
+  const ownerHooks = channelDecisions(
+    { medium: [], webhooks: inputs.sharedWebhooks },
+    await getChannelSettings(row.bucketOwnerId)
+  ).filter((c) => c.medium === "webhook");
+  return ownerHooks.length > 0
+    ? [personal, { userId: row.bucketOwnerId, channels: ownerHooks }]
+    : [personal];
+}
+
+const sends = (list: Delivery[]) => list.some((d) => d.channels.some((c) => c.state === "send"));
+
+async function enqueueAll(
+  list: Delivery[],
+  itemId: number,
+  kind: "reminder" | "overdue",
+  title: string,
+  message: string
+): Promise<void> {
+  for (const { userId, channels } of list) {
+    await enqueueNotification({ userId, itemId, kind, title, message, channels });
+  }
+}
+
 async function sendDeadlineReminder(row: DueRow, now: Date): Promise<void> {
   const inputs = toReminderInputs(row);
   const due = nextDeadlineReminder(inputs);
-  // Re-check live state; the stored time may be stale
+  // Re-check live state, the stored time may be stale
   const deadline = row.item.deadline;
   if (!due || due > now || !deadline) {
-    await db.update(items).set({ nextReminderAt: due }).where(eq(items.id, row.item.id));
+    await db
+      .update(itemReminders)
+      .set({ nextReminderAt: due })
+      .where(eq(itemReminders.id, row.reminder.id));
     return;
   }
 
-  const channels = channelDecisions(inputs.rules, row);
-  const sending = channels.some((c) => c.state === "send");
-  const deadlineStr = formatWhen(deadline, now, inputs.timezone);
+  const list = await deliveries(inputs, row);
+  const sending = sends(list);
+  const deadlineStr = deadlineOnBothClocks(deadline, inputs.deadlineTimezone, now, inputs.timezone);
   const message =
     sending && row.aiNotifyMessages
       ? await generateNotificationText(row.item.title, deadlineStr, row)
       : `due ${deadlineStr}`;
-  await enqueueNotification({
-    userId: row.userId,
-    itemId: row.item.id,
-    kind: "reminder",
-    title: `[${APP_NAME}] ${shortTitle(row.item.title)}`,
-    message,
-    channels,
-  });
+  await enqueueAll(
+    list,
+    row.item.id,
+    "reminder",
+    `[${APP_NAME}] ${shortTitle(row.item.title)}`,
+    message
+  );
   if (!sending) {
-    process.stderr.write(`[scheduler] item ${row.item.id} skip: no delivery channels configured\n`);
+    process.stderr.write(
+      `[scheduler] item ${row.item.id} user ${row.userId} skip: no delivery channels configured\n`
+    );
   }
 
   await db
-    .update(items)
+    .update(itemReminders)
     .set({
       notifiedAt: now,
       nextReminderAt: nextDeadlineReminder({ ...inputs, notifiedAt: now }),
     })
-    .where(eq(items.id, row.item.id));
+    .where(eq(itemReminders.id, row.reminder.id));
   dataEvents.emit("refresh", row.userId);
 }
 
@@ -210,26 +262,28 @@ async function sendOverdueAlert(row: DueRow, now: Date): Promise<void> {
   const due = nextOverdueAlert(inputs);
   const deadline = row.item.deadline;
   if (!due || due > now || !deadline) {
-    await db.update(items).set({ nextOverdueAt: due }).where(eq(items.id, row.item.id));
+    await db
+      .update(itemReminders)
+      .set({ nextOverdueAt: due })
+      .where(eq(itemReminders.id, row.reminder.id));
     return;
   }
 
-  await enqueueNotification({
-    userId: row.userId,
-    itemId: row.item.id,
-    kind: "overdue",
-    title: `[${APP_NAME}] Overdue: ${shortTitle(row.item.title)}`,
-    message: `overdue — was due ${formatWhen(deadline, now, inputs.timezone)}`,
-    channels: channelDecisions(inputs.rules, row),
-  });
+  await enqueueAll(
+    await deliveries(inputs, row),
+    row.item.id,
+    "overdue",
+    `[${APP_NAME}] Overdue: ${shortTitle(row.item.title)}`,
+    `overdue — was due ${deadlineOnBothClocks(deadline, inputs.deadlineTimezone, now, inputs.timezone)}`
+  );
 
   await db
-    .update(items)
+    .update(itemReminders)
     .set({
       overdueNotifiedAt: now,
       nextOverdueAt: nextOverdueAlert({ ...inputs, overdueNotifiedAt: now }),
     })
-    .where(eq(items.id, row.item.id));
+    .where(eq(itemReminders.id, row.reminder.id));
 }
 
 async function runNotifications(): Promise<void> {

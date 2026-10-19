@@ -5,7 +5,7 @@ import { formatShort } from "@/lib/format-date";
 import { BOX, LABEL, SECTION } from "./settings-constants";
 import { SystemCredits } from "./SystemCredits";
 
-// Stored as JSON (stack, context, runtime); shown as readable lines
+// Stored as JSON (stack, context, runtime), shown as readable lines
 function formatDetails(raw: string): string {
   try {
     const { stack, context, runtime } = JSON.parse(raw) as {

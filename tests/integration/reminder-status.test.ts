@@ -1,11 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { buckets, items, notificationQueue, userSettings } from "@/lib/db/schema";
+import { items, notificationQueue, userSettings } from "@/lib/db/schema";
 import { enqueueNotification, processPending } from "@/lib/notifications/queue";
 import {
   getItemReminderInfo,
   getReminderBadges,
+  withViewerReminders,
   type HistoryEvent,
   type NotificationEvent,
 } from "@/lib/reminders/status";
@@ -33,13 +34,12 @@ afterEach(() => resetSchedulerEnvironment());
 async function setup(medium: string[] = ["telegram"]) {
   const userId = await seedUser();
   const bucketId = await seedBucket(userId, { medium, repeat: "once" });
-  const bucket = await db.query.buckets.findFirst({ where: eq(buckets.id, bucketId) });
-  return { userId, bucketId, rules: bucket?.notificationsRules ?? "{}" };
+  return { userId, bucketId };
 }
 
-async function badgesFor(userId: number, rules: string, bucketId: number) {
+async function badgesFor(userId: number, bucketId: number) {
   const rows = await db.select().from(items).where(eq(items.bucketId, bucketId));
-  return getReminderBadges(userId, rules, rows);
+  return getReminderBadges(userId, bucketId, await withViewerReminders(userId, rows));
 }
 
 async function addJob(
@@ -59,39 +59,39 @@ async function addJob(
 
 describe("list badges", () => {
   it("upcoming when a reminder is scheduled", async () => {
-    const { userId, bucketId, rules } = await setup();
+    const { userId, bucketId } = await setup();
     const itemId = await seedItem(userId, bucketId, { deadline: TOMORROW });
-    expect(await badgesFor(userId, rules, bucketId)).toEqual({ [itemId]: "upcoming" });
+    expect(await badgesFor(userId, bucketId)).toEqual({ [itemId]: "upcoming" });
   });
 
   it("noChannel when the bucket has no working channel", async () => {
-    const { userId, bucketId, rules } = await setup([]);
+    const { userId, bucketId } = await setup([]);
     const itemId = await seedItem(userId, bucketId, { deadline: TOMORROW });
-    expect(await badgesFor(userId, rules, bucketId)).toEqual({ [itemId]: "noChannel" });
+    expect(await badgesFor(userId, bucketId)).toEqual({ [itemId]: "noChannel" });
   });
 
   it("failed when the latest delivery on a channel gave up", async () => {
-    const { userId, bucketId, rules } = await setup();
+    const { userId, bucketId } = await setup();
     const itemId = await seedItem(userId, bucketId, { deadline: TOMORROW });
     await addJob(userId, itemId, { status: "dead", lastError: "chat not found" });
-    expect(await badgesFor(userId, rules, bucketId)).toEqual({ [itemId]: "failed" });
+    expect(await badgesFor(userId, bucketId)).toEqual({ [itemId]: "failed" });
   });
 
   it("an old failure clears once a later delivery succeeds", async () => {
-    const { userId, bucketId, rules } = await setup();
+    const { userId, bucketId } = await setup();
     const itemId = await seedItem(userId, bucketId, { deadline: TOMORROW });
     await addJob(userId, itemId, { status: "dead" });
     await addJob(userId, itemId, { status: "sent", sentAt: T0 });
-    expect(await badgesFor(userId, rules, bucketId)).toEqual({ [itemId]: "upcoming" });
+    expect(await badgesFor(userId, bucketId)).toEqual({ [itemId]: "upcoming" });
   });
 
   it("history for completed or already-reminded items, nothing for undated ones", async () => {
-    const { userId, bucketId, rules } = await setup();
+    const { userId, bucketId } = await setup();
     const done = await seedItem(userId, bucketId, { deadline: TOMORROW });
     await db.update(items).set({ status: "completed" }).where(eq(items.id, done));
     const reminded = await seedItem(userId, bucketId, { deadline: T0, notifiedAt: T0 });
     await db.insert(items).values({ bucketId, userId, title: "no date" });
-    expect(await badgesFor(userId, rules, bucketId)).toEqual({
+    expect(await badgesFor(userId, bucketId)).toEqual({
       [done]: "history",
       [reminded]: "history",
     });
@@ -113,6 +113,8 @@ describe("dialog details", () => {
       completedAt: null,
       reason: null,
       remindAgain: null,
+      heldByQuietHours: false,
+      others: [],
       history: [],
     });
   });
@@ -156,7 +158,7 @@ describe("dialog details", () => {
 describe("history records each channel as it was at send time", () => {
   it("a channel set up later still shows as not set up for older notifications", async () => {
     process.env.E2E_TEST_MODE = "1";
-    process.env.RESEND_API_KEY = "test-key";
+    process.env.SMTP_HOST = "smtp.self-hosted.test";
     const { userId, bucketId } = await setup(["email", "telegram"]);
     await db
       .update(userSettings)
@@ -191,7 +193,7 @@ describe("history records each channel as it was at send time", () => {
       "telegram",
     ]);
     delete process.env.E2E_TEST_MODE;
-    delete process.env.RESEND_API_KEY;
+    delete process.env.SMTP_HOST;
   });
 
   it("groups a reminder and an overdue alert sent together into two notifications", async () => {

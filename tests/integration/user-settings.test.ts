@@ -1,16 +1,29 @@
-import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type * as AIModule from "@/lib/ai";
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { userSettings } from "@/lib/db/schema";
-import { getUserSettingsAction, updateUserSettingsAction } from "@/app/(app)/user-settings-actions";
+import {
+  getUserSettingsAction,
+  saveTimezoneIfDefaultAction,
+  switchTimezoneAction,
+  timezoneMoveAction,
+  updateUserSettingsAction,
+} from "@/app/(app)/user-settings-actions";
 import { decryptValue, encryptValue } from "@/lib/crypto";
 import {
   CUSTOM_PROMPT_MAX_LENGTH,
   CUSTOM_PROMPT_REJECTED_ERROR,
   CUSTOM_PROMPT_REQUIRED_ERROR,
 } from "@/constants";
-import { resetSchedulerEnvironment, seedUser, useSchedulerEnvironment } from "./helpers";
+import {
+  reminderOf,
+  resetSchedulerEnvironment,
+  seedBucket,
+  seedItem,
+  seedUser,
+  useSchedulerEnvironment,
+} from "./helpers";
 
 let session: { userId: number; email?: string } | null = null;
 vi.mock("@/lib/auth/session", () => ({
@@ -68,7 +81,6 @@ const saved = {
   smtpPort: null,
   smtpUser: null,
   smtpPass: null,
-  smtpSecure: false,
   smtpFrom: null,
   quietHoursFrom: null,
   quietHoursTo: null,
@@ -359,4 +371,77 @@ it("saves the rude and funny tone without a custom prompt or a review", async ()
   expect((await row(userId)).personalityTone).toBe("rude_funny");
   expect(review.calls).toBe(0);
   vi.unstubAllEnvs();
+});
+
+describe("the timezone", () => {
+  it("refuses one that doesn't exist and keeps the old one", async () => {
+    const userId = await seedUser("Asia/Kolkata");
+    session = { userId };
+    await seedItem(userId, await seedBucket(userId), {
+      deadline: new Date("2026-03-12T00:00:00Z"),
+    });
+
+    const result = await updateUserSettingsAction({ ...saved, timezone: "Asia/Kolkatta" });
+
+    expect(result).toEqual({
+      ok: false,
+      error: 'Unknown timezone "Asia/Kolkatta" — use one like Europe/London',
+    });
+    expect((await row(userId)).timezone).toBe("Asia/Kolkata");
+  });
+
+  it("saves a real one, and the browser's only when it's real", async () => {
+    const userId = await seedUser();
+    session = { userId };
+
+    await saveTimezoneIfDefaultAction("Mars/Olympus");
+    expect((await row(userId)).timezone).toBe("UTC");
+    await saveTimezoneIfDefaultAction("Europe/London");
+    expect((await row(userId)).timezone).toBe("Europe/London");
+
+    expect(await updateUserSettingsAction({ ...saved, timezone: "America/New_York" })).toEqual({
+      ok: true,
+      aiChanged: false,
+    });
+    expect((await row(userId)).timezone).toBe("America/New_York");
+  });
+});
+
+describe("a browser on another clock than the saved one", () => {
+  it("is named by place, and not for another name of the same zone or one never set", async () => {
+    session = { userId: await seedUser("Asia/Kolkata") };
+    expect(await timezoneMoveAction("Europe/London")).toEqual({ here: "UK", saved: "India" });
+    expect(await timezoneMoveAction("Asia/Calcutta")).toBeNull();
+    expect(await timezoneMoveAction("Asia/Kolkata")).toBeNull();
+    expect(await timezoneMoveAction("Mars/Olympus")).toBeNull();
+
+    session = { userId: await seedUser() };
+    expect(await timezoneMoveAction("Europe/London")).toBeNull();
+  });
+
+  it("can be switched to, which moves the reminders onto the new clock", async () => {
+    const userId = await seedUser("Asia/Kolkata");
+    session = { userId };
+    const bucketId = await seedBucket(userId, {
+      medium: ["telegram"],
+      repeat: "once",
+      notifyAt: "09:00",
+    });
+    const itemId = await seedItem(userId, bucketId, {
+      deadline: new Date("2026-03-12T05:00:00Z"),
+      reminderOffsets: [0],
+    });
+    // 10:30 in India, 05:00 in London, where "remind at 09:00" holds it back
+    expect((await reminderOf(itemId)).nextReminderAt).toEqual(new Date("2026-03-12T05:00:00Z"));
+
+    expect(await switchTimezoneAction("Mars/Olympus")).toEqual({
+      ok: false,
+      error: 'Unknown timezone "Mars/Olympus" — use one like Europe/London',
+    });
+    expect((await row(userId)).timezone).toBe("Asia/Kolkata");
+
+    expect(await switchTimezoneAction("Europe/London")).toEqual({ ok: true });
+    expect((await row(userId)).timezone).toBe("Europe/London");
+    expect((await reminderOf(itemId)).nextReminderAt).toEqual(new Date("2026-03-12T09:00:00Z"));
+  });
 });

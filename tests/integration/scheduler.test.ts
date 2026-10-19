@@ -78,7 +78,7 @@ describe("large backlogs", () => {
 
 describe("daily repeat", () => {
   it("repeats once per day in the user's timezone, not per UTC day", async () => {
-    // 09:00 EDT = 13:00 UTC; 20:30 EDT = 00:30 UTC next day
+    // 09:00 EDT = 13:00 UTC, 20:30 EDT = 00:30 UTC next day
     const userId = await seedUser("America/New_York");
     const bucketId = await seedBucket(userId, { medium: ["telegram"], repeat: "daily" });
     const deadline = new Date("2026-06-10T13:00:00Z");

@@ -1,7 +1,8 @@
-import { eq, getTableColumns, getTableName, sql } from "drizzle-orm";
+import { and, eq, getTableColumns, getTableName, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { outgoingWebhooks, pushSubscriptions, userSettings } from "@/lib/db/schema";
-import type { BucketChannels } from "@/lib/rules";
+import { bucketMembers, outgoingWebhooks, pushSubscriptions, userSettings } from "@/lib/db/schema";
+import { memberChannels } from "@/lib/rules";
+import { MemberChannels } from "@/types/rules";
 import type { NotificationMedium } from "./queue";
 
 export type UserWebhook = { id: number; name: string; isDefault: boolean };
@@ -46,12 +47,19 @@ export async function getChannelSettings(userId: number) {
   return row;
 }
 
+export async function getMemberChannels(userId: number, bucketId: number): Promise<MemberChannels> {
+  const row = await db.query.bucketMembers.findFirst({
+    columns: { channels: true },
+    where: and(eq(bucketMembers.bucketId, bucketId), eq(bucketMembers.userId, userId)),
+  });
+  return memberChannels(row?.channels);
+}
+
 // built-in channels only: webhooks are picked one by one, see channelDecisions
 export function workingChannels(settings: ChannelSettings): NotificationMedium[] {
+  // resend doesn't count, it only sends sign-in codes (see sendNotificationEmail)
   const emailConfigured =
-    !!process.env.RESEND_API_KEY ||
-    !!process.env.SMTP_HOST ||
-    (settings.emailProvider === "smtp" && !!settings.smtpHost);
+    !!process.env.SMTP_HOST || (settings.emailProvider === "smtp" && !!settings.smtpHost);
 
   const channels: NotificationMedium[] = [];
   if (settings.notificationsEmail && emailConfigured) channels.push("email");
@@ -79,7 +87,7 @@ export type ChannelDecision = {
 };
 
 export function channelDecisions(
-  selected: BucketChannels,
+  selected: MemberChannels,
   settings: ChannelSettings | undefined
 ): ChannelDecision[] {
   const working = settings ? workingChannels(settings) : [];
@@ -102,23 +110,27 @@ export function channelDecisions(
   return [...builtIn, ...webhooks];
 }
 
-export async function withDefaultChannels(
+// A new bucket's rules hold no channels: the template's go to its owner, or else every channel they
+// have working, plus the webhooks they turned on for new buckets
+export async function startingChannels(
   userId: number,
   notifications: unknown
-): Promise<Record<string, unknown>> {
-  const rules =
+): Promise<{ rules: Record<string, unknown>; channels: MemberChannels }> {
+  const { medium, webhooks, ...rules } =
     notifications && typeof notifications === "object"
       ? (notifications as Record<string, unknown>)
       : {};
-  const hasMedium = Array.isArray(rules.medium) && rules.medium.length > 0;
-  const hasWebhooks = Array.isArray(rules.webhooks);
-  if (hasMedium && hasWebhooks) return rules;
   const settings = await getChannelSettings(userId);
-  return {
-    ...rules,
-    medium: hasMedium ? rules.medium : settings ? workingChannels(settings) : [],
-    webhooks: hasWebhooks
-      ? rules.webhooks
+  const picked = MemberChannels.safeParse({
+    medium:
+      Array.isArray(medium) && medium.length > 0
+        ? medium
+        : settings
+          ? workingChannels(settings)
+          : [],
+    webhooks: Array.isArray(webhooks)
+      ? webhooks
       : (settings?.webhooks ?? []).filter((w) => w.isDefault).map((w) => w.id),
-  };
+  });
+  return { rules, channels: picked.success ? picked.data : MemberChannels.parse({}) };
 }

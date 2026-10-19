@@ -1,7 +1,15 @@
 import { vi } from "vitest";
 import { and, eq, ne } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { buckets, items, notificationQueue, userSettings, users } from "@/lib/db/schema";
+import {
+  bucketMembers,
+  buckets,
+  itemReminders,
+  items,
+  notificationQueue,
+  userSettings,
+  users,
+} from "@/lib/db/schema";
 import { runNotifications } from "@/lib/scheduler";
 import { refreshItemReminders } from "@/lib/reminders/refresh";
 
@@ -39,21 +47,46 @@ export async function seedUser(timezone = "UTC"): Promise<number> {
   return user.id;
 }
 
+// The channels in `rules` are the owner's own
 export async function seedBucket(
   userId: number,
   rules: NotificationRulesInput = { medium: ["telegram"], repeat: "once" },
   fieldSchema?: Record<string, unknown>
 ): Promise<number> {
+  const { medium = [], webhooks = [], ...bucketRules } = rules;
   const [bucket] = await db
     .insert(buckets)
     .values({
       userId,
       name: `Bucket ${Math.random()}`,
-      notificationsRules: JSON.stringify(rules),
+      notificationsRules: JSON.stringify(bucketRules),
       ...(fieldSchema && { fieldSchema: JSON.stringify(fieldSchema) as never }),
     })
     .returning();
+  await setChannels(userId, bucket.id, medium, webhooks);
   return bucket.id;
+}
+
+export async function seedMember(
+  bucketId: number,
+  userId: number,
+  medium: string[] = ["telegram"]
+): Promise<void> {
+  await db
+    .insert(bucketMembers)
+    .values({ bucketId, userId, channels: JSON.stringify({ medium, webhooks: [] }) });
+}
+
+export async function setChannels(
+  userId: number,
+  bucketId: number,
+  medium: string[],
+  webhooks: number[] = []
+): Promise<void> {
+  await db
+    .update(bucketMembers)
+    .set({ channels: JSON.stringify({ medium, webhooks }) })
+    .where(and(eq(bucketMembers.bucketId, bucketId), eq(bucketMembers.userId, userId)));
 }
 
 export async function seedItem(
@@ -92,6 +125,23 @@ export async function seedReminder(opts: {
   const bucketId = await seedBucket(userId);
   const itemId = await seedItem(userId, bucketId, opts);
   return { userId, bucketId, itemId };
+}
+
+// One person's reminder schedule for the item, without a person, the only one there is
+export async function reminderOf(itemId: number, userId?: number) {
+  const rows = await db
+    .select()
+    .from(itemReminders)
+    .where(
+      and(
+        eq(itemReminders.itemId, itemId),
+        userId === undefined ? undefined : eq(itemReminders.userId, userId)
+      )
+    );
+  if (rows.length !== 1) {
+    throw new Error(`item ${itemId}: expected one reminder schedule, found ${rows.length}`);
+  }
+  return rows[0];
 }
 
 export async function remindersQueued(itemId: number): Promise<number> {

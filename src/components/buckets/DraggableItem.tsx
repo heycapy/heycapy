@@ -1,6 +1,6 @@
 import type { RefObject } from "react";
 import { Reorder, useDragControls } from "framer-motion";
-import { ItemRow } from "./ItemRow";
+import { ItemRow, type ItemAssignee } from "./ItemRow";
 import { SwipeableRow } from "./SwipeableRow";
 import type { MenuAt } from "./ItemMenu";
 import { completionToggle } from "./completion";
@@ -23,6 +23,8 @@ type DraggableItemProps = {
   onDelete?: () => void;
   onMenu: (at: MenuAt) => void;
   reminderBadge?: ReminderBadge;
+  assignee?: ItemAssignee;
+  otherClock?: string;
 };
 
 export function DraggableItem({
@@ -37,6 +39,8 @@ export function DraggableItem({
   onDelete,
   onMenu,
   reminderBadge,
+  assignee,
+  otherClock,
 }: DraggableItemProps) {
   const controls = useDragControls();
 
@@ -74,6 +78,8 @@ export function DraggableItem({
           onEditStart={onEditStart}
           onStatusChange={onStatusChange}
           reminderBadge={reminderBadge}
+          assignee={assignee}
+          otherClock={otherClock}
           onMenu={onMenu}
         />
       </SwipeableRow>

@@ -1,3 +1,5 @@
+import { ACCENT_BUTTONS } from "@/components/layout/settings-constants";
+import { cn } from "@/lib/utils";
 import { useRef, useState, useTransition } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { BracketButton } from "@/components/ui/BracketButton";
@@ -101,7 +103,12 @@ function SchemaEditorForm({ bucket, onClose }: Omit<SchemaEditorDialogProps, "op
   }
 
   return (
-    <div className="border-border bg-background flex max-h-[92vh] flex-col overflow-hidden border-2">
+    <div
+      className={cn(
+        "border-border bg-background flex max-h-[92vh] flex-col overflow-hidden border-2",
+        ACCENT_BUTTONS
+      )}
+    >
       <div className="bg-foreground text-background flex shrink-0 items-center justify-between gap-2 px-3 py-1.5">
         <span className="font-pixel min-w-0 truncate text-xs">schema [{bucket.name}]</span>
         <BracketButton variant="inverted" onClick={onClose}>

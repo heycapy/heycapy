@@ -1,8 +1,10 @@
 "use client";
 
+import { ChevronDown } from "pixelarticons/react/ChevronDown.js";
+import { Clock } from "pixelarticons/react/Clock.js";
+import { PixelIcon } from "@/components/ui/PixelIcon";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { ChevronDown, Clock } from "lucide-react";
 import { BracketButton } from "@/components/ui/BracketButton";
 import { cn } from "@/lib/utils";
 import { BucketContent } from "./BucketContent";
@@ -15,13 +17,10 @@ import { useLayoutStore } from "@/store/layout";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { parseItemsRules } from "@/lib/rules";
 import { BOTTOM_BAR_MEDIA_QUERY } from "@/constants";
-import { saveTimezoneIfDefaultAction } from "@/app/(app)/user-settings-actions";
-import type { buckets } from "@/lib/db/schema";
-
-type BucketRow = typeof buckets.$inferSelect;
+import type { ViewerBucket } from "@/lib/buckets/access";
 
 type BucketsShellProps = {
-  buckets: BucketRow[];
+  buckets: ViewerBucket[];
   focusBucketId?: number | null;
 };
 
@@ -46,7 +45,7 @@ function TodayButton({
         className
       )}
     >
-      <Clock size={12} aria-hidden />
+      <PixelIcon icon={Clock} />
       today
     </button>
   );
@@ -64,13 +63,13 @@ export function BucketsShell({ buckets: rawBuckets, focusBucketId = null }: Buck
   const clearNewBucket = useUIStore((s) => s.clearNewBucket);
   const todayOpen = useUIStore((s) => s.todayOpen);
   const openToday = useUIStore((s) => s.openToday);
-  // The open view is remembered per session; wait for it rather than flash the default
+  // The open view is remembered per session, wait for it rather than flash the default
   const hydrated = useSyncExternalStore(
     (onChange) => useUIStore.persist.onFinishHydration(onChange),
     () => useUIStore.persist.hasHydrated(),
     () => false
   );
-  const prevBucketsRef = useRef<BucketRow[]>(buckets);
+  const prevBucketsRef = useRef<ViewerBucket[]>(buckets);
   const [pickerOpen, setPickerOpen] = useState(false);
   const addItemRef = useRef<(() => void) | null>(null);
   const hasBottomBar = useMediaQuery(BOTTOM_BAR_MEDIA_QUERY);
@@ -79,11 +78,6 @@ export function BucketsShell({ buckets: rawBuckets, focusBucketId = null }: Buck
     setBottomBarShown(true);
     return () => setBottomBarShown(false);
   }, [setBottomBarShown]);
-
-  useEffect(() => {
-    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    void saveTimezoneIfDefaultAction(tz);
-  }, []);
 
   useEffect(() => {
     if (focusBucketId === null) return;
@@ -178,7 +172,7 @@ export function BucketsShell({ buckets: rawBuckets, focusBucketId = null }: Buck
               style={{ backgroundColor: `color-mix(in oklab, ${placeColor} 18%, transparent)` }}
               className="flex h-10 max-w-28 min-w-0 items-center gap-1 px-2"
             >
-              {todayOpen && <Clock size={13} className="shrink-0" aria-hidden />}
+              {todayOpen && <PixelIcon icon={Clock} className="shrink-0" />}
               <span className="text-foreground truncate font-mono text-base">
                 {todayOpen
                   ? "today"
@@ -186,7 +180,7 @@ export function BucketsShell({ buckets: rawBuckets, focusBucketId = null }: Buck
                     ? `${activeBucket.icon} ${activeBucket.name}`
                     : activeBucket.name}
               </span>
-              <ChevronDown size={13} className="text-muted-foreground shrink-0" aria-hidden />
+              <PixelIcon icon={ChevronDown} className="text-muted-foreground shrink-0" />
             </span>
           </button>
           <div className="flex justify-center">

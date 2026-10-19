@@ -5,7 +5,7 @@ import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { notificationQueue, userSettings } from "@/lib/db/schema";
 import { enqueue, processPending } from "@/lib/notifications/queue";
-import { sendEmail } from "@/lib/notifications/email";
+import { sendNotificationEmail } from "@/lib/notifications/email";
 import { publicAddress } from "@/lib/notifications/public-address";
 import {
   sendTestNotificationAction,
@@ -128,14 +128,15 @@ it("the ntfy send test refuses it too", async () => {
 });
 
 it("smtp on our own network is refused before connecting, on a send and on the test", async () => {
-  await expect(sendEmail(email, smtp("127.0.0.1"))).rejects.toThrow("points to a private network");
+  await expect(sendNotificationEmail(email, smtp("127.0.0.1"))).rejects.toThrow(
+    "points to a private network"
+  );
   expect(
     await testSmtpAction({
       smtpHost: "169.254.169.254",
       smtpPort: "25",
       smtpUser: "",
       smtpPass: null,
-      smtpSecure: false,
       sendTo: "someone@heycapy.test",
     })
   ).toMatchObject({ ok: false, error: expect.stringContaining("private network") });
@@ -143,15 +144,34 @@ it("smtp on our own network is refused before connecting, on a send and on the t
 });
 
 it("smtp connects to the address that was checked, with the certificate checked for the name", async () => {
-  await sendEmail(email, smtp(PUBLIC_MAIL));
+  await sendNotificationEmail(email, smtp(PUBLIC_MAIL));
   expect(transports).toEqual([
     expect.objectContaining({ host: "93.184.215.14", tls: { servername: PUBLIC_MAIL } }),
   ]);
 
   vi.stubEnv("HOSTED", "false");
-  await sendEmail(email, smtp("localhost"));
+  await sendNotificationEmail(email, smtp("localhost"));
   expect(transports[1]).toMatchObject({ host: "localhost" });
   expect(transports[1]).not.toHaveProperty("tls");
+});
+
+it("port 465 connects with ssl and 587 with starttls, on a send and on the test", async () => {
+  await sendNotificationEmail(email, { ...smtp(PUBLIC_MAIL), smtpPort: 465 });
+  await sendNotificationEmail(email, smtp(PUBLIC_MAIL));
+  expect(
+    await testSmtpAction({
+      smtpHost: PUBLIC_MAIL,
+      smtpPort: "465",
+      smtpUser: "",
+      smtpPass: null,
+      sendTo: "someone@heycapy.test",
+    })
+  ).toEqual({ ok: true });
+  expect(transports.map((t) => [t.port, t.secure])).toEqual([
+    [465, true],
+    [587, false],
+    [465, true],
+  ]);
 });
 
 it("saving an ntfy url or smtp host on our own network is refused", async () => {
@@ -163,7 +183,6 @@ it("saving an ntfy url or smtp host on our own network is refused", async () => 
     ...settings,
     aiKeyEdits: {},
     smtpPass: null,
-    smtpSecure: settings.smtpSecure ?? false,
     transcriptionKeyEdit: { newKey: null, clear: false },
   };
   fakeDns.set("my-app.internal", [{ address: "fdaa:0:1:a7b::2", family: 6 }]);

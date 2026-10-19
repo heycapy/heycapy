@@ -1,4 +1,4 @@
-// Accepts "9 am", "2:30 pm", "14:00", "1430", "9"; returns "HH:MM", "" for empty, null if unreadable
+// Accepts "9 am", "2:30 pm", "14:00", "1430", "9", returns "HH:MM", "" for empty, null if unreadable
 export function parseTimeInput(str: string): string | null {
   const s = str.trim().toLowerCase().replace(/\s+/g, " ").replace(/:$/, "");
   if (!s) return "";

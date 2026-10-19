@@ -1,5 +1,7 @@
+import { Calendar as CalendarIcon } from "pixelarticons/react/Calendar.js";
+import { Close } from "pixelarticons/react/Close.js";
+import { PixelIcon } from "@/components/ui/PixelIcon";
 import { createPortal } from "react-dom";
-import { CalendarDays, X } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { MONTH_SHORT_NAMES } from "@/constants";
@@ -55,7 +57,7 @@ export function DatePicker({ value, onChange, disabled }: DatePickerProps) {
                 }}
                 className="text-muted-foreground hover:text-destructive flex items-center gap-1 py-1 font-mono text-xs transition-colors"
               >
-                <X size={11} /> clear
+                <PixelIcon icon={Close} /> clear
               </button>
             </div>
           )}
@@ -79,7 +81,7 @@ export function DatePicker({ value, onChange, disabled }: DatePickerProps) {
         )}
       >
         <span>{value ? formatDisplay(value) : "pick date"}</span>
-        <CalendarDays size={13} className="opacity-60" aria-hidden />
+        <PixelIcon icon={CalendarIcon} className="opacity-60" />
       </button>
       {portalTarget && createPortal(panel, portalTarget)}
     </div>

@@ -16,8 +16,8 @@ import {
 } from "./helpers";
 import { startNtfyServer, type NtfyServer } from "./ntfy-server";
 
-const sendEmail = vi.hoisted(() => vi.fn());
-vi.mock("@/lib/notifications/email", () => ({ sendEmail }));
+const sendNotificationEmail = vi.hoisted(() => vi.fn());
+vi.mock("@/lib/notifications/email", () => ({ sendNotificationEmail }));
 
 const T0 = new Date("2026-03-10T12:00:00Z");
 const APP = "https://app.heycapy.test";
@@ -34,14 +34,14 @@ beforeEach(async () => {
   useSchedulerEnvironment(T0);
   ntfy = await startNtfyServer();
   process.env.APP_URL = APP;
-  process.env.RESEND_API_KEY = "re_test";
-  sendEmail.mockReset();
+  process.env.SMTP_HOST = "smtp.self-hosted.test";
+  sendNotificationEmail.mockReset();
 });
 afterEach(async () => {
   resetSchedulerEnvironment();
   await ntfy.close();
   process.env.APP_URL = saved.appUrl;
-  delete process.env.RESEND_API_KEY;
+  delete process.env.SMTP_HOST;
 });
 
 async function setup(channel: "ntfy" | "email") {
@@ -105,7 +105,7 @@ describe("ntfy", () => {
 
 describe("email", () => {
   function sentEmail() {
-    const [payload] = sendEmail.mock.calls[0] as [{ text: string; html: string }];
+    const [payload] = sendNotificationEmail.mock.calls[0] as [{ text: string; html: string }];
     return payload;
   }
 

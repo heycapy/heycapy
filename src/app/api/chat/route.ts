@@ -1,12 +1,14 @@
 import { z } from "zod";
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { requireApiSession } from "@/lib/auth/session";
+import { listLiveBuckets } from "@/lib/buckets/access";
 import { db } from "@/lib/db";
-import { buckets, chatMessages, chatSessions, userSettings, users } from "@/lib/db/schema";
+import { chatMessages, chatSessions, userSettings, users } from "@/lib/db/schema";
 import { getAIProvider } from "@/lib/ai";
 import { decryptValue } from "@/lib/crypto";
 import { buildSystemPrompt } from "@/lib/ai/systemPrompt";
 import { getUpcomingItems } from "@/lib/ai/capyTools";
+import { withMemberNames } from "@/lib/ai/assigneeArgs";
 import { chatHistory, compactSessionIfNeeded } from "@/lib/ai/compact";
 import { runAgent, type AgentStep } from "@/lib/ai/runAgent";
 import { toolStatus } from "@/lib/ai/toolStatus";
@@ -73,18 +75,7 @@ async function answer(userId: number, request: ChatRequest, send: (event: ChatEv
   const [settings, user, userBuckets] = await Promise.all([
     db.query.userSettings.findFirst({ where: eq(userSettings.userId, userId) }),
     db.query.users.findFirst({ where: eq(users.id, userId) }),
-    db
-      .select({
-        id: buckets.id,
-        name: buckets.name,
-        icon: buckets.icon,
-        itemsRules: buckets.itemsRules,
-        notificationsRules: buckets.notificationsRules,
-      })
-      .from(buckets)
-      .where(
-        and(eq(buckets.userId, userId), isNull(buckets.deletedAt), isNull(buckets.archivedAt))
-      ),
+    listLiveBuckets(userId).then((buckets) => withMemberNames(userId, buckets)),
   ]);
 
   const timezone = settings?.timezone ?? "UTC";

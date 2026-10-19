@@ -1,16 +1,24 @@
 import { db } from "@/lib/db";
+import { findAccessibleBucket } from "@/lib/buckets/access";
 import { parseItemsRules } from "@/lib/rules";
 import {
   getChannelSettings,
+  getMemberChannels,
   workingChannels,
   type UserWebhook,
 } from "@/lib/notifications/channels";
 import { QUICK_REMIND_VALUES } from "@/lib/notifications/constants";
 import { MAX_REMINDER_OFFSET_MINS, MAX_REMINDERS_PER_ITEM } from "@/lib/reminders/constants";
-import { saveBucketSettings, type BucketSettingsInput } from "@/lib/buckets/settings";
+import {
+  saveBucketSettings,
+  saveMemberChannels,
+  type BucketSettingsInput,
+  type MemberChannelsInput,
+} from "@/lib/buckets/settings";
 import { parseBucketSettings } from "@/components/buckets/parseBucketSettings";
 import { MEDIUM_OPTIONS, RECURRENCE_MODE_OPTIONS } from "@/components/buckets/constants";
 import type { buckets } from "@/lib/db/schema";
+import type { MemberChannels } from "@/types/rules";
 import type { Tool } from "./types";
 
 type BucketRow = typeof buckets.$inferSelect;
@@ -51,7 +59,8 @@ const SETTING_PROPERTIES = {
     type: "array",
     items: { type: "string", enum: MEDIUM_OPTIONS.map((o) => o.value) },
     description:
-      "The full list of channels this bucket's notifications go to ([] for none). " +
+      "The full list of channels the user's own reminders from this bucket go to ([] for none). " +
+      "Other members pick their own. " +
       "Only channels in working_channels actually deliver; the others need setting up in tweaks first. " +
       "Confirm before removing one.",
   },
@@ -109,7 +118,8 @@ export const BUCKET_SETTINGS_TOOLS: Tool[] = [
       "Read every setting of one bucket, plus which notification channels actually work for the user. " +
       "Call it before changing settings, when the user asks how a bucket is set up, or before promising " +
       "a notification will arrive. webhooks_on lists the user's webhooks (discord, slack, their own server) " +
-      "this bucket also sends to; you can't change those, the user turns them on in bucket settings → notifications.",
+      "this bucket also sends to; you can't change those, the user turns them on in bucket settings → notifications. " +
+      "is_owner false means the user joined someone else's bucket: they can change only their own channels.",
     parameters: {
       type: "object",
       properties: { bucket_id: { type: "number", description: "The bucket's ID." } },
@@ -120,6 +130,7 @@ export const BUCKET_SETTINGS_TOOLS: Tool[] = [
     name: "update_bucket_settings",
     description:
       "Change a bucket's settings. Only include the settings to change; the rest stay as they are. " +
+      "In a bucket the user joined, only channels (their own) can be changed. " +
       "Returns the bucket's settings after the change.",
     parameters: {
       type: "object",
@@ -132,20 +143,28 @@ export const BUCKET_SETTINGS_TOOLS: Tool[] = [
   },
 ];
 
-type UserChannels = { working: string[]; webhooks: UserWebhook[] };
+type UserChannels = {
+  userId: number;
+  working: string[];
+  webhooks: UserWebhook[];
+  mine: MemberChannels;
+};
 
-async function userChannels(userId: number): Promise<UserChannels> {
+async function userChannels(userId: number, bucketId: number): Promise<UserChannels> {
   const settings = await getChannelSettings(userId);
+  const mine = await getMemberChannels(userId, bucketId);
   return settings
-    ? { working: workingChannels(settings), webhooks: settings.webhooks }
-    : { working: [], webhooks: [] };
+    ? { userId, working: workingChannels(settings), webhooks: settings.webhooks, mine }
+    : { userId, working: [], webhooks: [], mine };
 }
 
-function describeSettings(bucket: BucketRow, { working, webhooks }: UserChannels) {
+function describeSettings(bucket: BucketRow, { userId, working, webhooks, mine }: UserChannels) {
   const s = parseBucketSettings(bucket);
   return {
     bucket_id: bucket.id,
     name: s.name,
+    // a member changes only their own channels
+    is_owner: bucket.userId === userId,
     sort_by: s.sortBy,
     allow_drag: s.drag,
     show_completed: s.showCompleted,
@@ -153,11 +172,11 @@ function describeSettings(bucket: BucketRow, { working, webhooks }: UserChannels
     read_only: s.readonly,
     default_deadline_offset_days:
       parseItemsRules(bucket.itemsRules).defaultDeadlineOffsetDays ?? null,
-    channels: s.mediums,
-    channels_not_working: s.mediums.filter((m) => !working.includes(m)),
+    channels: mine.medium,
+    channels_not_working: mine.medium.filter((m) => !working.includes(m)),
     working_channels: working,
     // read only for capy: the user turns webhooks on in bucket settings
-    webhooks_on: webhooks.filter((w) => s.webhooks.includes(w.id)).map((w) => w.name),
+    webhooks_on: webhooks.filter((w) => mine.webhooks.includes(w.id)).map((w) => w.name),
     reminder_buttons: s.reminderButtons,
     default_reminders_mins: s.defaultReminders,
     remind_at: s.notifyAt || null,
@@ -180,6 +199,45 @@ function pick(args: Record<string, unknown>, key: string, current: unknown): unk
   return key in args && args[key] !== undefined ? args[key] : current;
 }
 
+// members can open a shared bucket and read its rules, but only its owner may change them
+export async function bucketNotOwnedError(userId: number, bucketId: number): Promise<string> {
+  const joined = await findAccessibleBucket(userId, bucketId);
+  return JSON.stringify({
+    ok: false,
+    error: joined
+      ? `Only the owner of "${joined.name}" can change it. Tell the user that.`
+      : "Bucket not found",
+  });
+}
+
+const SETTING_NAMES = Object.keys(SETTING_PROPERTIES);
+
+async function updateMemberChannels(
+  bucket: BucketRow,
+  args: Record<string, unknown>,
+  userId: number
+): Promise<string> {
+  const changing = SETTING_NAMES.filter((key) => args[key] !== undefined);
+  if (changing.some((key) => key !== "channels")) {
+    return JSON.stringify({
+      ok: false,
+      error:
+        `Only the owner of "${bucket.name}" can change its settings; ` +
+        "the user can change only their own channels. Tell the user that.",
+    });
+  }
+  const mine = await getMemberChannels(userId, bucket.id);
+  const result = await saveMemberChannels(userId, bucket.id, {
+    medium: pick(args, "channels", mine.medium),
+    webhooks: mine.webhooks,
+  } as MemberChannelsInput);
+  if (!result.ok) return JSON.stringify(result);
+  return JSON.stringify({
+    ok: true,
+    settings: describeSettings(bucket, await userChannels(userId, bucket.id)),
+  });
+}
+
 export async function executeBucketSettingsTool(
   name: string,
   args: Record<string, unknown>,
@@ -188,17 +246,21 @@ export async function executeBucketSettingsTool(
   if (name !== "get_bucket_settings" && name !== "update_bucket_settings") return null;
 
   const bucketId = Number(args.bucket_id);
-  const bucket = await findBucket(userId, bucketId);
-  if (!bucket) return JSON.stringify({ ok: false, error: "Bucket not found" });
+  const joined = await findAccessibleBucket(userId, bucketId);
+  if (!joined || joined.deletedAt) return JSON.stringify({ ok: false, error: "Bucket not found" });
 
   if (name === "get_bucket_settings") {
     return JSON.stringify({
       ok: true,
-      settings: describeSettings(bucket, await userChannels(userId)),
+      settings: describeSettings(joined, await userChannels(userId, bucketId)),
     });
   }
 
-  const current = describeSettings(bucket, { working: [], webhooks: [] });
+  const bucket = await findBucket(userId, bucketId);
+  if (!bucket) return updateMemberChannels(joined, args, userId);
+
+  const mine = await getMemberChannels(userId, bucketId);
+  const current = describeSettings(bucket, { userId, working: [], webhooks: [], mine });
   const remindAt = pick(args, "remind_at", current.remind_at);
   // Checked by saveBucketSettings, the same checks the settings dialog goes through
   const input = {
@@ -215,8 +277,8 @@ export async function executeBucketSettingsTool(
         current.default_deadline_offset_days
       ),
     },
+    channels: { medium: pick(args, "channels", current.channels), webhooks: mine.webhooks },
     notificationsRules: {
-      medium: pick(args, "channels", current.channels),
       reminderButtons: pick(args, "reminder_buttons", current.reminder_buttons),
       notifyAt: remindAt === null || remindAt === "" ? undefined : remindAt,
       defaultReminders: pick(args, "default_reminders_mins", current.default_reminders_mins),
@@ -238,6 +300,6 @@ export async function executeBucketSettingsTool(
   const saved = await findBucket(userId, bucketId);
   return JSON.stringify({
     ok: true,
-    settings: saved && describeSettings(saved, await userChannels(userId)),
+    settings: saved && describeSettings(saved, await userChannels(userId, bucketId)),
   });
 }

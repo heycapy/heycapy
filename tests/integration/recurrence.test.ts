@@ -18,6 +18,7 @@ import {
   seedBucket,
   seedUser,
   useSchedulerEnvironment,
+  reminderOf,
 } from "./helpers";
 
 const session = vi.hoisted(() => ({ userId: 0, email: "" }));
@@ -151,7 +152,9 @@ describe("the next occurrence", () => {
     await completeItemAction(itemId);
 
     const [, next] = await bucketItems(bucketId);
-    expect(next.nextReminderAt?.toISOString()).toBe("2026-04-13T11:00:00.000Z");
+    expect((await reminderOf(next.id)).nextReminderAt?.toISOString()).toBe(
+      "2026-04-13T11:00:00.000Z"
+    );
   });
 });
 
@@ -190,8 +193,9 @@ describe("skipping one occurrence", () => {
     await runSchedulerAt(new Date(T0.getTime() + MINUTE));
     await skipOccurrenceAction(itemId);
 
-    const item = await db.query.items.findFirst({ where: eq(items.id, itemId) });
-    expect(item?.nextReminderAt?.toISOString()).toBe("2026-04-10T11:00:00.000Z");
+    expect((await reminderOf(itemId)).nextReminderAt?.toISOString()).toBe(
+      "2026-04-10T11:00:00.000Z"
+    );
   });
 
   it("jumps an overdue item to the next future date", async () => {

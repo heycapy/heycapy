@@ -68,6 +68,9 @@ it("remind again shows as pending, with where it was asked from, and in the hist
       action: "remindAgain",
       source: "email",
       remindAt: new Date(T0.getTime() + 15 * MINUTE),
+      by: "you",
+      byId: userId,
+      byAvatar: null,
     },
   ]);
 });

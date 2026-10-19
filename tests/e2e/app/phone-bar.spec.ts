@@ -4,7 +4,7 @@ import { addItemButton, openBucketOnPhone, uniqueName } from "../helpers/buckets
 
 test.use({ storageState: authState("phone-bar"), hasTouch: true });
 
-test("the place switcher goes to today and starts new buckets; add works in both", async ({
+test("the place switcher goes to today and starts new buckets, add works in both", async ({
   page,
 }) => {
   const bucket = uniqueName("Switcher");

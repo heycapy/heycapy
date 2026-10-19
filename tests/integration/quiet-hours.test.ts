@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type * as SessionModule from "@/lib/auth/session";
 import { and, eq } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { buckets, items, notificationQueue, userSettings } from "@/lib/db/schema";
+import { buckets, notificationQueue, userSettings } from "@/lib/db/schema";
 import { encryptValue } from "@/lib/crypto";
 import { POST as postWebhook } from "@/app/api/webhook/[bucketId]/route";
 import { updateUserSettingsAction } from "@/app/(app)/user-settings-actions";
@@ -14,6 +14,7 @@ import {
   seedItem,
   seedUser,
   useSchedulerEnvironment,
+  reminderOf,
 } from "./helpers";
 
 const session = vi.hoisted(() => ({ userId: 0, email: "" }));
@@ -39,7 +40,6 @@ async function saveQuietHours(from: string | null, to: string | null) {
     aiKeyEdits: {},
     transcriptionKeyEdit: { newKey: null, clear: false },
     smtpPass: null,
-    smtpSecure: settings.smtpSecure ?? false,
     quietHoursFrom: from,
     quietHoursTo: to,
   });
@@ -81,8 +81,7 @@ describe("saving quiet hours", () => {
 
     await saveQuietHours("22:00", "07:00");
 
-    const item = await db.query.items.findFirst({ where: eq(items.id, itemId) });
-    expect(item?.nextReminderAt).toEqual(new Date("2026-03-11T07:00:00Z"));
+    expect((await reminderOf(itemId)).nextReminderAt).toEqual(new Date("2026-03-11T07:00:00Z"));
   });
 });
 

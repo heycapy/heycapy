@@ -17,7 +17,7 @@ test.use({ storageState: authState("channels") });
 test.describe.configure({ mode: "default" });
 
 function notice(page: Page) {
-  return page.getByRole("status").filter({ hasText: "this bucket won't send reminders" });
+  return page.getByRole("status").filter({ hasText: "this bucket won't send you reminders" });
 }
 
 async function setEmailChannel(page: Page, on: boolean): Promise<void> {

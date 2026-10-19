@@ -15,6 +15,7 @@ import {
   seedItem,
   seedUser,
   useSchedulerEnvironment,
+  reminderOf,
 } from "./helpers";
 
 const T0 = new Date("2026-03-10T12:00:00Z");
@@ -104,7 +105,9 @@ describe("recurring items", () => {
       .from(items)
       .where(and(eq(items.bucketId, bucketId), ne(items.id, first.id)));
     expect(next.deadline?.toISOString()).toBe("2026-03-11T12:00:00.000Z");
-    expect(next.nextReminderAt?.toISOString()).toBe("2026-03-11T12:00:00.000Z");
+    expect((await reminderOf(next.id)).nextReminderAt?.toISOString()).toBe(
+      "2026-03-11T12:00:00.000Z"
+    );
 
     await runSchedulerAt(new Date(T0.getTime() + 24 * HOUR + MINUTE));
     expect(await remindersQueued(next.id)).toBe(1);
@@ -119,7 +122,7 @@ describe("safety net", () => {
       .insert(items)
       .values({ bucketId, userId, title: "written directly", deadline: T0 })
       .returning();
-    expect(raw.nextReminderAt).toBeNull();
+    await expect(reminderOf(raw.id)).rejects.toThrow("found 0");
 
     await reconcile();
     await runSchedulerAt(new Date(T0.getTime() + MINUTE));
@@ -133,7 +136,6 @@ describe("safety net", () => {
 
     await runSchedulerAt(new Date(T0.getTime() + MINUTE));
     expect(await remindersQueued(itemId)).toBe(0);
-    const item = await db.query.items.findFirst({ where: eq(items.id, itemId) });
-    expect(item?.nextReminderAt).toBeNull();
+    expect((await reminderOf(itemId)).nextReminderAt).toBeNull();
   });
 });

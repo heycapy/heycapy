@@ -6,7 +6,7 @@ function findUnlessDismissed(title: string, dismissed: string | null): TitleDate
   return found && title.slice(found.start, found.end) !== dismissed ? found : null;
 }
 
-// A date typed into a new item's title fills in "when"; a date set with the picker wins over typing
+// A date typed into a new item's title fills in "when", a date set with the picker wins over typing
 export function useTitleDate({
   active,
   title,

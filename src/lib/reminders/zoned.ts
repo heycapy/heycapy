@@ -33,7 +33,7 @@ function offsetMs(date: Date, timezone: string): number {
   return asUtc - Math.floor(date.getTime() / 60_000) * 60_000;
 }
 
-// Overflowing fields roll over; a time skipped by DST moves past the gap
+// Overflowing fields roll over, a time skipped by DST moves past the gap
 export function fromLocal(local: LocalDateTime, timezone: string): Date {
   const naive = Date.UTC(local.year, local.month - 1, local.day, local.hour, local.minute);
   const first = naive - offsetMs(new Date(naive), timezone);
@@ -78,7 +78,7 @@ export function atLocalClock(date: Date, minutes: number, timezone: string, dayO
   );
 }
 
-// An all-day item is stored as midnight in the user's timezone
+// An all-day item is stored as midnight in its deadline timezone
 export function isAllDay(date: Date, timezone: string): boolean {
   const l = toLocal(date, timezone);
   return l.hour === 0 && l.minute === 0;
@@ -98,9 +98,29 @@ export function localDateString(date: Date, timezone: string): string {
   return `${l.year}-${String(l.month).padStart(2, "0")}-${String(l.day).padStart(2, "0")}`;
 }
 
-// When an item starts counting as overdue: its time, or the end of its day if it has none
-export function overdueFrom(deadline: Date, timezone: string): Date {
-  return isAllDay(deadline, timezone) ? addLocalDays(deadline, 1, timezone) : deadline;
+// The same calendar date on another clock: an all-day item lands on the same date for everyone
+export function sameDateOn(deadline: Date, deadlineTimezone: string, timezone: string): Date {
+  return localDateToDate(localDateString(deadline, deadlineTimezone), timezone);
+}
+
+// An item's deadline as a moment on the viewer's clock: an all-day item is midnight of its own date there
+export function onViewerClock(
+  deadline: Date,
+  deadlineTimezone: string | null | undefined,
+  timezone: string
+): Date {
+  const zone = deadlineTimezone ?? timezone;
+  return isAllDay(deadline, zone) ? sameDateOn(deadline, zone, timezone) : deadline;
+}
+
+// When an item starts counting as overdue for someone on `timezone`: its time, or the end of its date on their clock
+export function overdueFrom(
+  deadline: Date,
+  deadlineTimezone: string,
+  timezone = deadlineTimezone
+): Date {
+  if (!isAllDay(deadline, deadlineTimezone)) return deadline;
+  return addLocalDays(sameDateOn(deadline, deadlineTimezone, timezone), 1, timezone);
 }
 
 // "YYYY-MM-DD" at hour:minute in the timezone
@@ -114,7 +134,7 @@ export function localDateTimeToDate(
   return fromLocal({ year: year ?? 0, month: month ?? 1, day: day ?? 1, hour, minute }, timezone);
 }
 
-// Date-only is all day; a naive datetime is local time; anything with Z or an offset is exact
+// Date-only is all day, a naive datetime is local time, anything with Z or an offset is exact
 export function parseLocalDateTime(value: string, timezone: string): Date {
   const s = value.trim();
   if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return localDateToDate(s, timezone);
@@ -130,9 +150,13 @@ export function endOfMonthDateString(date: Date, timezone: string): string {
   return `${l.year}-${String(l.month).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
 }
 
+export function offsetMinutes(date: Date, timezone: string): number {
+  return Math.round(offsetMs(date, timezone) / 60_000);
+}
+
 // e.g. "+05:30"
 export function utcOffset(date: Date, timezone: string): string {
-  const mins = Math.round(offsetMs(date, timezone) / 60_000);
+  const mins = offsetMinutes(date, timezone);
   const abs = Math.abs(mins);
   return `${mins >= 0 ? "+" : "-"}${String(Math.floor(abs / 60)).padStart(2, "0")}:${String(abs % 60).padStart(2, "0")}`;
 }

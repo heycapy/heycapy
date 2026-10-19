@@ -53,7 +53,9 @@ describe("migrations", () => {
       migrate(db, { migrationsFolder: migrationsUpTo(applied) });
     }
 
-    const columns = sqlite.prepare("PRAGMA table_info(items)").all() as { name: string }[];
+    const columns = sqlite.prepare("PRAGMA table_info(item_reminders)").all() as {
+      name: string;
+    }[];
     expect(columns.map((c) => c.name)).toEqual(
       expect.arrayContaining(["next_reminder_at", "next_overdue_at"])
     );
@@ -160,7 +162,8 @@ describe("migrations", () => {
       INSERT INTO templates (name, rules_json) VALUES ('Subs', '${template}');
     `);
 
-    migrate(db, { migrationsFolder: MIGRATIONS });
+    const memberChannels = journal.entries.findIndex((e) => e.tag === "0035_member_channels");
+    migrate(db, { migrationsFolder: migrationsUpTo(memberChannels) });
 
     const rules = sqlite
       .prepare("SELECT notifications_rules AS r FROM buckets ORDER BY id")
@@ -173,6 +176,222 @@ describe("migrations", () => {
     ]);
     const saved = sqlite.prepare("SELECT rules_json AS r FROM templates").get() as { r: string };
     expect(JSON.parse(saved.r)).toEqual({ notifications: { defaultReminders: [4320] }, items: {} });
+    sqlite.close();
+  });
+
+  it("make every existing bucket's owner a member of it", () => {
+    const journal = JSON.parse(
+      readFileSync(path.join(MIGRATIONS, "meta/_journal.json"), "utf8")
+    ) as Journal;
+    const membersMigration = journal.entries.findIndex((e) => e.tag === "0029_bucket_members");
+    const dbPath = path.join(tempDir("heycapy-members-"), "db.sqlite");
+    const sqlite = new Database(dbPath);
+    const db = drizzle(sqlite);
+    migrate(db, { migrationsFolder: migrationsUpTo(membersMigration) });
+
+    sqlite.exec(`
+      INSERT INTO users (id, email) VALUES (1, 'a@heycapy.test'), (2, 'b@heycapy.test');
+      INSERT INTO buckets (id, user_id, name) VALUES (1, 1, 'Bills'), (2, 1, 'Todo'), (3, 2, 'Gym');
+    `);
+
+    migrate(db, { migrationsFolder: MIGRATIONS });
+
+    expect(
+      sqlite.prepare("SELECT bucket_id, user_id, role FROM bucket_members ORDER BY bucket_id").all()
+    ).toEqual([
+      { bucket_id: 1, user_id: 1, role: "owner" },
+      { bucket_id: 2, user_id: 1, role: "owner" },
+      { bucket_id: 3, user_id: 2, role: "owner" },
+    ]);
+    sqlite.close();
+  });
+
+  it("save each existing deadline on its bucket owner's clock, what it was read in", () => {
+    const journal = JSON.parse(
+      readFileSync(path.join(MIGRATIONS, "meta/_journal.json"), "utf8")
+    ) as Journal;
+    const zoneMigration = journal.entries.findIndex((e) => e.tag === "0033_item_deadline_timezone");
+    const dbPath = path.join(tempDir("heycapy-deadline-zone-"), "db.sqlite");
+    const sqlite = new Database(dbPath);
+    const db = drizzle(sqlite);
+    migrate(db, { migrationsFolder: migrationsUpTo(zoneMigration) });
+
+    sqlite.exec(`
+      INSERT INTO users (id, email) VALUES (1, 'a@heycapy.test'), (2, 'b@heycapy.test');
+      INSERT INTO user_settings (user_id, timezone) VALUES (1, 'Asia/Kolkata');
+      INSERT INTO buckets (id, user_id, name) VALUES (1, 1, 'Bills'), (2, 2, 'Gym');
+      INSERT INTO items (id, bucket_id, user_id, title, deadline) VALUES
+        (1, 1, 2, 'pay rent', 1791743400),
+        (2, 1, 1, 'someday', NULL),
+        (3, 2, 2, 'run', 1791743400);
+    `);
+
+    migrate(db, { migrationsFolder: MIGRATIONS });
+
+    expect(sqlite.prepare("SELECT id, deadline_timezone FROM items ORDER BY id").all()).toEqual([
+      { id: 1, deadline_timezone: "Asia/Kolkata" },
+      { id: 2, deadline_timezone: null },
+      { id: 3, deadline_timezone: "UTC" },
+    ]);
+    sqlite.close();
+  });
+
+  it("give every person an item reminds their own schedule, and copy resets to all of them", () => {
+    const journal = JSON.parse(
+      readFileSync(path.join(MIGRATIONS, "meta/_journal.json"), "utf8")
+    ) as Journal;
+    const perPerson = journal.entries.findIndex((e) => e.tag === "0034_item_reminders");
+    const dbPath = path.join(tempDir("heycapy-item-reminders-"), "db.sqlite");
+    const sqlite = new Database(dbPath);
+    const db = drizzle(sqlite);
+    migrate(db, { migrationsFolder: migrationsUpTo(perPerson) });
+
+    // item 1 nobody's, item 2 assigned to the member, item 3 to someone who has left
+    sqlite.exec(`
+      INSERT INTO users (id, email) VALUES (1, 'a@heycapy.test'), (2, 'b@heycapy.test'), (3, 'c@heycapy.test');
+      INSERT INTO buckets (id, user_id, name) VALUES (1, 1, 'Home');
+      INSERT INTO bucket_members (bucket_id, user_id) VALUES (1, 2);
+      INSERT INTO items (id, bucket_id, user_id, title, notified_at, next_reminder_at, next_overdue_at, assignee_id) VALUES
+        (1, 1, 1, 'pay rent', 100, 200, 300, NULL),
+        (2, 1, 1, 'call the plumber', NULL, 400, NULL, 2),
+        (3, 1, 2, 'buy milk', NULL, 500, NULL, 3);
+    `);
+
+    migrate(db, { migrationsFolder: MIGRATIONS });
+
+    const rows = () =>
+      sqlite
+        .prepare(
+          "SELECT item_id, user_id, notified_at, overdue_notified_at, next_reminder_at, next_overdue_at FROM item_reminders ORDER BY item_id, user_id"
+        )
+        .all();
+    expect(rows()).toEqual([
+      {
+        item_id: 1,
+        user_id: 1,
+        notified_at: 100,
+        overdue_notified_at: null,
+        next_reminder_at: 200,
+        next_overdue_at: 300,
+      },
+      {
+        item_id: 1,
+        user_id: 2,
+        notified_at: 100,
+        overdue_notified_at: null,
+        next_reminder_at: null,
+        next_overdue_at: null,
+      },
+      {
+        item_id: 2,
+        user_id: 2,
+        notified_at: null,
+        overdue_notified_at: null,
+        next_reminder_at: null,
+        next_overdue_at: null,
+      },
+      {
+        item_id: 3,
+        user_id: 1,
+        notified_at: null,
+        overdue_notified_at: null,
+        next_reminder_at: null,
+        next_overdue_at: null,
+      },
+      {
+        item_id: 3,
+        user_id: 2,
+        notified_at: null,
+        overdue_notified_at: null,
+        next_reminder_at: 500,
+        next_overdue_at: null,
+      },
+    ]);
+
+    sqlite.exec(
+      "UPDATE item_reminders SET notified_at = 150, overdue_notified_at = 160 WHERE item_id = 1 AND user_id = 1"
+    );
+    sqlite.exec("UPDATE items SET notified_at = NULL WHERE id = 1");
+    expect(
+      sqlite
+        .prepare(
+          "SELECT user_id, notified_at, overdue_notified_at FROM item_reminders WHERE item_id = 1 ORDER BY user_id"
+        )
+        .all()
+    ).toEqual([
+      { user_id: 1, notified_at: null, overdue_notified_at: 160 },
+      { user_id: 2, notified_at: null, overdue_notified_at: null },
+    ]);
+    sqlite.exec("UPDATE items SET overdue_notified_at = NULL WHERE id = 1");
+    expect(
+      sqlite
+        .prepare("SELECT overdue_notified_at FROM item_reminders WHERE item_id = 1 AND user_id = 1")
+        .get()
+    ).toEqual({ overdue_notified_at: null });
+    sqlite.close();
+  });
+
+  it("give each member the bucket's channels as their own, and the owner its webhooks", () => {
+    const journal = JSON.parse(
+      readFileSync(path.join(MIGRATIONS, "meta/_journal.json"), "utf8")
+    ) as Journal;
+    const memberChannels = journal.entries.findIndex((e) => e.tag === "0035_member_channels");
+    const dbPath = path.join(tempDir("heycapy-member-channels-"), "db.sqlite");
+    const sqlite = new Database(dbPath);
+    const db = drizzle(sqlite);
+    migrate(db, { migrationsFolder: migrationsUpTo(memberChannels) });
+
+    sqlite.exec(`
+      INSERT INTO users (id, email) VALUES (1, 'a@heycapy.test'), (2, 'b@heycapy.test');
+      INSERT INTO buckets (id, user_id, name, notifications_rules) VALUES
+        (1, 1, 'Home', '{"medium":["telegram","email"],"webhooks":[7],"repeat":"daily"}'),
+        (2, 1, 'Todo', '{"repeat":"once"}'),
+        (3, 1, 'Odd', '{"medium":"telegram"}'),
+        (4, 1, 'Broken', 'not json');
+      INSERT INTO bucket_members (bucket_id, user_id) VALUES (1, 2);
+    `);
+
+    migrate(db, { migrationsFolder: MIGRATIONS });
+
+    expect(
+      sqlite
+        .prepare(
+          "SELECT bucket_id, user_id, channels FROM bucket_members ORDER BY bucket_id, user_id"
+        )
+        .all()
+    ).toEqual([
+      { bucket_id: 1, user_id: 1, channels: '{"medium":["telegram","email"],"webhooks":[7]}' },
+      { bucket_id: 1, user_id: 2, channels: '{"medium":["telegram","email"],"webhooks":[]}' },
+      { bucket_id: 2, user_id: 1, channels: '{"medium":[],"webhooks":[]}' },
+      { bucket_id: 3, user_id: 1, channels: '{"medium":[],"webhooks":[]}' },
+      { bucket_id: 4, user_id: 1, channels: '{"medium":[],"webhooks":[]}' },
+    ]);
+    expect(
+      (
+        sqlite.prepare("SELECT notifications_rules AS r FROM buckets ORDER BY id").all() as {
+          r: string;
+        }[]
+      ).map((row) => row.r)
+    ).toEqual(['{"repeat":"daily"}', '{"repeat":"once"}', "{}", "not json"]);
+    sqlite.close();
+  });
+
+  it("show the 0.4.0 what's new to everyone who signed up before it", () => {
+    const journal = JSON.parse(
+      readFileSync(path.join(MIGRATIONS, "meta/_journal.json"), "utf8")
+    ) as Journal;
+    const lastSeen = journal.entries.findIndex((e) => e.tag === "0037_last_seen_release");
+    const dbPath = path.join(tempDir("heycapy-last-seen-release-"), "db.sqlite");
+    const sqlite = new Database(dbPath);
+    const db = drizzle(sqlite);
+    migrate(db, { migrationsFolder: migrationsUpTo(lastSeen) });
+    sqlite.exec("INSERT INTO users (id, email) VALUES (1, 'a@heycapy.test')");
+
+    migrate(db, { migrationsFolder: MIGRATIONS });
+
+    expect(sqlite.prepare("SELECT last_seen_release FROM users").all()).toEqual([
+      { last_seen_release: "0.3.0" },
+    ]);
     sqlite.close();
   });
 });
