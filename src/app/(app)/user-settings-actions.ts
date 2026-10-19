@@ -394,7 +394,6 @@ export async function disconnectTelegramAction(): Promise<ActionResult> {
   return { ok: true };
 }
 
-//"use tweaks" in bucket settings switches a setting to
 export async function getBucketDefaultsAction(): Promise<{
   rules: NotificationDefaults;
   channels: MemberChannels;
