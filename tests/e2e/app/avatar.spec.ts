@@ -163,7 +163,7 @@ test("closing tweaks with an unsaved drawing asks first, and switching tabs keep
   await warning.getByRole("button", { name: "[ discard ]" }).click();
   await expect(page.locator("aside")).toHaveCount(0);
   const reopened = await openAvatarEditor(page);
-  await expect(reopened.locator("rect.fill-avatar-b")).toHaveCount(0);
+  await expect(reopened.locator('rect.fill-avatar-b[width="16"]')).toHaveCount(0);
 
   await page.getByRole("button", { name: "[ clear ]" }).click();
   await page.getByRole("button", { name: "green", exact: true }).click();

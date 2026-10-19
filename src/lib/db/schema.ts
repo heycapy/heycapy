@@ -18,6 +18,7 @@ export const users = sqliteTable("users", {
   username: text("username").unique(),
   // 256 palette codes, one per cell (lib/account/avatar.ts), null until the person draws one
   avatar: text("avatar"),
+  usernameBonusChanges: integer("username_bonus_changes").notNull().default(0),
   // The newest "what's new" release this person has opened, a dot shows until it's the latest.
   // Sign-up starts on the latest, accounts from before 0.4.0 were set to 0.3.0 so they see it
   lastSeenRelease: text("last_seen_release"),
@@ -27,6 +28,26 @@ export const users = sqliteTable("users", {
     .notNull()
     .default(sql`(unixepoch())`),
 });
+
+export const usernameChanges = sqliteTable(
+  "username_changes",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    userId: integer("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    oldUsername: text("old_username"),
+    newUsername: text("new_username").notNull(),
+    byAdmin: integer("by_admin", { mode: "boolean" }).notNull().default(false),
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .default(sql`(unixepoch())`),
+  },
+  (t) => [
+    index("idx_username_changes_user_id").on(t.userId, t.createdAt),
+    index("idx_username_changes_old_username").on(t.oldUsername, t.createdAt),
+  ]
+);
 
 // user_settings
 

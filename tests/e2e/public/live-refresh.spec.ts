@@ -44,18 +44,33 @@ test("someone outside the bucket isn't told about it", async ({ page, browser })
   await login(page, ownerEmail);
   const other = await browser.newContext();
   const outsider = await other.newPage();
+  // Counting the outsider's POSTs can't tell a refresh from the page's own load actions
+  await outsider.addInitScript(() => {
+    const seen = { open: false, refreshes: 0 };
+    Object.assign(window, { liveEvents: seen });
+    const Native = window.EventSource;
+    window.EventSource = class extends Native {
+      constructor(url: string | URL, init?: EventSourceInit) {
+        super(url, init);
+        this.addEventListener("open", () => (seen.open = true));
+        this.addEventListener("message", (e) => {
+          if (e.data === "refresh") seen.refreshes++;
+        });
+      }
+    };
+  });
   await login(outsider, uniqueEmail("e2e-live-outsider"));
   const bucketId = shareBucket(ownerEmail, null);
   await page.goto(`/?bucket=${bucketId}`);
-  // A refresh re-fetches the open view through a server action (a POST)
-  const refreshes: string[] = [];
-  outsider.on("request", (r) => {
-    if (r.method() === "POST") refreshes.push(r.url());
-  });
+  const liveEvents = () =>
+    outsider.evaluate(
+      () => (window as unknown as { liveEvents: { open: boolean; refreshes: number } }).liveEvents
+    );
+  await expect.poll(async () => (await liveEvents()).open).toBe(true);
 
   await addItem(page, `pay rent ${Date.now()}`);
 
   await page.waitForTimeout(1500);
-  expect(refreshes).toEqual([]);
+  expect((await liveEvents()).refreshes).toBe(0);
   await other.close();
 });
