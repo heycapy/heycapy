@@ -3,6 +3,19 @@ export type Release = { version: string; notes: ReleaseNote[] };
 
 export const RELEASES: [Release, ...Release[]] = [
   {
+    version: "0.5.0",
+    notes: [
+      {
+        title: "set notifications once for every bucket",
+        text: 'pick your channels, reminders and overdue alerts in tweaks → notifications → bucket defaults. new buckets use them, and any bucket can go back to them with "use tweaks".',
+      },
+      {
+        title: "the right message after buying credits",
+        text: "coming back from checkout no longer says the payment didn't go through when it did.",
+      },
+    ],
+  },
+  {
     version: "0.4.0",
     notes: [
       {

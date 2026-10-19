@@ -6,9 +6,9 @@ import { LAST_DAY_OF_MONTH, WEEKDAY_NAMES, WORK_WEEK } from "@/constants";
 import { describeRepeat } from "@/lib/items/repeat-label";
 import { RECURRING_FREQUENCIES } from "./constants";
 import type { RecurringConfig } from "@/types/rules";
+import { LABEL, MUTED } from "@/components/layout/settings-constants";
 
 const MONDAY_FIRST = [1, 2, 3, 4, 5, 6, 0];
-const LABEL = "text-muted-foreground font-mono text-xs";
 
 function toggleDay(config: RecurringConfig, day: number): RecurringConfig {
   const current = config.weekdays ?? [];
@@ -42,7 +42,7 @@ export function RecurringPicker({
   return (
     <div className="flex flex-col gap-2">
       <div className="flex items-center justify-between">
-        <label className="text-muted-foreground font-mono text-xs">↺ repeats</label>
+        <label className={LABEL}>↺ repeats</label>
         <Toggle value={!!recurring?.enabled} onChange={toggle} disabled={disabled} />
       </div>
 
@@ -93,7 +93,7 @@ export function RecurringPicker({
           </div>
           {recurring.frequency === "weekly" && (
             <div className="flex flex-wrap items-center gap-1">
-              <span className={`${LABEL} pr-1`}>on</span>
+              <span className={`${MUTED} pr-1`}>on</span>
               {MONDAY_FIRST.map((day) => (
                 <OptionButton
                   key={day}
@@ -114,7 +114,7 @@ export function RecurringPicker({
           )}
           {recurring.frequency === "monthly" && (
             <div className="flex flex-wrap items-center gap-1">
-              <span className={`${LABEL} pr-1`}>on</span>
+              <span className={`${MUTED} pr-1`}>on</span>
               <OptionButton
                 active={recurring.anchorDay !== LAST_DAY_OF_MONTH}
                 onClick={() => onChange({ ...recurring, anchorDay: deadlineDay || undefined })}
@@ -131,7 +131,7 @@ export function RecurringPicker({
               </OptionButton>
             </div>
           )}
-          <p className={LABEL}>
+          <p className={MUTED}>
             ↺ {describeRepeat(recurring)}
             {recurring.frequency === "weekly" && !recurring.weekdays && " · on the deadline's day"}
           </p>

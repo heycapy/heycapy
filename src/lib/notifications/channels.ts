@@ -2,7 +2,7 @@ import { and, eq, getTableColumns, getTableName, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { bucketMembers, outgoingWebhooks, pushSubscriptions, userSettings } from "@/lib/db/schema";
 import { memberChannels } from "@/lib/rules";
-import { MemberChannels } from "@/types/rules";
+import type { MemberChannels } from "@/types/rules";
 import type { NotificationMedium } from "./queue";
 
 export type UserWebhook = { id: number; name: string; isDefault: boolean };
@@ -108,29 +108,4 @@ export function channelDecisions(
     state: selected.webhooks.includes(webhook.id) ? "send" : "notSelected",
   }));
   return [...builtIn, ...webhooks];
-}
-
-// A new bucket's rules hold no channels: the template's go to its owner, or else every channel they
-// have working, plus the webhooks they turned on for new buckets
-export async function startingChannels(
-  userId: number,
-  notifications: unknown
-): Promise<{ rules: Record<string, unknown>; channels: MemberChannels }> {
-  const { medium, webhooks, ...rules } =
-    notifications && typeof notifications === "object"
-      ? (notifications as Record<string, unknown>)
-      : {};
-  const settings = await getChannelSettings(userId);
-  const picked = MemberChannels.safeParse({
-    medium:
-      Array.isArray(medium) && medium.length > 0
-        ? medium
-        : settings
-          ? workingChannels(settings)
-          : [],
-    webhooks: Array.isArray(webhooks)
-      ? webhooks
-      : (settings?.webhooks ?? []).filter((w) => w.isDefault).map((w) => w.id),
-  });
-  return { rules, channels: picked.success ? picked.data : MemberChannels.parse({}) };
 }

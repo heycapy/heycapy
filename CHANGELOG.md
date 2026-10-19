@@ -2,6 +2,30 @@
 
 all notable changes to heycapy. versions follow [semver](https://semver.org): a patch version (0.3.1) only fixes things, a minor version (0.4.0) adds features. the database migrates itself on start and migrations only go forward, so back up before upgrading (see the README).
 
+## 0.5.0
+
+set your notification settings once in tweaks and every bucket can use them. coming back from buying credits says the right thing.
+
+### new
+
+- tweaks → notifications → bucket defaults: channels, reminders, remind at, keep reminding and overdue. buckets that follow them show "from tweaks", changing one in a bucket stops following only that one, "use tweaks" goes back
+- new buckets follow the defaults for everything their template leaves out, and take their channels from tweaks. in a shared bucket the owner's defaults set the rules and each member's own set their channels
+- capy knows which bucket settings come from tweaks and can switch one back to them
+- field names in tweaks and bucket settings stand out from the hint under them
+
+### fixes
+
+- coming back from a successful checkout says the payment was received, it said the payment didn't go through. an expired checkout and a payment still being processed get their own message
+- while dodo payments is in test mode (DODO_PAYMENTS_ENVIRONMENT is not live_mode) only admins can buy credits, so a test card never gives anyone free credits
+
+### changes
+
+- an outgoing webhook's "on for new buckets" switch is now "on by default"
+
+### upgrading
+
+- migration 0038 runs on start. it adds the bucket defaults to user settings. buckets and memberships from before don't follow them, so nothing changes until someone picks "use tweaks" in a bucket
+
 ## 0.4.0
 
 reminder emails now go out through each person's own email account, and the app gets pixel icons and a what's new list. if your server sends reminders through resend, read upgrading before you update.

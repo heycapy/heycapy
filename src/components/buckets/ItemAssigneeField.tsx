@@ -3,6 +3,7 @@ import { memberName } from "@/lib/buckets/member-name";
 import type { BucketMember } from "@/lib/buckets/members";
 import { placesOf } from "@/lib/timezones/gap";
 import { PersonAvatar } from "@/components/avatar/PersonAvatar";
+import { LABEL } from "@/components/layout/settings-constants";
 
 export type AssigneeChoice = {
   bucketId: number;
@@ -24,7 +25,7 @@ export function ItemAssigneeField({
   const leftOut = (member: BucketMember) => someoneReminded && !member.remindable;
   return (
     <div className="flex flex-col gap-1.5 pb-5">
-      <label className="text-muted-foreground font-mono text-xs">assigned to</label>
+      <label className={LABEL}>assigned to</label>
       <div className="flex flex-wrap items-start gap-1.5">
         <OptionButton
           active={choice.value === null}

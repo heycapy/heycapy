@@ -9,7 +9,7 @@ import {
 import type { CreditRow } from "@/lib/credits";
 import { formatShort } from "@/lib/format-date";
 import { CREDITS_NOTE_MAX_LENGTH, CREDITS_RECENT_DAYS } from "@/constants";
-import { BOX, INPUT, LABEL, SECTION } from "./settings-constants";
+import { BOX, INPUT, SECTION, MUTED } from "./settings-constants";
 
 // four places since one answer costs a fraction of a cent
 function dollars(micros: number): string {
@@ -91,14 +91,14 @@ export function SystemCredits() {
       {credits && (
         <>
           <div className="flex flex-col gap-0.5">
-            <p className={cn(LABEL, "break-all")}>{credits.email}</p>
+            <p className={cn(MUTED, "break-all")}>{credits.email}</p>
             <p className="font-mono text-xs">{credits.balance} credits</p>
-            <p className={LABEL}>
+            <p className={MUTED}>
               {credits.totals.grant + credits.totals.purchase} granted ·{" "}
               {-(credits.totals.message + credits.totals.refund)} used · {credits.totals.refund}{" "}
               refunded · {-credits.totals.reversal} taken back · {credits.totals.admin} by admins
             </p>
-            <p className={LABEL}>
+            <p className={MUTED}>
               last {CREDITS_RECENT_DAYS} days · {credits.recent.creditsUsed} used ·{" "}
               {dollars(credits.recent.costMicros)} on our ai
               {credits.recent.unpricedCalls > 0 &&
@@ -147,7 +147,7 @@ export function SystemCredits() {
           {showActivity && (
             <ul className="divide-border/50 border-border flex max-h-48 flex-col divide-y divide-dotted overflow-y-auto border px-2">
               {credits.rows.map((row) => (
-                <li key={row.id} className={cn(LABEL, "flex flex-col py-1")}>
+                <li key={row.id} className={cn(MUTED, "flex flex-col py-1")}>
                   <span className="flex justify-between gap-2">
                     <span>
                       {formatShort(new Date(row.createdAt))} · {row.kind}

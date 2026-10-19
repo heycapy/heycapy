@@ -8,6 +8,7 @@ import { getSession } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { pushSubscriptions } from "@/lib/db/schema";
 import { getVapidKeys } from "@/lib/notifications/web-push";
+import { applyNotificationDefaults } from "@/lib/notifications/defaults";
 import { PUSH_DEVICE_NAME_MAX_LENGTH, PUSH_DEVICES_MAX } from "@/lib/notifications/constants";
 
 export type PushDevice = { id: number; name: string; endpoint: string; addedAt: Date };
@@ -67,6 +68,7 @@ export async function savePushDeviceAction(
     .insert(pushSubscriptions)
     .values({ endpoint, ...values })
     .onConflictDoUpdate({ target: pushSubscriptions.endpoint, set: values });
+  await applyNotificationDefaults(session.userId);
 
   revalidatePath("/");
   return { ok: true };
@@ -78,6 +80,7 @@ export async function removePushDeviceAction(id: number): Promise<ActionResult> 
   await db
     .delete(pushSubscriptions)
     .where(and(eq(pushSubscriptions.id, id), eq(pushSubscriptions.userId, session.userId)));
+  await applyNotificationDefaults(session.userId);
   revalidatePath("/");
   return { ok: true };
 }

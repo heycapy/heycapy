@@ -10,18 +10,13 @@ type BuiltinTemplate = {
   fieldSchemaJson: string;
 };
 
+// Notification settings a template leaves out follow the owner's tweaks
 const BUILTIN_TEMPLATES: BuiltinTemplate[] = [
   {
     name: "Blank",
     description: "Empty template. Start from scratch.",
     rulesJson: JSON.stringify({
-      notifications: {
-        medium: [],
-        notifyAt: "",
-        quietHours: null,
-        defaultReminders: [0],
-        repeat: "once",
-      },
+      notifications: {},
       items: {
         sortBy: "created_at",
         drag: false,
@@ -39,13 +34,7 @@ const BUILTIN_TEMPLATES: BuiltinTemplate[] = [
     name: "Reminders",
     description: "General reminders. Notifies at deadline.",
     rulesJson: JSON.stringify({
-      notifications: {
-        medium: ["email", "telegram"],
-        notifyAt: "",
-        quietHours: null,
-        defaultReminders: [0],
-        repeat: "once",
-      },
+      notifications: {},
       items: {
         sortBy: "deadline",
         drag: false,
@@ -65,11 +54,8 @@ const BUILTIN_TEMPLATES: BuiltinTemplate[] = [
     description: "Track recurring bills. Notifies 3 days and 1 day before renewal.",
     rulesJson: JSON.stringify({
       notifications: {
-        medium: ["email", "telegram"],
         notifyAt: "09:00",
-        quietHours: null,
         defaultReminders: [4320],
-        repeat: "once",
       },
       items: {
         sortBy: "deadline",
@@ -106,13 +92,7 @@ const BUILTIN_TEMPLATES: BuiltinTemplate[] = [
     name: "Todo",
     description: "Simple manual todo list. Drag to reorder.",
     rulesJson: JSON.stringify({
-      notifications: {
-        medium: [],
-        notifyAt: "",
-        quietHours: null,
-        defaultReminders: [0],
-        repeat: "once",
-      },
+      notifications: {},
       items: {
         sortBy: "manual",
         drag: true,
@@ -140,11 +120,9 @@ const BUILTIN_TEMPLATES: BuiltinTemplate[] = [
     description: "Work tasks with deadlines. Notifies 1 day before, quiet after 6pm.",
     rulesJson: JSON.stringify({
       notifications: {
-        medium: ["email"],
         notifyAt: "09:00",
         quietHours: { from: "18:00", to: "09:00" },
         defaultReminders: [1440],
-        repeat: "once",
       },
       items: {
         sortBy: "deadline",
@@ -174,13 +152,7 @@ const BUILTIN_TEMPLATES: BuiltinTemplate[] = [
     name: "CI/CD Monitor",
     description: "Track deployments and pipeline runs. Notifies on arrival and when overdue.",
     rulesJson: JSON.stringify({
-      notifications: {
-        medium: ["email", "telegram"],
-        notifyAt: "",
-        quietHours: null,
-        defaultReminders: [0],
-        repeat: "once",
-      },
+      notifications: {},
       items: {
         sortBy: "created_at",
         drag: false,

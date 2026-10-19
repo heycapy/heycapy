@@ -2,7 +2,7 @@ import { useEffect, useState, useTransition } from "react";
 import { BracketButton } from "@/components/ui/BracketButton";
 import { getSystemStatusAction, type SystemStatus } from "@/app/(app)/actions";
 import { formatShort } from "@/lib/format-date";
-import { BOX, LABEL, SECTION } from "./settings-constants";
+import { BOX, SECTION, MUTED } from "./settings-constants";
 import { SystemCredits } from "./SystemCredits";
 
 // Stored as JSON (stack, context, runtime), shown as readable lines
@@ -61,10 +61,10 @@ export function SystemTab() {
         >
           {scheduler.stale ? "⚠ stuck — no finished run recently" : "✓ running"}
         </p>
-        <p className={LABEL}>
+        <p className={MUTED}>
           last run: {scheduler.lastRunAt ? formatShort(new Date(scheduler.lastRunAt)) : "not yet"}
         </p>
-        <p className={LABEL}>failed deliveries in the last 24h: {status.failedDeliveriesLastDay}</p>
+        <p className={MUTED}>failed deliveries in the last 24h: {status.failedDeliveriesLastDay}</p>
       </div>
 
       {status.hosted && <SystemCredits />}
@@ -72,7 +72,7 @@ export function SystemTab() {
       <div className={BOX}>
         <span className={SECTION}>recent errors</span>
         {status.errors.length === 0 ? (
-          <p className={LABEL}>none in the last 14 days</p>
+          <p className={MUTED}>none in the last 14 days</p>
         ) : (
           <ul className="divide-border/50 flex flex-col divide-y divide-dotted">
             {status.errors.map((e) => (

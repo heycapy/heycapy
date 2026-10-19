@@ -14,6 +14,7 @@ import {
   PROVIDER_DEFAULT_MODELS,
   TRANSCRIPTION_PROVIDER_OPTIONS,
   TRANSCRIPTION_DEFAULT_MODELS,
+  HINT,
 } from "./settings-constants";
 import type { AISource, TranscriptionProvider } from "./settings-constants";
 import type { AISettings } from "./useAISettings";
@@ -59,14 +60,14 @@ export function AITab({ ai, pending }: AITabProps) {
           disabled={pending}
           className={INPUT}
         />
-        <span className="text-muted-foreground font-mono text-[11px]">
+        <span className={HINT}>
           messages before compacting chat history — increase for more powerful models
         </span>
       </div>
       <div className="flex flex-col gap-1.5">
         <label className={LABEL}>ai notification messages</label>
         <Toggle value={ai.notifyMessages} onChange={ai.setNotifyMessages} disabled={pending} />
-        <span className="text-muted-foreground font-mono text-[11px]">
+        <span className={HINT}>
           generate notification text with AI — may add delay depending on your model and provider
         </span>
       </div>

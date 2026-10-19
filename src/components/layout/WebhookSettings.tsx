@@ -3,10 +3,8 @@ import { BracketButton } from "@/components/ui/BracketButton";
 import { getWebhooksAction, type OutgoingWebhook } from "@/app/(app)/actions";
 import { chatWebhookApp } from "@/lib/notifications/webhook-app";
 import { MAX_OUTGOING_WEBHOOKS } from "@/constants";
-import { BOX, SECTION } from "./settings-constants";
+import { BOX, SECTION, HINT } from "./settings-constants";
 import { WebhookForm } from "./WebhookForm";
-
-const HINT = "text-muted-foreground font-mono text-[11px]";
 
 function destination(url: string): string {
   const app = chatWebhookApp(url);
@@ -70,7 +68,7 @@ export function WebhookSettings() {
               <span className="truncate font-mono text-xs">{webhook.name}</span>
               <span className={`${HINT} truncate`}>
                 {destination(webhook.url)}
-                {webhook.isDefault && " · on for new buckets"}
+                {webhook.isDefault && " · on by default"}
               </span>
             </div>
             <BracketButton type="button" onClick={() => setOpen(webhook.id)}>

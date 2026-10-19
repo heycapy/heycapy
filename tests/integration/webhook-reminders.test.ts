@@ -5,7 +5,9 @@ import { db } from "@/lib/db";
 import { buckets, notificationQueue, outgoingWebhooks } from "@/lib/db/schema";
 import { processPending } from "@/lib/notifications/queue";
 import { getChannelFailures } from "@/lib/notifications/failures";
-import { getMemberChannels, startingChannels } from "@/lib/notifications/channels";
+import { getMemberChannels } from "@/lib/notifications/channels";
+import { defaultChannels } from "@/lib/notifications/defaults";
+import { NotificationDefaults } from "@/types/rules";
 import { newWebhookSecret } from "@/lib/notifications/webhook";
 import { saveBucketSettings } from "@/lib/buckets/settings";
 import { sendTestWebhookAction } from "@/app/(app)/webhook-actions";
@@ -164,13 +166,13 @@ it("a reminder queued for a webhook deleted before it went out is cancelled", as
   expect(await getChannelFailures(userId)).toEqual([]);
 });
 
-it("new buckets get the webhooks that are on for new buckets", async () => {
+it("buckets following tweaks get the webhooks that are on by default", async () => {
   const userId = await seedUser();
   const onByDefault = await seedWebhook(userId, "discord", true);
   await seedWebhook(userId, "n8n", false);
 
-  expect((await startingChannels(userId, {})).channels.webhooks).toEqual([onByDefault.id]);
-  expect((await startingChannels(userId, { webhooks: [] })).channels.webhooks).toEqual([]);
+  const channels = await defaultChannels(userId, NotificationDefaults.parse({}));
+  expect(channels.webhooks).toEqual([onByDefault.id]);
 });
 
 it("bucket settings keep only the user's own webhooks, and leave them alone when not given", async () => {

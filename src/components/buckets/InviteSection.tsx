@@ -5,8 +5,8 @@ import { createInviteAction, listInvitesAction, revokeInviteAction } from "@/app
 import { INVITE_TTL_MS } from "@/lib/buckets/constants";
 import { formatInviteCode } from "@/lib/buckets/invite-code";
 import type { PendingInvite } from "@/lib/buckets/invites";
+import { HINT } from "@/components/layout/settings-constants";
 
-const HINT = "text-muted-foreground font-mono text-[11px] leading-tight";
 const COPY_BUTTON = "shrink-0 text-[11px]";
 const INVITE_QR_SIZE = 144;
 const HOUR_MS = 60 * 60 * 1000;

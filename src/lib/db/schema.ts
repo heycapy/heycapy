@@ -110,6 +110,8 @@ export const userSettings = sqliteTable("user_settings", {
   // "HH:MM" in the user's timezone, nothing is sent in between, whatever the bucket
   quietHoursFrom: text("quiet_hours_from"),
   quietHoursTo: text("quiet_hours_to"),
+  // NotificationDefaults as JSON, null = the built-in values
+  notificationDefaults: text("notification_defaults"),
   updatedAt: integer("updated_at", { mode: "timestamp" })
     .notNull()
     .default(sql`(unixepoch())`),

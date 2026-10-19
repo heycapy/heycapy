@@ -68,10 +68,10 @@ describe("new buckets get working channels by default", () => {
     expect(result.ok && (await ownerMedium(result.bucketId))).toEqual(["telegram"]);
   });
 
-  it("a template that lists channels keeps them", async () => {
+  it("a template that lists channels gets the working ones instead, it can't know what's set up", async () => {
     await signIn();
     const result = await createBucketAction(await seedTemplate(["email"]), `Work ${Math.random()}`);
-    expect(result.ok && (await ownerMedium(result.bucketId))).toEqual(["email"]);
+    expect(result.ok && (await ownerMedium(result.bucketId))).toEqual(["telegram"]);
   });
 
   it("buckets created by the assistant use the user's working channels", async () => {

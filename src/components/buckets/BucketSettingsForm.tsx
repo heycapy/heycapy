@@ -1,4 +1,4 @@
-import { ACCENT_BUTTONS, BOX, SECTION } from "@/components/layout/settings-constants";
+import { ACCENT_BUTTONS, BOX, SECTION, HINT, LABEL } from "@/components/layout/settings-constants";
 import { useEffect, useId, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { cn, toggled } from "@/lib/utils";
@@ -16,11 +16,13 @@ import {
   archiveBucketAction,
   deleteBucketAction,
   getNotifAvailabilityAction,
+  getBucketDefaultsAction,
 } from "@/app/(app)/actions";
 import { BUCKET_NAME_MAX_LENGTH } from "@/constants";
 import type { ViewerBucket } from "@/lib/buckets/access";
 import { memberChannels } from "@/lib/rules";
 import type { MemberChannels } from "@/types/rules";
+import { FollowTag } from "./FollowTag";
 import { BucketMembersPanel } from "./BucketMembersPanel";
 
 export type SettingsTab = "items" | "notifications" | "advanced" | "members";
@@ -61,12 +63,16 @@ export function BucketSettingsForm({
   const [error, setError] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [notifAvailability, setNotifAvailability] = useState<NotifAvailability>();
+  const [defaults, setDefaults] = useState<Awaited<ReturnType<typeof getBucketDefaultsAction>>>();
   const [pending, startTransition] = useTransition();
 
   useEffect(() => {
     let cancelled = false;
     void getNotifAvailabilityAction().then((result) => {
       if (!cancelled) setNotifAvailability(result);
+    });
+    void getBucketDefaultsAction().then((result) => {
+      if (!cancelled) setDefaults(result);
     });
     return () => {
       cancelled = true;
@@ -106,7 +112,8 @@ export function BucketSettingsForm({
               overdueRepeatHours: values.overdueRepeatHours,
               overdueFirstAlertMins: values.overdueFirstAlertMins,
             },
-            channels
+            channels,
+            values.followsTweaks
           );
       if (result.ok) onClose();
       else setError(result.error);
@@ -150,7 +157,7 @@ export function BucketSettingsForm({
       <div className="flex shrink-0 flex-col gap-4 px-4 pt-4 pb-0">
         {bucket.isOwner && (
           <div className="flex flex-col gap-1.5">
-            <label htmlFor={nameId} className="text-muted-foreground font-mono text-xs">
+            <label htmlFor={nameId} className={LABEL}>
               name
             </label>
             <input
@@ -198,12 +205,27 @@ export function BucketSettingsForm({
               mediums={channels.medium}
               webhooks={channels.webhooks}
               onMediumToggle={(m) =>
-                setChannels((prev) => ({ ...prev, medium: toggled(prev.medium, m) }))
+                setChannels((prev) => ({
+                  ...prev,
+                  medium: toggled(prev.medium, m),
+                  followsTweaks: false,
+                }))
               }
               onWebhookToggle={(id) =>
-                setChannels((prev) => ({ ...prev, webhooks: toggled(prev.webhooks, id) }))
+                setChannels((prev) => ({
+                  ...prev,
+                  webhooks: toggled(prev.webhooks, id),
+                  followsTweaks: false,
+                }))
               }
               notifAvailability={notifAvailability}
+              labelTag={
+                <FollowTag
+                  following={!!channels.followsTweaks}
+                  onUseTweaks={() => defaults && setChannels(defaults.channels)}
+                  disabled={pending || !defaults}
+                />
+              }
             />
           </div>
         )}
@@ -216,13 +238,14 @@ export function BucketSettingsForm({
             clocksDiffer={clocksDiffer}
             disabled={pending}
             locked={!bucket.isOwner}
+            defaults={defaults?.rules}
           />
         )}
 
         {bucket.isOwner && tab === "notifications" && (
           <div className={BOX}>
             <span className={SECTION}>telegram bot</span>
-            <p className="text-muted-foreground font-mono text-[11px] leading-tight">
+            <p className={HINT}>
               set an alias shortcut, deadline buttons, time slots, and recurring options
             </p>
             <BracketButton onClick={onOpenTelegram} className="w-fit">
@@ -236,10 +259,8 @@ export function BucketSettingsForm({
         {tab === "advanced" && (
           <div className="flex flex-col gap-5">
             <div className="flex flex-col gap-1.5">
-              <p className="text-muted-foreground font-mono text-xs">schema</p>
-              <p className="text-muted-foreground font-mono text-[11px] leading-tight">
-                define custom fields and notification rules for this bucket
-              </p>
+              <p className={LABEL}>schema</p>
+              <p className={HINT}>define custom fields and notification rules for this bucket</p>
               <BracketButton onClick={onOpenSchema} className="w-fit">
                 configure schema
               </BracketButton>
@@ -248,10 +269,8 @@ export function BucketSettingsForm({
             <div className="border-border border-t" />
 
             <div className="flex flex-col gap-1.5">
-              <p className="text-muted-foreground font-mono text-xs">webhook</p>
-              <p className="text-muted-foreground font-mono text-[11px] leading-tight">
-                receive items from external services via HTTP
-              </p>
+              <p className={LABEL}>webhook</p>
+              <p className={HINT}>receive items from external services via HTTP</p>
               <BracketButton onClick={onOpenWebhook} className="w-fit">
                 configure webhook
               </BracketButton>
@@ -260,8 +279,8 @@ export function BucketSettingsForm({
             <div className="border-border border-t" />
 
             <div className="flex flex-col gap-3">
-              <p className="text-muted-foreground font-mono text-xs">danger zone</p>
-              <p className="text-muted-foreground font-mono text-[11px] leading-relaxed">
+              <p className={LABEL}>danger zone</p>
+              <p className={cn(HINT, "leading-relaxed")}>
                 archived and deleted buckets can be accessed via the header — use archive to hide a
                 bucket, or delete to move it to trash.
               </p>

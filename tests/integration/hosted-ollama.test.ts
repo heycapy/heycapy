@@ -1,3 +1,4 @@
+import { NotificationDefaults } from "@/types/rules";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import type { LookupAddress } from "node:dns";
 import type * as dnsPromises from "node:dns/promises";
@@ -158,6 +159,7 @@ it("saving an ollama url on a private address is refused, a public one is fine",
       transcriptionKeyEdit: { newKey: null, clear: false },
       aiProvider: "ollama",
       aiOllamaUrl,
+      notificationDefaults: NotificationDefaults.parse({}),
       smtpPass: null,
     });
 

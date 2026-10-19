@@ -7,8 +7,7 @@ import { RecurringPicker } from "./RecurringPicker";
 import { ReminderPicker } from "./ReminderPicker";
 import { ItemStatusField } from "./ItemStatusField";
 import type { RecurringConfig, StatusDef } from "@/types/rules";
-
-const LABEL = "text-muted-foreground font-mono text-xs";
+import { LABEL } from "@/components/layout/settings-constants";
 
 type ItemWhenSectionProps = {
   datePart: string;

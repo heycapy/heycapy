@@ -2,9 +2,7 @@ import { useEffect, useState, useTransition } from "react";
 import { getCreditPacksAction, startCheckoutAction } from "@/app/(app)/billing-actions";
 import type { PackOffer } from "@/lib/billing/dodo";
 import { BracketButton } from "@/components/ui/BracketButton";
-import { BOX } from "./settings-constants";
-
-const HINT = "text-muted-foreground font-mono text-[11px]";
+import { BOX, HINT } from "./settings-constants";
 
 function centsPerMessage(pack: PackOffer): string {
   return ((pack.usd / pack.credits) * 100).toFixed(2);

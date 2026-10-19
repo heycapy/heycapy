@@ -2,10 +2,8 @@ import { useState, useTransition } from "react";
 import { BracketButton } from "@/components/ui/BracketButton";
 import { newWebhookSecretAction } from "@/app/(app)/actions";
 import { WEBHOOK_SECRET_MASK } from "@/constants";
-import { LABEL } from "./settings-constants";
+import { LABEL, HINT } from "./settings-constants";
 import { ConfirmRow } from "./ConfirmRow";
-
-const HINT = "text-muted-foreground font-mono text-[11px]";
 
 type WebhookSecretProps = {
   webhookId: number;

@@ -407,12 +407,10 @@ test.describe("notifications settings", () => {
   test("default reminders start at the deadline and can be added and removed", async () => {
     const chips = dialog.getByRole("button", { name: /^remove reminder / });
     await expect(chips).toHaveText(["at time ×"]);
-    await expect(dialog.getByText("1 of 4", { exact: true })).toBeVisible();
 
     await dialog.getByRole("button", { name: "[ + add ]", exact: true }).click();
     await dialog.getByRole("button", { name: "1 day before", exact: true }).click();
     await expect(chips).toHaveText(["1 day before ×", "at time ×"]);
-    await expect(dialog.getByText("2 of 4", { exact: true })).toBeVisible();
 
     await dialog.getByRole("button", { name: "remove reminder at time" }).click();
     await expect(chips).toHaveText(["1 day before ×"]);

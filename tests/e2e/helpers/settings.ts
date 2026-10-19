@@ -29,12 +29,12 @@ export async function switchTab(dialog: Locator, tab: "items" | "notifications" 
   await dialog.getByRole("button", { name: tab, exact: true }).click();
 }
 
-// Label + hint + control wrapper
+// Label + hint + control wrapper, past the row a label shares with its "from tweaks" tag
 export function field(dialog: Locator, label: string): Locator {
   return dialog
     .locator("label")
     .filter({ hasText: new RegExp(`^${label}$`) })
-    .locator("..");
+    .locator("xpath=ancestor::div[not(@data-label-row)][1]");
 }
 
 export function optionGroup(scope: Locator, name: string): Locator {

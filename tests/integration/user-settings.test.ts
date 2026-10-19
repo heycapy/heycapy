@@ -1,3 +1,4 @@
+import { NotificationDefaults } from "@/types/rules";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type * as AIModule from "@/lib/ai";
 import { eq } from "drizzle-orm";
@@ -84,6 +85,7 @@ const saved = {
   smtpFrom: null,
   quietHoursFrom: null,
   quietHoursTo: null,
+  notificationDefaults: NotificationDefaults.parse({}),
 };
 
 function typed(newKey: string | null, model: string | null = null) {
