@@ -6,8 +6,8 @@ type UIStore = {
   openCreateBucket: () => void;
   closeCreateBucket: () => void;
 
-  aiRefreshTick: number;
-  tickAiRefresh: () => void;
+  refreshTick: number;
+  tickRefresh: () => void;
 
   activeBucketId: number | null;
   setActiveBucketId: (id: number) => void;
@@ -30,8 +30,8 @@ export const useUIStore = create<UIStore>()(
       openCreateBucket: () => set({ createBucketOpen: true }),
       closeCreateBucket: () => set({ createBucketOpen: false }),
 
-      aiRefreshTick: 0,
-      tickAiRefresh: () => set((s) => ({ aiRefreshTick: s.aiRefreshTick + 1 })),
+      refreshTick: 0,
+      tickRefresh: () => set((s) => ({ refreshTick: s.refreshTick + 1 })),
 
       activeBucketId: null,
       setActiveBucketId: (id) => set({ activeBucketId: id, todayOpen: false }),

@@ -73,16 +73,14 @@ it("on the way back from a payment it says so, opens tweaks and looks at the bal
   vi.useFakeTimers();
   window.history.replaceState(null, "", "/?payment_id=pay_1&status=succeeded&email=a%40b.c");
   const onPaid = vi.fn();
-  const before = useUIStore.getState().aiRefreshTick;
+  const before = useUIStore.getState().refreshTick;
   render(<PurchaseReturn onPaid={onPaid} />);
 
   expect(toast.success).toHaveBeenCalledWith("payment received. your credits arrive in a moment.");
   expect(onPaid).toHaveBeenCalledOnce();
   expect(window.location.search).toBe("");
   vi.advanceTimersByTime(Math.max(...CHECKOUT_BALANCE_RECHECK_SECONDS) * 1000);
-  expect(useUIStore.getState().aiRefreshTick).toBe(
-    before + CHECKOUT_BALANCE_RECHECK_SECONDS.length
-  );
+  expect(useUIStore.getState().refreshTick).toBe(before + CHECKOUT_BALANCE_RECHECK_SECONDS.length);
 });
 
 it("on the way back from a failed payment it says nothing was charged", () => {

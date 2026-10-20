@@ -37,7 +37,7 @@ export function BucketMembersPanel({
   onLeft: () => void;
 }) {
   const router = useRouter();
-  const refreshTick = useUIStore((s) => s.aiRefreshTick);
+  const refreshTick = useUIStore((s) => s.refreshTick);
   const [members, setMembers] = useState<BucketMember[] | null>(null);
   const [confirming, setConfirming] = useState<Confirming>(null);
   const [error, setError] = useState("");

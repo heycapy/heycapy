@@ -6,7 +6,7 @@ import { useUIStore } from "@/store/ui";
 import { SEARCH_DEBOUNCE_MS } from "./constants";
 
 function useCrossBucketItems(load: () => Promise<ActionResult<CrossBucketItems>>, delay: number) {
-  const aiRefreshTick = useUIStore((s) => s.aiRefreshTick);
+  const refreshTick = useUIStore((s) => s.refreshTick);
   const [data, setData] = useState<CrossBucketItems | null>(null);
 
   useEffect(() => {
@@ -20,7 +20,7 @@ function useCrossBucketItems(load: () => Promise<ActionResult<CrossBucketItems>>
       cancelled = true;
       clearTimeout(id);
     };
-  }, [load, delay, aiRefreshTick]);
+  }, [load, delay, refreshTick]);
 
   const refetch = useCallback(async () => {
     const result = await load();

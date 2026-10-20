@@ -6,7 +6,7 @@ import { SERVER_VERSION_EVENT } from "@/constants";
 // Returns whether the server now runs a newer build than this page
 export function useServerEvents(): boolean {
   const router = useRouter();
-  const tickAiRefresh = useUIStore((s) => s.tickAiRefresh);
+  const tickRefresh = useUIStore((s) => s.tickRefresh);
   const [newVersion, setNewVersion] = useState(false);
 
   useEffect(() => {
@@ -19,7 +19,7 @@ export function useServerEvents(): boolean {
     function refresh() {
       if (outdated) return;
       router.refresh();
-      tickAiRefresh();
+      tickRefresh();
     }
 
     function connect() {
@@ -63,7 +63,7 @@ export function useServerEvents(): boolean {
       window.removeEventListener("online", resume);
       source?.close();
     };
-  }, [router, tickAiRefresh]);
+  }, [router, tickRefresh]);
 
   return newVersion;
 }
