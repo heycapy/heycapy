@@ -28,7 +28,7 @@ export function MentionList({ options, highlighted, onPick, onHover }: MentionLi
           }}
           onMouseEnter={() => onHover(index)}
           className={cn(
-            "flex cursor-pointer items-center justify-between gap-3 px-3 py-1.5 font-mono text-xs",
+            "flex cursor-pointer items-center px-3 py-1.5 font-mono text-xs",
             index === highlighted ? "bg-foreground text-background" : "text-foreground"
           )}
         >
@@ -38,16 +38,6 @@ export function MentionList({ options, highlighted, onPick, onHover }: MentionLi
             )}
             <span className="truncate">{option.label}</span>
           </span>
-          {option.username && (
-            <span
-              className={cn(
-                "truncate text-[11px]",
-                index === highlighted ? "text-background/70" : "text-muted-foreground"
-              )}
-            >
-              @{option.username}
-            </span>
-          )}
         </li>
       ))}
     </ul>

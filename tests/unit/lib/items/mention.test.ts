@@ -9,15 +9,9 @@ import {
 const SAM_AVATAR = "8".repeat(256);
 
 const members: MentionMember[] = [
-  { userId: 1, username: "dapper_squid_traveling", displayName: null, avatar: null, isYou: true },
-  {
-    userId: 2,
-    username: "wobbly_falcon_reading",
-    displayName: "Sam",
-    avatar: SAM_AVATAR,
-    isYou: false,
-  },
-  { userId: 3, username: "sleepy_otter_juggling", displayName: "Sara", avatar: null, isYou: false },
+  { userId: 1, username: "dapper_squid_traveling", avatar: null, isYou: true },
+  { userId: 2, username: "sam", avatar: SAM_AVATAR, isYou: false },
+  { userId: 3, username: "sara", avatar: null, isYou: false },
 ];
 
 describe("findMention", () => {
@@ -47,20 +41,20 @@ describe("mentionOptions", () => {
     expect(mentionOptions(members, "").map((o) => o.userId)).toEqual([1, 2, 3, null]);
   });
 
-  it("narrows by the start of the name or of the username, ignoring case", () => {
-    expect(mentionOptions(members, "SA").map((o) => o.label)).toEqual(["Sam", "Sara"]);
-    expect(mentionOptions(members, "wob").map((o) => o.label)).toEqual(["Sam"]);
+  it("narrows by the start of the username, ignoring case", () => {
+    expect(mentionOptions(members, "SA").map((o) => o.label)).toEqual(["sam", "sara"]);
+    expect(mentionOptions(members, "sar").map((o) => o.label)).toEqual(["sara"]);
     expect(mentionOptions(members, "dap").map((o) => o.label)).toEqual([
       "dapper_squid_traveling (you)",
     ]);
   });
 
-  it("shows the username and avatar next to a name, and anyone only while it can still match", () => {
+  it("shows the avatar next to a username, and anyone only while it can still match", () => {
     expect(mentionOptions(members, "sam")).toEqual([
-      { userId: 2, avatar: SAM_AVATAR, label: "Sam", username: "wobbly_falcon_reading" },
+      { userId: 2, avatar: SAM_AVATAR, label: "sam" },
     ]);
     expect(mentionOptions(members, "any")).toEqual([
-      { userId: null, avatar: null, label: "anyone", username: null },
+      { userId: null, avatar: null, label: "anyone" },
     ]);
   });
 

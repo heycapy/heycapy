@@ -3,6 +3,42 @@ export const USERNAME_MAX_ATTEMPTS = 20;
 export const USERNAME_SUFFIX_MIN = 10;
 export const USERNAME_SUFFIX_MAX = 9999;
 
+export const DAY_MS = 24 * 60 * 60 * 1000;
+
+export const USERNAME_MIN_LENGTH = 3;
+export const USERNAME_MAX_LENGTH = 32;
+// What an action accepts before the rules run: room for spaces and capitals
+export const USERNAME_INPUT_MAX_LENGTH = 64;
+export const USERNAME_CHANGES_PER_WINDOW = 2;
+export const USERNAME_CHANGE_WINDOW_DAYS = 30;
+export const USERNAME_HOLD_DAYS = 30;
+export const USERNAME_CHANGES_SHOWN = 10;
+export const USERNAME_RESERVED_PREFIX = "heycapy";
+export const USERNAME_RESERVED = [
+  "you",
+  "me",
+  "anyone",
+  "someone",
+  "everyone",
+  "all",
+  "capy",
+  "heycapy",
+  "admin",
+  "administrator",
+  "support",
+  "help",
+  "staff",
+  "team",
+  "official",
+  "system",
+  "mod",
+  "moderator",
+  "null",
+  "undefined",
+  "root",
+  "api",
+];
+
 export const USERNAME_ADJECTIVES = [
   "sleepy",
   "happy",

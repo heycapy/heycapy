@@ -9,7 +9,12 @@ import {
   USERNAME_ANIMALS,
   USERNAME_PLAIN_ATTEMPTS,
 } from "@/lib/account/constants";
-import { assignUsername, backfillUsernames, generateUsername } from "@/lib/account/username";
+import {
+  assignUsername,
+  backfillUsernames,
+  changeUsername,
+  generateUsername,
+} from "@/lib/account/username";
 
 const pick = vi.hoisted(() => ({ alwaysFirst: false }));
 vi.mock("node:crypto", async (importOriginal) => {
@@ -80,6 +85,28 @@ describe("assignUsername", () => {
 
       expect(new Set(names).size).toBe(names.length);
       expect(names.filter((name) => !/\d$/.test(name))).toHaveLength(1);
+    } finally {
+      pick.alwaysFirst = false;
+    }
+  });
+});
+
+describe("assignUsername and names let go of lately", () => {
+  it("skips a name someone else changed away from, while it's held", async () => {
+    pick.alwaysFirst = true;
+    try {
+      const plain = generateUsername();
+      await db
+        .update(users)
+        .set({ username: `moved_${Date.now()}` })
+        .where(eq(users.username, plain));
+      const before = await insertUser(plain);
+      expect(await changeUsername(before, `elsewhere_${Date.now()}`)).toMatchObject({ ok: true });
+
+      const fresh = await insertUser();
+      const picked = await assignUsername(fresh);
+      expect(picked).not.toBe(plain);
+      expect(picked).toMatch(/_\d+$/);
     } finally {
       pick.alwaysFirst = false;
     }

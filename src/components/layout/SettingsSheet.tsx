@@ -12,6 +12,7 @@ import { useUIStore } from "@/store/ui";
 import { useAIStatus } from "@/hooks/useAIStatus";
 import { AppearanceTab, NotificationsTab, AITab, PersonalityTab } from "./SettingsTabs";
 import { AccountTab } from "./AccountTab";
+import { normalizeUsername } from "@/lib/account/username-rules";
 import { SettingsTabBar } from "./SettingsTabBar";
 import { SettingsFrame } from "./SettingsFrame";
 import type { AvatarDraft } from "@/components/avatar/AvatarEditor";
@@ -87,6 +88,7 @@ export function SettingsSheet({ open, initialTab, onClose }: SettingsSheetProps)
   const [wasOpen, setWasOpen] = useState(open);
   const [confirmClose, setConfirmClose] = useState(false);
   const [avatarDraft, setAvatarDraft] = useState<AvatarDraft>(null);
+  const [usernameDraft, setUsernameDraft] = useState<string | null>(null);
   const unsaved = useUnsavedChanges(loaded ? JSON.stringify(formValues()) : null);
   const resetUnsaved = unsaved.reset;
 
@@ -128,6 +130,7 @@ export function SettingsSheet({ open, initialTab, onClose }: SettingsSheetProps)
       setLoaded(false);
       resetUnsaved();
       setAvatarDraft(null);
+      setUsernameDraft(null);
       setConfirmClose(false);
       setTelegramBotConfigured(false);
       getUserSettingsAction().then((result) => {
@@ -198,8 +201,11 @@ export function SettingsSheet({ open, initialTab, onClose }: SettingsSheetProps)
     };
   }
 
+  const usernameUnsaved =
+    usernameDraft !== null && normalizeUsername(usernameDraft) !== (username ?? "");
+
   function requestClose() {
-    if (unsaved.dirty || avatarDraft) setConfirmClose(true);
+    if (unsaved.dirty || avatarDraft || usernameUnsaved) setConfirmClose(true);
     else onClose();
   }
 
@@ -304,6 +310,9 @@ export function SettingsSheet({ open, initialTab, onClose }: SettingsSheetProps)
               <AccountTab
                 email={userEmail}
                 username={username}
+                usernameDraft={usernameDraft}
+                onUsernameDraft={setUsernameDraft}
+                onUsernameSaved={setUsername}
                 avatarDraft={avatarDraft}
                 onAvatarDraft={setAvatarDraft}
               />
@@ -317,9 +326,12 @@ export function SettingsSheet({ open, initialTab, onClose }: SettingsSheetProps)
       {confirmClose && (
         <CloseWarning
           pending={pending}
-          onSave={handleSave}
+          onSave={usernameUnsaved ? null : handleSave}
           onDiscard={onClose}
-          onKeepEditing={() => setConfirmClose(false)}
+          onKeepEditing={() => {
+            setConfirmClose(false);
+            if (usernameUnsaved) setTab("account");
+          }}
         />
       )}
     </SettingsFrame>

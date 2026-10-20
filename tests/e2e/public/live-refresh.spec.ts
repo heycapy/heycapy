@@ -44,18 +44,79 @@ test("someone outside the bucket isn't told about it", async ({ page, browser })
   await login(page, ownerEmail);
   const other = await browser.newContext();
   const outsider = await other.newPage();
+  // Counting the outsider's POSTs can't tell a refresh from the page's own load actions
+  await outsider.addInitScript(() => {
+    const seen = { open: false, refreshes: 0 };
+    Object.assign(window, { liveEvents: seen });
+    const Native = window.EventSource;
+    window.EventSource = class extends Native {
+      constructor(url: string | URL, init?: EventSourceInit) {
+        super(url, init);
+        this.addEventListener("open", () => (seen.open = true));
+        this.addEventListener("message", (e) => {
+          if (e.data === "refresh") seen.refreshes++;
+        });
+      }
+    };
+  });
   await login(outsider, uniqueEmail("e2e-live-outsider"));
   const bucketId = shareBucket(ownerEmail, null);
   await page.goto(`/?bucket=${bucketId}`);
-  // A refresh re-fetches the open view through a server action (a POST)
-  const refreshes: string[] = [];
-  outsider.on("request", (r) => {
-    if (r.method() === "POST") refreshes.push(r.url());
-  });
+  const liveEvents = () =>
+    outsider.evaluate(
+      () => (window as unknown as { liveEvents: { open: boolean; refreshes: number } }).liveEvents
+    );
+  await expect.poll(async () => (await liveEvents()).open).toBe(true);
 
   await addItem(page, `pay rent ${Date.now()}`);
 
   await page.waitForTimeout(1500);
-  expect(refreshes).toEqual([]);
+  expect((await liveEvents()).refreshes).toBe(0);
+  await other.close();
+});
+
+test("a member's new username and avatar show up on the others' open screens", async ({
+  page,
+  browser,
+}) => {
+  const ownerEmail = uniqueEmail("e2e-live-names-owner");
+  await login(page, ownerEmail);
+  const other = await browser.newContext();
+  const member = await other.newPage();
+  const memberEmail = uniqueEmail("e2e-live-names-member");
+  await login(member, memberEmail);
+  const bucketId = shareBucket(ownerEmail, memberEmail);
+  const stamp = Date.now();
+  const title = `water plants ${stamp}`;
+  const db = new Database(E2E_DATABASE_FILE);
+  db.prepare("update users set username = ? where email = ?").run(`before_${stamp}`, memberEmail);
+  db.prepare(
+    "insert into items (bucket_id, user_id, assignee_id, title) values (?, (select id from users where email = ?), (select id from users where email = ?), ?)"
+  ).run(bucketId, ownerEmail, memberEmail, title);
+  db.close();
+  await page.goto(`/?bucket=${bucketId}`);
+  await expect(itemRow(page, title)).toContainText(`→ before_${stamp}`);
+
+  await member.getByRole("button", { name: "···" }).click();
+  await member.getByRole("button", { name: "tweaks" }).click();
+  await member.getByRole("button", { name: "account", exact: true }).click();
+  await member.getByRole("textbox", { name: "username" }).fill(`after_${stamp}`);
+  await expect(member.getByTestId("username-check")).toHaveText("✓ available");
+  await member.getByRole("button", { name: "[ save username ]", exact: true }).click();
+  await expect(member.getByTestId("username-allowance")).toHaveText(/^1 of 2/);
+
+  await expect(itemRow(page, title)).toContainText(`→ after_${stamp}`);
+
+  const canvas = member.getByTestId("avatar-canvas");
+  await member.getByRole("button", { name: "[ clear ]", exact: true }).click();
+  await member.getByRole("button", { name: "red", exact: true }).click();
+  await canvas.scrollIntoViewIfNeeded();
+  const box = await canvas.boundingBox();
+  if (!box) throw new Error("canvas not on screen");
+  await member.mouse.click(box.x + box.width / 32, box.y + box.width / 32);
+  await member.getByRole("button", { name: "[ save avatar ]", exact: true }).click();
+  await expect(member.getByRole("button", { name: "[ save avatar ]", exact: true })).toBeDisabled();
+
+  await expect(itemRow(page, title).locator("rect")).toHaveCount(1);
   await other.close();
 });

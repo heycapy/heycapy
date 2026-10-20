@@ -34,7 +34,7 @@ export async function sendFeedbackAction(message: string, page: string): Promise
 
   const user = await db.query.users.findFirst({
     where: eq(users.id, session.userId),
-    columns: { email: true, username: true, displayName: true },
+    columns: { email: true, username: true },
   });
   if (!user) return { ok: false, error: SEND_FAILED };
 

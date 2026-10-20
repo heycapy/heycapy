@@ -42,6 +42,18 @@ test.describe("login page", () => {
     await expect(otpStep(page)).toHaveCSS("opacity", "0");
   });
 
+  test("typing a long email doesn't move the form", async ({ page }) => {
+    const heading = page.getByRole("heading", { level: 1 });
+    const input = page.getByPlaceholder("you@example.com");
+    for (const width of [1280, 390]) {
+      await page.setViewportSize({ width, height: 800 });
+      await page.goto("/login");
+      const before = await heading.boundingBox();
+      await input.fill("a.really.long.email.address.for.testing@example-company.com");
+      expect(await heading.boundingBox()).toEqual(before);
+    }
+  });
+
   test("transitions to the OTP step after sending a code", async ({ page }) => {
     const email = uniqueEmail("e2e-transition");
     await sendCode(page, email);

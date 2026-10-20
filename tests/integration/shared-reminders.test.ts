@@ -574,7 +574,7 @@ describe("item info", () => {
     const samAvatar = "d".repeat(256);
     await db
       .update(users)
-      .set({ displayName: "Sam", avatar: samAvatar })
+      .set({ username: `sam_${member}`, avatar: samAvatar })
       .where(eq(users.id, member));
     await db
       .update(userSettings)
@@ -591,7 +591,7 @@ describe("item info", () => {
       {
         userId: member,
         avatar: samAvatar,
-        name: "Sam",
+        name: `sam_${member}`,
         timezone: LONDON,
         next: new Date("2026-10-26T10:00:00Z"),
         heldByQuietHours: true,
@@ -599,7 +599,13 @@ describe("item info", () => {
     ]);
     expect(forOwner?.heldByQuietHours).toBe(false);
     expect(forOwner?.history).toMatchObject([
-      { type: "action", by: "Sam", byId: member, byAvatar: samAvatar, source: "telegram" },
+      {
+        type: "action",
+        by: `sam_${member}`,
+        byId: member,
+        byAvatar: samAvatar,
+        source: "telegram",
+      },
     ]);
 
     const forSam = await getItemReminderInfo(member, itemId);

@@ -286,7 +286,6 @@ export async function getItemReminderInfo(
   const people = await db
     .select({
       id: users.id,
-      displayName: users.displayName,
       username: users.username,
       avatar: users.avatar,
     })

@@ -18,6 +18,16 @@ import {
   type CreditTotals,
 } from "@/lib/credits";
 import { schedulerHealth } from "@/lib/scheduler";
+import { personChanged } from "@/lib/events";
+import {
+  adjustUsernameBonus,
+  changeUsername,
+  recentUsernameChanges,
+  usernameAllowance,
+  type UsernameAllowance,
+  type UsernameChange,
+} from "@/lib/account/username";
+import { USERNAME_CHANGES_SHOWN, USERNAME_INPUT_MAX_LENGTH } from "@/lib/account/constants";
 import { serverCostSince } from "@/lib/ai/usage";
 import { recentSystemErrors } from "@/lib/system-errors";
 import {
@@ -93,11 +103,17 @@ const creditChangeSchema = z.object({
   note: z.string().trim().max(CREDITS_NOTE_MAX_LENGTH),
 });
 
-async function requireCreditsAdmin(): Promise<{ email: string } | { error: string }> {
+async function requireAdmin(): Promise<{ email: string } | { error: string }> {
   const session = await getSession();
   if (!session || !isAdmin(session.email)) return { error: "Not allowed" };
-  if (!isHosted()) return { error: "credits are off on this server (HOSTED isn't true)" };
   return { email: session.email };
+}
+
+async function requireCreditsAdmin(): Promise<{ email: string } | { error: string }> {
+  const admin = await requireAdmin();
+  if ("error" in admin) return admin;
+  if (!isHosted()) return { error: "credits are off on this server (HOSTED isn't true)" };
+  return admin;
 }
 
 async function findUser(email: string) {
@@ -148,4 +164,94 @@ export async function adjustUserCreditsAction(input: {
     return { ok: false, error: `they only have ${result.balance} credits to take` };
   }
   return { ok: true, credits: creditsOf(user) };
+}
+
+export type UserUsername = {
+  email: string;
+  username: string | null;
+  allowance: UsernameAllowance;
+  changes: UsernameChange[];
+};
+
+const UserEmail = z.email("enter the user's email");
+const usernameRenameSchema = z.object({
+  email: UserEmail,
+  username: z.string().max(USERNAME_INPUT_MAX_LENGTH, "that username is too long"),
+});
+const usernameBonusSchema = z.object({
+  email: UserEmail,
+  delta: z.union([z.literal(1), z.literal(-1)]),
+});
+
+async function usernameOf(user: {
+  id: number;
+  email: string;
+}): Promise<ActionResult<{ user: UserUsername }>> {
+  const [row, allowance, changes] = await Promise.all([
+    db.query.users.findFirst({ columns: { username: true }, where: eq(users.id, user.id) }),
+    usernameAllowance(user.id),
+    recentUsernameChanges(user.id, USERNAME_CHANGES_SHOWN),
+  ]);
+  if (!row || !allowance) return { ok: false, error: "no user with that email" };
+  return { ok: true, user: { email: user.email, username: row.username, allowance, changes } };
+}
+
+export async function getUserUsernameAction(
+  email: string
+): Promise<ActionResult<{ user: UserUsername }>> {
+  const admin = await requireAdmin();
+  if ("error" in admin) return { ok: false, error: admin.error };
+  const parsed = UserEmail.safeParse(email);
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0].message };
+  const user = await findUser(parsed.data);
+  if (!user) return { ok: false, error: "no user with that email" };
+  return usernameOf(user);
+}
+
+// Skips the person's monthly changes, bonus and the hold on old names, never the other rules
+export async function renameUserAction(input: {
+  email: string;
+  username: string;
+}): Promise<ActionResult<{ user: UserUsername }>> {
+  const admin = await requireAdmin();
+  if ("error" in admin) return { ok: false, error: admin.error };
+  const parsed = usernameRenameSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0].message };
+  const user = await findUser(parsed.data.email);
+  if (!user) return { ok: false, error: "no user with that email" };
+
+  const result = await changeUsername(user.id, parsed.data.username, { byAdmin: true });
+  if (!result.ok) {
+    switch (result.reason) {
+      case "invalid":
+        return { ok: false, error: result.problem };
+      case "taken":
+        return { ok: false, error: "someone else has that username" };
+      case "same":
+        return { ok: false, error: "that's already their username" };
+      case "limit":
+        return { ok: false, error: "they have no username changes left" };
+      case "not_found":
+        return { ok: false, error: "no user with that email" };
+    }
+  }
+  await personChanged(user.id);
+  return usernameOf(user);
+}
+
+export async function adjustUsernameBonusAction(input: {
+  email: string;
+  delta: number;
+}): Promise<ActionResult<{ user: UserUsername }>> {
+  const admin = await requireAdmin();
+  if ("error" in admin) return { ok: false, error: admin.error };
+  const parsed = usernameBonusSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "give or take one bonus change at a time" };
+  const user = await findUser(parsed.data.email);
+  if (!user) return { ok: false, error: "no user with that email" };
+
+  if ((await adjustUsernameBonus(user.id, parsed.data.delta)) === null) {
+    return { ok: false, error: "they have no bonus changes to take" };
+  }
+  return usernameOf(user);
 }
