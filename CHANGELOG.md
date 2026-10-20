@@ -2,6 +2,30 @@
 
 all notable changes to heycapy. versions follow [semver](https://semver.org): a patch version (0.3.1) only fixes things, a minor version (0.4.0) adds features. the database migrates itself on start and migrations only go forward, so back up before upgrading (see the README).
 
+## 0.6.0
+
+change your username, see a member's new name and avatar without reloading, and heycapy refuses to start on a database from a newer version instead of serving errors.
+
+### new
+
+- tweaks → account: change your username. type one or press "generate another", it's checked while you type (3 to 32 letters, numbers or _, not taken, not reserved). 2 changes per 30 days,  when none are left the box says when the next one opens. the last monthly change and a bonus change ask first
+- a username someone lets go of stays theirs for 30 days, nobody else can take it in that time
+- tweaks → system → usernames (admins): find someone by email, rename them, give or take bonus changes, see their last changes. an admin rename uses none of their changes and can take a name that's still held, never one someone has now or a reserved one. shown whether or not HOSTED is set
+
+### fixes
+
+- a member's new username or avatar shows on the others' open screens straight away, it showed only after they reloaded
+- the sign-in form no longer moves up while you type a long email
+
+### changes
+
+- display names are gone, everyone is shown by their username (nothing in the app ever set a display name)
+- heycapy refuses to start when the database has a migration newer than the code knows, with "the database is newer than this version". running an older version after an upgrade used to start and fail on every request; restore the backup from before the upgrade to go back
+
+### upgrading
+
+- migrations 0039 and 0040 run on start. 0039 drops users.display_name, 0040 adds username_changes (the history of renames) and users.username_bonus_changes. back up before upgrading: after it, 0.5.0 won't start on this database
+
 ## 0.5.0
 
 set your notification settings once in tweaks and every bucket can use them. coming back from buying credits says the right thing.

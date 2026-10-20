@@ -3,6 +3,19 @@ export type Release = { version: string; notes: ReleaseNote[] };
 
 export const RELEASES: [Release, ...Release[]] = [
   {
+    version: "0.6.0",
+    notes: [
+      {
+        title: "change your username",
+        text: 'in tweaks → account, type a new one or press "generate another". you can change it twice in 30 days, and your old name stays yours for 30 days.',
+      },
+      {
+        title: "new names and avatars show up straight away",
+        text: "when someone in a shared bucket changes their name or avatar, everyone sees it without reloading.",
+      },
+    ],
+  },
+  {
     version: "0.5.0",
     notes: [
       {
