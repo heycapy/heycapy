@@ -18,6 +18,7 @@ import {
   type CreditTotals,
 } from "@/lib/credits";
 import { schedulerHealth } from "@/lib/scheduler";
+import { personChanged } from "@/lib/events";
 import {
   adjustUsernameBonus,
   changeUsername,
@@ -234,6 +235,7 @@ export async function renameUserAction(input: {
         return { ok: false, error: "no user with that email" };
     }
   }
+  await personChanged(user.id);
   return usernameOf(user);
 }
 

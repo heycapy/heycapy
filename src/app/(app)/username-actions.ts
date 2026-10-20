@@ -7,6 +7,7 @@ import type { ActionResult } from "@/types/result";
 import { getSession } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";
+import { personChanged } from "@/lib/events";
 import {
   changeUsername,
   suggestUsername,
@@ -75,6 +76,7 @@ export async function changeUsernameAction(
   const result = await changeUsername(session.userId, parsed.data);
   if (!result.ok) return { ok: false, error: changeError(result) };
 
+  await personChanged(session.userId);
   const allowance = await usernameAllowance(session.userId);
   if (!allowance) return { ok: false, error: "Unauthorized" };
   revalidatePath("/", "layout");

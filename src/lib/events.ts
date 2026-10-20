@@ -1,4 +1,5 @@
 import { EventEmitter } from "events";
+import { memberBucketIds } from "@/lib/buckets/access";
 
 declare global {
   var __dataEvents: EventEmitter | undefined;
@@ -9,4 +10,10 @@ export const dataEvents: EventEmitter = (globalThis.__dataEvents ??= new EventEm
 
 export function bucketsChanged(bucketIds: number[]): void {
   for (const bucketId of new Set(bucketIds)) dataEvents.emit("bucket", bucketId);
+}
+
+// Someone's name and avatar show in every bucket they share
+export async function personChanged(userId: number): Promise<void> {
+  const rows = await memberBucketIds(userId);
+  bucketsChanged(rows.map((row) => row.id));
 }

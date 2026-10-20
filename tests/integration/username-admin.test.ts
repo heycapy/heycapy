@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { users } from "@/lib/db/schema";
+import { bucketMembers, users } from "@/lib/db/schema";
 import {
   adjustUsernameBonusAction,
   getUserUsernameAction,
@@ -9,7 +9,8 @@ import {
 } from "@/app/(app)/system-actions";
 import { changeUsername } from "@/lib/account/username";
 import { USERNAME_CHANGES_PER_WINDOW } from "@/lib/account/constants";
-import { seedUser } from "./helpers";
+import { dataEvents } from "@/lib/events";
+import { seedBucket, seedUser } from "./helpers";
 
 const ADMIN = "admin@heycapy.test";
 
@@ -140,5 +141,23 @@ describe("admin username box", () => {
     expect(
       (await db.query.users.findFirst({ where: eq(users.id, sam.id) }))?.usernameBonusChanges
     ).toBe(0);
+  });
+
+  it("tells every bucket the person is in, so the others' screens show the new name", async () => {
+    asAdmin();
+    const sam = await userNamed("sam");
+    const own = await seedBucket(sam.id);
+    const shared = await seedBucket(await seedUser());
+    await db.insert(bucketMembers).values({ bucketId: shared, userId: sam.id });
+    const changed: number[] = [];
+    const listener = (id: number) => changed.push(id);
+    dataEvents.on("bucket", listener);
+
+    try {
+      await renameUserAction({ email: sam.email, username: `${sam.name}_told` });
+    } finally {
+      dataEvents.off("bucket", listener);
+    }
+    expect(changed.sort()).toEqual([own, shared].sort());
   });
 });
