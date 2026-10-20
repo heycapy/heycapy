@@ -12,6 +12,7 @@ export const USERNAME_INPUT_MAX_LENGTH = 64;
 export const USERNAME_CHANGES_PER_WINDOW = 2;
 export const USERNAME_CHANGE_WINDOW_DAYS = 30;
 export const USERNAME_HOLD_DAYS = 30;
+export const USERNAME_CHANGES_SHOWN = 10;
 export const USERNAME_RESERVED_PREFIX = "heycapy";
 export const USERNAME_RESERVED = [
   "you",

@@ -1,5 +1,5 @@
 import { randomInt } from "node:crypto";
-import { and, asc, eq, gt, isNull, ne, notExists, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gt, gte, isNull, ne, notExists, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { usernameChanges, users } from "@/lib/db/schema";
 import { normalizeUsername, usernameProblem } from "./username-rules";
@@ -212,4 +212,25 @@ export async function suggestUsername(userId: number, now = new Date()): Promise
     }
   }
   throw new Error(`could not find a free username for user ${userId}`);
+}
+
+export type UsernameChange = typeof usernameChanges.$inferSelect;
+
+export function recentUsernameChanges(userId: number, limit: number): Promise<UsernameChange[]> {
+  return db
+    .select()
+    .from(usernameChanges)
+    .where(eq(usernameChanges.userId, userId))
+    .orderBy(desc(usernameChanges.createdAt), desc(usernameChanges.id))
+    .limit(limit);
+}
+
+// Never below zero; null when there was nothing to take
+export async function adjustUsernameBonus(userId: number, delta: number): Promise<number | null> {
+  const [row] = await db
+    .update(users)
+    .set({ usernameBonusChanges: sql`${users.usernameBonusChanges} + ${delta}` })
+    .where(and(eq(users.id, userId), gte(sql`${users.usernameBonusChanges} + ${delta}`, 0)))
+    .returning({ bonus: users.usernameBonusChanges });
+  return row ? row.bonus : null;
 }
