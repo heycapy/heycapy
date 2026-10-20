@@ -4,6 +4,7 @@ import { getSystemStatusAction, type SystemStatus } from "@/app/(app)/actions";
 import { formatShort } from "@/lib/format-date";
 import { BOX, SECTION, MUTED } from "./settings-constants";
 import { SystemCredits } from "./SystemCredits";
+import { SystemUsernames } from "./SystemUsernames";
 
 // Stored as JSON (stack, context, runtime), shown as readable lines
 function formatDetails(raw: string): string {
@@ -68,6 +69,7 @@ export function SystemTab() {
       </div>
 
       {status.hosted && <SystemCredits />}
+      <SystemUsernames />
 
       <div className={BOX}>
         <span className={SECTION}>recent errors</span>

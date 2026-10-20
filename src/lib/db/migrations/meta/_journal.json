@@ -274,6 +274,20 @@
       "when": 1793560000000,
       "tag": "0038_notification_defaults",
       "breakpoints": true
+    },
+    {
+      "idx": 39,
+      "version": "6",
+      "when": 1793570000000,
+      "tag": "0039_drop_display_name",
+      "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "6",
+      "when": 1793580000000,
+      "tag": "0040_username_changes",
+      "breakpoints": true
     }
   ]
 }

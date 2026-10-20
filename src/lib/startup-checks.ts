@@ -50,9 +50,10 @@ export function productionProblems(env: Record<string, string | undefined>): str
 }
 
 // Throwing in register() only logs: Next.js keeps running and answers every request with a 500
-export function refuseToStart(problems: string[]): never {
-  process.stderr.write(
-    `heycapy can't start, set these in .env or your host's secrets:\n- ${problems.join("\n- ")}\n`
-  );
+export function refuseToStart(
+  problems: string[],
+  heading = "set these in .env or your host's secrets"
+): never {
+  process.stderr.write(`heycapy can't start, ${heading}:\n- ${problems.join("\n- ")}\n`);
   process.exit(1);
 }

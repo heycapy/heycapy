@@ -1,9 +1,10 @@
+import { memberName } from "@/lib/buckets/member-name";
+
 export type Mention = { start: number; end: number; query: string };
 
 export type MentionMember = {
   userId: number;
   username: string | null;
-  displayName: string | null;
   avatar: string | null;
   isYou: boolean;
 };
@@ -12,7 +13,6 @@ export type MentionOption = {
   userId: number | null;
   avatar: string | null;
   label: string;
-  username: string | null;
 };
 
 // An @ that starts a word, up to the cursor, an @ inside a word is an address, not a mention
@@ -29,19 +29,13 @@ const ANYONE = "anyone";
 export function mentionOptions(members: MentionMember[], query: string): MentionOption[] {
   const q = query.toLowerCase();
   const people = members
-    .filter((member) => {
-      const name = (member.displayName ?? member.username ?? "").toLowerCase();
-      return name.startsWith(q) || (member.username ?? "").toLowerCase().startsWith(q);
-    })
+    .filter((member) => (member.username ?? "").toLowerCase().startsWith(q))
     .map((member) => ({
       userId: member.userId,
       avatar: member.avatar,
-      label: `${member.displayName ?? member.username ?? "someone"}${member.isYou ? " (you)" : ""}`,
-      username: member.displayName ? member.username : null,
+      label: `${memberName(member)}${member.isYou ? " (you)" : ""}`,
     }));
-  const anyone = ANYONE.startsWith(q)
-    ? [{ userId: null, avatar: null, label: ANYONE, username: null }]
-    : [];
+  const anyone = ANYONE.startsWith(q) ? [{ userId: null, avatar: null, label: ANYONE }] : [];
   return [...people, ...anyone];
 }
 

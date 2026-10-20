@@ -1,9 +1,12 @@
 import { useEffect, useState } from "react";
 import { listMembersAction } from "@/app/(app)/actions";
 import type { BucketMember } from "@/lib/buckets/members";
+import { useUIStore } from "@/store/ui";
 
-// Loaded again when `reloadKey` changes, so someone who joined while the bucket was open shows up
+// Loaded again when `reloadKey` changes or a live refresh comes in, so a member who joined,
+// renamed or redrew their avatar while the bucket was open shows up as they are now
 export function useBucketMembers(bucketId: number, reloadKey: unknown) {
+  const refreshTick = useUIStore((s) => s.aiRefreshTick);
   const [members, setMembers] = useState<BucketMember[]>([]);
 
   useEffect(() => {
@@ -14,7 +17,7 @@ export function useBucketMembers(bucketId: number, reloadKey: unknown) {
     return () => {
       cancelled = true;
     };
-  }, [bucketId, reloadKey]);
+  }, [bucketId, reloadKey, refreshTick]);
 
   return members;
 }

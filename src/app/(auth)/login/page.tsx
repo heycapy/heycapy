@@ -19,6 +19,7 @@ export default function LoginPage() {
   const router = useRouter();
   const [step, setStep] = useState<Step>("email");
   const [email, setEmail] = useState("");
+  const [sentTo, setSentTo] = useState("");
   const [code, setCode] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -63,6 +64,7 @@ export default function LoginPage() {
       return;
     }
     setDevCode(result.devCode ?? "");
+    setSentTo(email);
     setStep("otp");
     startResendCountdown();
   }
@@ -165,7 +167,7 @@ export default function LoginPage() {
             <p className="text-foreground text-sm font-medium">Check your email</p>
             <p className="text-muted-foreground text-xs">
               We sent a 6-digit code to{" "}
-              <span className="text-foreground">{email || "your email"}</span>.
+              <span className="text-foreground">{sentTo || "your email"}</span>.
             </p>
           </div>
           <OtpInput value={code} onChange={setCode} disabled={busy} focus={step === "otp"} />

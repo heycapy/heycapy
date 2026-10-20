@@ -19,7 +19,6 @@ type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 export type BucketMember = {
   userId: number;
   username: string | null;
-  displayName: string | null;
   avatar: string | null;
   role: "owner" | "member";
   joinedAt: Date;
@@ -47,7 +46,6 @@ export async function listMembers(
     .select({
       userId: users.id,
       username: users.username,
-      displayName: users.displayName,
       avatar: users.avatar,
       role: bucketMembers.role,
       joinedAt: bucketMembers.createdAt,

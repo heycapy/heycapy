@@ -46,7 +46,7 @@ function exportedBucketIds(userId: number) {
 async function namesOf(userId: number, ids: number[]): Promise<Map<number, string>> {
   const people = ids.length
     ? await db
-        .select({ id: users.id, displayName: users.displayName, username: users.username })
+        .select({ id: users.id, username: users.username })
         .from(users)
         .where(inArray(users.id, ids))
     : [];

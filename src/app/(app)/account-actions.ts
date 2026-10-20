@@ -20,6 +20,7 @@ import { users } from "@/lib/db/schema";
 import { AVATAR_PATTERN, toAvatar } from "@/lib/account/avatar";
 import { deleteAccount, ownedSharedBuckets, type SharedBucket } from "@/lib/account/delete";
 import { memberBucketIds } from "@/lib/buckets/access";
+import { personChanged } from "@/lib/events";
 import { refreshBucketReminders } from "@/lib/reminders/refresh";
 import { LATEST_RELEASE } from "@/lib/whats-new/constants";
 
@@ -47,6 +48,7 @@ export async function saveAvatarAction(
 
   const saved = parsed.data === null ? null : toAvatar([...parsed.data]);
   await db.update(users).set({ avatar: saved }).where(eq(users.id, session.userId));
+  await personChanged(session.userId);
   revalidatePath("/", "layout");
   return { ok: true, avatar: saved };
 }

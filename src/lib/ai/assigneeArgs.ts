@@ -23,7 +23,6 @@ async function peopleIn(bucketIds: number[]): Promise<Person[]> {
       bucketId: bucketMembers.bucketId,
       userId: users.id,
       username: users.username,
-      displayName: users.displayName,
       timezone: userSettings.timezone,
     })
     .from(bucketMembers)
@@ -43,9 +42,7 @@ async function peopleIn(bucketIds: number[]): Promise<Person[]> {
 function findPeople(people: Person[], viewerId: number, name: string): Person[] {
   const wanted = name.trim().toLowerCase();
   if (wanted === CAPY_ASSIGNEE.me) return people.filter((p) => p.userId === viewerId);
-  return people.filter(
-    (p) => p.name.toLowerCase() === wanted || p.username?.toLowerCase() === wanted
-  );
+  return people.filter((p) => p.username?.toLowerCase() === wanted);
 }
 
 // The deadline is read on the clock of whoever it's assigned to, like the app's item form

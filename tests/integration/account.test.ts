@@ -96,8 +96,14 @@ describe("data export", () => {
     async function sharedBucket() {
       const owner = await seedUser();
       const member = await seedUser();
-      await db.update(users).set({ displayName: "Ana" }).where(eq(users.id, owner));
-      await db.update(users).set({ displayName: "Sam" }).where(eq(users.id, member));
+      await db
+        .update(users)
+        .set({ username: `ana_${owner}` })
+        .where(eq(users.id, owner));
+      await db
+        .update(users)
+        .set({ username: `sam_${member}` })
+        .where(eq(users.id, member));
       const bucketId = await seedBucket(owner);
       await db.insert(bucketMembers).values({ bucketId, userId: member });
       await db
@@ -111,14 +117,14 @@ describe("data export", () => {
     }
 
     it("a member gets the joined bucket with everyone's items, without its owner's secrets", async () => {
-      const { member, bucketId } = await sharedBucket();
+      const { owner, member, bucketId } = await sharedBucket();
 
       const data = await buildAccountExport(member, T0);
 
       expect(data.buckets).toEqual([
         expect.objectContaining({
           id: bucketId,
-          owner: "Ana",
+          owner: `ana_${owner}`,
           telegram: null,
           webhookEnabled: null,
         }),
@@ -127,7 +133,7 @@ describe("data export", () => {
         expect.objectContaining({
           bucketId,
           title: "book flights",
-          addedBy: "Ana",
+          addedBy: `ana_${owner}`,
           assignedTo: "you",
         }),
         expect.objectContaining({
@@ -141,7 +147,7 @@ describe("data export", () => {
     });
 
     it("the owner gets the items members added to their bucket", async () => {
-      const { owner, bucketId } = await sharedBucket();
+      const { owner, member, bucketId } = await sharedBucket();
 
       const data = await buildAccountExport(owner, T0);
 
@@ -149,8 +155,8 @@ describe("data export", () => {
         expect.objectContaining({ id: bucketId, owner: "you", webhookEnabled: true }),
       ]);
       expect(data.items.map((i) => [i.title, i.addedBy, i.assignedTo])).toEqual([
-        ["book flights", "you", "Sam"],
-        ["buy milk", "Sam", null],
+        ["book flights", "you", `sam_${member}`],
+        ["buy milk", `sam_${member}`, null],
       ]);
     });
 

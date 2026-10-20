@@ -8,6 +8,7 @@ import {
   sendAccountDeletionCodeAction,
 } from "@/app/(app)/actions";
 import type { SharedBucket } from "@/lib/account/delete";
+import { UsernameField } from "./UsernameField";
 import { BOX, INPUT, SECTION, MUTED, HINT } from "./settings-constants";
 
 type Step = "idle" | "confirm" | "code";
@@ -15,11 +16,22 @@ type Step = "idle" | "confirm" | "code";
 type AccountTabProps = {
   email: string;
   username: string | null;
+  usernameDraft: string | null;
+  onUsernameDraft: (draft: string | null) => void;
+  onUsernameSaved: (username: string) => void;
   avatarDraft: AvatarDraft;
   onAvatarDraft: (draft: AvatarDraft) => void;
 };
 
-export function AccountTab({ email, username, avatarDraft, onAvatarDraft }: AccountTabProps) {
+export function AccountTab({
+  email,
+  username,
+  usernameDraft,
+  onUsernameDraft,
+  onUsernameSaved,
+  avatarDraft,
+  onAvatarDraft,
+}: AccountTabProps) {
   const [step, setStep] = useState<Step>("idle");
   const [code, setCode] = useState("");
   const [devCode, setDevCode] = useState("");
@@ -71,12 +83,13 @@ export function AccountTab({ email, username, avatarDraft, onAvatarDraft }: Acco
       {username && (
         <div className={BOX}>
           <span className={SECTION}>username</span>
-          <p className="font-mono text-xs" data-testid="username">
-            {username}
-          </p>
-          <p className={MUTED}>
-            the name other people will see when you share a bucket. you can&apos;t change it yet.
-          </p>
+          <p className={MUTED}>the name other people see when you share a bucket.</p>
+          <UsernameField
+            username={username}
+            draft={usernameDraft}
+            onDraft={onUsernameDraft}
+            onSaved={onUsernameSaved}
+          />
         </div>
       )}
 

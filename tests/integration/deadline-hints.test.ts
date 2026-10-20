@@ -31,7 +31,10 @@ afterEach(() => resetSchedulerEnvironment());
 async function sharedBucket() {
   const owner = await seedUser(INDIA);
   const sam = await seedUser(LONDON);
-  await db.update(users).set({ displayName: "Sam" }).where(eq(users.id, sam));
+  await db
+    .update(users)
+    .set({ username: `sam_${sam}` })
+    .where(eq(users.id, sam));
   await db
     .update(userSettings)
     .set({ quietHoursFrom: "23:00", quietHoursTo: "08:00" })
@@ -51,23 +54,27 @@ const draft = (deadline: string, assigneeId: number | null = null) => ({
 
 describe("hints for a deadline being edited", () => {
   it("warns about a time at night and in quiet hours for someone else", async () => {
-    const { bucketId } = await sharedBucket();
+    const { sam, bucketId } = await sharedBucket();
     expect(await deadlineHintsAction(bucketId, draft(NINE_INDIA))).toEqual({
       ok: true,
-      hints: [{ name: "Sam", isYou: false, night: true, quiet: true, heldPastDeadline: true }],
+      hints: [
+        { name: `sam_${sam}`, isYou: false, night: true, quiet: true, heldPastDeadline: true },
+      ],
     });
   });
 
   it("says when quiet hours hold the reminder until after it's due", async () => {
-    const { bucketId } = await sharedBucket();
+    const { sam, bucketId } = await sharedBucket();
     expect(await deadlineHintsAction(bucketId, draft(ONE_PM_INDIA))).toEqual({
       ok: true,
-      hints: [{ name: "Sam", isYou: false, night: false, quiet: true, heldPastDeadline: true }],
+      hints: [
+        { name: `sam_${sam}`, isYou: false, night: false, quiet: true, heldPastDeadline: true },
+      ],
     });
   });
 
   it("doesn't blame quiet hours when remind-at already puts the reminder after it's due", async () => {
-    const { bucketId } = await sharedBucket();
+    const { sam, bucketId } = await sharedBucket();
     await db
       .update(buckets)
       .set({
@@ -80,7 +87,9 @@ describe("hints for a deadline being edited", () => {
       .where(eq(buckets.id, bucketId));
     expect(await deadlineHintsAction(bucketId, draft(ONE_PM_INDIA))).toEqual({
       ok: true,
-      hints: [{ name: "Sam", isYou: false, night: false, quiet: true, heldPastDeadline: false }],
+      hints: [
+        { name: `sam_${sam}`, isYou: false, night: false, quiet: true, heldPastDeadline: false },
+      ],
     });
   });
 

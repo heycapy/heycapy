@@ -50,13 +50,13 @@ async function ownerWithInvite(page: Page, bucketName: string) {
   return { bucketId, code };
 }
 
-async function joinWithCode(page: Page, code: string, displayName?: string): Promise<string> {
+async function joinWithCode(page: Page, code: string, username?: string): Promise<string> {
   const email = uniqueEmail("e2e-share-friend");
   await login(page, email);
   giveOwnSmtp(email);
-  if (displayName) {
+  if (username) {
     const db = new Database(E2E_DATABASE_FILE);
-    db.prepare("update users set display_name = ? where email = ?").run(displayName, email);
+    db.prepare("update users set username = ? where email = ?").run(username, email);
     db.close();
   }
   await page.getByRole("button", { name: "···" }).click();
@@ -326,7 +326,8 @@ test("an item can be assigned to a member, and a bucket nobody shares has no suc
   await page.getByRole("button", { name: bracket("create invite") }).click();
   const code = (await page.getByTestId("invite-code").textContent()) ?? "";
   const friend = await browser.newPage();
-  await joinWithCode(friend, code, "Sam");
+  const sam = `sam_${Date.now()}`;
+  await joinWithCode(friend, code, sam);
   await friend.waitForURL(`/?bucket=${bucketId}`);
 
   const title = `take out the bins ${Date.now()}`;
@@ -334,9 +335,9 @@ test("an item can be assigned to a member, and a bucket nobody shares has no suc
   await page.getByRole("button", { name: "[ add + ]", exact: true }).click();
   const dialog = newItemDialog(page);
   await dialog.locator("textarea").fill(title);
-  await dialog.getByRole("button", { name: "Sam", exact: true }).click();
+  await dialog.getByRole("button", { name: sam, exact: true }).click();
   await dialog.getByRole("button", { name: "[ add ]", exact: true }).click();
-  await expect(itemRow(page, title)).toContainText("→ Sam");
+  await expect(itemRow(page, title)).toContainText(`→ ${sam}`);
 
   await friend.reload();
   await expect(itemRow(friend, title)).toContainText("→ you");
@@ -373,7 +374,8 @@ test("typing @ in the title picks a member in a shared bucket, and does nothing 
   await page.getByRole("button", { name: bracket("create invite") }).click();
   const code = (await page.getByTestId("invite-code").textContent()) ?? "";
   const friend = await browser.newPage();
-  await joinWithCode(friend, code, "Sam");
+  const sam = `sam_${Date.now()}`;
+  await joinWithCode(friend, code, sam);
   await friend.waitForURL(`/?bucket=${bucketId}`);
   await friend.close();
 
@@ -386,34 +388,34 @@ test("typing @ in the title picks a member in a shared bucket, and does nothing 
   await expect(dialog.getByRole("listbox")).toHaveCount(0);
 
   await title.fill("buy oat milk @sa");
-  await expect(dialog.getByRole("option", { name: /^Sam/ })).toBeVisible();
+  await expect(dialog.getByRole("option", { name: new RegExp(`^${sam}`) })).toBeVisible();
   await title.press("Escape");
   await expect(dialog.getByRole("listbox")).toHaveCount(0);
   await expect(title).toHaveValue("buy oat milk @sa");
   await expect(page.getByText("new item", { exact: true })).toBeVisible();
 
   await title.press("m");
-  await expect(dialog.getByRole("option", { name: /^Sam/ })).toBeVisible();
+  await expect(dialog.getByRole("option", { name: new RegExp(`^${sam}`) })).toBeVisible();
   await title.press("Enter");
   await expect(title).toHaveValue("buy oat milk");
-  await expect(dialog.getByRole("button", { name: /^Sam/ })).toHaveAttribute(
+  await expect(dialog.getByRole("button", { name: new RegExp(`^${sam}`) })).toHaveAttribute(
     "aria-pressed",
     "true"
   );
   await dialog.getByRole("button", { name: "[ add ]", exact: true }).click();
-  await expect(itemRow(page, "buy oat milk")).toContainText("→ Sam");
+  await expect(itemRow(page, "buy oat milk")).toContainText(`→ ${sam}`);
 
   await page.getByRole("button", { name: "[ add + ]", exact: true }).click();
   await title.fill("water the plants @");
   await expect(dialog.getByRole("option")).toHaveCount(3);
   await title.press("ArrowDown");
-  await expect(dialog.getByRole("option", { name: /^Sam/ })).toHaveAttribute(
+  await expect(dialog.getByRole("option", { name: new RegExp(`^${sam}`) })).toHaveAttribute(
     "aria-selected",
     "true"
   );
-  await dialog.getByRole("option", { name: /^Sam/ }).click();
+  await dialog.getByRole("option", { name: new RegExp(`^${sam}`) }).click();
   await expect(title).toHaveValue("water the plants");
-  await expect(dialog.getByRole("button", { name: /^Sam/ })).toHaveAttribute(
+  await expect(dialog.getByRole("button", { name: new RegExp(`^${sam}`) })).toHaveAttribute(
     "aria-pressed",
     "true"
   );
@@ -425,7 +427,8 @@ test("people see each other's avatars next to their names, a generated one if ne
 }) => {
   const { bucketId, code } = await ownerWithInvite(page, `avatars ${Date.now()}`);
   const friend = await browser.newPage();
-  const friendEmail = await joinWithCode(friend, code, "Sam");
+  const sam = `sam_${Date.now()}`;
+  const friendEmail = await joinWithCode(friend, code, sam);
   await friend.waitForURL(`/?bucket=${bucketId}`);
   await friend.close();
   // a full-width red row, the owner never drew, and a generated avatar keeps a margin so has none
@@ -447,7 +450,7 @@ test("people see each other's avatars next to their names, a generated one if ne
 
   await page.getByRole("button", { name: "[ add + ]", exact: true }).click();
   const dialog = newItemDialog(page);
-  await expect(sams(dialog.getByRole("button", { name: "Sam", exact: true }))).toHaveAttribute(
+  await expect(sams(dialog.getByRole("button", { name: sam, exact: true }))).toHaveAttribute(
     "width",
     "16"
   );
@@ -456,9 +459,9 @@ test("people see each other's avatars next to their names, a generated one if ne
   await page.keyboard.press("Enter");
   const title = `call ${Date.now()}`;
   await dialog.locator("textarea").fill(title);
-  await dialog.getByRole("button", { name: "Sam", exact: true }).click();
+  await dialog.getByRole("button", { name: sam, exact: true }).click();
   await dialog.getByRole("button", { name: "[ add ]", exact: true }).click();
-  await expect(itemRow(page, title)).toContainText("→ Sam");
+  await expect(itemRow(page, title)).toContainText(`→ ${sam}`);
   await expect(sams(itemRow(page, title))).toHaveAttribute("width", "16");
 
   await itemRow(page, title).click();

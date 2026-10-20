@@ -1,16 +1,47 @@
 import { randomInt } from "node:crypto";
-import { and, eq, isNull, notExists, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gt, gte, isNull, ne, notExists, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { users } from "@/lib/db/schema";
+import { usernameChanges, users } from "@/lib/db/schema";
+import { normalizeUsername, usernameProblem } from "./username-rules";
 import {
   USERNAME_ACTIVITIES,
   USERNAME_ADJECTIVES,
   USERNAME_ANIMALS,
+  DAY_MS,
+  USERNAME_CHANGE_WINDOW_DAYS,
+  USERNAME_CHANGES_PER_WINDOW,
+  USERNAME_HOLD_DAYS,
   USERNAME_MAX_ATTEMPTS,
   USERNAME_PLAIN_ATTEMPTS,
   USERNAME_SUFFIX_MAX,
   USERNAME_SUFFIX_MIN,
 } from "./constants";
+
+type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
+
+function daysBefore(now: Date, days: number): Date {
+  return new Date(now.getTime() - days * DAY_MS);
+}
+
+// A name someone else let go of lately, taking back your own old name is fine
+function heldFromOthers(q: Tx | typeof db, name: string, userId: number, now: Date) {
+  return q
+    .select({ one: sql`1` })
+    .from(usernameChanges)
+    .where(
+      and(
+        eq(usernameChanges.oldUsername, name),
+        ne(usernameChanges.userId, userId),
+        gt(usernameChanges.createdAt, daysBefore(now, USERNAME_HOLD_DAYS))
+      )
+    );
+}
+
+// A held name reads as taken too, so nobody learns that someone renamed
+function nameInUse(q: Tx | typeof db, name: string, userId: number, now: Date, byAdmin = false) {
+  const taken = q.select({ id: users.id }).from(users).where(eq(users.username, name)).get();
+  return !!taken || (!byAdmin && !!heldFromOthers(q, name, userId, now).get());
+}
 
 function pick(words: readonly string[]): string {
   return words[randomInt(words.length)];
@@ -47,7 +78,8 @@ export async function assignUsername(userId: number): Promise<string> {
               .select({ one: sql`1` })
               .from(users)
               .where(eq(users.username, candidate))
-          )
+          ),
+          notExists(heldFromOthers(db, candidate, userId, new Date()))
         )
       )
       .returning({ username: users.username });
@@ -59,4 +91,146 @@ export async function assignUsername(userId: number): Promise<string> {
 export async function backfillUsernames(): Promise<void> {
   const missing = await db.select({ id: users.id }).from(users).where(isNull(users.username));
   for (const { id } of missing) await assignUsername(id);
+}
+
+export type UsernameAllowance = {
+  used: number;
+  limit: number;
+  bonus: number;
+  // Set once the monthly changes are used up: when the oldest of them stops counting
+  nextFreeAt: Date | null;
+};
+
+export type UsernameChangeResult =
+  | { ok: true; username: string }
+  | { ok: false; reason: "invalid"; problem: string }
+  | { ok: false; reason: "not_found" | "same" | "taken" }
+  | { ok: false; reason: "limit"; nextFreeAt: Date };
+
+function allowanceOf(tx: Tx | typeof db, userId: number, bonus: number, now: Date) {
+  const own = tx
+    .select({ at: usernameChanges.createdAt })
+    .from(usernameChanges)
+    .where(
+      and(
+        eq(usernameChanges.userId, userId),
+        eq(usernameChanges.byAdmin, false),
+        gt(usernameChanges.createdAt, daysBefore(now, USERNAME_CHANGE_WINDOW_DAYS))
+      )
+    )
+    .orderBy(asc(usernameChanges.createdAt))
+    .all();
+  const limit = USERNAME_CHANGES_PER_WINDOW;
+  const freedBy = own.length >= limit ? own[own.length - limit] : undefined;
+  return {
+    used: own.length,
+    limit,
+    bonus,
+    nextFreeAt: freedBy
+      ? new Date(freedBy.at.getTime() + USERNAME_CHANGE_WINDOW_DAYS * DAY_MS)
+      : null,
+  } satisfies UsernameAllowance;
+}
+
+export async function usernameAllowance(
+  userId: number,
+  now = new Date()
+): Promise<UsernameAllowance | null> {
+  const user = await db.query.users.findFirst({
+    columns: { usernameBonusChanges: true },
+    where: eq(users.id, userId),
+  });
+  return user ? allowanceOf(db, userId, user.usernameBonusChanges, now) : null;
+}
+
+// An admin's rename skips the allowance and the hold on old names, never the other rules
+export async function changeUsername(
+  userId: number,
+  input: string,
+  { byAdmin = false, now = new Date() }: { byAdmin?: boolean; now?: Date } = {}
+): Promise<UsernameChangeResult> {
+  const name = normalizeUsername(input);
+  const problem = usernameProblem(name);
+  if (problem) return { ok: false, reason: "invalid", problem };
+
+  return db.transaction((tx): UsernameChangeResult => {
+    const user = tx
+      .select({ username: users.username, bonus: users.usernameBonusChanges })
+      .from(users)
+      .where(eq(users.id, userId))
+      .get();
+    if (!user) return { ok: false, reason: "not_found" };
+    if (user.username === name) return { ok: false, reason: "same" };
+    if (nameInUse(tx, name, userId, now, byAdmin)) return { ok: false, reason: "taken" };
+
+    let useBonus = false;
+    if (!byAdmin) {
+      const { nextFreeAt } = allowanceOf(tx, userId, user.bonus, now);
+      if (nextFreeAt && user.bonus === 0) return { ok: false, reason: "limit", nextFreeAt };
+      useBonus = nextFreeAt !== null;
+    }
+
+    tx.update(users)
+      .set({
+        username: name,
+        ...(useBonus && { usernameBonusChanges: sql`${users.usernameBonusChanges} - 1` }),
+      })
+      .where(eq(users.id, userId))
+      .run();
+    tx.insert(usernameChanges)
+      .values({ userId, oldUsername: user.username, newUsername: name, byAdmin, createdAt: now })
+      .run();
+    return { ok: true, username: name };
+  });
+}
+
+export type UsernameAvailability =
+  { status: "available" | "taken" | "same" } | { status: "invalid"; problem: string };
+
+// Only a hint while typing, changeUsername checks everything again
+export async function usernameAvailability(
+  userId: number,
+  input: string,
+  now = new Date()
+): Promise<UsernameAvailability> {
+  const name = normalizeUsername(input);
+  const problem = usernameProblem(name);
+  if (problem) return { status: "invalid", problem };
+  const user = await db.query.users.findFirst({
+    columns: { username: true },
+    where: eq(users.id, userId),
+  });
+  if (user?.username === name) return { status: "same" };
+  return { status: nameInUse(db, name, userId, now) ? "taken" : "available" };
+}
+
+export async function suggestUsername(userId: number, now = new Date()): Promise<string> {
+  for (let attempt = 0; attempt < USERNAME_MAX_ATTEMPTS; attempt++) {
+    const candidate = generateUsername(attempt);
+    if ((await usernameAvailability(userId, candidate, now)).status === "available") {
+      return candidate;
+    }
+  }
+  throw new Error(`could not find a free username for user ${userId}`);
+}
+
+export type UsernameChange = typeof usernameChanges.$inferSelect;
+
+export function recentUsernameChanges(userId: number, limit: number): Promise<UsernameChange[]> {
+  return db
+    .select()
+    .from(usernameChanges)
+    .where(eq(usernameChanges.userId, userId))
+    .orderBy(desc(usernameChanges.createdAt), desc(usernameChanges.id))
+    .limit(limit);
+}
+
+// Never below zero; null when there was nothing to take
+export async function adjustUsernameBonus(userId: number, delta: number): Promise<number | null> {
+  const [row] = await db
+    .update(users)
+    .set({ usernameBonusChanges: sql`${users.usernameBonusChanges} + ${delta}` })
+    .where(and(eq(users.id, userId), gte(sql`${users.usernameBonusChanges} + ${delta}`, 0)))
+    .returning({ bonus: users.usernameBonusChanges });
+  return row ? row.bonus : null;
 }
