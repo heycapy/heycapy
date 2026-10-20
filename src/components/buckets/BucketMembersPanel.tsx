@@ -15,6 +15,7 @@ import type { BucketMember } from "@/lib/buckets/members";
 import { clockTimeIn } from "@/lib/format-date";
 import { placesOf, timeGap } from "@/lib/timezones/gap";
 import { ConfirmRow } from "@/components/layout/ConfirmRow";
+import { useUIStore } from "@/store/ui";
 import { InviteSection } from "./InviteSection";
 
 type Confirming = { userId: number; action: "remove" | "owner" } | "leave" | null;
@@ -36,6 +37,7 @@ export function BucketMembersPanel({
   onLeft: () => void;
 }) {
   const router = useRouter();
+  const refreshTick = useUIStore((s) => s.refreshTick);
   const [members, setMembers] = useState<BucketMember[] | null>(null);
   const [confirming, setConfirming] = useState<Confirming>(null);
   const [error, setError] = useState("");
@@ -57,7 +59,7 @@ export function BucketMembersPanel({
     return () => {
       cancelled = true;
     };
-  }, [bucket.id]);
+  }, [bucket.id, refreshTick]);
 
   function remove(memberId: number) {
     setError("");

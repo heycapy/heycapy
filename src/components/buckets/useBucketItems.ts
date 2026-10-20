@@ -16,7 +16,7 @@ import { offerUndoDelete } from "./undoDelete";
 type Item = typeof items.$inferSelect;
 
 export function useBucketItems(bucketId: number, itemsRules: string, showCompleted: boolean) {
-  const aiRefreshTick = useUIStore((s) => s.aiRefreshTick);
+  const refreshTick = useUIStore((s) => s.refreshTick);
   const [fetchedItems, setFetchedItems] = useState<Item[]>([]);
   const [reminderBadges, setReminderBadges] = useState<Record<number, ReminderBadge>>({});
   const [loading, setLoading] = useState(true);
@@ -36,7 +36,7 @@ export function useBucketItems(bucketId: number, itemsRules: string, showComplet
     return () => {
       cancelled = true;
     };
-  }, [bucketId, itemsRules, aiRefreshTick]);
+  }, [bucketId, itemsRules, refreshTick]);
 
   useEffect(() => {
     const next = showCompleted

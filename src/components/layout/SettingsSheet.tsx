@@ -40,7 +40,7 @@ export function SettingsSheet({ open, initialTab, onClose }: SettingsSheetProps)
   const { theme, setTheme } = useTheme();
   const [tab, setTab] = useState<SettingsTab>("appearance");
   const [pending, startTransition] = useTransition();
-  const tickAiRefresh = useUIStore((s) => s.tickAiRefresh);
+  const tickRefresh = useUIStore((s) => s.tickRefresh);
   const [error, setError] = useState("");
   const [loaded, setLoaded] = useState(false);
 
@@ -223,7 +223,7 @@ export function SettingsSheet({ open, initialTab, onClose }: SettingsSheetProps)
         setConfirmClose(false);
         return;
       }
-      if (result.aiChanged) void checkAIKeyAction().then(tickAiRefresh);
+      if (result.aiChanged) void checkAIKeyAction().then(tickRefresh);
       if (avatarDraft) {
         const avatarResult = await saveAvatarAction(avatarDraft.avatar);
         if (!avatarResult.ok) {

@@ -11,7 +11,7 @@ import { BOX, HINT, MUTED } from "./settings-constants";
 
 export function AIStatusBox({ ownKeyPicked }: { ownKeyPicked: boolean }) {
   const status = useAIStatus();
-  const tickAiRefresh = useUIStore((s) => s.tickAiRefresh);
+  const tickRefresh = useUIStore((s) => s.tickRefresh);
   const [checking, startCheck] = useTransition();
 
   if (!status) return null;
@@ -19,7 +19,7 @@ export function AIStatusBox({ ownKeyPicked }: { ownKeyPicked: boolean }) {
   function check() {
     startCheck(async () => {
       await checkAIKeyAction();
-      tickAiRefresh();
+      tickRefresh();
     });
   }
 
