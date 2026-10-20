@@ -1,8 +1,9 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
 import Database from "better-sqlite3";
 import { E2E_DATABASE_FILE } from "../helpers/env";
 import { addItem, itemRow } from "../helpers/buckets";
 import { login, uniqueEmail } from "../helpers/login";
+import { openSettings } from "../helpers/settings";
 
 function shareBucket(ownerEmail: string, memberEmail: string | null): number {
   const db = new Database(E2E_DATABASE_FILE);
@@ -19,6 +20,16 @@ function shareBucket(ownerEmail: string, memberEmail: string | null): number {
   }
   db.close();
   return bucketId;
+}
+
+async function renameIn(page: Page, username: string): Promise<void> {
+  await page.getByRole("button", { name: "···" }).click();
+  await page.getByRole("button", { name: "tweaks" }).click();
+  await page.getByRole("button", { name: "account", exact: true }).click();
+  await page.getByRole("textbox", { name: "username" }).fill(username);
+  await expect(page.getByTestId("username-check")).toHaveText("✓ available");
+  await page.getByRole("button", { name: "[ save username ]", exact: true }).click();
+  await expect(page.getByTestId("username-allowance")).toHaveText(/^1 of 2/);
 }
 
 test("what one member adds shows up on the others' open screens", async ({ page, browser }) => {
@@ -97,13 +108,7 @@ test("a member's new username and avatar show up on the others' open screens", a
   await page.goto(`/?bucket=${bucketId}`);
   await expect(itemRow(page, title)).toContainText(`→ before_${stamp}`);
 
-  await member.getByRole("button", { name: "···" }).click();
-  await member.getByRole("button", { name: "tweaks" }).click();
-  await member.getByRole("button", { name: "account", exact: true }).click();
-  await member.getByRole("textbox", { name: "username" }).fill(`after_${stamp}`);
-  await expect(member.getByTestId("username-check")).toHaveText("✓ available");
-  await member.getByRole("button", { name: "[ save username ]", exact: true }).click();
-  await expect(member.getByTestId("username-allowance")).toHaveText(/^1 of 2/);
+  await renameIn(member, `after_${stamp}`);
 
   await expect(itemRow(page, title)).toContainText(`→ after_${stamp}`);
 
@@ -118,5 +123,30 @@ test("a member's new username and avatar show up on the others' open screens", a
   await expect(member.getByRole("button", { name: "[ save avatar ]", exact: true })).toBeDisabled();
 
   await expect(itemRow(page, title).locator("rect")).toHaveCount(1);
+  await other.close();
+});
+
+test("an open members tab shows a member's new username", async ({ page, browser }) => {
+  const ownerEmail = uniqueEmail("e2e-live-members-owner");
+  await login(page, ownerEmail);
+  const other = await browser.newContext();
+  const member = await other.newPage();
+  const memberEmail = uniqueEmail("e2e-live-members-member");
+  await login(member, memberEmail);
+  const bucketId = shareBucket(ownerEmail, memberEmail);
+  const stamp = Date.now();
+  const db = new Database(E2E_DATABASE_FILE);
+  db.prepare("update users set username = ? where email = ?").run(`before_${stamp}`, memberEmail);
+  db.close();
+
+  await page.goto(`/?bucket=${bucketId}`);
+  const settings = await openSettings(page);
+  await settings.getByRole("button", { name: "members", exact: true }).click();
+  const rows = settings.getByRole("listitem");
+  await expect(rows.nth(1)).toContainText(`before_${stamp}`);
+
+  await renameIn(member, `after_${stamp}`);
+
+  await expect(rows.nth(1)).toContainText(`after_${stamp}`);
   await other.close();
 });

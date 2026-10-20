@@ -12,7 +12,7 @@ const CONNECTION_LOST = "Lost the connection before capy answered. Try again.";
 
 export function useChatStream() {
   const router = useRouter();
-  const tickAiRefresh = useUIStore((s) => s.tickAiRefresh);
+  const tickRefresh = useUIStore((s) => s.tickRefresh);
 
   const messages = useChatStore((s) => s.messages);
   const sessionId = useChatStore((s) => s.sessionId);
@@ -109,7 +109,7 @@ export function useChatStream() {
       setStatus(null);
       abortRef.current = null;
       if (!aborted) {
-        tickAiRefresh();
+        tickRefresh();
         router.refresh();
       }
     }

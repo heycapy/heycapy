@@ -11,7 +11,7 @@ import { useUIStore } from "@/store/ui";
 
 //NOTE: dodo sends the buyer back with the result in the address, it only decides the message, the credits come from the webhook
 export function PurchaseReturn({ onPaid }: { onPaid: () => void }) {
-  const tickAiRefresh = useUIStore((s) => s.tickAiRefresh);
+  const tickRefresh = useUIStore((s) => s.tickRefresh);
 
   useEffect(() => {
     const url = new URL(window.location.href);
@@ -36,7 +36,7 @@ export function PurchaseReturn({ onPaid }: { onPaid: () => void }) {
     );
     onPaid();
     const timers = CHECKOUT_BALANCE_RECHECK_SECONDS.map((seconds) =>
-      setTimeout(tickAiRefresh, seconds * 1000)
+      setTimeout(tickRefresh, seconds * 1000)
     );
     return () => timers.forEach(clearTimeout);
     // eslint-disable-next-line react-hooks/exhaustive-deps

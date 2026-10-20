@@ -4,7 +4,7 @@ import { useUIStore } from "@/store/ui";
 import type { AIStatus } from "@/lib/ai/status";
 
 export function useAIStatus(): AIStatus | null {
-  const tick = useUIStore((s) => s.aiRefreshTick);
+  const tick = useUIStore((s) => s.refreshTick);
   const [status, setStatus] = useState<AIStatus | null>(null);
 
   useEffect(() => {

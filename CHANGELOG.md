@@ -2,6 +2,15 @@
 
 all notable changes to heycapy. versions follow [semver](https://semver.org): a patch version (0.3.1) only fixes things, a minor version (0.4.0) adds features. the database migrates itself on start and migrations only go forward, so back up before upgrading (see the README).
 
+## 0.6.1
+
+an open members tab keeps up with renames, and primary text is easier to read in five themes.
+
+### fixes
+
+- bucket settings → members shows a member's new username or avatar while it's open, it showed them only after you opened the tab again
+- the primary colour (links, active tabs, "✓ available", buttons) was too faint to read in gruvbox light, rosé pine dawn, rosé pine, solarized and midnight. it's darker or lighter now so it reads on the page, on cards and under button labels. solarized and midnight buttons have dark labels now
+
 ## 0.6.0
 
 change your username, see a member's new name and avatar without reloading, and heycapy refuses to start on a database from a newer version instead of serving errors.

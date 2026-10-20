@@ -3,6 +3,19 @@ export type Release = { version: string; notes: ReleaseNote[] };
 
 export const RELEASES: [Release, ...Release[]] = [
   {
+    version: "0.6.1",
+    notes: [
+      {
+        title: "easier to read in five themes",
+        text: "links, active tabs and buttons were too faint in gruvbox light, rosé pine dawn, rosé pine, solarized and midnight. they stand out now.",
+      },
+      {
+        title: "the members tab keeps up",
+        text: "with bucket settings → members open, a member's new name or avatar shows up without opening the tab again.",
+      },
+    ],
+  },
+  {
     version: "0.6.0",
     notes: [
       {
