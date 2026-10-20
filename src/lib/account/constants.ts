@@ -7,6 +7,8 @@ export const DAY_MS = 24 * 60 * 60 * 1000;
 
 export const USERNAME_MIN_LENGTH = 3;
 export const USERNAME_MAX_LENGTH = 32;
+// What an action accepts before the rules run: room for spaces and capitals
+export const USERNAME_INPUT_MAX_LENGTH = 64;
 export const USERNAME_CHANGES_PER_WINDOW = 2;
 export const USERNAME_CHANGE_WINDOW_DAYS = 30;
 export const USERNAME_HOLD_DAYS = 30;

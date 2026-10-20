@@ -25,7 +25,8 @@ export function SaveBar({ pending, onSave, onDiscard }: SaveBarProps) {
 
 type CloseWarningProps = {
   pending: boolean;
-  onSave: () => void;
+  // null when a new username is waiting: it uses up a change, so only its own button saves it
+  onSave: (() => void) | null;
   onDiscard: () => void;
   onKeepEditing: () => void;
 };
@@ -39,11 +40,17 @@ export function CloseWarning({ pending, onSave, onDiscard, onKeepEditing }: Clos
         className="border-border bg-background flex w-full max-w-xs flex-col gap-3 border-2 p-4"
         style={{ boxShadow: "4px 4px 0 var(--border)" }}
       >
-        <p className="font-mono text-xs">save your changes before closing?</p>
+        <p className="font-mono text-xs">
+          {onSave
+            ? "save your changes before closing?"
+            : "your new username isn't saved yet. close and drop your changes?"}
+        </p>
         <div className="flex flex-wrap gap-3">
-          <BracketButton onClick={onSave} disabled={pending} className="text-foreground">
-            {pending ? "saving..." : "save"}
-          </BracketButton>
+          {onSave && (
+            <BracketButton onClick={onSave} disabled={pending} className="text-foreground">
+              {pending ? "saving..." : "save"}
+            </BracketButton>
+          )}
           <BracketButton onClick={onDiscard} disabled={pending} variant="destructive">
             discard
           </BracketButton>

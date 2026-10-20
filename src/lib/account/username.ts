@@ -37,6 +37,12 @@ function heldFromOthers(q: Tx | typeof db, name: string, userId: number, now: Da
     );
 }
 
+// A held name reads as taken too, so nobody learns that someone renamed
+function nameInUse(q: Tx | typeof db, name: string, userId: number, now: Date, byAdmin = false) {
+  const taken = q.select({ id: users.id }).from(users).where(eq(users.username, name)).get();
+  return !!taken || (!byAdmin && !!heldFromOthers(q, name, userId, now).get());
+}
+
 function pick(words: readonly string[]): string {
   return words[randomInt(words.length)];
 }
@@ -155,10 +161,7 @@ export async function changeUsername(
       .get();
     if (!user) return { ok: false, reason: "not_found" };
     if (user.username === name) return { ok: false, reason: "same" };
-    const taken = tx.select({ id: users.id }).from(users).where(eq(users.username, name)).get();
-    if (taken || (!byAdmin && heldFromOthers(tx, name, userId, now).get())) {
-      return { ok: false, reason: "taken" };
-    }
+    if (nameInUse(tx, name, userId, now, byAdmin)) return { ok: false, reason: "taken" };
 
     let useBonus = false;
     if (!byAdmin) {
@@ -179,4 +182,34 @@ export async function changeUsername(
       .run();
     return { ok: true, username: name };
   });
+}
+
+export type UsernameAvailability =
+  { status: "available" | "taken" | "same" } | { status: "invalid"; problem: string };
+
+// Only a hint while typing, changeUsername checks everything again
+export async function usernameAvailability(
+  userId: number,
+  input: string,
+  now = new Date()
+): Promise<UsernameAvailability> {
+  const name = normalizeUsername(input);
+  const problem = usernameProblem(name);
+  if (problem) return { status: "invalid", problem };
+  const user = await db.query.users.findFirst({
+    columns: { username: true },
+    where: eq(users.id, userId),
+  });
+  if (user?.username === name) return { status: "same" };
+  return { status: nameInUse(db, name, userId, now) ? "taken" : "available" };
+}
+
+export async function suggestUsername(userId: number, now = new Date()): Promise<string> {
+  for (let attempt = 0; attempt < USERNAME_MAX_ATTEMPTS; attempt++) {
+    const candidate = generateUsername(attempt);
+    if ((await usernameAvailability(userId, candidate, now)).status === "available") {
+      return candidate;
+    }
+  }
+  throw new Error(`could not find a free username for user ${userId}`);
 }
