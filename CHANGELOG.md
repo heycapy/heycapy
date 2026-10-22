@@ -2,6 +2,25 @@
 
 all notable changes to heycapy. versions follow [semver](https://semver.org): a patch version (0.3.1) only fixes things, a minor version (0.4.0) adds features. the database migrates itself on start and migrations only go forward, so back up before upgrading (see the README).
 
+## 0.7.0
+
+off-site backups: every change to the database goes to an s3-style bucket within a second, and a lost volume comes back from it on its own.
+
+### new
+
+- off-site backups with [litestream](https://litestream.io) (docker): add `LITESTREAM_BUCKET`, `LITESTREAM_ENDPOINT`, `LITESTREAM_PATH`, `LITESTREAM_ACCESS_KEY_ID` and `LITESTREAM_SECRET_ACCESS_KEY` to `.env` and every change goes to the bucket within a second. works with backblaze b2, cloudflare r2, aws s3 and other s3-style storage. without these lines nothing changes
+- a new server with an empty volume restores itself from the bucket on its first start, and the README shows how to go back to a moment in the last day
+- litestream 0.5.17 is in the image, checked against its published checksum
+
+### changes
+
+- the image starts with `start.sh` instead of `node server.js`. if you set your own start command (a `command:` in compose, a process in fly.toml), change it to `sh start.sh` or off-site backups never run
+- with off-site backups on, an empty volume won't start while the bucket can't be reached, so an empty database never replaces your backup. a volume that has a database starts as usual and catches up once the bucket answers
+
+### upgrading
+
+- no migrations. `docker compose up -d --build` as usual, the nightly copies in `backups/` keep running alongside
+
 ## 0.6.1
 
 an open members tab keeps up with renames, and primary text is easier to read in five themes.
