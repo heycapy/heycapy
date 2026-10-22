@@ -154,6 +154,40 @@ cp /restore/heycapy.db* /data/
 chown nextjs:nodejs /data/heycapy.db*
 ```
 
+### off-site backups
+
+the nightly copies live on the same volume as the database, so losing the volume loses both. with [litestream](https://litestream.io) (already in the image) every change also goes to an s3-style bucket within a second, and a lost volume comes back from it on the next start.
+
+1. make a private bucket at any s3-style storage (backblaze b2, cloudflare r2, aws s3, ...) and a key that can read and write only that bucket. on b2, set the bucket's lifecycle to "keep only the last version of the file", or the files litestream deletes are kept and billed
+2. add to `.env`:
+
+   ```sh
+   LITESTREAM_BUCKET=your-bucket
+   LITESTREAM_ENDPOINT=s3.eu-central-003.backblazeb2.com
+   LITESTREAM_PATH=heycapy
+   LITESTREAM_ACCESS_KEY_ID=
+   LITESTREAM_SECRET_ACCESS_KEY=
+   ```
+
+   leave out `LITESTREAM_ENDPOINT` for aws. every running copy of heycapy needs its own `LITESTREAM_PATH`, two sharing one can't be restored
+3. `docker compose up -d`. the bucket gets its first files within a few seconds
+
+a new server with an empty volume restores itself on its first start, as long as `.env` has the same `LITESTREAM_*` lines and `ENCRYPTION_KEY`. while the bucket is unreachable heycapy keeps running and catches up later, but an empty volume won't start until the bucket answers, so an empty database never replaces your backup.
+
+to go back to how things were at a moment in time (in utc), for example after a bad import:
+
+```sh
+docker compose stop heycapy
+docker compose run --rm --no-deps --entrypoint sh heycapy -c '
+  mkdir -p /data/before-restore
+  mv /data/heycapy.db* /data/before-restore/ 2>/dev/null
+  LITESTREAM_DB_PATH=/data/heycapy.db LITESTREAM_PATH="${LITESTREAM_PATH:-heycapy}" \
+    litestream restore -timestamp 2026-10-21T14:00:00Z /data/heycapy.db'
+docker compose up -d
+```
+
+the bucket keeps the last 24 hours of changes, so the moment has to be within them. anything older comes from the nightly copies above.
+
 ## configuration
 
 everything is in `.env.example`. the main ones:
@@ -167,6 +201,7 @@ everything is in `.env.example`. the main ones:
 | `TELEGRAM_BOT_TOKEN` | turns on telegram |
 | `ADMIN_EMAILS` | who sees the system tab and gets alerts |
 | `AI_PROVIDER`, `AI_MODEL`, `AI_API_KEY` | the ai for users without their own key. leave them out and each user adds their own in tweaks → ai |
+| `LITESTREAM_*` | streams the database to an s3-style bucket. see [off-site backups](#off-site-backups) |
 
 users set up their own ai key, ntfy, smtp and notifications inside the app.
 
@@ -183,7 +218,7 @@ leave these out when self-hosting.
 
 - **push notifications** work out of the box over https. on iphone they need "add to home screen".
 - **health checks**: `/api/health` for your platform, `/api/health/scheduler` for an uptime monitor (it returns 503 when reminders are stuck).
-- **backups**: every night the database is copied to a `backups/` folder next to it, keeping the last 7. it lives in the same docker volume as the database, so copy it off the server too (`docker compose cp heycapy:/data/backups .`), along with your `.env`. [how to restore](#restoring-a-backup)
+- **backups**: every night the database is copied to a `backups/` folder next to it, keeping the last 7. it lives in the same docker volume as the database, so copy it off the server too (`docker compose cp heycapy:/data/backups .`), along with your `.env`, or set up [off-site backups](#off-site-backups). [how to restore](#restoring-a-backup)
 
 ## stack
 

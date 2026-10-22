@@ -9,7 +9,7 @@ primary_region = 'fra'
 [build]
 
 [processes]
-  app = 'node server.js'
+  app = 'sh /app/start.sh'
 
 [[mounts]]
   source = 'data'
@@ -25,6 +25,14 @@ primary_region = 'fra'
   auto_start_machines = true
   min_machines_running = 1
   processes = ['app']
+
+  # startup migrates and reconciles reminders before serving, and a server that refuses to start never passes
+  [[http_service.checks]]
+    grace_period = '30s'
+    interval = '15s'
+    method = 'GET'
+    path = '/api/health'
+    timeout = '5s'
 
 [[vm]]
   memory = '1gb'
