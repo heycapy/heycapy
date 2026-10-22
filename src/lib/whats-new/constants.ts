@@ -3,6 +3,19 @@ export type Release = { version: string; notes: ReleaseNote[] };
 
 export const RELEASES: [Release, ...Release[]] = [
   {
+    version: "0.7.0",
+    notes: [
+      {
+        title: "your data is backed up",
+        text: "every change you make is copied to a safe place away from the server within seconds, and heycapy keeps a full copy every night for a week. if the server ever breaks, your buckets, items and reminders come back as they were.",
+      },
+      {
+        title: "self-hosting?",
+        text: 'the off-site copy is off until you add a bucket. "off-site backups" in the README shows how.',
+      },
+    ],
+  },
+  {
     version: "0.6.1",
     notes: [
       {
