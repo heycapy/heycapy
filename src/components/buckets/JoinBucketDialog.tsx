@@ -1,7 +1,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { motion, AnimatePresence } from "framer-motion";
 import { BracketButton } from "@/components/ui/BracketButton";
+import { Modal, ModalHeader } from "@/components/ui/Modal";
 import { BetaTag } from "@/components/ui/BetaTag";
 import { ACCENT_BUTTONS } from "@/components/layout/settings-constants";
 import { cn } from "@/lib/utils";
@@ -42,75 +42,53 @@ export function JoinBucketDialog({ open, onClose }: JoinBucketDialogProps) {
   }
 
   return (
-    <AnimatePresence>
-      {open && (
-        <>
-          <motion.div
-            key="backdrop"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 0.45 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.12 }}
-            className="fixed inset-0 z-[55] bg-black"
-            onClick={close}
+    <Modal open={open} onClose={close} label="join a bucket">
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          join();
+        }}
+        className={cn(
+          "border-border bg-background flex flex-col overflow-hidden border-2",
+          ACCENT_BUTTONS
+        )}
+      >
+        <ModalHeader
+          title={
+            <>
+              join a bucket
+              <BetaTag feature="sharing" />
+            </>
+          }
+          onClose={close}
+        />
+        <div className="flex flex-col gap-3 px-4 py-4">
+          <p className="text-muted-foreground font-mono text-[11px] leading-tight">
+            type the code someone sent you, or just open their link.
+          </p>
+          <input
+            value={code}
+            onChange={(e) => setCode(formatInviteCode(e.target.value))}
+            aria-label="invite code"
+            placeholder="XXXX-XXXX"
+            autoComplete="off"
+            autoCapitalize="characters"
+            spellCheck={false}
+            disabled={pending}
+            className="border-border focus:border-foreground placeholder:text-muted-foreground/50 w-full border-b bg-transparent py-1.5 font-mono text-sm tracking-widest outline-none disabled:opacity-50"
           />
-          <motion.div
-            key="dialog"
-            initial={{ opacity: 0, scale: 0.96, y: -10 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.96, y: -10 }}
-            transition={{ duration: 0.15, ease: "easeOut" }}
-            className="fixed top-[8%] left-1/2 z-[60] w-[calc(100%-2rem)] max-w-sm -translate-x-1/2 shadow-[5px_5px_0_var(--border)] sm:top-[12%]"
-          >
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                join();
-              }}
-              className={cn(
-                "border-border bg-background flex flex-col overflow-hidden border-2",
-                ACCENT_BUTTONS
-              )}
-            >
-              <div className="bg-foreground text-background flex items-center justify-between gap-2 px-3 py-1.5">
-                <span className="font-pixel text-xs">
-                  join a bucket
-                  <BetaTag feature="sharing" />
-                </span>
-                <BracketButton type="button" variant="inverted" onClick={close}>
-                  x
-                </BracketButton>
-              </div>
-              <div className="flex flex-col gap-3 px-4 py-4">
-                <p className="text-muted-foreground font-mono text-[11px] leading-tight">
-                  type the code someone sent you, or just open their link.
-                </p>
-                <input
-                  value={code}
-                  onChange={(e) => setCode(formatInviteCode(e.target.value))}
-                  aria-label="invite code"
-                  placeholder="XXXX-XXXX"
-                  autoComplete="off"
-                  autoCapitalize="characters"
-                  spellCheck={false}
-                  disabled={pending}
-                  className="border-border focus:border-foreground placeholder:text-muted-foreground/50 w-full border-b bg-transparent py-1.5 font-mono text-sm tracking-widest outline-none disabled:opacity-50"
-                />
-                {error && (
-                  <p role="alert" className="text-destructive font-mono text-xs">
-                    {error}
-                  </p>
-                )}
-              </div>
-              <div className="border-border flex justify-end border-t px-3 py-2.5">
-                <BracketButton type="submit" disabled={!ready || pending}>
-                  {pending ? "..." : "join"}
-                </BracketButton>
-              </div>
-            </form>
-          </motion.div>
-        </>
-      )}
-    </AnimatePresence>
+          {error && (
+            <p role="alert" className="text-destructive font-mono text-xs">
+              {error}
+            </p>
+          )}
+        </div>
+        <div className="border-border flex justify-end border-t px-3 py-2.5">
+          <BracketButton type="submit" disabled={!ready || pending}>
+            {pending ? "..." : "join"}
+          </BracketButton>
+        </div>
+      </form>
+    </Modal>
   );
 }

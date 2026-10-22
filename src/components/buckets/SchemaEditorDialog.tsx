@@ -1,7 +1,7 @@
 import { ACCENT_BUTTONS } from "@/components/layout/settings-constants";
 import { cn } from "@/lib/utils";
 import { useRef, useState, useTransition } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { Modal, ModalHeader } from "@/components/ui/Modal";
 import { BracketButton } from "@/components/ui/BracketButton";
 import { updateBucketSchemaAction } from "@/app/(app)/actions";
 import type { FieldDef, BucketSchema } from "@/types/rules";
@@ -40,32 +40,9 @@ type SchemaEditorDialogProps = {
 
 export function SchemaEditorDialog({ open, bucket, onClose }: SchemaEditorDialogProps) {
   return (
-    <AnimatePresence>
-      {open && (
-        <>
-          <motion.div
-            key="schema-backdrop"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 0.6 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.12 }}
-            className="fixed inset-0 z-[65] bg-black"
-            onClick={onClose}
-          />
-          <motion.div
-            key="schema-dialog"
-            initial={{ opacity: 0, scale: 0.97, y: -8 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.97, y: -8 }}
-            transition={{ duration: 0.15, ease: "easeOut" }}
-            className="fixed top-[4%] left-1/2 z-[70] w-[calc(100%-2rem)] max-w-xl -translate-x-1/2"
-            style={{ boxShadow: "5px 5px 0 var(--border)" }}
-          >
-            <SchemaEditorForm bucket={bucket} onClose={onClose} />
-          </motion.div>
-        </>
-      )}
-    </AnimatePresence>
+    <Modal open={open} onClose={onClose} layer="raised" className="top-[4%] max-w-xl sm:top-[4%]">
+      <SchemaEditorForm bucket={bucket} onClose={onClose} />
+    </Modal>
   );
 }
 
@@ -109,12 +86,7 @@ function SchemaEditorForm({ bucket, onClose }: Omit<SchemaEditorDialogProps, "op
         ACCENT_BUTTONS
       )}
     >
-      <div className="bg-foreground text-background flex shrink-0 items-center justify-between gap-2 px-3 py-1.5">
-        <span className="font-pixel min-w-0 truncate text-xs">schema [{bucket.name}]</span>
-        <BracketButton variant="inverted" onClick={onClose}>
-          x
-        </BracketButton>
-      </div>
+      <ModalHeader title={`schema [${bucket.name}]`} onClose={onClose} />
 
       <div
         ref={scrollBodyRef}

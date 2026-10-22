@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { cn, toggled } from "@/lib/utils";
 import { charCountColor } from "@/components/ui/input";
 import { BracketButton } from "@/components/ui/BracketButton";
+import { ModalHeader } from "@/components/ui/Modal";
 import { BetaTag } from "@/components/ui/BetaTag";
 import { BucketRulesFields } from "./BucketRulesFields";
 import { ViewOnlyNotice } from "./ViewOnlyNotice";
@@ -147,12 +148,7 @@ export function BucketSettingsForm({
         ACCENT_BUTTONS
       )}
     >
-      <div className="bg-foreground text-background flex shrink-0 items-center justify-between gap-2 px-3 py-1.5">
-        <span className="font-pixel min-w-0 truncate text-xs">bucket settings [{bucket.name}]</span>
-        <BracketButton variant="inverted" onClick={onClose}>
-          x
-        </BracketButton>
-      </div>
+      <ModalHeader title={`bucket settings [${bucket.name}]`} onClose={onClose} />
 
       <div className="flex shrink-0 flex-col gap-4 px-4 pt-4 pb-0">
         {bucket.isOwner && (

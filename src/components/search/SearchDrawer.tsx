@@ -1,7 +1,7 @@
-import { useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
-import { createPortal } from "react-dom";
-import { AnimatePresence, motion, useDragControls, type PanInfo } from "framer-motion";
+import { useLayoutEffect, useRef, useState } from "react";
+import { motion, useDragControls, type PanInfo } from "framer-motion";
 import { BracketButton } from "@/components/ui/BracketButton";
+import { Modal, ModalTitle } from "@/components/ui/Modal";
 import { ItemDialog } from "@/components/buckets/ItemDialog";
 import { useItemEditor } from "@/components/buckets/useItemEditor";
 import { parseFields } from "@/components/buckets/fields";
@@ -9,27 +9,18 @@ import { DEFAULT_BUCKET_STATUSES } from "@/components/buckets/constants";
 import { CrossBucketList } from "@/components/today/CrossBucketList";
 import { ITEM_STATUS, SHEET_CLOSE_DRAG_PX, SHEET_CLOSE_DRAG_VELOCITY } from "@/constants";
 import { useSearchItems } from "@/components/today/useTodayItems";
-import { useScrollLock } from "@/hooks/useScrollLock";
 import { useVisualViewport } from "@/hooks/useVisualViewport";
 import { useLayoutStore } from "@/store/layout";
-
-const noSubscribe = () => () => {};
 
 export function SearchDrawer() {
   const open = useLayoutStore((s) => s.searchOpen);
   const setSearchOpen = useLayoutStore((s) => s.setSearchOpen);
-  const isClient = useSyncExternalStore(
-    noSubscribe,
-    () => true,
-    () => false
-  );
-  if (!isClient) return null;
+  const close = () => setSearchOpen(false);
 
-  return createPortal(
-    <AnimatePresence>
-      {open && <SearchBody onClose={() => setSearchOpen(false)} />}
-    </AnimatePresence>,
-    document.body
+  return (
+    <Modal open={open} onClose={close} variant="drawer" label="search">
+      <SearchBody onClose={close} />
+    </Modal>
   );
 }
 
@@ -50,7 +41,6 @@ function SearchBody({ onClose }: { onClose: () => void }) {
   const editingBucket = data?.buckets.find((b) => b.id === editingItem?.bucketId);
   const fields = parseFields(editingBucket?.fieldSchema);
   const dragControls = useDragControls();
-  useScrollLock(true);
 
   useLayoutEffect(() => {
     inputRef.current?.focus();
@@ -58,23 +48,11 @@ function SearchBody({ onClose }: { onClose: () => void }) {
 
   return (
     <>
-      <motion.div
-        aria-hidden
-        onClick={onClose}
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        transition={{ duration: 0.15 }}
-        className="fixed inset-0 z-50 bg-black/30"
-      />
       <div
         style={visible ? { top: visible.top, height: visible.height } : undefined}
-        className="pointer-events-none fixed inset-x-0 top-0 bottom-0 z-50 flex flex-col justify-end"
+        className="pointer-events-none absolute inset-x-0 top-0 bottom-0 flex flex-col justify-end"
       >
         <motion.div
-          role="dialog"
-          aria-modal="true"
-          aria-label="search"
           initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 24 }}
@@ -100,7 +78,7 @@ function SearchBody({ onClose }: { onClose: () => void }) {
               <div className="bg-border h-1 w-10 rounded-full" />
             </div>
             <div className="flex items-center justify-between px-4">
-              <span className="font-pixel py-3 text-xs">search every bucket</span>
+              <ModalTitle className="py-3">search every bucket</ModalTitle>
               <BracketButton onClick={onClose} className="px-1 py-3 text-sm">
                 x
               </BracketButton>
@@ -134,9 +112,6 @@ function SearchBody({ onClose }: { onClose: () => void }) {
                 enterKeyHint="search"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Escape") onClose();
-                }}
                 placeholder="search all items…"
                 aria-label="search all items"
                 maxLength={200}

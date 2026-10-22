@@ -41,16 +41,19 @@ test("after archiving or deleting every bucket, the way back is offered", async 
   await expect(page.getByText("no buckets yet.")).toBeVisible();
   await page.getByRole("button", { name: "[ archived ]" }).click();
   await expect(page.getByText("old bills")).toBeVisible();
-  await page.getByRole("complementary").getByRole("button", { name: "[ x ]" }).click();
+  await page
+    .getByRole("dialog", { name: "archived buckets" })
+    .getByRole("button", { name: "[ x ]" })
+    .click();
 
   await page.getByRole("button", { name: "[ trash ]" }).click();
   await expect(page.getByText("old work")).toBeVisible();
-  await page.getByRole("complementary").getByRole("button", { name: "[ x ]" }).click();
+  await page.getByRole("dialog", { name: "trash" }).getByRole("button", { name: "[ x ]" }).click();
 
   // bringing one back leaves the empty page for the buckets
   await page.getByRole("button", { name: "[ archived ]" }).click();
   await page
-    .getByRole("complementary")
+    .getByRole("dialog", { name: "archived buckets" })
     .getByRole("button", { name: /restore/ })
     .click();
   await expect(page.getByText("no buckets yet.")).toBeHidden();

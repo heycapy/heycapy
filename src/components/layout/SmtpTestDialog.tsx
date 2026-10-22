@@ -1,5 +1,6 @@
 import { APP_TAGLINE } from "@/constants";
 import { BracketButton } from "@/components/ui/BracketButton";
+import { Modal, ModalHeader } from "@/components/ui/Modal";
 import { useState, useTransition } from "react";
 import { cn } from "@/lib/utils";
 import { INPUT, LABEL } from "./settings-constants";
@@ -48,20 +49,17 @@ export function SmtpTestDialog({
     });
   }
 
-  if (!open) return null;
-
   const mono = `'Courier New', Courier, monospace`;
 
   return (
-    <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
-      <div className="fixed inset-0 bg-black/50" onClick={onClose} />
-      <div className="bg-background border-border relative z-10 flex w-full max-w-md flex-col gap-0 border-2">
-        <div className="bg-foreground text-background flex items-center justify-between px-3 py-1.5">
-          <span className="font-pixel text-xs">send test email</span>
-          <BracketButton type="button" variant="inverted" onClick={onClose}>
-            x
-          </BracketButton>
-        </div>
+    <Modal
+      open={open}
+      onClose={onClose}
+      layer="raised"
+      className="top-1/2 max-w-md -translate-y-1/2 shadow-none sm:top-1/2"
+    >
+      <div className="bg-background border-border flex w-full flex-col gap-0 border-2">
+        <ModalHeader title="send test email" onClose={onClose} />
 
         <div className="flex flex-col gap-3 p-4">
           <div className="flex flex-col gap-1.5">
@@ -128,6 +126,6 @@ export function SmtpTestDialog({
           </div>
         </div>
       </div>
-    </div>
+    </Modal>
   );
 }

@@ -37,9 +37,10 @@ test("capy in the bottom bar opens the chat as a drawer on phones", async ({ pag
   await expect.poll(() => chat.evaluate((el) => el.scrollTop)).toBe(0);
 
   await chat.getByRole("button", { name: "[ history ]", exact: true }).tap();
-  await expect(chat.getByText("chat history", { exact: true })).toBeVisible();
-  await chat.getByRole("button", { name: "[ x ]", exact: true }).tap();
-  await expect(chat.getByText("chat history", { exact: true })).toBeHidden();
+  const history = page.getByRole("dialog", { name: "chat history" });
+  await expect(history).toBeVisible();
+  await history.getByRole("button", { name: "[ x ]", exact: true }).tap();
+  await expect(history).toBeHidden();
   await expect(chat).toBeVisible();
 
   await page.touchscreen.tap(195, 60);
