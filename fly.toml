@@ -9,7 +9,7 @@ primary_region = 'fra'
 [build]
 
 [processes]
-  app = 'node server.js'
+  app = 'sh /app/start.sh'
 
 [[mounts]]
   source = 'data'
