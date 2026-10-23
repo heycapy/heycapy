@@ -3,6 +3,23 @@ export type Release = { version: string; notes: ReleaseNote[] };
 
 export const RELEASES: [Release, ...Release[]] = [
   {
+    version: "0.7.1",
+    notes: [
+      {
+        title: "the page stays put",
+        text: "with a window open, like this one or tweaks, scrolling no longer moves the page behind it. on iphone too.",
+      },
+      {
+        title: "escape closes windows",
+        text: "press escape to close any window. with one open on top of another, the top one closes first, and you're back where you were.",
+      },
+      {
+        title: "what's new keeps it short",
+        text: 'it shows the last three updates now. "all changes" opens the full list.',
+      },
+    ],
+  },
+  {
     version: "0.7.0",
     notes: [
       {
