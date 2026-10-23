@@ -12,7 +12,6 @@ import { ItemTimeHints } from "./ItemTimeHints";
 import { useItemClock } from "./useItemClock";
 import { useTitleDate } from "./useTitleDate";
 import type { RecurringConfig, StatusDef, FieldDef } from "@/types/rules";
-import { useScrollLock } from "@/hooks/useScrollLock";
 import { useScrollToFirst } from "@/hooks/useScrollToFirst";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import {
@@ -89,7 +88,6 @@ export function ItemDialog({
 }: ItemDialogProps) {
   const scrollBodyRef = useRef<HTMLDivElement>(null);
   const scrollToFirst = useScrollToFirst(scrollBodyRef);
-  useScrollLock(open);
   const isMobile = useMediaQuery(MOBILE_MEDIA_QUERY);
   const [timeHour, setTimeHour] = useState("9");
   const [timeMin, setTimeMin] = useState("00");
@@ -271,7 +269,6 @@ export function ItemDialog({
         mention={mention}
         onChange={handleTitleChange}
         onEnter={handleConfirmClick}
-        onEscape={onCancel}
         onDismissDate={titleDate.dismiss}
       />
 

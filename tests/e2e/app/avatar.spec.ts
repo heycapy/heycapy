@@ -33,8 +33,9 @@ async function drag(page: Page, canvas: Locator, from: [number, number], to: [nu
   await page.mouse.up();
 }
 
+// by its label, not its role: an open modal hides the header from the accessibility tree
 function header(page: Page) {
-  return page.locator("header").getByRole("img", { name: "your avatar" });
+  return page.locator('header [aria-label="your avatar"]');
 }
 
 function pixels(canvas: Locator) {
@@ -152,7 +153,9 @@ test("closing tweaks with an unsaved drawing asks first, and switching tabs keep
   await page.getByRole("button", { name: "account", exact: true }).click();
   await expect(canvas.locator('rect.fill-avatar-b[width="16"]')).toHaveCount(1);
 
-  const close = page.locator("aside").getByRole("button", { name: "[ x ]", exact: true });
+  const close = page
+    .getByRole("dialog", { name: "tweaks" })
+    .getByRole("button", { name: "[ x ]", exact: true });
   const warning = page.getByRole("alertdialog", { name: "unsaved changes" });
   await close.click();
   await expect(warning).toBeVisible();
@@ -161,7 +164,7 @@ test("closing tweaks with an unsaved drawing asks first, and switching tabs keep
 
   await close.click();
   await warning.getByRole("button", { name: "[ discard ]" }).click();
-  await expect(page.locator("aside")).toHaveCount(0);
+  await expect(page.getByRole("dialog", { name: "tweaks" })).toHaveCount(0);
   const reopened = await openAvatarEditor(page);
   await expect(reopened.locator('rect.fill-avatar-b[width="16"]')).toHaveCount(0);
 
@@ -170,7 +173,7 @@ test("closing tweaks with an unsaved drawing asks first, and switching tabs keep
   await drag(page, reopened, [0, 8], [15, 8]);
   await close.click();
   await warning.getByRole("button", { name: "[ save ]" }).click();
-  await expect(page.locator("aside")).toHaveCount(0);
+  await expect(page.getByRole("dialog", { name: "tweaks" })).toHaveCount(0);
   await expect(header(page).locator('rect.fill-avatar-b[width="16"]')).toHaveCount(1);
 });
 

@@ -197,7 +197,7 @@ test("tweaks has ai second and a credits tab with the balance and what buying lo
   await page.getByRole("button", { name: "tweaks" }).click();
 
   const tabs = page
-    .locator("aside")
+    .getByRole("dialog", { name: "tweaks" })
     .getByRole("button", { name: /^(appearance|ai|credits|notifications|personality|account)$/ });
   await expect(tabs).toHaveText([
     "appearance",

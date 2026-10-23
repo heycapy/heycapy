@@ -53,7 +53,8 @@ function Cell({
 
 export function TimeField({ value, onChange, disabled, allowAllDay = false }: TimeFieldProps) {
   const { hour, min, ampm } = value;
-  const { open, setOpen, toggle, pos, portalTarget, triggerRef, popoverRef } = usePopover(PANEL);
+  const { open, setOpen, toggle, pos, positioning, portalTarget, triggerRef, popoverRef } =
+    usePopover(PANEL);
   const [typed, setTyped] = useState("");
   const [typedInvalid, setTypedInvalid] = useState(false);
   const minutes = QUARTERS.includes(min) ? QUARTERS : [...QUARTERS, min].sort();
@@ -85,6 +86,7 @@ export function TimeField({ value, onChange, disabled, allowAllDay = false }: Ti
       {open && (
         <motion.div
           ref={popoverRef}
+          data-popover
           role="dialog"
           aria-label="pick a time"
           initial={{ opacity: 0, y: -4, scale: 0.97 }}
@@ -92,7 +94,10 @@ export function TimeField({ value, onChange, disabled, allowAllDay = false }: Ti
           exit={{ opacity: 0, y: -4, scale: 0.97 }}
           transition={{ duration: 0.12 }}
           style={{ top: pos.top, left: pos.left, width: PANEL.width }}
-          className="border-border bg-card fixed z-[65] flex flex-col gap-2.5 border-2 p-3 shadow-[3px_3px_0_var(--border)] select-none"
+          className={cn(
+            positioning,
+            "border-border bg-card z-[65] flex flex-col gap-2.5 border-2 p-3 shadow-[3px_3px_0_var(--border)] select-none"
+          )}
         >
           <div role="group" aria-label="hour" className="flex flex-col gap-1">
             <span className={LABEL}>hour</span>

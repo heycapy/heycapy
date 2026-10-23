@@ -192,7 +192,7 @@ async function deleteItem(page: Page, title: string) {
 async function openTrash(page: Page): Promise<Locator> {
   await page.getByRole("button", { name: "···" }).click();
   await page.getByRole("button", { name: "trash", exact: true }).click();
-  const sheet = page.locator("aside").filter({ has: page.getByText("trash", { exact: true }) });
+  const sheet = page.getByRole("dialog", { name: "trash" });
   await expect(sheet.getByText("loading...")).not.toBeVisible();
   return sheet;
 }
@@ -472,7 +472,7 @@ test("people see each other's avatars next to their names, a generated one if ne
   await page.getByRole("button", { name: "[ ··· ]", exact: true }).click();
   await page.getByRole("button", { name: "trash", exact: true }).click();
   const trashed = page
-    .locator("aside")
+    .getByRole("dialog", { name: "trash" })
     .getByRole("region", { name: "items" })
     .locator("div.flex.items-center")
     .filter({ has: page.getByText(title, { exact: true }) });

@@ -11,7 +11,7 @@ export const RELEASES: [Release, ...Release[]] = [
       },
       {
         title: "self-hosting?",
-        text: 'the off-site copy is off until you add a bucket. "off-site backups" in the README shows how.',
+        text: 'the copy away from the server is off until you set it up. "off-site backups" in the README shows how. the nightly copies work as before.',
       },
     ],
   },
@@ -74,4 +74,8 @@ export const RELEASES: [Release, ...Release[]] = [
 ];
 
 export const LATEST_RELEASE = RELEASES[0].version;
+
+// older ones are in the full changelog
+export const RELEASES_SHOWN = 3;
+
 export const CHANGELOG_URL = "https://github.com/heycapy/heycapy/blob/main/CHANGELOG.md";

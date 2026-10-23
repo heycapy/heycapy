@@ -2,7 +2,7 @@ import { test, expect, type Page } from "@playwright/test";
 import Database from "better-sqlite3";
 import { authState, specUserEmail } from "../helpers/auth";
 import { E2E_DATABASE_FILE } from "../helpers/env";
-import { CHANGELOG_URL, LATEST_RELEASE, RELEASES } from "@/lib/whats-new/constants";
+import { CHANGELOG_URL, LATEST_RELEASE, RELEASES, RELEASES_SHOWN } from "@/lib/whats-new/constants";
 
 test.use({ storageState: authState("whats-new") });
 test.describe.configure({ mode: "serial" });
@@ -32,7 +32,8 @@ test("someone from before the update sees a dot until they open what's new", asy
   for (const note of RELEASES[0].notes) {
     await expect(latest.getByRole("heading", { name: note.title })).toBeVisible();
   }
-  await expect(dialog.getByRole("link", { name: "full changelog" })).toHaveAttribute(
+  await expect(dialog.getByRole("region")).toHaveCount(RELEASES_SHOWN);
+  await expect(dialog.getByRole("link", { name: "[ all changes ]" })).toHaveAttribute(
     "href",
     CHANGELOG_URL
   );
