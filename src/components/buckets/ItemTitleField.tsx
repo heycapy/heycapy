@@ -37,7 +37,6 @@ type ItemTitleFieldProps = {
   mention?: { members: MentionMember[]; onPick: (userId: number | null) => void };
   onChange: (v: string) => void;
   onEnter: () => void;
-  onEscape: () => void;
   onDismissDate: () => void;
 };
 
@@ -51,7 +50,6 @@ export function ItemTitleField({
   mention,
   onChange,
   onEnter,
-  onEscape,
   onDismissDate,
 }: ItemTitleFieldProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -124,6 +122,7 @@ export function ItemTitleField({
           value={value}
           onChange={handleChange}
           onSelect={(e) => setCaret(e.currentTarget.selectionStart)}
+          data-handles-escape={listOpen || undefined}
           onKeyDown={(e) => {
             if (listOpen) {
               if (e.key === "ArrowDown" || e.key === "ArrowUp") {
@@ -147,7 +146,6 @@ export function ItemTitleField({
               e.preventDefault();
               onEnter();
             }
-            if (e.key === "Escape") onEscape();
           }}
           placeholder="what needs doing?"
           maxLength={ITEM_TITLE_MAX_LENGTH}

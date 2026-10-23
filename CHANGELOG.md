@@ -2,6 +2,26 @@
 
 all notable changes to heycapy. versions follow [semver](https://semver.org): a patch version (0.3.1) only fixes things, a minor version (0.4.0) adds features. the database migrates itself on start and migrations only go forward, so back up before upgrading (see the README).
 
+## 0.7.1
+
+windows keep the page behind them still, escape closes them, and what's new shows the last three releases.
+
+### fixes
+
+- the page behind an open window (what's new, tweaks, bucket settings, an item, search and the rest) scrolled with your finger on iphone and with the mouse wheel elsewhere. it stays still now
+- tab stays inside an open window, and closing one puts focus back on the button that opened it
+- screen readers announce each window by its name and skip the page behind it while it's open
+
+### changes
+
+- escape closes any window. with a window on top of another (the schema editor over bucket settings) it closes the top one first, and an open picker or @ list closes before its window
+- every window is built on one shared modal ([radix dialog](https://www.radix-ui.com/primitives/docs/components/dialog)), so the backdrop is the same shade everywhere
+- what's new shows the last three releases, with a link to this changelog for the rest
+
+### upgrading
+
+- no migrations. `docker compose up -d --build` as usual
+
 ## 0.7.0
 
 off-site backups: every change to the database goes to an s3-style bucket within a second, and a lost volume comes back from it on its own.

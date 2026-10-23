@@ -1,5 +1,4 @@
 import { useEffect, useState, useTransition } from "react";
-import { useScrollLock } from "@/hooks/useScrollLock";
 import { useTheme } from "next-themes";
 import {
   checkAIKeyAction,
@@ -36,7 +35,6 @@ type SettingsSheetProps = {
 };
 
 export function SettingsSheet({ open, initialTab, onClose }: SettingsSheetProps) {
-  useScrollLock(open);
   const { theme, setTheme } = useTheme();
   const [tab, setTab] = useState<SettingsTab>("appearance");
   const [pending, startTransition] = useTransition();

@@ -23,7 +23,8 @@ function formatDisplay(str: string): string {
 }
 
 export function DatePicker({ value, onChange, disabled }: DatePickerProps) {
-  const { open, setOpen, toggle, pos, portalTarget, triggerRef, popoverRef } = usePopover(CALENDAR);
+  const { open, setOpen, toggle, pos, positioning, portalTarget, triggerRef, popoverRef } =
+    usePopover(CALENDAR);
 
   function selectDay(date: string) {
     onChange(date);
@@ -35,12 +36,16 @@ export function DatePicker({ value, onChange, disabled }: DatePickerProps) {
       {open && (
         <motion.div
           ref={popoverRef}
+          data-popover
           initial={{ opacity: 0, y: -4, scale: 0.97 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: -4, scale: 0.97 }}
           transition={{ duration: 0.12 }}
           style={{ top: pos.top, left: pos.left, width: CALENDAR.width }}
-          className="border-border bg-card fixed z-[65] border-2 p-3 shadow-[3px_3px_0_var(--border)] select-none"
+          className={cn(
+            positioning,
+            "border-border bg-card z-[65] border-2 p-3 shadow-[3px_3px_0_var(--border)] select-none"
+          )}
         >
           <Calendar value={value} onSelect={selectDay} />
 

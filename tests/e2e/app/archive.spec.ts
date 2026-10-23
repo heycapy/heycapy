@@ -33,7 +33,7 @@ async function openSheet(page: Page, menuItem: "archived" | "trash"): Promise<Lo
   await page.getByRole("button", { name: "[ ··· ]", exact: true }).click();
   await page.getByRole("button", { name: menuItem, exact: true }).click();
   const header = menuItem === "archived" ? "archived buckets" : "trash";
-  const sheet = page.locator("aside").filter({ has: page.getByText(header, { exact: true }) });
+  const sheet = page.getByRole("dialog", { name: header });
   await expect(sheet).toBeVisible();
   await expect(sheet.getByText("loading...")).not.toBeVisible();
   return sheet;

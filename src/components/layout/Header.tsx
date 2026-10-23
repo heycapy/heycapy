@@ -11,7 +11,7 @@ import { createPortal } from "react-dom";
 import { BetaTag } from "@/components/ui/BetaTag";
 import { BracketButton } from "@/components/ui/BracketButton";
 import { logoutAction, logoutEverywhereAction } from "@/app/(app)/actions";
-import { useScrollLock } from "@/hooks/useScrollLock";
+import { Modal, ModalTitle } from "@/components/ui/Modal";
 import { cn } from "@/lib/utils";
 import { PersonAvatar } from "@/components/avatar/PersonAvatar";
 
@@ -65,14 +65,14 @@ function LogoutConfirm({
   onCancel: () => void;
 }) {
   const copy = LOGOUT_COPY[scope];
-  return createPortal(
-    <>
-      <div className="fixed inset-0 z-50 bg-black/40" onClick={onCancel} />
-      <div
-        className="bg-background border-border fixed top-1/2 left-1/2 z-50 -translate-x-1/2 -translate-y-1/2 border-2 p-5"
-        style={{ boxShadow: "3px 3px 0 var(--border)", minWidth: 220 }}
-      >
-        <p className="font-pixel mb-1 text-sm">{copy.title}</p>
+  return (
+    <Modal
+      open
+      onClose={onCancel}
+      className="top-1/2 w-auto max-w-[calc(100%-2rem)] min-w-[220px] -translate-y-1/2 shadow-[3px_3px_0_var(--border)] sm:top-1/2"
+    >
+      <div className="bg-background border-border border-2 p-5">
+        <ModalTitle className="mb-1 text-sm">{copy.title}</ModalTitle>
         <p className="text-muted-foreground mb-4 font-mono text-xs">{copy.body}</p>
         <div className="flex gap-2">
           <BracketButton onClick={onConfirm} variant="destructive" className="px-2 py-1">
@@ -83,8 +83,7 @@ function LogoutConfirm({
           </BracketButton>
         </div>
       </div>
-    </>,
-    document.body
+    </Modal>
   );
 }
 
@@ -113,8 +112,8 @@ function GlobalMenu({
 }) {
   const [open, setOpen] = useState(false);
   const [confirmLogout, setConfirmLogout] = useState<LogoutScope | null>(null);
-  useScrollLock(confirmLogout !== null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
   const [pos, setPos] = useState({ top: 0, left: 0 });
 
   function toggle() {
@@ -124,15 +123,17 @@ function GlobalMenu({
     setOpen((v) => !v);
   }
 
+  // the menu item is gone once the menu closes, so a dialog opened from it hands focus back here
   function pick(fn: () => void) {
     setOpen(false);
+    triggerRef.current?.focus();
     fn();
   }
 
   return (
     <>
       <div ref={containerRef} className="relative">
-        <BracketButton onClick={toggle} className="px-1 py-1.5">
+        <BracketButton ref={triggerRef} onClick={toggle} className="px-1 py-1.5">
           ···
         </BracketButton>
         {unseenRelease && <NewDot className="absolute top-1 right-0" />}

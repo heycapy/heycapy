@@ -1,9 +1,9 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { type ButtonHTMLAttributes } from "react";
+import type { ComponentProps } from "react";
 
-interface BracketButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+interface BracketButtonProps extends ComponentProps<"button"> {
   /**
    * default     — base: text-muted-foreground, hover: text-foreground.
    * inverted    — used on inverted bg (title bars with bg-foreground). opacity-based.

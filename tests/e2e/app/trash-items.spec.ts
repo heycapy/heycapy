@@ -25,7 +25,7 @@ async function deleteItem(page: Page, title: string): Promise<void> {
 async function openTrash(page: Page): Promise<Locator> {
   await page.getByRole("button", { name: "[ ··· ]", exact: true }).click();
   await page.getByRole("button", { name: "trash", exact: true }).click();
-  const sheet = page.locator("aside").filter({ has: page.getByText("trash", { exact: true }) });
+  const sheet = page.getByRole("dialog", { name: "trash" });
   await expect(sheet.getByText("loading...")).not.toBeVisible();
   return sheet;
 }

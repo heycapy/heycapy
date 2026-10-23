@@ -7,7 +7,7 @@ import { PixelIcon } from "@/components/ui/PixelIcon";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { motion, AnimatePresence, type Transition } from "framer-motion";
 import { useUIStore } from "@/store/ui";
-import { useScrollLock } from "@/hooks/useScrollLock";
+import { Modal, ModalTitle } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/button";
 import { BracketButton } from "@/components/ui/BracketButton";
 import { createBucketAction } from "@/app/(app)/actions";
@@ -29,7 +29,6 @@ const transition: Transition = { duration: 0.15, ease: "easeOut" };
 
 export function CreateBucketModal({ templates }: CreateBucketModalProps) {
   const { createBucketOpen, closeCreateBucket, selectNewBucket } = useUIStore();
-  useScrollLock(createBucketOpen);
   const [step, setStep] = useState<Step>("pick");
   const [selected, setSelected] = useState<TemplateRow | null>(null);
   const [name, setName] = useState("");
@@ -72,134 +71,114 @@ export function CreateBucketModal({ templates }: CreateBucketModalProps) {
   }
 
   return (
-    <AnimatePresence onExitComplete={handleExitComplete}>
-      {createBucketOpen && (
-        <>
+    <Modal
+      open={createBucketOpen}
+      onClose={closeCreateBucket}
+      onExitComplete={handleExitComplete}
+      className="bg-background border-border top-[18%] overflow-hidden rounded-md border shadow-2xl sm:top-[18%]"
+    >
+      <AnimatePresence mode="wait" initial={false}>
+        {step === "pick" ? (
           <motion.div
-            key="backdrop"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 0.5 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.12 }}
-            className="fixed inset-0 z-[55] bg-black"
-            onClick={closeCreateBucket}
-          />
-
-          <motion.div
-            key="modal"
-            initial={{ opacity: 0, y: -10, scale: 0.97 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -6, scale: 0.97 }}
+            key="pick"
+            initial={{ opacity: 0, x: -16 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -16 }}
             transition={transition}
-            className="bg-background border-border fixed top-[18%] left-1/2 z-[60] w-[calc(100%-2rem)] max-w-sm -translate-x-1/2 overflow-hidden rounded-md border shadow-2xl"
           >
-            <AnimatePresence mode="wait" initial={false}>
-              {step === "pick" ? (
-                <motion.div
-                  key="pick"
-                  initial={{ opacity: 0, x: -16 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -16 }}
-                  transition={transition}
-                >
-                  <div className="flex items-start justify-between border-b px-4 py-3">
-                    <div>
-                      <p className="font-pixel text-sm">New bucket</p>
-                      <p className="text-muted-foreground mt-0.5 text-xs">
-                        Pick a template to get started.
-                      </p>
-                    </div>
-                    <BracketButton onClick={closeCreateBucket}>
-                      <PixelIcon icon={Close} />
-                    </BracketButton>
-                  </div>
+            <div className="flex items-start justify-between border-b px-4 py-3">
+              <div>
+                <ModalTitle className="text-sm">New bucket</ModalTitle>
+                <p className="text-muted-foreground mt-0.5 text-xs">
+                  Pick a template to get started.
+                </p>
+              </div>
+              <BracketButton onClick={closeCreateBucket} aria-label="close">
+                <PixelIcon icon={Close} />
+              </BracketButton>
+            </div>
 
-                  <div className="max-h-[55vh] overflow-y-auto">
-                    {error && (
-                      <p className="text-destructive px-4 pt-3 font-mono text-xs">{error}</p>
-                    )}
+            <div className="max-h-[55vh] overflow-y-auto">
+              {error && <p className="text-destructive px-4 pt-3 font-mono text-xs">{error}</p>}
 
-                    <div className="grid grid-cols-2 gap-1.5 p-2 sm:gap-2 sm:p-3">
-                      {templates.map((t) => (
-                        <button
-                          key={t.id}
-                          onClick={() => handlePickTemplate(t)}
-                          className="border-border bg-card hover:bg-muted flex flex-col gap-1 rounded border p-2 text-left transition-colors sm:gap-1.5 sm:p-3"
-                        >
-                          <PixelIcon
-                            icon={TEMPLATE_ICONS[t.name] ?? Package}
-                            className="text-muted-foreground"
-                          />
-                          <span className="font-pixel truncate text-xs sm:text-xs">{t.name}</span>
-                          {t.description && (
-                            <span className="text-muted-foreground line-clamp-2 text-[11px] leading-snug sm:text-xs">
-                              {t.description}
-                            </span>
-                          )}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </motion.div>
-              ) : (
-                <motion.div
-                  key="name"
-                  initial={{ opacity: 0, x: 16 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: 16 }}
-                  transition={transition}
-                >
-                  <div className="flex items-center justify-between border-b px-4 py-3">
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => {
-                          setStep("pick");
-                          setError("");
-                        }}
-                        className="text-muted-foreground hover:text-foreground transition-colors"
-                      >
-                        <PixelIcon icon={ArrowLeft} />
-                      </button>
-                      <p className="font-pixel text-sm">Name it</p>
-                    </div>
-                    <BracketButton onClick={closeCreateBucket}>
-                      <PixelIcon icon={Close} />
-                    </BracketButton>
-                  </div>
-                  <div className="flex flex-col gap-3 p-4">
-                    <input
-                      ref={nameInputRef}
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" && name.trim()) handleCreate();
-                      }}
-                      placeholder="Bucket name…"
-                      maxLength={BUCKET_NAME_MAX_LENGTH}
-                      disabled={pending}
-                      className="border-border bg-input placeholder:text-muted-foreground focus:ring-ring rounded border px-3 py-2 text-sm outline-none focus:ring-1 disabled:opacity-50"
+              <div className="grid grid-cols-2 gap-1.5 p-2 sm:gap-2 sm:p-3">
+                {templates.map((t) => (
+                  <button
+                    key={t.id}
+                    onClick={() => handlePickTemplate(t)}
+                    className="border-border bg-card hover:bg-muted flex flex-col gap-1 rounded border p-2 text-left transition-colors sm:gap-1.5 sm:p-3"
+                  >
+                    <PixelIcon
+                      icon={TEMPLATE_ICONS[t.name] ?? Package}
+                      className="text-muted-foreground"
                     />
-                    {name.length > 0 && (
-                      <p
-                        className={cn(
-                          "mt-0.5 text-right font-mono text-[11px] transition-colors",
-                          charCountColor(name.length, BUCKET_NAME_MAX_LENGTH)
-                        )}
-                      >
-                        {name.length}/{BUCKET_NAME_MAX_LENGTH}
-                      </p>
+                    <span className="font-pixel truncate text-xs sm:text-xs">{t.name}</span>
+                    {t.description && (
+                      <span className="text-muted-foreground line-clamp-2 text-[11px] leading-snug sm:text-xs">
+                        {t.description}
+                      </span>
                     )}
-                    {error && <p className="text-destructive text-xs">{error}</p>}
-                    <Button onClick={handleCreate} loading={pending} disabled={!name.trim()}>
-                      Create bucket
-                    </Button>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
+                  </button>
+                ))}
+              </div>
+            </div>
           </motion.div>
-        </>
-      )}
-    </AnimatePresence>
+        ) : (
+          <motion.div
+            key="name"
+            initial={{ opacity: 0, x: 16 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 16 }}
+            transition={transition}
+          >
+            <div className="flex items-center justify-between border-b px-4 py-3">
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => {
+                    setStep("pick");
+                    setError("");
+                  }}
+                  className="text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <PixelIcon icon={ArrowLeft} />
+                </button>
+                <ModalTitle className="text-sm">Name it</ModalTitle>
+              </div>
+              <BracketButton onClick={closeCreateBucket} aria-label="close">
+                <PixelIcon icon={Close} />
+              </BracketButton>
+            </div>
+            <div className="flex flex-col gap-3 p-4">
+              <input
+                ref={nameInputRef}
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && name.trim()) handleCreate();
+                }}
+                placeholder="Bucket name…"
+                maxLength={BUCKET_NAME_MAX_LENGTH}
+                disabled={pending}
+                className="border-border bg-input placeholder:text-muted-foreground focus:ring-ring rounded border px-3 py-2 text-sm outline-none focus:ring-1 disabled:opacity-50"
+              />
+              {name.length > 0 && (
+                <p
+                  className={cn(
+                    "mt-0.5 text-right font-mono text-[11px] transition-colors",
+                    charCountColor(name.length, BUCKET_NAME_MAX_LENGTH)
+                  )}
+                >
+                  {name.length}/{BUCKET_NAME_MAX_LENGTH}
+                </p>
+              )}
+              {error && <p className="text-destructive text-xs">{error}</p>}
+              <Button onClick={handleCreate} loading={pending} disabled={!name.trim()}>
+                Create bucket
+              </Button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </Modal>
   );
 }

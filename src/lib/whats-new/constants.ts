@@ -3,6 +3,23 @@ export type Release = { version: string; notes: ReleaseNote[] };
 
 export const RELEASES: [Release, ...Release[]] = [
   {
+    version: "0.7.1",
+    notes: [
+      {
+        title: "the page stays put",
+        text: "with a window open, like this one or tweaks, scrolling no longer moves the page behind it. on iphone too.",
+      },
+      {
+        title: "escape closes windows",
+        text: "press escape to close any window. with one open on top of another, the top one closes first, and you're back where you were.",
+      },
+      {
+        title: "what's new keeps it short",
+        text: 'it shows the last three updates now. "all changes" opens the full list.',
+      },
+    ],
+  },
+  {
     version: "0.7.0",
     notes: [
       {
@@ -11,7 +28,7 @@ export const RELEASES: [Release, ...Release[]] = [
       },
       {
         title: "self-hosting?",
-        text: 'the off-site copy is off until you add a bucket. "off-site backups" in the README shows how.',
+        text: 'the copy away from the server is off until you set it up. "off-site backups" in the README shows how. the nightly copies work as before.',
       },
     ],
   },
@@ -74,4 +91,8 @@ export const RELEASES: [Release, ...Release[]] = [
 ];
 
 export const LATEST_RELEASE = RELEASES[0].version;
+
+// older ones are in the full changelog
+export const RELEASES_SHOWN = 3;
+
 export const CHANGELOG_URL = "https://github.com/heycapy/heycapy/blob/main/CHANGELOG.md";

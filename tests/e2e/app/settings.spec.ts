@@ -55,6 +55,8 @@ test.describe("settings modal", () => {
 
   test("backdrop click closes the modal", async ({ page }) => {
     const dialog = await openSettings(page);
+    // an outside click only counts once the dialog has finished opening, as for a person
+    await expect(dialog).toHaveCSS("opacity", "1");
     await page.mouse.click(10, 10);
     await expect(dialog).not.toBeVisible();
   });
