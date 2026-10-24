@@ -94,7 +94,7 @@ export function SystemCredits() {
             <p className={cn(MUTED, "break-all")}>{credits.email}</p>
             <p className="font-mono text-xs">{credits.balance} credits</p>
             <p className={MUTED}>
-              {credits.totals.grant + credits.totals.purchase} granted ·{" "}
+              {credits.totals.grant + credits.totals.reward + credits.totals.purchase} granted ·{" "}
               {-(credits.totals.message + credits.totals.refund)} used · {credits.totals.refund}{" "}
               refunded · {-credits.totals.reversal} taken back · {credits.totals.admin} by admins
             </p>

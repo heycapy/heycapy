@@ -1,7 +1,18 @@
-export type ReleaseNote = { title: string; text: string };
+// showGuide adds a button that opens the getting started tasks
+export type ReleaseNote = { title: string; text: string; showGuide?: true };
 export type Release = { version: string; notes: ReleaseNote[] };
 
 export const RELEASES: [Release, ...Release[]] = [
+  {
+    version: "0.8.0",
+    notes: [
+      {
+        title: "getting started, with credits",
+        text: '"guide" at the top lists a few things to try in heycapy. each one ticks itself once you\'ve done it, gives capy credits, and "hint" shows you where it is.',
+        showGuide: true,
+      },
+    ],
+  },
   {
     version: "0.7.1",
     notes: [

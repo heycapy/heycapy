@@ -566,7 +566,7 @@ export const creditLedger = sqliteTable(
       .references(() => users.id, { onDelete: "cascade" }),
     amount: integer("amount").notNull(),
     kind: text("kind", {
-      enum: ["grant", "purchase", "message", "refund", "reversal", "admin"],
+      enum: ["grant", "purchase", "message", "refund", "reversal", "admin", "reward"],
     }).notNull(),
     // unique so a message is refunded at most once
     refundOf: integer("refund_of").references((): AnySQLiteColumn => creditLedger.id),
@@ -585,6 +585,23 @@ export const creditLedger = sqliteTable(
     uniqueIndex("idx_credit_ledger_refund_of").on(t.refundOf),
     uniqueIndex("idx_credit_ledger_provider_ref").on(t.provider, t.providerRef, t.kind),
   ]
+);
+
+// guide_tasks — a getting started task the person has done, kept once so its reward is paid once
+
+export const guideTasks = sqliteTable(
+  "guide_tasks",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    userId: integer("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    task: text("task").notNull(),
+    doneAt: integer("done_at", { mode: "timestamp" })
+      .notNull()
+      .default(sql`(unixepoch())`),
+  },
+  (t) => [uniqueIndex("idx_guide_tasks_user_task").on(t.userId, t.task)]
 );
 
 // a checkout we started, so a payment finds its user from the session id and not from anything the buyer sent

@@ -9,12 +9,14 @@ import { getChannelSettings, workingChannels } from "@/lib/notifications/channel
 import { CreateBucketModal } from "@/components/buckets/CreateBucketModal";
 import { feedbackConfigured } from "@/lib/feedback";
 import { LATEST_RELEASE } from "@/lib/whats-new/constants";
+import { syncGuide } from "@/lib/guide/guide";
 import type { ReactNode } from "react";
 
 export default async function AppLayout({ children }: { children: ReactNode }) {
   const session = await getSession();
   if (!session) redirect("/login");
 
+  const guide = await syncGuide(session.userId);
   const [rawTemplates, user, failures, channelSettings, settings] = await Promise.all([
     db
       .select()
@@ -45,6 +47,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
         assistantName={settings?.personalityName ?? "capy"}
         feedbackEnabled={feedbackConfigured()}
         unseenRelease={!!user && user.lastSeenRelease !== LATEST_RELEASE}
+        guide={guide}
         failures={failures}
         hasWorkingChannel={
           !!channelSettings &&

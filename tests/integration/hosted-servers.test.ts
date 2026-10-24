@@ -167,7 +167,7 @@ it("port 465 connects with ssl and 587 with starttls, on a send and on the test"
       smtpPass: null,
       sendTo: "someone@heycapy.test",
     })
-  ).toEqual({ ok: true });
+  ).toMatchObject({ ok: true });
   expect(transports.map((t) => [t.port, t.secure])).toEqual([
     [465, true],
     [587, false],

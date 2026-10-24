@@ -87,6 +87,14 @@ export function BucketsShell({ buckets: rawBuckets, focusBucketId = null }: Buck
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const addItemRequest = useUIStore((s) => s.addItemRequest);
+  const handledAddRequest = useRef(addItemRequest);
+  useEffect(() => {
+    if (addItemRequest === handledAddRequest.current) return;
+    handledAddRequest.current = addItemRequest;
+    addItemRef.current?.();
+  }, [addItemRequest]);
+
   useEffect(() => {
     if (newBucketId === null || !buckets.some((b) => b.id === newBucketId)) return;
     setActiveBucketId(newBucketId);

@@ -94,7 +94,11 @@ export default function LoginPage() {
       return;
     }
     const next = safeNextPath(new URLSearchParams(window.location.search).get("next"));
-    startOpeningApp(() => router.push(next));
+    const target =
+      next === "/" && result.starterBucketId !== undefined
+        ? `/?bucket=${result.starterBucketId}`
+        : next;
+    startOpeningApp(() => router.push(target));
     setLoading(false);
   }
 

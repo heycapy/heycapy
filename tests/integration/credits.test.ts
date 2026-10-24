@@ -316,6 +316,7 @@ it("admins give and take credits, never below zero", async () => {
     refund: 0,
     reversal: 0,
     admin: 25,
+    reward: 0,
   });
   expect(looked.ok && looked.credits.rows[0]).toMatchObject({
     amount: 25,

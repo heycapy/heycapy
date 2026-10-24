@@ -70,7 +70,7 @@ export const AGENT_STOPPED_REPLY = `I stopped here since one message can take at
 export const AI_COMPACT_THRESHOLD_MIN = 10;
 export const AI_COMPACT_THRESHOLD_MAX = 500;
 // only on a hosted server for answers on our ai and placeholder amounts until real prices exist
-export const CREDITS_FREE_GRANT = 50;
+export const CREDITS_FREE_GRANT = 15;
 // what a pack buys, the payment provider's product id for each lives in the environment since test and live differ
 export const CREDIT_PACKS = {
   pack_5: { usd: 5, credits: 600, productEnv: "DODO_PRODUCT_ID_PACK_5" },

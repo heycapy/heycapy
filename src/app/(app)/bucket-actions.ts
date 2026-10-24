@@ -2,7 +2,7 @@
 
 import type { ActionResult } from "@/types/result";
 import { revalidatePath } from "next/cache";
-import { and, desc, eq, isNotNull, isNull, sql } from "drizzle-orm";
+import { and, desc, eq, isNotNull, isNull } from "drizzle-orm";
 import { getSession } from "@/lib/auth/session";
 import { requireSession } from "./action-helpers";
 import { db } from "@/lib/db";
@@ -15,7 +15,7 @@ import {
   TELEGRAM_ALIAS_MAX_LENGTH,
   TELEGRAM_RESERVED_COMMANDS,
 } from "@/constants";
-import { createBucket, findBucketByName } from "@/lib/db/buckets";
+import { createBucketFromTemplate, findBucketByName } from "@/lib/db/buckets";
 import { refreshBucketReminders } from "@/lib/reminders/refresh";
 import {
   saveBucketSettings,
@@ -69,31 +69,8 @@ export async function createBucketAction(
   });
   if (!template) return { ok: false, error: "Template not found" };
 
-  let rules: Record<string, unknown>;
-  try {
-    rules = JSON.parse(template.rulesJson) as Record<string, unknown>;
-  } catch {
-    return { ok: false, error: "Template data is corrupted." };
-  }
-
-  const [maxRow] = await db
-    .select({ max: sql<number>`COALESCE(MAX(${buckets.sortOrder}), -1)` })
-    .from(buckets)
-    .where(eq(buckets.userId, session.userId));
-
-  const bucketId = await createBucket(
-    {
-      userId: session.userId,
-      name: trimmed,
-      itemsRules: JSON.stringify(rules.items ?? {}),
-      mcpRules: rules.mcp ? JSON.stringify(rules.mcp) : null,
-      personalityRules: JSON.stringify(rules.personality ?? {}),
-      fieldSchema: (template.fieldSchemaJson ?? null) as unknown as BucketSchema,
-      webhookKey: encryptValue(generateWebhookKey()),
-      sortOrder: maxRow.max + 1,
-    },
-    rules.notifications
-  );
+  const bucketId = await createBucketFromTemplate(session.userId, template, trimmed);
+  if (bucketId === null) return { ok: false, error: "Template data is corrupted." };
 
   revalidatePath("/");
   return { ok: true, bucketId };

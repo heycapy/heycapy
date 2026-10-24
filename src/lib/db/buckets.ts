@@ -1,6 +1,7 @@
 import { and, eq, isNull, ne, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { bucketMembers, buckets } from "@/lib/db/schema";
+import { bucketMembers, buckets, type templates } from "@/lib/db/schema";
+import { encryptValue, generateWebhookKey } from "@/lib/crypto";
 import { defaultValues, followedRules } from "@/lib/buckets/follow";
 import {
   defaultChannels,
@@ -40,6 +41,41 @@ function ownSettings(
 ): FollowableSetting[] {
   return FOLLOWABLE_SETTINGS.filter((key) =>
     key === "overdue" ? "notifyWhenOverdue" in fieldSchema : key in notifications
+  );
+}
+
+// null when the template's rules aren't valid JSON
+export async function createBucketFromTemplate(
+  userId: number,
+  template: typeof templates.$inferSelect,
+  name: string,
+  createdAt?: Date
+): Promise<number | null> {
+  let rules: Record<string, unknown>;
+  try {
+    rules = JSON.parse(template.rulesJson) as Record<string, unknown>;
+  } catch {
+    return null;
+  }
+
+  const [maxRow] = await db
+    .select({ max: sql<number>`COALESCE(MAX(${buckets.sortOrder}), -1)` })
+    .from(buckets)
+    .where(eq(buckets.userId, userId));
+
+  return createBucket(
+    {
+      userId,
+      name,
+      itemsRules: JSON.stringify(rules.items ?? {}),
+      mcpRules: rules.mcp ? JSON.stringify(rules.mcp) : null,
+      personalityRules: JSON.stringify(rules.personality ?? {}),
+      fieldSchema: (template.fieldSchemaJson ?? null) as unknown as BucketSchema,
+      webhookKey: encryptValue(generateWebhookKey()),
+      sortOrder: maxRow.max + 1,
+      ...(createdAt && { createdAt, updatedAt: createdAt }),
+    },
+    rules.notifications
   );
 }
 

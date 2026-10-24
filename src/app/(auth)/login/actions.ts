@@ -18,9 +18,10 @@ import { eq } from "drizzle-orm";
 import { seed } from "@/lib/db/seed";
 import { assignUsername } from "@/lib/account/username";
 import { LATEST_RELEASE } from "@/lib/whats-new/constants";
+import { createStarterBucket, getsStarterBucket } from "@/lib/guide/guide";
 
 type SendOtpResult = ActionResult<{ devCode?: string }>;
-type VerifyOtpResult = ActionResult;
+type VerifyOtpResult = ActionResult<{ starterBucketId?: number }>;
 
 const EmailSchema = z.email();
 
@@ -69,6 +70,7 @@ export async function verifyOtpAction(email: string, code: string): Promise<Veri
   await recordCodeSuccess(email);
 
   let user = await db.query.users.findFirst({ where: eq(users.email, email) });
+  let starterBucketId: number | undefined;
 
   if (!user) {
     const [created] = await db
@@ -79,8 +81,11 @@ export async function verifyOtpAction(email: string, code: string): Promise<Veri
     await db.insert(userSettings).values({ userId: user.id });
     await assignUsername(user.id);
     await seed(user.id);
+    if (getsStarterBucket(email)) {
+      starterBucketId = await createStarterBucket(user.id, user.createdAt);
+    }
   }
 
   await createSession({ userId: user.id, email: user.email });
-  return { ok: true };
+  return { ok: true, ...(starterBucketId !== undefined && { starterBucketId }) };
 }

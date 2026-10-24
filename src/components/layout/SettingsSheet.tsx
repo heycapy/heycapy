@@ -22,6 +22,7 @@ import type { QuietHours } from "./QuietHoursSettings";
 import { CloseWarning, SaveBar, useUnsavedChanges } from "./UnsavedChanges";
 import { DEFAULT_QUIET_FROM, DEFAULT_QUIET_TO, type UserTone } from "./settings-constants";
 import type { userSettings } from "@/lib/db/schema";
+import { pickedThemeAction } from "@/app/(app)/guide-actions";
 import { NotificationDefaults } from "@/types/rules";
 
 type Settings = typeof userSettings.$inferSelect;
@@ -246,7 +247,10 @@ export function SettingsSheet({ open, initialTab, onClose }: SettingsSheetProps)
             {tab === "appearance" && (
               <AppearanceTab
                 theme={theme}
-                setTheme={setTheme}
+                setTheme={(picked) => {
+                  setTheme(picked);
+                  void pickedThemeAction();
+                }}
                 timezone={timezone}
                 setTimezone={setTimezone}
                 pending={pending}

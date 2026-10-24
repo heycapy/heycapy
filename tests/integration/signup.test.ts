@@ -31,7 +31,7 @@ it("signing up never adds the email to the Resend contact list", async () => {
   const email = "new-signup@heycapy.test";
   const code = await createOtp(email);
 
-  expect(await verifyOtpAction(email, code)).toEqual({ ok: true });
+  expect(await verifyOtpAction(email, code)).toMatchObject({ ok: true });
 
   expect(await db.query.users.findFirst({ where: eq(users.email, email) })).toBeDefined();
   expect(createContact).not.toHaveBeenCalled();
@@ -41,7 +41,7 @@ it("a new account starts on the latest release, so what's new has no dot for it"
   const email = "new-release-reader@heycapy.test";
   const code = await createOtp(email);
 
-  expect(await verifyOtpAction(email, code)).toEqual({ ok: true });
+  expect(await verifyOtpAction(email, code)).toMatchObject({ ok: true });
 
   const user = await db.query.users.findFirst({ where: eq(users.email, email) });
   expect(user?.lastSeenRelease).toBe(LATEST_RELEASE);

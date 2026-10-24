@@ -43,7 +43,12 @@ export function SmtpTestDialog({
       });
       setResult(
         res.ok
-          ? { ok: true, message: "sent — check your inbox" }
+          ? {
+              ok: true,
+              message: res.credits
+                ? `sent — check your inbox. +${res.credits} capy credits`
+                : "sent — check your inbox",
+            }
           : { ok: false, message: res.error }
       );
     });

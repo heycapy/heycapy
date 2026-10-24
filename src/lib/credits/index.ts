@@ -90,6 +90,43 @@ export function grantPurchasedCredits(
   });
 }
 
+// paid once per task, returns what was added
+export function rewardGuideTask(userId: number, task: string, credits: number): number {
+  return db.transaction((tx) => {
+    grantIfNew(tx, userId);
+    const row = tx
+      .insert(creditLedger)
+      .values({
+        userId,
+        amount: credits,
+        kind: "reward",
+        note: `getting started: ${task}`,
+        provider: "guide",
+        providerRef: `${userId}:${task}`,
+      })
+      .onConflictDoNothing()
+      .returning({ id: creditLedger.id })
+      .get();
+    return row ? credits : 0;
+  });
+}
+
+// what each getting started task paid, by task
+export function guideRewards(userId: number): Map<string, number> {
+  const rows = db
+    .select({ ref: creditLedger.providerRef, amount: creditLedger.amount })
+    .from(creditLedger)
+    .where(
+      and(
+        eq(creditLedger.userId, userId),
+        eq(creditLedger.kind, "reward"),
+        eq(creditLedger.provider, "guide")
+      )
+    )
+    .all();
+  return new Map(rows.map((row) => [row.ref?.split(":")[1] ?? "", row.amount]));
+}
+
 // takes back the credits of a payment that was refunded or lost in a dispute, the balance may end below zero
 // since credits already spent can't be recalled, and that just keeps capy off until they buy more
 export function reversePurchase(
@@ -172,6 +209,7 @@ export function creditTotals(userId: number): CreditTotals {
     refund: 0,
     reversal: 0,
     admin: 0,
+    reward: 0,
   };
   const rows = db
     .select({ kind: creditLedger.kind, total: sql<number>`sum(${creditLedger.amount})` })

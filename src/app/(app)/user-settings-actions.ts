@@ -47,6 +47,7 @@ import {
   TELEGRAM_LINK_BASE,
 } from "@/constants";
 import { emailLayout } from "@/lib/email/layout";
+import { markGuideTaskDone } from "@/lib/guide/guide";
 import {
   AIKeyEditsSchema,
   aiKeyViews,
@@ -474,7 +475,7 @@ export async function testSmtpAction(config: {
   smtpUser: string;
   smtpPass: string | null; // null = use saved encrypted value from DB
   sendTo: string;
-}): Promise<ActionResult> {
+}): Promise<ActionResult<{ credits?: number }>> {
   const session = await getSession();
   if (!session) return { ok: false, error: "Unauthorized" };
 
@@ -513,7 +514,9 @@ export async function testSmtpAction(config: {
       }
     );
     await clearFailuresAfterTest(session.userId, "email");
-    return { ok: true };
+    const credits = await markGuideTaskDone(session.userId, "smtp");
+    revalidatePath("/");
+    return { ok: true, ...(credits > 0 && { credits }) };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : "Failed to send test email" };
   }

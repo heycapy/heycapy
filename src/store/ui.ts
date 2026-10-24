@@ -21,6 +21,10 @@ type UIStore = {
 
   todayAddBucketId: number | null;
   setTodayAddBucketId: (id: number) => void;
+
+  // bumped to open the add form from outside the buckets, e.g. a guide hint
+  addItemRequest: number;
+  requestAddItem: () => void;
 };
 
 export const useUIStore = create<UIStore>()(
@@ -45,6 +49,9 @@ export const useUIStore = create<UIStore>()(
 
       todayAddBucketId: null,
       setTodayAddBucketId: (id) => set({ todayAddBucketId: id }),
+
+      addItemRequest: 0,
+      requestAddItem: () => set((s) => ({ addItemRequest: s.addItemRequest + 1 })),
     }),
     {
       name: "heycapy-ui",

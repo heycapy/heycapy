@@ -1,4 +1,5 @@
 import { Modal, ModalHeader } from "@/components/ui/Modal";
+import { BracketButton } from "@/components/ui/BracketButton";
 import { ACCENT_BUTTONS } from "@/components/layout/settings-constants";
 import { cn } from "@/lib/utils";
 import { CHANGELOG_URL, RELEASES, RELEASES_SHOWN } from "@/lib/whats-new/constants";
@@ -6,9 +7,10 @@ import { CHANGELOG_URL, RELEASES, RELEASES_SHOWN } from "@/lib/whats-new/constan
 type WhatsNewDialogProps = {
   open: boolean;
   onClose: () => void;
+  onShowGuide: () => void;
 };
 
-export function WhatsNewDialog({ open, onClose }: WhatsNewDialogProps) {
+export function WhatsNewDialog({ open, onClose, onShowGuide }: WhatsNewDialogProps) {
   return (
     <Modal open={open} onClose={onClose}>
       <div
@@ -32,6 +34,11 @@ export function WhatsNewDialog({ open, onClose }: WhatsNewDialogProps) {
                   <p className="text-muted-foreground font-mono text-[11px] leading-snug">
                     {note.text}
                   </p>
+                  {note.showGuide && (
+                    <BracketButton onClick={onShowGuide} className="self-start">
+                      show me
+                    </BracketButton>
+                  )}
                 </div>
               ))}
             </section>

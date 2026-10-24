@@ -6,7 +6,7 @@ import { Megaphone } from "pixelarticons/react/Megaphone.js";
 import { Trash } from "pixelarticons/react/Trash.js";
 import { UserPlus } from "pixelarticons/react/UserPlus.js";
 import { PixelIcon } from "@/components/ui/PixelIcon";
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { BetaTag } from "@/components/ui/BetaTag";
 import { BracketButton } from "@/components/ui/BracketButton";
@@ -26,6 +26,7 @@ type HeaderProps = {
   onFeedbackOpen: (() => void) | null;
   onWhatsNewOpen: () => void;
   unseenRelease: boolean;
+  guideButton: ReactNode;
 };
 
 function getGreeting() {
@@ -252,6 +253,7 @@ export function Header({
   onFeedbackOpen,
   onWhatsNewOpen,
   unseenRelease,
+  guideButton,
 }: HeaderProps) {
   const greeting = useMemo(() => getGreeting(), []);
   const date = useMemo(() => getDate(), []);
@@ -268,16 +270,19 @@ export function Header({
         </div>
       </div>
 
-      <GlobalMenu
-        email={email}
-        onSettings={onSettingsOpen}
-        onArchive={onArchiveOpen}
-        onTrash={onTrashOpen}
-        onJoin={onJoinOpen}
-        onFeedback={onFeedbackOpen}
-        onWhatsNew={onWhatsNewOpen}
-        unseenRelease={unseenRelease}
-      />
+      <div className="flex items-center gap-2">
+        {guideButton}
+        <GlobalMenu
+          email={email}
+          onSettings={onSettingsOpen}
+          onArchive={onArchiveOpen}
+          onTrash={onTrashOpen}
+          onJoin={onJoinOpen}
+          onFeedback={onFeedbackOpen}
+          onWhatsNew={onWhatsNewOpen}
+          unseenRelease={unseenRelease}
+        />
+      </div>
     </header>
   );
 }

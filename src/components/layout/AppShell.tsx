@@ -23,6 +23,13 @@ import { saveTimezoneIfDefaultAction } from "@/app/(app)/user-settings-actions";
 import { useServerEvents } from "@/hooks/useServerEvents";
 import { AssistantNameProvider } from "@/components/capy/assistant-name";
 import type { ChannelFailure } from "@/lib/notifications/failures";
+import { toast } from "sonner";
+import { BracketButton } from "@/components/ui/BracketButton";
+import { GuidePanel } from "@/components/guide/GuidePanel";
+import { HINT_TARGETS } from "@/components/guide/constants";
+import { useGuide } from "@/components/guide/useGuide";
+import { useLayoutStore } from "@/store/layout";
+import type { GuideState, GuideTask } from "@/lib/guide/guide";
 
 const CapyChat = dynamic(() => import("@/components/capy/CapyChat").then((m) => m.CapyChat), {
   ssr: false,
@@ -38,6 +45,7 @@ type AppShellProps = {
   assistantName: string;
   feedbackEnabled: boolean;
   unseenRelease: boolean;
+  guide: GuideState;
 };
 
 export function AppShell({
@@ -50,6 +58,7 @@ export function AppShell({
   assistantName,
   feedbackEnabled,
   unseenRelease,
+  guide: guideFromServer,
 }: AppShellProps) {
   const [settingsTab, setSettingsTab] = useState<SettingsTab | null>(null);
   const [archivedOpen, setArchivedOpen] = useState(false);
@@ -58,6 +67,27 @@ export function AppShell({
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [whatsNewOpen, setWhatsNewOpen] = useState(false);
   const [releaseUnseen, setReleaseUnseen] = useState(unseenRelease);
+  const [guideOpen, setGuideOpen] = useState(false);
+  const { guide, refresh: refreshGuide } = useGuide(guideFromServer);
+  const guideDone = guide.tasks.filter((task) => task.done).length;
+  const requestAddItem = useUIStore((s) => s.requestAddItem);
+  const openCreateBucket = useUIStore((s) => s.openCreateBucket);
+  const setChatState = useLayoutStore((s) => s.setChatState);
+
+  function openGuide() {
+    setGuideOpen(true);
+    void refreshGuide();
+  }
+
+  function showHint(task: GuideTask) {
+    setGuideOpen(false);
+    const target = HINT_TARGETS[task.key];
+    if (target.kind === "settings") setSettingsTab(target.tab);
+    if (target.kind === "add-item") requestAddItem();
+    if (target.kind === "new-bucket") openCreateBucket();
+    if (target.kind === "chat") setChatState("open");
+    toast(task.hint);
+  }
 
   function openWhatsNew() {
     setWhatsNewOpen(true);
@@ -89,6 +119,13 @@ export function AppShell({
         onFeedbackOpen={feedbackEnabled ? () => setFeedbackOpen(true) : null}
         onWhatsNewOpen={openWhatsNew}
         unseenRelease={releaseUnseen}
+        guideButton={
+          guideDone < guide.tasks.length && (
+            <BracketButton onClick={openGuide} className="px-1 py-1.5">
+              guide {guideDone}/{guide.tasks.length}
+            </BracketButton>
+          )
+        }
       />
       {newVersion && <NewVersionBanner />}
       {!hasWorkingChannel && <NoChannelBanner onSetUp={() => setSettingsTab("notifications")} />}
@@ -104,7 +141,20 @@ export function AppShell({
       <TrashSheet open={trashOpen} onClose={() => setTrashOpen(false)} />
       <JoinBucketDialog open={joinOpen} onClose={() => setJoinOpen(false)} />
       <FeedbackDialog open={feedbackOpen} onClose={() => setFeedbackOpen(false)} />
-      <WhatsNewDialog open={whatsNewOpen} onClose={() => setWhatsNewOpen(false)} />
+      <WhatsNewDialog
+        open={whatsNewOpen}
+        onClose={() => setWhatsNewOpen(false)}
+        onShowGuide={() => {
+          setWhatsNewOpen(false);
+          openGuide();
+        }}
+      />
+      <GuidePanel
+        open={guideOpen}
+        guide={guide}
+        onClose={() => setGuideOpen(false)}
+        onHint={showHint}
+      />
       <SearchDrawer />
       <AssistantNameProvider name={assistantName}>
         <CapyChat />

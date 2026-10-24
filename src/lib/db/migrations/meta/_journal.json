@@ -288,6 +288,13 @@
       "when": 1793580000000,
       "tag": "0040_username_changes",
       "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "6",
+      "when": 1793620000000,
+      "tag": "0041_guide_tasks",
+      "breakpoints": true
     }
   ]
 }
