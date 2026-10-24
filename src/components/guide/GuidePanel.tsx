@@ -11,9 +11,10 @@ type GuidePanelProps = {
   guide: GuideState;
   onClose: () => void;
   onHint: (task: GuideTask) => void;
+  onHiddenChange: (hidden: boolean) => void;
 };
 
-export function GuidePanel({ open, guide, onClose, onHint }: GuidePanelProps) {
+export function GuidePanel({ open, guide, onClose, onHint, onHiddenChange }: GuidePanelProps) {
   const doneCount = guide.tasks.filter((task) => task.done).length;
   const earned = guide.tasks.reduce((sum, task) => sum + task.earned, 0);
   const total = guide.tasks.reduce((sum, task) => sum + task.credits, 0);
@@ -78,15 +79,23 @@ export function GuidePanel({ open, guide, onClose, onHint }: GuidePanelProps) {
                     +{credits}
                   </span>
                 )}
-                {!task.done && (
-                  <BracketButton onClick={() => onHint(task)} className="shrink-0">
-                    hint
-                  </BracketButton>
-                )}
+                <BracketButton onClick={() => onHint(task)} className="shrink-0">
+                  hint
+                </BracketButton>
               </li>
             );
           })}
         </ul>
+        {doneCount < guide.tasks.length && (
+          <div className="flex items-center justify-between gap-3 border-t px-4 py-2 font-mono text-[11px]">
+            <p className="text-muted-foreground">
+              {guide.hidden ? "only in the ··· menu for now" : "it stays in the ··· menu"}
+            </p>
+            <BracketButton onClick={() => onHiddenChange(!guide.hidden)} className="shrink-0">
+              {guide.hidden ? "show in header" : "hide from header"}
+            </BracketButton>
+          </div>
+        )}
       </div>
     </Modal>
   );

@@ -13,7 +13,7 @@ import {
 } from "@/lib/db/schema";
 import { createOtp } from "@/lib/auth/otp";
 import { verifyOtpAction } from "@/app/(auth)/login/actions";
-import { pickedThemeAction } from "@/app/(app)/guide-actions";
+import { hideGuideAction, pickedThemeAction } from "@/app/(app)/guide-actions";
 import { seed } from "@/lib/db/seed";
 import { markGuideTaskDone, syncGuide } from "@/lib/guide/guide";
 import { GUIDE_TASKS } from "@/lib/guide/constants";
@@ -76,6 +76,21 @@ describe("getting started", () => {
     expect(guide.tasks.some((t) => t.done)).toBe(false);
     expect(creditBalance(userId)).toBe(CREDITS_FREE_GRANT);
     expect(guide.paysCredits).toBe(true);
+    expect(guide.hidden).toBe(false);
+  });
+
+  it("the guide can be taken out of the header and put back, only by its owner", async () => {
+    const { userId } = await signUp();
+    const other = await signUp();
+    session.userId = userId;
+
+    await hideGuideAction(true);
+    expect((await syncGuide(userId)).hidden).toBe(true);
+    expect((await syncGuide(other.userId)).hidden).toBe(false);
+
+    await hideGuideAction(false);
+    expect((await syncGuide(userId)).hidden).toBe(false);
+    await expect(hideGuideAction("yes" as unknown as boolean)).rejects.toThrow();
   });
 
   it("every task pays 3 to 5 credits, 50 in all", () => {

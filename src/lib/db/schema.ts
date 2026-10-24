@@ -24,6 +24,8 @@ export const users = sqliteTable("users", {
   lastSeenRelease: text("last_seen_release"),
   // Bumped by "log out everywhere", sessions issued under an older version stop working
   sessionVersion: integer("session_version").notNull().default(1),
+  // Takes the getting started button out of the header, the guide stays in the menu
+  guideHidden: integer("guide_hidden", { mode: "boolean" }).notNull().default(false),
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
     .default(sql`(unixepoch())`),

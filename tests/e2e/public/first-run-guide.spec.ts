@@ -39,10 +39,28 @@ test("a new account starts on reminders, and a done task ticks and pays", async 
   );
   const added = task(page, "add a reminder");
   await expect(added).toHaveAttribute("data-done", "true");
-  await expect(added.getByRole("button", { name: "[ hint ]" })).toHaveCount(0);
+  await expect(added.getByRole("button", { name: "[ hint ]" })).toBeVisible();
   await expect(added).toContainText("+3");
   await expect(task(page, "give a reminder a date")).toContainText("+3");
   await expect(task(page, "connect telegram")).toContainText("+5");
+});
+
+test("the guide button can leave the header, the guide stays in the menu", async ({ page }) => {
+  await signUp(page);
+
+  await guideButton(page).click();
+  await guidePanel(page).getByRole("button", { name: "[ hide from header ]" }).click();
+  await guidePanel(page).getByRole("button", { name: "[ x ]" }).click();
+  await expect(guideButton(page)).toBeHidden();
+
+  await page.reload();
+  await expect(activeBucketTitle(page)).toHaveText("reminders");
+  await expect(guideButton(page)).toBeHidden();
+  await page.getByRole("button", { name: "···" }).click();
+  await page.getByRole("button", { name: `getting started 0/${TOTAL}` }).click();
+  await guidePanel(page).getByRole("button", { name: "[ show in header ]" }).click();
+  await guidePanel(page).getByRole("button", { name: "[ x ]" }).click();
+  await expect(guideButton(page)).toHaveAccessibleName(`[ guide 0/${TOTAL} ]`);
 });
 
 test("a hint takes you to the place the task is done", async ({ page }) => {

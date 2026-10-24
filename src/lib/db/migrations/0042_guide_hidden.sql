@@ -1,0 +1,1 @@
+ALTER TABLE `users` ADD `guide_hidden` integer DEFAULT false NOT NULL;

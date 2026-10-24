@@ -22,3 +22,6 @@ export const HINT_TARGETS: Record<GuideTaskKey, HintTarget> = {
   telegram: { kind: "settings", tab: "notifications" },
   smtp: { kind: "settings", tab: "notifications" },
 };
+
+// Browsers only allow these on https (or localhost), so on a plain http server they can't be done
+export const HTTPS_ONLY_TASKS: GuideTaskKey[] = ["push"];

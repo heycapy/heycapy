@@ -26,6 +26,7 @@ export type GuideTask = {
 export type GuideState = {
   tasks: GuideTask[];
   paysCredits: boolean;
+  hidden: boolean;
 };
 
 async function exists(rows: Promise<unknown[]>): Promise<boolean> {
@@ -138,6 +139,10 @@ export async function syncGuide(userId: number): Promise<GuideState> {
     done.add(task.key);
   }
 
+  const user = await db.query.users.findFirst({
+    columns: { guideHidden: true },
+    where: eq(users.id, userId),
+  });
   const earned = isHosted() ? guideRewards(userId) : new Map<string, number>();
   return {
     tasks: availableTasks().map((task) => ({
@@ -149,5 +154,10 @@ export async function syncGuide(userId: number): Promise<GuideState> {
       earned: earned.get(task.key) ?? 0,
     })),
     paysCredits: isHosted(),
+    hidden: user?.guideHidden ?? false,
   };
+}
+
+export async function setGuideHidden(userId: number, hidden: boolean): Promise<void> {
+  await db.update(users).set({ guideHidden: hidden }).where(eq(users.id, userId));
 }

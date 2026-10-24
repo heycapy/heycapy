@@ -68,7 +68,7 @@ export function AppShell({
   const [whatsNewOpen, setWhatsNewOpen] = useState(false);
   const [releaseUnseen, setReleaseUnseen] = useState(unseenRelease);
   const [guideOpen, setGuideOpen] = useState(false);
-  const { guide, refresh: refreshGuide } = useGuide(guideFromServer);
+  const { guide, refresh: refreshGuide, setHidden: setGuideHidden } = useGuide(guideFromServer);
   const guideDone = guide.tasks.filter((task) => task.done).length;
   const requestAddItem = useUIStore((s) => s.requestAddItem);
   const openCreateBucket = useUIStore((s) => s.openCreateBucket);
@@ -119,8 +119,11 @@ export function AppShell({
         onFeedbackOpen={feedbackEnabled ? () => setFeedbackOpen(true) : null}
         onWhatsNewOpen={openWhatsNew}
         unseenRelease={releaseUnseen}
+        onGuideOpen={openGuide}
+        guideProgress={`${guideDone}/${guide.tasks.length}`}
         guideButton={
-          guideDone < guide.tasks.length && (
+          guideDone < guide.tasks.length &&
+          !guide.hidden && (
             <BracketButton onClick={openGuide} className="px-1 py-1.5">
               guide {guideDone}/{guide.tasks.length}
             </BracketButton>
@@ -154,6 +157,7 @@ export function AppShell({
         guide={guide}
         onClose={() => setGuideOpen(false)}
         onHint={showHint}
+        onHiddenChange={setGuideHidden}
       />
       <SearchDrawer />
       <AssistantNameProvider name={assistantName}>

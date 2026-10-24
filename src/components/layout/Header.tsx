@@ -1,5 +1,6 @@
 import { Archive } from "pixelarticons/react/Archive.js";
 import { Logout } from "pixelarticons/react/Logout.js";
+import { Map as MapIcon } from "pixelarticons/react/Map.js";
 import { Message } from "pixelarticons/react/Message.js";
 import { SlidersHorizontal } from "pixelarticons/react/SlidersHorizontal.js";
 import { Megaphone } from "pixelarticons/react/Megaphone.js";
@@ -26,6 +27,8 @@ type HeaderProps = {
   onFeedbackOpen: (() => void) | null;
   onWhatsNewOpen: () => void;
   unseenRelease: boolean;
+  onGuideOpen: () => void;
+  guideProgress: string;
   guideButton: ReactNode;
 };
 
@@ -101,6 +104,8 @@ function GlobalMenu({
   onFeedback,
   onWhatsNew,
   unseenRelease,
+  onGuide,
+  guideProgress,
 }: {
   email: string;
   onSettings: () => void;
@@ -110,6 +115,8 @@ function GlobalMenu({
   onFeedback: (() => void) | null;
   onWhatsNew: () => void;
   unseenRelease: boolean;
+  onGuide: () => void;
+  guideProgress: string;
 }) {
   const [open, setOpen] = useState(false);
   const [confirmLogout, setConfirmLogout] = useState<LogoutScope | null>(null);
@@ -219,6 +226,14 @@ function GlobalMenu({
                   </>
                 )}
               </button>
+              <button
+                onClick={() => pick(onGuide)}
+                className="text-foreground hover:bg-muted flex w-full items-center gap-2.5 px-3 py-2 font-mono text-xs transition-colors"
+              >
+                <PixelIcon icon={MapIcon} />
+                getting started
+                <span className="text-muted-foreground">{guideProgress}</span>
+              </button>
               <div className="border-border my-1 border-t" />
               <button
                 onClick={() => pick(() => setConfirmLogout("here"))}
@@ -253,6 +268,8 @@ export function Header({
   onFeedbackOpen,
   onWhatsNewOpen,
   unseenRelease,
+  onGuideOpen,
+  guideProgress,
   guideButton,
 }: HeaderProps) {
   const greeting = useMemo(() => getGreeting(), []);
@@ -281,6 +298,8 @@ export function Header({
           onFeedback={onFeedbackOpen}
           onWhatsNew={onWhatsNewOpen}
           unseenRelease={unseenRelease}
+          onGuide={onGuideOpen}
+          guideProgress={guideProgress}
         />
       </div>
     </header>

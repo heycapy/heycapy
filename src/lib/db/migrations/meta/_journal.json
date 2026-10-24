@@ -295,6 +295,13 @@
       "when": 1793620000000,
       "tag": "0041_guide_tasks",
       "breakpoints": true
+    },
+    {
+      "idx": 42,
+      "version": "6",
+      "when": 1793630000000,
+      "tag": "0042_guide_hidden",
+      "breakpoints": true
     }
   ]
 }
