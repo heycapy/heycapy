@@ -1,6 +1,6 @@
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type * as SessionModule from "@/lib/auth/session";
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import {
   buckets,
@@ -167,9 +167,24 @@ describe("getting started", () => {
 
   it("a reward is paid once even if asked twice", async () => {
     const userId = await seedUser();
-    expect(rewardGuideTask(userId, "avatar", 5)).toBe(5);
-    expect(rewardGuideTask(userId, "avatar", 5)).toBe(0);
+    const pay = () => db.transaction((tx) => rewardGuideTask(tx, userId, "avatar", 5));
+    expect(pay()).toBe(5);
+    expect(pay()).toBe(0);
     expect(rewards(userId)).toHaveLength(1);
+  });
+
+  it("a task whose credits fail to pay isn't saved as done, so the next check pays it", async () => {
+    const userId = await seedUser();
+    db.run(sql`create trigger fail_reward before insert on credit_ledger when new.kind = 'reward'
+      begin select raise(abort, 'ledger down'); end`);
+    try {
+      await expect(markGuideTaskDone(userId, "smtp")).rejects.toThrow("ledger down");
+    } finally {
+      db.run(sql`drop trigger fail_reward`);
+    }
+    expect(await doneTasks(userId)).not.toContain("smtp");
+
+    expect(await markGuideTaskDone(userId, "smtp")).toBe(taskCredits("smtp"));
   });
 
   it("a self-hosted server ticks tasks but keeps no ledger", async () => {

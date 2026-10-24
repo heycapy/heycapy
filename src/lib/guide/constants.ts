@@ -59,6 +59,7 @@ export const GUIDE_TASKS = [
     title: "connect telegram",
     credits: 5,
     hint: "connect telegram and send the code to the bot",
+    needs: "TELEGRAM_BOT_TOKEN",
   },
   {
     key: "smtp",

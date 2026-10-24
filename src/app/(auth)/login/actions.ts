@@ -18,7 +18,7 @@ import { eq } from "drizzle-orm";
 import { seed } from "@/lib/db/seed";
 import { assignUsername } from "@/lib/account/username";
 import { LATEST_RELEASE } from "@/lib/whats-new/constants";
-import { createStarterBucket, getsStarterBucket } from "@/lib/guide/guide";
+import { createStarterBucket, getsStarterBucket } from "@/lib/guide/starter-bucket";
 
 type SendOtpResult = ActionResult<{ devCode?: string }>;
 type VerifyOtpResult = ActionResult<{ starterBucketId?: number }>;

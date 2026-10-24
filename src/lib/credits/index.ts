@@ -90,25 +90,24 @@ export function grantPurchasedCredits(
   });
 }
 
-// paid once per task, returns what was added
-export function rewardGuideTask(userId: number, task: string, credits: number): number {
-  return db.transaction((tx) => {
-    grantIfNew(tx, userId);
-    const row = tx
-      .insert(creditLedger)
-      .values({
-        userId,
-        amount: credits,
-        kind: "reward",
-        note: `getting started: ${task}`,
-        provider: "guide",
-        providerRef: `${userId}:${task}`,
-      })
-      .onConflictDoNothing()
-      .returning({ id: creditLedger.id })
-      .get();
-    return row ? credits : 0;
-  });
+// paid once per task, returns what was added. Runs in the caller's transaction so the task is
+// never saved as done without its credits
+export function rewardGuideTask(tx: Tx, userId: number, task: string, credits: number): number {
+  grantIfNew(tx, userId);
+  const row = tx
+    .insert(creditLedger)
+    .values({
+      userId,
+      amount: credits,
+      kind: "reward",
+      note: `getting started: ${task}`,
+      provider: "guide",
+      providerRef: `${userId}:${task}`,
+    })
+    .onConflictDoNothing()
+    .returning({ id: creditLedger.id })
+    .get();
+  return row ? credits : 0;
 }
 
 // what each getting started task paid, by task

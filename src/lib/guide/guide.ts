@@ -6,21 +6,12 @@ import {
   guideTasks,
   items,
   pushSubscriptions,
-  templates,
   userSettings,
   usernameChanges,
   users,
 } from "@/lib/db/schema";
-import { createBucketFromTemplate } from "@/lib/db/buckets";
 import { guideRewards, isHosted, rewardGuideTask } from "@/lib/credits";
-import { isE2ETestMode } from "@/lib/e2e";
-import {
-  E2E_STARTER_EMAIL_PREFIX,
-  GUIDE_TASKS,
-  STARTER_BUCKET_NAME,
-  STARTER_TEMPLATE,
-  type GuideTaskKey,
-} from "./constants";
+import { GUIDE_TASKS, type GuideTaskKey } from "./constants";
 
 export type GuideTask = {
   key: GuideTaskKey;
@@ -36,27 +27,6 @@ export type GuideState = {
   tasks: GuideTask[];
   paysCredits: boolean;
 };
-
-// Every other E2E spec expects a new account to start with no buckets
-export function getsStarterBucket(email: string): boolean {
-  return !isE2ETestMode() || email.startsWith(E2E_STARTER_EMAIL_PREFIX);
-}
-
-// Made with the account's own timestamp, so "a bucket of your own" doesn't count it
-export async function createStarterBucket(userId: number, signedUpAt: Date): Promise<number> {
-  const template = await db.query.templates.findFirst({
-    where: and(eq(templates.name, STARTER_TEMPLATE), eq(templates.isBuiltin, true)),
-  });
-  if (!template) throw new Error(`Built-in template "${STARTER_TEMPLATE}" is missing`);
-  const bucketId = await createBucketFromTemplate(
-    userId,
-    template,
-    STARTER_BUCKET_NAME,
-    signedUpAt
-  );
-  if (bucketId === null) throw new Error(`Built-in template "${STARTER_TEMPLATE}" is corrupted`);
-  return bucketId;
-}
 
 async function exists(rows: Promise<unknown[]>): Promise<boolean> {
   return (await rows).length > 0;
@@ -81,10 +51,10 @@ function settingSet(userId: number, ...conditions: Parameters<typeof and>) {
   );
 }
 
-// Looks at what exists, so a task done anywhere (web, telegram, capy) counts. Two have no check and
-// are marked where they happen: smtp (a saved server proves nothing, only a test email that went out
-// does) and theme (it's kept in the browser, the server never sees it)
-const TASK_DONE: Partial<Record<GuideTaskKey, (userId: number) => Promise<boolean>>> = {
+// Looks at what exists, so a task done anywhere (web, telegram, capy) counts. "marked" tasks have no
+// check and are marked where they happen: smtp (a saved server proves nothing, only a test email
+// that went out does) and theme (it's kept in the browser, the server never sees it)
+const TASK_DONE: Record<GuideTaskKey, ((userId: number) => Promise<boolean>) | "marked"> = {
   add_item: (userId) => ownItem(userId),
   add_date: (userId) => ownItem(userId, isNotNull(items.deadline)),
   complete_item: (userId) => ownItem(userId, isNotNull(items.completedAt)),
@@ -130,22 +100,27 @@ const TASK_DONE: Partial<Record<GuideTaskKey, (userId: number) => Promise<boolea
         .limit(1)
     ),
   telegram: (userId) => settingSet(userId, isNotNull(userSettings.telegramChatId)),
+  theme: "marked",
+  smtp: "marked",
 };
 
 function availableTasks() {
-  return GUIDE_TASKS.filter((task) => task.key !== "telegram" || !!process.env.TELEGRAM_BOT_TOKEN);
+  return GUIDE_TASKS.filter((task) => !("needs" in task) || !!process.env[task.needs]);
 }
 
 // The row is kept once, so the reward is paid once even if the task is undone and done again
 export async function markGuideTaskDone(userId: number, task: GuideTaskKey): Promise<number> {
-  const [row] = await db
-    .insert(guideTasks)
-    .values({ userId, task })
-    .onConflictDoNothing()
-    .returning({ id: guideTasks.id });
-  if (!row || !isHosted()) return 0;
-  const credits = GUIDE_TASKS.find((t) => t.key === task)?.credits ?? 0;
-  return rewardGuideTask(userId, task, credits);
+  return db.transaction((tx) => {
+    const row = tx
+      .insert(guideTasks)
+      .values({ userId, task })
+      .onConflictDoNothing()
+      .returning({ id: guideTasks.id })
+      .get();
+    if (!row || !isHosted()) return 0;
+    const credits = GUIDE_TASKS.find((t) => t.key === task)?.credits ?? 0;
+    return rewardGuideTask(tx, userId, task, credits);
+  });
 }
 
 export async function syncGuide(userId: number): Promise<GuideState> {
@@ -158,7 +133,7 @@ export async function syncGuide(userId: number): Promise<GuideState> {
   for (const task of availableTasks()) {
     if (done.has(task.key)) continue;
     const check = TASK_DONE[task.key];
-    if (!check || !(await check(userId))) continue;
+    if (check === "marked" || !(await check(userId))) continue;
     await markGuideTaskDone(userId, task.key);
     done.add(task.key);
   }
@@ -166,7 +141,10 @@ export async function syncGuide(userId: number): Promise<GuideState> {
   const earned = isHosted() ? guideRewards(userId) : new Map<string, number>();
   return {
     tasks: availableTasks().map((task) => ({
-      ...task,
+      key: task.key,
+      title: task.title,
+      hint: task.hint,
+      credits: task.credits,
       done: done.has(task.key),
       earned: earned.get(task.key) ?? 0,
     })),
