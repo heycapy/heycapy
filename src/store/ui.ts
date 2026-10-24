@@ -25,6 +25,11 @@ type UIStore = {
   // bumped to open the add form from outside the buckets, e.g. a guide hint
   addItemRequest: number;
   requestAddItem: () => void;
+
+  // a guide hint asking for the open bucket's members, kept until a bucket view picks it up
+  membersRequested: boolean;
+  requestMembers: () => void;
+  clearMembersRequest: () => void;
 };
 
 export const useUIStore = create<UIStore>()(
@@ -52,6 +57,10 @@ export const useUIStore = create<UIStore>()(
 
       addItemRequest: 0,
       requestAddItem: () => set((s) => ({ addItemRequest: s.addItemRequest + 1 })),
+
+      membersRequested: false,
+      requestMembers: () => set({ membersRequested: true, todayOpen: false }),
+      clearMembersRequest: () => set({ membersRequested: false }),
     }),
     {
       name: "heycapy-ui",

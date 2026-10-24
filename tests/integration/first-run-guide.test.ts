@@ -19,6 +19,7 @@ import { markGuideTaskDone, syncGuide } from "@/lib/guide/guide";
 import { GUIDE_TASKS } from "@/lib/guide/constants";
 import { creditBalance, rewardGuideTask } from "@/lib/credits";
 import { CREDITS_FREE_GRANT } from "@/constants";
+import { createInvite } from "@/lib/buckets/invites";
 import { seedBucket, seedUser } from "./helpers";
 
 const session = vi.hoisted(() => ({ userId: 0, email: "" }));
@@ -93,9 +94,9 @@ describe("getting started", () => {
     await expect(hideGuideAction("yes" as unknown as boolean)).rejects.toThrow();
   });
 
-  it("every task pays 3 to 5 credits, 50 in all", () => {
+  it("every task pays 2 to 5 credits, 50 in all", () => {
     for (const task of GUIDE_TASKS) {
-      expect(task.credits).toBeGreaterThanOrEqual(3);
+      expect(task.credits).toBeGreaterThanOrEqual(2);
       expect(task.credits).toBeLessThanOrEqual(5);
     }
     expect(GUIDE_TASKS.reduce((sum, task) => sum + task.credits, 0)).toBe(50);
@@ -143,6 +144,57 @@ describe("getting started", () => {
     await new Promise((resolve) => setTimeout(resolve, 1100));
     await seedBucket(userId);
     expect(await doneTasks(userId)).toContain("own_bucket");
+  });
+
+  it("a reminder's own ping times and repeat each count once picked", async () => {
+    const { userId, starterBucketId } = await signUp();
+    const [item] = await db
+      .insert(items)
+      .values({ bucketId: starterBucketId, userId, title: "rent", source: "ai" })
+      .returning({ id: items.id });
+    expect(await doneTasks(userId)).not.toContain("reminder_time");
+
+    await db
+      .update(items)
+      .set({ reminderOffsets: [60], recurring: JSON.stringify({ type: "monthly" }) })
+      .where(eq(items.id, item.id));
+    expect(await doneTasks(userId)).toEqual(
+      expect.arrayContaining(["reminder_time", "repeat_item"])
+    );
+  });
+
+  it("an invite code made for a bucket counts as sharing it", async () => {
+    const { userId, starterBucketId } = await signUp();
+    expect(await doneTasks(userId)).not.toContain("share_bucket");
+
+    await createInvite(userId, starterBucketId);
+    expect(await doneTasks(userId)).toContain("share_bucket");
+  });
+
+  it("capy's name and tone count once changed, the same name in other case doesn't", async () => {
+    const { userId } = await signUp();
+    await db
+      .update(userSettings)
+      .set({ personalityName: "CAPY" })
+      .where(eq(userSettings.userId, userId));
+    expect(await doneTasks(userId)).not.toContain("rename_capy");
+    expect(await doneTasks(userId)).not.toContain("capy_tone");
+
+    await db
+      .update(userSettings)
+      .set({ personalityName: "kapi", personalityTone: "rude_funny" })
+      .where(eq(userSettings.userId, userId));
+    expect(await doneTasks(userId)).toEqual(expect.arrayContaining(["rename_capy", "capy_tone"]));
+  });
+
+  it("a saved ntfy topic counts", async () => {
+    const { userId } = await signUp();
+    expect(await doneTasks(userId)).not.toContain("ntfy");
+    await db
+      .update(userSettings)
+      .set({ ntfyTopic: "my-reminders" })
+      .where(eq(userSettings.userId, userId));
+    expect(await doneTasks(userId)).toContain("ntfy");
   });
 
   it("a username an admin changed doesn't count as changing it yourself", async () => {

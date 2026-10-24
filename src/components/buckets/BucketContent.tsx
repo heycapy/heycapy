@@ -16,6 +16,7 @@ import { DEFAULT_BUCKET_STATUSES } from "./constants";
 import type { ViewerBucket } from "@/lib/buckets/access";
 import { parseFields } from "./fields";
 import { useLayoutStore } from "@/store/layout";
+import { useUIStore } from "@/store/ui";
 import { placesOf } from "@/lib/timezones/gap";
 
 type BucketContentProps = {
@@ -45,6 +46,9 @@ export function BucketContent({ bucket, accentColor, addItemRef }: BucketContent
     onSaved: list.refetch,
   });
   const members = useBucketMembers(bucket.id, editor.dialogProps.open);
+  const membersRequested = useUIStore((s) => s.membersRequested);
+  const clearMembersRequest = useUIStore((s) => s.clearMembersRequest);
+  const openTab: SettingsTab | null = settingsTab ?? (membersRequested ? "members" : null);
   useEffect(() => {
     addItemRef.current = editor.startAdding;
     return () => {
@@ -128,11 +132,14 @@ export function BucketContent({ bucket, accentColor, addItemRef }: BucketContent
       />
 
       <BucketSettings
-        open={settingsTab !== null}
-        initialTab={settingsTab ?? undefined}
+        open={openTab !== null}
+        initialTab={openTab ?? undefined}
         bucket={bucket}
         clocksDiffer={placesOf(members).differ}
-        onClose={() => setSettingsTab(null)}
+        onClose={() => {
+          setSettingsTab(null);
+          clearMembersRequest();
+        }}
       />
     </div>
   );

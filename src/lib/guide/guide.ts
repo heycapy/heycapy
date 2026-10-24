@@ -1,6 +1,7 @@
-import { and, eq, gt, isNotNull } from "drizzle-orm";
+import { and, eq, gt, isNotNull, ne, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import {
+  bucketInvites,
   buckets,
   chatMessages,
   guideTasks,
@@ -11,7 +12,7 @@ import {
   users,
 } from "@/lib/db/schema";
 import { guideRewards, isHosted, rewardGuideTask } from "@/lib/credits";
-import { GUIDE_TASKS, type GuideTaskKey } from "./constants";
+import { CAPY_DEFAULT_NAME, CAPY_DEFAULT_TONE, GUIDE_TASKS, type GuideTaskKey } from "./constants";
 
 export type GuideTask = {
   key: GuideTaskKey;
@@ -59,6 +60,8 @@ const TASK_DONE: Record<GuideTaskKey, ((userId: number) => Promise<boolean>) | "
   add_item: (userId) => ownItem(userId),
   add_date: (userId) => ownItem(userId, isNotNull(items.deadline)),
   complete_item: (userId) => ownItem(userId, isNotNull(items.completedAt)),
+  reminder_time: (userId) => ownItem(userId, isNotNull(items.reminderOffsets)),
+  repeat_item: (userId) => ownItem(userId, isNotNull(items.recurring)),
   quiet_hours: (userId) => settingSet(userId, isNotNull(userSettings.quietHoursFrom)),
   own_bucket: (userId) =>
     exists(
@@ -67,6 +70,14 @@ const TASK_DONE: Record<GuideTaskKey, ((userId: number) => Promise<boolean>) | "
         .from(buckets)
         .innerJoin(users, eq(users.id, buckets.userId))
         .where(and(eq(buckets.userId, userId), gt(buckets.createdAt, users.createdAt)))
+        .limit(1)
+    ),
+  share_bucket: (userId) =>
+    exists(
+      db
+        .select({ id: bucketInvites.id })
+        .from(bucketInvites)
+        .where(eq(bucketInvites.createdBy, userId))
         .limit(1)
     ),
   username: (userId) =>
@@ -84,6 +95,9 @@ const TASK_DONE: Record<GuideTaskKey, ((userId: number) => Promise<boolean>) | "
         .from(users)
         .where(and(eq(users.id, userId), isNotNull(users.avatar)))
     ),
+  rename_capy: (userId) =>
+    settingSet(userId, ne(sql`lower(${userSettings.personalityName})`, CAPY_DEFAULT_NAME)),
+  capy_tone: (userId) => settingSet(userId, ne(userSettings.personalityTone, CAPY_DEFAULT_TONE)),
   ask_capy: (userId) =>
     exists(
       db
@@ -100,6 +114,7 @@ const TASK_DONE: Record<GuideTaskKey, ((userId: number) => Promise<boolean>) | "
         .where(eq(pushSubscriptions.userId, userId))
         .limit(1)
     ),
+  ntfy: (userId) => settingSet(userId, isNotNull(userSettings.ntfyTopic)),
   telegram: (userId) => settingSet(userId, isNotNull(userSettings.telegramChatId)),
   theme: "marked",
   smtp: "marked",

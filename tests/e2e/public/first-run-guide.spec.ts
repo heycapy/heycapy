@@ -29,20 +29,20 @@ test("a new account starts on reminders, and a done task ticks and pays", async 
   await expect(guideButton(page)).toHaveAccessibleName(`[ guide 0/${TOTAL} ]`);
 
   await addItem(page, "pay rent");
-  await expect(page.getByText("add a reminder · +3 capy credits")).toBeVisible();
+  await expect(page.getByText("add a reminder · +2 capy credits")).toBeVisible();
   await expect(guideButton(page)).toHaveAccessibleName(`[ guide 1/${TOTAL} ]`);
 
   await guideButton(page).click();
   await expect(guidePanel(page).getByText(`1 of ${TOTAL} done`)).toBeVisible();
   await expect(guidePanel(page).getByLabel("credits earned")).toHaveText(
-    `3 / ${GUIDE_TASKS.reduce((sum, t) => sum + t.credits, 0)} credits`
+    `2 / ${GUIDE_TASKS.reduce((sum, t) => sum + t.credits, 0)} credits`
   );
   const added = task(page, "add a reminder");
   await expect(added).toHaveAttribute("data-done", "true");
   await expect(added.getByRole("button", { name: "[ hint ]" })).toBeVisible();
-  await expect(added).toContainText("+3");
-  await expect(task(page, "give a reminder a date")).toContainText("+3");
-  await expect(task(page, "connect telegram")).toContainText("+5");
+  await expect(added).toContainText("+2");
+  await expect(task(page, "invite someone to a bucket")).toContainText("+4");
+  await expect(task(page, "send a test email from your own email account")).toContainText("+5");
 });
 
 test("the guide button can leave the header, the guide stays in the menu", async ({ page }) => {
@@ -76,6 +76,12 @@ test("a hint takes you to the place the task is done", async ({ page }) => {
   );
   await expect(page.getByText("pick any theme you like")).toBeVisible();
   await tweaks.getByRole("button", { name: "[ x ]" }).click();
+
+  await guideButton(page).click();
+  await task(page, "invite someone to a bucket").getByRole("button", { name: "[ hint ]" }).click();
+  await expect(page.getByRole("button", { name: "[ create invite ]" })).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("button", { name: "[ create invite ]" })).toBeHidden();
 
   await guideButton(page).click();
   await task(page, "add a reminder").getByRole("button", { name: "[ hint ]" }).click();

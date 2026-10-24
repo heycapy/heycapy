@@ -13,17 +13,23 @@ type BucketsEmptyStateProps = {
 };
 
 export function BucketsEmptyState({ hasArchived, hasTrash }: BucketsEmptyStateProps) {
-  const { openCreateBucket, addItemRequest } = useUIStore();
+  const { openCreateBucket, addItemRequest, membersRequested, clearMembersRequest } = useUIStore();
   const handledAddRequest = useRef(addItemRequest);
   const [archivedOpen, setArchivedOpen] = useState(false);
   const [trashOpen, setTrashOpen] = useState(false);
 
-  // with no bucket yet there's nowhere to add to, so make one first
+  // with no bucket yet there's nowhere to add to or share, so make one first
   useEffect(() => {
     if (addItemRequest === handledAddRequest.current) return;
     handledAddRequest.current = addItemRequest;
     openCreateBucket();
   }, [addItemRequest, openCreateBucket]);
+
+  useEffect(() => {
+    if (!membersRequested) return;
+    clearMembersRequest();
+    openCreateBucket();
+  }, [membersRequested, clearMembersRequest, openCreateBucket]);
 
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-5 p-8 pb-[calc(2rem+env(safe-area-inset-bottom))]">

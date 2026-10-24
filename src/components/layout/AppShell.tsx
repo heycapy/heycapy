@@ -74,6 +74,7 @@ export function AppShell({
   const guideDone = guide.tasks.filter((task) => task.done).length;
   const requestAddItem = useUIStore((s) => s.requestAddItem);
   const openCreateBucket = useUIStore((s) => s.openCreateBucket);
+  const requestMembers = useUIStore((s) => s.requestMembers);
   const setChatState = useLayoutStore((s) => s.setChatState);
 
   function openGuide() {
@@ -87,6 +88,7 @@ export function AppShell({
     if (target.kind === "settings") setSettingsTab(target.tab);
     if (target.kind === "add-item") requestAddItem();
     if (target.kind === "new-bucket") openCreateBucket();
+    if (target.kind === "bucket-members") requestMembers();
     if (target.kind === "chat") setChatState("open");
     toast(task.hint);
   }
