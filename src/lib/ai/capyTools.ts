@@ -10,7 +10,7 @@ import {
 } from "@/lib/reminders/zoned";
 import { dueOn, resolveDeadline, type Due } from "@/lib/items/deadline";
 import { revalidatePath } from "next/cache";
-import { and, eq, gte, inArray, isNull, lte, or, sql, notInArray } from "drizzle-orm";
+import { and, asc, desc, eq, gte, inArray, isNull, lte, or, sql, notInArray } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { createBucket, findBucketByName } from "@/lib/db/buckets";
 import { initialReminderState, reminderResetForDeadline } from "@/lib/items/reminders";
@@ -221,6 +221,7 @@ const ITEM_DETAIL_COLUMNS = {
   recurring: items.recurring,
   properties: items.properties,
   completedAt: items.completedAt,
+  createdAt: items.createdAt,
   assigneeId: items.assigneeId,
   assigneeUsername: users.username,
   assigneeTimezone: userSettings.timezone,
@@ -242,6 +243,7 @@ type ItemDetailRow = {
   recurring: string | null;
   properties: string | null;
   completedAt: Date | null;
+  createdAt: Date;
   assigneeId: number | null;
   assigneeUsername: string | null;
   assigneeTimezone: string | null;
@@ -289,6 +291,7 @@ function itemDetails(row: ItemDetailRow, userId: number, timezone: string) {
     recurring: parseRecurring(row.recurring),
     properties: row.properties ? (JSON.parse(row.properties) as unknown) : null,
     completedAt: row.completedAt ? localTime(row.completedAt, timezone) : null,
+    createdAt: localTime(row.createdAt, timezone),
   };
 }
 
@@ -765,7 +768,14 @@ async function executeToolCallInner(
         .innerJoin(buckets, eq(buckets.id, items.bucketId))
         .leftJoin(users, withAssignee.users)
         .leftJoin(userSettings, withAssignee.settings)
-        .where(and(...conditions, inLiveBucket));
+        .where(and(...conditions, inLiveBucket))
+        .orderBy(
+          ...(args.sort === "oldest"
+            ? [asc(items.createdAt), asc(items.id)]
+            : args.sort === "newest"
+              ? [desc(items.createdAt), desc(items.id)]
+              : [])
+        );
 
       const keywordWords = keyword ? keyword.toLowerCase().split(/\s+/).filter(Boolean) : null;
 

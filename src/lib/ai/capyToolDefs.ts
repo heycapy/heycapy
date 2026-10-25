@@ -5,7 +5,7 @@ import { MAX_REMINDER_OFFSET_MINS, MAX_REMINDERS_PER_ITEM } from "@/lib/reminder
 const ITEM_RESULT =
   "Each item comes with everything the item form shows: its custom field values (properties, " +
   "keyed by the bucket's field keys), repeat (recurring), reminders (reminderOffsets, minutes before " +
-  "the deadline; null = the bucket's default reminders) and status. " +
+  "the deadline; null = the bucket's default reminders), status and createdAt (when it was added). " +
   "assignedTo is who it's for in a shared bucket (null = anyone in it). deadlineOtherClock is the " +
   "same deadline on the clock of whoever it's assigned to, or the one it was set on, when that " +
   "isn't the user's clock. ";
@@ -393,6 +393,14 @@ export const ITEM_AND_BUCKET_TOOLS: Tool[] = [
             "Return only items whose deadline falls within the next N days from now. " +
             "E.g. 3 = due in the next 3 days, 7 = due in the next week. " +
             "Use this instead of deadline_filter when the user asks about a specific number of days ahead.",
+        },
+        sort: {
+          type: "string",
+          enum: ["oldest", "newest"],
+          description:
+            "Order by when items were added (createdAt): 'oldest' first or 'newest' first. " +
+            "Use it for 'my oldest item', 'what did I add last', 'the first thing I added'. " +
+            "Leave include_completed off unless the user asks about completed items.",
         },
       },
     },

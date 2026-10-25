@@ -418,6 +418,69 @@ describe("item details capy reads", () => {
   });
 });
 
+describe("oldest and newest items", () => {
+  const DAY = 24 * HOUR;
+
+  async function seedAdded(userId: number, bucketId: number, title: string, daysAgo: number) {
+    const itemId = await seedItem(userId, bucketId, {
+      title,
+      deadline: new Date(T0.getTime() + DAY),
+    });
+    await db
+      .update(items)
+      .set({ createdAt: new Date(T0.getTime() - daysAgo * DAY) })
+      .where(eq(items.id, itemId));
+    return itemId;
+  }
+
+  async function search(userId: number, args: Record<string, unknown>) {
+    const call = { id: "call", name: "search_items", arguments: args };
+    return JSON.parse(await executeToolCall(call, userId)) as {
+      title: string;
+      createdAt: string;
+    }[];
+  }
+
+  // Inserted out of order, so only sorting by createdAt gives the expected order
+  async function seedFour() {
+    const userId = await seedUser();
+    const bucketId = await seedBucket(userId);
+    await seedAdded(userId, bucketId, "call bank", 1);
+    await seedAdded(userId, bucketId, "renew passport", 2);
+    await seedAdded(userId, bucketId, "buy milk", 1);
+    const finished = await seedAdded(userId, bucketId, "finished long ago", 3);
+    await db
+      .update(items)
+      .set({ status: "completed", completedAt: T0 })
+      .where(eq(items.id, finished));
+    return userId;
+  }
+
+  it("tells capy when each item was added", async () => {
+    const userId = await seedFour();
+    const [first] = await search(userId, { sort: "oldest" });
+    expect(first?.createdAt).toBe("Sun 2026-03-08 12:00");
+  });
+
+  it("puts the oldest item still to do first, not an older completed one", async () => {
+    const userId = await seedFour();
+    const found = await search(userId, { sort: "oldest" });
+    expect(found.map((i) => i.title)).toEqual(["renew passport", "call bank", "buy milk"]);
+  });
+
+  it("puts the newest first, the later of two added in the same second ahead", async () => {
+    const userId = await seedFour();
+    const found = await search(userId, { sort: "newest" });
+    expect(found.map((i) => i.title)).toEqual(["buy milk", "call bank", "renew passport"]);
+  });
+
+  it("includes completed items in the order when asked", async () => {
+    const userId = await seedFour();
+    const [first] = await search(userId, { sort: "oldest", include_completed: true });
+    expect(first?.title).toBe("finished long ago");
+  });
+});
+
 describe("dates capy saves", () => {
   // The suite's clock: Tue 2026-03-10 12:00 UTC
   type Saved = { ok: boolean; error?: string; item?: { deadline: string | null } };
