@@ -46,6 +46,11 @@ export function buildSystemPrompt(
       ? "When you list or name items, write each item's name as a markdown link to it, e.g. [Netflix](<its link>); an item whose link is null is plain text."
       : "Share it only when the user asks for a link or how to open an item, as the bare address; when link is null, say you can't give one.";
 
+  const formatRule =
+    channel === "web"
+      ? "Replies render as markdown: bold, lists and tables work. When the user asks for a table, or compares several items by their fields, use a markdown table with a header row. No images and no HTML"
+      : 'Replies show as plain text, markdown isn\'t rendered: no tables, no **, no # headings, no [text](link). For a list or a table, write one item per line, e.g. "Netflix: ₹499, renews Fri 2026-10-30"';
+
   const toneText = toneInstruction(tone, customPrompt);
   const emojiLine = emoji ? "Use emojis where they fit naturally." : "No emojis.";
 
@@ -135,6 +140,7 @@ Rules:
 - When asked what's overdue or due and nothing matches, say so and mention what is due next, so an empty answer is never the whole story
 - When creating items, always use a meaningful descriptive title that reflects what the task actually is — never use a status name (like "active" or "on hold") as the title
 - Keep replies short
+- ${formatRule}
 - "Snooze", "pause" or "put on hold" an item = status "on hold" (its reminders stop until the status changes)
 - A request can ask for several things at once. Do each one, and if you can't do one, say which and why — never leave part of a request out silently
 - Today is only ever the date in the "Now:" line above — never a date you remember or assume

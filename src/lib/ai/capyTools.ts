@@ -148,7 +148,7 @@ export function describeFields(fields: FieldDef[]): string {
         : f.currency
           ? `${f.type} ${f.currency}`
           : f.type;
-      return `${f.label} (key ${f.key}, ${kind})`;
+      return `${f.label} (key ${f.key}, ${kind}${f.validation?.required ? ", required" : ""})`;
     })
     .join("; ");
 }
@@ -157,8 +157,16 @@ function isAmountField(field: FieldDef): boolean {
   return field.type === "number" || field.type === "currency";
 }
 
+const NOT_IN_TITLE = " Fix the value and try again, never put it in the item's title instead.";
+
 function propertiesError(error: string, issues?: unknown): string {
-  return JSON.stringify({ ok: false, error, ...(issues ? { issues } : {}) });
+  return JSON.stringify({ ok: false, error: error + NOT_IN_TITLE, ...(issues ? { issues } : {}) });
+}
+
+function isEmptyValue(value: unknown): boolean {
+  if (value === undefined || value === null) return true;
+  if (typeof value === "string") return !value.trim();
+  return Array.isArray(value) && value.length === 0;
 }
 
 // Checked against the bucket's fields, a bucket without a field schema keeps any values.
@@ -177,11 +185,15 @@ function validateProperties(
     const named = unknown.map((key) => `"${key}"`).join(", ");
     return {
       ok: false,
-      error: propertiesError(
+      error:
         fields.length > 0
-          ? `This bucket has no field ${named}, nothing was saved. Its fields: ${describeFields(fields)}. Use those keys.`
-          : "This bucket has no custom fields, nothing was saved."
-      ),
+          ? propertiesError(
+              `This bucket has no field ${named}, nothing was saved. Its fields: ${describeFields(fields)}. Use those keys.`
+            )
+          : JSON.stringify({
+              ok: false,
+              error: "This bucket has no custom fields, nothing was saved.",
+            }),
     };
   }
   if (fields.length === 0) return { ok: true, json: null };
@@ -192,7 +204,7 @@ function validateProperties(
       const field = fields.find((f) => f.key === issue.path[0]);
       if (!field) return issue.message;
       if (isAmountField(field) && issue.code === "invalid_type") {
-        return `${field.label} (key ${field.key}) needs a number, like 499`;
+        return `${field.label} (key ${field.key}) needs a number without a currency sign, like 499`;
       }
       return `${field.label} (key ${field.key}): ${issue.message}`;
     });
@@ -507,6 +519,18 @@ async function executeToolCallInner(
 
       const finalStatus = args.status ? String(args.status).trim() : ITEM_STATUS.active;
       if (!SETTABLE_ITEM_STATUSES.includes(finalStatus)) return invalidStatusError(finalStatus);
+
+      const given = isPlainObject(args.properties) ? args.properties : {};
+      const missing = parseFields(bucket.fieldSchema).filter(
+        (f) => f.validation?.required && isEmptyValue(given[f.key])
+      );
+      if (missing.length > 0) {
+        const names = missing.map((f) => `${f.label} (key ${f.key})`).join(", ");
+        return propertiesError(
+          `${names} ${missing.length > 1 ? "are" : "is"} required in this bucket, nothing was saved. ` +
+            "Ask the user for it unless they already said it, then add the item with it in properties."
+        );
+      }
 
       let propertiesJson: string | null = null;
       if (isPlainObject(args.properties)) {

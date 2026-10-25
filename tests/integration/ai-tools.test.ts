@@ -2,7 +2,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { and, eq, ne } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { items } from "@/lib/db/schema";
-import { executeToolCall } from "@/lib/ai/capyTools";
+import { describeFields, executeToolCall } from "@/lib/ai/capyTools";
+import type { FieldDef } from "@/types/rules";
 import {
   HOUR,
   resetSchedulerEnvironment,
@@ -130,8 +131,81 @@ describe("update_item custom fields", () => {
     });
 
     expect(result.ok).toBe(false);
-    expect(result.error).toContain("price (key price) needs a number, like 499");
+    expect(result.error).toContain("price (key price) needs a number without a currency sign");
+    expect(result.error).toContain("never put it in the item's title");
     expect((await savedItem(itemId)).properties).toBeNull();
+  });
+});
+
+describe("required custom fields", () => {
+  const REQUIRED_SCHEMA = {
+    fields: [
+      { key: "amount", label: "Amount", type: "currency", validation: { required: true } },
+      { key: "plan", label: "Plan", type: "select", options: ["basic", "pro"] },
+    ],
+  };
+
+  async function itemsIn(bucketId: number) {
+    return db.select().from(items).where(eq(items.bucketId, bucketId));
+  }
+
+  it.each([
+    ["left out", undefined],
+    ["empty", { amount: null, plan: "pro" }],
+  ])("won't add an item with a required field %s, like the item form", async (_, properties) => {
+    const userId = await seedUser();
+    const bucketId = await seedBucket(userId, undefined, REQUIRED_SCHEMA);
+
+    const result = await tool(userId, "add_item", {
+      bucket_id: bucketId,
+      title: "netflix",
+      properties,
+    });
+
+    expect(result.ok).toBe(false);
+    expect(result.error).toContain("Amount (key amount) is required in this bucket");
+    expect(describeFields(REQUIRED_SCHEMA.fields as FieldDef[])).toContain(
+      "Amount (key amount, currency, required)"
+    );
+    expect(result.error).toContain("never put it in the item's title");
+    expect(await itemsIn(bucketId)).toHaveLength(0);
+  });
+
+  it("adds the item once the required field is given", async () => {
+    const userId = await seedUser();
+    const bucketId = await seedBucket(userId, undefined, REQUIRED_SCHEMA);
+
+    const result = await tool(userId, "add_item", {
+      bucket_id: bucketId,
+      title: "netflix",
+      properties: { amount: 499 },
+    });
+
+    expect(result.ok).toBe(true);
+    expect((await itemsIn(bucketId))[0]?.title).toBe("netflix");
+  });
+
+  it("still lets capy change an item saved before the field was required", async () => {
+    const userId = await seedUser();
+    const bucketId = await seedBucket(userId, undefined, REQUIRED_SCHEMA);
+    const itemId = await seedItem(userId, bucketId, { deadline: new Date(T0.getTime() + HOUR) });
+
+    expect(await tool(userId, "update_item", { item_id: itemId, title: "netflix" })).toMatchObject({
+      ok: true,
+    });
+  });
+
+  it("doesn't steer a bucket without fields away from the title", async () => {
+    const userId = await seedUser();
+    const bucketId = await seedBucket(userId, undefined, { fields: [] });
+
+    const result = await tool(userId, "add_item", {
+      bucket_id: bucketId,
+      title: "netflix",
+      properties: { price: 499 },
+    });
+
+    expect(result.error).not.toContain("title");
   });
 });
 

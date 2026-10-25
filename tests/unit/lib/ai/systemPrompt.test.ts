@@ -40,6 +40,14 @@ it.each([
   expect(prompt).toContain(rule);
 });
 
+it.each([
+  ["web", "use a markdown table with a header row"],
+  ["telegram", "markdown isn't rendered: no tables"],
+] as const)("on %s, formats replies the way that chat shows them", (channel, rule) => {
+  const prompt = buildSystemPrompt(null, [], "a@heycapy.test", new Date(), [], channel);
+  expect(prompt).toContain(rule);
+});
+
 it("lists each bucket's custom fields with the keys to save them under", () => {
   const fieldSchema = JSON.stringify({
     fields: [

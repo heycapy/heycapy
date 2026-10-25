@@ -156,7 +156,9 @@ export const ITEM_AND_BUCKET_TOOLS: Tool[] = [
         },
         title: {
           type: "string",
-          description: "The item title. Keep it concise and clear.",
+          description:
+            "The item title. Keep it concise and clear. A value the bucket has a field for " +
+            "(an amount, plan, link…) goes in properties, never in the title.",
         },
         deadline: {
           type: "string",
@@ -192,7 +194,7 @@ export const ITEM_AND_BUCKET_TOOLS: Tool[] = [
           description:
             "Optional key-value map of custom field values for this item. " +
             "Keys must be the field keys listed in the bucket's fields; a bucket without fields takes none. " +
-            "Only provide this if the user mentions specific field values.",
+            "Required fields must be given; ask the user for a value they haven't said.",
         },
         ...ASSIGNEE_PROPERTIES,
       },
@@ -218,7 +220,9 @@ export const ITEM_AND_BUCKET_TOOLS: Tool[] = [
         },
         title: {
           type: "string",
-          description: "New title for the item.",
+          description:
+            "New title for the item. Never add a value the bucket has a field for (an amount, " +
+            "plan, link…): set it in properties.",
         },
         deadline: {
           type: ["string", "null"],

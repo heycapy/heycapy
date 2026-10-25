@@ -1,8 +1,7 @@
 import { useEffect, useRef } from "react";
-import ReactMarkdown from "react-markdown";
 import { cn } from "@/lib/utils";
 import { Sprite } from "./Sprite";
-import { appHref } from "./chatLinks";
+import { ChatMarkdown } from "./ChatMarkdown";
 import type { ChatMessage } from "./chatTypes";
 
 type Props = {
@@ -91,47 +90,7 @@ export function ChatMessageList({ messages, streaming, status, fullscreen, appUr
                     )}
                   </span>
                 ) : msg.role === "assistant" ? (
-                  <ReactMarkdown
-                    components={{
-                      p: ({ children }) => <p className="mb-1.5 last:mb-0">{children}</p>,
-                      ul: ({ children }) => (
-                        <ul className="mb-1.5 list-disc pl-3 last:mb-0">{children}</ul>
-                      ),
-                      ol: ({ children }) => (
-                        <ol className="mb-1.5 list-decimal pl-3 last:mb-0">{children}</ol>
-                      ),
-                      li: ({ children }) => <li className="mb-0.5">{children}</li>,
-                      pre: ({ children }) => (
-                        <pre className="bg-muted my-1.5 overflow-x-auto rounded p-1.5 text-xs">
-                          {children}
-                        </pre>
-                      ),
-                      code: ({ children }) => (
-                        <code className="bg-muted rounded px-0.5">{children}</code>
-                      ),
-                      strong: ({ children }) => <strong className="font-bold">{children}</strong>,
-                      em: ({ children }) => <em className="italic">{children}</em>,
-                      a: ({ href, children }) => {
-                        const inApp = appHref(href, window.location.origin, appUrl);
-                        if (inApp) {
-                          return (
-                            <a href={inApp} className="underline underline-offset-2">
-                              {children}
-                            </a>
-                          );
-                        }
-                        // Shown, not hidden, so the user sees where it pointed
-                        return (
-                          <>
-                            {children}
-                            {href && children !== href && ` (${href})`}
-                          </>
-                        );
-                      },
-                    }}
-                  >
-                    {msg.content}
-                  </ReactMarkdown>
+                  <ChatMarkdown content={msg.content} appUrl={appUrl} />
                 ) : (
                   msg.content
                 )}
