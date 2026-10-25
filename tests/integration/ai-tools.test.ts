@@ -71,6 +71,68 @@ describe("update_item custom fields", () => {
       plan: "basic",
     });
   });
+
+  it("rejects a key the bucket has no field for and names the real fields", async () => {
+    const userId = await seedUser();
+    const bucketId = await seedBucket(userId, undefined, {
+      fields: [{ key: "monthly_cost", label: "Monthly cost", type: "currency" }],
+    });
+    const itemId = await seedItem(userId, bucketId, { deadline: new Date(T0.getTime() + HOUR) });
+
+    const result = await tool(userId, "update_item", {
+      item_id: itemId,
+      properties: { price: 499 },
+    });
+
+    expect(result.ok).toBe(false);
+    expect(result.error).toContain('no field "price"');
+    expect(result.error).toContain("Monthly cost (key monthly_cost, currency)");
+    expect((await savedItem(itemId)).properties).toBeNull();
+  });
+
+  it("rejects properties in a bucket whose fields were all removed", async () => {
+    const userId = await seedUser();
+    const bucketId = await seedBucket(userId, undefined, { fields: [] });
+
+    const result = await tool(userId, "add_item", {
+      bucket_id: bucketId,
+      title: "netflix",
+      properties: { price: 499 },
+    });
+
+    expect(result).toMatchObject({ ok: false, error: expect.stringContaining("no custom fields") });
+  });
+
+  it("doesn't blame capy for a saved value of a field since removed", async () => {
+    const userId = await seedUser();
+    const bucketId = await seedBucket(userId, undefined, SUBSCRIPTION_SCHEMA);
+    const itemId = await seedItem(userId, bucketId, {
+      deadline: new Date(T0.getTime() + HOUR),
+    });
+    await db
+      .update(items)
+      .set({ properties: JSON.stringify({ price: 15, old_field: "x" }) })
+      .where(eq(items.id, itemId));
+
+    expect(
+      await tool(userId, "update_item", { item_id: itemId, properties: { plan: "premium" } })
+    ).toMatchObject({ ok: true });
+  });
+
+  it("says an amount written as text needs a number and saves nothing", async () => {
+    const userId = await seedUser();
+    const bucketId = await seedBucket(userId, undefined, SUBSCRIPTION_SCHEMA);
+    const itemId = await seedItem(userId, bucketId, { deadline: new Date(T0.getTime() + HOUR) });
+
+    const result = await tool(userId, "update_item", {
+      item_id: itemId,
+      properties: { price: "₹499" },
+    });
+
+    expect(result.ok).toBe(false);
+    expect(result.error).toContain("price (key price) needs a number, like 499");
+    expect((await savedItem(itemId)).properties).toBeNull();
+  });
 });
 
 describe("item statuses", () => {

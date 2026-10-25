@@ -190,9 +190,9 @@ export const ITEM_AND_BUCKET_TOOLS: Tool[] = [
         properties: {
           type: "object",
           description:
-            "Optional key-value map of custom field values for this item, as defined by the bucket's schema. " +
-            "Keys must match the field keys in the bucket's fieldSchema. " +
-            "Only provide this if the user mentions specific field values or you know the bucket has custom fields.",
+            "Optional key-value map of custom field values for this item. " +
+            "Keys must be the field keys listed in the bucket's fields; a bucket without fields takes none. " +
+            "Only provide this if the user mentions specific field values.",
         },
         ...ASSIGNEE_PROPERTIES,
       },
@@ -254,8 +254,8 @@ export const ITEM_AND_BUCKET_TOOLS: Tool[] = [
         properties: {
           type: ["object", "null"],
           description:
-            "Custom field values to change, as field key-value pairs; fields left out keep their value. " +
-            "Pass null to clear all of them.",
+            "Custom field values to change, keyed by the field keys listed in the bucket's fields; " +
+            "fields left out keep their value. Pass null to clear all of them.",
         },
         ...ASSIGNEE_PROPERTIES,
       },

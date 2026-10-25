@@ -32,6 +32,29 @@ it("tells the assistant a bucket is read-only even without a default deadline", 
   expect(prompt).toContain('- "Feed" (id: 1) [readonly]');
 });
 
+it("lists each bucket's custom fields with the keys to save them under", () => {
+  const fieldSchema = JSON.stringify({
+    fields: [
+      { key: "monthly_cost", label: "Monthly cost", type: "currency", currency: "INR" },
+      { key: "plan", label: "Plan", type: "select", options: ["basic", "pro"] },
+    ],
+  });
+  const prompt = buildSystemPrompt(
+    null,
+    [
+      { id: 1, name: "Subscriptions", icon: null, fieldSchema },
+      { id: 2, name: "Tasks", icon: null },
+    ],
+    "a@heycapy.test",
+    new Date("2026-03-10T12:00:00Z")
+  );
+  expect(prompt).toContain(
+    '- "Subscriptions" (id: 1)\n' +
+      "  fields: Monthly cost (key monthly_cost, currency INR); Plan (key plan, select: basic | pro)\n" +
+      '- "Tasks" (id: 2)\n'
+  );
+});
+
 const personality: NonNullable<Parameters<typeof buildSystemPrompt>[0]> = {
   personalityName: "Zippy",
   personalityTone: "chill",

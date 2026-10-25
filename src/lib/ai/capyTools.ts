@@ -46,7 +46,8 @@ import {
   listLiveBuckets,
   memberBucketIds,
 } from "@/lib/buckets/access";
-import { BucketSchema, ReminderOffsets, buildPropertyValidator } from "@/types/rules";
+import { ReminderOffsets, buildPropertyValidator, type FieldDef } from "@/types/rules";
+import { parseFields } from "@/components/buckets/fields";
 import type { ToolCall } from "./types";
 
 import { ITEM_AND_BUCKET_TOOLS } from "./capyToolDefs";
@@ -137,26 +138,69 @@ function invalidStatusError(status: string): string {
   });
 }
 
-// Checked against the bucket's fields, a bucket without fields keeps any values
+// "Monthly cost (key monthly_cost, currency INR); Plan (key plan, select: basic | pro)"
+export function describeFields(fields: FieldDef[]): string {
+  return fields
+    .map((f) => {
+      const kind = f.options?.length
+        ? `${f.type}: ${f.options.join(" | ")}`
+        : f.currency
+          ? `${f.type} ${f.currency}`
+          : f.type;
+      return `${f.label} (key ${f.key}, ${kind})`;
+    })
+    .join("; ");
+}
+
+function isAmountField(field: FieldDef): boolean {
+  return field.type === "number" || field.type === "currency";
+}
+
+function propertiesError(error: string, issues?: unknown): string {
+  return JSON.stringify({ ok: false, error, ...(issues ? { issues } : {}) });
+}
+
+// Checked against the bucket's fields, a bucket without a field schema keeps any values.
+// Only the keys capy sent must be fields: saved ones may be left from a field since removed
 function validateProperties(
   fieldSchema: unknown,
-  properties: Record<string, unknown>
+  properties: Record<string, unknown>,
+  sent: Record<string, unknown> = properties
 ): { ok: true; json: string | null } | { ok: false; error: string } {
   if (!fieldSchema) return { ok: true, json: JSON.stringify(properties) };
-  const schema = BucketSchema.safeParse(
-    typeof fieldSchema === "string" ? JSON.parse(fieldSchema) : fieldSchema
-  );
-  if (!schema.success || schema.data.fields.length === 0) return { ok: true, json: null };
+  const fields = parseFields(fieldSchema);
 
-  const validated = buildPropertyValidator(schema.data.fields).safeParse(properties);
-  if (!validated.success) {
+  const known = new Set(fields.map((f) => f.key));
+  const unknown = Object.keys(sent).filter((key) => !known.has(key));
+  if (unknown.length > 0) {
+    const named = unknown.map((key) => `"${key}"`).join(", ");
     return {
       ok: false,
-      error: JSON.stringify({
-        ok: false,
-        error: "Invalid properties",
-        issues: validated.error.issues,
-      }),
+      error: propertiesError(
+        fields.length > 0
+          ? `This bucket has no field ${named}, nothing was saved. Its fields: ${describeFields(fields)}. Use those keys.`
+          : "This bucket has no custom fields, nothing was saved."
+      ),
+    };
+  }
+  if (fields.length === 0) return { ok: true, json: null };
+
+  const validated = buildPropertyValidator(fields).safeParse(properties);
+  if (!validated.success) {
+    const problems = validated.error.issues.map((issue) => {
+      const field = fields.find((f) => f.key === issue.path[0]);
+      if (!field) return issue.message;
+      if (isAmountField(field) && issue.code === "invalid_type") {
+        return `${field.label} (key ${field.key}) needs a number, like 499`;
+      }
+      return `${field.label} (key ${field.key}): ${issue.message}`;
+    });
+    return {
+      ok: false,
+      error: propertiesError(
+        `Invalid properties, nothing was saved: ${problems.join("; ")}`,
+        validated.error.issues
+      ),
     };
   }
   return { ok: true, json: JSON.stringify(validated.data) };
@@ -593,10 +637,11 @@ async function executeToolCallInner(
           const saved = item.properties
             ? (JSON.parse(item.properties) as Record<string, unknown>)
             : {};
-          const validated = validateProperties(bucket.fieldSchema, {
-            ...saved,
-            ...args.properties,
-          });
+          const validated = validateProperties(
+            bucket.fieldSchema,
+            { ...saved, ...args.properties },
+            args.properties
+          );
           if (!validated.ok) return validated.error;
           updates.properties = validated.json;
         }
