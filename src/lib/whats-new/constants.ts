@@ -8,7 +8,7 @@ export const RELEASES: [Release, ...Release[]] = [
     notes: [
       {
         title: "getting started, with credits",
-        text: '"guide" at the top lists a few things to try in heycapy. each one ticks itself once you\'ve done it, gives capy credits, and "hint" shows you where it is.',
+        text: '"guide" at the top, or getting started in the ··· menu, lists things to try in heycapy. each one ticks itself once you\'ve done it and "hint" shows you where it is. on heycapy.xyz each one also gives capy credits.',
         showGuide: true,
       },
     ],

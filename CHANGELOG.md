@@ -2,6 +2,27 @@
 
 all notable changes to heycapy. versions follow [semver](https://semver.org): a patch version (0.3.1) only fixes things, a minor version (0.4.0) adds features. the database migrates itself on start and migrations only go forward, so back up before upgrading (see the README).
 
+## 0.8.0
+
+a getting started guide: 18 small things to try, each ticks itself once done, and on heycapy.xyz each one pays capy credits.
+
+### new
+
+- "guide" in the header (a map icon on phones) and "getting started" in the ··· menu open a list of things to try: add a reminder, give it a date, make it repeat, invite someone to a bucket, rename capy, change capy's personality, turn on push, connect telegram or ntfy, send a test email from your own account and more
+- each task ticks itself once it's done, wherever you did it: the web, telegram or capy. "hint" on any task takes you to where it's done
+- "hide from header" takes the button away, the guide stays in the ··· menu
+- a new account starts with a "reminders" bucket and opens on it
+- push is left out of the list on a server without https, since browsers only allow push there, and telegram is left out without a bot token
+
+### changes
+
+- heycapy.xyz only: new accounts get 15 free capy credits instead of 50, and the guide pays 2 to 5 credits per task, 50 in all, once per account. accounts from before get the 50 too. a self-hosted server keeps no credits, so nothing changes there
+
+### upgrading
+
+- two migrations (0041, 0042) run on start: a table of finished guide tasks and a column for hiding the guide button. back up first, then `docker compose up -d --build` as usual
+- tasks someone already did before upgrading tick on their next visit
+
 ## 0.7.1
 
 windows keep the page behind them still, escape closes them, and what's new shows the last three releases.
