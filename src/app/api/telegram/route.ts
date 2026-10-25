@@ -824,7 +824,8 @@ async function handleUpdate(botToken: string, body: TelegramUpdate): Promise<Res
         userBucketsFull,
         user?.email ?? "",
         new Date(),
-        upcomingItems
+        upcomingItems,
+        "telegram"
       ),
     },
     ...history,

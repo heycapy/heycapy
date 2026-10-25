@@ -48,6 +48,7 @@ type AppShellProps = {
   feedbackEnabled: boolean;
   unseenRelease: boolean;
   guide: GuideState;
+  appUrl: string | null;
 };
 
 export function AppShell({
@@ -61,6 +62,7 @@ export function AppShell({
   feedbackEnabled,
   unseenRelease,
   guide: guideFromServer,
+  appUrl,
 }: AppShellProps) {
   const [settingsTab, setSettingsTab] = useState<SettingsTab | null>(null);
   const [archivedOpen, setArchivedOpen] = useState(false);
@@ -167,7 +169,7 @@ export function AppShell({
       />
       <SearchDrawer />
       <AssistantNameProvider name={assistantName}>
-        <CapyChat />
+        <CapyChat appUrl={appUrl} />
       </AssistantNameProvider>
     </>
   );

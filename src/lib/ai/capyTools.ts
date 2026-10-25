@@ -1,4 +1,5 @@
 import { recordSystemError } from "@/lib/system-errors";
+import { publicAppUrl } from "@/lib/app-url";
 import { errorMessage } from "@/lib/errors";
 import {
   addLocalDays,
@@ -269,6 +270,12 @@ function deadlineOtherClock(row: ItemDetailRow, userId: number, timezone: string
   return otherClock(row.deadline, timezone, assignee, setOn, localTime);
 }
 
+// The same link reminders and webhooks send, it opens the bucket with the item highlighted
+function itemLink(row: ItemDetailRow): string | null {
+  const base = publicAppUrl();
+  return base && `${base}/?bucket=${row.bucketId}#item-${row.id}`;
+}
+
 // Everything the item form shows, so each tool that returns items answers the same questions
 function itemDetails(row: ItemDetailRow, userId: number, timezone: string) {
   return {
@@ -292,6 +299,7 @@ function itemDetails(row: ItemDetailRow, userId: number, timezone: string) {
     properties: row.properties ? (JSON.parse(row.properties) as unknown) : null,
     completedAt: row.completedAt ? localTime(row.completedAt, timezone) : null,
     createdAt: localTime(row.createdAt, timezone),
+    link: itemLink(row),
   };
 }
 

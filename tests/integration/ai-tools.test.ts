@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { and, eq, ne } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { items } from "@/lib/db/schema";
@@ -415,6 +415,35 @@ describe("item details capy reads", () => {
       reminderOffsets: [1440],
     });
     expect(found[0]).toMatchObject(listed[0] ?? {});
+  });
+});
+
+describe("item links", () => {
+  afterEach(() => vi.unstubAllEnvs());
+
+  async function listed(userId: number, bucketId: number) {
+    const call = { id: "call", name: "list_items", arguments: { bucket_id: bucketId } };
+    return JSON.parse(await executeToolCall(call, userId)) as { link: string | null }[];
+  }
+
+  it("gives each item the link that opens it in the app", async () => {
+    vi.stubEnv("APP_URL", "https://app.heycapy.test/");
+    const userId = await seedUser();
+    const bucketId = await seedBucket(userId);
+    const itemId = await seedItem(userId, bucketId, { deadline: new Date(T0.getTime() + HOUR) });
+
+    const [item] = await listed(userId, bucketId);
+    expect(item?.link).toBe(`https://app.heycapy.test/?bucket=${bucketId}#item-${itemId}`);
+  });
+
+  it("gives no link when the app has no address", async () => {
+    vi.stubEnv("APP_URL", "");
+    const userId = await seedUser();
+    const bucketId = await seedBucket(userId);
+    await seedItem(userId, bucketId, { deadline: new Date(T0.getTime() + HOUR) });
+
+    const [item] = await listed(userId, bucketId);
+    expect(item?.link).toBeNull();
   });
 });
 

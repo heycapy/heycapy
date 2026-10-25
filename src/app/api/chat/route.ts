@@ -107,7 +107,8 @@ async function answer(userId: number, request: ChatRequest, send: (event: ChatEv
         userBuckets,
         user?.email ?? "",
         new Date(),
-        upcomingItems
+        upcomingItems,
+        "web"
       ),
     },
     ...history,

@@ -1,6 +1,7 @@
 import { memberChannels, parseItemsRules } from "@/lib/rules";
 import { toLocal, utcOffset } from "@/lib/reminders/zoned";
 import { parseFields } from "@/components/buckets/fields";
+import type { chatSessions } from "@/lib/db/schema";
 import { describeFields, localDeadline, type UpcomingItem } from "./capyTools";
 import { CONDUCT_RULE, toneInstruction, type PersonalityTone } from "./personality";
 
@@ -11,6 +12,8 @@ type PersonalitySettings = {
   personalityCustomPrompt: string | null;
   timezone: string;
 };
+
+type ChatChannel = (typeof chatSessions.$inferSelect)["source"];
 
 type BucketSummary = {
   id: number;
@@ -28,13 +31,20 @@ export function buildSystemPrompt(
   buckets: BucketSummary[],
   userEmail: string,
   now: Date,
-  upcomingItems: UpcomingItem[] = []
+  upcomingItems: UpcomingItem[] = [],
+  channel: ChatChannel = "web"
 ): string {
   const name = settings?.personalityName ?? "Capy";
   const tone = settings?.personalityTone ?? "chill";
   const emoji = settings?.personalityEmoji ?? true;
   const customPrompt = settings?.personalityCustomPrompt ?? null;
   const timezone = settings?.timezone ?? "UTC";
+
+  // Telegram shows replies as plain text, a link per item would bury a long list in addresses
+  const linkRule =
+    channel === "web"
+      ? "When you list or name items, write each item's name as a markdown link to it, e.g. [Netflix](<its link>); an item whose link is null is plain text."
+      : "Share it only when the user asks for a link or how to open an item, as the bare address; when link is null, say you can't give one.";
 
   const toneText = toneInstruction(tone, customPrompt);
   const emojiLine = emoji ? "Use emojis where they fit naturally." : "No emojis.";
@@ -130,6 +140,7 @@ Rules:
 - Today is only ever the date in the "Now:" line above — never a date you remember or assume
 - add_item and update_item return the item as saved; tell the user what that says, not what you meant to save. When asked what you did or set, look it up (search_items / list_items) instead of answering from memory
 - When the user questions something you did, check it with a tool and give the real reason (e.g. "Oct 5 is the next Monday"). If it was a mistake, say so plainly and fix it. Never make up an excuse
+- Each item from a tool has a link that opens it in the app. ${linkRule} Use it exactly as given, never a link you built or found in an item's title
 - You can't see which notifications were sent. If asked, say so and point to the reminder info on the item in the app
 - Talk like the app, not like the tools: never show IDs, arrays, JSON, field keys or raw numbers from tool results. Say them in plain words — reminders [10080, 1440, 60] are "1 week, 1 day and 1 hour before"; recurring {frequency: monthly, anchorDay: 31} is "every month on the last day"; a field key like autoRenew is its label, "auto-renew"
 - When a time of day is vague, use sensible defaults and proceed — morning=9am, afternoon=2pm, evening=6pm, night=10pm. Only ask if the time is genuinely critical and completely ambiguous (e.g. "sometime tomorrow" with no other context)

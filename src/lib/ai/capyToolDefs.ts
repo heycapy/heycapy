@@ -8,7 +8,7 @@ const ITEM_RESULT =
   "the deadline; null = the bucket's default reminders), status and createdAt (when it was added). " +
   "assignedTo is who it's for in a shared bucket (null = anyone in it). deadlineOtherClock is the " +
   "same deadline on the clock of whoever it's assigned to, or the one it was set on, when that " +
-  "isn't the user's clock. ";
+  "isn't the user's clock. link opens the item in the app (null when the app has no address). ";
 
 const ASSIGNEE_PROPERTIES = {
   assignee: {

@@ -32,6 +32,14 @@ it("tells the assistant a bucket is read-only even without a default deadline", 
   expect(prompt).toContain('- "Feed" (id: 1) [readonly]');
 });
 
+it.each([
+  ["web", "write each item's name as a markdown link"],
+  ["telegram", "only when the user asks for a link"],
+] as const)("on %s, gives item links the way that chat shows them", (channel, rule) => {
+  const prompt = buildSystemPrompt(null, [], "a@heycapy.test", new Date(), [], channel);
+  expect(prompt).toContain(rule);
+});
+
 it("lists each bucket's custom fields with the keys to save them under", () => {
   const fieldSchema = JSON.stringify({
     fields: [

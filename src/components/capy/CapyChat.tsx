@@ -13,7 +13,7 @@ import { AIStatusStrip } from "./AIStatusStrip";
 import { DEFAULT_H, HEADER_H } from "./chatTypes";
 import { useLayoutStore, type ChatState } from "@/store/layout";
 
-export function CapyChat() {
+export function CapyChat({ appUrl }: { appUrl: string | null }) {
   const chatState = useLayoutStore((s) => s.chatState);
   const setChatState = useLayoutStore((s) => s.setChatState);
   const bottomBarShown = useLayoutStore((s) => s.bottomBarShown);
@@ -112,6 +112,7 @@ export function CapyChat() {
         streaming={streaming}
         status={status}
         fullscreen={fullscreen}
+        appUrl={appUrl}
       />
       {isMobile ? inputBar : <div className="px-3 pb-3">{centered(inputBar)}</div>}
     </>

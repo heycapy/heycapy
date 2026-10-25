@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import ReactMarkdown from "react-markdown";
 import { cn } from "@/lib/utils";
 import { Sprite } from "./Sprite";
+import { appHref } from "./chatLinks";
 import type { ChatMessage } from "./chatTypes";
 
 type Props = {
@@ -9,6 +10,7 @@ type Props = {
   streaming: boolean;
   status?: string | null;
   fullscreen?: boolean;
+  appUrl: string | null;
 };
 
 function BouncingDots() {
@@ -30,7 +32,7 @@ function BouncingDots() {
   );
 }
 
-export function ChatMessageList({ messages, streaming, status, fullscreen }: Props) {
+export function ChatMessageList({ messages, streaming, status, fullscreen, appUrl }: Props) {
   const listRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -109,6 +111,23 @@ export function ChatMessageList({ messages, streaming, status, fullscreen }: Pro
                       ),
                       strong: ({ children }) => <strong className="font-bold">{children}</strong>,
                       em: ({ children }) => <em className="italic">{children}</em>,
+                      a: ({ href, children }) => {
+                        const inApp = appHref(href, window.location.origin, appUrl);
+                        if (inApp) {
+                          return (
+                            <a href={inApp} className="underline underline-offset-2">
+                              {children}
+                            </a>
+                          );
+                        }
+                        // Shown, not hidden, so the user sees where it pointed
+                        return (
+                          <>
+                            {children}
+                            {href && children !== href && ` (${href})`}
+                          </>
+                        );
+                      },
                     }}
                   >
                     {msg.content}
