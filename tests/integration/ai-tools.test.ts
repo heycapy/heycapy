@@ -164,11 +164,55 @@ describe("required custom fields", () => {
 
     expect(result.ok).toBe(false);
     expect(result.error).toContain("Amount (key amount) is required in this bucket");
-    expect(describeFields(REQUIRED_SCHEMA.fields as FieldDef[])).toContain(
-      "Amount (key amount, currency, required)"
-    );
     expect(result.error).toContain("never put it in the item's title");
+    expect(result.error).toContain("never guess, estimate or make up a value");
     expect(await itemsIn(bucketId)).toHaveLength(0);
+  });
+
+  it.each([
+    ["set empty", { amount: null }],
+    ["cleared with every property", null],
+  ])("won't remove a required field %s, and says why", async (_, properties) => {
+    const userId = await seedUser();
+    const bucketId = await seedBucket(userId, undefined, REQUIRED_SCHEMA);
+    const itemId = await seedItem(userId, bucketId, { deadline: new Date(T0.getTime() + HOUR) });
+    await db
+      .update(items)
+      .set({ properties: JSON.stringify({ amount: 499 }) })
+      .where(eq(items.id, itemId));
+
+    const result = await tool(userId, "update_item", { item_id: itemId, properties });
+
+    expect(result.ok).toBe(false);
+    expect(result.error).toContain("Amount (key amount) is required");
+    expect(result.error).toContain("so it can't be removed");
+    expect(result.error).toContain("Never set 0 or another placeholder");
+    expect(JSON.parse((await itemsIn(bucketId))[0]?.properties ?? "")).toEqual({ amount: 499 });
+  });
+
+  it("changes other fields without touching the required one", async () => {
+    const userId = await seedUser();
+    const bucketId = await seedBucket(userId, undefined, REQUIRED_SCHEMA);
+    const itemId = await seedItem(userId, bucketId, { deadline: new Date(T0.getTime() + HOUR) });
+    await db
+      .update(items)
+      .set({ properties: JSON.stringify({ amount: 499 }) })
+      .where(eq(items.id, itemId));
+
+    expect(
+      await tool(userId, "update_item", { item_id: itemId, properties: { plan: "pro" } })
+    ).toMatchObject({ ok: true });
+    expect(JSON.parse((await itemsIn(bucketId))[0]?.properties ?? "")).toEqual({
+      amount: 499,
+      plan: "pro",
+    });
+  });
+
+  // marked required, the model fills in a made-up value instead of leaving it out and asking
+  it("doesn't mark required fields on the fields line", () => {
+    expect(describeFields(REQUIRED_SCHEMA.fields as FieldDef[])).toBe(
+      "Amount (key amount, currency); Plan (key plan, select: basic | pro)"
+    );
   });
 
   it("adds the item once the required field is given", async () => {

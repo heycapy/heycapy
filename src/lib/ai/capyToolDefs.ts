@@ -194,7 +194,7 @@ export const ITEM_AND_BUCKET_TOOLS: Tool[] = [
           description:
             "Optional key-value map of custom field values for this item. " +
             "Keys must be the field keys listed in the bucket's fields; a bucket without fields takes none. " +
-            "Required fields must be given; ask the user for a value they haven't said.",
+            "Required fields must be given; ask the user for a value they haven't said, never guess or make one up.",
         },
         ...ASSIGNEE_PROPERTIES,
       },
@@ -287,7 +287,7 @@ export const ITEM_AND_BUCKET_TOOLS: Tool[] = [
     name: "delete_item",
     description:
       "Move an item to the trash. " +
-      "Use this when the user asks to remove, delete, or get rid of an item. " +
+      "Only do this when the user explicitly asks to remove, delete, or get rid of an item, never to get around an error. Call it right away: the first call deletes nothing and tells you to ask the user, and the delete happens when you call it again after they say yes. " +
       "The user can restore it from the trash for 30 days; after that it is deleted for good.",
     parameters: {
       type: "object",

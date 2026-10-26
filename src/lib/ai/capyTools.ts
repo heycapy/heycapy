@@ -148,7 +148,7 @@ export function describeFields(fields: FieldDef[]): string {
         : f.currency
           ? `${f.type} ${f.currency}`
           : f.type;
-      return `${f.label} (key ${f.key}, ${kind}${f.validation?.required ? ", required" : ""})`;
+      return `${f.label} (key ${f.key}, ${kind})`;
     })
     .join("; ");
 }
@@ -466,7 +466,7 @@ async function executeToolCallInner(
       });
       if (!bucket) return bucketNotOwnedError(userId, bucketId);
 
-      if (!confirmDelete(userId, bucketId, turnId)) {
+      if (!confirmDelete(userId, `bucket:${bucketId}`, turnId)) {
         return JSON.stringify({
           ok: false,
           needsConfirmation: true,
@@ -528,7 +528,7 @@ async function executeToolCallInner(
         const names = missing.map((f) => `${f.label} (key ${f.key})`).join(", ");
         return propertiesError(
           `${names} ${missing.length > 1 ? "are" : "is"} required in this bucket, nothing was saved. ` +
-            "Ask the user for it unless they already said it, then add the item with it in properties."
+            "If the user said it, add the item again with it in properties. Otherwise ask them for it and wait for their answer: never guess, estimate or make up a value."
         );
       }
 
@@ -666,6 +666,21 @@ async function executeToolCallInner(
       }
 
       if (args.properties !== undefined) {
+        const clearing = isPlainObject(args.properties) ? args.properties : null;
+        const cleared = parseFields(bucket.fieldSchema).filter(
+          (f) =>
+            f.validation?.required &&
+            (!clearing || (f.key in clearing && isEmptyValue(clearing[f.key])))
+        );
+        if (cleared.length > 0) {
+          const names = cleared.map((f) => `${f.label} (key ${f.key})`).join(", ");
+          return JSON.stringify({
+            ok: false,
+            error:
+              `${names} ${cleared.length > 1 ? "are" : "is"} required in ${bucket.name}, so it can't be removed, nothing was saved. ` +
+              "Tell the user, and that they can make it optional in the bucket's settings. Never set 0 or another placeholder instead.",
+          });
+        }
         if (args.properties === null) {
           updates.properties = null;
         } else if (isPlainObject(args.properties)) {
@@ -705,6 +720,14 @@ async function executeToolCallInner(
       const itemId = Number(args.item_id);
       const item = await findAccessibleItem(userId, itemId);
       if (!item) return JSON.stringify({ ok: false, error: "Item not found" });
+
+      if (!confirmDelete(userId, `item:${itemId}`, turnId)) {
+        return JSON.stringify({
+          ok: false,
+          needsConfirmation: true,
+          error: `Nothing deleted yet. Ask the user to confirm deleting "${item.title}". When they say yes, call delete_item again.`,
+        });
+      }
 
       await db
         .update(items)

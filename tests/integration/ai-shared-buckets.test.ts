@@ -109,6 +109,9 @@ describe("capy in a shared bucket", () => {
     expect((await itemOf(itemId))?.bucketId).toBe(own);
 
     const milk = Number(added.itemId);
+    expect(await tool(member, "delete_item", { item_id: milk })).toMatchObject({
+      needsConfirmation: true,
+    });
     await tool(member, "delete_item", { item_id: milk });
     expect(await itemOf(milk)).toMatchObject({ deletedAt: NOW, deletedBy: member });
   });

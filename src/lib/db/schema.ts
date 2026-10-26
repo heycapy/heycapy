@@ -420,6 +420,8 @@ export const chatMessages = sqliteTable("chat_messages", {
     .references(() => users.id, { onDelete: "cascade" }),
   role: text("role", { enum: ["user", "assistant"] }).notNull(),
   content: text("content").notNull(),
+  // what capy's tools changed for this reply, one line each, so the next message knows
+  toolLog: text("tool_log"),
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
     .default(sql`(unixepoch())`),

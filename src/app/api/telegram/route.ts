@@ -9,6 +9,7 @@ import { decryptValue } from "@/lib/crypto";
 import { buildSystemPrompt } from "@/lib/ai/systemPrompt";
 import { getUpcomingItems } from "@/lib/ai/capyTools";
 import { withMemberNames } from "@/lib/ai/assigneeArgs";
+import { toolLogLine } from "@/lib/ai/toolLog";
 import { runAgent } from "@/lib/ai/runAgent";
 import {
   sendTelegram,
@@ -801,7 +802,6 @@ async function handleUpdate(botToken: string, body: TelegramUpdate): Promise<Res
   }
 
   const threshold = row.aiCompactThreshold ?? 40;
-  const history = await chatHistory(session.id);
 
   const [upcomingItems, provider] = await Promise.all([
     getUpcomingItems(userId, timezone),
@@ -828,8 +828,7 @@ async function handleUpdate(botToken: string, body: TelegramUpdate): Promise<Res
         "telegram"
       ),
     },
-    ...history,
-    { role: "user", content: text },
+    ...(await chatHistory(session.id, text)),
   ];
 
   const hold = chargesCredits(provider.meta) ? holdMessageCredit(userId) : undefined;
@@ -845,6 +844,7 @@ async function handleUpdate(botToken: string, body: TelegramUpdate): Promise<Res
 
   let finalText = "";
   const usage: TokenUsage[] = [];
+  const toolLog: string[] = [];
   try {
     finalText = await runAgent({
       provider,
@@ -854,6 +854,10 @@ async function handleUpdate(botToken: string, body: TelegramUpdate): Promise<Res
       timeoutMs:
         provider.meta.provider === "ollama" ? OLLAMA_REQUEST_TIMEOUT_MS : AI_REQUEST_TIMEOUT_MS,
       onUsage: (u) => usage.push(u),
+      onToolResult: (call, result) => {
+        const line = toolLogLine(call, result);
+        if (line) toolLog.push(line);
+      },
     });
   } catch (err) {
     if (hold) refundMessageCredit(hold);
@@ -899,7 +903,13 @@ async function handleUpdate(botToken: string, body: TelegramUpdate): Promise<Res
   try {
     await db.insert(chatMessages).values([
       { sessionId: session.id, userId, role: "user", content: text },
-      { sessionId: session.id, userId, role: "assistant", content: finalText },
+      {
+        sessionId: session.id,
+        userId,
+        role: "assistant",
+        content: finalText,
+        toolLog: toolLog.join("\n") || null,
+      },
     ]);
     await db
       .update(chatSessions)

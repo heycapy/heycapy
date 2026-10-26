@@ -10,6 +10,7 @@ import { buildSystemPrompt } from "@/lib/ai/systemPrompt";
 import { getUpcomingItems } from "@/lib/ai/capyTools";
 import { withMemberNames } from "@/lib/ai/assigneeArgs";
 import { chatHistory, compactSessionIfNeeded } from "@/lib/ai/compact";
+import { toolLogLine } from "@/lib/ai/toolLog";
 import { runAgent, type AgentStep } from "@/lib/ai/runAgent";
 import { toolStatus } from "@/lib/ai/toolStatus";
 import { logAIError, parseProviderError } from "@/lib/errors";
@@ -39,7 +40,8 @@ async function saveExchange(
   userId: number,
   sessionId: number | null,
   userText: string,
-  reply: string
+  reply: string,
+  toolLog: string | null
 ): Promise<number | null> {
   if (sessionId) {
     const owned = await db.query.chatSessions.findFirst({
@@ -48,7 +50,7 @@ async function saveExchange(
     if (!owned) return sessionId;
     await db.insert(chatMessages).values([
       { sessionId, userId, role: "user", content: userText },
-      { sessionId, userId, role: "assistant", content: reply },
+      { sessionId, userId, role: "assistant", content: reply, toolLog },
     ]);
     await db
       .update(chatSessions)
@@ -64,7 +66,7 @@ async function saveExchange(
     .returning({ id: chatSessions.id });
   await db.insert(chatMessages).values([
     { sessionId: created.id, userId, role: "user", content: userText },
-    { sessionId: created.id, userId, role: "assistant", content: reply },
+    { sessionId: created.id, userId, role: "assistant", content: reply, toolLog },
   ]);
   return created.id;
 }
@@ -95,9 +97,12 @@ async function answer(userId: number, request: ChatRequest, send: (event: ChatEv
         where: (s, { eq: qeq, and: qand }) => qand(qeq(s.id, sessionId), qeq(s.userId, userId)),
       })
     : undefined;
-  // Earlier messages come from the saved chat, not the browser, so they line up with its summary
-  const history = ownedSession ? await chatHistory(ownedSession.id) : [];
   const lastUserMsg = [...messages].reverse().find((m) => m.role === "user");
+  const conversation: AgentMessage[] = !lastUserMsg
+    ? []
+    : ownedSession
+      ? await chatHistory(ownedSession.id, lastUserMsg.content)
+      : [{ role: "user", content: lastUserMsg.content }];
 
   const agentMessages: AgentMessage[] = [
     {
@@ -111,8 +116,7 @@ async function answer(userId: number, request: ChatRequest, send: (event: ChatEv
         "web"
       ),
     },
-    ...history,
-    ...(lastUserMsg ? [{ role: "user" as const, content: lastUserMsg.content }] : []),
+    ...conversation,
   ];
 
   const bucketNames = new Map(userBuckets.map((b) => [b.id, b.name]));
@@ -129,6 +133,7 @@ async function answer(userId: number, request: ChatRequest, send: (event: ChatEv
     return;
   }
   const usage: TokenUsage[] = [];
+  const toolLog: string[] = [];
   let usageSessionId = ownedSession?.id ?? null;
   let reply: string;
   let savedSessionId: number | null;
@@ -143,6 +148,10 @@ async function answer(userId: number, request: ChatRequest, send: (event: ChatEv
         provider.meta.provider === "ollama" ? OLLAMA_REQUEST_TIMEOUT_MS : AI_REQUEST_TIMEOUT_MS,
       onStep,
       onUsage: (u) => usage.push(u),
+      onToolResult: (call, result) => {
+        const line = toolLogLine(call, result);
+        if (line) toolLog.push(line);
+      },
     }).catch(async (err: unknown) => {
       await recordKeyResult(userId, provider.meta, err);
       throw err;
@@ -151,7 +160,13 @@ async function answer(userId: number, request: ChatRequest, send: (event: ChatEv
 
     savedSessionId =
       lastUserMsg && reply
-        ? await saveExchange(userId, sessionId ?? null, lastUserMsg.content, reply)
+        ? await saveExchange(
+            userId,
+            sessionId ?? null,
+            lastUserMsg.content,
+            reply,
+            toolLog.join("\n") || null
+          )
         : (sessionId ?? null);
     if (!sessionId) usageSessionId = savedSessionId;
     answered = !!reply;

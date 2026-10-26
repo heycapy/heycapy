@@ -4,6 +4,7 @@ import { chatMessages, chatSessions } from "@/lib/db/schema";
 import { logAIError } from "@/lib/errors";
 import type { MeteredProvider } from "./index";
 import type { AgentMessage } from "./types";
+import { withToolLog } from "./toolLog";
 import { recordUsage } from "./usage";
 
 const SUMMARY_PROMPT =
@@ -14,7 +15,12 @@ async function unsummarized(sessionId: number) {
     where: eq(chatSessions.id, sessionId),
   });
   const messages = await db
-    .select({ id: chatMessages.id, role: chatMessages.role, content: chatMessages.content })
+    .select({
+      id: chatMessages.id,
+      role: chatMessages.role,
+      content: chatMessages.content,
+      toolLog: chatMessages.toolLog,
+    })
     .from(chatMessages)
     .where(
       and(eq(chatMessages.sessionId, sessionId), gt(chatMessages.id, session?.summaryThrough ?? 0))
@@ -24,14 +30,26 @@ async function unsummarized(sessionId: number) {
   return { summary: session?.summary ?? null, messages };
 }
 
-// The summary stands in for everything it covers, every message after it goes to the model as is
-export async function chatHistory(sessionId: number): Promise<AgentMessage[]> {
+// The summary stands in for everything it covers, every message after it goes to the model as is.
+// What capy's tools did rides on the next user message: in capy's own replies the model copies it
+export async function chatHistory(sessionId: number, userText: string): Promise<AgentMessage[]> {
   const { summary, messages } = await unsummarized(sessionId);
+  let toolLog: string | null = null;
+  const turns: AgentMessage[] = [];
+  for (const m of [...messages, { role: "user" as const, content: userText, toolLog: null }]) {
+    if (m.role === "assistant") {
+      turns.push({ role: "assistant", content: m.content });
+      toolLog = m.toolLog;
+    } else {
+      turns.push({ role: "user", content: withToolLog(m.content, toolLog) });
+      toolLog = null;
+    }
+  }
   return [
     ...(summary
       ? [{ role: "system" as const, content: `Summary of earlier conversation:\n${summary}` }]
       : []),
-    ...messages.map((m) => ({ role: m.role, content: m.content })),
+    ...turns,
   ];
 }
 
@@ -55,7 +73,9 @@ export async function compactSessionIfNeeded(
     const last = toSummarize.at(-1);
     if (!last) return;
 
-    const transcript = toSummarize.map((m) => `${m.role}: ${m.content}`).join("\n\n");
+    const transcript = toSummarize
+      .map((m) => `${m.role}: ${m.content}${m.toolLog ? `\n(its tools: ${m.toolLog})` : ""}`)
+      .join("\n\n");
     const result = await provider.chat([
       { role: "system", content: SUMMARY_PROMPT },
       {

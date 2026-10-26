@@ -302,6 +302,13 @@
       "when": 1793630000000,
       "tag": "0042_guide_hidden",
       "breakpoints": true
+    },
+    {
+      "idx": 43,
+      "version": "6",
+      "when": 1793700000000,
+      "tag": "0043_chat_tool_log",
+      "breakpoints": true
     }
   ]
 }

@@ -13,6 +13,7 @@ type RunAgentOptions = {
   timeoutMs: number;
   onStep?: (step: AgentStep) => void;
   onUsage?: (usage: TokenUsage) => void;
+  onToolResult?: (call: ToolCall, result: string) => void;
 };
 
 async function completeWithin(
@@ -38,6 +39,7 @@ export async function runAgent({
   timeoutMs,
   onStep,
   onUsage,
+  onToolResult,
 }: RunAgentOptions): Promise<string> {
   const turnId = nextTurnId();
   let lastContent = "";
@@ -56,12 +58,9 @@ export async function runAgent({
     messages.push({ role: "assistant", content: result.content, toolCalls: result.toolCalls });
     for (const call of result.toolCalls) {
       onStep?.({ kind: "tool", call });
-      messages.push({
-        role: "tool",
-        toolCallId: call.id,
-        toolName: call.name,
-        content: await executeToolCall(call, userId, timezone, turnId),
-      });
+      const content = await executeToolCall(call, userId, timezone, turnId);
+      onToolResult?.(call, content);
+      messages.push({ role: "tool", toolCallId: call.id, toolName: call.name, content });
     }
   }
   return AGENT_STOPPED_REPLY;
