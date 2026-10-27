@@ -2,7 +2,7 @@ import { test, expect, type Locator, type Page } from "@playwright/test";
 import Database from "better-sqlite3";
 import { E2E_DATABASE_FILE } from "../helpers/env";
 import { addItem, itemRow } from "../helpers/buckets";
-import { login, uniqueEmail } from "../helpers/login";
+import { login, uniqueEmail, uniqueUsername } from "../helpers/login";
 import { giveOwnSmtp } from "../helpers/email";
 import {
   closeDialog,
@@ -326,7 +326,7 @@ test("an item can be assigned to a member, and a bucket nobody shares has no suc
   await page.getByRole("button", { name: bracket("create invite") }).click();
   const code = (await page.getByTestId("invite-code").textContent()) ?? "";
   const friend = await browser.newPage();
-  const sam = `sam_${Date.now()}`;
+  const sam = uniqueUsername("sam");
   await joinWithCode(friend, code, sam);
   await friend.waitForURL(`/?bucket=${bucketId}`);
 
@@ -374,7 +374,7 @@ test("typing @ in the title picks a member in a shared bucket, and does nothing 
   await page.getByRole("button", { name: bracket("create invite") }).click();
   const code = (await page.getByTestId("invite-code").textContent()) ?? "";
   const friend = await browser.newPage();
-  const sam = `sam_${Date.now()}`;
+  const sam = uniqueUsername("sam");
   await joinWithCode(friend, code, sam);
   await friend.waitForURL(`/?bucket=${bucketId}`);
   await friend.close();
@@ -427,7 +427,7 @@ test("people see each other's avatars next to their names, a generated one if ne
 }) => {
   const { bucketId, code } = await ownerWithInvite(page, `avatars ${Date.now()}`);
   const friend = await browser.newPage();
-  const sam = `sam_${Date.now()}`;
+  const sam = uniqueUsername("sam");
   const friendEmail = await joinWithCode(friend, code, sam);
   await friend.waitForURL(`/?bucket=${bucketId}`);
   await friend.close();

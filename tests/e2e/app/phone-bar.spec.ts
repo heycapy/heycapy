@@ -102,7 +102,7 @@ test("search opens as a drawer with the box at the bottom, results above it", as
 
   await page.getByRole("button", { name: "[ search ]", exact: true }).tap();
   await expect(search).toBeVisible();
-  const header = await search.getByText("search every bucket").boundingBox();
+  const header = await search.getByRole("heading", { name: "search every bucket" }).boundingBox();
   const x = (header?.x ?? 0) + 40;
   const y = (header?.y ?? 0) + 5;
   await page.mouse.move(x, y);

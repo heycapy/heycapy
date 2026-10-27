@@ -1,4 +1,4 @@
-import { expect, it } from "vitest";
+import { afterEach, expect, it, vi } from "vitest";
 import { buildSystemPrompt } from "@/lib/ai/systemPrompt";
 
 it("tells the assistant the current time with the right UTC offset", () => {
@@ -32,13 +32,27 @@ it("tells the assistant a bucket is read-only even without a default deadline", 
   expect(prompt).toContain('- "Feed" (id: 1) [readonly]');
 });
 
+afterEach(() => vi.unstubAllEnvs());
+
 it.each([
   ["web", "write each item's name as a markdown link"],
   ["telegram", "only when the user asks for a link"],
 ] as const)("on %s, gives item links the way that chat shows them", (channel, rule) => {
+  vi.stubEnv("APP_URL", "https://app.heycapy.test");
   const prompt = buildSystemPrompt(null, [], "a@heycapy.test", new Date(), [], channel);
   expect(prompt).toContain(rule);
 });
+
+it.each(["web", "telegram"] as const)(
+  "on %s, says items have no links when the app has no address",
+  (channel) => {
+    vi.stubEnv("APP_URL", "");
+    const prompt = buildSystemPrompt(null, [], "a@heycapy.test", new Date(), [], channel);
+    expect(prompt).toContain("Items have no links");
+    expect(prompt).not.toContain("markdown link");
+    expect(prompt).not.toContain("only when the user asks for a link");
+  }
+);
 
 it.each([
   ["web", "use a markdown table with a header row"],
@@ -110,4 +124,11 @@ it("keeps a usable tone when custom has no prompt", () => {
   const prompt = promptFor({ personalityTone: "custom", personalityCustomPrompt: null });
   expect(prompt).toContain("Be casual and warm");
   expect(prompt).not.toContain("Be .");
+});
+
+it("treats several names as one item each and never copies one value to all of them", () => {
+  const prompt = buildSystemPrompt(null, [], "a@heycapy.test", new Date());
+  expect(prompt).toContain("are one item each");
+  expect(prompt).toContain("never join two into one title, and never drop one");
+  expect(prompt).toContain("save nothing yet and ask whether it's for each of them");
 });

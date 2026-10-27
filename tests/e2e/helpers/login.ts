@@ -1,7 +1,14 @@
+import { randomBytes } from "node:crypto";
 import { expect, type Page } from "@playwright/test";
 
+// Random too: parallel tests can start in the same millisecond and would share an account
 export function uniqueEmail(prefix: string): string {
-  return `${prefix}-${Date.now()}@heycapy.test`;
+  return `${prefix}-${Date.now()}-${randomBytes(3).toString("hex")}@heycapy.test`;
+}
+
+// Usernames are unique across all accounts and only take a-z, 0-9 and _
+export function uniqueUsername(prefix: string): string {
+  return `${prefix}_${Date.now().toString(36)}${randomBytes(3).toString("hex")}`;
 }
 
 // Both steps stay mounted and fade via opacity, so check opacity, not visibility

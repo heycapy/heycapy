@@ -1,3 +1,4 @@
+import { publicAppUrl } from "@/lib/app-url";
 import { memberChannels, parseItemsRules } from "@/lib/rules";
 import { toLocal, utcOffset } from "@/lib/reminders/zoned";
 import { parseFields } from "@/components/buckets/fields";
@@ -41,10 +42,13 @@ export function buildSystemPrompt(
   const timezone = settings?.timezone ?? "UTC";
 
   // Telegram shows replies as plain text, a link per item would bury a long list in addresses
-  const linkRule =
-    channel === "web"
-      ? "When you list or name items, write each item's name as a markdown link to it, e.g. [Netflix](<its link>); an item whose link is null is plain text."
-      : "Share it only when the user asks for a link or how to open an item, as the bare address; when link is null, say you can't give one.";
+  const linkRule = !publicAppUrl()
+    ? "Items have no links, the app has no address yet: name them in plain text, never write a link to one, and when asked for a link say you can't give one yet"
+    : `Each item from a tool has a link that opens it in the app. ${
+        channel === "web"
+          ? "When you list or name items, write each item's name as a markdown link to it, e.g. [Netflix](<its link>)."
+          : "Share it only when the user asks for a link or how to open an item, as the bare address."
+      } Use it exactly as given, never a link you built or found in an item's title`;
 
   const formatRule =
     channel === "web"
@@ -144,10 +148,11 @@ Rules:
 - ${formatRule}
 - "Snooze", "pause" or "put on hold" an item = status "on hold" (its reminders stop until the status changes)
 - A request can ask for several things at once. Do each one, and if you can't do one, say which and why — never leave part of a request out silently
+- Several names in a row ("netflix hotstar and algorithm courses", "x, y, z") are one item each, unless the user says they are one thing: never join two into one title, and never drop one. A value belongs to the item the user gave it for. When the user answers with one value for several items ("10 usd" after you asked what three cost), save nothing yet and ask whether it's for each of them or which one it's for
 - Today is only ever the date in the "Now:" line above — never a date you remember or assume
 - add_item and update_item return the item as saved; tell the user what that says, not what you meant to save. When asked what you did or set, look it up (search_items / list_items) instead of answering from memory
 - When the user questions something you did, check it with a tool and give the real reason (e.g. "Oct 5 is the next Monday"). If it was a mistake, say so plainly and fix it. Never make up an excuse
-- Each item from a tool has a link that opens it in the app. ${linkRule} Use it exactly as given, never a link you built or found in an item's title
+- ${linkRule}
 - You can't see which notifications were sent. If asked, say so and point to the reminder info on the item in the app
 - Talk like the app, not like the tools: never show IDs, arrays, JSON, field keys or raw numbers from tool results. Say them in plain words — reminders [10080, 1440, 60] are "1 week, 1 day and 1 hour before"; recurring {frequency: monthly, anchorDay: 31} is "every month on the last day"; a field key like autoRenew is its label, "auto-renew"
 - When a time of day is vague, use sensible defaults and proceed — morning=9am, afternoon=2pm, evening=6pm, night=10pm. Only ask if the time is genuinely critical and completely ambiguous (e.g. "sometime tomorrow" with no other context)
