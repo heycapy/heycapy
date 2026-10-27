@@ -19,7 +19,7 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 1,
-  workers: process.env.CI ? 1 : 2,
+  workers: process.env.CI ? 1 : 6,
   reporter: process.env.CI ? [["html", { outputFolder: "playwright-report" }]] : "list",
   use: {
     baseURL: BASE_URL,
@@ -53,7 +53,8 @@ export default defineConfig({
       : []),
   ],
   webServer: {
-    command: `pnpm build && cp -r public .next/standalone/ && cp -r .next/static .next/standalone/.next/ && cp -r src/lib/db/migrations .next/standalone/migrations && NODE_OPTIONS=--require=$PWD/tests/e2e/helpers/fake-dns.cjs DATABASE_URL=file:$PWD/${E2E_DATABASE_FILE} node .next/standalone/server.js`,
+    // Built here with the env below, its deployment id has to match. Lint and tsc run before this
+    command: `pnpm exec next build && cp -r public .next/standalone/ && cp -r .next/static .next/standalone/.next/ && cp -r src/lib/db/migrations .next/standalone/migrations && NODE_OPTIONS=--require=$PWD/tests/e2e/helpers/fake-dns.cjs DATABASE_URL=file:$PWD/${E2E_DATABASE_FILE} node .next/standalone/server.js`,
     url: BASE_URL,
     // Dummy keys override .env: channels count as configured, and nothing reaches real services.
     // The build copies a local .env into the server but CI has none, so secrets are set here too

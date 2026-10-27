@@ -2,6 +2,6 @@ pnpm exec lint-staged
 pnpm typecheck
 pnpm lint
 pnpm format:check
-pnpm build
 pnpm test:run
+# builds the app with the test env before it runs
 pnpm test:e2e
