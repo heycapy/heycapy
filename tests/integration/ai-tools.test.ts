@@ -541,7 +541,7 @@ describe("item links", () => {
 
   async function listed(userId: number, bucketId: number) {
     const call = { id: "call", name: "list_items", arguments: { bucket_id: bucketId } };
-    return JSON.parse(await executeToolCall(call, userId)) as { link: string | null }[];
+    return JSON.parse(await executeToolCall(call, userId)) as Record<string, unknown>[];
   }
 
   it("gives each item the link that opens it in the app", async () => {
@@ -561,7 +561,8 @@ describe("item links", () => {
     await seedItem(userId, bucketId, { deadline: new Date(T0.getTime() + HOUR) });
 
     const [item] = await listed(userId, bucketId);
-    expect(item?.link).toBeNull();
+    expect(item).toBeDefined();
+    expect(item).not.toHaveProperty("link");
   });
 });
 

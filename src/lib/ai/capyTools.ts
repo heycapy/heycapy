@@ -283,9 +283,10 @@ function deadlineOtherClock(row: ItemDetailRow, userId: number, timezone: string
 }
 
 // The same link reminders and webhooks send, it opens the bucket with the item highlighted
-function itemLink(row: ItemDetailRow): string | null {
+// Left out without an address: a null link gets written as [name](null)
+function itemLink(row: ItemDetailRow): { link?: string } {
   const base = publicAppUrl();
-  return base && `${base}/?bucket=${row.bucketId}#item-${row.id}`;
+  return base ? { link: `${base}/?bucket=${row.bucketId}#item-${row.id}` } : {};
 }
 
 // Everything the item form shows, so each tool that returns items answers the same questions
@@ -311,7 +312,7 @@ function itemDetails(row: ItemDetailRow, userId: number, timezone: string) {
     properties: row.properties ? (JSON.parse(row.properties) as unknown) : null,
     completedAt: row.completedAt ? localTime(row.completedAt, timezone) : null,
     createdAt: localTime(row.createdAt, timezone),
-    link: itemLink(row),
+    ...itemLink(row),
   };
 }
 
