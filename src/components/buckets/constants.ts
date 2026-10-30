@@ -9,6 +9,7 @@ import { ITEM_STATUS } from "@/constants";
 import type { QuickRemindChoice } from "@/lib/notifications/constants";
 import type { RecurrenceMode, StatusDef } from "@/types/rules";
 import { REMINDER_UNITS } from "@/lib/reminders/constants";
+import type { BucketMember } from "@/lib/buckets/members";
 
 export type SortBy = "deadline" | "created_at" | "manual";
 export type NotificationMedium = "ntfy" | "email" | "telegram" | "push";
@@ -180,3 +181,6 @@ export const LOCKED_CONTROLS = [
   "[&_[data-variant]]:hidden",
   "[&_[data-remove]]:hidden",
 ].join(" ");
+
+// One shared empty list, so a hook returning "nobody yet" keeps the same reference between renders
+export const NO_MEMBERS: BucketMember[] = [];

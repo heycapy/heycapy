@@ -4,6 +4,7 @@ import { useEffect, type RefObject } from "react";
 import { BracketButton } from "@/components/ui/BracketButton";
 import { ItemDialog } from "@/components/buckets/ItemDialog";
 import { useItemEditor } from "@/components/buckets/useItemEditor";
+import { useBucketMembers } from "@/components/buckets/useBucketMembers";
 import { parseFields } from "@/components/buckets/fields";
 import { BUCKET_PALETTE, DEFAULT_BUCKET_STATUSES } from "@/components/buckets/constants";
 import { parseItemsRules, parseNotificationRules } from "@/lib/rules";
@@ -61,6 +62,7 @@ export function TodayView({ buckets, addItemRef }: TodayViewProps) {
   const editingItem = data?.items.find((i) => i.id === editor.editingItemId);
   const formBucket = adding ? addTo?.bucket : buckets.find((b) => b.id === editingItem?.bucketId);
   const fields = parseFields(formBucket?.fieldSchema);
+  const members = useBucketMembers(formBucket?.id ?? null, editor.dialogProps.open);
 
   return (
     <div className="flex flex-col">
@@ -103,6 +105,14 @@ export function TodayView({ buckets, addItemRef }: TodayViewProps) {
         }
         statuses={statuses}
         fields={fields.length > 0 ? fields : undefined}
+        assigneeChoice={
+          formBucket && {
+            bucketId: formBucket.id,
+            members,
+            value: editor.assigneeId,
+            onChange: editor.setAssigneeId,
+          }
+        }
         bucketChoice={
           adding && addTo
             ? {
@@ -115,6 +125,7 @@ export function TodayView({ buckets, addItemRef }: TodayViewProps) {
                 onChange: (id) => {
                   setTodayAddBucketId(id);
                   editor.dialogProps.onPropertiesChange({});
+                  editor.setAssigneeId(null);
                 },
               }
             : undefined

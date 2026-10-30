@@ -20,6 +20,8 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 1,
   workers: process.env.CI ? 1 : 6,
+  // With 6 browsers on one fresh server a save can take over the default 5s
+  expect: { timeout: 10_000 },
   reporter: process.env.CI ? [["html", { outputFolder: "playwright-report" }]] : "list",
   use: {
     baseURL: BASE_URL,
