@@ -27,6 +27,8 @@ type ItemMenuProps = {
   item: Item;
   at: MenuAt;
   readonly: boolean;
+  completeLabel: string;
+  onComplete: () => void;
   onMove: (deadline: string) => Promise<void>;
   onDelete: () => void;
   onClose: () => void;
@@ -61,7 +63,15 @@ function MenuButton({
   );
 }
 
-function MenuBody({ item, readonly, onMove, onDelete, onClose }: Omit<ItemMenuProps, "at">) {
+function MenuBody({
+  item,
+  readonly,
+  completeLabel,
+  onComplete,
+  onMove,
+  onDelete,
+  onClose,
+}: Omit<ItemMenuProps, "at">) {
   const [picking, setPicking] = useState(false);
   const [moving, setMoving] = useState(false);
   const recurring = parseRecurring(item.recurring);
@@ -110,6 +120,14 @@ function MenuBody({ item, readonly, onMove, onDelete, onClose }: Omit<ItemMenuPr
           x
         </BracketButton>
       </div>
+
+      {!readonly && !picking && (
+        <div className={section}>
+          <MenuButton onClick={() => run(onComplete)}>
+            <span className="text-foreground">{completeLabel}</span>
+          </MenuButton>
+        </div>
+      )}
 
       {!readonly && picking && (
         <div className={cn(section, "px-3 pt-1 pb-3")}>

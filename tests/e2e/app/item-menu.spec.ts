@@ -1,6 +1,12 @@
 import { test, expect, type Page } from "@playwright/test";
 import { authState } from "../helpers/auth";
-import { addItem, createAndSelectBucket, itemRow, uniqueName } from "../helpers/buckets";
+import {
+  addItem,
+  createAndSelectBucket,
+  itemRow,
+  selectBucket,
+  uniqueName,
+} from "../helpers/buckets";
 import { field, modal, openSettings, option, saveSettings } from "../helpers/settings";
 
 test.use({
@@ -147,6 +153,44 @@ test("works in today, and moving out of today takes the item off the list", asyn
     .getByRole("button", { name: /^due tomorrow / })
     .click();
   await expect(today.getByRole("button", { name: title })).toHaveCount(0);
+});
+
+test("done from the menu, then reopen", async ({ page }) => {
+  const title = uniqueName("book dentist");
+  await addItem(page, title);
+  const status = rowFor(page, title).getByRole("button", { name: /^status: / });
+  await expect(status).toHaveAccessibleName("status: active");
+
+  let menu = await openMenu(page, title);
+  await menu.getByRole("button", { name: "done", exact: true }).click();
+  await expect(menu).not.toBeVisible();
+  await expect(status).toHaveAccessibleName("status: completed");
+
+  menu = await openMenu(page, title);
+  await expect(menu.getByRole("button", { name: "done", exact: true })).toHaveCount(0);
+  await menu.getByRole("button", { name: "reopen", exact: true }).click();
+  await expect(status).toHaveAccessibleName("status: active");
+});
+
+test("done from the menu in today takes the item off the list and completes it", async ({
+  page,
+}) => {
+  const bucket = uniqueName("Errands");
+  await createAndSelectBucket(page, bucket);
+  const title = uniqueName("post the letter");
+  await addItem(page, title);
+  await (await openMenu(page, title)).getByRole("button", { name: /^due today / }).click();
+
+  await page.getByRole("button", { name: "today", exact: true }).click();
+  const today = page.getByRole("region", { name: "today" });
+  await today.getByRole("button", { name: title }).click({ button: "right" });
+  await menuFor(page, title).getByRole("button", { name: "done", exact: true }).click();
+  await expect(today.getByRole("button", { name: title })).toHaveCount(0);
+
+  await selectBucket(page, bucket);
+  await expect(rowFor(page, title).getByRole("button", { name: /^status: / })).toHaveAccessibleName(
+    "status: completed"
+  );
 });
 
 test("read-only buckets only offer copy title", async ({ page }) => {

@@ -106,6 +106,10 @@ export function ItemList({
       item={menu.item}
       at={menu.at}
       readonly={readonly}
+      completeLabel={completionToggle(menu.item.status, statuses).label}
+      onComplete={() =>
+        onStatusChange(menu.item, completionToggle(menu.item.status, statuses).next)
+      }
       onMove={(deadline) => onMove(menu.item, deadline)}
       onDelete={() => onDelete(menu.item.id)}
       onClose={() => setMenu(null)}
