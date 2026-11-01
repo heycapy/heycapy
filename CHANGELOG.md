@@ -15,6 +15,7 @@ capy gets things right more often, items can be done and reassigned from more pl
 - on a server without an address (`APP_URL`) capy no longer writes links that go nowhere, and in web chat only links into the app are clickable
 - an item edited from today or search can have who it's for changed in a shared bucket. adding from today clears it when you switch buckets
 - a bucket's telegram settings use the same buttons and toggles as the rest of the app
+- the text in an item's field boxes (like "amount: ₹499") sat near the top of its box. it's in the middle now, whatever font your system uses
 - a new account opens on the getting started guide, once. accounts from before don't get it
 
 ### changes
