@@ -31,6 +31,10 @@
 ## screenshots
 
 <p align="center">
+  <img src=".github/assets/demo.gif" width="900" alt="adding an item to a shared home bucket and ticking the electricity bill done, then one casual message to capy: it adds call grandma for sunday evening, moves the plumber call to 4pm and assigns it to kavita">
+</p>
+
+<p align="center">
   <img src=".github/assets/screenshots/shared-home.png" width="900" alt="a home bucket shared with family, chores assigned to maya and sam (tokyo night theme), next to a birthdays bucket with a gift idea for each on a phone (everforest theme)">
 </p>
 
