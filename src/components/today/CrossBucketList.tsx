@@ -130,6 +130,10 @@ export function CrossBucketList({
           item={menu.item}
           at={menu.at}
           readonly={bucketOf(menu.item)?.readonly === true}
+          completeLabel={completionToggle(menu.item.status, statuses).label}
+          onComplete={() =>
+            void changeStatus(menu.item, completionToggle(menu.item.status, statuses).next)
+          }
           onMove={(deadline) => moveItem(menu.item, deadline)}
           onDelete={() => void deleteItem(menu.item)}
           onClose={() => setMenu(null)}

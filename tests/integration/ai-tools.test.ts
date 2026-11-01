@@ -1,8 +1,9 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { and, eq, ne } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { items } from "@/lib/db/schema";
-import { executeToolCall } from "@/lib/ai/capyTools";
+import { describeFields, executeToolCall } from "@/lib/ai/capyTools";
+import type { FieldDef } from "@/types/rules";
 import {
   HOUR,
   resetSchedulerEnvironment,
@@ -70,6 +71,185 @@ describe("update_item custom fields", () => {
       price: 18,
       plan: "basic",
     });
+  });
+
+  it("rejects a key the bucket has no field for and names the real fields", async () => {
+    const userId = await seedUser();
+    const bucketId = await seedBucket(userId, undefined, {
+      fields: [{ key: "monthly_cost", label: "Monthly cost", type: "currency" }],
+    });
+    const itemId = await seedItem(userId, bucketId, { deadline: new Date(T0.getTime() + HOUR) });
+
+    const result = await tool(userId, "update_item", {
+      item_id: itemId,
+      properties: { price: 499 },
+    });
+
+    expect(result.ok).toBe(false);
+    expect(result.error).toContain('no field "price"');
+    expect(result.error).toContain("Monthly cost (key monthly_cost, currency)");
+    expect((await savedItem(itemId)).properties).toBeNull();
+  });
+
+  it("rejects properties in a bucket whose fields were all removed", async () => {
+    const userId = await seedUser();
+    const bucketId = await seedBucket(userId, undefined, { fields: [] });
+
+    const result = await tool(userId, "add_item", {
+      bucket_id: bucketId,
+      title: "netflix",
+      properties: { price: 499 },
+    });
+
+    expect(result).toMatchObject({ ok: false, error: expect.stringContaining("no custom fields") });
+  });
+
+  it("doesn't blame capy for a saved value of a field since removed", async () => {
+    const userId = await seedUser();
+    const bucketId = await seedBucket(userId, undefined, SUBSCRIPTION_SCHEMA);
+    const itemId = await seedItem(userId, bucketId, {
+      deadline: new Date(T0.getTime() + HOUR),
+    });
+    await db
+      .update(items)
+      .set({ properties: JSON.stringify({ price: 15, old_field: "x" }) })
+      .where(eq(items.id, itemId));
+
+    expect(
+      await tool(userId, "update_item", { item_id: itemId, properties: { plan: "premium" } })
+    ).toMatchObject({ ok: true });
+  });
+
+  it("says an amount written as text needs a number and saves nothing", async () => {
+    const userId = await seedUser();
+    const bucketId = await seedBucket(userId, undefined, SUBSCRIPTION_SCHEMA);
+    const itemId = await seedItem(userId, bucketId, { deadline: new Date(T0.getTime() + HOUR) });
+
+    const result = await tool(userId, "update_item", {
+      item_id: itemId,
+      properties: { price: "₹499" },
+    });
+
+    expect(result.ok).toBe(false);
+    expect(result.error).toContain("price (key price) needs a number without a currency sign");
+    expect(result.error).toContain("never put it in the item's title");
+    expect((await savedItem(itemId)).properties).toBeNull();
+  });
+});
+
+describe("required custom fields", () => {
+  const REQUIRED_SCHEMA = {
+    fields: [
+      { key: "amount", label: "Amount", type: "currency", validation: { required: true } },
+      { key: "plan", label: "Plan", type: "select", options: ["basic", "pro"] },
+    ],
+  };
+
+  async function itemsIn(bucketId: number) {
+    return db.select().from(items).where(eq(items.bucketId, bucketId));
+  }
+
+  it.each([
+    ["left out", undefined],
+    ["empty", { amount: null, plan: "pro" }],
+  ])("won't add an item with a required field %s, like the item form", async (_, properties) => {
+    const userId = await seedUser();
+    const bucketId = await seedBucket(userId, undefined, REQUIRED_SCHEMA);
+
+    const result = await tool(userId, "add_item", {
+      bucket_id: bucketId,
+      title: "netflix",
+      properties,
+    });
+
+    expect(result.ok).toBe(false);
+    expect(result.error).toContain("Amount (key amount) is required in this bucket");
+    expect(result.error).toContain("never put it in the item's title");
+    expect(result.error).toContain("never guess, estimate or make up a value");
+    expect(await itemsIn(bucketId)).toHaveLength(0);
+  });
+
+  it.each([
+    ["set empty", { amount: null }],
+    ["cleared with every property", null],
+  ])("won't remove a required field %s, and says why", async (_, properties) => {
+    const userId = await seedUser();
+    const bucketId = await seedBucket(userId, undefined, REQUIRED_SCHEMA);
+    const itemId = await seedItem(userId, bucketId, { deadline: new Date(T0.getTime() + HOUR) });
+    await db
+      .update(items)
+      .set({ properties: JSON.stringify({ amount: 499 }) })
+      .where(eq(items.id, itemId));
+
+    const result = await tool(userId, "update_item", { item_id: itemId, properties });
+
+    expect(result.ok).toBe(false);
+    expect(result.error).toContain("Amount (key amount) is required");
+    expect(result.error).toContain("so it can't be removed");
+    expect(result.error).toContain("Never set 0 or another placeholder");
+    expect(JSON.parse((await itemsIn(bucketId))[0]?.properties ?? "")).toEqual({ amount: 499 });
+  });
+
+  it("changes other fields without touching the required one", async () => {
+    const userId = await seedUser();
+    const bucketId = await seedBucket(userId, undefined, REQUIRED_SCHEMA);
+    const itemId = await seedItem(userId, bucketId, { deadline: new Date(T0.getTime() + HOUR) });
+    await db
+      .update(items)
+      .set({ properties: JSON.stringify({ amount: 499 }) })
+      .where(eq(items.id, itemId));
+
+    expect(
+      await tool(userId, "update_item", { item_id: itemId, properties: { plan: "pro" } })
+    ).toMatchObject({ ok: true });
+    expect(JSON.parse((await itemsIn(bucketId))[0]?.properties ?? "")).toEqual({
+      amount: 499,
+      plan: "pro",
+    });
+  });
+
+  // marked required, the model fills in a made-up value instead of leaving it out and asking
+  it("doesn't mark required fields on the fields line", () => {
+    expect(describeFields(REQUIRED_SCHEMA.fields as FieldDef[])).toBe(
+      "Amount (key amount, currency); Plan (key plan, select: basic | pro)"
+    );
+  });
+
+  it("adds the item once the required field is given", async () => {
+    const userId = await seedUser();
+    const bucketId = await seedBucket(userId, undefined, REQUIRED_SCHEMA);
+
+    const result = await tool(userId, "add_item", {
+      bucket_id: bucketId,
+      title: "netflix",
+      properties: { amount: 499 },
+    });
+
+    expect(result.ok).toBe(true);
+    expect((await itemsIn(bucketId))[0]?.title).toBe("netflix");
+  });
+
+  it("still lets capy change an item saved before the field was required", async () => {
+    const userId = await seedUser();
+    const bucketId = await seedBucket(userId, undefined, REQUIRED_SCHEMA);
+    const itemId = await seedItem(userId, bucketId, { deadline: new Date(T0.getTime() + HOUR) });
+
+    expect(await tool(userId, "update_item", { item_id: itemId, title: "netflix" })).toMatchObject({
+      ok: true,
+    });
+  });
+
+  it("doesn't steer a bucket without fields away from the title", async () => {
+    const userId = await seedUser();
+    const bucketId = await seedBucket(userId, undefined, { fields: [] });
+
+    const result = await tool(userId, "add_item", {
+      bucket_id: bucketId,
+      title: "netflix",
+      properties: { price: 499 },
+    });
+
+    expect(result.error).not.toContain("title");
   });
 });
 
@@ -353,6 +533,99 @@ describe("item details capy reads", () => {
       reminderOffsets: [1440],
     });
     expect(found[0]).toMatchObject(listed[0] ?? {});
+  });
+});
+
+describe("item links", () => {
+  afterEach(() => vi.unstubAllEnvs());
+
+  async function listed(userId: number, bucketId: number) {
+    const call = { id: "call", name: "list_items", arguments: { bucket_id: bucketId } };
+    return JSON.parse(await executeToolCall(call, userId)) as Record<string, unknown>[];
+  }
+
+  it("gives each item the link that opens it in the app", async () => {
+    vi.stubEnv("APP_URL", "https://app.heycapy.test/");
+    const userId = await seedUser();
+    const bucketId = await seedBucket(userId);
+    const itemId = await seedItem(userId, bucketId, { deadline: new Date(T0.getTime() + HOUR) });
+
+    const [item] = await listed(userId, bucketId);
+    expect(item?.link).toBe(`https://app.heycapy.test/?bucket=${bucketId}#item-${itemId}`);
+  });
+
+  it("gives no link when the app has no address", async () => {
+    vi.stubEnv("APP_URL", "");
+    const userId = await seedUser();
+    const bucketId = await seedBucket(userId);
+    await seedItem(userId, bucketId, { deadline: new Date(T0.getTime() + HOUR) });
+
+    const [item] = await listed(userId, bucketId);
+    expect(item).toBeDefined();
+    expect(item).not.toHaveProperty("link");
+  });
+});
+
+describe("oldest and newest items", () => {
+  const DAY = 24 * HOUR;
+
+  async function seedAdded(userId: number, bucketId: number, title: string, daysAgo: number) {
+    const itemId = await seedItem(userId, bucketId, {
+      title,
+      deadline: new Date(T0.getTime() + DAY),
+    });
+    await db
+      .update(items)
+      .set({ createdAt: new Date(T0.getTime() - daysAgo * DAY) })
+      .where(eq(items.id, itemId));
+    return itemId;
+  }
+
+  async function search(userId: number, args: Record<string, unknown>) {
+    const call = { id: "call", name: "search_items", arguments: args };
+    return JSON.parse(await executeToolCall(call, userId)) as {
+      title: string;
+      createdAt: string;
+    }[];
+  }
+
+  // Inserted out of order, so only sorting by createdAt gives the expected order
+  async function seedFour() {
+    const userId = await seedUser();
+    const bucketId = await seedBucket(userId);
+    await seedAdded(userId, bucketId, "call bank", 1);
+    await seedAdded(userId, bucketId, "renew passport", 2);
+    await seedAdded(userId, bucketId, "buy milk", 1);
+    const finished = await seedAdded(userId, bucketId, "finished long ago", 3);
+    await db
+      .update(items)
+      .set({ status: "completed", completedAt: T0 })
+      .where(eq(items.id, finished));
+    return userId;
+  }
+
+  it("tells capy when each item was added", async () => {
+    const userId = await seedFour();
+    const [first] = await search(userId, { sort: "oldest" });
+    expect(first?.createdAt).toBe("Sun 2026-03-08 12:00");
+  });
+
+  it("puts the oldest item still to do first, not an older completed one", async () => {
+    const userId = await seedFour();
+    const found = await search(userId, { sort: "oldest" });
+    expect(found.map((i) => i.title)).toEqual(["renew passport", "call bank", "buy milk"]);
+  });
+
+  it("puts the newest first, the later of two added in the same second ahead", async () => {
+    const userId = await seedFour();
+    const found = await search(userId, { sort: "newest" });
+    expect(found.map((i) => i.title)).toEqual(["buy milk", "call bank", "renew passport"]);
+  });
+
+  it("includes completed items in the order when asked", async () => {
+    const userId = await seedFour();
+    const [first] = await search(userId, { sort: "oldest", include_completed: true });
+    expect(first?.title).toBe("finished long ago");
   });
 });
 

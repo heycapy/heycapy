@@ -45,7 +45,8 @@ test("defaults: common deadline buttons, five time slots, no repeats step", asyn
     await expectSelected(option(dialog, slot));
   }
   await expect(dialog.getByText("5 times configured")).toBeVisible();
-  await expectSelected(option(dialog, "off"), false);
+  await expectSelected(option(dialog, "off"));
+  await expectSelected(option(dialog, "on"), false);
 });
 
 test("alias is sanitised to telegram command characters and previewed", async ({ page }) => {
@@ -62,7 +63,7 @@ test("alias and options persist after save", async ({ page }) => {
   let { dialog, settings } = await openTelegram(page);
   await aliasInput(dialog).fill(alias);
   await option(dialog, "end of month").click();
-  await option(dialog, "off").click();
+  await option(dialog, "on").click();
   await option(dialog, "monthly").click();
   await saveTelegram(dialog);
   await closeDialog(settings);
@@ -118,7 +119,7 @@ test("the last remaining deadline button cannot be turned off", async ({ page })
 test("custom time slots can be added, validated and removed", async ({ page }) => {
   const { dialog } = await openTelegram(page);
   const input = dialog.getByPlaceholder("e.g. 5:30pm or 17:30");
-  const add = option(dialog, "add");
+  const add = option(dialog, "add time");
 
   await input.fill("5:30pm");
   await add.click();
@@ -141,7 +142,7 @@ test("reset to defaults restores the default config", async ({ page }) => {
   const { dialog } = await openTelegram(page);
   await aliasInput(dialog).fill("temp");
   await option(dialog, "pick date").click();
-  await dialog.getByRole("button", { name: "reset to defaults" }).click();
+  await option(dialog, "[ reset to defaults ]").click();
 
   await expect(aliasInput(dialog)).toHaveValue("");
   await expectSelected(option(dialog, "pick date"), false);

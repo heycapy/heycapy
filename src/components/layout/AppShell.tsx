@@ -19,6 +19,7 @@ import { NewVersionBanner } from "./NewVersionBanner";
 import { FeedbackDialog } from "./FeedbackDialog";
 import { WhatsNewDialog } from "./WhatsNewDialog";
 import { markReleasesSeenAction } from "@/app/(app)/account-actions";
+import { markGuideSeenAction } from "@/app/(app)/guide-actions";
 import { saveTimezoneIfDefaultAction } from "@/app/(app)/user-settings-actions";
 import { useServerEvents } from "@/hooks/useServerEvents";
 import { AssistantNameProvider } from "@/components/capy/assistant-name";
@@ -48,6 +49,7 @@ type AppShellProps = {
   feedbackEnabled: boolean;
   unseenRelease: boolean;
   guide: GuideState;
+  appUrl: string | null;
 };
 
 export function AppShell({
@@ -61,6 +63,7 @@ export function AppShell({
   feedbackEnabled,
   unseenRelease,
   guide: guideFromServer,
+  appUrl,
 }: AppShellProps) {
   const [settingsTab, setSettingsTab] = useState<SettingsTab | null>(null);
   const [archivedOpen, setArchivedOpen] = useState(false);
@@ -69,7 +72,7 @@ export function AppShell({
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [whatsNewOpen, setWhatsNewOpen] = useState(false);
   const [releaseUnseen, setReleaseUnseen] = useState(unseenRelease);
-  const [guideOpen, setGuideOpen] = useState(false);
+  const [guideOpen, setGuideOpen] = useState(!guideFromServer.seen);
   const { guide, refresh: refreshGuide, setHidden: setGuideHidden } = useGuide(guideFromServer);
   const guideDone = guide.tasks.filter((task) => task.done).length;
   const requestAddItem = useUIStore((s) => s.requestAddItem);
@@ -101,6 +104,10 @@ export function AppShell({
   }
 
   const newVersion = useServerEvents();
+
+  useEffect(() => {
+    if (!guideFromServer.seen) void markGuideSeenAction();
+  }, [guideFromServer.seen]);
 
   useEffect(() => {
     void useUIStore.persist.rehydrate();
@@ -167,7 +174,7 @@ export function AppShell({
       />
       <SearchDrawer />
       <AssistantNameProvider name={assistantName}>
-        <CapyChat />
+        <CapyChat appUrl={appUrl} />
       </AssistantNameProvider>
     </>
   );

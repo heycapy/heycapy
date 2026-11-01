@@ -11,8 +11,8 @@ export function nextTurnId(): number {
   return ++lastTurnId;
 }
 
-export function confirmDelete(userId: number, bucketId: number, turnId: number): boolean {
-  const key = `${userId}:${bucketId}`;
+export function confirmDelete(userId: number, target: string, turnId: number): boolean {
+  const key = `${userId}:${target}`;
   const found = pending.get(key);
   if (found && found.expiresAt > Date.now() && found.turnId !== turnId) {
     pending.delete(key);

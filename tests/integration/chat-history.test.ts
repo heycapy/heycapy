@@ -1,12 +1,12 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { chatMessages, chatSessions, userSettings } from "@/lib/db/schema";
+import { chatMessages, chatSessions, items, userSettings } from "@/lib/db/schema";
 import { POST as chatPOST } from "@/app/api/chat/route";
 import { getAIProvider } from "@/lib/ai";
 import { compactSessionIfNeeded } from "@/lib/ai/compact";
 import { connectOwnChat, say } from "./telegram-helpers";
-import { seedUser } from "./helpers";
+import { seedBucket, seedUser } from "./helpers";
 
 // a user's ollama is reached through postJson, here it goes to the stubbed fetch like the rest
 vi.mock("@/lib/notifications/post-json", () => ({
@@ -24,6 +24,8 @@ vi.mock("@/lib/auth/session", () => ({
 
 type SentMessage = { role: string; content: string };
 let modelRequests: SentMessage[][] = [];
+// replies the model gives before its usual "ok", like a round of tool calls
+let modelScript: unknown[] = [];
 let summaryRequests: SentMessage[][] = [];
 
 beforeEach(() => {
@@ -42,9 +44,8 @@ beforeEach(() => {
           );
         }
         modelRequests.push(body.messages);
-        return new Response(JSON.stringify({ message: { role: "assistant", content: "ok" } }), {
-          status: 200,
-        });
+        const message = modelScript.shift() ?? { role: "assistant", content: "ok" };
+        return new Response(JSON.stringify({ message }), { status: 200 });
       }
       return new Response(JSON.stringify({ ok: true, result: { message_id: 1 } }), {
         status: 200,
@@ -54,6 +55,7 @@ beforeEach(() => {
 });
 afterEach(() => {
   modelRequests = [];
+  modelScript = [];
   summaryRequests = [];
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
@@ -184,4 +186,73 @@ it("a chat is summarised on its own once it passes the limit", async () => {
     expect(session?.summary).toBe("SUMMARY");
   });
   expect(summaryRequests).toHaveLength(1);
+});
+
+function toolRound(...calls: [string, Record<string, unknown>][]) {
+  return {
+    role: "assistant",
+    content: "",
+    tool_calls: calls.map(([name, args]) => ({ function: { name, arguments: args } })),
+  };
+}
+
+async function addedItemId(bucketId: number) {
+  const [row] = await db.select({ id: items.id }).from(items).where(eq(items.bucketId, bucketId));
+  return row.id;
+}
+
+it.each(["web", "telegram"] as const)(
+  "%s: capy's next message knows what its tools changed, not just what it said",
+  async (source) => {
+    const userId = await seedCapyUser();
+    const bucketId = await seedBucket(userId);
+    const chat = await connectOwnChat(userId);
+    const sessionId = await seedChat(userId, 2, source);
+    const ask = (text: string) =>
+      source === "web" ? askOnWeb(userId, sessionId, 0, text) : say(text, chat);
+    modelScript = [
+      toolRound(
+        ["search_items", { keyword: "netflix" }],
+        ["add_item", { bucket_id: bucketId, title: "Netflix" }],
+        ["delete_item", { item_id: 999999 }]
+      ),
+    ];
+
+    await ask("add netflix");
+    await ask("and now?");
+
+    const itemId = await addedItemId(bucketId);
+    expect(lastContext().slice(-2)).toEqual([
+      "ok",
+      "<tools_used>\n" +
+        `- add_item {"bucket_id":${bucketId},"title":"Netflix"} → done, new item ${itemId}\n` +
+        '- delete_item {"item_id":999999} → failed: Item not found\n' +
+        "</tools_used>\nand now?",
+    ]);
+  }
+);
+
+it("a reply without tools is given back as it was said", async () => {
+  const userId = await seedCapyUser();
+  const sessionId = await seedChat(userId, 2);
+
+  await askOnWeb(userId, sessionId, 0, "hi");
+  await askOnWeb(userId, sessionId, 0, "and now?");
+
+  expect(lastContext()).toEqual([said(0), said(1), "hi", "ok", "and now?"]);
+});
+
+it("a summary keeps what capy's tools changed", async () => {
+  const userId = await seedCapyUser();
+  const sessionId = await seedChat(userId, 60);
+  await db
+    .update(chatMessages)
+    .set({ toolLog: '- add_item {"title":"Netflix"} → done, new item 54' })
+    .where(eq(chatMessages.content, said(1)));
+
+  await compactSessionIfNeeded(userId, sessionId, ollama(), 40);
+
+  expect(summaryRequests.at(-1)?.[1]?.content).toContain(
+    `assistant: ${said(1)}\n(its tools: - add_item {"title":"Netflix"} → done, new item 54)`
+  );
 });

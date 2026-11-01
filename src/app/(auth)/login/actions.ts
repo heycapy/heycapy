@@ -18,7 +18,7 @@ import { eq } from "drizzle-orm";
 import { seed } from "@/lib/db/seed";
 import { assignUsername } from "@/lib/account/username";
 import { LATEST_RELEASE } from "@/lib/whats-new/constants";
-import { createStarterBucket, getsStarterBucket } from "@/lib/guide/starter-bucket";
+import { createStarterBucket, getsFirstRun } from "@/lib/guide/starter-bucket";
 
 type SendOtpResult = ActionResult<{ devCode?: string }>;
 type VerifyOtpResult = ActionResult<{ starterBucketId?: number }>;
@@ -73,15 +73,16 @@ export async function verifyOtpAction(email: string, code: string): Promise<Veri
   let starterBucketId: number | undefined;
 
   if (!user) {
+    const firstRun = getsFirstRun(email);
     const [created] = await db
       .insert(users)
-      .values({ email, lastSeenRelease: LATEST_RELEASE })
+      .values({ email, lastSeenRelease: LATEST_RELEASE, guideSeen: !firstRun })
       .returning();
     user = created;
     await db.insert(userSettings).values({ userId: user.id });
     await assignUsername(user.id);
     await seed(user.id);
-    if (getsStarterBucket(email)) {
+    if (firstRun) {
       starterBucketId = await createStarterBucket(user.id, user.createdAt);
     }
   }

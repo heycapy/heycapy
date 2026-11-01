@@ -8,12 +8,12 @@ import {
   TELEGRAM_RECURRING_OPTIONS,
   TELEGRAM_TIME_SLOT_OPTIONS,
 } from "./constants";
-import type {
-  TelegramBotConfig,
-  TelegramDeadlinePreset,
-  TelegramRecurringDefault,
-} from "./constants";
-import { HINT, LABEL } from "@/components/layout/settings-constants";
+import type { TelegramBotConfig, TelegramDeadlinePreset } from "./constants";
+import { HINT, INPUT, LABEL } from "@/components/layout/settings-constants";
+import { BracketButton } from "@/components/ui/BracketButton";
+import { OptionButton } from "@/components/ui/OptionButton";
+import { OptionGroup } from "@/components/ui/OptionGroup";
+import { Toggle } from "@/components/ui/Toggle";
 
 type TelegramConfigPanelProps = {
   config: TelegramBotConfig;
@@ -113,7 +113,7 @@ export function TelegramConfigPanel({ config, onChange, disabled }: TelegramConf
           placeholder="e.g. todo, sub, work"
           disabled={disabled}
           maxLength={TELEGRAM_ALIAS_MAX_LENGTH}
-          className="border-border focus:border-foreground w-full border-b bg-transparent py-1.5 font-mono text-xs outline-none placeholder:opacity-40 disabled:opacity-50"
+          className={INPUT}
         />
         <p className={HINT}>
           {config.alias
@@ -130,21 +130,15 @@ export function TelegramConfigPanel({ config, onChange, disabled }: TelegramConf
             const active = config.deadlinePresets.includes(value);
             const isLast = active && config.deadlinePresets.length === 1;
             return (
-              <button
+              <OptionButton
                 key={value}
+                active={active}
                 onClick={() => togglePreset(value)}
-                aria-pressed={active}
                 disabled={disabled || isLast}
                 title={isLast ? "at least one button required" : undefined}
-                className={cn(
-                  "border px-2 py-0.5 font-mono text-xs transition-colors disabled:cursor-not-allowed",
-                  active
-                    ? "bg-foreground text-background border-foreground"
-                    : "text-muted-foreground border-border hover:text-foreground hover:border-foreground/50"
-                )}
               >
                 {label}
-              </button>
+              </OptionButton>
             );
           })}
         </div>
@@ -163,21 +157,15 @@ export function TelegramConfigPanel({ config, onChange, disabled }: TelegramConf
             const active = config.timeSlots.includes(value);
             const isLast = active && config.timeSlots.length === 1;
             return (
-              <button
+              <OptionButton
                 key={value}
+                active={active}
                 onClick={() => toggleStandardSlot(value)}
-                aria-pressed={active}
                 disabled={disabled || isLast}
                 title={isLast ? "at least one time required" : undefined}
-                className={cn(
-                  "border px-2 py-0.5 font-mono text-xs transition-colors disabled:cursor-not-allowed",
-                  active
-                    ? "bg-foreground text-background border-foreground"
-                    : "text-muted-foreground border-border hover:text-foreground hover:border-foreground/50"
-                )}
               >
                 {label}
-              </button>
+              </OptionButton>
             );
           })}
         </div>
@@ -185,20 +173,15 @@ export function TelegramConfigPanel({ config, onChange, disabled }: TelegramConf
         {customSlots.length > 0 && (
           <div className="flex flex-wrap gap-1.5 pt-0.5">
             {customSlots.map((hhmm) => (
-              <span
+              <OptionButton
                 key={hhmm}
-                className="bg-foreground text-background border-foreground flex items-center gap-1 border px-2 py-0.5 font-mono text-xs"
+                onClick={() => removeSlot(hhmm)}
+                aria-label={`remove ${formatSlot(hhmm)}`}
+                disabled={disabled || config.timeSlots.length === 1}
               >
                 {formatSlot(hhmm)}
-                <button
-                  onClick={() => removeSlot(hhmm)}
-                  aria-label={`remove ${formatSlot(hhmm)}`}
-                  disabled={disabled || config.timeSlots.length === 1}
-                  className="leading-none opacity-60 transition-opacity hover:opacity-100 disabled:cursor-not-allowed"
-                >
-                  ×
-                </button>
-              </span>
+                <span data-remove> ×</span>
+              </OptionButton>
             ))}
           </div>
         )}
@@ -219,15 +202,16 @@ export function TelegramConfigPanel({ config, onChange, disabled }: TelegramConf
             }}
             placeholder="e.g. 5:30pm or 17:30"
             disabled={disabled}
-            className="border-border focus:border-foreground min-w-0 flex-1 border-b bg-transparent py-1 font-mono text-xs outline-none placeholder:opacity-30 disabled:opacity-50"
+            className={cn(INPUT, "min-w-0 flex-1")}
           />
-          <button
+          <BracketButton
             onClick={addCustomSlot}
             disabled={disabled || !customInput.trim()}
-            className="text-muted-foreground border-border hover:text-foreground hover:border-foreground/50 border px-2 py-0.5 font-mono text-xs transition-colors disabled:opacity-30"
+            aria-label="add time"
+            className="px-1"
           >
-            add
-          </button>
+            + add
+          </BracketButton>
         </div>
         {customError && <p className="text-destructive font-mono text-[11px]">{customError}</p>}
         <p className={HINT}>
@@ -236,59 +220,38 @@ export function TelegramConfigPanel({ config, onChange, disabled }: TelegramConf
       </div>
 
       <div className="flex flex-col gap-2">
-        <div className="flex items-center justify-between">
-          <label className={LABEL}>ask &quot;repeats?&quot;</label>
-          <button
-            onClick={() => set("showRecurring", !config.showRecurring)}
-            aria-pressed={config.showRecurring}
-            disabled={disabled}
-            className={cn(
-              "border px-2 py-0.5 font-mono text-xs transition-colors disabled:opacity-50",
-              config.showRecurring
-                ? "bg-foreground text-background border-foreground"
-                : "text-muted-foreground border-border hover:text-foreground"
-            )}
-          >
-            {config.showRecurring ? "on" : "off"}
-          </button>
-        </div>
+        <label className={LABEL}>ask &quot;repeats?&quot;</label>
         <p className={HINT}>
           after picking a deadline, show a &quot;Repeats?&quot; step — good for subscriptions
         </p>
+        <Toggle
+          value={config.showRecurring}
+          onChange={(value) => set("showRecurring", value)}
+          disabled={disabled}
+        />
 
         {config.showRecurring && (
           <div className="flex flex-col gap-1.5 pt-1">
             <label className={LABEL}>default selection</label>
-            <div className="flex flex-wrap gap-1.5">
-              {TELEGRAM_RECURRING_OPTIONS.map(({ value, label }) => (
-                <button
-                  key={value}
-                  onClick={() => set("defaultRecurring", value as TelegramRecurringDefault)}
-                  aria-pressed={config.defaultRecurring === value}
-                  disabled={disabled}
-                  className={cn(
-                    "border px-2 py-0.5 font-mono text-xs transition-colors disabled:opacity-50",
-                    config.defaultRecurring === value
-                      ? "bg-foreground text-background border-foreground"
-                      : "text-muted-foreground border-border hover:text-foreground hover:border-foreground/50"
-                  )}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
+            <OptionGroup
+              options={TELEGRAM_RECURRING_OPTIONS}
+              value={config.defaultRecurring}
+              onChange={(value) => set("defaultRecurring", value)}
+              disabled={disabled}
+            />
             <p className={HINT}>pre-selected in telegram — user can still pick any option</p>
           </div>
         )}
       </div>
 
-      <button
+      <BracketButton
         onClick={() => onChange(DEFAULT_TELEGRAM_BOT_CONFIG)}
         disabled={disabled}
-        className="text-muted-foreground hover:text-foreground self-start font-mono text-[11px] underline decoration-dotted transition-colors disabled:opacity-50"
+        variant="warning"
+        className="self-start px-1"
       >
         reset to defaults
-      </button>
+      </BracketButton>
     </div>
   );
 }

@@ -5,10 +5,10 @@ import { MAX_REMINDER_OFFSET_MINS, MAX_REMINDERS_PER_ITEM } from "@/lib/reminder
 const ITEM_RESULT =
   "Each item comes with everything the item form shows: its custom field values (properties, " +
   "keyed by the bucket's field keys), repeat (recurring), reminders (reminderOffsets, minutes before " +
-  "the deadline; null = the bucket's default reminders) and status. " +
+  "the deadline; null = the bucket's default reminders), status and createdAt (when it was added). " +
   "assignedTo is who it's for in a shared bucket (null = anyone in it). deadlineOtherClock is the " +
   "same deadline on the clock of whoever it's assigned to, or the one it was set on, when that " +
-  "isn't the user's clock. ";
+  "isn't the user's clock. link opens the item in the app (missing when the app has no address). ";
 
 const ASSIGNEE_PROPERTIES = {
   assignee: {
@@ -156,7 +156,9 @@ export const ITEM_AND_BUCKET_TOOLS: Tool[] = [
         },
         title: {
           type: "string",
-          description: "The item title. Keep it concise and clear.",
+          description:
+            "The item title. Keep it concise and clear. A value the bucket has a field for " +
+            "(an amount, plan, link…) goes in properties, never in the title.",
         },
         deadline: {
           type: "string",
@@ -190,9 +192,9 @@ export const ITEM_AND_BUCKET_TOOLS: Tool[] = [
         properties: {
           type: "object",
           description:
-            "Optional key-value map of custom field values for this item, as defined by the bucket's schema. " +
-            "Keys must match the field keys in the bucket's fieldSchema. " +
-            "Only provide this if the user mentions specific field values or you know the bucket has custom fields.",
+            "Optional key-value map of custom field values for this item. " +
+            "Keys must be the field keys listed in the bucket's fields; a bucket without fields takes none. " +
+            "Required fields must be given; ask the user for a value they haven't said, never guess or make one up.",
         },
         ...ASSIGNEE_PROPERTIES,
       },
@@ -218,7 +220,9 @@ export const ITEM_AND_BUCKET_TOOLS: Tool[] = [
         },
         title: {
           type: "string",
-          description: "New title for the item.",
+          description:
+            "New title for the item. Never add a value the bucket has a field for (an amount, " +
+            "plan, link…): set it in properties.",
         },
         deadline: {
           type: ["string", "null"],
@@ -254,8 +258,8 @@ export const ITEM_AND_BUCKET_TOOLS: Tool[] = [
         properties: {
           type: ["object", "null"],
           description:
-            "Custom field values to change, as field key-value pairs; fields left out keep their value. " +
-            "Pass null to clear all of them.",
+            "Custom field values to change, keyed by the field keys listed in the bucket's fields; " +
+            "fields left out keep their value. Pass null to clear all of them.",
         },
         ...ASSIGNEE_PROPERTIES,
       },
@@ -283,7 +287,7 @@ export const ITEM_AND_BUCKET_TOOLS: Tool[] = [
     name: "delete_item",
     description:
       "Move an item to the trash. " +
-      "Use this when the user asks to remove, delete, or get rid of an item. " +
+      "Only do this when the user explicitly asks to remove, delete, or get rid of an item, never to get around an error. Call it right away: the first call deletes nothing and tells you to ask the user, and the delete happens when you call it again after they say yes. " +
       "The user can restore it from the trash for 30 days; after that it is deleted for good.",
     parameters: {
       type: "object",
@@ -393,6 +397,14 @@ export const ITEM_AND_BUCKET_TOOLS: Tool[] = [
             "Return only items whose deadline falls within the next N days from now. " +
             "E.g. 3 = due in the next 3 days, 7 = due in the next week. " +
             "Use this instead of deadline_filter when the user asks about a specific number of days ahead.",
+        },
+        sort: {
+          type: "string",
+          enum: ["oldest", "newest"],
+          description:
+            "Order by when items were added (createdAt): 'oldest' first or 'newest' first. " +
+            "Use it for 'my oldest item', 'what did I add last', 'the first thing I added'. " +
+            "Leave include_completed off unless the user asks about completed items.",
         },
       },
     },

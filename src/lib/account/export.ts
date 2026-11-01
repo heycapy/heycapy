@@ -267,7 +267,12 @@ export async function buildAccountExport(userId: number, now = new Date()) {
       createdAt: s.createdAt,
       messages: messages
         .filter((m) => m.sessionId === s.id)
-        .map((m) => ({ role: m.role, content: m.content, at: m.createdAt })),
+        .map((m) => ({
+          role: m.role,
+          content: m.content,
+          ...(m.toolLog ? { toolLog: m.toolLog } : {}),
+          at: m.createdAt,
+        })),
     })),
     aiUsage: usage.map((u) => ({
       source: u.source,

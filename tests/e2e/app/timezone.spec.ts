@@ -12,7 +12,14 @@ test("updating an item without changes keeps its date and time", async ({ page }
   const webhook = await enableWebhook(page);
   const title = uniqueName("timed");
   const day = new Date(Date.now() + 3 * 86_400_000).toISOString().slice(0, 10);
-  const deadline = new Date(`${day}T21:00:00-04:00`).toISOString();
+  const offset = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/New_York",
+    timeZoneName: "longOffset",
+  })
+    .formatToParts(new Date(`${day}T12:00:00Z`))
+    .find((part) => part.type === "timeZoneName")
+    ?.value.replace("GMT", "");
+  const deadline = new Date(`${day}T21:00:00${offset}`).toISOString();
   expect((await postItem(page.request, webhook, { title, deadline })).status()).toBe(201);
   await page.reload();
 

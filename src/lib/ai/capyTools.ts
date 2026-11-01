@@ -1,4 +1,5 @@
 import { recordSystemError } from "@/lib/system-errors";
+import { publicAppUrl } from "@/lib/app-url";
 import { errorMessage } from "@/lib/errors";
 import {
   addLocalDays,
@@ -10,7 +11,7 @@ import {
 } from "@/lib/reminders/zoned";
 import { dueOn, resolveDeadline, type Due } from "@/lib/items/deadline";
 import { revalidatePath } from "next/cache";
-import { and, eq, gte, inArray, isNull, lte, or, sql, notInArray } from "drizzle-orm";
+import { and, asc, desc, eq, gte, inArray, isNull, lte, or, sql, notInArray } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { createBucket, findBucketByName } from "@/lib/db/buckets";
 import { initialReminderState, reminderResetForDeadline } from "@/lib/items/reminders";
@@ -46,7 +47,8 @@ import {
   listLiveBuckets,
   memberBucketIds,
 } from "@/lib/buckets/access";
-import { BucketSchema, ReminderOffsets, buildPropertyValidator } from "@/types/rules";
+import { ReminderOffsets, buildPropertyValidator, type FieldDef } from "@/types/rules";
+import { parseFields } from "@/components/buckets/fields";
 import type { ToolCall } from "./types";
 
 import { ITEM_AND_BUCKET_TOOLS } from "./capyToolDefs";
@@ -137,26 +139,81 @@ function invalidStatusError(status: string): string {
   });
 }
 
-// Checked against the bucket's fields, a bucket without fields keeps any values
+// "Monthly cost (key monthly_cost, currency INR); Plan (key plan, select: basic | pro)"
+export function describeFields(fields: FieldDef[]): string {
+  return fields
+    .map((f) => {
+      const kind = f.options?.length
+        ? `${f.type}: ${f.options.join(" | ")}`
+        : f.currency
+          ? `${f.type} ${f.currency}`
+          : f.type;
+      return `${f.label} (key ${f.key}, ${kind})`;
+    })
+    .join("; ");
+}
+
+function isAmountField(field: FieldDef): boolean {
+  return field.type === "number" || field.type === "currency";
+}
+
+const NOT_IN_TITLE = " Fix the value and try again, never put it in the item's title instead.";
+
+function propertiesError(error: string, issues?: unknown): string {
+  return JSON.stringify({ ok: false, error: error + NOT_IN_TITLE, ...(issues ? { issues } : {}) });
+}
+
+function isEmptyValue(value: unknown): boolean {
+  if (value === undefined || value === null) return true;
+  if (typeof value === "string") return !value.trim();
+  return Array.isArray(value) && value.length === 0;
+}
+
+// Checked against the bucket's fields, a bucket without a field schema keeps any values.
+// Only the keys capy sent must be fields: saved ones may be left from a field since removed
 function validateProperties(
   fieldSchema: unknown,
-  properties: Record<string, unknown>
+  properties: Record<string, unknown>,
+  sent: Record<string, unknown> = properties
 ): { ok: true; json: string | null } | { ok: false; error: string } {
   if (!fieldSchema) return { ok: true, json: JSON.stringify(properties) };
-  const schema = BucketSchema.safeParse(
-    typeof fieldSchema === "string" ? JSON.parse(fieldSchema) : fieldSchema
-  );
-  if (!schema.success || schema.data.fields.length === 0) return { ok: true, json: null };
+  const fields = parseFields(fieldSchema);
 
-  const validated = buildPropertyValidator(schema.data.fields).safeParse(properties);
-  if (!validated.success) {
+  const known = new Set(fields.map((f) => f.key));
+  const unknown = Object.keys(sent).filter((key) => !known.has(key));
+  if (unknown.length > 0) {
+    const named = unknown.map((key) => `"${key}"`).join(", ");
     return {
       ok: false,
-      error: JSON.stringify({
-        ok: false,
-        error: "Invalid properties",
-        issues: validated.error.issues,
-      }),
+      error:
+        fields.length > 0
+          ? propertiesError(
+              `This bucket has no field ${named}, nothing was saved. Its fields: ${describeFields(fields)}. Use those keys.`
+            )
+          : JSON.stringify({
+              ok: false,
+              error: "This bucket has no custom fields, nothing was saved.",
+            }),
+    };
+  }
+  if (fields.length === 0) return { ok: true, json: null };
+
+  const validated = buildPropertyValidator(fields).safeParse(properties);
+  if (!validated.success) {
+    const problems = validated.error.issues.map((issue) => {
+      const field = fields.find((f) => f.key === issue.path[0]);
+      if (!field) return issue.message;
+      if (isAmountField(field) && issue.code === "invalid_type") {
+        return `${field.label} (key ${field.key}) needs a number without a currency sign, like 499`;
+      }
+      return `${field.label} (key ${field.key}): ${issue.message}`;
+    });
+    return {
+      ok: false,
+      error: propertiesError(
+        `Invalid properties, nothing was saved: ${problems.join("; ")}`,
+        validated.error.issues
+      ),
     };
   }
   return { ok: true, json: JSON.stringify(validated.data) };
@@ -177,6 +234,7 @@ const ITEM_DETAIL_COLUMNS = {
   recurring: items.recurring,
   properties: items.properties,
   completedAt: items.completedAt,
+  createdAt: items.createdAt,
   assigneeId: items.assigneeId,
   assigneeUsername: users.username,
   assigneeTimezone: userSettings.timezone,
@@ -198,6 +256,7 @@ type ItemDetailRow = {
   recurring: string | null;
   properties: string | null;
   completedAt: Date | null;
+  createdAt: Date;
   assigneeId: number | null;
   assigneeUsername: string | null;
   assigneeTimezone: string | null;
@@ -223,6 +282,13 @@ function deadlineOtherClock(row: ItemDetailRow, userId: number, timezone: string
   return otherClock(row.deadline, timezone, assignee, setOn, localTime);
 }
 
+// The same link reminders and webhooks send, it opens the bucket with the item highlighted
+// Left out without an address: a null link gets written as [name](null)
+function itemLink(row: ItemDetailRow): { link?: string } {
+  const base = publicAppUrl();
+  return base ? { link: `${base}/?bucket=${row.bucketId}#item-${row.id}` } : {};
+}
+
 // Everything the item form shows, so each tool that returns items answers the same questions
 function itemDetails(row: ItemDetailRow, userId: number, timezone: string) {
   return {
@@ -245,6 +311,8 @@ function itemDetails(row: ItemDetailRow, userId: number, timezone: string) {
     recurring: parseRecurring(row.recurring),
     properties: row.properties ? (JSON.parse(row.properties) as unknown) : null,
     completedAt: row.completedAt ? localTime(row.completedAt, timezone) : null,
+    createdAt: localTime(row.createdAt, timezone),
+    ...itemLink(row),
   };
 }
 
@@ -399,7 +467,7 @@ async function executeToolCallInner(
       });
       if (!bucket) return bucketNotOwnedError(userId, bucketId);
 
-      if (!confirmDelete(userId, bucketId, turnId)) {
+      if (!confirmDelete(userId, `bucket:${bucketId}`, turnId)) {
         return JSON.stringify({
           ok: false,
           needsConfirmation: true,
@@ -452,6 +520,18 @@ async function executeToolCallInner(
 
       const finalStatus = args.status ? String(args.status).trim() : ITEM_STATUS.active;
       if (!SETTABLE_ITEM_STATUSES.includes(finalStatus)) return invalidStatusError(finalStatus);
+
+      const given = isPlainObject(args.properties) ? args.properties : {};
+      const missing = parseFields(bucket.fieldSchema).filter(
+        (f) => f.validation?.required && isEmptyValue(given[f.key])
+      );
+      if (missing.length > 0) {
+        const names = missing.map((f) => `${f.label} (key ${f.key})`).join(", ");
+        return propertiesError(
+          `${names} ${missing.length > 1 ? "are" : "is"} required in this bucket, nothing was saved. ` +
+            "If the user said it, add the item again with it in properties. Otherwise ask them for it and wait for their answer: never guess, estimate or make up a value."
+        );
+      }
 
       let propertiesJson: string | null = null;
       if (isPlainObject(args.properties)) {
@@ -587,16 +667,32 @@ async function executeToolCallInner(
       }
 
       if (args.properties !== undefined) {
+        const clearing = isPlainObject(args.properties) ? args.properties : null;
+        const cleared = parseFields(bucket.fieldSchema).filter(
+          (f) =>
+            f.validation?.required &&
+            (!clearing || (f.key in clearing && isEmptyValue(clearing[f.key])))
+        );
+        if (cleared.length > 0) {
+          const names = cleared.map((f) => `${f.label} (key ${f.key})`).join(", ");
+          return JSON.stringify({
+            ok: false,
+            error:
+              `${names} ${cleared.length > 1 ? "are" : "is"} required in ${bucket.name}, so it can't be removed, nothing was saved. ` +
+              "Tell the user, and that they can make it optional in the bucket's settings. Never set 0 or another placeholder instead.",
+          });
+        }
         if (args.properties === null) {
           updates.properties = null;
         } else if (isPlainObject(args.properties)) {
           const saved = item.properties
             ? (JSON.parse(item.properties) as Record<string, unknown>)
             : {};
-          const validated = validateProperties(bucket.fieldSchema, {
-            ...saved,
-            ...args.properties,
-          });
+          const validated = validateProperties(
+            bucket.fieldSchema,
+            { ...saved, ...args.properties },
+            args.properties
+          );
           if (!validated.ok) return validated.error;
           updates.properties = validated.json;
         }
@@ -625,6 +721,14 @@ async function executeToolCallInner(
       const itemId = Number(args.item_id);
       const item = await findAccessibleItem(userId, itemId);
       if (!item) return JSON.stringify({ ok: false, error: "Item not found" });
+
+      if (!confirmDelete(userId, `item:${itemId}`, turnId)) {
+        return JSON.stringify({
+          ok: false,
+          needsConfirmation: true,
+          error: `Nothing deleted yet. Ask the user to confirm deleting "${item.title}". When they say yes, call delete_item again.`,
+        });
+      }
 
       await db
         .update(items)
@@ -720,7 +824,14 @@ async function executeToolCallInner(
         .innerJoin(buckets, eq(buckets.id, items.bucketId))
         .leftJoin(users, withAssignee.users)
         .leftJoin(userSettings, withAssignee.settings)
-        .where(and(...conditions, inLiveBucket));
+        .where(and(...conditions, inLiveBucket))
+        .orderBy(
+          ...(args.sort === "oldest"
+            ? [asc(items.createdAt), asc(items.id)]
+            : args.sort === "newest"
+              ? [desc(items.createdAt), desc(items.id)]
+              : [])
+        );
 
       const keywordWords = keyword ? keyword.toLowerCase().split(/\s+/).filter(Boolean) : null;
 

@@ -10,6 +10,7 @@ import { CreateBucketModal } from "@/components/buckets/CreateBucketModal";
 import { feedbackConfigured } from "@/lib/feedback";
 import { LATEST_RELEASE } from "@/lib/whats-new/constants";
 import { syncGuide } from "@/lib/guide/guide";
+import { publicAppUrl } from "@/lib/app-url";
 import type { ReactNode } from "react";
 
 export default async function AppLayout({ children }: { children: ReactNode }) {
@@ -48,6 +49,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
         feedbackEnabled={feedbackConfigured()}
         unseenRelease={!!user && user.lastSeenRelease !== LATEST_RELEASE}
         guide={guide}
+        appUrl={publicAppUrl()}
         failures={failures}
         hasWorkingChannel={
           !!channelSettings &&

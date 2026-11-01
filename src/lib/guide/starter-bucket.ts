@@ -5,8 +5,7 @@ import { createBucketFromTemplate } from "@/lib/db/buckets";
 import { isE2ETestMode } from "@/lib/e2e";
 import { E2E_STARTER_EMAIL_PREFIX, STARTER_BUCKET_NAME, STARTER_TEMPLATE } from "./constants";
 
-// Every other E2E spec expects a new account to start with no buckets
-export function getsStarterBucket(email: string): boolean {
+export function getsFirstRun(email: string): boolean {
   return !isE2ETestMode() || email.startsWith(E2E_STARTER_EMAIL_PREFIX);
 }
 

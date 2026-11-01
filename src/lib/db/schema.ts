@@ -26,6 +26,8 @@ export const users = sqliteTable("users", {
   sessionVersion: integer("session_version").notNull().default(1),
   // Takes the getting started button out of the header, the guide stays in the menu
   guideHidden: integer("guide_hidden", { mode: "boolean" }).notNull().default(false),
+  // Accounts made before the guide opened by itself count as seen; signup sets it to false
+  guideSeen: integer("guide_seen", { mode: "boolean" }).notNull().default(true),
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
     .default(sql`(unixepoch())`),
@@ -420,6 +422,8 @@ export const chatMessages = sqliteTable("chat_messages", {
     .references(() => users.id, { onDelete: "cascade" }),
   role: text("role", { enum: ["user", "assistant"] }).notNull(),
   content: text("content").notNull(),
+  // what capy's tools changed for this reply, one line each, so the next message knows
+  toolLog: text("tool_log"),
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
     .default(sql`(unixepoch())`),

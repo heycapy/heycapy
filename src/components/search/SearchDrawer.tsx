@@ -4,6 +4,7 @@ import { BracketButton } from "@/components/ui/BracketButton";
 import { Modal, ModalTitle } from "@/components/ui/Modal";
 import { ItemDialog } from "@/components/buckets/ItemDialog";
 import { useItemEditor } from "@/components/buckets/useItemEditor";
+import { useBucketMembers } from "@/components/buckets/useBucketMembers";
 import { parseFields } from "@/components/buckets/fields";
 import { DEFAULT_BUCKET_STATUSES } from "@/components/buckets/constants";
 import { CrossBucketList } from "@/components/today/CrossBucketList";
@@ -40,6 +41,7 @@ function SearchBody({ onClose }: { onClose: () => void }) {
   const editingItem = data?.items.find((i) => i.id === editor.editingItemId);
   const editingBucket = data?.buckets.find((b) => b.id === editingItem?.bucketId);
   const fields = parseFields(editingBucket?.fieldSchema);
+  const members = useBucketMembers(editingItem?.bucketId ?? null, editor.dialogProps.open);
   const dragControls = useDragControls();
 
   useLayoutEffect(() => {
@@ -136,6 +138,14 @@ function SearchBody({ onClose }: { onClose: () => void }) {
       <ItemDialog
         {...editor.dialogProps}
         bucketReminders={editingBucket?.defaultReminders}
+        assigneeChoice={
+          editingItem && {
+            bucketId: editingItem.bucketId,
+            members,
+            value: editor.assigneeId,
+            onChange: editor.setAssigneeId,
+          }
+        }
         statuses={statuses}
         fields={fields.length > 0 ? fields : undefined}
       />

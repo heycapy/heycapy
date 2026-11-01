@@ -2,7 +2,7 @@ import { test, expect, type Locator, type Page } from "@playwright/test";
 import Database from "better-sqlite3";
 import { E2E_DATABASE_FILE } from "../helpers/env";
 import { addItem, itemRow } from "../helpers/buckets";
-import { login, uniqueEmail } from "../helpers/login";
+import { login, uniqueEmail, uniqueUsername } from "../helpers/login";
 import { giveOwnSmtp } from "../helpers/email";
 import {
   closeDialog,
@@ -326,7 +326,7 @@ test("an item can be assigned to a member, and a bucket nobody shares has no suc
   await page.getByRole("button", { name: bracket("create invite") }).click();
   const code = (await page.getByTestId("invite-code").textContent()) ?? "";
   const friend = await browser.newPage();
-  const sam = `sam_${Date.now()}`;
+  const sam = uniqueUsername("sam");
   await joinWithCode(friend, code, sam);
   await friend.waitForURL(`/?bucket=${bucketId}`);
 
@@ -353,6 +353,52 @@ test("an item can be assigned to a member, and a bucket nobody shares has no suc
   await friend.close();
 });
 
+function addDueItem(bucketId: number, email: string, title: string) {
+  const db = new Database(E2E_DATABASE_FILE);
+  db.prepare(
+    "insert into items (bucket_id, user_id, title, deadline) values (?, (select id from users where email = ?), ?, unixepoch())"
+  ).run(bucketId, email, title);
+  db.close();
+}
+
+test("a shared item's assignee can be changed when it's edited from today or search", async ({
+  page,
+  browser,
+}) => {
+  const { bucketId, code } = await ownerWithInvite(page, `assign elsewhere ${Date.now()}`);
+  const friend = await browser.newPage();
+  const sam = uniqueUsername("sam");
+  const friendEmail = await joinWithCode(friend, code, sam);
+  await friend.waitForURL(`/?bucket=${bucketId}`);
+  await friend.close();
+  const title = `water the plants ${Date.now()}`;
+  addDueItem(bucketId, friendEmail, title);
+
+  await page.goto("/");
+  await page.getByRole("button", { name: "today", exact: true }).click();
+  await itemRow(page, title).click();
+  const fromToday = modal(page, /^edit item$/);
+  await fromToday.getByRole("button", { name: sam, exact: true }).click();
+  await fromToday.getByRole("button", { name: "[ update ]", exact: true }).click();
+  await expect(fromToday).not.toBeVisible();
+
+  await page.goto(`/?bucket=${bucketId}`);
+  await expect(itemRow(page, title)).toContainText(`→ ${sam}`);
+
+  await page.getByRole("button", { name: "today", exact: true }).click();
+  await page.getByRole("button", { name: "[ search ]", exact: true }).click();
+  const search = page.getByRole("dialog", { name: "search" });
+  await search.getByRole("textbox", { name: "search all items" }).fill(title);
+  await search.getByRole("button", { name: title }).click();
+  const fromSearch = modal(page, /^edit item$/);
+  await fromSearch.getByRole("button", { name: "anyone", exact: true }).click();
+  await fromSearch.getByRole("button", { name: "[ update ]", exact: true }).click();
+  await expect(fromSearch).not.toBeVisible();
+
+  await page.goto(`/?bucket=${bucketId}`);
+  await expect(itemRow(page, title)).not.toContainText("→");
+});
+
 test("typing @ in the title picks a member in a shared bucket, and does nothing in a solo one", async ({
   page,
   browser,
@@ -374,7 +420,7 @@ test("typing @ in the title picks a member in a shared bucket, and does nothing 
   await page.getByRole("button", { name: bracket("create invite") }).click();
   const code = (await page.getByTestId("invite-code").textContent()) ?? "";
   const friend = await browser.newPage();
-  const sam = `sam_${Date.now()}`;
+  const sam = uniqueUsername("sam");
   await joinWithCode(friend, code, sam);
   await friend.waitForURL(`/?bucket=${bucketId}`);
   await friend.close();
@@ -427,7 +473,7 @@ test("people see each other's avatars next to their names, a generated one if ne
 }) => {
   const { bucketId, code } = await ownerWithInvite(page, `avatars ${Date.now()}`);
   const friend = await browser.newPage();
-  const sam = `sam_${Date.now()}`;
+  const sam = uniqueUsername("sam");
   const friendEmail = await joinWithCode(friend, code, sam);
   await friend.waitForURL(`/?bucket=${bucketId}`);
   await friend.close();

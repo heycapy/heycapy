@@ -1,6 +1,6 @@
 {
   "name": "heycapy",
-  "version": "0.8.0",
+  "version": "0.8.1",
   "private": true,
   "scripts": {
     "dev": "next dev -H 0.0.0.0",
@@ -43,6 +43,7 @@
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "react-markdown": "^10.1.0",
+    "remark-gfm": "^4.0.1",
     "resend": "^6.28.1",
     "sonner": "^2.0.8",
     "tailwind-merge": "^3.7.0",
