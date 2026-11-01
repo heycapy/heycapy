@@ -31,17 +31,11 @@
 ## screenshots
 
 <p align="center">
-  <img src=".github/assets/screenshots/desktop-ci.png" width="900" alt="a ci/cd bucket with pipeline runs and repeating jobs">
+  <img src=".github/assets/screenshots/shared-home.png" width="900" alt="a home bucket shared with family, chores assigned to maya and sam (tokyo night theme), next to a birthdays bucket with a gift idea for each on a phone (everforest theme)">
 </p>
 
 <p align="center">
-  <img src=".github/assets/screenshots/desktop-trip.png" width="900" alt="a custom trip planning bucket for a trip through east india, with its own fields, and capy's chat adding an activity">
-</p>
-
-<p align="center">
-  <img src=".github/assets/screenshots/phone-reminders.png" width="300" alt="a reminders bucket on a phone">
-  &nbsp;&nbsp;
-  <img src=".github/assets/screenshots/phone-subscriptions.png" width="300" alt="a subscriptions bucket on a phone">
+  <img src=".github/assets/screenshots/trip-and-health.png" width="900" alt="a trip bucket for east india with its own fields and capy adding an activity from chat (rosé pine dawn theme), next to a health bucket with daily vitamins, gym days and a dentist checkup on a phone (catppuccin theme)">
 </p>
 
 ## run it locally
