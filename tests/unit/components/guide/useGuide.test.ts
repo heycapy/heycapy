@@ -9,6 +9,7 @@ const guide: GuideState = {
   tasks: GUIDE_TASKS.map((task) => ({ ...task, done: false, earned: 0 })),
   paysCredits: true,
   hidden: false,
+  seen: true,
 };
 
 describe("tasks this page can do", () => {

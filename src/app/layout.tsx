@@ -38,6 +38,8 @@ export async function generateMetadata(): Promise<Metadata> {
     description: APP_TAGLINE,
     openGraph: { title: "heycapy", description: APP_TAGLINE, siteName: "heycapy", type: "website" },
     twitter: { card: "summary_large_image" },
+    // search engines should find the website (heycapy.xyz), not a login screen
+    robots: { index: false, follow: false },
   };
 }
 

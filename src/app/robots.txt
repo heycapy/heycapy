@@ -1,0 +1,3 @@
+# Crawling stays allowed: a crawler blocked here never sees the pages' noindex and can still list them
+User-Agent: *
+Allow: /

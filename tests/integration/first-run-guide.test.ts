@@ -13,7 +13,7 @@ import {
 } from "@/lib/db/schema";
 import { createOtp } from "@/lib/auth/otp";
 import { verifyOtpAction } from "@/app/(auth)/login/actions";
-import { hideGuideAction, pickedThemeAction } from "@/app/(app)/guide-actions";
+import { hideGuideAction, markGuideSeenAction, pickedThemeAction } from "@/app/(app)/guide-actions";
 import { seed } from "@/lib/db/seed";
 import { markGuideTaskDone, syncGuide } from "@/lib/guide/guide";
 import { GUIDE_TASKS } from "@/lib/guide/constants";
@@ -92,6 +92,24 @@ describe("getting started", () => {
     await hideGuideAction(false);
     expect((await syncGuide(userId)).hidden).toBe(false);
     await expect(hideGuideAction("yes" as unknown as boolean)).rejects.toThrow();
+  });
+
+  it("the guide opens once for a new account, older accounts never get it", async () => {
+    const { userId } = await signUp();
+    const other = await signUp();
+    expect((await syncGuide(userId)).seen).toBe(false);
+
+    session.userId = userId;
+    await markGuideSeenAction();
+    expect((await syncGuide(userId)).seen).toBe(true);
+    expect((await syncGuide(other.userId)).seen).toBe(false);
+
+    const [older] = await db
+      .insert(users)
+      .values({ email: `older-${Date.now()}@heycapy.test` })
+      .returning();
+    if (!older) throw new Error("no user");
+    expect((await syncGuide(older.id)).seen).toBe(true);
   });
 
   it("every task pays 2 to 5 credits, 50 in all", () => {

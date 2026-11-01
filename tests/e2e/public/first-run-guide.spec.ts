@@ -22,7 +22,20 @@ async function signUp(page: Page) {
   const { testId, repeatEachIndex } = test.info();
   await login(page, uniqueEmail(`${E2E_STARTER_EMAIL_PREFIX}-${testId}-${repeatEachIndex}`));
   await expect(activeBucketTitle(page)).toHaveText("reminders");
+  await expect(guidePanel(page)).toBeVisible();
+  await guidePanel(page).getByRole("button", { name: "[ x ]" }).click();
+  await expect(guidePanel(page)).toBeHidden();
 }
+
+test("the guide opens by itself on the first visit only", async ({ page }) => {
+  await signUp(page);
+
+  await page.reload();
+  await expect(activeBucketTitle(page)).toHaveText("reminders");
+  await expect(guidePanel(page)).toBeHidden();
+  await guideButton(page).click();
+  await expect(guidePanel(page)).toBeVisible();
+});
 
 test("a new account starts on reminders, and a done task ticks and pays", async ({ page }) => {
   await signUp(page);

@@ -30,3 +30,16 @@ test("the preview image points at whichever domain the link was shared from", as
     /<meta property="og:image" content="https:\/\/heycapy\.example\/opengraph-image/
   );
 });
+
+test("search engines may crawl the app but never list it, so heycapy.xyz is what they find", async ({
+  page,
+  request,
+}) => {
+  const robots = await request.get("/robots.txt", { maxRedirects: 0 });
+  expect(robots.status()).toBe(200);
+  expect(robots.headers()["content-type"]).toContain("text/plain");
+  expect(await robots.text()).toMatch(/User-Agent: \*\s+Allow: \//);
+
+  await page.goto("/login");
+  await expect(page.locator('meta[name="robots"]')).toHaveAttribute("content", "noindex, nofollow");
+});

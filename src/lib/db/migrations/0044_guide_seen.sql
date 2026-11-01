@@ -1,0 +1,1 @@
+ALTER TABLE `users` ADD `guide_seen` integer DEFAULT true NOT NULL;
