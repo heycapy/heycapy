@@ -47,7 +47,7 @@ async function ownerWithInvite(page: Page, bucketName: string) {
   await openMembers(page);
   await page.getByRole("button", { name: bracket("create invite") }).click();
   const code = (await page.getByTestId("invite-code").textContent()) ?? "";
-  return { bucketId, code };
+  return { bucketId, code, email };
 }
 
 async function joinWithCode(page: Page, code: string, username?: string): Promise<string> {
@@ -353,11 +353,11 @@ test("an item can be assigned to a member, and a bucket nobody shares has no suc
   await friend.close();
 });
 
-function addDueItem(bucketId: number, email: string, title: string) {
+function addDueItem(bucketId: number, email: string, title: string, assigneeEmail?: string) {
   const db = new Database(E2E_DATABASE_FILE);
   db.prepare(
-    "insert into items (bucket_id, user_id, title, deadline) values (?, (select id from users where email = ?), ?, unixepoch())"
-  ).run(bucketId, email, title);
+    "insert into items (bucket_id, user_id, title, deadline, assignee_id) values (?, (select id from users where email = ?), ?, unixepoch(), (select id from users where email = ?))"
+  ).run(bucketId, email, title, assigneeEmail ?? null);
   db.close();
 }
 
@@ -397,6 +397,46 @@ test("a shared item's assignee can be changed when it's edited from today or sea
 
   await page.goto(`/?bucket=${bucketId}`);
   await expect(itemRow(page, title)).not.toContainText("→");
+});
+
+test("today and search show who a shared item is for, like the bucket does", async ({
+  page,
+  browser,
+}) => {
+  const {
+    bucketId,
+    code,
+    email: ownerEmail,
+  } = await ownerWithInvite(page, `who is it for ${Date.now()}`);
+  const friend = await browser.newPage();
+  const sam = uniqueUsername("sam");
+  const friendEmail = await joinWithCode(friend, code, sam);
+  await friend.waitForURL(`/?bucket=${bucketId}`);
+  await friend.close();
+  const stamp = Date.now();
+  const forSam = `water the plants ${stamp}`;
+  const forMe = `book the vet ${stamp}`;
+  const forAnyone = `buy bin bags ${stamp}`;
+  addDueItem(bucketId, friendEmail, forSam, friendEmail);
+  addDueItem(bucketId, friendEmail, forMe, ownerEmail);
+  addDueItem(bucketId, friendEmail, forAnyone);
+
+  await page.goto(`/?bucket=${bucketId}`);
+  await expect(itemRow(page, forSam)).toContainText(`→ ${sam}`);
+  await expect(itemRow(page, forMe)).toContainText("→ you");
+
+  await page.getByRole("button", { name: "today", exact: true }).click();
+  const today = page.getByRole("region", { name: "overdue" });
+  await expect(today.getByRole("button", { name: forSam })).toContainText(`→ ${sam}`);
+  await expect(today.getByRole("button", { name: forMe })).toContainText("→ you");
+  await expect(today.getByRole("button", { name: forAnyone })).not.toContainText("→");
+
+  await page.getByRole("button", { name: "[ search ]", exact: true }).click();
+  const search = page.getByRole("dialog", { name: "search" });
+  await search.getByRole("textbox", { name: "search all items" }).fill(String(stamp));
+  await expect(search.getByRole("button", { name: forSam })).toContainText(`→ ${sam}`);
+  await expect(search.getByRole("button", { name: forMe })).toContainText("→ you");
+  await expect(search.getByRole("button", { name: forAnyone })).not.toContainText("→");
 });
 
 test("typing @ in the title picks a member in a shared bucket, and does nothing in a solo one", async ({

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { ItemRow } from "@/components/buckets/ItemRow";
+import { itemAssignee } from "@/components/buckets/assignee";
 import { parseFields } from "@/components/buckets/fields";
 import { BUCKET_PALETTE, DEFAULT_BUCKET_STATUSES } from "@/components/buckets/constants";
 import { deleteItemAction, moveItemAction, updateItemAction } from "@/app/(app)/actions";
@@ -68,6 +69,7 @@ export function CrossBucketList({
     const bucket = bucketOf(item);
     const readonly = bucket?.readonly === true;
     const toggle = completionToggle(item.status, statuses);
+    const assignee = data?.assignees[item.id];
     return (
       <SwipeableRow
         key={item.id}
@@ -86,6 +88,7 @@ export function CrossBucketList({
           onEditStart={readonly ? undefined : () => onEdit(item)}
           onStatusChange={readonly ? undefined : (status) => void changeStatus(item, status)}
           reminderBadge={data?.reminderBadges[item.id]}
+          assignee={assignee && itemAssignee(assignee)}
           onMenu={(at) => setMenu({ item, at })}
           bucket={
             bucket && {

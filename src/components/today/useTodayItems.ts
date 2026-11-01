@@ -40,7 +40,7 @@ export function useSearchItems(query: string) {
     (): Promise<ActionResult<CrossBucketItems>> =>
       term
         ? searchItemsAction(term)
-        : Promise.resolve({ ok: true, items: [], buckets: [], reminderBadges: {} }),
+        : Promise.resolve({ ok: true, items: [], buckets: [], reminderBadges: {}, assignees: {} }),
     [term]
   );
   return useCrossBucketItems(load, term ? SEARCH_DEBOUNCE_MS : 0);
