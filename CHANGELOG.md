@@ -2,6 +2,32 @@
 
 all notable changes to heycapy. versions follow [semver](https://semver.org): a patch version (0.3.1) only fixes things, a minor version (0.4.0) adds features. the database migrates itself on start and migrations only go forward, so back up before upgrading (see the README).
 
+## 0.8.1
+
+capy gets things right more often, items can be done and reassigned from more places, and the guide opens by itself for someone new.
+
+### fixes
+
+- capy sees each bucket's own fields, fills the required ones and keeps values like an amount out of the title. a field it doesn't know is refused, with the real ones named
+- name several things in one message ("netflix, hotstar and prime") and capy adds each one. when a single value would have to cover all of them, it asks instead of guessing
+- capy remembers what its tools already did earlier in a chat, so a follow-up doesn't add the same item twice
+- capy asks before deleting an item, like it already did for buckets
+- on a server without an address (`APP_URL`) capy no longer writes links that go nowhere, and in web chat only links into the app are clickable
+- an item edited from today or search can have who it's for changed in a shared bucket. adding from today clears it when you switch buckets
+- a bucket's telegram settings use the same buttons and toggles as the rest of the app
+- a new account opens on the getting started guide, once. accounts from before don't get it
+
+### changes
+
+- done and reopen at the top of an item's menu (right click, long press or the ··· on the item), easier than the small status dot on desktop
+- capy's replies in web chat show lists, bold and code
+- capy knows when each item was added and can sort oldest or newest first, and links to an item in the app when the server has an address
+- the app asks search engines not to list its pages (`noindex`), so a search finds heycapy.xyz instead of a login page. this applies to a self-hosted server too
+
+### upgrading
+
+- two migrations (0043, 0044) run on start: a column that keeps what capy's tools did in each chat message, and one that marks whether the guide has opened (existing accounts count as opened). back up first, then `docker compose up -d --build` as usual
+
 ## 0.8.0
 
 a getting started guide: 18 small things to try, each ticks itself once done, and on heycapy.xyz each one pays capy credits.

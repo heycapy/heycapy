@@ -4,6 +4,23 @@ export type Release = { version: string; notes: ReleaseNote[] };
 
 export const RELEASES: [Release, ...Release[]] = [
   {
+    version: "0.8.1",
+    notes: [
+      {
+        title: "capy gets it right more often",
+        text: "name a few things in one message and capy adds each one. it fills your bucket's own fields, remembers what it already did in a chat, and asks before deleting an item.",
+      },
+      {
+        title: "done from the item menu",
+        text: "right click or long press an item to mark it done or reopen it.",
+      },
+      {
+        title: "who it's for, from today",
+        text: "editing an item from today or search now lets you change who in a shared bucket it's for.",
+      },
+    ],
+  },
+  {
     version: "0.8.0",
     notes: [
       {
