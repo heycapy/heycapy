@@ -1,7 +1,7 @@
 import { and, asc, eq, inArray, isNotNull, isNull, like, lt, notInArray, sql } from "drizzle-orm";
 import { CLOSED_ITEM_STATUSES, SEARCH_RESULTS_MAX, TODAY_FETCH_AHEAD_DAYS } from "@/constants";
 import { db } from "@/lib/db";
-import { buckets, items } from "@/lib/db/schema";
+import { bucketMembers, buckets, items, users } from "@/lib/db/schema";
 import { memberBucketIds } from "@/lib/buckets/access";
 import { inLiveBucket } from "@/lib/buckets/live";
 import {
@@ -24,11 +24,55 @@ export type ItemBucket = {
   defaultReminders: number[];
 };
 
+export type ItemPerson = {
+  userId: number;
+  username: string | null;
+  avatar: string | null;
+  isYou: boolean;
+};
+
 export type CrossBucketItems = {
   items: ListItem[];
   buckets: ItemBucket[];
   reminderBadges: Record<number, ReminderBadge>;
+  assignees: Record<number, ItemPerson>;
 };
+
+// Keyed by item id. Only someone still in the item's bucket, like the bucket's own list shows
+async function assigneesOf(viewerId: number, found: Item[]): Promise<Record<number, ItemPerson>> {
+  const assigned = found.flatMap((i) =>
+    i.assigneeId === null ? [] : [{ ...i, assigneeId: i.assigneeId }]
+  );
+  if (assigned.length === 0) return {};
+  const people = await db
+    .select({
+      bucketId: bucketMembers.bucketId,
+      userId: users.id,
+      username: users.username,
+      avatar: users.avatar,
+    })
+    .from(bucketMembers)
+    .innerJoin(users, eq(users.id, bucketMembers.userId))
+    .where(
+      and(
+        inArray(bucketMembers.bucketId, [...new Set(assigned.map((i) => i.bucketId))]),
+        inArray(bucketMembers.userId, [...new Set(assigned.map((i) => i.assigneeId))])
+      )
+    );
+  const result: Record<number, ItemPerson> = {};
+  for (const item of assigned) {
+    const person = people.find((p) => p.bucketId === item.bucketId && p.userId === item.assigneeId);
+    if (person) {
+      result[item.id] = {
+        userId: person.userId,
+        username: person.username,
+        avatar: person.avatar,
+        isYou: person.userId === viewerId,
+      };
+    }
+  }
+  return result;
+}
 
 async function withBuckets(userId: number, found: Item[]): Promise<CrossBucketItems> {
   const rows = await withViewerReminders(userId, found);
@@ -67,6 +111,7 @@ async function withBuckets(userId: number, found: Item[]): Promise<CrossBucketIt
         : []
     ),
     reminderBadges: badges,
+    assignees: await assigneesOf(userId, rows),
   };
 }
 
@@ -95,7 +140,7 @@ export async function listToday(userId: number, now = new Date()): Promise<Cross
 
 export async function searchItems(userId: number, query: string): Promise<CrossBucketItems> {
   const term = query.trim();
-  if (!term) return { items: [], buckets: [], reminderBadges: {} };
+  if (!term) return { items: [], buckets: [], reminderBadges: {}, assignees: {} };
   const pattern = `%${term.replace(/[\\%_]/g, (c) => `\\${c}`)}%`;
   const rows = await db
     .select({ item: items })

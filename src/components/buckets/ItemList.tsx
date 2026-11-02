@@ -1,6 +1,7 @@
 import { useState, type RefObject } from "react";
 import { Reorder } from "framer-motion";
 import { ItemRow, type ItemAssignee } from "./ItemRow";
+import { itemAssignee } from "./assignee";
 import { SwipeableRow } from "./SwipeableRow";
 import { completionToggle } from "./completion";
 import { DraggableItem } from "./DraggableItem";
@@ -78,13 +79,7 @@ export function ItemList({
 
   const assigneeOf = (item: Item): ItemAssignee | undefined => {
     const member = members.find((m) => m.userId === item.assigneeId);
-    return (
-      member && {
-        userId: member.userId,
-        name: member.isYou ? "you" : memberName(member),
-        avatar: member.avatar,
-      }
-    );
+    return member && itemAssignee(member);
   };
 
   const rowProps = (item: Item) => ({

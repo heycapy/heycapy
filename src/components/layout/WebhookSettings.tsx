@@ -55,7 +55,7 @@ export function WebhookSettings() {
             onSaved={saved}
             onDeleted={() => {
               setWebhooks((list) => list?.filter((w) => w.id !== webhook.id) ?? null);
-              setOpen(null);
+              setOpen((current) => (current === webhook.id ? null : current));
             }}
             onClose={() => setOpen(null)}
           />

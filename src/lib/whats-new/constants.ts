@@ -4,6 +4,15 @@ export type Release = { version: string; notes: ReleaseNote[] };
 
 export const RELEASES: [Release, ...Release[]] = [
   {
+    version: "0.8.2",
+    notes: [
+      {
+        title: "who it's for, on today",
+        text: "today and search now show who in a shared bucket an item is for, like the bucket itself does.",
+      },
+    ],
+  },
+  {
     version: "0.8.1",
     notes: [
       {
