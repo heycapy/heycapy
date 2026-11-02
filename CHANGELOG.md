@@ -2,6 +2,20 @@
 
 all notable changes to heycapy. versions follow [semver](https://semver.org): a patch version (0.3.1) only fixes things, a minor version (0.4.0) adds features. the database migrates itself on start and migrations only go forward, so back up before upgrading (see the README).
 
+## 0.8.2
+
+a small fix release: today and search show who an item is for, and the health check stops naming server details.
+
+### fixes
+
+- today and search show who an item in a shared bucket is for ("→ sam", "→ you"), like the bucket's own list
+- `/api/health` no longer puts a database error in its public answer. it says `{"status": "error"}` with a 503, and the reason goes to the server log and the admin errors list
+- deleting an app under tweaks › notifications › other apps no longer closes another one you opened while it was deleting
+
+### upgrading
+
+- one migration (0045) runs on start and drops an email setting that hasn't been used since 0.4.0 (`smtp_secure`, the port decides it). your email settings stay as they are. back up first, then `docker compose up -d --build` as usual
+
 ## 0.8.1
 
 capy gets things right more often, items can be done and reassigned from more places, and the guide opens by itself for someone new.
