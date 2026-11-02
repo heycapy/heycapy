@@ -129,7 +129,6 @@ export const userSettings = sqliteTable("user_settings", {
   smtpPort: integer("smtp_port"),
   smtpUser: text("smtp_user"),
   smtpPass: text("smtp_pass"),
-  smtpSecure: integer("smtp_secure", { mode: "boolean" }).default(false),
   smtpFrom: text("smtp_from"),
   // "HH:MM" in the user's timezone, nothing is sent in between, whatever the bucket
   quietHoursFrom: text("quiet_hours_from"),
