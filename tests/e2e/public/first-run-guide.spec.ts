@@ -1,4 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
+import Database from "better-sqlite3";
+import { E2E_DATABASE_FILE } from "../helpers/env";
 import { login, uniqueEmail } from "../helpers/login";
 import { activeBucketTitle, addItem } from "../helpers/buckets";
 import { E2E_STARTER_EMAIL_PREFIX, GUIDE_TASKS } from "@/lib/guide/constants";
@@ -18,17 +20,29 @@ function task(page: Page, title: string) {
 }
 
 // Parallel tests can start in the same millisecond, the test's own id keeps their accounts apart
-async function signUp(page: Page) {
+async function signUp(page: Page): Promise<string> {
   const { testId, repeatEachIndex } = test.info();
-  await login(page, uniqueEmail(`${E2E_STARTER_EMAIL_PREFIX}-${testId}-${repeatEachIndex}`));
+  const email = uniqueEmail(`${E2E_STARTER_EMAIL_PREFIX}-${testId}-${repeatEachIndex}`);
+  await login(page, email);
   await expect(activeBucketTitle(page)).toHaveText("reminders");
   await expect(guidePanel(page)).toBeVisible();
   await guidePanel(page).getByRole("button", { name: "[ x ]" }).click();
   await expect(guidePanel(page)).toBeHidden();
+  return email;
+}
+
+function guideSeen(email: string): boolean {
+  const db = new Database(E2E_DATABASE_FILE);
+  const row = db.prepare("select guide_seen from users where email = ?").get(email) as
+    { guide_seen: number } | undefined;
+  db.close();
+  return row?.guide_seen === 1;
 }
 
 test("the guide opens by itself on the first visit only", async ({ page }) => {
-  await signUp(page);
+  const email = await signUp(page);
+  // marked seen without waiting, a reload before it lands would rightly open the guide again
+  await expect.poll(() => guideSeen(email)).toBe(true);
 
   await page.reload();
   await expect(activeBucketTitle(page)).toHaveText("reminders");
@@ -62,7 +76,12 @@ test("the guide button can leave the header, the guide stays in the menu", async
   await signUp(page);
 
   await guideButton(page).click();
+  // hideGuideAction(true): the button hides before it's saved, and a reload would drop the save
+  const saved = page.waitForResponse(
+    (r) => r.request().headers()["next-action"] !== undefined && r.request().postData() === "[true]"
+  );
   await guidePanel(page).getByRole("button", { name: "[ hide from header ]" }).click();
+  await saved;
   await guidePanel(page).getByRole("button", { name: "[ x ]" }).click();
   await expect(guideButton(page)).toBeHidden();
 
@@ -93,6 +112,9 @@ test("a hint takes you to the place the task is done", async ({ page }) => {
   await guideButton(page).click();
   await task(page, "invite someone to a bucket").getByRole("button", { name: "[ hint ]" }).click();
   await expect(page.getByRole("button", { name: "[ create invite ]" })).toBeVisible();
+  // While the guide is still closing it holds Escape until settings has set itself up, which a
+  // person can't beat but a test can
+  await expect(guidePanel(page)).toBeHidden();
   await page.keyboard.press("Escape");
   await expect(page.getByRole("button", { name: "[ create invite ]" })).toBeHidden();
 
