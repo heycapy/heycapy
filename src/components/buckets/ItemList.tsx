@@ -11,6 +11,7 @@ import type { items } from "@/lib/db/schema";
 import type { StatusDef, FieldDef } from "@/types/rules";
 import type { BucketMember } from "@/lib/buckets/members";
 import { memberName } from "@/lib/buckets/member-name";
+import { ITEM_STATUS } from "@/constants";
 import { otherClock } from "@/lib/timezones/gap";
 import { itemDeadline } from "@/lib/time";
 
@@ -87,6 +88,12 @@ export function ItemList({
   };
 
   const showDue = items.some((item) => item.deadline);
+  const tickedBy = (item: Item) => {
+    if (!shared || item.status !== ITEM_STATUS.completed) return undefined;
+    const member = members.find((m) => m.userId === item.completedBy);
+    return member && (member.isYou ? "you" : memberName(member));
+  };
+
   const rowProps = (item: Item) => ({
     item,
     statuses,
@@ -100,6 +107,7 @@ export function ItemList({
     otherClock: clockHint(item),
     showDue,
     shared,
+    tickedBy: tickedBy(item),
     onMenu: (at: MenuAt) => setMenu({ item, at }),
   });
 

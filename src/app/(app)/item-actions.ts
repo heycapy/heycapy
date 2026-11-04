@@ -146,6 +146,10 @@ export async function addItemAction(
       deadlineTimezone: due.deadlineTimezone,
       ...initialReminderState(parsedDeadline, due.deadlineTimezone ?? "UTC"),
       status: status ?? ITEM_STATUS.active,
+      ...(status === ITEM_STATUS.completed && {
+        completedAt: new Date(),
+        completedBy: session.userId,
+      }),
       sortOrder: maxRow.max + 1,
       recurring: recurring?.enabled ? JSON.stringify(recurring) : null,
       properties: properties ? JSON.stringify(properties) : null,
@@ -238,8 +242,8 @@ export async function updateItemAction(
         due.deadlineTimezone ?? undefined
       ),
       ...(status !== undefined && { status }),
-      ...(nowCompleted && { completedAt: new Date() }),
-      ...(nowUncompleted && { completedAt: null }),
+      ...(nowCompleted && { completedAt: new Date(), completedBy: session.userId }),
+      ...(nowUncompleted && { completedAt: null, completedBy: null }),
       ...(recurring !== undefined && {
         recurring: savedRecurring ? JSON.stringify(savedRecurring) : null,
       }),
@@ -292,7 +296,7 @@ export async function completeItemAction(itemId: number): Promise<ActionResult> 
   const item = await findAccessibleItem(session.userId, itemId);
   if (!item) return { ok: false, error: ITEM_GONE_ERROR };
 
-  await toggleItemCompleted(item);
+  await toggleItemCompleted(item, session.userId);
 
   revalidatePath("/");
   return { ok: true };

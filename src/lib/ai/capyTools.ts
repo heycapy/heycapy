@@ -548,6 +548,7 @@ async function executeToolCallInner(
           title,
           status: finalStatus,
           completedAt: finalStatus === ITEM_STATUS.completed ? new Date() : null,
+          completedBy: finalStatus === ITEM_STATUS.completed ? userId : null,
           ...dueOn(deadline, clock),
           ...initialReminderState(deadline, clock),
           reminderOffsets: reminders.value,
@@ -597,6 +598,7 @@ async function executeToolCallInner(
         recurring?: string | null;
         status?: string;
         completedAt?: Date | null;
+        completedBy?: number | null;
         properties?: string | null;
         assigneeId?: number | null;
       } = { updatedAt: new Date() };
@@ -660,10 +662,13 @@ async function executeToolCallInner(
         const statusName = String(args.status).trim();
         if (!SETTABLE_ITEM_STATUSES.includes(statusName)) return invalidStatusError(statusName);
         updates.status = statusName;
-        if (statusName === ITEM_STATUS.completed && item.status !== ITEM_STATUS.completed)
+        if (statusName === ITEM_STATUS.completed && item.status !== ITEM_STATUS.completed) {
           updates.completedAt = new Date();
-        else if (statusName !== ITEM_STATUS.completed && item.status === ITEM_STATUS.completed)
+          updates.completedBy = userId;
+        } else if (statusName !== ITEM_STATUS.completed && item.status === ITEM_STATUS.completed) {
           updates.completedAt = null;
+          updates.completedBy = null;
+        }
       }
 
       if (args.properties !== undefined) {
@@ -711,7 +716,7 @@ async function executeToolCallInner(
       const item = await findAccessibleItem(userId, itemId);
       if (!item) return JSON.stringify({ ok: false, error: "Item not found" });
 
-      const newStatus = await toggleItemCompleted(item);
+      const newStatus = await toggleItemCompleted(item, userId);
 
       revalidatePath("/");
       return JSON.stringify({ ok: true, newStatus });

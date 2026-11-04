@@ -9,7 +9,11 @@ import { createNextOccurrence } from "./recurrence";
 type Item = typeof items.$inferSelect;
 
 // Reopening an item whose date has passed sends only the overdue alert, like adding one would
-export async function toggleItemCompleted(item: Item, now = new Date()): Promise<string> {
+export async function toggleItemCompleted(
+  item: Item,
+  userId: number,
+  now = new Date()
+): Promise<string> {
   const reopening = item.status === ITEM_STATUS.completed;
   const reminders = reopening
     ? {
@@ -20,7 +24,13 @@ export async function toggleItemCompleted(item: Item, now = new Date()): Promise
   const status = reopening ? ITEM_STATUS.active : ITEM_STATUS.completed;
   await db
     .update(items)
-    .set({ status, completedAt: reopening ? null : now, ...reminders, updatedAt: now })
+    .set({
+      status,
+      completedAt: reopening ? null : now,
+      completedBy: reopening ? null : userId,
+      ...reminders,
+      updatedAt: now,
+    })
     .where(eq(items.id, item.id));
   await refreshItemReminders([item.id]);
   if (!reopening) await createNextOccurrence(item.id);

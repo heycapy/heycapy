@@ -44,6 +44,8 @@ type ItemRowProps = {
   showDue?: boolean;
   // A bucket with more than one member says "anyone" on items nobody is assigned to
   shared?: boolean;
+  // Who completed it, named in shared buckets
+  tickedBy?: string;
   onMenu?: (at: MenuAt) => void;
 };
 
@@ -119,6 +121,7 @@ export function ItemRow({
   bucket,
   showDue = true,
   shared = false,
+  tickedBy,
   onMenu,
 }: ItemRowProps) {
   const [pickerAnchor, setPickerAnchor] = useState<StatusAnchor | null>(null);
@@ -157,7 +160,8 @@ export function ItemRow({
         <span className={cn(!assignee.isYou && "@max-lg:sr-only")}>{assignee.name}</span>
       </span>
     ),
-    shared && !assignee && (
+    tickedBy && <span key="ticked">ticked by {tickedBy}</span>,
+    shared && !assignee && !tickedBy && (
       <span key="anyone" className="text-muted-foreground/60">
         anyone
       </span>

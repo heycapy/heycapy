@@ -439,7 +439,7 @@ test("today and search show who a shared item is for, like the bucket does", asy
   await expect(search.getByRole("button", { name: forAnyone })).not.toContainText("→");
 });
 
-test("a shared bucket shows only my items or one member's, and says anyone on the rest", async ({
+test("a shared bucket shows only my items or one member's, says anyone on the rest and who ticked one", async ({
   page,
   browser,
 }) => {
@@ -477,6 +477,15 @@ test("a shared bucket shows only my items or one member's, and says anyone on th
   await filter.getByRole("button", { name: "all", exact: true }).click();
   await expect(itemRow(page, forAnyone)).toBeVisible();
   await expect(page.getByRole("button", { name: /2 people/ })).toBeVisible();
+
+  const db = new Database(E2E_DATABASE_FILE);
+  db.prepare(
+    "update items set status = 'completed', completed_by = (select id from users where email = ?) where title = ?"
+  ).run(friendEmail, forAnyone);
+  db.close();
+  await page.reload();
+  await expect(itemRow(page, forAnyone)).toContainText(`ticked by ${sam}`);
+  await expect(itemRow(page, forAnyone)).not.toContainText("anyone");
 });
 
 test("typing @ in the title picks a member in a shared bucket, and does nothing in a solo one", async ({

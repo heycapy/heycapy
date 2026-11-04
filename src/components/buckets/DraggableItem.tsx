@@ -27,6 +27,7 @@ type DraggableItemProps = {
   otherClock?: string;
   showDue: boolean;
   shared: boolean;
+  tickedBy?: string;
 };
 
 export function DraggableItem({
@@ -45,6 +46,7 @@ export function DraggableItem({
   otherClock,
   showDue,
   shared,
+  tickedBy,
 }: DraggableItemProps) {
   const controls = useDragControls();
 
@@ -86,6 +88,7 @@ export function DraggableItem({
           otherClock={otherClock}
           showDue={showDue}
           shared={shared}
+          tickedBy={tickedBy}
           onMenu={onMenu}
         />
       </SwipeableRow>
