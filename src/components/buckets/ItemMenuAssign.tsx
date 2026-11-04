@@ -1,0 +1,95 @@
+import { Check } from "pixelarticons/react/Check.js";
+import { ChevronRight } from "pixelarticons/react/ChevronRight.js";
+import { PersonAvatar } from "@/components/avatar/PersonAvatar";
+import { PixelIcon } from "@/components/ui/PixelIcon";
+import type { BucketMember } from "@/lib/buckets/members";
+import { memberName } from "@/lib/buckets/member-name";
+import { cn } from "@/lib/utils";
+import { ASSIGN_CHIPS_MAX } from "./constants";
+
+type AssignProps = {
+  members: BucketMember[];
+  assigneeId: number | null;
+  busy: boolean;
+  onAssign: (userId: number | null) => void;
+};
+
+const nameOf = (m: BucketMember) => (m.isYou ? "you" : memberName(m));
+
+// One tap assigns; with more people than fit, the rest are a tap further
+export function AssignChips({
+  members,
+  assigneeId,
+  busy,
+  onAssign,
+  onMore,
+}: AssignProps & { onMore: () => void }) {
+  const shown =
+    members.length > ASSIGN_CHIPS_MAX ? members.slice(0, ASSIGN_CHIPS_MAX - 1) : members;
+  const chip =
+    "border-border flex max-w-32 items-center gap-1 border px-1.5 py-1 transition-colors disabled:opacity-50";
+  return (
+    <div
+      role="group"
+      aria-label="assign to"
+      className="flex flex-wrap items-center gap-1.5 px-3 py-2 font-mono text-xs"
+    >
+      <span className="text-muted-foreground mr-1">assign</span>
+      {shown.map((m) => (
+        <button
+          key={m.userId}
+          type="button"
+          aria-pressed={assigneeId === m.userId}
+          aria-label={nameOf(m)}
+          disabled={busy}
+          onClick={() => onAssign(assigneeId === m.userId ? null : m.userId)}
+          className={cn(
+            chip,
+            assigneeId === m.userId
+              ? "border-foreground text-foreground"
+              : "text-muted-foreground hover:text-foreground"
+          )}
+        >
+          <PersonAvatar userId={m.userId} avatar={m.avatar} className="shrink-0" />
+          <span className="truncate">{nameOf(m)}</span>
+        </button>
+      ))}
+      {shown.length < members.length && (
+        <button
+          type="button"
+          onClick={onMore}
+          className={cn(chip, "text-muted-foreground hover:text-foreground")}
+        >
+          +{members.length - shown.length} more
+          <PixelIcon icon={ChevronRight} />
+        </button>
+      )}
+    </div>
+  );
+}
+
+export function AssignList({ members, assigneeId, busy, onAssign }: AssignProps) {
+  const row =
+    "hover:bg-muted flex w-full items-center gap-2 px-3 py-2.5 text-left font-mono text-xs transition-colors disabled:opacity-50 sm:py-2";
+  return (
+    <div className="py-1">
+      {members.map((m) => (
+        <button
+          key={m.userId}
+          type="button"
+          disabled={busy}
+          onClick={() => onAssign(m.userId)}
+          className={row}
+        >
+          <PersonAvatar userId={m.userId} avatar={m.avatar} className="shrink-0" />
+          <span className="min-w-0 flex-1 truncate">{nameOf(m)}</span>
+          {assigneeId === m.userId && <PixelIcon icon={Check} />}
+        </button>
+      ))}
+      <button type="button" disabled={busy} onClick={() => onAssign(null)} className={row}>
+        <span className="text-muted-foreground min-w-0 flex-1">anyone</span>
+        {assigneeId === null && <PixelIcon icon={Check} />}
+      </button>
+    </div>
+  );
+}

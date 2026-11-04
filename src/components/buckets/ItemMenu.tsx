@@ -1,186 +1,29 @@
-import {
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  useState,
-  type MouseEvent,
-  type ReactNode,
-} from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type MouseEvent } from "react";
 import { createPortal } from "react-dom";
-import { toast } from "sonner";
-import { cn } from "@/lib/utils";
-import { Calendar } from "@/components/ui/Calendar";
-import { BracketButton } from "@/components/ui/BracketButton";
-import { clockTime, formatWeekdayDate } from "@/lib/format-date";
-import { deadlineDate, itemDeadline } from "@/lib/time";
-import { deadlineOn, quickDates } from "@/lib/items/quick-dates";
-import { parseRecurring } from "@/lib/items/occurrence";
-import { repeatLabel } from "@/lib/items/repeat-label";
 import type { items } from "@/lib/db/schema";
+import type { ReminderBadge } from "@/lib/reminders/status";
+import type { BucketMember } from "@/lib/buckets/members";
 import { MENU_GAP, SCREEN_MARGIN } from "./constants";
+import { MenuBody } from "./ItemMenuBody";
 
 type Item = typeof items.$inferSelect;
 
 export type MenuAt = { x: number; top: number; bottom: number };
 
-type ItemMenuProps = {
+export type ItemMenuProps = {
   item: Item;
   at: MenuAt;
   readonly: boolean;
   completeLabel: string;
+  reminderBadge?: ReminderBadge;
+  nextReminderAt?: Date | null;
+  // Only in a bucket shared with others
+  assign?: { members: BucketMember[]; onAssign: (userId: number | null) => Promise<boolean> };
   onComplete: () => void;
   onMove: (deadline: string) => Promise<void>;
   onDelete: () => void;
   onClose: () => void;
 };
-
-function MenuButton({
-  label,
-  className,
-  onClick,
-  disabled,
-  children,
-}: {
-  label?: string;
-  className?: string;
-  onClick: () => void;
-  disabled?: boolean;
-  children: ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      aria-label={label}
-      onClick={onClick}
-      disabled={disabled}
-      className={cn(
-        "hover:bg-muted flex w-full items-center gap-4 px-3 py-2.5 text-left font-mono text-xs transition-colors disabled:opacity-50 sm:py-2",
-        className
-      )}
-    >
-      {children}
-    </button>
-  );
-}
-
-function MenuBody({
-  item,
-  readonly,
-  completeLabel,
-  onComplete,
-  onMove,
-  onDelete,
-  onClose,
-}: Omit<ItemMenuProps, "at">) {
-  const [picking, setPicking] = useState(false);
-  const [moving, setMoving] = useState(false);
-  const recurring = parseRecurring(item.recurring);
-  const repeat = recurring?.enabled && item.deadline ? repeatLabel(recurring) : null;
-  const current = item.deadline ? itemDeadline(item.deadline, item.deadlineTimezone).at : null;
-  const section = "border-border border-t border-dashed py-1";
-
-  function run(action: () => void) {
-    onClose();
-    action();
-  }
-
-  // Open until the list has the new date, so the row can't be opened with the old one underneath
-  async function move(deadline: string) {
-    if (moving) return;
-    setMoving(true);
-    try {
-      await onMove(deadline);
-    } finally {
-      onClose();
-    }
-  }
-
-  async function copyTitle() {
-    onClose();
-    try {
-      await navigator.clipboard.writeText(item.title);
-      toast("copied");
-    } catch {
-      toast.error("couldn't copy");
-    }
-  }
-
-  return (
-    <>
-      <div className="flex items-start gap-3 py-2 pl-3">
-        <div className="min-w-0 flex-1">
-          <p className="text-foreground truncate text-sm">{item.title}</p>
-          {repeat && (
-            <p className="text-muted-foreground mt-0.5 font-mono text-[11px]">
-              ↺ {repeat} · moves only this time
-            </p>
-          )}
-        </div>
-        <BracketButton onClick={onClose} aria-label="close menu" className="-my-1 px-3 py-1.5">
-          x
-        </BracketButton>
-      </div>
-
-      {!readonly && !picking && (
-        <div className={section}>
-          <MenuButton onClick={() => run(onComplete)}>
-            <span className="text-foreground">{completeLabel}</span>
-          </MenuButton>
-        </div>
-      )}
-
-      {!readonly && picking && (
-        <div className={cn(section, "px-3 pt-1 pb-3")}>
-          <BracketButton onClick={() => setPicking(false)} className="mb-1">
-            back
-          </BracketButton>
-          <Calendar
-            value={current ? deadlineDate(current.toISOString()) : ""}
-            onSelect={(date) => void move(deadlineOn(date, current))}
-          />
-        </div>
-      )}
-
-      {!readonly && !picking && (
-        <div className={section}>
-          {quickDates(current).map((option) => {
-            const day = formatWeekdayDate(option.at);
-            const time = option.allDay ? "all day" : clockTime(option.at);
-            return (
-              <MenuButton
-                key={option.label}
-                label={`${option.label} ${day} ${time}`}
-                onClick={() => void move(option.value)}
-                disabled={moving}
-              >
-                <span className="text-foreground flex-1">{option.label}</span>
-                <span className="text-muted-foreground w-20">{day}</span>
-                <span className="text-muted-foreground w-14">{time}</span>
-              </MenuButton>
-            );
-          })}
-          <MenuButton onClick={() => setPicking(true)}>
-            <span className="text-foreground">pick a date…</span>
-          </MenuButton>
-        </div>
-      )}
-
-      <div className={section}>
-        <MenuButton onClick={() => void copyTitle()}>
-          <span className="text-foreground">copy title</span>
-        </MenuButton>
-      </div>
-
-      {!readonly && (
-        <div className={section}>
-          <MenuButton onClick={() => run(onDelete)} className="text-destructive">
-            delete
-          </MenuButton>
-        </div>
-      )}
-    </>
-  );
-}
 
 export function ItemMenu({ at, onClose, ...props }: ItemMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null);

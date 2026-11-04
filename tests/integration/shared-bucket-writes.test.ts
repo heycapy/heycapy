@@ -6,6 +6,7 @@ import { bucketMembers, items } from "@/lib/db/schema";
 import { ITEM_GONE_ERROR, ITEM_STATUS } from "@/constants";
 import {
   addItemAction,
+  assignItemAction,
   completeItemAction,
   deleteItemAction,
   moveItemAction,
@@ -132,6 +133,28 @@ describe("a member changing someone else's item", () => {
     for (const result of results) expect(result).toEqual({ ok: false, error: ITEM_GONE_ERROR });
     expect(await skipOccurrenceAction(itemId)).toEqual({ ok: false, error: "Item not found" });
     expect(await itemOf(itemId)).toEqual(before);
+  });
+});
+
+describe("assigning from the item menu", () => {
+  it("lets a member assign and unassign, but not to someone outside the bucket", async () => {
+    const { owner, friend, stranger, itemId } = await sharedBucket();
+    session.userId = friend;
+    expect(await assignItemAction(itemId, owner)).toEqual({ ok: true });
+    expect((await itemOf(itemId)).assigneeId).toBe(owner);
+
+    expect((await assignItemAction(itemId, stranger)).ok).toBe(false);
+    expect((await itemOf(itemId)).assigneeId).toBe(owner);
+
+    expect(await assignItemAction(itemId, null)).toEqual({ ok: true });
+    expect((await itemOf(itemId)).assigneeId).toBeNull();
+  });
+
+  it("is refused for someone outside the bucket", async () => {
+    const { owner, stranger, itemId } = await sharedBucket();
+    session.userId = stranger;
+    expect((await assignItemAction(itemId, owner)).ok).toBe(false);
+    expect((await itemOf(itemId)).assigneeId).toBeNull();
   });
 });
 

@@ -13,6 +13,7 @@ import { offerUndoDelete } from "@/components/buckets/undoDelete";
 import { deadlineValue } from "@/lib/time";
 import type { CrossBucketItems } from "@/lib/items/today";
 import type { items } from "@/lib/db/schema";
+import type { ListItem } from "@/lib/reminders/status";
 
 type Item = typeof items.$inferSelect;
 
@@ -65,6 +66,8 @@ export function CrossBucketList({
     await onChanged();
     offerUndoDelete(item.id, item.title, onChanged);
   }
+
+  const menuItem: ListItem | undefined = menu?.item;
 
   function row(item: Item) {
     const bucket = bucketOf(item);
@@ -135,6 +138,8 @@ export function CrossBucketList({
           item={menu.item}
           at={menu.at}
           readonly={bucketOf(menu.item)?.readonly === true}
+          reminderBadge={data?.reminderBadges[menu.item.id]}
+          nextReminderAt={menuItem?.nextReminderAt}
           completeLabel={completionToggle(menu.item.status, statuses).label}
           onComplete={() =>
             void changeStatus(menu.item, completionToggle(menu.item.status, statuses).next)

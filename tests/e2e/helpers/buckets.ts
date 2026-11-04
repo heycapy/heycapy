@@ -71,3 +71,24 @@ export async function openBucketOnPhone(page: Page, name: string): Promise<void>
 export function addItemButton(page: Page) {
   return page.getByRole("button", { name: "[ add + ]", exact: true });
 }
+
+export function itemMenu(page: Page, title: string) {
+  return page.getByRole("dialog", { name: title });
+}
+
+export function itemRowContainer(page: Page, title: string) {
+  return itemRow(page, title).locator("xpath=..");
+}
+
+export async function openItemMenu(page: Page, title: string) {
+  await itemRowContainer(page, title).getByRole("button", { name: "item menu" }).click();
+  await expect(itemMenu(page, title)).toBeVisible();
+  return itemMenu(page, title);
+}
+
+// The reminder details live one tap into the item's menu
+export async function openReminderDetails(page: Page, title: string) {
+  const menu = await openItemMenu(page, title);
+  await menu.getByRole("button", { name: /^reminders/ }).click();
+  return menu.getByRole("region", { name: "reminders" });
+}

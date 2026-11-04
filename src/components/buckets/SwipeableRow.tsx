@@ -85,7 +85,8 @@ export function SwipeableRow({
     if (onMenu && e.pointerType !== "mouse" && !isOpen) {
       pressTimerRef.current = setTimeout(openMenuByPress, LONG_PRESS_MS);
     }
-    if (disabled) return;
+    // Dragging a row sideways with a mouse is awkward; the menu has done and delete for it
+    if (disabled || e.pointerType === "mouse") return;
     startXRef.current = e.clientX;
     startYRef.current = e.clientY;
     isDraggingHRef.current = false;

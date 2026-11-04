@@ -290,6 +290,25 @@ export async function moveItemAction(itemId: number, deadline: string): Promise<
   return { ok: true };
 }
 
+export async function assignItemAction(
+  itemId: number,
+  assigneeId: number | null
+): Promise<ActionResult> {
+  const session = await requireSession();
+
+  const item = await findAccessibleItem(session.userId, itemId);
+  if (!item) return { ok: false, error: ITEM_GONE_ERROR };
+  if (assigneeId !== null && !(await isBucketMember(assigneeId, item.bucketId))) {
+    return { ok: false, error: NOT_A_MEMBER_ERROR };
+  }
+
+  await db.update(items).set({ assigneeId, updatedAt: new Date() }).where(eq(items.id, itemId));
+  await refreshItemReminders([itemId]);
+
+  revalidatePath("/");
+  return { ok: true };
+}
+
 export async function completeItemAction(itemId: number): Promise<ActionResult> {
   const session = await requireSession();
 

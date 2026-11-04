@@ -1,7 +1,7 @@
 import { test, expect, type Locator, type Page } from "@playwright/test";
 import Database from "better-sqlite3";
 import { E2E_DATABASE_FILE } from "../helpers/env";
-import { addItem, itemRow } from "../helpers/buckets";
+import { addItem, itemRow, openItemMenu } from "../helpers/buckets";
 import { login, uniqueEmail, uniqueUsername } from "../helpers/login";
 import { giveOwnSmtp } from "../helpers/email";
 import {
@@ -486,6 +486,33 @@ test("a shared bucket shows only my items or one member's, says anyone on the re
   await page.reload();
   await expect(itemRow(page, forAnyone)).toContainText(`ticked by ${sam}`);
   await expect(itemRow(page, forAnyone)).not.toContainText("anyone");
+});
+
+test("the item menu assigns a member in one tap, and a second tap gives it back to anyone", async ({
+  page,
+  browser,
+}) => {
+  const { bucketId, code } = await ownerWithInvite(page, `chores ${Date.now()}`);
+  const friend = await browser.newPage();
+  const sam = uniqueUsername("sam");
+  const friendEmail = await joinWithCode(friend, code, sam);
+  await friend.waitForURL(`/?bucket=${bucketId}`);
+  await friend.close();
+  const title = `mow the lawn ${Date.now()}`;
+  addDueItem(bucketId, friendEmail, title);
+
+  await page.goto(`/?bucket=${bucketId}`);
+  await expect(itemRow(page, title)).toContainText("anyone");
+  const menu = await openItemMenu(page, title);
+  const chip = menu.getByRole("group", { name: "assign to" }).getByRole("button", { name: sam });
+  await chip.click();
+  await expect(itemRow(page, title)).toContainText(`→ ${sam}`);
+  await expect(menu).toBeVisible();
+  await expect(chip).toHaveAttribute("aria-pressed", "true");
+
+  await chip.click();
+  await expect(itemRow(page, title)).toContainText("anyone");
+  await expect(chip).toHaveAttribute("aria-pressed", "false");
 });
 
 test("typing @ in the title picks a member in a shared bucket, and does nothing in a solo one", async ({

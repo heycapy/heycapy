@@ -1,10 +1,8 @@
-import { Bell } from "pixelarticons/react/Bell.js";
-import { BellOff } from "pixelarticons/react/BellOff.js";
 import { MoreHorizontal } from "pixelarticons/react/MoreHorizontal.js";
 import { MoreVertical } from "pixelarticons/react/MoreVertical.js";
 import { WarningDiamond } from "pixelarticons/react/WarningDiamond.js";
-import { PixelIcon, type PixelIconComponent } from "@/components/ui/PixelIcon";
-import { formatShort, formatShortTime } from "@/lib/format-date";
+import { PixelIcon } from "@/components/ui/PixelIcon";
+import { formatShortTime } from "@/lib/format-date";
 import { ITEM_STATUS } from "@/constants";
 import { ITEM_HIGHLIGHT_MS } from "./constants";
 import { StatusPicker, type StatusAnchor } from "./StatusPicker";
@@ -86,24 +84,10 @@ function getShowInRowBadges(
     });
 }
 
-const REMINDER_ICON: Record<ReminderBadge, { icon: PixelIconComponent; className: string }> = {
-  upcoming: { icon: Bell, className: "text-muted-foreground" },
-  noChannel: { icon: BellOff, className: "text-muted-foreground" },
-  failed: { icon: WarningDiamond, className: "text-warning" },
-  history: { icon: Bell, className: "text-muted-foreground/50" },
-};
-
 function remindAgainLabel(item: ItemRow): string | null {
   const now = new Date();
   const at = pendingRemindAgainAt(item, now);
   return at ? `⏰ again ${formatShortTime(at, now)}` : null;
-}
-
-function reminderLabel(badge: ReminderBadge, next: Date | null): string {
-  if (badge === "failed") return "reminder failed";
-  if (badge === "noChannel") return "no reminder";
-  if (badge === "history") return "reminder history";
-  return next ? `reminder ${formatShort(next)}` : "reminder";
 }
 
 export function ItemRow({
@@ -126,7 +110,6 @@ export function ItemRow({
 }: ItemRowProps) {
   const [pickerAnchor, setPickerAnchor] = useState<StatusAnchor | null>(null);
   const [reminderOpen, setReminderOpen] = useState(false);
-  const reminderIcon = reminderBadge ? REMINDER_ICON[reminderBadge].icon : null;
   const dotRef = useRef<HTMLButtonElement>(null);
   const rowRef = useRef<HTMLDivElement>(null);
   const anchor = `item-${item.id}`;
@@ -277,18 +260,16 @@ export function ItemRow({
         {showDue && <ItemDue due={due} status={item.status} />}
       </button>
 
-      {reminderBadge && reminderIcon && (
+      {/* Only a failed send shows in the row; everything else about reminders is in the menu */}
+      {reminderBadge === "failed" && (
         <button
           type="button"
           onClick={() => setReminderOpen(true)}
-          aria-label={reminderLabel(reminderBadge, item.nextReminderAt ?? null)}
-          title={reminderLabel(reminderBadge, item.nextReminderAt ?? null)}
-          className={cn(
-            "flex shrink-0 items-center pl-2 transition-opacity hover:opacity-70",
-            REMINDER_ICON[reminderBadge].className
-          )}
+          aria-label="reminder failed"
+          title="reminder failed"
+          className="text-destructive flex shrink-0 items-center pl-2 transition-opacity hover:opacity-70"
         >
-          <PixelIcon icon={reminderIcon} />
+          <PixelIcon icon={WarningDiamond} />
         </button>
       )}
       {onMenu && (

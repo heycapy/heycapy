@@ -18,6 +18,8 @@ import { parseFields } from "./fields";
 import { useLayoutStore } from "@/store/layout";
 import { useUIStore } from "@/store/ui";
 import { placesOf } from "@/lib/timezones/gap";
+import { toast } from "sonner";
+import { assignItemAction } from "@/app/(app)/actions";
 import { memberName } from "@/lib/buckets/member-name";
 import { MembersBar, type MemberFilter } from "./MembersBar";
 
@@ -133,6 +135,12 @@ export function BucketContent({ bucket, accentColor, addItemRef }: BucketContent
           // A filtered list is only part of the order, so dragging in it would scramble the rest
           draggable={rules.drag === true && rules.sortBy === "manual" && activeFilter === "all"}
           shared={shared}
+          onAssign={async (item, assigneeId) => {
+            const result = await assignItemAction(item.id, assigneeId);
+            if (!result.ok) toast.error(result.error);
+            await list.refetch();
+            return result.ok;
+          }}
           readonly={readonly}
           statuses={statuses}
           fields={fields}

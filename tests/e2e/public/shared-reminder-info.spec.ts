@@ -1,10 +1,9 @@
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect } from "@playwright/test";
 import Database from "better-sqlite3";
 import { E2E_DATABASE_FILE } from "../helpers/env";
-import { itemRow } from "../helpers/buckets";
+import { itemRow, openReminderDetails } from "../helpers/buckets";
 import { login, uniqueEmail } from "../helpers/login";
 import { giveOwnSmtp } from "../helpers/email";
-import { modal } from "../helpers/settings";
 
 const DAY_S = 86_400;
 
@@ -43,12 +42,6 @@ function seedAssignedItem(ownerEmail: string, memberEmail: string, title: string
   return bucketId;
 }
 
-function reminderDetails(page: Page, title: string) {
-  return modal(page, new RegExp(`^reminder \\[${title}\\]$`)).getByRole("region", {
-    name: "reminders",
-  });
-}
-
 test("item info shows the member their own reminder and tells the owner it went to them", async ({
   page,
   browser,
@@ -64,15 +57,13 @@ test("item info shows the member their own reminder and tells the owner it went 
 
   await member.goto(`/?bucket=${bucketId}`);
   await expect(itemRow(member, title)).toBeVisible();
-  await member.getByRole("button", { name: /^reminder \w{3} \d+/ }).click();
-  await expect(reminderDetails(member, title)).toContainText(/next \w{3} \d+/);
+  const memberDetails = await openReminderDetails(member, title);
+  await expect(memberDetails).toContainText(/next \w{3} \d+/);
 
   await page.goto(`/?bucket=${bucketId}`);
   await expect(itemRow(page, title)).toBeVisible();
-  await page.getByRole("button", { name: "reminder history", exact: true }).click();
-  await expect(reminderDetails(page, title)).toContainText(
-    "no reminders for you — it's assigned to someone else"
-  );
-  await expect(reminderDetails(page, title)).toContainText(/also reminded\w+ · next \w{3} \d+/);
+  const ownerDetails = await openReminderDetails(page, title);
+  await expect(ownerDetails).toContainText("no reminders for you — it's assigned to someone else");
+  await expect(ownerDetails).toContainText(/also reminded\w+ · next \w{3} \d+/);
   await other.close();
 });

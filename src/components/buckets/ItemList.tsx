@@ -6,7 +6,7 @@ import { SwipeableRow } from "./SwipeableRow";
 import { completionToggle } from "./completion";
 import { DraggableItem } from "./DraggableItem";
 import { ItemMenu, type MenuAt } from "./ItemMenu";
-import type { ReminderBadge } from "@/lib/reminders/status";
+import type { ListItem, ReminderBadge } from "@/lib/reminders/status";
 import type { items } from "@/lib/db/schema";
 import type { StatusDef, FieldDef } from "@/types/rules";
 import type { BucketMember } from "@/lib/buckets/members";
@@ -30,6 +30,7 @@ type ItemListProps = {
   reminderBadges: Record<number, ReminderBadge>;
   members: BucketMember[];
   shared: boolean;
+  onAssign: (item: Item, assigneeId: number | null) => Promise<boolean>;
   onReorder: (items: Item[]) => void;
   onEdit: (item: Item) => void;
   onStatusChange: (item: Item, status: string) => void;
@@ -50,6 +51,7 @@ export function ItemList({
   reminderBadges,
   members,
   shared,
+  onAssign,
   onReorder,
   onEdit,
   onStatusChange,
@@ -111,11 +113,15 @@ export function ItemList({
     onMenu: (at: MenuAt) => setMenu({ item, at }),
   });
 
+  const menuItem: ListItem | undefined = menu?.item;
   const menuElement = menu && (
     <ItemMenu
       item={menu.item}
       at={menu.at}
       readonly={readonly}
+      reminderBadge={reminderBadges[menu.item.id]}
+      nextReminderAt={menuItem?.nextReminderAt}
+      assign={shared ? { members, onAssign: (userId) => onAssign(menu.item, userId) } : undefined}
       completeLabel={completionToggle(menu.item.status, statuses).label}
       onComplete={() =>
         onStatusChange(menu.item, completionToggle(menu.item.status, statuses).next)

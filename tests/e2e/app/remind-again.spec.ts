@@ -1,8 +1,13 @@
 import { test, expect, type Page } from "@playwright/test";
 import Database from "better-sqlite3";
 import { authState } from "../helpers/auth";
-import { createAndSelectBucket, itemRow, uniqueName } from "../helpers/buckets";
-import { modal } from "../helpers/settings";
+import {
+  createAndSelectBucket,
+  itemMenu,
+  itemRow,
+  openReminderDetails,
+  uniqueName,
+} from "../helpers/buckets";
 import { daysFromNow, enableWebhook, postItem } from "../helpers/webhook";
 import { E2E_DATABASE_FILE, E2E_JWT_SECRET } from "../helpers/env";
 import { signReminderAction } from "@/lib/reminders/action-token";
@@ -50,9 +55,7 @@ test("remind again from an email shows on the item and in its history, and can b
   await page.goto("/");
   await expect(itemRow(page, title)).toContainText(/⏰ again \w{3} \d+/);
 
-  await page.getByRole("button", { name: /^reminder / }).click();
-  const dialog = modal(page, new RegExp(`^reminder \\[${title}\\]$`));
-  const details = dialog.getByRole("region", { name: "reminders" });
+  const details = await openReminderDetails(page, title);
   await expect(details).toContainText("asked from email");
   await expect(details).toContainText(/you: remind again at \w{3} \d+.* \(from email\)/);
 
@@ -60,6 +63,6 @@ test("remind again from an email shows on the item and in its history, and can b
   await expect(details).not.toContainText("reminding again");
   await expect(details).toContainText(/next \w{3} \d+/);
   await expect(details).toContainText("you: cancelled remind again (from app)");
-  await dialog.getByRole("button", { name: "[ x ]", exact: true }).click();
+  await itemMenu(page, title).getByRole("button", { name: "close menu" }).click();
   await expect(itemRow(page, title)).not.toContainText("⏰ again");
 });

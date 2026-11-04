@@ -1,9 +1,12 @@
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect } from "@playwright/test";
 import { authState } from "../helpers/auth";
 import {
   addItem,
   createAndSelectBucket,
+  itemMenu,
   itemRow,
+  itemRowContainer,
+  openItemMenu,
   selectBucket,
   uniqueName,
 } from "../helpers/buckets";
@@ -26,20 +29,6 @@ function shortDate(d: Date): string {
   return `${MONTHS[d.getMonth()]} ${d.getDate()}`;
 }
 
-function menuFor(page: Page, title: string) {
-  return page.getByRole("dialog", { name: title });
-}
-
-function rowFor(page: Page, title: string) {
-  return itemRow(page, title).locator("xpath=..");
-}
-
-async function openMenu(page: Page, title: string) {
-  await rowFor(page, title).getByRole("button", { name: "item menu" }).click();
-  await expect(menuFor(page, title)).toBeVisible();
-  return menuFor(page, title);
-}
-
 test.beforeEach(async ({ page }) => {
   await page.goto("/");
   await createAndSelectBucket(page, uniqueName("Item menu"));
@@ -51,7 +40,7 @@ test("quick dates move an item, and a picked date too, back returns from the cal
   const title = uniqueName("call mom");
   await addItem(page, title);
 
-  let menu = await openMenu(page, title);
+  let menu = await openItemMenu(page, title);
   await expect(menu.getByRole("button", { name: /^due today / })).toBeVisible();
   await expect(menu.getByRole("button", { name: /^due next week / })).toBeVisible();
   await menu.getByRole("button", { name: /^due tomorrow / }).click();
@@ -59,7 +48,7 @@ test("quick dates move an item, and a picked date too, back returns from the cal
   await expect(itemRow(page, title)).toContainText(`${shortDate(daysFromToday(1))} 9am`);
 
   await itemRow(page, title).click({ button: "right" });
-  menu = menuFor(page, title);
+  menu = itemMenu(page, title);
   await expect(menu).toBeVisible();
   await expect(menu.getByRole("button", { name: /^due tomorrow / })).toHaveCount(0);
 
@@ -80,15 +69,15 @@ test("escape, a click outside and [x] close the menu", async ({ page }) => {
   const title = uniqueName("close me");
   await addItem(page, title);
 
-  await openMenu(page, title);
+  await openItemMenu(page, title);
   await page.keyboard.press("Escape");
-  await expect(menuFor(page, title)).not.toBeVisible();
+  await expect(itemMenu(page, title)).not.toBeVisible();
 
-  await openMenu(page, title);
+  await openItemMenu(page, title);
   await page.mouse.click(5, 5);
-  await expect(menuFor(page, title)).not.toBeVisible();
+  await expect(itemMenu(page, title)).not.toBeVisible();
 
-  const menu = await openMenu(page, title);
+  const menu = await openItemMenu(page, title);
   await menu.getByRole("button", { name: "close menu" }).click();
   await expect(menu).not.toBeVisible();
 });
@@ -97,12 +86,12 @@ test("copy title, and delete with undo", async ({ page }) => {
   const title = uniqueName("renew passport");
   await addItem(page, title);
 
-  let menu = await openMenu(page, title);
+  let menu = await openItemMenu(page, title);
   await menu.getByRole("button", { name: "copy title" }).click();
   await expect(page.getByText("copied", { exact: true })).toBeVisible();
   expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(title);
 
-  menu = await openMenu(page, title);
+  menu = await openItemMenu(page, title);
   await menu.getByRole("button", { name: "delete" }).click();
   await expect(itemRow(page, title)).toHaveCount(0);
   await page.getByRole("button", { name: /undo/ }).click();
@@ -112,7 +101,7 @@ test("copy title, and delete with undo", async ({ page }) => {
 test("a repeating item moves only this time: the next one stays on schedule", async ({ page }) => {
   const title = uniqueName("gym");
   await addItem(page, title);
-  await (await openMenu(page, title)).getByRole("button", { name: /^due next week / }).click();
+  await (await openItemMenu(page, title)).getByRole("button", { name: /^due next week / }).click();
 
   await itemRow(page, title).click();
   const dialog = modal(page, /^edit item$/);
@@ -121,12 +110,12 @@ test("a repeating item moves only this time: the next one stays on schedule", as
   await dialog.getByRole("button", { name: "[ update ]", exact: true }).click();
   await expect(dialog).not.toBeVisible();
 
-  const menu = await openMenu(page, title);
+  const menu = await openItemMenu(page, title);
   await expect(menu.getByText("↺ weekly · moves only this time")).toBeVisible();
   await menu.getByRole("button", { name: /^due tomorrow / }).click();
   await expect(itemRow(page, title)).toContainText(`${shortDate(daysFromToday(1))} 9am`);
 
-  await rowFor(page, title)
+  await itemRowContainer(page, title)
     .getByRole("button", { name: /^status: / })
     .click();
   await page
@@ -143,13 +132,13 @@ test("a repeating item moves only this time: the next one stays on schedule", as
 test("works in today, and moving out of today takes the item off the list", async ({ page }) => {
   const title = uniqueName("pay bill");
   await addItem(page, title);
-  await (await openMenu(page, title)).getByRole("button", { name: /^due today / }).click();
+  await (await openItemMenu(page, title)).getByRole("button", { name: /^due today / }).click();
 
   await page.getByRole("button", { name: "today", exact: true }).click();
   const today = page.getByRole("region", { name: "today" });
   await expect(today.getByRole("button", { name: title })).toBeVisible();
   await today.getByRole("button", { name: title }).click({ button: "right" });
-  await menuFor(page, title)
+  await itemMenu(page, title)
     .getByRole("button", { name: /^due tomorrow / })
     .click();
   await expect(today.getByRole("button", { name: title })).toHaveCount(0);
@@ -158,15 +147,15 @@ test("works in today, and moving out of today takes the item off the list", asyn
 test("done from the menu, then reopen", async ({ page }) => {
   const title = uniqueName("book dentist");
   await addItem(page, title);
-  const status = rowFor(page, title).getByRole("button", { name: /^status: / });
+  const status = itemRowContainer(page, title).getByRole("button", { name: /^status: / });
   await expect(status).toHaveAccessibleName("status: active");
 
-  let menu = await openMenu(page, title);
+  let menu = await openItemMenu(page, title);
   await menu.getByRole("button", { name: "done", exact: true }).click();
   await expect(menu).not.toBeVisible();
   await expect(status).toHaveAccessibleName("status: completed");
 
-  menu = await openMenu(page, title);
+  menu = await openItemMenu(page, title);
   await expect(menu.getByRole("button", { name: "done", exact: true })).toHaveCount(0);
   await menu.getByRole("button", { name: "reopen", exact: true }).click();
   await expect(status).toHaveAccessibleName("status: active");
@@ -179,18 +168,18 @@ test("done from the menu in today takes the item off the list and completes it",
   await createAndSelectBucket(page, bucket);
   const title = uniqueName("post the letter");
   await addItem(page, title);
-  await (await openMenu(page, title)).getByRole("button", { name: /^due today / }).click();
+  await (await openItemMenu(page, title)).getByRole("button", { name: /^due today / }).click();
 
   await page.getByRole("button", { name: "today", exact: true }).click();
   const today = page.getByRole("region", { name: "today" });
   await today.getByRole("button", { name: title }).click({ button: "right" });
-  await menuFor(page, title).getByRole("button", { name: "done", exact: true }).click();
+  await itemMenu(page, title).getByRole("button", { name: "done", exact: true }).click();
   await expect(today.getByRole("button", { name: title })).toHaveCount(0);
 
   await selectBucket(page, bucket);
-  await expect(rowFor(page, title).getByRole("button", { name: /^status: / })).toHaveAccessibleName(
-    "status: completed"
-  );
+  await expect(
+    itemRowContainer(page, title).getByRole("button", { name: /^status: / })
+  ).toHaveAccessibleName("status: completed");
 });
 
 test("read-only buckets only offer copy title", async ({ page }) => {
@@ -200,7 +189,7 @@ test("read-only buckets only offer copy title", async ({ page }) => {
   await option(field(settings, "read only"), "on").click();
   await saveSettings(settings);
 
-  const menu = await openMenu(page, title);
+  const menu = await openItemMenu(page, title);
   await expect(menu.getByRole("button")).toHaveText(["[x]", "copy title"]);
 });
 
@@ -215,7 +204,9 @@ test.describe("on a phone", () => {
     const title = uniqueName("water plants");
     await addItem(page, title);
     await page.setViewportSize({ width: 390, height: 844 });
-    await expect(rowFor(page, title).getByRole("button", { name: "item menu" })).toBeVisible();
+    await expect(
+      itemRowContainer(page, title).getByRole("button", { name: "item menu" })
+    ).toBeVisible();
 
     const box = await itemRow(page, title).boundingBox();
     if (!box) throw new Error("row has no box");
@@ -225,7 +216,7 @@ test.describe("on a phone", () => {
     await page.waitForTimeout(700);
     await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
 
-    const menu = menuFor(page, title);
+    const menu = itemMenu(page, title);
     await expect(menu).toBeVisible();
     await expect(modal(page, /^edit item$/)).toHaveCount(0);
     const menuBox = await menu.boundingBox();
