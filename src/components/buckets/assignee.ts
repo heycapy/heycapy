@@ -11,5 +11,6 @@ export function itemAssignee(person: {
     userId: person.userId,
     name: person.isYou ? "you" : memberName(person),
     avatar: person.avatar,
+    isYou: person.isYou,
   };
 }

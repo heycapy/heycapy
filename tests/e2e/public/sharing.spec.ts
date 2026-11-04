@@ -439,6 +439,46 @@ test("today and search show who a shared item is for, like the bucket does", asy
   await expect(search.getByRole("button", { name: forAnyone })).not.toContainText("→");
 });
 
+test("a shared bucket shows only my items or one member's, and says anyone on the rest", async ({
+  page,
+  browser,
+}) => {
+  const {
+    bucketId,
+    code,
+    email: ownerEmail,
+  } = await ownerWithInvite(page, `whose turn ${Date.now()}`);
+  const friend = await browser.newPage();
+  const sam = uniqueUsername("sam");
+  const friendEmail = await joinWithCode(friend, code, sam);
+  await friend.waitForURL(`/?bucket=${bucketId}`);
+  await friend.close();
+  const stamp = Date.now();
+  const forSam = `water the plants ${stamp}`;
+  const forMe = `book the vet ${stamp}`;
+  const forAnyone = `buy bin bags ${stamp}`;
+  addDueItem(bucketId, friendEmail, forSam, friendEmail);
+  addDueItem(bucketId, friendEmail, forMe, ownerEmail);
+  addDueItem(bucketId, friendEmail, forAnyone);
+
+  await page.goto(`/?bucket=${bucketId}`);
+  await expect(itemRow(page, forAnyone)).toContainText("anyone");
+  const filter = page.getByRole("group", { name: "show items for" });
+
+  await filter.getByRole("button", { name: "mine", exact: true }).click();
+  await expect(itemRow(page, forMe)).toBeVisible();
+  await expect(itemRow(page, forSam)).toHaveCount(0);
+  await expect(itemRow(page, forAnyone)).toHaveCount(0);
+
+  await filter.getByRole("button", { name: sam, exact: true }).click();
+  await expect(itemRow(page, forSam)).toBeVisible();
+  await expect(itemRow(page, forMe)).toHaveCount(0);
+
+  await filter.getByRole("button", { name: "all", exact: true }).click();
+  await expect(itemRow(page, forAnyone)).toBeVisible();
+  await expect(page.getByRole("button", { name: /2 people/ })).toBeVisible();
+});
+
 test("typing @ in the title picks a member in a shared bucket, and does nothing in a solo one", async ({
   page,
   browser,

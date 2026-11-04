@@ -19,6 +19,7 @@ type Item = typeof items.$inferSelect;
 type ItemListProps = {
   loading: boolean;
   items: Item[];
+  emptyText?: string;
   orderedItemsRef: RefObject<Item[]>;
   draggable: boolean;
   readonly: boolean;
@@ -27,6 +28,7 @@ type ItemListProps = {
   editingItemId: number | null;
   reminderBadges: Record<number, ReminderBadge>;
   members: BucketMember[];
+  shared: boolean;
   onReorder: (items: Item[]) => void;
   onEdit: (item: Item) => void;
   onStatusChange: (item: Item, status: string) => void;
@@ -37,6 +39,7 @@ type ItemListProps = {
 export function ItemList({
   loading,
   items,
+  emptyText = "no items yet · press + to add one",
   orderedItemsRef,
   draggable,
   readonly,
@@ -45,6 +48,7 @@ export function ItemList({
   editingItemId,
   reminderBadges,
   members,
+  shared,
   onReorder,
   onEdit,
   onStatusChange,
@@ -56,7 +60,7 @@ export function ItemList({
   if (loading || items.length === 0) {
     return (
       <p className="text-muted-foreground px-4 py-6 text-center font-mono text-xs">
-        {loading ? "loading..." : "no items yet · press + to add one"}
+        {loading ? "loading..." : emptyText}
       </p>
     );
   }
@@ -95,6 +99,7 @@ export function ItemList({
     assignee: assigneeOf(item),
     otherClock: clockHint(item),
     showDue,
+    shared,
     onMenu: (at: MenuAt) => setMenu({ item, at }),
   });
 

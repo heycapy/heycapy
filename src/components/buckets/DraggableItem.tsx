@@ -26,6 +26,7 @@ type DraggableItemProps = {
   assignee?: ItemAssignee;
   otherClock?: string;
   showDue: boolean;
+  shared: boolean;
 };
 
 export function DraggableItem({
@@ -43,6 +44,7 @@ export function DraggableItem({
   assignee,
   otherClock,
   showDue,
+  shared,
 }: DraggableItemProps) {
   const controls = useDragControls();
 
@@ -83,6 +85,7 @@ export function DraggableItem({
           assignee={assignee}
           otherClock={otherClock}
           showDue={showDue}
+          shared={shared}
           onMenu={onMenu}
         />
       </SwipeableRow>

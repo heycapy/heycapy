@@ -22,7 +22,7 @@ import { repeatLabel } from "@/lib/items/repeat-label";
 import { PersonAvatar } from "@/components/avatar/PersonAvatar";
 import { ItemDue } from "./ItemDue";
 
-export type ItemAssignee = { userId: number; name: string; avatar: string | null };
+export type ItemAssignee = { userId: number; name: string; avatar: string | null; isYou: boolean };
 
 type ItemRow = ListItem;
 
@@ -42,6 +42,8 @@ type ItemRowProps = {
   bucket?: { name: string; color: string };
   // Off when no item in the list has a date, so a list of notes has no empty column
   showDue?: boolean;
+  // A bucket with more than one member says "anyone" on items nobody is assigned to
+  shared?: boolean;
   onMenu?: (at: MenuAt) => void;
 };
 
@@ -116,6 +118,7 @@ export function ItemRow({
   otherClock,
   bucket,
   showDue = true,
+  shared = false,
   onMenu,
 }: ItemRowProps) {
   const [pickerAnchor, setPickerAnchor] = useState<StatusAnchor | null>(null);
@@ -143,14 +146,20 @@ export function ItemRow({
   const meta = [
     otherClock && <span key="clock">({otherClock})</span>,
     assignee && (
-      <span key="assignee">
+      <span key="assignee" className={cn(assignee.isYou && "text-foreground")}>
         →{" "}
         <PersonAvatar
           userId={assignee.userId}
           avatar={assignee.avatar}
-          className="mr-1 inline-block align-text-bottom"
+          className={cn("mr-1 inline-block align-text-bottom", !assignee.isYou && "@max-lg:mr-0")}
         />
-        {assignee.name}
+        {/* Narrow lists show other people by their face only; "you" keeps its word */}
+        <span className={cn(!assignee.isYou && "@max-lg:sr-only")}>{assignee.name}</span>
+      </span>
+    ),
+    shared && !assignee && (
+      <span key="anyone" className="text-muted-foreground/60">
+        anyone
       </span>
     ),
     bucket && (
