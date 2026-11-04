@@ -10,6 +10,7 @@ import { OptionGroup } from "@/components/ui/OptionGroup";
 import type { FieldDef } from "@/types/rules";
 import { FIELD_TYPES } from "@/types/rules";
 import { CURRENCY_OPTIONS } from "./constants";
+import { fieldKey } from "@/lib/buckets/field-schema";
 import { FIELD_LABEL_MAX_LENGTH } from "@/constants";
 import { cn } from "@/lib/utils";
 
@@ -71,10 +72,7 @@ function FieldRow({
             onChange={(e) =>
               onUpdate({
                 label: e.target.value,
-                key: e.target.value
-                  .toLowerCase()
-                  .replace(/\s+/g, "_")
-                  .replace(/[^a-z0-9_]/g, ""),
+                key: fieldKey(e.target.value),
               })
             }
             placeholder="field name"

@@ -43,6 +43,8 @@ export function toolStatus(call: ToolCall, bucketName: (id: unknown) => string |
       return `checking ${bucket ? `${bucket}'s` : "the bucket's"} settings`;
     case "update_bucket_settings":
       return `changing ${bucket ? `${bucket}'s` : "the bucket's"} settings`;
+    case "update_bucket_fields":
+      return `changing ${bucket ? `${bucket}'s` : "the bucket's"} fields`;
     default:
       return "working on it";
   }
