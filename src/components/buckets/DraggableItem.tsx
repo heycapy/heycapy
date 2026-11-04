@@ -25,6 +25,7 @@ type DraggableItemProps = {
   reminderBadge?: ReminderBadge;
   assignee?: ItemAssignee;
   otherClock?: string;
+  showDue: boolean;
 };
 
 export function DraggableItem({
@@ -41,6 +42,7 @@ export function DraggableItem({
   reminderBadge,
   assignee,
   otherClock,
+  showDue,
 }: DraggableItemProps) {
   const controls = useDragControls();
 
@@ -80,6 +82,7 @@ export function DraggableItem({
           reminderBadge={reminderBadge}
           assignee={assignee}
           otherClock={otherClock}
+          showDue={showDue}
           onMenu={onMenu}
         />
       </SwipeableRow>

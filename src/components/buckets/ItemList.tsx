@@ -82,6 +82,7 @@ export function ItemList({
     return member && itemAssignee(member);
   };
 
+  const showDue = items.some((item) => item.deadline);
   const rowProps = (item: Item) => ({
     item,
     statuses,
@@ -93,6 +94,7 @@ export function ItemList({
     reminderBadge: reminderBadges[item.id],
     assignee: assigneeOf(item),
     otherClock: clockHint(item),
+    showDue,
     onMenu: (at: MenuAt) => setMenu({ item, at }),
   });
 

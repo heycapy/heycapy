@@ -143,10 +143,12 @@ export function AppShell({
           )
         }
       />
-      {newVersion && <NewVersionBanner />}
-      {!hasWorkingChannel && <NoChannelBanner onSetUp={() => setSettingsTab("notifications")} />}
-      <DeliveryFailureBanner failures={failures} onFix={() => setSettingsTab("notifications")} />
-      <TimezoneMoveBanner />
+      <div className="mx-auto w-full max-w-6xl">
+        {newVersion && <NewVersionBanner />}
+        {!hasWorkingChannel && <NoChannelBanner onSetUp={() => setSettingsTab("notifications")} />}
+        <DeliveryFailureBanner failures={failures} onFix={() => setSettingsTab("notifications")} />
+        <TimezoneMoveBanner />
+      </div>
       <main className="flex flex-1 flex-col overflow-y-auto">{children}</main>
       <SettingsSheet
         open={settingsTab !== null}

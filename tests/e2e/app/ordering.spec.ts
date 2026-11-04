@@ -27,7 +27,13 @@ async function seed(page: Page, items: Seed[]): Promise<void> {
 /** Titles of the seeded items in the order they are rendered. */
 async function renderedOrder(page: Page): Promise<string[]> {
   const texts = await page.getByRole("button").filter({ hasText: stamp }).allInnerTexts();
-  return texts.map((t) => t.split("\n")[0].trim());
+  return texts.map(
+    (t) =>
+      t
+        .split("\n")
+        .find((line) => line.includes(stamp))
+        ?.trim() ?? ""
+  );
 }
 
 async function setSort(page: Page, sort: "deadline" | "created" | "manual", drag = false) {

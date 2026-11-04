@@ -41,6 +41,7 @@ export function CrossBucketList({
 }: CrossBucketListProps) {
   const [menu, setMenu] = useState<{ item: Item; at: MenuAt } | null>(null);
   const statuses = DEFAULT_BUCKET_STATUSES;
+  const showDue = sections.some((section) => section.items.some((item) => item.deadline));
   const bucketOf = (item: Item) => data?.buckets.find((b) => b.id === item.bucketId);
 
   async function changeStatus(item: Item, status: string) {
@@ -90,6 +91,7 @@ export function CrossBucketList({
           reminderBadge={data?.reminderBadges[item.id]}
           assignee={assignee && itemAssignee(assignee)}
           onMenu={(at) => setMenu({ item, at })}
+          showDue={showDue}
           bucket={
             bucket && {
               name: bucket.icon ? `${bucket.icon} ${bucket.name}` : bucket.name,
@@ -104,7 +106,7 @@ export function CrossBucketList({
   return (
     <div
       className={cn(
-        "border-border overflow-hidden border-y-2 sm:mx-4 sm:border-x-2 sm:shadow-[2px_2px_0_var(--border)]",
+        "border-border @container overflow-hidden border-y-2 sm:mx-4 sm:border-x-2 sm:shadow-[2px_2px_0_var(--border)]",
         boxed && "mx-4 border-x-2 shadow-[2px_2px_0_var(--border)]"
       )}
     >

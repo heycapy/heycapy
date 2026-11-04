@@ -147,6 +147,7 @@ export function BucketsShell({ buckets: rawBuckets, focusBucketId = null }: Buck
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -6 }}
               transition={{ duration: 0.15 }}
+              className="mx-auto w-full max-w-6xl"
             >
               {todayOpen ? (
                 <TodayView buckets={buckets} addItemRef={addItemRef} />
