@@ -110,7 +110,8 @@ export function ItemRow({
 }: ItemRowProps) {
   const [pickerAnchor, setPickerAnchor] = useState<StatusAnchor | null>(null);
   const [reminderOpen, setReminderOpen] = useState(false);
-  const dotRef = useRef<HTMLButtonElement>(null);
+  // The dot itself, not its button: the button is as tall as the row
+  const dotRef = useRef<HTMLSpanElement>(null);
   const rowRef = useRef<HTMLDivElement>(null);
   const anchor = `item-${item.id}`;
   const [highlighted, setHighlighted] = useState(() => window.location.hash === `#${anchor}`);
@@ -188,7 +189,6 @@ export function ItemRow({
       )}
 
       <button
-        ref={dotRef}
         onClick={onStatusChange ? openPicker : undefined}
         aria-label={`status: ${item.status}`}
         className={cn(
@@ -197,6 +197,7 @@ export function ItemRow({
         )}
       >
         <span
+          ref={dotRef}
           className={cn(
             "h-2 w-2 rounded-full transition-opacity",
             onStatusChange && "hover:opacity-60"
