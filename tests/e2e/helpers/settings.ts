@@ -9,7 +9,7 @@ export function settingsDialog(page: Page): Locator {
 }
 
 export async function openSettings(page: Page): Promise<Locator> {
-  await page.getByRole("button", { name: "[ settings ]", exact: true }).click();
+  await page.getByRole("button", { name: "bucket settings", exact: true }).click();
   const dialog = settingsDialog(page);
   await expect(dialog).toBeVisible();
   return dialog;

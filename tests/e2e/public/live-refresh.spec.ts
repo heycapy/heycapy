@@ -23,7 +23,7 @@ function shareBucket(ownerEmail: string, memberEmail: string | null): number {
 }
 
 async function renameIn(page: Page, username: string): Promise<void> {
-  await page.getByRole("button", { name: "···" }).click();
+  await page.getByRole("button", { name: "your menu", exact: true }).click();
   await page.getByRole("button", { name: "tweaks" }).click();
   await page.getByRole("button", { name: "account", exact: true }).click();
   await page.getByRole("textbox", { name: "username" }).fill(username);

@@ -30,7 +30,7 @@ function addBucket(email: string, name: string): number {
 }
 
 async function openSettings(page: Page) {
-  await page.getByRole("button", { name: bracket("settings") }).click();
+  await page.getByRole("button", { name: "bucket settings", exact: true }).click();
 }
 
 async function openMembers(page: Page) {
@@ -59,7 +59,7 @@ async function joinWithCode(page: Page, code: string, username?: string): Promis
     db.prepare("update users set username = ? where email = ?").run(username, email);
     db.close();
   }
-  await page.getByRole("button", { name: "···" }).click();
+  await page.getByRole("button", { name: "your menu", exact: true }).click();
   await page.getByRole("button", { name: "join a bucket" }).click();
   await page.getByRole("textbox", { name: "invite code" }).fill(code.toLowerCase());
   await page.getByRole("button", { name: bracket("join") }).click();
@@ -190,7 +190,7 @@ async function deleteItem(page: Page, title: string) {
 }
 
 async function openTrash(page: Page): Promise<Locator> {
-  await page.getByRole("button", { name: "···" }).click();
+  await page.getByRole("button", { name: "your menu", exact: true }).click();
   await page.getByRole("button", { name: "trash", exact: true }).click();
   const sheet = page.getByRole("dialog", { name: "trash" });
   await expect(sheet.getByText("loading...")).not.toBeVisible();
@@ -238,7 +238,7 @@ test("a shared trash: a member can restore, only the owner can delete forever", 
 });
 
 async function openAccountTab(page: Page) {
-  await page.getByRole("button", { name: "···" }).click();
+  await page.getByRole("button", { name: "your menu", exact: true }).click();
   await page.getByRole("button", { name: "tweaks" }).click();
   await page.getByRole("button", { name: "account", exact: true }).click();
 }
@@ -386,7 +386,7 @@ test("a shared item's assignee can be changed when it's edited from today or sea
   await expect(itemRow(page, title)).toContainText(`→ ${sam}`);
 
   await page.getByRole("button", { name: "today", exact: true }).click();
-  await page.getByRole("button", { name: "[ search ]", exact: true }).click();
+  await page.getByRole("button", { name: "search", exact: true }).click();
   const search = page.getByRole("dialog", { name: "search" });
   await search.getByRole("textbox", { name: "search all items" }).fill(title);
   await search.getByRole("button", { name: title }).click();
@@ -431,7 +431,7 @@ test("today and search show who a shared item is for, like the bucket does", asy
   await expect(today.getByRole("button", { name: forMe })).toContainText("→ you");
   await expect(today.getByRole("button", { name: forAnyone })).not.toContainText("→");
 
-  await page.getByRole("button", { name: "[ search ]", exact: true }).click();
+  await page.getByRole("button", { name: "search", exact: true }).click();
   const search = page.getByRole("dialog", { name: "search" });
   await search.getByRole("textbox", { name: "search all items" }).fill(String(stamp));
   await expect(search.getByRole("button", { name: forSam })).toContainText(`→ ${sam}`);
@@ -631,7 +631,7 @@ test("people see each other's avatars next to their names, a generated one if ne
     .getByRole("button", { name: "delete item" })
     .click();
   await expect(itemRow(page, title)).toHaveCount(0);
-  await page.getByRole("button", { name: "[ ··· ]", exact: true }).click();
+  await page.getByRole("button", { name: "your menu", exact: true }).click();
   await page.getByRole("button", { name: "trash", exact: true }).click();
   const trashed = page
     .getByRole("dialog", { name: "trash" })

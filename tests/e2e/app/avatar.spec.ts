@@ -6,7 +6,7 @@ test.describe.configure({ mode: "serial" });
 
 async function openAvatarEditor(page: Page): Promise<Locator> {
   await page.goto("/");
-  await page.getByRole("button", { name: "···" }).click();
+  await page.getByRole("button", { name: "your menu", exact: true }).click();
   await page.getByRole("button", { name: "tweaks" }).click();
   await page.getByRole("button", { name: "account", exact: true }).click();
   const canvas = page.getByTestId("avatar-canvas");

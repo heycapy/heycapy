@@ -30,7 +30,7 @@ async function deleteActiveBucket(page: Page): Promise<void> {
 }
 
 async function openSheet(page: Page, menuItem: "archived" | "trash"): Promise<Locator> {
-  await page.getByRole("button", { name: "[ ··· ]", exact: true }).click();
+  await page.getByRole("button", { name: "your menu", exact: true }).click();
   await page.getByRole("button", { name: menuItem, exact: true }).click();
   const header = menuItem === "archived" ? "archived buckets" : "trash";
   const sheet = page.getByRole("dialog", { name: header });

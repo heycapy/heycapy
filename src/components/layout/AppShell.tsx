@@ -25,9 +25,6 @@ import { useServerEvents } from "@/hooks/useServerEvents";
 import { AssistantNameProvider } from "@/components/capy/assistant-name";
 import type { ChannelFailure } from "@/lib/notifications/failures";
 import { toast } from "sonner";
-import { BracketButton } from "@/components/ui/BracketButton";
-import { PixelIcon } from "@/components/ui/PixelIcon";
-import { Map as MapIcon } from "pixelarticons/react/Map.js";
 import { GuidePanel } from "@/components/guide/GuidePanel";
 import { HINT_TARGETS } from "@/components/guide/constants";
 import { useGuide } from "@/components/guide/useGuide";
@@ -132,16 +129,7 @@ export function AppShell({
         unseenRelease={releaseUnseen}
         onGuideOpen={openGuide}
         guideProgress={`${guideDone}/${guide.tasks.length}`}
-        guideButton={
-          guideDone < guide.tasks.length &&
-          !guide.hidden && (
-            <BracketButton onClick={openGuide} className="px-1 py-1.5 whitespace-nowrap">
-              <PixelIcon icon={MapIcon} className="mr-1 sm:hidden" />
-              <span className="sr-only sm:not-sr-only sm:mr-1">{"guide "}</span>
-              {guideDone}/{guide.tasks.length}
-            </BracketButton>
-          )
-        }
+        guideUnfinished={guideDone < guide.tasks.length && !guide.hidden}
       />
       <div className="mx-auto w-full max-w-6xl">
         {newVersion && <NewVersionBanner />}

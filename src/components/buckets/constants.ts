@@ -186,3 +186,10 @@ export const NO_MEMBERS: BucketMember[] = [];
 
 // People an item menu offers as one-tap chips; more than this shows one fewer plus "+n more"
 export const ASSIGN_CHIPS_MAX = 4;
+
+// A bucket or today fading in and out on a switch; "visible" is how the shell knows one is coming in
+export const VIEW_FADE = {
+  hidden: { opacity: 0, y: 6 },
+  visible: { opacity: 1, y: 0 },
+  gone: { opacity: 0, y: -6 },
+} as const;

@@ -7,7 +7,7 @@ test.describe.configure({ mode: "serial" });
 
 async function openAccountTab(page: Page) {
   await page.goto("/");
-  await page.getByRole("button", { name: "···" }).click();
+  await page.getByRole("button", { name: "your menu", exact: true }).click();
   await page.getByRole("button", { name: "tweaks" }).click();
   await page.getByRole("button", { name: "account", exact: true }).click();
 }

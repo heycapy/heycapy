@@ -10,33 +10,24 @@ import { TimezonesNotice } from "./TimezonesNotice";
 import { useBucketItems } from "./useBucketItems";
 import { useItemEditor } from "./useItemEditor";
 import { useBucketMembers } from "./useBucketMembers";
-import { BracketButton } from "@/components/ui/BracketButton";
 import { daysToDisplayStr, parseDurationToDate } from "@/lib/duration";
 import { DEFAULT_BUCKET_STATUSES } from "./constants";
 import type { ViewerBucket } from "@/lib/buckets/access";
 import { parseFields } from "./fields";
-import { useLayoutStore } from "@/store/layout";
 import { useUIStore } from "@/store/ui";
 import { placesOf } from "@/lib/timezones/gap";
 import { toast } from "sonner";
 import { assignItemAction } from "@/app/(app)/actions";
 import { memberName } from "@/lib/buckets/member-name";
 import { MembersBar, type MemberFilter } from "./MembersBar";
-import { PlaceHeading } from "./PlaceHeading";
 
 type BucketContentProps = {
   bucket: ViewerBucket;
   accentColor: string;
   addItemRef: RefObject<(() => void) | null>;
-  onOpenPlaces: () => void;
 };
 
-export function BucketContent({
-  bucket,
-  accentColor,
-  addItemRef,
-  onOpenPlaces,
-}: BucketContentProps) {
+export function BucketContent({ bucket, accentColor, addItemRef }: BucketContentProps) {
   const rules = parseItemsRules(bucket.itemsRules);
   const statuses = DEFAULT_BUCKET_STATUSES;
   const fields = parseFields(bucket.fieldSchema);
@@ -46,7 +37,6 @@ export function BucketContent({
   const bucketName = bucket.icon ? `${bucket.icon} ${bucket.name}` : bucket.name;
 
   const [settingsTab, setSettingsTab] = useState<SettingsTab | null>(null);
-  const setSearchOpen = useLayoutStore((s) => s.setSearchOpen);
   const list = useBucketItems(bucket.id, bucket.itemsRules, rules.showCompleted !== false);
   const editor = useItemEditor({
     bucketId: bucket.id,
@@ -60,7 +50,7 @@ export function BucketContent({
   const members = useBucketMembers(bucket.id, editor.dialogProps.open);
   const membersRequested = useUIStore((s) => s.membersRequested);
   const clearMembersRequest = useUIStore((s) => s.clearMembersRequest);
-  const settingsRequested = useUIStore((s) => s.settingsRequested);
+  const settingsRequested = useUIStore((s) => s.settingsRequestedId === bucket.id);
   const clearSettingsRequest = useUIStore((s) => s.clearSettingsRequest);
   const [filter, setFilter] = useState<MemberFilter>("all");
   const shared = members.length > 1;
@@ -84,38 +74,7 @@ export function BucketContent({
 
   return (
     <div className="flex flex-col">
-      <div className="flex items-center justify-between px-4 py-3">
-        <h2 className="flex min-w-0 flex-1 overflow-hidden font-normal">
-          <PlaceHeading name={bucketName} onOpenPlaces={onOpenPlaces}>
-            <span
-              className="h-3.5 w-0.5 shrink-0 rounded-full"
-              style={{ backgroundColor: accentColor }}
-            />
-            <span className="font-pixel min-w-0 truncate overflow-hidden text-sm leading-snug">
-              {bucketName}
-            </span>
-          </PlaceHeading>
-        </h2>
-        <div className="flex items-center gap-2">
-          <BracketButton onClick={() => setSettingsTab("items")} className="px-1 py-1.5">
-            settings
-          </BracketButton>
-          <BracketButton
-            onClick={() => setSearchOpen(true)}
-            className="hidden px-1 py-1.5 md:inline-flex"
-          >
-            search
-          </BracketButton>
-          {!readonly && (
-            <BracketButton
-              onClick={editor.startAdding}
-              className="hidden px-1 py-1.5 md:inline-flex"
-            >
-              add +
-            </BracketButton>
-          )}
-        </div>
-      </div>
+      <h2 className="sr-only">{bucketName}</h2>
 
       {shared && (
         <MembersBar
@@ -134,7 +93,7 @@ export function BucketContent({
         onSetUp={() => setSettingsTab("notifications")}
       />
 
-      <div className="border-border @container overflow-hidden border-y-2 sm:mx-4 sm:border-x-2 sm:shadow-[2px_2px_0_var(--border)]">
+      <div className="border-border @container overflow-hidden border-b-2 sm:mx-4 sm:border-x-2 sm:shadow-[2px_2px_0_var(--border)]">
         <ItemList
           loading={list.loading}
           items={shownItems}

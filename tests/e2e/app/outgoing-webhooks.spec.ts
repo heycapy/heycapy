@@ -20,7 +20,7 @@ const URL_FIELD = "https://example.com/hooks/heycapy";
 
 async function openWebhooks(page: Page): Promise<Locator> {
   await page.goto("/");
-  await page.getByRole("button", { name: "···" }).click();
+  await page.getByRole("button", { name: "your menu", exact: true }).click();
   await page.getByRole("button", { name: "tweaks" }).click();
   await page.getByRole("button", { name: "notifications", exact: true }).click();
   return page

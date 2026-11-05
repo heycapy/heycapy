@@ -89,10 +89,10 @@ export function GuidePanel({ open, guide, onClose, onHint, onHiddenChange }: Gui
         {doneCount < guide.tasks.length && (
           <div className="flex items-center justify-between gap-3 border-t px-4 py-2 font-mono text-[11px]">
             <p className="text-muted-foreground">
-              {guide.hidden ? "only in the ··· menu for now" : "it stays in the ··· menu"}
+              {guide.hidden ? "only in your menu for now" : "it stays in your menu"}
             </p>
             <BracketButton onClick={() => onHiddenChange(!guide.hidden)} className="shrink-0">
-              {guide.hidden ? "show in header" : "hide from header"}
+              {guide.hidden ? "show the dot" : "hide the dot"}
             </BracketButton>
           </div>
         )}

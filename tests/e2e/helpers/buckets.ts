@@ -24,6 +24,7 @@ export async function createBucket(page: Page, name: string): Promise<void> {
 export async function selectBucket(page: Page, name: string): Promise<void> {
   await bucketTab(page, name).click();
   await expect(activeBucketTitle(page)).toHaveText(name);
+  await expect(page.locator("main h2")).toHaveText(name);
 }
 
 export async function createAndSelectBucket(page: Page, name: string): Promise<void> {
@@ -36,7 +37,7 @@ export function bucketTab(page: Page, name: string) {
 }
 
 export function activeBucketTitle(page: Page) {
-  return page.locator("main span.font-pixel.text-sm").first();
+  return page.locator('nav[aria-label="buckets"] [aria-current="page"]');
 }
 
 export async function addItem(

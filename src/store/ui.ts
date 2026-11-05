@@ -11,6 +11,10 @@ type UIStore = {
   refreshTick: number;
   tickRefresh: () => void;
 
+  // bumped whenever a list of items loads, so the tabs' late marks follow edits made here too
+  itemsLoaded: number;
+  markItemsLoaded: () => void;
+
   activeBucketId: number | null;
   setActiveBucketId: (id: number) => void;
 
@@ -33,8 +37,9 @@ type UIStore = {
   requestMembers: () => void;
   clearMembersRequest: () => void;
 
-  // the gear next to a bucket in the drawer, kept until that bucket's view picks it up
-  settingsRequested: boolean;
+  // the ⚙ on the active bucket's tab, kept until that bucket's view picks it up; it names the
+  // bucket so a view still fading out after a tab switch leaves it alone
+  settingsRequestedId: number | null;
   requestBucketSettings: (id: number) => void;
   clearSettingsRequest: () => void;
 
@@ -52,6 +57,9 @@ export const useUIStore = create<UIStore>()(
 
       refreshTick: 0,
       tickRefresh: () => set((s) => ({ refreshTick: s.refreshTick + 1 })),
+
+      itemsLoaded: 0,
+      markItemsLoaded: () => set((s) => ({ itemsLoaded: s.itemsLoaded + 1 })),
 
       activeBucketId: null,
       setActiveBucketId: (id) => set({ activeBucketId: id, todayOpen: false }),
@@ -73,10 +81,10 @@ export const useUIStore = create<UIStore>()(
       requestMembers: () => set({ membersRequested: true, todayOpen: false }),
       clearMembersRequest: () => set({ membersRequested: false }),
 
-      settingsRequested: false,
+      settingsRequestedId: null,
       requestBucketSettings: (id) =>
-        set({ settingsRequested: true, activeBucketId: id, todayOpen: false }),
-      clearSettingsRequest: () => set({ settingsRequested: false }),
+        set({ settingsRequestedId: id, activeBucketId: id, todayOpen: false }),
+      clearSettingsRequest: () => set({ settingsRequestedId: null }),
 
       sheet: null,
       openSheet: (sheet) => set({ sheet }),

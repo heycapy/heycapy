@@ -7,7 +7,7 @@ test.use({ storageState: authState("system") });
 
 test("the system tab shows the scheduler to admins", async ({ page }) => {
   await page.goto("/");
-  await page.getByRole("button", { name: "···" }).click();
+  await page.getByRole("button", { name: "your menu", exact: true }).click();
   await page.getByRole("button", { name: "tweaks" }).click();
   await page.getByRole("button", { name: "system", exact: true }).click();
 
@@ -17,7 +17,7 @@ test("the system tab shows the scheduler to admins", async ({ page }) => {
 
 test("admins give a user credits from the system tab", async ({ page }) => {
   await page.goto("/");
-  await page.getByRole("button", { name: "···" }).click();
+  await page.getByRole("button", { name: "your menu", exact: true }).click();
   await page.getByRole("button", { name: "tweaks" }).click();
   await page.getByRole("button", { name: "system", exact: true }).click();
 
@@ -51,7 +51,7 @@ test("admins rename a user and give or take bonus username changes", async ({ pa
   db.close();
 
   await page.goto("/");
-  await page.getByRole("button", { name: "···" }).click();
+  await page.getByRole("button", { name: "your menu", exact: true }).click();
   await page.getByRole("button", { name: "tweaks" }).click();
   await page.getByRole("button", { name: "system", exact: true }).click();
 

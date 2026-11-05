@@ -35,7 +35,6 @@ test("the bottom bar is easy to tap and clear of the screen's rounded bottom", a
 
   for (const control of [
     addItemButton(page),
-    page.getByRole("button", { name: "[ search ]", exact: true }),
     page.getByRole("button", { name: "chat with capy" }),
   ]) {
     const box = await control.boundingBox();
@@ -54,7 +53,7 @@ test("search opens as a drawer with the box at the bottom, results above it", as
   await form.getByRole("button", { name: "[ add ]", exact: true }).tap();
   await expect(form).toBeHidden();
 
-  await page.getByRole("button", { name: "[ search ]", exact: true }).tap();
+  await page.getByRole("button", { name: "search", exact: true }).tap();
   const search = page.getByRole("dialog", { name: "search" });
   const box = search.getByRole("textbox", { name: "search all items" });
   await expect(box).toBeFocused();
@@ -77,7 +76,7 @@ test("search opens as a drawer with the box at the bottom, results above it", as
   await page.touchscreen.tap(195, 60);
   await expect(search).toHaveCount(0);
 
-  await page.getByRole("button", { name: "[ search ]", exact: true }).tap();
+  await page.getByRole("button", { name: "search", exact: true }).tap();
   await expect(search).toBeVisible();
   const header = await search.getByRole("heading", { name: "search every bucket" }).boundingBox();
   const x = (header?.x ?? 0) + 40;

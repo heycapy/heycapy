@@ -24,13 +24,13 @@ async function bucketWithItems(page: Page, prefix: string, entries: [string, str
 test("a new session opens on today, and choosing a bucket leaves it", async ({ page, browser }) => {
   await page.goto("/");
   const name = await bucketWithItems(page, "Bills", []);
-  await expect(todayButton(page)).toHaveAttribute("aria-pressed", "false");
+  await expect(todayButton(page)).not.toHaveAttribute("aria-current");
   await expect(activeBucketTitle(page)).toHaveText(name);
 
   const fresh = await browser.newContext({ storageState: authState("today") });
   const next = await fresh.newPage();
   await next.goto("/");
-  await expect(todayButton(next)).toHaveAttribute("aria-pressed", "true");
+  await expect(todayButton(next)).toHaveAttribute("aria-current", "page");
   await expect(next.getByRole("heading", { name: "today" })).toBeVisible();
   await fresh.close();
 
@@ -68,7 +68,7 @@ test("search next to add finds items in any bucket, dated or not", async ({ page
   const tag = uniqueName("zebra");
   await bucketWithItems(page, "Notes", [[`${tag} one`], [`${tag} two`, daysFromNow(20)]]);
 
-  await page.getByRole("button", { name: "[ search ]", exact: true }).click();
+  await page.getByRole("button", { name: "search", exact: true }).click();
   const search = page.getByRole("dialog", { name: "search" });
   const box = search.getByRole("textbox", { name: "search all items" });
   await expect(box).toBeFocused();
@@ -104,6 +104,7 @@ test("adding from today goes into the bucket viewed last, due today, a picked bu
   const first = await bucketWithItems(page, "Home", []);
   const second = await bucketWithItems(page, "Work", []);
   await todayButton(page).click();
+  await expect(page.getByRole("heading", { name: "today", level: 2 })).toBeAttached();
 
   const addButton = page.getByRole("button", { name: "[ add + ]", exact: true });
   await addButton.click();

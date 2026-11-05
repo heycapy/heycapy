@@ -10,7 +10,7 @@ function ntfyInputs(ntfy: Locator): [Locator, Locator] {
 
 async function openNtfySettings(page: Page): Promise<Locator> {
   await page.goto("/");
-  await page.getByRole("button", { name: "···" }).click();
+  await page.getByRole("button", { name: "your menu", exact: true }).click();
   await page.getByRole("button", { name: "tweaks" }).click();
   await page.getByRole("button", { name: "notifications", exact: true }).click();
   return page
@@ -57,7 +57,7 @@ test("ntfy send test reports an invalid server url", async ({ page }) => {
 
 test("the email section links to the guide for setting up your own email", async ({ page }) => {
   await page.goto("/");
-  await page.getByRole("button", { name: "···" }).click();
+  await page.getByRole("button", { name: "your menu", exact: true }).click();
   await page.getByRole("button", { name: "tweaks" }).click();
   await page.getByRole("button", { name: "notifications", exact: true }).click();
   const guide = page.getByRole("link", { name: "how to set it up" });

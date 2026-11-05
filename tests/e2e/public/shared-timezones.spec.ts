@@ -66,7 +66,7 @@ test("a bucket shared across timezones says where everyone is", async ({ page, b
   await page.goto(`/?bucket=${bucketId}`);
   await expect(page.getByText("people here are in 2 timezones · India, UK")).toBeVisible();
 
-  await page.getByRole("button", { name: /^\[\s*settings\s*\]$/ }).click();
+  await page.getByRole("button", { name: "bucket settings", exact: true }).click();
   await page.getByRole("button", { name: "members", exact: true }).click();
   const rows = page.getByRole("listitem");
   await expect(rows.nth(0)).toContainText("ownerIndia");

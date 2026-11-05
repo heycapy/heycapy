@@ -20,7 +20,7 @@ test("sharing is tagged beta wherever it shows, without changing the names", asy
   await login(page, email);
   await page.goto(`/?bucket=${addBucket(email)}`);
 
-  await page.getByRole("button", { name: "···" }).click();
+  await page.getByRole("button", { name: "your menu", exact: true }).click();
   const joinItem = page.getByRole("button", { name: "join a bucket", exact: true });
   await expect(joinItem).toContainText("[beta]");
   await joinItem.click();
@@ -28,7 +28,7 @@ test("sharing is tagged beta wherever it shows, without changing the names", asy
   await page.getByRole("button", { name: "[ x ]", exact: true }).click();
   await expect(page.getByRole("textbox", { name: "invite code" })).toHaveCount(0);
 
-  await page.getByRole("button", { name: /^\[\s*settings\s*\]$/ }).click();
+  await page.getByRole("button", { name: "bucket settings", exact: true }).click();
   const membersTag = page.getByRole("button", { name: "members", exact: true }).getByText("[beta]");
   await expect(membersTag).toBeVisible();
   await expect(page.getByRole("button", { name: "items", exact: true })).not.toContainText(

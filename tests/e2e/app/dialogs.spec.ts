@@ -48,9 +48,9 @@ async function expectModal(page: Page, dialog: Locator, opener: Locator) {
 async function openFromMenu(page: Page, name: string | RegExp) {
   await page.goto("/");
   await makePageScrollable(page);
-  await page.getByRole("button", { name: "···" }).click();
+  await page.getByRole("button", { name: "your menu", exact: true }).click();
   await page.getByRole("button", { name, exact: typeof name === "string" }).click();
-  return page.getByRole("button", { name: "···" });
+  return page.getByRole("button", { name: "your menu", exact: true });
 }
 
 const FROM_MENU: [string | RegExp, string][] = [
@@ -94,7 +94,7 @@ test("search keeps the page behind it still", async ({ page }) => {
   await page.goto("/");
   await createAndSelectBucket(page, uniqueName("Dialogs"));
   await makePageScrollable(page);
-  const opener = page.getByRole("button", { name: "[ search ]", exact: true });
+  const opener = page.getByRole("button", { name: "search", exact: true });
   await opener.click();
   const search = page.getByRole("dialog", { name: "search" });
   await expect(search.getByRole("textbox", { name: "search all items" })).toBeFocused();
@@ -104,7 +104,7 @@ test("search keeps the page behind it still", async ({ page }) => {
 test("a click above the search drawer closes it", async ({ page }) => {
   await page.goto("/");
   await createAndSelectBucket(page, uniqueName("Dialogs"));
-  await page.getByRole("button", { name: "[ search ]", exact: true }).click();
+  await page.getByRole("button", { name: "search", exact: true }).click();
   const search = page.getByRole("dialog", { name: "search" });
   await expect(search.getByRole("textbox", { name: "search all items" })).toBeFocused();
   // Radix lets clicks reach the modal one frame after it appears, too soon for a person to notice

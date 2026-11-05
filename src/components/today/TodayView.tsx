@@ -1,7 +1,4 @@
-import { Clock } from "pixelarticons/react/Clock.js";
-import { PixelIcon } from "@/components/ui/PixelIcon";
 import { useEffect, type RefObject } from "react";
-import { BracketButton } from "@/components/ui/BracketButton";
 import { ItemDialog } from "@/components/buckets/ItemDialog";
 import { useItemEditor } from "@/components/buckets/useItemEditor";
 import { useBucketMembers } from "@/components/buckets/useBucketMembers";
@@ -11,9 +8,7 @@ import { parseItemsRules, parseNotificationRules } from "@/lib/rules";
 import { localDateString } from "@/lib/reminders/zoned";
 import { ITEM_STATUS } from "@/constants";
 import { useUIStore } from "@/store/ui";
-import { useLayoutStore } from "@/store/layout";
 import type { buckets as bucketsTable } from "@/lib/db/schema";
-import { PlaceHeading } from "@/components/buckets/PlaceHeading";
 import { CrossBucketList } from "./CrossBucketList";
 import { groupForToday } from "./group";
 import { useTodayItems } from "./useTodayItems";
@@ -23,15 +18,13 @@ type BucketRow = typeof bucketsTable.$inferSelect;
 type TodayViewProps = {
   buckets: BucketRow[];
   addItemRef: RefObject<(() => void) | null>;
-  onOpenPlaces: () => void;
 };
 
-export function TodayView({ buckets, addItemRef, onOpenPlaces }: TodayViewProps) {
+export function TodayView({ buckets, addItemRef }: TodayViewProps) {
   const { data, refetch } = useTodayItems();
   const todayAddBucketId = useUIStore((s) => s.todayAddBucketId);
   const activeBucketId = useUIStore((s) => s.activeBucketId);
   const setTodayAddBucketId = useUIStore((s) => s.setTodayAddBucketId);
-  const setSearchOpen = useLayoutStore((s) => s.setSearchOpen);
 
   const addable = buckets.flatMap((bucket, i) =>
     parseItemsRules(bucket.itemsRules).readonly === true
@@ -68,32 +61,7 @@ export function TodayView({ buckets, addItemRef, onOpenPlaces }: TodayViewProps)
 
   return (
     <div className="flex flex-col">
-      <div className="flex items-center justify-between px-4 py-3">
-        <h2 className="flex min-w-0 font-mono text-sm font-normal">
-          <PlaceHeading name="today" onOpenPlaces={onOpenPlaces}>
-            <span className="flex items-center gap-1.5">
-              <PixelIcon icon={Clock} />
-              today
-            </span>
-          </PlaceHeading>
-        </h2>
-        <div className="flex items-center gap-2">
-          <BracketButton
-            onClick={() => setSearchOpen(true)}
-            className="hidden px-1 py-1.5 md:inline-flex"
-          >
-            search
-          </BracketButton>
-          {addTo && (
-            <BracketButton
-              onClick={editor.startAdding}
-              className="hidden px-1 py-1.5 md:inline-flex"
-            >
-              add +
-            </BracketButton>
-          )}
-        </div>
-      </div>
+      <h2 className="sr-only">today</h2>
 
       <CrossBucketList
         data={data}

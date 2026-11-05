@@ -7,8 +7,26 @@ import { E2E_STARTER_EMAIL_PREFIX, GUIDE_TASKS } from "@/lib/guide/constants";
 
 const TOTAL = GUIDE_TASKS.length;
 
-function guideButton(page: Page) {
-  return page.getByRole("button", { name: /^\[ guide \d+\/\d+ \]$/ });
+function yourMenu(page: Page) {
+  return page.getByRole("button", { name: "your menu", exact: true });
+}
+
+function guideItem(page: Page, done = /\d+/) {
+  return page.getByRole("button", {
+    name: new RegExp(`^getting started ${done.source}/${TOTAL}$`),
+  });
+}
+
+async function openGuide(page: Page) {
+  await yourMenu(page).click();
+  await guideItem(page).click();
+}
+
+async function expectGuideDone(page: Page, done: number) {
+  await yourMenu(page).click();
+  await expect(guideItem(page, new RegExp(String(done)))).toBeVisible();
+  await page.mouse.click(1, 400);
+  await expect(guideItem(page)).toBeHidden();
 }
 
 function guidePanel(page: Page) {
@@ -47,19 +65,19 @@ test("the guide opens by itself on the first visit only", async ({ page }) => {
   await page.reload();
   await expect(activeBucketTitle(page)).toHaveText("reminders");
   await expect(guidePanel(page)).toBeHidden();
-  await guideButton(page).click();
+  await openGuide(page);
   await expect(guidePanel(page)).toBeVisible();
 });
 
 test("a new account starts on reminders, and a done task ticks and pays", async ({ page }) => {
   await signUp(page);
-  await expect(guideButton(page)).toHaveAccessibleName(`[ guide 0/${TOTAL} ]`);
+  await expectGuideDone(page, 0);
 
   await addItem(page, "pay rent");
   await expect(page.getByText("add a reminder · +2 capy credits")).toBeVisible();
-  await expect(guideButton(page)).toHaveAccessibleName(`[ guide 1/${TOTAL} ]`);
+  await expectGuideDone(page, 1);
 
-  await guideButton(page).click();
+  await openGuide(page);
   await expect(guidePanel(page).getByText(`1 of ${TOTAL} done`)).toBeVisible();
   await expect(guidePanel(page).getByLabel("credits earned")).toHaveText(
     `2 / ${GUIDE_TASKS.reduce((sum, t) => sum + t.credits, 0)} credits`
@@ -72,33 +90,33 @@ test("a new account starts on reminders, and a done task ticks and pays", async 
   await expect(task(page, "send a test email from your own email account")).toContainText("+5");
 });
 
-test("the guide button can leave the header, the guide stays in the menu", async ({ page }) => {
+test("the dot on your avatar can go, the guide stays in the menu", async ({ page }) => {
   await signUp(page);
+  await expect(yourMenu(page)).toHaveAccessibleDescription("something new inside");
 
-  await guideButton(page).click();
-  // hideGuideAction(true): the button hides before it's saved, and a reload would drop the save
+  await openGuide(page);
+  // hideGuideAction(true): the dot hides before it's saved, and a reload would drop the save
   const saved = page.waitForResponse(
     (r) => r.request().headers()["next-action"] !== undefined && r.request().postData() === "[true]"
   );
-  await guidePanel(page).getByRole("button", { name: "[ hide from header ]" }).click();
+  await guidePanel(page).getByRole("button", { name: "[ hide the dot ]" }).click();
   await saved;
   await guidePanel(page).getByRole("button", { name: "[ x ]" }).click();
-  await expect(guideButton(page)).toBeHidden();
+  await expect(yourMenu(page)).toHaveAccessibleDescription("");
 
   await page.reload();
   await expect(activeBucketTitle(page)).toHaveText("reminders");
-  await expect(guideButton(page)).toBeHidden();
-  await page.getByRole("button", { name: "···" }).click();
-  await page.getByRole("button", { name: `getting started 0/${TOTAL}` }).click();
-  await guidePanel(page).getByRole("button", { name: "[ show in header ]" }).click();
+  await expect(yourMenu(page)).toHaveAccessibleDescription("");
+  await openGuide(page);
+  await guidePanel(page).getByRole("button", { name: "[ show the dot ]" }).click();
   await guidePanel(page).getByRole("button", { name: "[ x ]" }).click();
-  await expect(guideButton(page)).toHaveAccessibleName(`[ guide 0/${TOTAL} ]`);
+  await expect(yourMenu(page)).toHaveAccessibleDescription("something new inside");
 });
 
 test("a hint takes you to the place the task is done", async ({ page }) => {
   await signUp(page);
 
-  await guideButton(page).click();
+  await openGuide(page);
   await task(page, "pick a theme").getByRole("button", { name: "[ hint ]" }).click();
   await expect(guidePanel(page)).toBeHidden();
   const tweaks = page.getByRole("dialog", { name: "tweaks" });
@@ -109,7 +127,7 @@ test("a hint takes you to the place the task is done", async ({ page }) => {
   await expect(page.getByText("pick any theme you like")).toBeVisible();
   await tweaks.getByRole("button", { name: "[ x ]" }).click();
 
-  await guideButton(page).click();
+  await openGuide(page);
   await task(page, "invite someone to a bucket").getByRole("button", { name: "[ hint ]" }).click();
   await expect(page.getByRole("button", { name: "[ create invite ]" })).toBeVisible();
   // While the guide is still closing it holds Escape until settings has set itself up, which a
@@ -118,7 +136,7 @@ test("a hint takes you to the place the task is done", async ({ page }) => {
   await page.keyboard.press("Escape");
   await expect(page.getByRole("button", { name: "[ create invite ]" })).toBeHidden();
 
-  await guideButton(page).click();
+  await openGuide(page);
   await task(page, "add a reminder").getByRole("button", { name: "[ hint ]" }).click();
   await expect(page.getByText("new item", { exact: true })).toBeVisible();
 });
@@ -126,12 +144,12 @@ test("a hint takes you to the place the task is done", async ({ page }) => {
 test("picking a theme ticks its task, the theme saves itself", async ({ page }) => {
   await signUp(page);
 
-  await guideButton(page).click();
+  await openGuide(page);
   await task(page, "pick a theme").getByRole("button", { name: "[ hint ]" }).click();
   const tweaks = page.getByRole("dialog", { name: "tweaks" });
   await tweaks.getByRole("button", { name: /nord/i }).first().click();
 
   await expect(page.getByText(/^pick a theme · \+\d+ capy credits$/)).toBeVisible();
   await tweaks.getByRole("button", { name: "[ x ]" }).click();
-  await expect(guideButton(page)).toHaveAccessibleName(`[ guide 1/${TOTAL} ]`);
+  await expectGuideDone(page, 1);
 });

@@ -7,7 +7,7 @@ import { Megaphone } from "pixelarticons/react/Megaphone.js";
 import { Trash } from "pixelarticons/react/Trash.js";
 import { UserPlus } from "pixelarticons/react/UserPlus.js";
 import { PixelIcon } from "@/components/ui/PixelIcon";
-import { useMemo, useRef, useState, type ReactNode } from "react";
+import { useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { BetaTag } from "@/components/ui/BetaTag";
 import { BracketButton } from "@/components/ui/BracketButton";
@@ -29,24 +29,8 @@ type HeaderProps = {
   unseenRelease: boolean;
   onGuideOpen: () => void;
   guideProgress: string;
-  guideButton: ReactNode;
+  guideUnfinished: boolean;
 };
-
-function getGreeting() {
-  const h = new Date().getHours();
-  if (h >= 5 && h < 12) return "Good morning";
-  if (h >= 12 && h < 17) return "Good afternoon";
-  if (h >= 17 && h < 22) return "Good evening";
-  return "Good night";
-}
-
-function getDate() {
-  return new Date().toLocaleDateString("en-US", {
-    weekday: "long",
-    month: "long",
-    day: "numeric",
-  });
-}
 
 type LogoutScope = "here" | "everywhere";
 
@@ -97,6 +81,9 @@ function NewDot({ className }: { className?: string }) {
 
 function GlobalMenu({
   email,
+  userId,
+  avatar,
+  showDot,
   onSettings,
   onArchive,
   onTrash,
@@ -108,6 +95,9 @@ function GlobalMenu({
   guideProgress,
 }: {
   email: string;
+  userId: number;
+  avatar: string | null;
+  showDot: boolean;
   onSettings: () => void;
   onArchive: () => void;
   onTrash: () => void;
@@ -123,6 +113,7 @@ function GlobalMenu({
   const containerRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const [pos, setPos] = useState({ top: 0, left: 0 });
+  const dotHint = useId();
 
   function toggle() {
     if (!containerRef.current) return;
@@ -141,10 +132,24 @@ function GlobalMenu({
   return (
     <>
       <div ref={containerRef} className="relative">
-        <BracketButton ref={triggerRef} onClick={toggle} className="px-1 py-1.5">
-          ···
-        </BracketButton>
-        {unseenRelease && <NewDot className="absolute top-1 right-0" />}
+        <button
+          ref={triggerRef}
+          type="button"
+          onClick={toggle}
+          aria-label="your menu"
+          aria-haspopup="menu"
+          aria-expanded={open}
+          aria-describedby={showDot ? dotHint : undefined}
+          className="flex p-1.5"
+        >
+          <span role="img" aria-label="your avatar" className="flex">
+            <PersonAvatar userId={userId} avatar={avatar} size={32} />
+          </span>
+        </button>
+        {showDot && <NewDot className="absolute top-1 right-1" />}
+        <span id={dotHint} hidden>
+          something new inside
+        </span>
       </div>
 
       {confirmLogout && (
@@ -270,38 +275,25 @@ export function Header({
   unseenRelease,
   onGuideOpen,
   guideProgress,
-  guideButton,
+  guideUnfinished,
 }: HeaderProps) {
-  const greeting = useMemo(() => getGreeting(), []);
-  const date = useMemo(() => getDate(), []);
-
   return (
-    <header className="mx-auto flex w-full max-w-6xl items-center justify-between px-5 pt-6 pb-2">
-      <div className="flex items-center gap-3">
-        <span role="img" aria-label="your avatar" className="flex">
-          <PersonAvatar userId={userId} avatar={avatar} size={32} />
-        </span>
-        <div>
-          <h1 className="font-pixel text-base leading-snug">{greeting}</h1>
-          <p className="text-muted-foreground mt-0.5 text-xs">{date}</p>
-        </div>
-      </div>
-
-      <div className="flex items-center gap-2">
-        {guideButton}
-        <GlobalMenu
-          email={email}
-          onSettings={onSettingsOpen}
-          onArchive={onArchiveOpen}
-          onTrash={onTrashOpen}
-          onJoin={onJoinOpen}
-          onFeedback={onFeedbackOpen}
-          onWhatsNew={onWhatsNewOpen}
-          unseenRelease={unseenRelease}
-          onGuide={onGuideOpen}
-          guideProgress={guideProgress}
-        />
-      </div>
+    <header className="mx-auto flex w-full max-w-6xl items-center justify-end px-3 pt-2">
+      <GlobalMenu
+        email={email}
+        userId={userId}
+        avatar={avatar}
+        showDot={unseenRelease || guideUnfinished}
+        onSettings={onSettingsOpen}
+        onArchive={onArchiveOpen}
+        onTrash={onTrashOpen}
+        onJoin={onJoinOpen}
+        onFeedback={onFeedbackOpen}
+        onWhatsNew={onWhatsNewOpen}
+        unseenRelease={unseenRelease}
+        onGuide={onGuideOpen}
+        guideProgress={guideProgress}
+      />
     </header>
   );
 }
