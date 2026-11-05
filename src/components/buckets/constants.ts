@@ -187,3 +187,8 @@ export const NO_MEMBERS: BucketMember[] = [];
 
 // People an item menu offers as one-tap chips; more than this shows one fewer plus "+n more"
 export const ASSIGN_CHIPS_MAX = 4;
+
+// How far a finger moves sideways on the phone's bucket button to switch bucket
+export const SWITCH_SWIPE_PX = 40;
+// Up to this many places show as dots under it, more as "3/12"
+export const SWITCH_DOTS_MAX = 9;

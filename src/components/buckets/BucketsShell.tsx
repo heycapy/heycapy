@@ -9,6 +9,7 @@ import { BracketButton } from "@/components/ui/BracketButton";
 import { cn } from "@/lib/utils";
 import { BucketContent } from "./BucketContent";
 import { PlacePicker } from "./PlacePicker";
+import { BucketSwitcher } from "./BucketSwitcher";
 import { Sprite } from "@/components/capy/Sprite";
 import { TodayView } from "@/components/today/TodayView";
 import { BUCKET_PALETTE } from "./constants";
@@ -172,10 +173,15 @@ export function BucketsShell({ buckets: rawBuckets, focusBucketId = null }: Buck
           <Sprite id="capy-idle-blink" size={52} />
         </button>
         <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-stretch pb-[max(0.5rem,env(safe-area-inset-bottom))] md:hidden">
-          <button
-            onClick={() => setPickerOpen(true)}
-            aria-haspopup="dialog"
-            className="flex min-h-14 min-w-0 items-center pr-1 pl-4"
+          <BucketSwitcher
+            count={buckets.length + 1}
+            index={todayOpen ? 0 : activeIndex + 1}
+            onGo={(place) => {
+              const bucket = buckets[place - 1];
+              if (bucket) setActiveBucketId(bucket.id);
+              else openToday();
+            }}
+            onOpenPicker={() => setPickerOpen(true)}
           >
             <span
               style={{ backgroundColor: `color-mix(in oklab, ${placeColor} 18%, transparent)` }}
@@ -191,7 +197,7 @@ export function BucketsShell({ buckets: rawBuckets, focusBucketId = null }: Buck
               </span>
               <PixelIcon icon={ChevronDown} className="text-muted-foreground shrink-0" />
             </span>
-          </button>
+          </BucketSwitcher>
           <div className="flex justify-center">
             {canAddItem && (
               <BracketButton

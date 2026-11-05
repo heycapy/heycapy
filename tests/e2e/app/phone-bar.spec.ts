@@ -1,8 +1,16 @@
 import { test, expect } from "@playwright/test";
 import { authState } from "../helpers/auth";
-import { addItemButton, openBucketOnPhone, uniqueName } from "../helpers/buckets";
+import {
+  addItemButton,
+  createAndSelectBucket,
+  openBucketOnPhone,
+  uniqueName,
+} from "../helpers/buckets";
+import { touchSwipe } from "../helpers/touch";
 
 test.use({ storageState: authState("phone-bar"), hasTouch: true });
+// One after another: the switcher test counts on no other test adding buckets around its own
+test.describe.configure({ mode: "default" });
 
 test("the place switcher goes to today and starts new buckets, add works in both", async ({
   page,
@@ -24,6 +32,36 @@ test("the place switcher goes to today and starts new buckets, add works in both
   await page.getByRole("button", { name: bucket, exact: true }).tap();
   await picker.getByRole("button", { name: "new bucket" }).tap();
   await expect(page.getByRole("button", { name: /^Blank/ })).toBeVisible();
+});
+
+test("a tap on the bucket button opens the list, a swipe goes to the next or previous place", async ({
+  page,
+}) => {
+  const first = uniqueName("Swipe one");
+  const second = uniqueName("Swipe two");
+  await page.goto("/");
+  await createAndSelectBucket(page, first);
+  await createAndSelectBucket(page, second);
+  await page.setViewportSize({ width: 390, height: 844 });
+  // The guide's reward toast sits over the bottom bar for a few seconds
+  await expect(page.locator("[data-sonner-toast]")).toHaveCount(0, { timeout: 15_000 });
+
+  const place = (name: string) => page.getByRole("button", { name, exact: true });
+  const picker = page.getByRole("dialog", { name: "go to" });
+  await place(second).tap();
+  await expect(picker).toBeVisible();
+  await picker.getByRole("button", { name: second, exact: true }).tap();
+  await expect(picker).not.toBeVisible();
+
+  await touchSwipe(page, place(second), 120);
+  await expect(place(first)).toBeVisible();
+  await expect(place(first)).toHaveAccessibleDescription(/swipe sideways for the next one/);
+
+  await touchSwipe(page, place(first), -120);
+  await expect(place(second)).toBeVisible();
+  // The last bucket has nothing after it
+  await touchSwipe(page, place(second), -120);
+  await expect(place(second)).toBeVisible();
 });
 
 test("capy in the bottom bar opens the chat as a drawer on phones", async ({ page }) => {
