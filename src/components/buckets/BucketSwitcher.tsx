@@ -1,6 +1,5 @@
 import { useId, useRef, type PointerEvent, type ReactNode } from "react";
-import { cn } from "@/lib/utils";
-import { SWITCH_DOTS_MAX, SWITCH_SWIPE_PX } from "./constants";
+import { SWITCH_SWIPE_PX } from "./constants";
 
 type BucketSwitcherProps = {
   count: number;
@@ -53,27 +52,7 @@ export function BucketSwitcher({
         aria-describedby={positionId}
         className="flex min-h-14 min-w-0 touch-pan-y items-center pr-1 pl-4"
       >
-        <span className="flex min-w-0 flex-col items-center gap-1">
-          {children}
-          {count > 1 && (
-            <span
-              aria-hidden
-              className="text-muted-foreground flex items-center gap-1 font-mono text-[10px] leading-none"
-            >
-              {count <= SWITCH_DOTS_MAX
-                ? Array.from({ length: count }, (_, i) => (
-                    <span
-                      key={i}
-                      className={cn(
-                        "h-1 w-1 rounded-full",
-                        i === index ? "bg-foreground" : "bg-muted-foreground/40"
-                      )}
-                    />
-                  ))
-                : `${index + 1}/${count}`}
-            </span>
-          )}
-        </span>
+        {children}
       </button>
       <span id={positionId} className="sr-only">
         {`${index + 1} of ${count}, swipe sideways for the next one`}
