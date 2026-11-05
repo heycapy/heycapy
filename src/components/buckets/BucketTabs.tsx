@@ -46,11 +46,15 @@ function PlaceTab({
           active ? "text-foreground" : "text-muted-foreground hover:text-foreground"
         )}
       >
-        <span
-          className="relative border-b-2 py-0.5"
-          style={{ borderBottomColor: active ? color : "transparent" }}
-        >
+        <span className="relative pt-0.5 pb-1.5">
           <span className="block max-w-32 truncate">{children}</span>
+          {active && (
+            <span
+              aria-hidden
+              className="absolute bottom-0 left-0 h-0.5 w-2.5"
+              style={{ backgroundColor: color }}
+            />
+          )}
           {lateHintId && (
             <span aria-hidden className="bg-destructive absolute -top-0.5 -right-2 size-1" />
           )}
@@ -89,49 +93,51 @@ export function BucketTabs({ buckets, activeId, todayOpen }: BucketTabsProps) {
   }, [activeKey]);
 
   return (
-    <nav aria-label="buckets" className="border-border mx-auto flex w-full max-w-6xl border-b-2">
-      <BracketButton
-        onClick={() => setSearchOpen(true)}
-        aria-label="search"
-        className="shrink-0 py-0 pr-3 pl-4"
-      >
-        <PixelIcon icon={Search} />
-      </BracketButton>
-      <span aria-hidden className="bg-border my-3.5 w-px shrink-0" />
-      <div ref={stripRef} className="scrollbar-hide flex min-w-0 flex-1 overflow-x-auto">
-        <PlaceTab
-          active={todayOpen}
-          color="var(--foreground)"
-          lateHintId={late.size > 0 ? lateHint : undefined}
-          onSelect={openToday}
-        >
-          <span className="flex items-center gap-1.5">
-            <PixelIcon icon={Clock} />
-            today
-          </span>
-        </PlaceTab>
-        {buckets.map((bucket, i) => {
-          const active = !todayOpen && bucket.id === activeId;
-          return (
-            <PlaceTab
-              key={bucket.id}
-              active={active}
-              color={BUCKET_PALETTE[i % BUCKET_PALETTE.length]}
-              lateHintId={late.has(bucket.id) ? lateHint : undefined}
-              onSelect={() => setActiveBucketId(bucket.id)}
-              onSettings={active ? () => requestBucketSettings(bucket.id) : undefined}
-            >
-              {bucket.icon ? `${bucket.icon} ${bucket.name}` : bucket.name}
-            </PlaceTab>
-          );
-        })}
+    <nav aria-label="buckets" className="mx-auto w-full max-w-6xl sm:px-4">
+      <div className="border-border flex border-b-2">
         <BracketButton
-          onClick={openCreateBucket}
-          aria-label="new bucket"
-          className="shrink-0 py-0 pr-4 pl-3 whitespace-nowrap"
+          onClick={() => setSearchOpen(true)}
+          aria-label="search"
+          className="shrink-0 py-0 pr-3 pl-4 sm:pl-3"
         >
-          + new
+          <PixelIcon icon={Search} />
         </BracketButton>
+        <span aria-hidden className="bg-border my-3.5 w-px shrink-0" />
+        <div ref={stripRef} className="scrollbar-hide flex min-w-0 flex-1 overflow-x-auto">
+          <PlaceTab
+            active={todayOpen}
+            color="var(--foreground)"
+            lateHintId={late.size > 0 ? lateHint : undefined}
+            onSelect={openToday}
+          >
+            <span className="flex items-center gap-1.5">
+              <PixelIcon icon={Clock} />
+              today
+            </span>
+          </PlaceTab>
+          {buckets.map((bucket, i) => {
+            const active = !todayOpen && bucket.id === activeId;
+            return (
+              <PlaceTab
+                key={bucket.id}
+                active={active}
+                color={BUCKET_PALETTE[i % BUCKET_PALETTE.length]}
+                lateHintId={late.has(bucket.id) ? lateHint : undefined}
+                onSelect={() => setActiveBucketId(bucket.id)}
+                onSettings={active ? () => requestBucketSettings(bucket.id) : undefined}
+              >
+                {bucket.icon ? `${bucket.icon} ${bucket.name}` : bucket.name}
+              </PlaceTab>
+            );
+          })}
+          <BracketButton
+            onClick={openCreateBucket}
+            aria-label="new bucket"
+            className="shrink-0 py-0 pr-4 pl-3 whitespace-nowrap"
+          >
+            + new
+          </BracketButton>
+        </div>
       </div>
       <span id={lateHint} hidden>
         has late items
