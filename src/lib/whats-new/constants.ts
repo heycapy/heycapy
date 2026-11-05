@@ -4,6 +4,27 @@ export type Release = { version: string; notes: ReleaseNote[] };
 
 export const RELEASES: [Release, ...Release[]] = [
   {
+    version: "0.9.0",
+    notes: [
+      {
+        title: "when, at a glance",
+        text: 'every item shows when it\'s due on the left: "3d late", "today" with the time, "tomorrow" or "in 4d". the colours follow your theme.',
+      },
+      {
+        title: "who does what, in shared buckets",
+        text: "show everyone's items, yours or one person's. done items say who ticked them, and the item menu assigns with one tap on a face.",
+      },
+      {
+        title: "switch buckets with a swipe",
+        text: "on phones, swipe the bucket button at the bottom to go to the next or previous place.",
+      },
+      {
+        title: "capy sets up your fields",
+        text: "ask capy for a bucket with a price or a link on every item, or to change the fields of one you own.",
+      },
+    ],
+  },
+  {
     version: "0.8.2",
     notes: [
       {
