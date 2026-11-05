@@ -1,7 +1,7 @@
 import { MoreHorizontal } from "pixelarticons/react/MoreHorizontal.js";
-import { MoreVertical } from "pixelarticons/react/MoreVertical.js";
 import { WarningDiamond } from "pixelarticons/react/WarningDiamond.js";
 import { PixelIcon } from "@/components/ui/PixelIcon";
+import { GripIcon } from "@/components/ui/GripIcon";
 import { formatShortTime } from "@/lib/format-date";
 import { ITEM_STATUS } from "@/constants";
 import { ITEM_HIGHLIGHT_MS } from "./constants";
@@ -173,11 +173,11 @@ export function ItemRow({
     >
       {dragControls && (
         <button
-          className="text-muted-foreground/40 hover:text-muted-foreground flex shrink-0 cursor-grab touch-none items-center justify-center pr-2.5 transition-colors active:cursor-grabbing"
+          className="text-muted-foreground/60 hover:text-foreground flex shrink-0 cursor-grab touch-none items-center justify-center pr-2.5 transition-colors active:cursor-grabbing"
           onPointerDown={(e) => dragControls.start(e)}
           aria-label="drag to reorder"
         >
-          <PixelIcon icon={MoreVertical} />
+          <PixelIcon icon={GripIcon} />
         </button>
       )}
 
