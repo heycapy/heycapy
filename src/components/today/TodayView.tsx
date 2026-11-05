@@ -13,6 +13,7 @@ import { ITEM_STATUS } from "@/constants";
 import { useUIStore } from "@/store/ui";
 import { useLayoutStore } from "@/store/layout";
 import type { buckets as bucketsTable } from "@/lib/db/schema";
+import { PlaceHeading } from "@/components/buckets/PlaceHeading";
 import { CrossBucketList } from "./CrossBucketList";
 import { groupForToday } from "./group";
 import { useTodayItems } from "./useTodayItems";
@@ -22,9 +23,10 @@ type BucketRow = typeof bucketsTable.$inferSelect;
 type TodayViewProps = {
   buckets: BucketRow[];
   addItemRef: RefObject<(() => void) | null>;
+  onOpenPlaces: () => void;
 };
 
-export function TodayView({ buckets, addItemRef }: TodayViewProps) {
+export function TodayView({ buckets, addItemRef, onOpenPlaces }: TodayViewProps) {
   const { data, refetch } = useTodayItems();
   const todayAddBucketId = useUIStore((s) => s.todayAddBucketId);
   const activeBucketId = useUIStore((s) => s.activeBucketId);
@@ -67,9 +69,13 @@ export function TodayView({ buckets, addItemRef }: TodayViewProps) {
   return (
     <div className="flex flex-col">
       <div className="flex items-center justify-between px-4 py-3">
-        <h2 className="flex items-center gap-1.5 font-mono text-sm font-normal">
-          <PixelIcon icon={Clock} />
-          today
+        <h2 className="flex min-w-0 font-mono text-sm font-normal">
+          <PlaceHeading name="today" onOpenPlaces={onOpenPlaces}>
+            <span className="flex items-center gap-1.5">
+              <PixelIcon icon={Clock} />
+              today
+            </span>
+          </PlaceHeading>
         </h2>
         <div className="flex items-center gap-2">
           <BracketButton

@@ -66,9 +66,9 @@ export function AppShell({
   appUrl,
 }: AppShellProps) {
   const [settingsTab, setSettingsTab] = useState<SettingsTab | null>(null);
-  const [archivedOpen, setArchivedOpen] = useState(false);
-  const [trashOpen, setTrashOpen] = useState(false);
-  const [joinOpen, setJoinOpen] = useState(false);
+  const sheet = useUIStore((s) => s.sheet);
+  const openSheet = useUIStore((s) => s.openSheet);
+  const closeSheet = useUIStore((s) => s.closeSheet);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [whatsNewOpen, setWhatsNewOpen] = useState(false);
   const [releaseUnseen, setReleaseUnseen] = useState(unseenRelease);
@@ -124,9 +124,9 @@ export function AppShell({
         userId={userId}
         avatar={avatar}
         onSettingsOpen={() => setSettingsTab("appearance")}
-        onArchiveOpen={() => setArchivedOpen(true)}
-        onTrashOpen={() => setTrashOpen(true)}
-        onJoinOpen={() => setJoinOpen(true)}
+        onArchiveOpen={() => openSheet("archive")}
+        onTrashOpen={() => openSheet("trash")}
+        onJoinOpen={() => openSheet("join")}
         onFeedbackOpen={feedbackEnabled ? () => setFeedbackOpen(true) : null}
         onWhatsNewOpen={openWhatsNew}
         unseenRelease={releaseUnseen}
@@ -155,9 +155,9 @@ export function AppShell({
         initialTab={settingsTab ?? "appearance"}
         onClose={() => setSettingsTab(null)}
       />
-      <ArchivedBucketsSheet open={archivedOpen} onClose={() => setArchivedOpen(false)} />
-      <TrashSheet open={trashOpen} onClose={() => setTrashOpen(false)} />
-      <JoinBucketDialog open={joinOpen} onClose={() => setJoinOpen(false)} />
+      <ArchivedBucketsSheet open={sheet === "archive"} onClose={closeSheet} />
+      <TrashSheet open={sheet === "trash"} onClose={closeSheet} />
+      <JoinBucketDialog open={sheet === "join"} onClose={closeSheet} />
       <FeedbackDialog open={feedbackOpen} onClose={() => setFeedbackOpen(false)} />
       <WhatsNewDialog
         open={whatsNewOpen}

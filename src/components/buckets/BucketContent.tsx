@@ -22,20 +22,28 @@ import { toast } from "sonner";
 import { assignItemAction } from "@/app/(app)/actions";
 import { memberName } from "@/lib/buckets/member-name";
 import { MembersBar, type MemberFilter } from "./MembersBar";
+import { PlaceHeading } from "./PlaceHeading";
 
 type BucketContentProps = {
   bucket: ViewerBucket;
   accentColor: string;
   addItemRef: RefObject<(() => void) | null>;
+  onOpenPlaces: () => void;
 };
 
-export function BucketContent({ bucket, accentColor, addItemRef }: BucketContentProps) {
+export function BucketContent({
+  bucket,
+  accentColor,
+  addItemRef,
+  onOpenPlaces,
+}: BucketContentProps) {
   const rules = parseItemsRules(bucket.itemsRules);
   const statuses = DEFAULT_BUCKET_STATUSES;
   const fields = parseFields(bucket.fieldSchema);
   const defaultStatus =
     statuses.find((s) => s.isDefault)?.name ?? statuses[0]?.name ?? ITEM_STATUS.active;
   const readonly = rules.readonly === true;
+  const bucketName = bucket.icon ? `${bucket.icon} ${bucket.name}` : bucket.name;
 
   const [settingsTab, setSettingsTab] = useState<SettingsTab | null>(null);
   const setSearchOpen = useLayoutStore((s) => s.setSearchOpen);
@@ -52,6 +60,8 @@ export function BucketContent({ bucket, accentColor, addItemRef }: BucketContent
   const members = useBucketMembers(bucket.id, editor.dialogProps.open);
   const membersRequested = useUIStore((s) => s.membersRequested);
   const clearMembersRequest = useUIStore((s) => s.clearMembersRequest);
+  const settingsRequested = useUIStore((s) => s.settingsRequested);
+  const clearSettingsRequest = useUIStore((s) => s.clearSettingsRequest);
   const [filter, setFilter] = useState<MemberFilter>("all");
   const shared = members.length > 1;
   const filtered =
@@ -63,7 +73,8 @@ export function BucketContent({ bucket, accentColor, addItemRef }: BucketContent
     activeFilter === "all"
       ? list.orderedItems
       : list.orderedItems.filter((i) => i.assigneeId === assigneeShown);
-  const openTab: SettingsTab | null = settingsTab ?? (membersRequested ? "members" : null);
+  const openTab: SettingsTab | null =
+    settingsTab ?? (membersRequested ? "members" : settingsRequested ? "items" : null);
   useEffect(() => {
     addItemRef.current = editor.startAdding;
     return () => {
@@ -74,15 +85,17 @@ export function BucketContent({ bucket, accentColor, addItemRef }: BucketContent
   return (
     <div className="flex flex-col">
       <div className="flex items-center justify-between px-4 py-3">
-        <div className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden">
-          <span
-            className="h-3.5 w-0.5 shrink-0 rounded-full"
-            style={{ backgroundColor: accentColor }}
-          />
-          <span className="font-pixel min-w-0 truncate overflow-hidden text-sm leading-snug">
-            {bucket.icon ? `${bucket.icon} ${bucket.name}` : bucket.name}
-          </span>
-        </div>
+        <h2 className="flex min-w-0 flex-1 overflow-hidden font-normal">
+          <PlaceHeading name={bucketName} onOpenPlaces={onOpenPlaces}>
+            <span
+              className="h-3.5 w-0.5 shrink-0 rounded-full"
+              style={{ backgroundColor: accentColor }}
+            />
+            <span className="font-pixel min-w-0 truncate overflow-hidden text-sm leading-snug">
+              {bucketName}
+            </span>
+          </PlaceHeading>
+        </h2>
         <div className="flex items-center gap-2">
           <BracketButton onClick={() => setSettingsTab("items")} className="px-1 py-1.5">
             settings
@@ -176,6 +189,7 @@ export function BucketContent({ bucket, accentColor, addItemRef }: BucketContent
         onClose={() => {
           setSettingsTab(null);
           clearMembersRequest();
+          clearSettingsRequest();
         }}
       />
     </div>

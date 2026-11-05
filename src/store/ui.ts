@@ -1,6 +1,8 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 
+export type PlaceSheet = "archive" | "trash" | "join";
+
 type UIStore = {
   createBucketOpen: boolean;
   openCreateBucket: () => void;
@@ -30,6 +32,15 @@ type UIStore = {
   membersRequested: boolean;
   requestMembers: () => void;
   clearMembersRequest: () => void;
+
+  // the gear next to a bucket in the drawer, kept until that bucket's view picks it up
+  settingsRequested: boolean;
+  requestBucketSettings: (id: number) => void;
+  clearSettingsRequest: () => void;
+
+  sheet: PlaceSheet | null;
+  openSheet: (sheet: PlaceSheet) => void;
+  closeSheet: () => void;
 };
 
 export const useUIStore = create<UIStore>()(
@@ -61,6 +72,15 @@ export const useUIStore = create<UIStore>()(
       membersRequested: false,
       requestMembers: () => set({ membersRequested: true, todayOpen: false }),
       clearMembersRequest: () => set({ membersRequested: false }),
+
+      settingsRequested: false,
+      requestBucketSettings: (id) =>
+        set({ settingsRequested: true, activeBucketId: id, todayOpen: false }),
+      clearSettingsRequest: () => set({ settingsRequested: false }),
+
+      sheet: null,
+      openSheet: (sheet) => set({ sheet }),
+      closeSheet: () => set({ sheet: null }),
     }),
     {
       name: "heycapy-ui",

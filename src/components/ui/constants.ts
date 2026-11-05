@@ -24,6 +24,13 @@ export const MODAL_PANELS = {
     animate: { x: 0 },
     transition: { duration: 0.2, ease: "easeInOut" },
   },
+  leftSheet: {
+    className:
+      "bg-card border-border fixed top-0 left-0 flex h-full w-[82%] max-w-xs flex-col border-r-2 shadow-[4px_0_0_var(--border)] outline-none",
+    initial: { x: "-100%" },
+    animate: { x: 0 },
+    transition: { duration: 0.2, ease: "easeInOut" },
+  },
   // a full-screen holder: the panel inside animates and drags itself
   drawer: {
     className: "pointer-events-none fixed inset-0 outline-none",

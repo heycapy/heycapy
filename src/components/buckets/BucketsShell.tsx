@@ -1,7 +1,5 @@
 "use client";
 
-import { ChevronLeft } from "pixelarticons/react/ChevronLeft.js";
-import { ChevronRight } from "pixelarticons/react/ChevronRight.js";
 import { Clock } from "pixelarticons/react/Clock.js";
 import { PixelIcon } from "@/components/ui/PixelIcon";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
@@ -9,8 +7,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { BracketButton } from "@/components/ui/BracketButton";
 import { cn } from "@/lib/utils";
 import { BucketContent } from "./BucketContent";
-import { PlacePicker } from "./PlacePicker";
-import { BucketSwitcher } from "./BucketSwitcher";
+import { PlacesDrawer } from "./PlacesDrawer";
 import { Sprite } from "@/components/capy/Sprite";
 import { TodayView } from "@/components/today/TodayView";
 import { BUCKET_PALETTE } from "./constants";
@@ -72,7 +69,7 @@ export function BucketsShell({ buckets: rawBuckets, focusBucketId = null }: Buck
     () => false
   );
   const prevBucketsRef = useRef<ViewerBucket[]>(buckets);
-  const [pickerOpen, setPickerOpen] = useState(false);
+  const [placesOpen, setPlacesOpen] = useState(false);
   const addItemRef = useRef<(() => void) | null>(null);
   const hasBottomBar = useMediaQuery(BOTTOM_BAR_MEDIA_QUERY);
 
@@ -121,8 +118,6 @@ export function BucketsShell({ buckets: rawBuckets, focusBucketId = null }: Buck
   const activeBucket = buckets.find((b) => b.id === activeId) ?? buckets[0];
   const activeIndex = buckets.findIndex((b) => b.id === activeId);
   const accentColor = BUCKET_PALETTE[Math.max(activeIndex, 0) % BUCKET_PALETTE.length];
-  const placeColor = todayOpen ? "var(--foreground)" : accentColor;
-  const place = todayOpen ? 0 : activeIndex + 1;
 
   if (!activeBucket) return null;
 
@@ -153,12 +148,17 @@ export function BucketsShell({ buckets: rawBuckets, focusBucketId = null }: Buck
               className="mx-auto w-full max-w-6xl"
             >
               {todayOpen ? (
-                <TodayView buckets={buckets} addItemRef={addItemRef} />
+                <TodayView
+                  buckets={buckets}
+                  addItemRef={addItemRef}
+                  onOpenPlaces={() => setPlacesOpen(true)}
+                />
               ) : (
                 <BucketContent
                   bucket={activeBucket}
                   accentColor={accentColor}
                   addItemRef={addItemRef}
+                  onOpenPlaces={() => setPlacesOpen(true)}
                 />
               )}
             </motion.div>
@@ -175,41 +175,7 @@ export function BucketsShell({ buckets: rawBuckets, focusBucketId = null }: Buck
           <Sprite id="capy-idle-blink" size={52} />
         </button>
         <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-stretch pb-[max(0.5rem,env(safe-area-inset-bottom))] md:hidden">
-          <BucketSwitcher
-            count={buckets.length + 1}
-            index={place}
-            onGo={(next) => {
-              const bucket = buckets[next - 1];
-              if (bucket) setActiveBucketId(bucket.id);
-              else openToday();
-            }}
-            onOpenPicker={() => setPickerOpen(true)}
-          >
-            <span
-              style={{ backgroundColor: `color-mix(in oklab, ${placeColor} 18%, transparent)` }}
-              className="flex h-10 max-w-32 min-w-0 items-center gap-1 px-1"
-            >
-              <PixelIcon
-                icon={ChevronLeft}
-                className={cn("text-muted-foreground shrink-0", place === 0 && "opacity-25")}
-              />
-              {todayOpen && <PixelIcon icon={Clock} className="shrink-0" />}
-              <span className="text-foreground truncate font-mono text-base">
-                {todayOpen
-                  ? "today"
-                  : activeBucket.icon
-                    ? `${activeBucket.icon} ${activeBucket.name}`
-                    : activeBucket.name}
-              </span>
-              <PixelIcon
-                icon={ChevronRight}
-                className={cn(
-                  "text-muted-foreground shrink-0",
-                  place === buckets.length && "opacity-25"
-                )}
-              />
-            </span>
-          </BucketSwitcher>
+          <div />
           <div className="flex justify-center">
             {canAddItem && (
               <BracketButton
@@ -259,14 +225,12 @@ export function BucketsShell({ buckets: rawBuckets, focusBucketId = null }: Buck
         </div>
       </div>
 
-      <PlacePicker
-        open={pickerOpen}
+      <PlacesDrawer
+        open={placesOpen}
         buckets={buckets}
         todayOpen={todayOpen}
         activeId={activeId}
-        onSelectToday={openToday}
-        onSelectBucket={setActiveBucketId}
-        onClose={() => setPickerOpen(false)}
+        onClose={() => setPlacesOpen(false)}
       />
     </div>
   );
