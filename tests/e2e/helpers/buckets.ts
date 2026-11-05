@@ -80,6 +80,10 @@ export function itemRowContainer(page: Page, title: string) {
   return itemRow(page, title).locator("xpath=..");
 }
 
+export function itemTick(page: Page, title: string) {
+  return page.getByRole("checkbox", { name: title, exact: true });
+}
+
 export async function openItemMenu(page: Page, title: string) {
   await itemRowContainer(page, title).getByRole("button", { name: "item menu" }).click();
   await expect(itemMenu(page, title)).toBeVisible();

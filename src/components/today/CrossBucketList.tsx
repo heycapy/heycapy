@@ -7,7 +7,7 @@ import { parseFields } from "@/components/buckets/fields";
 import { BUCKET_PALETTE, DEFAULT_BUCKET_STATUSES } from "@/components/buckets/constants";
 import { deleteItemAction, moveItemAction, updateItemAction } from "@/app/(app)/actions";
 import { ItemMenu, type MenuAt } from "@/components/buckets/ItemMenu";
-import { SwipeableRow } from "@/components/buckets/SwipeableRow";
+import { PressableRow } from "@/components/buckets/PressableRow";
 import { completionToggle } from "@/components/buckets/completion";
 import { offerUndoDelete } from "@/components/buckets/undoDelete";
 import { deadlineValue } from "@/lib/time";
@@ -72,17 +72,10 @@ export function CrossBucketList({
   function row(item: Item) {
     const bucket = bucketOf(item);
     const readonly = bucket?.readonly === true;
-    const toggle = completionToggle(item.status, statuses);
+    const color = bucket && BUCKET_PALETTE[bucket.index % BUCKET_PALETTE.length];
     const assignee = data?.assignees[item.id];
     return (
-      <SwipeableRow
-        key={item.id}
-        onDelete={() => void deleteItem(item)}
-        onComplete={() => void changeStatus(item, toggle.next)}
-        completeLabel={toggle.label}
-        disabled={readonly}
-        onMenu={(at) => setMenu({ item, at })}
-      >
+      <PressableRow key={item.id} onMenu={(at) => setMenu({ item, at })}>
         <ItemRow
           item={item}
           statuses={statuses}
@@ -95,14 +88,15 @@ export function CrossBucketList({
           assignee={assignee && itemAssignee(assignee)}
           onMenu={(at) => setMenu({ item, at })}
           showDue={showDue}
+          color={color}
           bucket={
             bucket && {
               name: bucket.icon ? `${bucket.icon} ${bucket.name}` : bucket.name,
-              color: BUCKET_PALETTE[bucket.index % BUCKET_PALETTE.length] ?? "",
+              color: color ?? "",
             }
           }
         />
-      </SwipeableRow>
+      </PressableRow>
     );
   }
 

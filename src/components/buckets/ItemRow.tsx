@@ -5,7 +5,8 @@ import { PixelIcon } from "@/components/ui/PixelIcon";
 import { formatShortTime } from "@/lib/format-date";
 import { ITEM_STATUS } from "@/constants";
 import { ITEM_HIGHLIGHT_MS } from "./constants";
-import { StatusPicker, type StatusAnchor } from "./StatusPicker";
+import { TickBox } from "./TickBox";
+import { completionToggle } from "./completion";
 import { useEffect, useRef, useState } from "react";
 import type { DragControls } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -38,6 +39,7 @@ type ItemRowProps = {
   // The time on another clock that matters for this item, e.g. "9am for Sam"
   otherClock?: string;
   bucket?: { name: string; color: string };
+  color?: string;
   // Off when no item in the list has a date, so a list of notes has no empty column
   showDue?: boolean;
   // A bucket with more than one member says "anyone" on items nobody is assigned to
@@ -103,15 +105,13 @@ export function ItemRow({
   assignee,
   otherClock,
   bucket,
+  color = "var(--muted-foreground)",
   showDue = true,
   shared = false,
   tickedBy,
   onMenu,
 }: ItemRowProps) {
-  const [pickerAnchor, setPickerAnchor] = useState<StatusAnchor | null>(null);
   const [reminderOpen, setReminderOpen] = useState(false);
-  // The dot itself, not its button: the button is as tall as the row
-  const dotRef = useRef<HTMLSpanElement>(null);
   const rowRef = useRef<HTMLDivElement>(null);
   const anchor = `item-${item.id}`;
   const [highlighted, setHighlighted] = useState(() => window.location.hash === `#${anchor}`);
@@ -128,7 +128,6 @@ export function ItemRow({
   const isMissed = item.status === ITEM_STATUS.missed;
   const remindAgain = remindAgainLabel(item);
   const recurringFreq = getRecurringFrequency(item.recurring);
-  const dotColor = statuses.find((s) => s.name === item.status)?.color ?? "var(--muted-foreground)";
   const badges = fields ? getShowInRowBadges(fields, item.properties) : [];
   const meta = [
     otherClock && <span key="clock">({otherClock})</span>,
@@ -160,12 +159,6 @@ export function ItemRow({
     item.notifiedAt && <span key="notified">notified</span>,
   ].filter((part) => !!part);
 
-  function openPicker() {
-    if (!dotRef.current) return;
-    const rect = dotRef.current.getBoundingClientRect();
-    setPickerAnchor({ top: rect.top, bottom: rect.bottom, left: rect.left });
-  }
-
   return (
     <div
       ref={rowRef}
@@ -188,36 +181,14 @@ export function ItemRow({
         </button>
       )}
 
-      <button
-        onClick={onStatusChange ? openPicker : undefined}
-        aria-label={`status: ${item.status}`}
-        className={cn(
-          "-ml-1.5 flex shrink-0 items-center justify-center pr-3 pl-1.5",
-          onStatusChange ? "cursor-pointer" : "cursor-default"
-        )}
-      >
-        <span
-          ref={dotRef}
-          className={cn(
-            "h-2 w-2 rounded-full transition-opacity",
-            onStatusChange && "hover:opacity-60"
-          )}
-          style={{ backgroundColor: dotColor }}
-        />
-      </button>
-
-      {pickerAnchor && onStatusChange && (
-        <StatusPicker
-          current={item.status}
-          statuses={statuses}
-          anchor={pickerAnchor}
-          onSelect={(s) => {
-            onStatusChange(s);
-            setPickerAnchor(null);
-          }}
-          onClose={() => setPickerAnchor(null)}
-        />
-      )}
+      <TickBox
+        title={item.title}
+        checked={isCompleted}
+        color={color}
+        onToggle={
+          onStatusChange && (() => onStatusChange(completionToggle(item.status, statuses).next))
+        }
+      />
 
       <button
         onClick={() => onEditStart?.()}

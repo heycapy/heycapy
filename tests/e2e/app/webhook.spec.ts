@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { authState } from "../helpers/auth";
-import { createAndSelectBucket, itemRow, uniqueName } from "../helpers/buckets";
+import { createAndSelectBucket, itemRow, itemTick, uniqueName } from "../helpers/buckets";
 import { closeDialog, openFromSettings } from "../helpers/settings";
 import { daysFromNow, enableWebhook, postItem, type Webhook } from "../helpers/webhook";
 
@@ -55,7 +55,7 @@ test("status and deadline from the payload are applied", async ({ page, request 
   });
   expect(res.status()).toBe(201);
   await expect(itemRow(page, done)).toBeVisible();
-  await expect(page.getByRole("button", { name: "status: completed" })).toBeVisible();
+  await expect(itemTick(page, done)).toBeChecked();
 });
 
 test("rejects a missing or wrong key", async ({ request }) => {

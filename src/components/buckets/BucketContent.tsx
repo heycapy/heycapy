@@ -143,6 +143,7 @@ export function BucketContent({ bucket, accentColor, addItemRef }: BucketContent
           readonly={readonly}
           statuses={statuses}
           fields={fields}
+          color={accentColor}
           editingItemId={editor.editingItemId}
           reminderBadges={list.reminderBadges}
           members={members}

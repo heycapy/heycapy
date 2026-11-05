@@ -6,6 +6,7 @@ import {
   itemMenu,
   itemRow,
   itemRowContainer,
+  itemTick,
   openItemMenu,
   selectBucket,
   uniqueName,
@@ -115,13 +116,7 @@ test("a repeating item moves only this time: the next one stays on schedule", as
   await menu.getByRole("button", { name: /^due tomorrow / }).click();
   await expect(itemRow(page, title)).toContainText(`${shortDate(daysFromToday(1))} 9am`);
 
-  await itemRowContainer(page, title)
-    .getByRole("button", { name: /^status: / })
-    .click();
-  await page
-    .getByRole("menu", { name: "status" })
-    .getByRole("button", { name: "completed" })
-    .click();
+  await itemTick(page, title).click();
   await expect(
     page.getByRole("button", {
       name: new RegExp(`${title}.*${shortDate(daysFromToday(14))} 9am`),
@@ -147,18 +142,18 @@ test("works in today, and moving out of today takes the item off the list", asyn
 test("done from the menu, then reopen", async ({ page }) => {
   const title = uniqueName("book dentist");
   await addItem(page, title);
-  const status = itemRowContainer(page, title).getByRole("button", { name: /^status: / });
-  await expect(status).toHaveAccessibleName("status: active");
+  const tick = itemTick(page, title);
+  await expect(tick).not.toBeChecked();
 
   let menu = await openItemMenu(page, title);
   await menu.getByRole("button", { name: "done", exact: true }).click();
   await expect(menu).not.toBeVisible();
-  await expect(status).toHaveAccessibleName("status: completed");
+  await expect(tick).toBeChecked();
 
   menu = await openItemMenu(page, title);
   await expect(menu.getByRole("button", { name: "done", exact: true })).toHaveCount(0);
   await menu.getByRole("button", { name: "reopen", exact: true }).click();
-  await expect(status).toHaveAccessibleName("status: active");
+  await expect(tick).not.toBeChecked();
 });
 
 test("done from the menu in today takes the item off the list and completes it", async ({
@@ -177,9 +172,7 @@ test("done from the menu in today takes the item off the list and completes it",
   await expect(today.getByRole("button", { name: title })).toHaveCount(0);
 
   await selectBucket(page, bucket);
-  await expect(
-    itemRowContainer(page, title).getByRole("button", { name: /^status: / })
-  ).toHaveAccessibleName("status: completed");
+  await expect(itemTick(page, title)).toBeChecked();
 });
 
 test("read-only buckets only offer copy title", async ({ page }) => {

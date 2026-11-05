@@ -1,9 +1,8 @@
 import type { RefObject } from "react";
 import { Reorder, useDragControls } from "framer-motion";
 import { ItemRow, type ItemAssignee } from "./ItemRow";
-import { SwipeableRow } from "./SwipeableRow";
+import { PressableRow } from "./PressableRow";
 import type { MenuAt } from "./ItemMenu";
-import { completionToggle } from "./completion";
 import { reorderItemsAction } from "@/app/(app)/actions";
 import type { ReminderBadge } from "@/lib/reminders/status";
 import type { items } from "@/lib/db/schema";
@@ -20,11 +19,11 @@ type DraggableItemProps = {
   menuOpen?: boolean;
   onEditStart?: () => void;
   onStatusChange?: (status: string) => void;
-  onDelete?: () => void;
   onMenu: (at: MenuAt) => void;
   reminderBadge?: ReminderBadge;
   assignee?: ItemAssignee;
   otherClock?: string;
+  color: string;
   showDue: boolean;
   shared: boolean;
   tickedBy?: string;
@@ -39,11 +38,11 @@ export function DraggableItem({
   menuOpen,
   onEditStart,
   onStatusChange,
-  onDelete,
   onMenu,
   reminderBadge,
   assignee,
   otherClock,
+  color,
   showDue,
   shared,
   tickedBy,
@@ -63,17 +62,7 @@ export function DraggableItem({
       }}
       className="list-none"
     >
-      <SwipeableRow
-        onDelete={onDelete ?? (() => undefined)}
-        onComplete={
-          onStatusChange
-            ? () => onStatusChange(completionToggle(item.status, statuses).next)
-            : undefined
-        }
-        completeLabel={completionToggle(item.status, statuses).label}
-        disabled={!onDelete}
-        onMenu={onMenu}
-      >
+      <PressableRow onMenu={onMenu}>
         <ItemRow
           item={item}
           statuses={statuses}
@@ -86,12 +75,13 @@ export function DraggableItem({
           reminderBadge={reminderBadge}
           assignee={assignee}
           otherClock={otherClock}
+          color={color}
           showDue={showDue}
           shared={shared}
           tickedBy={tickedBy}
           onMenu={onMenu}
         />
-      </SwipeableRow>
+      </PressableRow>
     </Reorder.Item>
   );
 }
