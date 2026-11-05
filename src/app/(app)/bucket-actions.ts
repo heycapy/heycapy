@@ -28,8 +28,8 @@ import {
   TELEGRAM_RECURRING_OPTIONS,
   type TelegramBotConfig,
 } from "@/components/buckets/constants";
-import { BucketSchema } from "@/types/rules";
-import { buildPropertyValidator } from "@/types/rules";
+import { checkFields } from "@/lib/buckets/field-schema";
+import { saveBucketFields } from "@/lib/buckets/save-fields";
 
 const TelegramBotConfigInput = z.object({
   alias: z
@@ -251,50 +251,11 @@ export async function updateBucketSchemaAction(
   });
   if (!bucket) return { ok: false, error: "Bucket not found" };
 
-  const parsed = BucketSchema.safeParse(schema);
-  if (!parsed.success) return { ok: false, error: "Invalid schema" };
-
-  try {
-    buildPropertyValidator(parsed.data.fields);
-  } catch {
-    return { ok: false, error: "Invalid field definitions" };
-  }
-
-  let existing: Record<string, unknown> = {};
-  try {
-    if (bucket.fieldSchema) {
-      existing =
-        typeof bucket.fieldSchema === "string"
-          ? (JSON.parse(bucket.fieldSchema as string) as Record<string, unknown>)
-          : (bucket.fieldSchema as Record<string, unknown>);
-    }
-  } catch (err) {
-    process.stderr.write(
-      `[bucket-actions] failed to parse existing fieldSchema for bucket ${bucketId}: ${err instanceof Error ? err.message : String(err)}\n`
-    );
-  }
-
-  const merged = {
-    ...parsed.data,
-    ...(existing.notifyOnArrival !== undefined && { notifyOnArrival: existing.notifyOnArrival }),
-    ...(existing.notifyWhenOverdue !== undefined && {
-      notifyWhenOverdue: existing.notifyWhenOverdue,
-    }),
-    ...(existing.overdueRepeatHours !== undefined && {
-      overdueRepeatHours: existing.overdueRepeatHours,
-    }),
-    ...(existing.overdueFirstAlertMins !== undefined && {
-      overdueFirstAlertMins: existing.overdueFirstAlertMins,
-    }),
-  };
-
-  await db
-    .update(buckets)
-    .set({
-      fieldSchema: JSON.stringify(merged) as unknown as BucketSchema,
-      updatedAt: new Date(),
-    })
-    .where(and(eq(buckets.id, bucketId), eq(buckets.userId, session.userId)));
+  const fields =
+    schema && typeof schema === "object" ? (schema as { fields?: unknown }).fields : undefined;
+  const checked = checkFields(fields ?? []);
+  if (!checked.ok) return { ok: false, error: checked.error };
+  await saveBucketFields(bucket, checked.fields);
 
   revalidatePath("/");
   return { ok: true };

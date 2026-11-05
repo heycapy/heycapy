@@ -13,6 +13,7 @@ import { offerUndoDelete } from "@/components/buckets/undoDelete";
 import { deadlineValue } from "@/lib/time";
 import type { CrossBucketItems } from "@/lib/items/today";
 import type { items } from "@/lib/db/schema";
+import type { ListItem } from "@/lib/reminders/status";
 
 type Item = typeof items.$inferSelect;
 
@@ -41,6 +42,7 @@ export function CrossBucketList({
 }: CrossBucketListProps) {
   const [menu, setMenu] = useState<{ item: Item; at: MenuAt } | null>(null);
   const statuses = DEFAULT_BUCKET_STATUSES;
+  const showDue = sections.some((section) => section.items.some((item) => item.deadline));
   const bucketOf = (item: Item) => data?.buckets.find((b) => b.id === item.bucketId);
 
   async function changeStatus(item: Item, status: string) {
@@ -64,6 +66,8 @@ export function CrossBucketList({
     await onChanged();
     offerUndoDelete(item.id, item.title, onChanged);
   }
+
+  const menuItem: ListItem | undefined = menu?.item;
 
   function row(item: Item) {
     const bucket = bucketOf(item);
@@ -90,6 +94,7 @@ export function CrossBucketList({
           reminderBadge={data?.reminderBadges[item.id]}
           assignee={assignee && itemAssignee(assignee)}
           onMenu={(at) => setMenu({ item, at })}
+          showDue={showDue}
           bucket={
             bucket && {
               name: bucket.icon ? `${bucket.icon} ${bucket.name}` : bucket.name,
@@ -104,7 +109,7 @@ export function CrossBucketList({
   return (
     <div
       className={cn(
-        "border-border overflow-hidden border-y-2 sm:mx-4 sm:border-x-2 sm:shadow-[2px_2px_0_var(--border)]",
+        "border-border @container overflow-hidden border-y-2 sm:mx-4 sm:border-x-2 sm:shadow-[2px_2px_0_var(--border)]",
         boxed && "mx-4 border-x-2 shadow-[2px_2px_0_var(--border)]"
       )}
     >
@@ -133,6 +138,8 @@ export function CrossBucketList({
           item={menu.item}
           at={menu.at}
           readonly={bucketOf(menu.item)?.readonly === true}
+          reminderBadge={data?.reminderBadges[menu.item.id]}
+          nextReminderAt={menuItem?.nextReminderAt}
           completeLabel={completionToggle(menu.item.status, statuses).label}
           onComplete={() =>
             void changeStatus(menu.item, completionToggle(menu.item.status, statuses).next)

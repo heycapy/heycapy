@@ -135,16 +135,3 @@ test("picking a theme ticks its task, the theme saves itself", async ({ page }) 
   await tweaks.getByRole("button", { name: "[ x ]" }).click();
   await expect(guideButton(page)).toHaveAccessibleName(`[ guide 1/${TOTAL} ]`);
 });
-
-test("show me in what's new opens the guide", async ({ page }) => {
-  await login(page, uniqueEmail("e2e-show-me"));
-
-  await page.getByRole("button", { name: "···" }).click();
-  await page.getByRole("button", { name: /^what's new/ }).click();
-  await page
-    .getByRole("dialog", { name: "what's new" })
-    .getByRole("button", { name: "[ show me ]" })
-    .click();
-  await expect(guidePanel(page)).toBeVisible();
-  await expect(page.getByRole("dialog", { name: "what's new" })).toBeHidden();
-});

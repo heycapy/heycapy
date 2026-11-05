@@ -1,4 +1,5 @@
 import type { Tool } from "./types";
+import { FIELDS_PARAMETER } from "./bucketFieldTools";
 import { CAPY_ASSIGNEE, SETTABLE_ITEM_STATUSES, WEEKDAY_NAMES } from "@/constants";
 import { MAX_REMINDER_OFFSET_MINS, MAX_REMINDERS_PER_ITEM } from "@/lib/reminders/constants";
 
@@ -77,6 +78,7 @@ export const ITEM_AND_BUCKET_TOOLS: Tool[] = [
     description:
       "Create a new bucket (list) for the user. " +
       "Use this when the user asks to create, add, or set up a new bucket, list, or category. " +
+      "Give it custom fields when the user asks for them or the list clearly needs some; they can be changed later with update_bucket_fields. " +
       "Returns the new bucket's ID — use it immediately if you need to add items to it.",
     parameters: {
       type: "object",
@@ -90,6 +92,7 @@ export const ITEM_AND_BUCKET_TOOLS: Tool[] = [
           type: "string",
           description: "Optional single emoji to use as the bucket icon, e.g. '🛒', '💼', '📦'.",
         },
+        fields: FIELDS_PARAMETER,
       },
       required: ["name"],
     },

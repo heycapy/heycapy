@@ -47,7 +47,12 @@ import {
   listLiveBuckets,
   memberBucketIds,
 } from "@/lib/buckets/access";
-import { ReminderOffsets, buildPropertyValidator, type FieldDef } from "@/types/rules";
+import {
+  ReminderOffsets,
+  buildPropertyValidator,
+  type BucketSchema,
+  type FieldDef,
+} from "@/types/rules";
 import { parseFields } from "@/components/buckets/fields";
 import type { ToolCall } from "./types";
 
@@ -57,8 +62,13 @@ import {
   bucketNotOwnedError,
   executeBucketSettingsTool,
 } from "./bucketSettingsTools";
+import { BUCKET_FIELD_TOOLS, executeBucketFieldTool, fieldsFromArgs } from "./bucketFieldTools";
 
-export const CAPY_TOOLS = [...ITEM_AND_BUCKET_TOOLS, ...BUCKET_SETTINGS_TOOLS];
+export const CAPY_TOOLS = [
+  ...ITEM_AND_BUCKET_TOOLS,
+  ...BUCKET_SETTINGS_TOOLS,
+  ...BUCKET_FIELD_TOOLS,
+];
 
 export type UpcomingItem = {
   id: number;
@@ -148,7 +158,13 @@ export function describeFields(fields: FieldDef[]): string {
         : f.currency
           ? `${f.type} ${f.currency}`
           : f.type;
-      return `${f.label} (key ${f.key}, ${kind})`;
+      // Required is left out on purpose: marked required, the model makes up a value instead of asking
+      const rules = [
+        f.validation?.min !== undefined && `min ${f.validation.min}`,
+        f.validation?.max !== undefined && `max ${f.validation.max}`,
+        f.showInRow === false && "not shown in the row",
+      ].filter(Boolean);
+      return `${f.label} (key ${f.key}, ${[kind, ...rules].join(", ")})`;
     })
     .join("; ");
 }
@@ -377,6 +393,8 @@ async function executeToolCallInner(
 
   const settingsResult = await executeBucketSettingsTool(call.name, args, userId);
   if (settingsResult !== null) return settingsResult;
+  const fieldsResult = await executeBucketFieldTool(call.name, args, userId);
+  if (fieldsResult !== null) return fieldsResult;
 
   switch (call.name) {
     case "list_buckets": {
@@ -395,6 +413,9 @@ async function executeToolCallInner(
           error: `Name must be at most ${BUCKET_NAME_MAX_LENGTH} characters`,
         });
       }
+
+      const fields = args.fields === undefined ? null : fieldsFromArgs(args.fields);
+      if (fields && !fields.ok) return JSON.stringify({ ok: false, error: fields.error });
 
       const duplicate = await findBucketByName(userId, name);
       if (duplicate)
@@ -415,6 +436,10 @@ async function executeToolCallInner(
           icon: args.icon ? String(args.icon) : null,
           sortOrder: (maxRow?.max ?? -1) + 1,
           webhookKey: encryptValue(generateWebhookKey()),
+          ...(fields?.ok &&
+            fields.fields.length > 0 && {
+              fieldSchema: JSON.stringify({ fields: fields.fields }) as unknown as BucketSchema,
+            }),
         },
         {}
       );
@@ -548,6 +573,7 @@ async function executeToolCallInner(
           title,
           status: finalStatus,
           completedAt: finalStatus === ITEM_STATUS.completed ? new Date() : null,
+          completedBy: finalStatus === ITEM_STATUS.completed ? userId : null,
           ...dueOn(deadline, clock),
           ...initialReminderState(deadline, clock),
           reminderOffsets: reminders.value,
@@ -597,6 +623,7 @@ async function executeToolCallInner(
         recurring?: string | null;
         status?: string;
         completedAt?: Date | null;
+        completedBy?: number | null;
         properties?: string | null;
         assigneeId?: number | null;
       } = { updatedAt: new Date() };
@@ -660,10 +687,13 @@ async function executeToolCallInner(
         const statusName = String(args.status).trim();
         if (!SETTABLE_ITEM_STATUSES.includes(statusName)) return invalidStatusError(statusName);
         updates.status = statusName;
-        if (statusName === ITEM_STATUS.completed && item.status !== ITEM_STATUS.completed)
+        if (statusName === ITEM_STATUS.completed && item.status !== ITEM_STATUS.completed) {
           updates.completedAt = new Date();
-        else if (statusName !== ITEM_STATUS.completed && item.status === ITEM_STATUS.completed)
+          updates.completedBy = userId;
+        } else if (statusName !== ITEM_STATUS.completed && item.status === ITEM_STATUS.completed) {
           updates.completedAt = null;
+          updates.completedBy = null;
+        }
       }
 
       if (args.properties !== undefined) {
@@ -711,7 +741,7 @@ async function executeToolCallInner(
       const item = await findAccessibleItem(userId, itemId);
       if (!item) return JSON.stringify({ ok: false, error: "Item not found" });
 
-      const newStatus = await toggleItemCompleted(item);
+      const newStatus = await toggleItemCompleted(item, userId);
 
       revalidatePath("/");
       return JSON.stringify({ ok: true, newStatus });

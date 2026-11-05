@@ -297,6 +297,7 @@ export const items = sqliteTable("items", {
     .notNull()
     .default("manual"),
   completedAt: integer("completed_at", { mode: "timestamp" }),
+  completedBy: integer("completed_by").references(() => users.id, { onDelete: "set null" }),
   deletedAt: integer("deleted_at", { mode: "timestamp" }),
   // Who moved it to the trash, so a shared trash can say, null when it isn't known
   deletedBy: integer("deleted_by").references(() => users.id, { onDelete: "set null" }),

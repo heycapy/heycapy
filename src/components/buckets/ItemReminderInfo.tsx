@@ -13,6 +13,10 @@ import { formatShort } from "@/lib/format-date";
 import { otherClock } from "@/lib/timezones/gap";
 import { channelKey } from "@/lib/notifications/channel-key";
 import { PersonAvatar } from "@/components/avatar/PersonAvatar";
+import { Check } from "pixelarticons/react/Check.js";
+import { Close } from "pixelarticons/react/Close.js";
+import { Reload } from "pixelarticons/react/Reload.js";
+import { PixelIcon, type PixelIconComponent } from "@/components/ui/PixelIcon";
 
 const REASONS: Record<NonNullable<Info["reason"]>, string> = {
   completed: "completed",
@@ -29,11 +33,14 @@ const KINDS: Record<NonNullable<NotificationEvent["kind"]>, string> = {
   arrival: "new item",
 };
 
-const OUTCOMES: Record<ChannelOutcome["outcome"], { text: string; className: string }> = {
-  sent: { text: "✓ sent", className: "" },
+const OUTCOMES: Record<
+  ChannelOutcome["outcome"],
+  { text: string; className: string; icon?: PixelIconComponent }
+> = {
+  sent: { text: "sent", className: "", icon: Check },
   sending: { text: "… sending", className: "text-muted-foreground" },
-  retrying: { text: "↻ retrying", className: "text-warning" },
-  failed: { text: "✗ failed", className: "text-destructive" },
+  retrying: { text: "retrying", className: "text-warning", icon: Reload },
+  failed: { text: "failed", className: "text-destructive", icon: Close },
   closed: { text: "– not sent, item was closed first", className: "text-muted-foreground" },
   handedOver: { text: "– not sent, it went to someone else", className: "text-muted-foreground" },
   notSelected: { text: "– not selected for this bucket", className: "text-muted-foreground" },
@@ -176,14 +183,21 @@ export function ItemReminderInfo({ itemId }: { itemId: number }) {
                   <p>
                     {formatShort(event.at)} · {event.kind ? KINDS[event.kind] : "notification"}
                   </p>
-                  {event.channels.map((c) => (
-                    <p
-                      key={channelKey(c)}
-                      className={cn("pl-3 break-words", OUTCOMES[c.outcome].className)}
-                    >
-                      {c.label} {outcomeText(c)}
-                    </p>
-                  ))}
+                  {event.channels.map((c) => {
+                    const icon = OUTCOMES[c.outcome].icon;
+                    return (
+                      <p
+                        key={channelKey(c)}
+                        className={cn("pl-3 break-words", OUTCOMES[c.outcome].className)}
+                      >
+                        {c.label}{" "}
+                        {icon && (
+                          <PixelIcon icon={icon} className="mr-1 inline-block align-text-bottom" />
+                        )}
+                        {outcomeText(c)}
+                      </p>
+                    );
+                  })}
                 </li>
               )
             )}

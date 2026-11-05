@@ -1,7 +1,7 @@
 import { test, expect, type Locator, type Page } from "@playwright/test";
 import Database from "better-sqlite3";
 import { E2E_DATABASE_FILE } from "../helpers/env";
-import { addItem, itemRow } from "../helpers/buckets";
+import { addItem, itemRow, openItemMenu } from "../helpers/buckets";
 import { login, uniqueEmail, uniqueUsername } from "../helpers/login";
 import { giveOwnSmtp } from "../helpers/email";
 import {
@@ -437,6 +437,82 @@ test("today and search show who a shared item is for, like the bucket does", asy
   await expect(search.getByRole("button", { name: forSam })).toContainText(`→ ${sam}`);
   await expect(search.getByRole("button", { name: forMe })).toContainText("→ you");
   await expect(search.getByRole("button", { name: forAnyone })).not.toContainText("→");
+});
+
+test("a shared bucket shows only my items or one member's, says anyone on the rest and who ticked one", async ({
+  page,
+  browser,
+}) => {
+  const {
+    bucketId,
+    code,
+    email: ownerEmail,
+  } = await ownerWithInvite(page, `whose turn ${Date.now()}`);
+  const friend = await browser.newPage();
+  const sam = uniqueUsername("sam");
+  const friendEmail = await joinWithCode(friend, code, sam);
+  await friend.waitForURL(`/?bucket=${bucketId}`);
+  await friend.close();
+  const stamp = Date.now();
+  const forSam = `water the plants ${stamp}`;
+  const forMe = `book the vet ${stamp}`;
+  const forAnyone = `buy bin bags ${stamp}`;
+  addDueItem(bucketId, friendEmail, forSam, friendEmail);
+  addDueItem(bucketId, friendEmail, forMe, ownerEmail);
+  addDueItem(bucketId, friendEmail, forAnyone);
+
+  await page.goto(`/?bucket=${bucketId}`);
+  await expect(itemRow(page, forAnyone)).toContainText("anyone");
+  const filter = page.getByRole("group", { name: "show items for" });
+
+  await filter.getByRole("button", { name: "mine", exact: true }).click();
+  await expect(itemRow(page, forMe)).toBeVisible();
+  await expect(itemRow(page, forSam)).toHaveCount(0);
+  await expect(itemRow(page, forAnyone)).toHaveCount(0);
+
+  await filter.getByRole("button", { name: sam, exact: true }).click();
+  await expect(itemRow(page, forSam)).toBeVisible();
+  await expect(itemRow(page, forMe)).toHaveCount(0);
+
+  await filter.getByRole("button", { name: "all", exact: true }).click();
+  await expect(itemRow(page, forAnyone)).toBeVisible();
+  await expect(page.getByRole("button", { name: /2 people/ })).toBeVisible();
+
+  const db = new Database(E2E_DATABASE_FILE);
+  db.prepare(
+    "update items set status = 'completed', completed_by = (select id from users where email = ?) where title = ?"
+  ).run(friendEmail, forAnyone);
+  db.close();
+  await page.reload();
+  await expect(itemRow(page, forAnyone)).toContainText(`ticked by ${sam}`);
+  await expect(itemRow(page, forAnyone)).not.toContainText("anyone");
+});
+
+test("the item menu assigns a member in one tap, and a second tap gives it back to anyone", async ({
+  page,
+  browser,
+}) => {
+  const { bucketId, code } = await ownerWithInvite(page, `chores ${Date.now()}`);
+  const friend = await browser.newPage();
+  const sam = uniqueUsername("sam");
+  const friendEmail = await joinWithCode(friend, code, sam);
+  await friend.waitForURL(`/?bucket=${bucketId}`);
+  await friend.close();
+  const title = `mow the lawn ${Date.now()}`;
+  addDueItem(bucketId, friendEmail, title);
+
+  await page.goto(`/?bucket=${bucketId}`);
+  await expect(itemRow(page, title)).toContainText("anyone");
+  const menu = await openItemMenu(page, title);
+  const chip = menu.getByRole("group", { name: "assign to" }).getByRole("button", { name: sam });
+  await chip.click();
+  await expect(itemRow(page, title)).toContainText(`→ ${sam}`);
+  await expect(menu).toBeVisible();
+  await expect(chip).toHaveAttribute("aria-pressed", "true");
+
+  await chip.click();
+  await expect(itemRow(page, title)).toContainText("anyone");
+  await expect(chip).toHaveAttribute("aria-pressed", "false");
 });
 
 test("typing @ in the title picks a member in a shared bucket, and does nothing in a solo one", async ({

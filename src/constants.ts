@@ -14,6 +14,10 @@ export const QUICK_DATES = [
   { label: "due tomorrow", days: 1 },
   { label: "due next week", days: 7 },
 ] as const;
+// An item's row says "in 2d" in the normal text colour up to here, muted after
+export const DUE_NEAR_DAYS = 2;
+// Within this many days the row names the weekday, further out the date
+export const DUE_WEEKDAY_DAYS = 6;
 export const WORK_WEEK = [1, 2, 3, 4, 5];
 export const LAST_DAY_OF_MONTH = 31;
 export const TRASH_RETENTION_DAYS = 30;

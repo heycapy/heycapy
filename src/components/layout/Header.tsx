@@ -276,7 +276,7 @@ export function Header({
   const date = useMemo(() => getDate(), []);
 
   return (
-    <header className="flex items-center justify-between px-5 pt-6 pb-2">
+    <header className="mx-auto flex w-full max-w-6xl items-center justify-between px-5 pt-6 pb-2">
       <div className="flex items-center gap-3">
         <span role="img" aria-label="your avatar" className="flex">
           <PersonAvatar userId={userId} avatar={avatar} size={32} />

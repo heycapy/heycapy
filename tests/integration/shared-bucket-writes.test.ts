@@ -6,6 +6,7 @@ import { bucketMembers, items } from "@/lib/db/schema";
 import { ITEM_GONE_ERROR, ITEM_STATUS } from "@/constants";
 import {
   addItemAction,
+  assignItemAction,
   completeItemAction,
   deleteItemAction,
   moveItemAction,
@@ -21,6 +22,7 @@ import {
   seedUser,
   useSchedulerEnvironment,
 } from "./helpers";
+import { completeItem } from "@/lib/reminders/quick-actions";
 
 const session = vi.hoisted(() => ({ userId: 0, email: "" }));
 vi.mock("@/lib/auth/session", async (importOriginal) => ({
@@ -131,6 +133,53 @@ describe("a member changing someone else's item", () => {
     for (const result of results) expect(result).toEqual({ ok: false, error: ITEM_GONE_ERROR });
     expect(await skipOccurrenceAction(itemId)).toEqual({ ok: false, error: "Item not found" });
     expect(await itemOf(itemId)).toEqual(before);
+  });
+});
+
+describe("assigning from the item menu", () => {
+  it("lets a member assign and unassign, but not to someone outside the bucket", async () => {
+    const { owner, friend, stranger, itemId } = await sharedBucket();
+    session.userId = friend;
+    expect(await assignItemAction(itemId, owner)).toEqual({ ok: true });
+    expect((await itemOf(itemId)).assigneeId).toBe(owner);
+
+    expect((await assignItemAction(itemId, stranger)).ok).toBe(false);
+    expect((await itemOf(itemId)).assigneeId).toBe(owner);
+
+    expect(await assignItemAction(itemId, null)).toEqual({ ok: true });
+    expect((await itemOf(itemId)).assigneeId).toBeNull();
+  });
+
+  it("is refused for someone outside the bucket", async () => {
+    const { owner, stranger, itemId } = await sharedBucket();
+    session.userId = stranger;
+    expect((await assignItemAction(itemId, owner)).ok).toBe(false);
+    expect((await itemOf(itemId)).assigneeId).toBeNull();
+  });
+});
+
+describe("who ticked an item", () => {
+  it("is kept on the item, and cleared when it's opened again", async () => {
+    const { owner, friend, itemId } = await sharedBucket();
+    session.userId = friend;
+    await completeItemAction(itemId);
+    expect((await itemOf(itemId)).completedBy).toBe(friend);
+
+    session.userId = owner;
+    await completeItemAction(itemId);
+    expect((await itemOf(itemId)).completedBy).toBeNull();
+  });
+
+  it("is the member who set the status, or pressed done on a reminder", async () => {
+    const { owner, friend, itemId } = await sharedBucket();
+    session.userId = friend;
+    await updateItemAction(itemId, "pay rent", null, ITEM_STATUS.completed);
+    expect((await itemOf(itemId)).completedBy).toBe(friend);
+    await updateItemAction(itemId, "pay rent", null, ITEM_STATUS.active);
+    expect((await itemOf(itemId)).completedBy).toBeNull();
+
+    await completeItem(owner, itemId, "telegram");
+    expect((await itemOf(itemId)).completedBy).toBe(owner);
   });
 });
 

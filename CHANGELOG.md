@@ -2,6 +2,39 @@
 
 all notable changes to heycapy. versions follow [semver](https://semver.org): a patch version (0.3.1) only fixes things, a minor version (0.4.0) adds features. the database migrates itself on start and migrations only go forward, so back up before upgrading (see the README).
 
+## 0.9.0
+
+items show when they're due at a glance, shared buckets show who does what, and the item menu does more in one click.
+
+### new
+
+- a "when" column on the left of every item: "3d late" in red, "today" with the time, "tomorrow" or "in 4d" with the weekday, the full date when the list is wide, "—" for undated items. it's hidden when nothing in the list has a date
+- shared buckets get a bar above the list: "N people" opens the members, and all / mine / one person shows only their items (faces on phones)
+- done items in a shared bucket say who ticked them ("ticked by sam"), from the web, telegram, a reminder's quick action or capy
+- the item menu assigns in one tap: faces of the members (four, then "+n more"), tap again to unassign, and the menu stays open
+- "reminders" in the item menu shows the next one, a failed send, or that no channel works, and opens the history in place
+- on phones, swipe the bucket button in the bottom bar to go to the next or previous place (today first). dots under the name show where you are
+- capy can create a bucket with custom fields, and change the fields of a bucket you own. fields it removes keep their values on items, hidden, and come back if the field does
+
+### changes
+
+- due colours come from your theme, no more fixed orange and yellow
+- "→ you" on your items in plain text, other people's muted, and face only on narrow lists. unassigned items in a shared bucket say "anyone"
+- the item's #id left the row, and the ··· shows when you hover with a mouse
+- the bell on each row is gone. a red ⚠ shows only when a reminder failed to send
+- swiping a row to finish or delete it is touch only, a mouse drag does nothing
+- the date, people and reminders screens of the item menu keep its header and width, with back at the top left
+- on desktop the list, header and banners sit in the middle of the screen instead of stretching to the edges
+- the schema editor refuses two fields with the same key and choice fields without options
+
+### fixes
+
+- the status picker opens under the status dot instead of away from it
+
+### upgrading
+
+- one migration (0046) runs on start and adds who completed an item (`items.completed_by`). items done before the upgrade don't name anyone. back up first, then `docker compose up -d --build` as usual
+
 ## 0.8.2
 
 a small fix release: today and search show who an item is for, and the health check stops naming server details.

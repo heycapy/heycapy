@@ -38,7 +38,7 @@ export async function completeItem(
 ): Promise<void> {
   await db
     .update(items)
-    .set({ status: ITEM_STATUS.completed, completedAt: now, updatedAt: now })
+    .set({ status: ITEM_STATUS.completed, completedAt: now, completedBy: userId, updatedAt: now })
     .where(and(eq(items.id, itemId), inTheirBuckets(userId)));
   await record(userId, itemId, "done", source, now);
   await refreshItemReminders([itemId]);

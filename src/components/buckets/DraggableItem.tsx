@@ -25,6 +25,9 @@ type DraggableItemProps = {
   reminderBadge?: ReminderBadge;
   assignee?: ItemAssignee;
   otherClock?: string;
+  showDue: boolean;
+  shared: boolean;
+  tickedBy?: string;
 };
 
 export function DraggableItem({
@@ -41,6 +44,9 @@ export function DraggableItem({
   reminderBadge,
   assignee,
   otherClock,
+  showDue,
+  shared,
+  tickedBy,
 }: DraggableItemProps) {
   const controls = useDragControls();
 
@@ -80,6 +86,9 @@ export function DraggableItem({
           reminderBadge={reminderBadge}
           assignee={assignee}
           otherClock={otherClock}
+          showDue={showDue}
+          shared={shared}
+          tickedBy={tickedBy}
           onMenu={onMenu}
         />
       </SwipeableRow>

@@ -6,11 +6,12 @@ import { SwipeableRow } from "./SwipeableRow";
 import { completionToggle } from "./completion";
 import { DraggableItem } from "./DraggableItem";
 import { ItemMenu, type MenuAt } from "./ItemMenu";
-import type { ReminderBadge } from "@/lib/reminders/status";
+import type { ListItem, ReminderBadge } from "@/lib/reminders/status";
 import type { items } from "@/lib/db/schema";
 import type { StatusDef, FieldDef } from "@/types/rules";
 import type { BucketMember } from "@/lib/buckets/members";
 import { memberName } from "@/lib/buckets/member-name";
+import { ITEM_STATUS } from "@/constants";
 import { otherClock } from "@/lib/timezones/gap";
 import { itemDeadline } from "@/lib/time";
 
@@ -19,6 +20,7 @@ type Item = typeof items.$inferSelect;
 type ItemListProps = {
   loading: boolean;
   items: Item[];
+  emptyText?: string;
   orderedItemsRef: RefObject<Item[]>;
   draggable: boolean;
   readonly: boolean;
@@ -27,6 +29,8 @@ type ItemListProps = {
   editingItemId: number | null;
   reminderBadges: Record<number, ReminderBadge>;
   members: BucketMember[];
+  shared: boolean;
+  onAssign: (item: Item, assigneeId: number | null) => Promise<boolean>;
   onReorder: (items: Item[]) => void;
   onEdit: (item: Item) => void;
   onStatusChange: (item: Item, status: string) => void;
@@ -37,6 +41,7 @@ type ItemListProps = {
 export function ItemList({
   loading,
   items,
+  emptyText = "no items yet · press + to add one",
   orderedItemsRef,
   draggable,
   readonly,
@@ -45,6 +50,8 @@ export function ItemList({
   editingItemId,
   reminderBadges,
   members,
+  shared,
+  onAssign,
   onReorder,
   onEdit,
   onStatusChange,
@@ -56,7 +63,7 @@ export function ItemList({
   if (loading || items.length === 0) {
     return (
       <p className="text-muted-foreground px-4 py-6 text-center font-mono text-xs">
-        {loading ? "loading..." : "no items yet · press + to add one"}
+        {loading ? "loading..." : emptyText}
       </p>
     );
   }
@@ -82,6 +89,13 @@ export function ItemList({
     return member && itemAssignee(member);
   };
 
+  const showDue = items.some((item) => item.deadline);
+  const tickedBy = (item: Item) => {
+    if (!shared || item.status !== ITEM_STATUS.completed) return undefined;
+    const member = members.find((m) => m.userId === item.completedBy);
+    return member && (member.isYou ? "you" : memberName(member));
+  };
+
   const rowProps = (item: Item) => ({
     item,
     statuses,
@@ -93,14 +107,21 @@ export function ItemList({
     reminderBadge: reminderBadges[item.id],
     assignee: assigneeOf(item),
     otherClock: clockHint(item),
+    showDue,
+    shared,
+    tickedBy: tickedBy(item),
     onMenu: (at: MenuAt) => setMenu({ item, at }),
   });
 
+  const menuItem: ListItem | undefined = menu?.item;
   const menuElement = menu && (
     <ItemMenu
       item={menu.item}
       at={menu.at}
       readonly={readonly}
+      reminderBadge={reminderBadges[menu.item.id]}
+      nextReminderAt={menuItem?.nextReminderAt}
+      assign={shared ? { members, onAssign: (userId) => onAssign(menu.item, userId) } : undefined}
       completeLabel={completionToggle(menu.item.status, statuses).label}
       onComplete={() =>
         onStatusChange(menu.item, completionToggle(menu.item.status, statuses).next)

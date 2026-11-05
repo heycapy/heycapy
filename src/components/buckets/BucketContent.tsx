@@ -18,6 +18,10 @@ import { parseFields } from "./fields";
 import { useLayoutStore } from "@/store/layout";
 import { useUIStore } from "@/store/ui";
 import { placesOf } from "@/lib/timezones/gap";
+import { toast } from "sonner";
+import { assignItemAction } from "@/app/(app)/actions";
+import { memberName } from "@/lib/buckets/member-name";
+import { MembersBar, type MemberFilter } from "./MembersBar";
 
 type BucketContentProps = {
   bucket: ViewerBucket;
@@ -48,6 +52,17 @@ export function BucketContent({ bucket, accentColor, addItemRef }: BucketContent
   const members = useBucketMembers(bucket.id, editor.dialogProps.open);
   const membersRequested = useUIStore((s) => s.membersRequested);
   const clearMembersRequest = useUIStore((s) => s.clearMembersRequest);
+  const [filter, setFilter] = useState<MemberFilter>("all");
+  const shared = members.length > 1;
+  const filtered =
+    typeof filter === "number" ? members.find((m) => m.userId === filter) : undefined;
+  const activeFilter = shared && (typeof filter !== "number" || filtered) ? filter : "all";
+  const assigneeShown =
+    activeFilter === "mine" ? members.find((m) => m.isYou)?.userId : activeFilter;
+  const shownItems =
+    activeFilter === "all"
+      ? list.orderedItems
+      : list.orderedItems.filter((i) => i.assigneeId === assigneeShown);
   const openTab: SettingsTab | null = settingsTab ?? (membersRequested ? "members" : null);
   useEffect(() => {
     addItemRef.current = editor.startAdding;
@@ -90,6 +105,15 @@ export function BucketContent({ bucket, accentColor, addItemRef }: BucketContent
         </div>
       </div>
 
+      {shared && (
+        <MembersBar
+          members={members}
+          filter={activeFilter}
+          onFilter={setFilter}
+          onOpenMembers={() => setSettingsTab("members")}
+        />
+      )}
+
       <TimezonesNotice members={members} />
 
       <RemindersOffNotice
@@ -98,12 +122,25 @@ export function BucketContent({ bucket, accentColor, addItemRef }: BucketContent
         onSetUp={() => setSettingsTab("notifications")}
       />
 
-      <div className="border-border overflow-hidden border-y-2 sm:mx-4 sm:border-x-2 sm:shadow-[2px_2px_0_var(--border)]">
+      <div className="border-border @container overflow-hidden border-y-2 sm:mx-4 sm:border-x-2 sm:shadow-[2px_2px_0_var(--border)]">
         <ItemList
           loading={list.loading}
-          items={list.orderedItems}
+          items={shownItems}
+          emptyText={
+            activeFilter === "all"
+              ? undefined
+              : `nothing assigned to ${filtered ? memberName(filtered) : "you"}`
+          }
           orderedItemsRef={list.orderedItemsRef}
-          draggable={rules.drag === true && rules.sortBy === "manual"}
+          // A filtered list is only part of the order, so dragging in it would scramble the rest
+          draggable={rules.drag === true && rules.sortBy === "manual" && activeFilter === "all"}
+          shared={shared}
+          onAssign={async (item, assigneeId) => {
+            const result = await assignItemAction(item.id, assigneeId);
+            if (!result.ok) toast.error(result.error);
+            await list.refetch();
+            return result.ok;
+          }}
           readonly={readonly}
           statuses={statuses}
           fields={fields}

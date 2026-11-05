@@ -1,11 +1,9 @@
-import { Bell } from "pixelarticons/react/Bell.js";
-import { BellOff } from "pixelarticons/react/BellOff.js";
 import { MoreHorizontal } from "pixelarticons/react/MoreHorizontal.js";
 import { MoreVertical } from "pixelarticons/react/MoreVertical.js";
 import { WarningDiamond } from "pixelarticons/react/WarningDiamond.js";
-import { PixelIcon, type PixelIconComponent } from "@/components/ui/PixelIcon";
-import { formatShort, formatShortTime } from "@/lib/format-date";
-import { ITEM_STATUS, isClosedStatus } from "@/constants";
+import { PixelIcon } from "@/components/ui/PixelIcon";
+import { formatShortTime } from "@/lib/format-date";
+import { ITEM_STATUS } from "@/constants";
 import { ITEM_HIGHLIGHT_MS } from "./constants";
 import { StatusPicker, type StatusAnchor } from "./StatusPicker";
 import { useEffect, useRef, useState } from "react";
@@ -16,13 +14,13 @@ import type { ListItem, ReminderBadge } from "@/lib/reminders/status";
 import { ReminderInfoDialog } from "./ReminderInfoDialog";
 import type { MenuAt } from "./ItemMenu";
 import { pendingRemindAgainAt } from "@/lib/reminders/remind-again";
-import { relativeTime } from "@/lib/items/relative-day";
 import { itemDeadline } from "@/lib/time";
 import { parseRecurring } from "@/lib/items/occurrence";
 import { repeatLabel } from "@/lib/items/repeat-label";
 import { PersonAvatar } from "@/components/avatar/PersonAvatar";
+import { ItemDue } from "./ItemDue";
 
-export type ItemAssignee = { userId: number; name: string; avatar: string | null };
+export type ItemAssignee = { userId: number; name: string; avatar: string | null; isYou: boolean };
 
 type ItemRow = ListItem;
 
@@ -40,19 +38,18 @@ type ItemRowProps = {
   // The time on another clock that matters for this item, e.g. "9am for Sam"
   otherClock?: string;
   bucket?: { name: string; color: string };
+  // Off when no item in the list has a date, so a list of notes has no empty column
+  showDue?: boolean;
+  // A bucket with more than one member says "anyone" on items nobody is assigned to
+  shared?: boolean;
+  // Who completed it, named in shared buckets
+  tickedBy?: string;
   onMenu?: (at: MenuAt) => void;
 };
 
 function getRecurringFrequency(raw: string | null): string | null {
   const config = parseRecurring(raw);
   return config?.enabled ? repeatLabel(config) : null;
-}
-
-function daysLeftColor(rel: string): string {
-  const d = parseInt(rel);
-  if (d <= 2) return "text-orange-500";
-  if (d <= 5) return "text-yellow-500";
-  return "text-muted-foreground";
 }
 
 function getShowInRowBadges(
@@ -87,24 +84,10 @@ function getShowInRowBadges(
     });
 }
 
-const REMINDER_ICON: Record<ReminderBadge, { icon: PixelIconComponent; className: string }> = {
-  upcoming: { icon: Bell, className: "text-muted-foreground" },
-  noChannel: { icon: BellOff, className: "text-muted-foreground" },
-  failed: { icon: WarningDiamond, className: "text-warning" },
-  history: { icon: Bell, className: "text-muted-foreground/50" },
-};
-
 function remindAgainLabel(item: ItemRow): string | null {
   const now = new Date();
   const at = pendingRemindAgainAt(item, now);
   return at ? `⏰ again ${formatShortTime(at, now)}` : null;
-}
-
-function reminderLabel(badge: ReminderBadge, next: Date | null): string {
-  if (badge === "failed") return "reminder failed";
-  if (badge === "noChannel") return "no reminder";
-  if (badge === "history") return "reminder history";
-  return next ? `reminder ${formatShort(next)}` : "reminder";
 }
 
 export function ItemRow({
@@ -120,12 +103,15 @@ export function ItemRow({
   assignee,
   otherClock,
   bucket,
+  showDue = true,
+  shared = false,
+  tickedBy,
   onMenu,
 }: ItemRowProps) {
   const [pickerAnchor, setPickerAnchor] = useState<StatusAnchor | null>(null);
   const [reminderOpen, setReminderOpen] = useState(false);
-  const reminderIcon = reminderBadge ? REMINDER_ICON[reminderBadge].icon : null;
-  const dotRef = useRef<HTMLButtonElement>(null);
+  // The dot itself, not its button: the button is as tall as the row
+  const dotRef = useRef<HTMLSpanElement>(null);
   const rowRef = useRef<HTMLDivElement>(null);
   const anchor = `item-${item.id}`;
   const [highlighted, setHighlighted] = useState(() => window.location.hash === `#${anchor}`);
@@ -138,14 +124,41 @@ export function ItemRow({
     return () => clearTimeout(fade);
   }, [highlighted]);
   const due = item.deadline ? itemDeadline(item.deadline, item.deadlineTimezone) : null;
-  const rel =
-    due && !isClosedStatus(item.status) ? relativeTime(due.at, undefined, due.allDay) : null;
   const isCompleted = item.status === ITEM_STATUS.completed;
   const isMissed = item.status === ITEM_STATUS.missed;
   const remindAgain = remindAgainLabel(item);
   const recurringFreq = getRecurringFrequency(item.recurring);
   const dotColor = statuses.find((s) => s.name === item.status)?.color ?? "var(--muted-foreground)";
   const badges = fields ? getShowInRowBadges(fields, item.properties) : [];
+  const meta = [
+    otherClock && <span key="clock">({otherClock})</span>,
+    assignee && (
+      <span key="assignee" className={cn(assignee.isYou && "text-foreground")}>
+        →{" "}
+        <PersonAvatar
+          userId={assignee.userId}
+          avatar={assignee.avatar}
+          className={cn("mr-1 inline-block align-text-bottom", !assignee.isYou && "@max-lg:mr-0")}
+        />
+        {/* Narrow lists show other people by their face only; "you" keeps its word */}
+        <span className={cn(!assignee.isYou && "@max-lg:sr-only")}>{assignee.name}</span>
+      </span>
+    ),
+    tickedBy && <span key="ticked">ticked by {tickedBy}</span>,
+    shared && !assignee && !tickedBy && (
+      <span key="anyone" className="text-muted-foreground/60">
+        anyone
+      </span>
+    ),
+    bucket && (
+      <span key="bucket" className="flex items-center gap-1">
+        <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: bucket.color }} />
+        {bucket.name}
+      </span>
+    ),
+    recurringFreq && <span key="repeat">↺ {recurringFreq}</span>,
+    item.notifiedAt && <span key="notified">notified</span>,
+  ].filter((part) => !!part);
 
   function openPicker() {
     if (!dotRef.current) return;
@@ -158,7 +171,7 @@ export function ItemRow({
       ref={rowRef}
       id={anchor}
       className={cn(
-        "flex items-stretch gap-0 px-3 transition-colors duration-1000",
+        "group/row flex items-stretch gap-0 px-3 transition-colors duration-1000",
         highlighted && "bg-primary/15",
         isEditing && "bg-muted/20",
         menuOpen && "bg-card duration-0",
@@ -176,7 +189,6 @@ export function ItemRow({
       )}
 
       <button
-        ref={dotRef}
         onClick={onStatusChange ? openPicker : undefined}
         aria-label={`status: ${item.status}`}
         className={cn(
@@ -185,6 +197,7 @@ export function ItemRow({
         )}
       >
         <span
+          ref={dotRef}
           className={cn(
             "h-2 w-2 rounded-full transition-opacity",
             onStatusChange && "hover:opacity-60"
@@ -208,103 +221,56 @@ export function ItemRow({
 
       <button
         onClick={() => onEditStart?.()}
-        className="min-w-0 flex-1 overflow-hidden py-2.5 text-left"
+        className="flex min-w-0 flex-1 items-center gap-3 py-2.5 text-left"
       >
-        <span
-          className={cn(
-            "block truncate text-sm",
-            isCompleted && "text-muted-foreground line-through"
-          )}
-        >
-          {item.title}
-        </span>
-        {badges.length > 0 && (
-          <span className="mt-0.5 flex flex-wrap gap-1">
-            {badges.map((b) => (
-              <span
-                key={b.label}
-                className="border-border text-muted-foreground border px-1 py-1 font-mono text-[11px] [text-box:trim-both_cap_alphabetic]"
-              >
-                {b.label}: {b.value}
-              </span>
-            ))}
+        <span className="min-w-0 flex-1">
+          <span
+            className={cn(
+              "block truncate text-sm",
+              isCompleted && "text-muted-foreground line-through"
+            )}
+          >
+            {item.title}
           </span>
-        )}
-        <span className="mt-0.5 flex flex-wrap items-center gap-x-1 gap-y-0.5 font-mono text-xs *:whitespace-nowrap">
-          <span className="text-muted-foreground/60">#{item.id}</span>
-          {assignee && (
-            <span className="text-muted-foreground">
-              →{" "}
-              <PersonAvatar
-                userId={assignee.userId}
-                avatar={assignee.avatar}
-                className="mr-1 inline-block align-text-bottom"
-              />
-              {assignee.name}
+          {badges.length > 0 && (
+            <span className="mt-0.5 flex flex-wrap gap-1">
+              {badges.map((b) => (
+                <span
+                  key={b.label}
+                  className="border-border text-muted-foreground border px-1 py-1 font-mono text-[11px] [text-box:trim-both_cap_alphabetic]"
+                >
+                  {b.label}: {b.value}
+                </span>
+              ))}
             </span>
           )}
-          {bucket && (
-            <span className="text-muted-foreground flex items-center gap-1">
-              ·
-              <span
-                className="h-1.5 w-1.5 rounded-full"
-                style={{ backgroundColor: bucket.color }}
-              />
-              {bucket.name}
+          {meta.length > 0 && (
+            <span className="text-muted-foreground mt-0.5 flex flex-wrap items-center gap-x-1 gap-y-0.5 font-mono text-xs *:whitespace-nowrap">
+              {meta.map((part, i) => (
+                <span key={part.key} className="flex items-center gap-1">
+                  {i > 0 && <span aria-hidden>·</span>}
+                  {part}
+                </span>
+              ))}
             </span>
           )}
-          {bucket && !item.deadline && <span className="text-muted-foreground">· no date</span>}
-          {isMissed && <span className="text-warning">· ⏭ missed</span>}
-          {(item.deadline ?? item.notifiedAt) && (
-            <>
-              {due && (
-                <>
-                  <span className="text-muted-foreground">·</span>
-                  <span
-                    className={cn(
-                      rel === "overdue"
-                        ? "bg-destructive/15 text-destructive px-1"
-                        : rel === "today"
-                          ? "font-medium text-(--status-on-hold)"
-                          : "text-muted-foreground"
-                    )}
-                  >
-                    {formatShort(due.at, due.allDay)}
-                    {rel === "today" ? " · today" : rel === "overdue" ? " · overdue" : ""}
-                  </span>
-                  {otherClock && <span className="text-muted-foreground">({otherClock})</span>}
-                </>
-              )}
-              {recurringFreq && <span className="text-muted-foreground">· ↺ {recurringFreq}</span>}
-              {item.notifiedAt && <span className="text-muted-foreground">· notified</span>}
-            </>
+          {remindAgain && (
+            <span className="text-foreground/80 mt-0.5 block font-mono text-xs">{remindAgain}</span>
           )}
         </span>
-        {remindAgain && (
-          <span className="text-foreground/80 mt-0.5 block font-mono text-xs">{remindAgain}</span>
-        )}
+        {showDue && <ItemDue due={due} status={item.status} />}
       </button>
 
-      {rel && rel !== "overdue" && rel !== "today" && (
-        <span
-          className={cn("flex shrink-0 items-center pl-2 font-mono text-xs", daysLeftColor(rel))}
-        >
-          {rel}
-        </span>
-      )}
-
-      {reminderBadge && reminderIcon && (
+      {/* Only a failed send shows in the row; everything else about reminders is in the menu */}
+      {reminderBadge === "failed" && (
         <button
           type="button"
           onClick={() => setReminderOpen(true)}
-          aria-label={reminderLabel(reminderBadge, item.nextReminderAt ?? null)}
-          title={reminderLabel(reminderBadge, item.nextReminderAt ?? null)}
-          className={cn(
-            "flex shrink-0 items-center pl-2 transition-opacity hover:opacity-70",
-            REMINDER_ICON[reminderBadge].className
-          )}
+          aria-label="reminder failed"
+          title="reminder failed"
+          className="text-destructive flex shrink-0 items-center pl-2 transition-opacity hover:opacity-70"
         >
-          <PixelIcon icon={reminderIcon} />
+          <PixelIcon icon={WarningDiamond} />
         </button>
       )}
       {onMenu && (
@@ -315,7 +281,12 @@ export function ItemRow({
             onMenu({ x: rect.left, top: rect.top, bottom: rect.bottom });
           }}
           aria-label="item menu"
-          className="text-muted-foreground hover:text-foreground -mr-3 flex shrink-0 items-center px-3 transition-colors"
+          className={cn(
+            "text-muted-foreground hover:text-foreground -mr-3 flex shrink-0 items-center px-3 transition-[color,opacity]",
+            // Mouse users see it on hover, touch screens always; right-click and long-press open it too
+            !menuOpen &&
+              "[@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover/row:opacity-100 [@media(hover:hover)]:focus-visible:opacity-100"
+          )}
         >
           <PixelIcon icon={MoreHorizontal} />
         </button>

@@ -1,6 +1,13 @@
 import { test, expect, type Page } from "@playwright/test";
 import { authState } from "../helpers/auth";
-import { createAndSelectBucket, itemRow, uniqueName } from "../helpers/buckets";
+import {
+  createAndSelectBucket,
+  itemRow,
+  itemRowContainer,
+  openItemMenu,
+  openReminderDetails,
+  uniqueName,
+} from "../helpers/buckets";
 import { field, modal, openSettings, option, saveSettings, switchTab } from "../helpers/settings";
 import { daysFromNow, enableWebhook, postItem } from "../helpers/webhook";
 
@@ -14,33 +21,35 @@ async function addDatedItem(page: Page, title: string): Promise<void> {
   await expect(itemRow(page, title)).toBeVisible();
 }
 
-function reminderDialog(page: Page, title: string) {
-  return modal(page, new RegExp(`^reminder \\[${title}\\]$`));
-}
-
 test.beforeEach(async ({ page }) => {
   await page.goto("/");
   await createAndSelectBucket(page, uniqueName("Reminder Info"));
 });
 
-test("an upcoming reminder is an icon that opens its details", async ({ page }) => {
+test("an upcoming reminder shows in the item menu, which opens its details", async ({ page }) => {
   const title = uniqueName("renew passport");
   await addDatedItem(page, title);
   await expect(itemRow(page, title)).not.toContainText("reminder");
+  await expect(itemRowContainer(page, title).getByRole("button", { name: /reminder/ })).toHaveCount(
+    0
+  );
 
-  await page.getByRole("button", { name: /^reminder / }).click();
-  const dialog = reminderDialog(page, title);
-  const details = dialog.getByRole("region", { name: "reminders" });
+  const menu = await openItemMenu(page, title);
+  const entry = menu.getByRole("button", { name: /^reminders/ });
+  await expect(entry).toContainText(/next \w{3} \d+/);
+  await entry.click();
+  const details = menu.getByRole("region", { name: "reminders" });
   await expect(details).toContainText(/next \w{3} \d+/);
   await expect(details).toContainText(
     "goes to email (push not selected · telegram not selected · ntfy not selected)"
   );
 
-  await dialog.getByRole("button", { name: "[ x ]", exact: true }).click();
-  await expect(dialog).toHaveCount(0);
+  await menu.getByRole("button", { name: "[ back ]", exact: true }).click();
+  await expect(details).toHaveCount(0);
+  await expect(entry).toBeVisible();
 });
 
-test("a bucket without a working channel shows a no-reminder icon", async ({ page }) => {
+test("a bucket without a working channel says so in the item menu", async ({ page }) => {
   const settings = await openSettings(page);
   await switchTab(settings, "notifications");
   await option(field(settings, "channels"), "email").click();
@@ -49,8 +58,12 @@ test("a bucket without a working channel shows a no-reminder icon", async ({ pag
   const title = uniqueName("renew passport");
   await addDatedItem(page, title);
 
-  await page.getByRole("button", { name: "no reminder", exact: true }).click();
-  await expect(reminderDialog(page, title)).toContainText(
+  const menu = await openItemMenu(page, title);
+  await expect(menu.getByRole("button", { name: /^reminders/ })).toContainText(
+    "no working channel"
+  );
+  await menu.getByRole("button", { name: /^reminders/ }).click();
+  await expect(menu.getByRole("region", { name: "reminders" })).toContainText(
     "no reminder — this bucket has no working channel"
   );
 });
@@ -66,8 +79,7 @@ test("a completed item still shows what happened with its reminders", async ({ p
   expect(res.status()).toBe(201);
   await expect(itemRow(page, title)).toBeVisible();
 
-  await page.getByRole("button", { name: "reminder history", exact: true }).click();
-  const details = reminderDialog(page, title).getByRole("region", { name: "reminders" });
+  const details = await openReminderDetails(page, title);
   await expect(details).toContainText("completed");
   await expect(details).not.toContainText("goes to");
   await expect(details).toContainText("nothing sent yet");
@@ -83,12 +95,11 @@ test("the edit dialog no longer shows reminder details", async ({ page }) => {
   await expect(edit.getByRole("region", { name: "reminders" })).toHaveCount(0);
 });
 
-test("a reminder dialog taller than the screen scrolls to its history", async ({ page }) => {
+test("reminder details taller than the screen scroll to their history", async ({ page }) => {
   const title = uniqueName("renew passport");
   await addDatedItem(page, title);
-  await page.getByRole("button", { name: /^reminder / }).click();
+  const details = await openReminderDetails(page, title);
   await page.setViewportSize({ width: 360, height: 170 });
-  const details = reminderDialog(page, title).getByRole("region", { name: "reminders" });
   const history = details.getByText("nothing sent yet");
   await expect(history).toBeAttached();
   await details.hover();
