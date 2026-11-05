@@ -49,9 +49,8 @@ describe("nextDeadlineReminder", () => {
     ).toBe("2026-06-09T13:00:00.000Z");
   });
 
-  it("sends nothing for completed, on-hold, deleted or undated items", () => {
+  it("sends nothing for completed, deleted or undated items", () => {
     expect(nextDeadlineReminder(inputs({ status: "completed" }))).toBeNull();
-    expect(nextDeadlineReminder(inputs({ status: "on hold" }))).toBeNull();
     expect(nextDeadlineReminder(inputs({ deletedAt: new Date() }))).toBeNull();
     expect(nextDeadlineReminder(inputs({ deadline: null }))).toBeNull();
   });

@@ -138,11 +138,9 @@ export const VOICE_NO_SPEECH_ERROR = "Nothing was heard. Try again a bit closer 
 export const OLLAMA_DEFAULT_URL = "https://ollama.yourdomain.com";
 export const NTFY_DEFAULT_URL = "https://ntfy.sh";
 
-// Built-in item statuses, "on hold" pauses reminders until changed
 export const ITEM_STATUS = {
   active: "active",
   completed: "completed",
-  onHold: "on hold",
   missed: "missed",
 } as const;
 
@@ -150,8 +148,9 @@ export const ITEM_STATUS = {
 export const SETTABLE_ITEM_STATUSES: readonly string[] = [
   ITEM_STATUS.active,
   ITEM_STATUS.completed,
-  ITEM_STATUS.onHold,
 ];
+
+export const REMOVED_ON_HOLD_STATUS = "on hold";
 
 // No longer open: done, or a repeating occurrence that passed without being done
 export const CLOSED_ITEM_STATUSES: readonly string[] = [ITEM_STATUS.completed, ITEM_STATUS.missed];

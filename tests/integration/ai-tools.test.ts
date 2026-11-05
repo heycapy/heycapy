@@ -279,15 +279,15 @@ describe("item statuses", () => {
     expect((await savedItem(itemId)).status).toBe("active");
   });
 
-  it("update_item accepts on hold", async () => {
+  it("update_item rejects on hold, which was removed", async () => {
     const userId = await seedUser();
     const bucketId = await seedBucket(userId);
     const itemId = await seedItem(userId, bucketId, { deadline: new Date(T0.getTime() + HOUR) });
 
-    expect(await tool(userId, "update_item", { item_id: itemId, status: "on hold" })).toMatchObject(
-      { ok: true }
-    );
-    expect((await savedItem(itemId)).status).toBe("on hold");
+    const result = await tool(userId, "update_item", { item_id: itemId, status: "on hold" });
+
+    expect(result.ok).toBe(false);
+    expect((await savedItem(itemId)).status).toBe("active");
   });
 });
 

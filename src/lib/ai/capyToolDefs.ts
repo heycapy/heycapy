@@ -188,9 +188,7 @@ export const ITEM_AND_BUCKET_TOOLS: Tool[] = [
         status: {
           type: "string",
           enum: [...SETTABLE_ITEM_STATUSES],
-          description:
-            "Initial status for the item. Defaults to 'active'. " +
-            "'on hold' pauses the item's reminders until its status changes; it's what the user means by snooze, pause or put on hold.",
+          description: "Initial status for the item. Defaults to 'active'.",
         },
         properties: {
           type: "object",
@@ -255,8 +253,7 @@ export const ITEM_AND_BUCKET_TOOLS: Tool[] = [
         status: {
           type: "string",
           enum: [...SETTABLE_ITEM_STATUSES],
-          description:
-            "New status. 'on hold' pauses the item's reminders until its status changes; it's what the user means by snooze, pause or put on hold.",
+          description: "New status.",
         },
         properties: {
           type: ["object", "null"],

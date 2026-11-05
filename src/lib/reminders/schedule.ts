@@ -1,4 +1,4 @@
-import { ITEM_STATUS, isClosedStatus } from "@/constants";
+import { isClosedStatus } from "@/constants";
 import type { MemberChannels, NotificationRules } from "@/types/rules";
 import {
   ALL_DAY_REMINDER_MINS,
@@ -40,13 +40,7 @@ export type ReminderInputs = {
 export type QuietHours = { from: string; to: string };
 
 function canRemind(i: ReminderInputs): i is ReminderInputs & { deadline: Date } {
-  return (
-    i.deadline !== null &&
-    i.deletedAt === null &&
-    i.bucketLive &&
-    !isClosedStatus(i.status) &&
-    i.status !== ITEM_STATUS.onHold
-  );
+  return i.deadline !== null && i.deletedAt === null && i.bucketLive && !isClosedStatus(i.status);
 }
 
 function notBefore(date: Date, floor: Date | null): Date {

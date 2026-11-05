@@ -85,8 +85,7 @@ export type ItemReminderInfo = {
   next: Date | null;
   nextChannels: ChannelDecision[] | null;
   completedAt: Date | null;
-  reason:
-    "completed" | "missed" | "onHold" | "notRecipient" | "noChannel" | "alreadyReminded" | null;
+  reason: "completed" | "missed" | "notRecipient" | "noChannel" | "alreadyReminded" | null;
   remindAgain: { at: Date; source: Action["source"] } | null;
   heldByQuietHours: boolean;
   others: OtherRecipient[];
@@ -270,15 +269,13 @@ export async function getItemReminderInfo(
       ? "completed"
       : item.status === ITEM_STATUS.missed
         ? "missed"
-        : item.status === ITEM_STATUS.onHold
-          ? "onHold"
-          : !mine
-            ? "notRecipient"
-            : !decisions.some((c) => c.state === "send")
-              ? "noChannel"
-              : item.nextReminderAt
-                ? null
-                : "alreadyReminded";
+        : !mine
+          ? "notRecipient"
+          : !decisions.some((c) => c.state === "send")
+            ? "noChannel"
+            : item.nextReminderAt
+              ? null
+              : "alreadyReminded";
 
   const recipients = isClosedStatus(item.status)
     ? []

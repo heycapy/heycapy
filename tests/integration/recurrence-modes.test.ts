@@ -80,15 +80,6 @@ describe("move on if missed", () => {
     expect(rows[1].deadline).toEqual(new Date("2026-03-14T09:00:00Z"));
   });
 
-  it("leaves items on hold alone", async () => {
-    const { bucketId, itemId } = await setup("moveOn");
-    await db.update(items).set({ status: ITEM_STATUS.onHold }).where(eq(items.id, itemId));
-
-    await runSchedulerAt(new Date("2026-03-12T10:00:00Z"));
-
-    expect(await series(bucketId)).toHaveLength(1);
-  });
-
   it("missed occurrences stop reminding and never show in Telegram lists", async () => {
     const api = stubTelegram();
     const { userId, bucketId } = await setup("moveOn");

@@ -48,7 +48,6 @@ export type ItemStatus = string;
 export const DEFAULT_BUCKET_STATUSES: StatusDef[] = [
   { name: ITEM_STATUS.active, color: "#22c55e", isDefault: true },
   { name: ITEM_STATUS.completed, color: "#3b82f6" },
-  { name: ITEM_STATUS.onHold, color: "#f59e0b" },
 ];
 
 export const ITEM_HIGHLIGHT_MS = 3000;

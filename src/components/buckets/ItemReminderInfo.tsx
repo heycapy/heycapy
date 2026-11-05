@@ -20,7 +20,6 @@ import { PixelIcon, type PixelIconComponent } from "@/components/ui/PixelIcon";
 
 const REASONS: Record<NonNullable<Info["reason"]>, string> = {
   completed: "completed",
-  onHold: "no reminders — item is on hold",
   missed: "missed — the next occurrence took its place",
   notRecipient: "no reminders for you — it's assigned to someone else",
   noChannel: "no reminder — this bucket has no working channel",
