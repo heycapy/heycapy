@@ -15,7 +15,7 @@ type Props = {
   streaming: boolean;
   onSend: () => void;
   onStop: () => void;
-  boxed?: boolean;
+  centered?: boolean;
 };
 
 export type ChatInputBarHandle = { focus: () => void };
@@ -27,7 +27,7 @@ function formatTime(seconds: number) {
 }
 
 export const ChatInputBar = forwardRef<ChatInputBarHandle, Props>(function ChatInputBar(
-  { input, setInput, streaming, onSend, onStop, boxed }: Props,
+  { input, setInput, streaming, onSend, onStop, centered }: Props,
   ref
 ) {
   const name = useAssistantName();
@@ -162,94 +162,96 @@ export const ChatInputBar = forwardRef<ChatInputBarHandle, Props>(function ChatI
   const isRecordingOrTranscribing = recording || transcribing;
 
   return (
+    // on a wide screen as tall as the footer next to it, so the two top lines run as one
     <div
       className={cn(
-        "px-3 py-2 transition-colors",
-        boxed ? "border-2" : "border-t-2",
+        "flex flex-col justify-center border-t-2 px-3 py-2 transition-colors md:min-h-[calc(3rem+2px)]",
         recording ? "border-primary" : "border-border"
       )}
     >
-      {isRecordingOrTranscribing ? (
-        // as tall as the mic and send buttons so the bar keeps its height while capy listens
-        <div className="flex min-h-9.5 items-center gap-3 md:min-h-6.5">
-          <div className="flex flex-1 items-center gap-2">
-            {recording ? (
-              <>
-                <span className="text-primary font-pixel animate-[pulse_0.8s_ease-in-out_infinite] text-xs">
-                  ●
+      <div className={cn(centered && "mx-auto w-full max-w-[720px]")}>
+        {isRecordingOrTranscribing ? (
+          // as tall as the mic and send buttons so the bar keeps its height while capy listens
+          <div className="flex min-h-9.5 items-center gap-3 md:min-h-6.5">
+            <div className="flex flex-1 items-center gap-2">
+              {recording ? (
+                <>
+                  <span className="text-primary font-pixel animate-[pulse_0.8s_ease-in-out_infinite] text-xs">
+                    ●
+                  </span>
+                  <span className="text-foreground font-pixel text-xs">
+                    {name} listening... {formatTime(recSeconds)}
+                  </span>
+                </>
+              ) : (
+                <span className="text-muted-foreground font-pixel animate-pulse text-xs">
+                  {name}&apos;s jotting it down...
                 </span>
-                <span className="text-foreground font-pixel text-xs">
-                  {name} listening... {formatTime(recSeconds)}
-                </span>
-              </>
-            ) : (
-              <span className="text-muted-foreground font-pixel animate-pulse text-xs">
-                {name}&apos;s jotting it down...
-              </span>
+              )}
+            </div>
+
+            {recording && (
+              <button
+                onClick={() => mediaRecorderRef.current?.stop()}
+                className="border-primary text-foreground font-pixel shrink-0 border px-1.5 py-0.5 text-[11px] transition-opacity hover:opacity-70"
+              >
+                ■ stop
+              </button>
             )}
           </div>
-
-          {recording && (
+        ) : (
+          <div className="flex items-end gap-2">
+            <textarea
+              ref={inputRef}
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder={`ask ${name}...`}
+              rows={1}
+              disabled={streaming}
+              className="placeholder:text-muted-foreground flex-1 resize-none bg-transparent font-mono text-xs outline-none disabled:opacity-50 md:mb-0.5 md:py-[5px]"
+              style={{ maxHeight: 80 }}
+              onInput={(e) => {
+                const el = e.currentTarget;
+                el.style.height = "auto";
+                el.style.height = `${Math.min(el.scrollHeight, 80)}px`;
+              }}
+            />
             <button
-              onClick={() => mediaRecorderRef.current?.stop()}
-              className="border-primary text-foreground font-pixel shrink-0 border px-1.5 py-0.5 text-[11px] transition-opacity hover:opacity-70"
+              onClick={() => void handleMicClick()}
+              disabled={streaming}
+              title="voice input (ctrl+shift+m)"
+              aria-label="Record voice"
+              className="border-border text-muted-foreground hover:border-foreground hover:text-foreground mb-0.5 shrink-0 border p-2.5 transition-colors disabled:cursor-not-allowed disabled:opacity-40 md:p-1"
             >
-              ■ stop
+              <PixelIcon icon={Mic} />
             </button>
-          )}
-        </div>
-      ) : (
-        <div className="flex items-end gap-2">
-          <textarea
-            ref={inputRef}
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder={`ask ${name}...`}
-            rows={1}
-            disabled={streaming}
-            className="placeholder:text-muted-foreground flex-1 resize-none bg-transparent font-mono text-xs outline-none disabled:opacity-50"
-            style={{ maxHeight: 80 }}
-            onInput={(e) => {
-              const el = e.currentTarget;
-              el.style.height = "auto";
-              el.style.height = `${Math.min(el.scrollHeight, 80)}px`;
-            }}
-          />
-          <button
-            onClick={() => void handleMicClick()}
-            disabled={streaming}
-            title="voice input (ctrl+shift+m)"
-            aria-label="Record voice"
-            className="border-border text-muted-foreground hover:border-foreground hover:text-foreground mb-0.5 shrink-0 border p-2.5 transition-colors disabled:cursor-not-allowed disabled:opacity-40 md:p-1"
-          >
-            <PixelIcon icon={Mic} />
-          </button>
-          {streaming ? (
-            <button
-              onClick={onStop}
-              className="text-destructive border-destructive font-pixel mb-0.5 shrink-0 border px-2.5 py-2.5 text-[11px] transition-opacity hover:opacity-70 md:px-1.5 md:py-0.5 md:text-[11px]"
-              aria-label="Stop"
-            >
-              stop
-            </button>
-          ) : (
-            <button
-              onClick={onSend}
-              disabled={!input.trim()}
-              className={cn(
-                "border-border mb-0.5 shrink-0 border p-2.5 transition-colors md:p-1",
-                input.trim()
-                  ? "bg-foreground text-background"
-                  : "text-muted-foreground cursor-not-allowed"
-              )}
-              aria-label="Send"
-            >
-              <PixelIcon icon={ArrowUp} />
-            </button>
-          )}
-        </div>
-      )}
+            {streaming ? (
+              <button
+                onClick={onStop}
+                className="text-destructive border-destructive font-pixel mb-0.5 shrink-0 border px-2.5 py-2.5 text-[11px] transition-opacity hover:opacity-70 md:px-1.5 md:py-0.5 md:text-[11px]"
+                aria-label="Stop"
+              >
+                stop
+              </button>
+            ) : (
+              <button
+                onClick={onSend}
+                disabled={!input.trim()}
+                className={cn(
+                  "border-border mb-0.5 shrink-0 border p-2.5 transition-colors md:p-1",
+                  input.trim()
+                    ? "bg-foreground text-background"
+                    : "text-muted-foreground cursor-not-allowed"
+                )}
+                aria-label="Send"
+              >
+                <PixelIcon icon={ArrowUp} />
+              </button>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 });

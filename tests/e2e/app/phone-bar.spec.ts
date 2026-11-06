@@ -173,6 +173,15 @@ test("on a wide screen the chat stands beside the list, which moves over for it"
     })
     .toBeLessThanOrEqual(chatLeft);
   await expect.poll(listCentre).toBeLessThan(centredAlone - 100);
+  // the chat's input is the footer's height, so their top lines run as one
+  const topLine = (selector: string, from: string) =>
+    page.evaluate(
+      ([sel, start]) => document.querySelector(start)?.closest(sel)?.getBoundingClientRect().top,
+      [selector, from]
+    );
+  expect(await topLine(".border-t-2", '[placeholder="ask capy..."]')).toBe(
+    await topLine(".sticky", '[data-testid="add-box"]')
+  );
   // there's nothing under it to see, so no minimize, and the shortcut closes it
   await expect(panel.getByRole("button", { name: "Collapse" })).toHaveCount(0);
 

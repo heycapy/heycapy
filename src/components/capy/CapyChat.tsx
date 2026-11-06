@@ -128,7 +128,7 @@ export function CapyChat({ appUrl }: { appUrl: string | null }) {
       streaming={streaming}
       onSend={() => void sendMessage()}
       onStop={stopStreaming}
-      boxed={!isMobile}
+      centered={fullscreen}
     />
   );
 
@@ -142,7 +142,7 @@ export function CapyChat({ appUrl }: { appUrl: string | null }) {
         fullscreen={fullscreen}
         appUrl={appUrl}
       />
-      {isMobile ? inputBar : <div className="px-3 pb-3">{centered(inputBar)}</div>}
+      {inputBar}
     </>
   );
 

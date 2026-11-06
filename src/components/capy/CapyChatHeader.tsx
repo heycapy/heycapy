@@ -3,7 +3,6 @@ import { Minus } from "pixelarticons/react/Minus.js";
 import { Scale } from "pixelarticons/react/Scale.js";
 import { PixelIcon } from "@/components/ui/PixelIcon";
 import { BracketButton } from "@/components/ui/BracketButton";
-import { Sprite } from "./Sprite";
 import { HEADER_H } from "./chatTypes";
 import { useAssistantName } from "./assistant-name";
 import { cn } from "@/lib/utils";
@@ -55,11 +54,7 @@ export function CapyChatHeader({
         </BracketButton>
       )}
 
-      <div className="flex items-center gap-1 pr-1">
-        <Sprite id="capy-idle-blink" size={24} />
-      </div>
-
-      <span className="font-pixel flex-1 truncate text-[11px]">{name}</span>
+      <span className="font-pixel flex-1 truncate pl-1 text-[11px]">{name}</span>
 
       {!fullscreen && (
         <BracketButton

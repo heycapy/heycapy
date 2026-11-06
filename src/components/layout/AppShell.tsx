@@ -128,7 +128,7 @@ export function AppShell({
   }, []);
 
   return (
-    <>
+    <AssistantNameProvider name={assistantName}>
       <PurchaseReturn onPaid={() => setSettingsTab("credits")} />
       <div
         data-chat-docked={chatDocked || undefined}
@@ -181,9 +181,7 @@ export function AppShell({
         onHiddenChange={setGuideHidden}
       />
       <SearchDrawer />
-      <AssistantNameProvider name={assistantName}>
-        <CapyChat appUrl={appUrl} />
-      </AssistantNameProvider>
-    </>
+      <CapyChat appUrl={appUrl} />
+    </AssistantNameProvider>
   );
 }

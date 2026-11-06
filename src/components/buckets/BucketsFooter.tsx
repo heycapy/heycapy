@@ -1,5 +1,6 @@
 import type { CSSProperties, Ref, RefObject } from "react";
-import { Sprite } from "@/components/capy/Sprite";
+import { BracketButton } from "@/components/ui/BracketButton";
+import { useAssistantName } from "@/components/capy/assistant-name";
 import { useLayoutStore } from "@/store/layout";
 import { cn } from "@/lib/utils";
 import type { ViewerBucket } from "@/lib/buckets/access";
@@ -28,6 +29,7 @@ export function BucketsFooter({
 }: BucketsFooterProps) {
   const setChatState = useLayoutStore((s) => s.setChatState);
   const chatOpen = useLayoutStore((s) => s.chatState !== "closed");
+  const assistantName = useAssistantName();
 
   return (
     // the footer is the add box: no frame of its own. Phones keep room below for the screen's
@@ -52,18 +54,14 @@ export function BucketsFooter({
         ) : (
           <span className="flex-1" />
         )}
-        <button
+        <BracketButton
           onClick={() => setChatState(chatOpen ? "closed" : "open")}
           aria-label="chat with capy"
           aria-expanded={chatOpen}
-          className={cn(
-            "flex size-12 shrink-0 items-center justify-center overflow-hidden transition-transform active:scale-95",
-            chatOpen && "bg-card"
-          )}
+          className={cn("h-12 max-w-32 shrink-0 px-1", chatOpen && "text-foreground")}
         >
-          {/* the sheet's frame is mostly empty space, at 1:1 capy fills the square */}
-          <Sprite id="capy-idle-blink" size={64} />
-        </button>
+          <span className="truncate">{assistantName}</span>
+        </BracketButton>
         {/* the item form grows up over the whole row, capy too, as wide as the list */}
         <div ref={panelSlotRef} className="absolute inset-x-2.5 bottom-0 sm:inset-x-4" />
       </div>
