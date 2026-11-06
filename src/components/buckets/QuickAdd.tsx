@@ -54,11 +54,9 @@ export function QuickAdd({ bucket, inputRef, onAdded, onExpand }: QuickAddProps)
 
   const text = draft.title;
   const bucketName = bucket.icon ? `${bucket.icon} ${bucket.name}` : bucket.name;
-  // the form checks required fields, the box can't fill them
   const needsForm = parseFields(bucket.fieldSchema).some(
     (f) => f.validation?.required && isBlank(draft.properties[f.key])
   );
-  // a date picked in the form wins over words in the title, as it does in the form
   const datePicked = draft.deadline !== null;
   const typedDate = datePicked ? null : findTitleDate(text);
   const assignee = members.find((m) => m.userId === draft.assigneeId);
@@ -131,7 +129,6 @@ export function QuickAdd({ bucket, inputRef, onAdded, onExpand }: QuickAddProps)
       data-testid="add-box"
       className="group/add relative flex min-h-12 min-w-0 flex-1 flex-col justify-center"
     >
-      {/* while typing, the footer's top line takes the bucket colour above the box only */}
       <span
         aria-hidden
         className="absolute inset-x-0 -top-0.5 hidden h-0.5 bg-(--accent) group-focus-within/add:block"
@@ -194,7 +191,6 @@ export function QuickAdd({ bucket, inputRef, onAdded, onExpand }: QuickAddProps)
           autoComplete="off"
           className="placeholder:text-muted-foreground/50 min-w-0 flex-1 bg-transparent py-1 font-mono text-base outline-none sm:text-sm"
         />
-        {/* on the row, not under it, so the footer keeps its height */}
         {hint.length > 0 && (
           <span
             data-testid="quick-add-hint"

@@ -217,8 +217,6 @@ export const bucketMembers = sqliteTable(
       .default("member"),
     // Where this person's reminders for the bucket go, see MemberChannels
     channels: text("channels").notNull().default('{"medium":[],"webhooks":[]}'),
-    // Where this person put the bucket among their tabs; null until they move one, then it sits after
-    // the ones they placed, in the order they were made
     sortOrder: integer("sort_order"),
     createdAt: integer("created_at", { mode: "timestamp" })
       .notNull()

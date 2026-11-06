@@ -19,3 +19,36 @@ export async function touchSwipe(page: Page, target: Locator, dx: number) {
   await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
   await cdp.detach();
 }
+
+export async function fakeKeyboard(page: Page) {
+  await page.addInitScript(() => {
+    let keyboard = 0;
+    const visible = new EventTarget();
+    Object.defineProperties(visible, {
+      offsetTop: { get: () => 0 },
+      height: { get: () => window.innerHeight - keyboard },
+    });
+    Object.defineProperty(window, "visualViewport", { value: visible });
+    Object.assign(window, {
+      setKeyboard: (px: number) => {
+        keyboard = px;
+        visible.dispatchEvent(new Event("resize"));
+      },
+    });
+  });
+}
+
+export async function setKeyboard(page: Page, px: number) {
+  await page.evaluate(
+    (height) => (window as unknown as { setKeyboard: (h: number) => void }).setKeyboard(height),
+    px
+  );
+}
+
+export async function dragDown(page: Page, handle: Locator, dy: number) {
+  const { x, y } = await centerOf(handle);
+  await page.mouse.move(x, y);
+  await page.mouse.down();
+  await page.mouse.move(x, y + dy, { steps: 10 });
+  await page.mouse.up();
+}

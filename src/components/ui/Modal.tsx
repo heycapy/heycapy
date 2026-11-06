@@ -75,7 +75,6 @@ export function Modal({
               asChild
               forceMount
               aria-describedby={undefined}
-              // beside the list it stays while the list is used; only its [x] or Escape close it
               onInteractOutside={side ? (e) => e.preventDefault() : undefined}
               onEscapeKeyDown={(e) => {
                 // Escape closes an open picker or suggestion list first, not the whole modal
@@ -84,7 +83,6 @@ export function Modal({
                   document.activeElement?.closest(HANDLES_ESCAPE_SELECTOR)
                 )
                   e.preventDefault();
-                // beside the list, Escape typed in the list (the add box, an item's panel) is the list's
                 if (side && !document.activeElement?.closest(MODAL_PANEL_SELECTOR))
                   e.preventDefault();
               }}
@@ -131,7 +129,6 @@ export function ModalTitle({ className, children }: ModalTitleProps) {
   );
 }
 
-// plain: the row the docked chat has, for a panel docked in the same column
 type ModalHeaderProps = { title: ReactNode; onClose: () => void; plain?: boolean };
 
 export function ModalHeader({ title, onClose, plain }: ModalHeaderProps) {

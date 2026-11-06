@@ -10,11 +10,11 @@ import {
   newItemForm,
   selectBucket,
   uniqueName,
+  untilStill,
 } from "../helpers/buckets";
 
 test.use({ storageState: authState("drafts") });
 
-// Wednesday Oct 7 2026, 8am
 const WEDNESDAY = new Date(2026, 9, 7, 8, 0);
 
 function clearButton(page: Page) {
@@ -141,6 +141,7 @@ test("on a wide screen the form grows out of the add box and folds back on a cli
 
   await addItemButton(page).click();
   await expect(title).toHaveValue("cat wants more treats");
+  await expect(title).toBeFocused();
   await page.keyboard.press("Escape");
   await expect(form).toBeHidden();
   await expect(addBox(page)).toBeFocused();
@@ -273,7 +274,6 @@ test("Enter in the form's title starts a new line, and it grows to 4 lines befor
   await expect(form).toBeHidden();
   const row = page.getByRole("button", { name: new RegExp(first) });
   await expect(row).toBeVisible();
-  // the row keeps the lines too, as many as the form shows
   const lines = row.locator("span.block.truncate");
   await expect(lines).toHaveText([first, "treats", "greens", "a box …"]);
 });
@@ -301,7 +301,6 @@ test("a click on the list only folds the open panel away, it doesn't open what's
   await itemRow(page, second).click();
   await expect(edit).toBeHidden();
 
-  // the next click works as usual
   await itemRow(page, second).click();
   await expect(edit.locator("textarea").first()).toHaveValue(second);
 });
@@ -310,14 +309,13 @@ test("the form's height follows a section opening in it, instead of jumping", as
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.goto("/");
   await createAndSelectBucket(page, uniqueName("Grow"));
-  // repeat is offered once there's a date
   await addBox(page).fill("cat wants more treats tomorrow");
   await addItemButton(page).click();
   const form = newItemForm(page);
   await expect(form.locator("textarea").first()).toBeFocused();
+  await untilStill(page, form);
   const before = (await form.boundingBox())?.height ?? 0;
 
-  // every frame's height from the click on, until it settles
   const heights = form.evaluate((el) => {
     const seen: number[] = [];
     return new Promise<number[]>((resolve) => {

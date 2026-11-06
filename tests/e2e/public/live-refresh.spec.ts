@@ -97,7 +97,6 @@ test("a member's new username and avatar show up on the others' open screens", a
   const memberEmail = uniqueEmail("e2e-live-names-member");
   await login(member, memberEmail);
   const bucketId = shareBucket(ownerEmail, memberEmail);
-  // usernames are unique across accounts, and these tests run side by side
   const before = uniqueUsername("before");
   const after = uniqueUsername("after");
   const title = `water plants ${Date.now()}`;

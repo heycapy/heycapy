@@ -1,6 +1,14 @@
 import { test, expect, type Page } from "@playwright/test";
 import { authState } from "../helpers/auth";
-import { addBox, addItemButton, itemRow, openBucketOnPhone, uniqueName } from "../helpers/buckets";
+import {
+  addBox,
+  addItemButton,
+  itemRow,
+  openBucketOnPhone,
+  uniqueName,
+  untilStill,
+} from "../helpers/buckets";
+import { dragDown, fakeKeyboard, setKeyboard } from "../helpers/touch";
 
 test.use({ storageState: authState("quick-add"), hasTouch: true });
 
@@ -42,25 +50,45 @@ test("on a phone the add box adds from the bottom bar without leaving the list",
   await expect(addBox(page)).toBeFocused();
 });
 
-test("the add box's expand opens a full screen page with cancel and add at the bottom", async ({
+test("the add box's expand opens a drawer: title and add on one row at the bottom, dragged down to close", async ({
   page,
 }) => {
   await openBucketOnPhone(page, uniqueName("Quick"));
   await expect(addItemButton(page)).toHaveCount(1);
+  const screen = page.viewportSize() ?? { width: 0, height: 0 };
 
+  const scrolled = () => page.locator("main").evaluate((el) => el.scrollTop);
+  const before = await scrolled();
   expect(await tapAndReadFocus(page, () => addItemButton(page).tap())).toBe("TEXTAREA");
   const addForm = addPage(page);
   const title = addForm.locator("textarea");
   const add = addForm.getByRole("button", { name: "[ add ]", exact: true });
   await expect(title).toBeFocused();
-  await expect(add).toBeVisible();
-  await expect(title).toBeVisible();
-  const addBox = await add.boundingBox();
-  const titleBox = await title.boundingBox();
-  expect(addBox?.y ?? 0).toBeGreaterThan(titleBox?.y ?? Infinity);
+  expect(await scrolled()).toBe(before);
+  await untilStill(page, addForm);
+  await expect
+    .poll(async () => {
+      const box = await addForm.boundingBox();
+      return [box?.x, box?.width];
+    })
+    .toEqual([0, screen.width]);
+  const addAt = await add.boundingBox();
+  const titleAt = await title.boundingBox();
+  const addMiddle = (addAt?.y ?? 0) + (addAt?.height ?? 0) / 2;
+  expect(addMiddle).toBeGreaterThan(titleAt?.y ?? Infinity);
+  expect(addMiddle).toBeLessThan((titleAt?.y ?? 0) + (titleAt?.height ?? 0));
+  expect((addAt?.y ?? 0) + (addAt?.height ?? 0)).toBeGreaterThan(screen.height - 100);
+  await expect(addForm.getByText("x", { exact: true })).not.toBeInViewport();
 
-  await addForm.getByRole("button", { name: "[ cancel ]", exact: true }).tap();
-  await expect(addForm).not.toBeVisible();
+  await title.fill("cat wants more treats");
+  await dragDown(page, addForm.getByRole("heading", { name: "new item" }), 200);
+  await expect(addForm).toBeHidden();
+  await expect(addBox(page)).toHaveValue("cat wants more treats");
+
+  await addItemButton(page).tap();
+  await expect(title).toBeFocused();
+  await page.touchscreen.tap(screen.width / 2, 160);
+  await expect(addForm).toBeHidden();
 
   await addItemButton(page).tap();
   const name = uniqueName("first");
@@ -70,11 +98,53 @@ test("the add box's expand opens a full screen page with cancel and add at the b
   await expect(itemRow(page, name)).toBeVisible();
 
   expect(await tapAndReadFocus(page, () => itemRow(page, name).tap())).toBe("TEXTAREA");
-  const editTitle = page.getByRole("dialog", { name: "edit item" }).locator("textarea");
+  const edit = page.getByRole("dialog", { name: "edit item" });
+  const editTitle = edit.locator("textarea");
   await expect(editTitle).toBeFocused();
   expect(await editTitle.evaluate((el: HTMLTextAreaElement) => el.selectionStart)).toBe(
     name.length
   );
+  await editTitle.fill(`${name} changed`);
+  await dragDown(page, edit.getByRole("heading", { name: "edit item" }), 200);
+  await expect(edit).toBeHidden();
+  await expect(itemRow(page, name)).toBeVisible();
+  await expect(itemRow(page, `${name} changed`)).toHaveCount(0);
+});
+
+test("while typing, the drawer sits on the keyboard and stays clear of the header", async ({
+  page,
+}) => {
+  await fakeKeyboard(page);
+  await openBucketOnPhone(page, uniqueName("Keyboard"));
+  const screen = page.viewportSize() ?? { width: 0, height: 0 };
+  await addBox(page).fill("cat wants more treats tomorrow");
+  await addItemButton(page).tap();
+  const addForm = addPage(page);
+  const add = addForm.getByRole("button", { name: "[ add ]", exact: true });
+  await addForm.getByRole("button", { name: "on", exact: true }).tap();
+  const headerBottom = async () => {
+    const box = await page.locator("header").boundingBox();
+    return (box?.y ?? 0) + (box?.height ?? 0);
+  };
+
+  await setKeyboard(page, 360);
+  await expect
+    .poll(async () => {
+      const box = await add.boundingBox();
+      return (box?.y ?? Infinity) + (box?.height ?? 0);
+    })
+    .toBeLessThanOrEqual(screen.height - 360);
+  await expect
+    .poll(async () => (await addForm.boundingBox())?.y ?? 0)
+    .toBeGreaterThanOrEqual(await headerBottom());
+
+  await setKeyboard(page, 0);
+  await expect
+    .poll(async () => {
+      const box = await add.boundingBox();
+      return (box?.y ?? 0) + (box?.height ?? 0);
+    })
+    .toBeGreaterThan(screen.height - 100);
 });
 
 test("tapping the empty space under the list puts the cursor in the add box", async ({ page }) => {

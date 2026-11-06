@@ -68,7 +68,6 @@ test("admins rename a user and give or take bonus username changes", async ({ pa
   await page.getByRole("button", { name: "[ rename ]", exact: true }).click();
   await expect(page.getByText("that username is reserved")).toBeVisible();
 
-  // typed with a capital, saved in lower case
   await page.getByLabel("new username").fill(`N${renamed.slice(1)}`);
   await page.getByRole("button", { name: "[ rename ]", exact: true }).click();
   await expect(username).toHaveText(renamed);

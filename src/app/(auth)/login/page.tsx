@@ -30,7 +30,6 @@ export default function LoginPage() {
   const [devCopied, setDevCopied] = useState(false);
   const [resendCountdown, setResendCountdown] = useState(0);
 
-  // also reached when a session ends on its own, with no logout click to clear the tab
   useEffect(() => {
     clearSignedInState();
   }, []);
@@ -61,7 +60,6 @@ export default function LoginPage() {
 
   async function handleSendOtp(e: SubmitEvent<HTMLFormElement>) {
     e.preventDefault();
-    // the box, not the state: an email typed while a slow page was still loading never reached it
     const typed = String(new FormData(e.currentTarget).get("email") ?? "");
     setEmail(typed);
     setError("");

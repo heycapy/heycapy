@@ -2,11 +2,9 @@ import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import type { RecurringConfig } from "@/types/rules";
 
-// A new item being written in a bucket and not added yet, shared by the add box and the full form
 export type ItemDraft = {
   title: string;
   assigneeId: number | null;
-  // a date picked in the form; otherwise a date typed in the title (or the bucket's default) is used
   deadline: string | null;
   status: string | null;
   recurring: RecurringConfig | null;

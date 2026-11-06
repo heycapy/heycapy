@@ -3,22 +3,31 @@ import {
   useEffect,
   useEffectEvent,
   useId,
+  useLayoutEffect,
   useRef,
   useState,
   type ReactNode,
   type RefObject,
 } from "react";
 import { createPortal } from "react-dom";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, useDragControls, type PanInfo } from "framer-motion";
 import { BracketButton } from "@/components/ui/BracketButton";
 import {
   HANDLES_ESCAPE_SELECTOR,
   MODAL_PANEL_SELECTOR,
   POPOVER_SELECTOR,
 } from "@/components/ui/constants";
-import { ADD_PANEL_DIM, ADD_PANEL_MOTION, ITEM_PANEL_RESIZE } from "./constants";
+import {
+  ADD_PANEL_DIM,
+  ADD_PANEL_DIM_FADE,
+  ADD_PANEL_MOTION,
+  ITEM_PANEL_RESIZE,
+  PHONE_DRAWER_TOP_GAP_PX,
+} from "./constants";
+import { useVisualViewport } from "@/hooks/useVisualViewport";
+import { SHEET_CLOSE_DRAG_PX, SHEET_CLOSE_DRAG_VELOCITY } from "@/constants";
+import { cn } from "@/lib/utils";
 
-// Where the footer opens into the item form, and where focus goes once a new item's form folds back
 export type ItemPanel = {
   slot: HTMLElement;
   bucketName?: string;
@@ -32,16 +41,13 @@ type ItemPanelFrameProps = {
   scrollBodyRef: RefObject<HTMLDivElement | null>;
   title: ReactNode;
   confirm: ReactNode;
-  // under the details, like delete when editing
   secondary?: ReactNode;
-  // a new item's form hands focus to the add box; an edit gives it back to the row it came from
   returnToOpener: boolean;
+  phone: boolean;
   children: ReactNode;
   onCancel: () => void;
 };
 
-// The footer grows up into the form: not modal, the list stays usable and a click on it folds the
-// form away (a new item keeps its draft, an edit is dropped like a cancel)
 export function ItemPanelFrame({
   open,
   heading,
@@ -51,20 +57,30 @@ export function ItemPanelFrame({
   confirm,
   secondary,
   returnToOpener,
+  phone,
   children,
   onCancel,
 }: ItemPanelFrameProps) {
   const headingId = useId();
+  const dragControls = useDragControls();
+  const visible = useVisualViewport();
   const panelRef = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    const el = panelRef.current;
+    if (!phone || !open || !el) return;
+    const top = panel.slot.closest("main")?.getBoundingClientRect().top ?? 0;
+    const room = panel.slot.getBoundingClientRect().bottom - top - PHONE_DRAWER_TOP_GAP_PX;
+    el.style.maxHeight = `${room}px`;
+  }, [phone, open, visible, panel.slot]);
   const wasOpen = useRef(open);
-  // read while rendering open: by the time effects run the title has already taken focus
   const [opener, setOpener] = useState<HTMLElement | null>(null);
   const [shownOpen, setShownOpen] = useState(open);
-  // the form's own height, measured; the body animates to it, and past the panel's cap it scrolls
   const [contentHeight, setContentHeight] = useState<number | null>(null);
+  const [opening, setOpening] = useState(0);
   if (open !== shownOpen) {
     setShownOpen(open);
     setContentHeight(null);
+    if (open) setOpening((n) => n + 1);
     if (open)
       setOpener(document.activeElement instanceof HTMLElement ? document.activeElement : null);
   }
@@ -96,8 +112,6 @@ export function ItemPanelFrame({
     }
     function onKey(e: KeyboardEvent) {
       if (e.key !== "Escape") return;
-      // Escape closes an open picker or suggestion list first, and one typed in a dialog or in
-      // tweaks is theirs (tweaks beside the list marks every Escape as handled, even this one)
       if (
         document.querySelector(POPOVER_SELECTOR) ||
         document.activeElement?.closest(HANDLES_ESCAPE_SELECTOR) ||
@@ -119,7 +133,6 @@ export function ItemPanelFrame({
     wasOpen.current = open;
     if (!closing) return;
     const active = document.activeElement;
-    // a click on something else outside keeps its focus
     if (active && active !== document.body && !panelRef.current?.contains(active)) return;
     if (returnToOpener && opener?.isConnected) opener.focus();
     else collapsed();
@@ -130,36 +143,69 @@ export function ItemPanelFrame({
       {open && (
         <>
           <motion.div
-            key="dim"
+            key={`dim-${opening}`}
             aria-hidden
             initial={{ opacity: 0 }}
             animate={{ opacity: ADD_PANEL_DIM }}
             exit={{ opacity: 0 }}
-            transition={ADD_PANEL_MOTION.transition}
+            transition={ADD_PANEL_DIM_FADE}
             className="pointer-events-none fixed inset-0 bg-black"
           />
           <motion.div
-            key="panel"
+            key={`panel-${opening}`}
             ref={panelRef}
             role="dialog"
             aria-labelledby={headingId}
             data-item-panel
             initial={ADD_PANEL_MOTION.initial}
             animate={ADD_PANEL_MOTION.animate}
-            exit={ADD_PANEL_MOTION.initial}
-            transition={ADD_PANEL_MOTION.transition}
-            className="bg-background border-border absolute inset-x-0 bottom-0 flex max-h-[70vh] flex-col border-x-2"
+            exit={ADD_PANEL_MOTION.exit}
+            drag={phone ? "y" : false}
+            dragListener={false}
+            dragControls={dragControls}
+            dragConstraints={{ top: 0, bottom: 0 }}
+            dragElastic={{ top: 0, bottom: 1 }}
+            onDragEnd={(_, info: PanInfo) => {
+              if (
+                info.offset.y > SHEET_CLOSE_DRAG_PX ||
+                info.velocity.y > SHEET_CLOSE_DRAG_VELOCITY
+              )
+                onCancel();
+            }}
+            className={cn(
+              "bg-background border-border absolute inset-x-0 bottom-0 flex flex-col",
+              !phone && "max-h-[70vh] border-x-2"
+            )}
           >
-            <div className="bg-foreground text-background flex shrink-0 items-center gap-2 px-3 py-1.5">
-              <h2 id={headingId} className="font-pixel shrink-0 text-xs">
-                {heading}
-              </h2>
-              <span className="min-w-0 flex-1 truncate font-mono text-xs opacity-60">
-                {panel.bucketName && `in ${panel.bucketName}`}
-              </span>
-              <BracketButton type="button" variant="inverted" onClick={onCancel}>
-                x
-              </BracketButton>
+            <div
+              onPointerDown={phone ? (e) => dragControls.start(e) : undefined}
+              className={cn(
+                "bg-foreground text-background shrink-0 px-4 py-2.5",
+                phone && "touch-none pt-1 select-none"
+              )}
+            >
+              {phone && (
+                <div aria-hidden className="flex justify-center pb-1">
+                  <div className="bg-background/50 h-1 w-10 rounded-full" />
+                </div>
+              )}
+              <div className="flex items-center gap-2">
+                <h2 id={headingId} className="font-pixel shrink-0 text-sm">
+                  {heading}
+                </h2>
+                <span className="min-w-0 flex-1 truncate font-mono text-xs opacity-60">
+                  {panel.bucketName && `in ${panel.bucketName}`}
+                </span>
+                <BracketButton
+                  type="button"
+                  variant="inverted"
+                  onClick={onCancel}
+                  aria-label={phone ? `close ${heading}` : undefined}
+                  className={cn(phone && "sr-only")}
+                >
+                  x
+                </BracketButton>
+              </div>
             </div>
             <motion.div
               ref={scrollBodyRef}
@@ -173,7 +219,6 @@ export function ItemPanelFrame({
                 {secondary}
               </div>
             </motion.div>
-            {/* exactly the footer's row: its line lies over the footer's, the title where the add box's text was */}
             <div className="bg-card flex min-h-12 shrink-0 items-start gap-1 border-t-2 border-(--accent) pr-1 pl-2">
               <div className="min-w-0 flex-1">{title}</div>
               {confirm}

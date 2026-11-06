@@ -39,7 +39,6 @@ type ItemDialogProps = {
   mode: "add" | "edit";
   title: string;
   deadline: string;
-  // a new item whose date was picked in an earlier go at the form: typed words don't change it
   deadlinePicked?: boolean;
   status: string;
   statuses: StatusDef[];
@@ -99,7 +98,6 @@ export function ItemDialog({
   const [timeMin, setTimeMin] = useState("00");
   const [timeAmpm, setTimeAmpm] = useState<Ampm>("am");
   const wasOpenRef = useRef(false);
-  // kept while closing, so the form folds away in the frame it opened in
   const [frameMode, setFrameMode] = useState(mode);
   if (open && mode !== frameMode) setFrameMode(mode);
   const [validationAttempted, setValidationAttempted] = useState(false);

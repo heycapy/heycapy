@@ -63,9 +63,6 @@ export function useTitleDate({
     setBefore(null);
   }, []);
 
-  // A new item can open with words already typed in the add box, or with a date picked earlier,
-  // which wins. Reads no state, it's being reset; the caller sets the returned deadline on the clock
-  // the form opens on
   function start(text: string, picked: boolean): string | null {
     reset();
     if (picked) {

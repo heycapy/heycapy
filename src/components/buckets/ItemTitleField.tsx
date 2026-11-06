@@ -18,8 +18,6 @@ import { LABEL } from "@/components/layout/settings-constants";
 // Shared by the textarea and the highlight layer behind it, so their text lines up exactly
 const TEXT = "w-full border-b text-base break-words whitespace-pre-wrap";
 
-// Grows with its lines up to its max height; measuring resets the scroll, so it's put back, at the
-// bottom while typing at the end
 function fitHeight(el: HTMLTextAreaElement) {
   const top = el.scrollTop;
   el.style.height = "auto";
@@ -29,8 +27,6 @@ function fitHeight(el: HTMLTextAreaElement) {
 
 type ItemTitleFieldProps = {
   open: boolean;
-  // set in the panel: drawn as the footer row it grew from, led by this icon: no label or underline, the date's [×]
-  // on the same row
   rowIcon?: PixelIconComponent;
   value: string;
   error?: string;
@@ -62,20 +58,18 @@ export function ItemTitleField({
   const [highlighted, setHighlighted] = useState(0);
   const [closedOn, setClosedOn] = useState<string | null>(null);
 
-  // Enter starts a new line (Ctrl/Cmd+Enter submits the form); past 4 lines the title scrolls
   const text = cn(TEXT, rowIcon ? "max-h-[4lh]" : "max-h-[calc(4lh+0.75rem)] py-1.5 sm:text-sm");
 
   const found = mention ? findMention(value, caret) : null;
   const options = found && mention ? mentionOptions(mention.members, found.query) : [];
   const listOpen = found !== null && options.length > 0 && closedOn !== value;
 
-  // A form opened while the last add is still saving starts disabled, and can only take focus after
   useLayoutEffect(() => {
     if (!open || disabled) return;
     const el = textareaRef.current;
     if (!el) return;
     fitHeight(el);
-    el.focus();
+    el.focus({ preventScroll: true });
     el.setSelectionRange(el.value.length, el.value.length);
   }, [open, disabled]);
 
@@ -87,7 +81,6 @@ export function ItemTitleField({
     caretAfterPick.current = null;
   }, [value]);
 
-  // the layer can appear (a date typed) after the title already scrolled
   useLayoutEffect(() => {
     if (highlightRef.current && textareaRef.current)
       highlightRef.current.scrollTop = textareaRef.current.scrollTop;
@@ -116,7 +109,6 @@ export function ItemTitleField({
       </label>
       <div className={cn(rowIcon && "flex items-start gap-2")}>
         {rowIcon && <PixelIcon icon={rowIcon} className="mt-4.5 shrink-0 text-(--accent)" />}
-        {/* in the panel the row's padding sits outside the scrolling text, so only whole lines show */}
         <div className={cn("min-w-0 flex-1", rowIcon && "py-3")}>
           <div className="relative">
             {typedDate && (
@@ -140,7 +132,6 @@ export function ItemTitleField({
               value={value}
               onChange={handleChange}
               onSelect={(e) => setCaret(e.currentTarget.selectionStart)}
-              // the coloured date words are drawn behind, they scroll along with the text
               onScroll={(e) => {
                 if (highlightRef.current)
                   highlightRef.current.scrollTop = e.currentTarget.scrollTop;
@@ -166,7 +157,6 @@ export function ItemTitleField({
                   }
                 }
               }}
-              // in the panel the row stays put: the empty title says what's missing itself
               placeholder={rowIcon && showRequired ? "title is required" : "what needs doing?"}
               maxLength={ITEM_TITLE_MAX_LENGTH}
               disabled={disabled}
@@ -174,7 +164,6 @@ export function ItemTitleField({
               className={cn(
                 text,
                 !rowIcon && "focus:border-foreground",
-                // no scroll bar, so the text wraps exactly as the layer behind it does
                 "scrollbar-hide relative block resize-none overflow-y-auto bg-transparent outline-none disabled:opacity-50",
                 // The layer behind draws the text so the date words can take their own colour
                 typedDate && "caret-foreground text-transparent",
@@ -193,7 +182,6 @@ export function ItemTitleField({
         )}
       </div>
       {listOpen && (
-        // the panel grows from the bottom, so a list below the title would push it up under the pointer
         <div className={cn(rowIcon && "bg-background absolute inset-x-0 bottom-full mb-1")}>
           <MentionList
             options={options}

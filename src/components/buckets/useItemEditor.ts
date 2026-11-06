@@ -24,13 +24,11 @@ export function useItemEditor({
   defaultDeadline,
   onSaved,
 }: ItemEditorOptions) {
-  // A new item lives in the bucket's draft, shared with the add box, so closing the form keeps it
   const draft = useDraft(bucketId);
   const updateDraft = useDraftStore((s) => s.updateDraft);
   const clearDraft = useDraftStore((s) => s.clearDraft);
   const markAdded = useUIStore((s) => s.markAdded);
   const [addingItem, setAddingItem] = useState(false);
-  // "when" from words typed in the title or the bucket's default; a picked date lives in the draft
   const [typedDeadline, setTypedDeadline] = useState("");
   const addDeadline = draft.deadline ?? typedDeadline;
   const [addError, setAddError] = useState("");
@@ -70,7 +68,6 @@ export function useItemEditor({
     setAddingItem(true);
   }
 
-  // read from the store: the form marks the date picked and changes it in one go
   function changeAddDeadline(next: string) {
     const picked = (useDraftStore.getState().drafts[bucketId]?.deadline ?? null) !== null;
     if (picked) updateDraft(bucketId, { deadline: next });

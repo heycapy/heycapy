@@ -117,7 +117,6 @@ test("a link in capy's reply opens the item in place, and the chat stays open", 
   const input = page.getByPlaceholder("ask capy...");
   await input.fill("add pay rent");
   await input.press("Enter");
-  // a reload would forget this
   await page.evaluate(() => Object.assign(window, { stayedOnPage: true }));
   await page.getByRole("link", { name: title }).click();
 

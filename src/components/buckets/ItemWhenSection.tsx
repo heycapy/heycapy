@@ -14,7 +14,6 @@ type ItemWhenSectionProps = {
   allDay: boolean;
   time: TimeValue;
   clock?: ReactNode;
-  // a new item starts as the bucket's default, so status is only shown when editing
   withStatus: boolean;
   status: string;
   statuses: StatusDef[];

@@ -162,7 +162,6 @@ export const ChatInputBar = forwardRef<ChatInputBarHandle, Props>(function ChatI
   const isRecordingOrTranscribing = recording || transcribing;
 
   return (
-    // on a wide screen as tall as the footer next to it, so the two top lines run as one
     <div
       className={cn(
         "flex flex-col justify-center border-t-2 px-3 py-2 transition-colors md:min-h-[calc(3rem+2px)]",

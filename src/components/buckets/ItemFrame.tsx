@@ -18,8 +18,6 @@ type ItemFrameProps = {
   onSubmit: () => void;
 };
 
-// A phone gets a page; on a wider screen the form grows out of the footer, or is a dialog where
-// there's no footer to grow from (search)
 export function ItemFrame({
   open,
   mode,
@@ -36,8 +34,6 @@ export function ItemFrame({
 }: ItemFrameProps) {
   const heading = mode === "add" ? "new item" : "edit item";
 
-  // Ctrl/Cmd+Enter adds or saves from any field; a field that used Enter itself (the title, a
-  // suggestion list) has already claimed it
   function submitOnShortcut(e: KeyboardEvent) {
     if (e.key !== "Enter" || !(e.metaKey || e.ctrlKey) || e.defaultPrevented) return;
     if (e.nativeEvent.isComposing) return;
@@ -46,6 +42,27 @@ export function ItemFrame({
   }
 
   function frameFor() {
+    if (panel) {
+      return (
+        <ItemPanelFrame
+          open={open}
+          heading={heading}
+          panel={panel}
+          scrollBodyRef={scrollBodyRef}
+          title={titleField(true)}
+          confirm={confirm}
+          secondary={
+            deleteButton && <div className="border-border mt-6 border-t pt-4">{deleteButton}</div>
+          }
+          returnToOpener={mode === "edit"}
+          phone={isMobile}
+          onCancel={onCancel}
+        >
+          {details}
+        </ItemPanelFrame>
+      );
+    }
+
     if (isMobile) {
       return (
         <ItemPageFrame
@@ -61,26 +78,6 @@ export function ItemFrame({
           {titleField(false)}
           {details}
         </ItemPageFrame>
-      );
-    }
-
-    if (panel) {
-      return (
-        <ItemPanelFrame
-          open={open}
-          heading={heading}
-          panel={panel}
-          scrollBodyRef={scrollBodyRef}
-          title={titleField(true)}
-          confirm={confirm}
-          secondary={
-            deleteButton && <div className="border-border mt-6 border-t pt-4">{deleteButton}</div>
-          }
-          returnToOpener={mode === "edit"}
-          onCancel={onCancel}
-        >
-          {details}
-        </ItemPanelFrame>
       );
     }
 
@@ -105,7 +102,6 @@ export function ItemFrame({
   }
 
   return (
-    // the frames render in portals, whose key events still bubble through here
     <div className="contents" onKeyDown={submitOnShortcut}>
       {frameFor()}
     </div>

@@ -24,8 +24,6 @@ type ReorderTabProps = {
   children: ReactNode;
 };
 
-// Held still for a moment, a tab lifts (bigger, framed in its colour, a buzz on phones) and then
-// follows the pointer sideways
 export function ReorderTab({ id, color, onDragStart, onDragEnd, children }: ReorderTabProps) {
   const controls = useDragControls();
   const hold = useRef<{ timer: ReturnType<typeof setTimeout>; x: number; y: number } | null>(null);
@@ -47,7 +45,6 @@ export function ReorderTab({ id, color, onDragStart, onDragEnd, children }: Reor
         hold.current = null;
         setLifted(true);
         navigator.vibrate?.(TAB_LIFT_VIBRATE_MS);
-        // let go without moving and there's no drag to end, so the release puts it down
         window.addEventListener("pointerup", () => setLifted(false), { once: true });
         onDragStart();
         controls.start(press);

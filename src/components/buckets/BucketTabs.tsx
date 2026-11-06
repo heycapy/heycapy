@@ -99,7 +99,6 @@ export function BucketTabs({ buckets, activeId, todayOpen }: BucketTabsProps) {
   const byId = new Map(buckets.map((b) => [b.id, b]));
   const dragging = useRef(false);
 
-  // a phone would scroll the tabs under a finger that's dragging one
   useEffect(() => {
     const strip = stripRef.current;
     if (!strip) return;
@@ -138,7 +137,6 @@ export function BucketTabs({ buckets, activeId, todayOpen }: BucketTabsProps) {
           <PixelIcon icon={Search} />
         </BracketButton>
         <span aria-hidden className="bg-border my-3.5 w-px shrink-0" />
-        {/* layoutScroll: a dragged tab is placed right while the tabs are scrolled */}
         <motion.div
           ref={stripRef}
           layoutScroll

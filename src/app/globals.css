@@ -643,14 +643,12 @@ body {
   }
 }
 
-/* toasts sit where the open item panel's title is; they step aside until it folds */
 body:has([data-item-panel]) [data-sonner-toaster] {
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.15s;
 }
 
-/* with the chat or tweaks docked at the side, toasts centre on the list instead of the window */
 body:has([data-side-column]) [data-sonner-toaster][data-x-position="center"] {
   left: calc(50% - var(--spacing-chat) / 2);
 }

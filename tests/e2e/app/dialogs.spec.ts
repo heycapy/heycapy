@@ -63,7 +63,6 @@ const FROM_MENU: [string | RegExp, string][] = [
   ["logout", "log out?"],
 ];
 
-// below the width where tweaks, trash and the rest stand beside the list instead
 for (const [item, name] of FROM_MENU) {
   test(`${name} keeps the page behind it still and keeps focus`, async ({ page }) => {
     await page.setViewportSize({ width: 1024, height: 720 });

@@ -129,7 +129,6 @@ test.describe("on a phone", () => {
   });
 });
 
-// The tabs of these buckets, left to right
 async function tabOrder(page: Page, names: string[]): Promise<string[]> {
   const shown = await tabs(page).getByRole("button").allTextContents();
   return shown.map((text) => text.trim()).filter((text) => names.includes(text));
@@ -144,7 +143,6 @@ async function dragTab(page: Page, name: string, onto: string, { hold }: { hold:
   const lifted = bucketTab(page, name).locator("xpath=ancestor::*[@data-lifted][1]");
   if (hold) {
     await page.waitForTimeout(500);
-    // it shows it's ready to move before the pointer does
     await expect(lifted).toHaveCount(1);
   }
   await page.mouse.move(to.x + 4, to.y + to.height / 2, { steps: 12 });
@@ -153,7 +151,6 @@ async function dragTab(page: Page, name: string, onto: string, { hold }: { hold:
   await expect(lifted).toHaveCount(0);
 }
 
-// The short mark under the open tab, in the bucket's colour
 async function markColor(page: Page, name: string): Promise<string> {
   await bucketTab(page, name).click();
   return bucketTab(page, name)
@@ -163,8 +160,6 @@ async function markColor(page: Page, name: string): Promise<string> {
 }
 
 test("a tab held for a moment drags to a new place, kept after a reload", async ({ page }) => {
-  // its own account: the shared one gets buckets from the tests beside it, and each new one
-  // refreshes this page's tabs back to the saved order
   await page.context().clearCookies();
   await login(page, uniqueEmail("e2e-tab-order"));
   const names = [uniqueName("Order a"), uniqueName("Order b"), uniqueName("Order c")];
@@ -172,27 +167,22 @@ test("a tab held for a moment drags to a new place, kept after a reload", async 
   await expect.poll(() => tabOrder(page, names)).toEqual(names);
   const colorOfLast = await markColor(page, names[2]);
 
-  // a quick drag isn't a hold: nothing moves
   await dragTab(page, names[2], names[0], { hold: false });
   await page.waitForTimeout(300);
   expect(await tabOrder(page, names)).toEqual(names);
 
-  // the only action whose argument is a list: the order being saved
   const saved = page.waitForResponse(
     (r) => r.request().method() === "POST" && (r.request().postData() ?? "").startsWith("[[")
   );
   await dragTab(page, names[2], names[0], { hold: true });
   const moved = [names[2], names[0], names[1]];
   await expect.poll(() => tabOrder(page, names)).toEqual(moved);
-  // server actions queue up one at a time, so the save can still be waiting its turn
   await saved;
 
   await page.reload();
   await expect.poll(() => tabOrder(page, names)).toEqual(moved);
-  // a bucket keeps its colour wherever it goes
   expect(await markColor(page, names[2])).toBe(colorOfLast);
 
-  // a plain click still opens the tab
   await bucketTab(page, names[1]).click();
   await expect(activeBucketTitle(page)).toHaveText(names[1]);
 });

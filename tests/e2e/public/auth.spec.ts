@@ -138,7 +138,6 @@ test("an email typed while a slow page is still loading is the one the code goes
   page,
 }) => {
   const email = uniqueEmail("e2e-early-typing");
-  // the page shows before its scripts run, as on a slow phone
   let scriptsFree: () => void = () => {};
   const held = new Promise<void>((resolve) => (scriptsFree = resolve));
   await page.route("**/_next/static/chunks/**/*.js*", async (route) => {
@@ -150,7 +149,6 @@ test("an email typed while a slow page is still loading is the one the code goes
   await field.fill(email);
 
   scriptsFree();
-  // React has taken the field over once it hangs its props on it
   await expect
     .poll(() => field.evaluate((el) => Object.keys(el).some((k) => k.startsWith("__reactProps"))))
     .toBe(true);

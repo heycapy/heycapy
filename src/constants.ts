@@ -190,7 +190,6 @@ export const TELEGRAM_RESERVED_COMMANDS = [
 // Shown in the item dialog: someone else deleted the item, or the owner removed this person
 export const ITEM_GONE_ERROR = "this item was deleted, or you're no longer in its bucket";
 export const ITEM_TITLE_MAX_LENGTH = 500;
-// more than anyone keeps; a longer list is refused rather than written row by row
 export const BUCKET_ORDER_MAX = 500;
 export const BUCKET_NAME_MAX_LENGTH = 100;
 export const DUPLICATE_BUCKET_NAME_ERROR = "A bucket with this name already exists.";
@@ -265,12 +264,11 @@ export const MOBILE_MEDIA_QUERY = "(max-width: 639px)";
 export const BOTTOM_BAR_MEDIA_QUERY = "(max-width: 767px)";
 export const SIDE_DOCK_MEDIA_QUERY = "(min-width: 1280px)";
 export const SHEET_CLOSE_DRAG_PX = 100;
+export const KEYBOARD_MIN_PX = 80;
 export const SHEET_CLOSE_DRAG_VELOCITY = 500;
 
-// The buckets page's footer on a wide screen (add box and capy): 2px border, 48px row
 export const FOOTER_H = 50;
 
-// An item form's title grows to this many lines before it scrolls; a row shows as many
 export const TITLE_LINES_SHOWN = 4;
 // Toasts sit just above the footer so they never cover it
 export const TOAST_BOTTOM_OFFSET = 66;

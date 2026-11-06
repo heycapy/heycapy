@@ -40,7 +40,6 @@ type UIStore = {
   requestBucketSettings: (id: number) => void;
   clearSettingsRequest: () => void;
 
-  // the item added last is marked in its list for a few seconds
   lastAddedItemId: number | null;
   markAdded: (id: number) => void;
   clearAdded: (id: number) => void;

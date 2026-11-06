@@ -63,7 +63,6 @@ export function CapyChat({ appUrl }: { appUrl: string | null }) {
     }
   }, [chatState, isMobile]);
 
-  // beside the list there's nothing to minimize it for, so the shortcut closes it
   const toggleFromKeyboard = useEffectEvent(() =>
     setChatState((s) => {
       if (s === "closed" || s === "minimized") return "open";

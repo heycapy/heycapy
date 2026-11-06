@@ -26,7 +26,7 @@ export function MentionList({ options, highlighted, onPick, onHover }: MentionLi
             e.preventDefault();
             onPick(option);
           }}
-          onMouseEnter={() => onHover(index)}
+          onPointerMove={() => onHover(index)}
           className={cn(
             "flex cursor-pointer items-center px-3 py-1.5 font-mono text-xs",
             index === highlighted ? "bg-foreground text-background" : "text-foreground"

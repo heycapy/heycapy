@@ -52,7 +52,6 @@ export function BucketsShell({ buckets: rawBuckets, focusBucketId = null }: Buck
     return () => setBottomBarShown(false);
   }, [setBottomBarShown]);
 
-  // A link from a reminder or a webhook: drop ?bucket and #item so a reload doesn't jump back
   useEffect(() => {
     const linked = itemLink(`/${window.location.search}${window.location.hash}`);
     if (linked) openItem(focusBucketId, linked.itemId);

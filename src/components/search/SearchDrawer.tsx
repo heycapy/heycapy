@@ -108,7 +108,6 @@ function SearchBody({ onClose }: { onClose: () => void }) {
             </div>
           </div>
 
-          {/* the same bar as the add box in the buckets footer */}
           <div className="border-border focus-within:border-foreground shrink-0 border-t-2 px-2.5 pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:px-4 sm:pb-[env(safe-area-inset-bottom)]">
             <div className="flex min-h-12 items-center gap-2 pl-2.5">
               <PixelIcon icon={Search} className="text-muted-foreground shrink-0" />

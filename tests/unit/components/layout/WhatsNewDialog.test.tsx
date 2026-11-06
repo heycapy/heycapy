@@ -16,7 +16,6 @@ vi.mock("@/lib/whats-new/constants", () => ({
   ],
 }));
 
-// jsdom has no matchMedia; a narrow screen, so it's the dialog
 vi.stubGlobal("matchMedia", (query: string) => ({
   matches: false,
   media: query,

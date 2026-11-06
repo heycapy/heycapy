@@ -1,4 +1,4 @@
-import { expect, type Page } from "@playwright/test";
+import { expect, type Locator, type Page } from "@playwright/test";
 
 export function uniqueName(prefix: string): string {
   return `${prefix} ${Date.now()}`;
@@ -50,7 +50,6 @@ export async function addItem(page: Page, title: string): Promise<void> {
   await expect(itemRow(page, title)).toBeVisible();
 }
 
-// a page on a phone, the panel grown out of the add box on a wider screen
 export function newItemForm(page: Page) {
   return page.getByRole("dialog", { name: "new item", exact: true });
 }
@@ -104,4 +103,14 @@ export async function openReminderDetails(page: Page, title: string) {
   const menu = await openItemMenu(page, title);
   await menu.getByRole("button", { name: /^reminders/ }).click();
   return menu.getByRole("region", { name: "reminders" });
+}
+
+export async function untilStill(page: Page, target: Locator): Promise<void> {
+  await expect
+    .poll(async () => {
+      const at = (await target.boundingBox())?.y;
+      await page.waitForTimeout(100);
+      return at !== undefined && at === (await target.boundingBox())?.y;
+    })
+    .toBe(true);
 }

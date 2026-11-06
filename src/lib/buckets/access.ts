@@ -7,11 +7,8 @@ type Bucket = typeof buckets.$inferSelect;
 type Item = typeof items.$inferSelect;
 
 // myChannels: the viewer's own channels for the bucket, as stored
-// colorIndex: the bucket's own colour, kept wherever the person drags its tab
 export type ViewerBucket = Bucket & { isOwner: boolean; myChannels: string; colorIndex: number };
 
-// Colours go by the order buckets were made in (the tab order before tabs could be dragged), the
-// order today and search use too
 export function byColorOrder(a: Bucket, b: Bucket): number {
   return a.sortOrder - b.sortOrder || a.createdAt.getTime() - b.createdAt.getTime() || a.id - b.id;
 }
@@ -87,7 +84,6 @@ export async function listLiveBuckets(userId: number): Promise<ViewerBucket[]> {
       and(eq(bucketMembers.bucketId, buckets.id), eq(bucketMembers.userId, userId))
     )
     .where(inLiveBucket)
-    // the person's own tab order first, buckets they never moved after it
     .orderBy(
       sql`${bucketMembers.sortOrder} is null`,
       asc(bucketMembers.sortOrder),

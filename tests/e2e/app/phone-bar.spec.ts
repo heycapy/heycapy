@@ -158,7 +158,6 @@ test("on a wide screen the chat stands beside the list, which moves over for it"
   const input = page.getByPlaceholder("ask capy...");
   await expect(input).toBeFocused();
   const panel = page.locator("div.fixed").filter({ has: input }).last();
-  // the whole height of the window, against its right edge
   await expect
     .poll(async () => {
       const box = await panel.boundingBox();
@@ -173,7 +172,6 @@ test("on a wide screen the chat stands beside the list, which moves over for it"
     })
     .toBeLessThanOrEqual(chatLeft);
   await expect.poll(listCentre).toBeLessThan(centredAlone - 100);
-  // the chat's input is the footer's height, so their top lines run as one
   const topLine = (selector: string, from: string) =>
     page.evaluate(
       ([sel, start]) => document.querySelector(start)?.closest(sel)?.getBoundingClientRect().top,
@@ -182,7 +180,6 @@ test("on a wide screen the chat stands beside the list, which moves over for it"
   expect(await topLine(".border-t-2", '[placeholder="ask capy..."]')).toBe(
     await topLine(".sticky", '[data-testid="add-box"]')
   );
-  // there's nothing under it to see, so no minimize, and the shortcut closes it
   await expect(panel.getByRole("button", { name: "Collapse" })).toHaveCount(0);
 
   await row.click();
@@ -245,7 +242,6 @@ test("on a wide screen tweaks stands beside the list like the chat, and the list
   const box = await addBox.boundingBox();
   expect((box?.x ?? 0) + (box?.width ?? 0)).toBeLessThanOrEqual(tweaksLeft);
 
-  // Escape typed in the list is the list's
   const input = addBox.locator("input");
   await input.fill("half typed");
   await input.press("Escape");

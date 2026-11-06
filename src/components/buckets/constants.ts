@@ -5,7 +5,7 @@ import { ChartLine } from "pixelarticons/react/ChartLine.js";
 import { CreditCard } from "pixelarticons/react/CreditCard.js";
 import { Square } from "pixelarticons/react/Square.js";
 import type { PixelIconComponent } from "@/components/ui/PixelIcon";
-import { FOOTER_H, ITEM_STATUS } from "@/constants";
+import { ITEM_STATUS } from "@/constants";
 import type { QuickRemindChoice } from "@/lib/notifications/constants";
 import type { RecurrenceMode, StatusDef } from "@/types/rules";
 import { REMINDER_UNITS } from "@/lib/reminders/constants";
@@ -52,15 +52,10 @@ export const DEFAULT_BUCKET_STATUSES: StatusDef[] = [
 
 export const ITEM_HIGHLIGHT_MS = 3000;
 export const JUST_ADDED_MS = 4000;
-// A tab is held this long before it moves, so a tap still opens it and a swipe still scrolls the tabs
 export const TAB_HOLD_MS = 350;
-// moving further than this while holding is a scroll, not a hold
 export const TAB_HOLD_SLOP_PX = 6;
-// how a lifted tab shows it's ready to move
 export const TAB_LIFT_SCALE = 1.06;
 export const TAB_LIFT_VIBRATE_MS = 15;
-// a dropped tab snaps into its slot (a stiff spring, damped so it doesn't wobble), and the tabs it
-// passes slide over as quickly
 export const TAB_DROP_SPRING = { bounceStiffness: 1400, bounceDamping: 75 } as const;
 export const TAB_SLIDE = { duration: 0.12, ease: "easeOut" } as const;
 export const MENU_GAP = 6;
@@ -206,17 +201,16 @@ export const VIEW_FADE = {
   gone: { opacity: 0, y: -6 },
 } as const;
 
-// The list behind the open add panel is dimmed, not covered: it stays clickable
 export const ADD_PANEL_DIM = 0.25;
 
-// Grows up out of the input row, which stays where it is, so it reads as the add box opening
 export const ADD_PANEL_MOTION = {
-  initial: { clipPath: `inset(calc(100% - ${FOOTER_H}px) 0px 0px 0px)` },
-  animate: { clipPath: "inset(calc(0% - 0px) 0px 0px 0px)" },
-  transition: { duration: 0.18, ease: "easeOut" },
+  initial: { y: "100%" },
+  animate: { y: 0, transition: { type: "spring", duration: 0.5, bounce: 0 } },
+  exit: { y: "100%", transition: { duration: 0.25, ease: [0.32, 0.72, 0, 1] } },
 } as const;
-// the open form's height follows a section opening or closing in it (repeat, reminders)
+export const ADD_PANEL_DIM_FADE = { duration: 0.3, ease: "easeOut" } as const;
 export const ITEM_PANEL_RESIZE = { duration: 0.18, ease: "easeOut" } as const;
+export const PHONE_DRAWER_TOP_GAP_PX = 12;
 
 // Shown in the empty add box, one per bucket: notes the cat left for its human. Each carries a date
 // so it also shows that dates can be typed
@@ -229,7 +223,6 @@ export const ADD_BOX_EXAMPLES = [
   "cat wants a bigger box friday",
 ];
 
-// The same notes, short enough for a phone's add box (21 characters fit at 360px)
 export const ADD_BOX_EXAMPLES_SHORT = [
   "cat: greens tomorrow",
   "cat: treats at 8pm",

@@ -25,7 +25,6 @@ describe("each person's own tab order", () => {
 
     expect(await reorderBucketsAction([c, a, b])).toEqual({ ok: true });
     expect(await order(me)).toEqual([c, a, b]);
-    // each keeps its colour where it went
     expect(await colors()).toEqual({ [a]: 0, [b]: 1, [c]: 2 });
   });
 

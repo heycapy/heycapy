@@ -36,7 +36,6 @@ export function RecurringPicker({
   const rootRef = useRef<HTMLDivElement>(null);
   const turnedOn = useRef(false);
 
-  // the options open below the switch, often past the bottom of a scrolling form
   useEffect(() => {
     if (!turnedOn.current || !recurring?.enabled) return;
     turnedOn.current = false;

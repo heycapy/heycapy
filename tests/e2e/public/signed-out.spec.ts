@@ -2,7 +2,6 @@ import { test, expect, type Page } from "@playwright/test";
 import { addBox, createAndSelectBucket, uniqueName } from "../helpers/buckets";
 import { login, uniqueEmail } from "../helpers/login";
 
-// What the tab keeps for whoever is signed in: a chat and an unsent draft
 async function leaveTraces(page: Page, secret: string) {
   await createAndSelectBucket(page, uniqueName("Private"));
   await addBox(page).fill(`${secret} draft`);

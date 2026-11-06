@@ -121,7 +121,6 @@ export function ItemRow({
   const justAdded = useUIStore((s) => s.lastAddedItemId === item.id);
   const clearAdded = useUIStore((s) => s.clearAdded);
 
-  // the list refetches after an add, so the new row mounts already marked; it can land off screen
   useEffect(() => {
     if (!justAdded) return;
     rowRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
@@ -215,7 +214,6 @@ export function ItemRow({
           <span
             className={cn("block text-sm", isCompleted && "text-muted-foreground line-through")}
           >
-            {/* a title keeps its lines, as many as the form shows, each cut short on its own */}
             {titleLines.map((line, i) => (
               <span key={i} className="block truncate">
                 {line}
