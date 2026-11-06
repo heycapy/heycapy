@@ -1,13 +1,10 @@
-import { useEffect, type RefObject } from "react";
 import { ItemDialog } from "@/components/buckets/ItemDialog";
 import { useItemEditor } from "@/components/buckets/useItemEditor";
 import { useBucketMembers } from "@/components/buckets/useBucketMembers";
 import { parseFields } from "@/components/buckets/fields";
-import { BUCKET_PALETTE, DEFAULT_BUCKET_STATUSES } from "@/components/buckets/constants";
-import { parseItemsRules, parseNotificationRules } from "@/lib/rules";
-import { localDateString } from "@/lib/reminders/zoned";
+import { DEFAULT_BUCKET_STATUSES } from "@/components/buckets/constants";
+import { parseNotificationRules } from "@/lib/rules";
 import { ITEM_STATUS } from "@/constants";
-import { useUIStore } from "@/store/ui";
 import type { buckets as bucketsTable } from "@/lib/db/schema";
 import { CrossBucketList } from "./CrossBucketList";
 import { groupForToday } from "./group";
@@ -15,47 +12,19 @@ import { useTodayItems } from "./useTodayItems";
 
 type BucketRow = typeof bucketsTable.$inferSelect;
 
-type TodayViewProps = {
-  buckets: BucketRow[];
-  addItemRef: RefObject<(() => void) | null>;
-};
-
-export function TodayView({ buckets, addItemRef }: TodayViewProps) {
+// Today only edits, items are added in their bucket
+export function TodayView({ buckets }: { buckets: BucketRow[] }) {
   const { data, refetch } = useTodayItems();
-  const todayAddBucketId = useUIStore((s) => s.todayAddBucketId);
-  const activeBucketId = useUIStore((s) => s.activeBucketId);
-  const setTodayAddBucketId = useUIStore((s) => s.setTodayAddBucketId);
-
-  const addable = buckets.flatMap((bucket, i) =>
-    parseItemsRules(bucket.itemsRules).readonly === true
-      ? []
-      : [{ bucket, color: BUCKET_PALETTE[i % BUCKET_PALETTE.length] ?? "" }]
-  );
-  const addTo =
-    addable.find((a) => a.bucket.id === todayAddBucketId) ??
-    addable.find((a) => a.bucket.id === activeBucketId) ??
-    addable[0];
-
   const statuses = DEFAULT_BUCKET_STATUSES;
   const editor = useItemEditor({
-    bucketId: addTo?.bucket.id ?? 0,
+    bucketId: 0,
     defaultStatus: statuses.find((s) => s.isDefault)?.name ?? ITEM_STATUS.active,
-    defaultDeadline: () =>
-      localDateString(new Date(), Intl.DateTimeFormat().resolvedOptions().timeZone),
+    defaultDeadline: () => "",
     onSaved: refetch,
   });
 
-  useEffect(() => {
-    if (!addTo) return;
-    addItemRef.current = editor.startAdding;
-    return () => {
-      addItemRef.current = null;
-    };
-  });
-
-  const adding = editor.dialogProps.open && editor.dialogProps.mode === "add";
   const editingItem = data?.items.find((i) => i.id === editor.editingItemId);
-  const formBucket = adding ? addTo?.bucket : buckets.find((b) => b.id === editingItem?.bucketId);
+  const formBucket = buckets.find((b) => b.id === editingItem?.bucketId);
   const fields = parseFields(formBucket?.fieldSchema);
   const members = useBucketMembers(formBucket?.id ?? null, editor.dialogProps.open);
 
@@ -86,23 +55,6 @@ export function TodayView({ buckets, addItemRef }: TodayViewProps) {
             value: editor.assigneeId,
             onChange: editor.setAssigneeId,
           }
-        }
-        bucketChoice={
-          adding && addTo
-            ? {
-                options: addable.map((a) => ({
-                  id: a.bucket.id,
-                  name: a.bucket.icon ? `${a.bucket.icon} ${a.bucket.name}` : a.bucket.name,
-                  color: a.color,
-                })),
-                value: addTo.bucket.id,
-                onChange: (id) => {
-                  setTodayAddBucketId(id);
-                  editor.dialogProps.onPropertiesChange({});
-                  editor.setAssigneeId(null);
-                },
-              }
-            : undefined
         }
       />
     </div>

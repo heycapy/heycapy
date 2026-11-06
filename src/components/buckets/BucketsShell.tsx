@@ -2,11 +2,11 @@
 
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { BracketButton } from "@/components/ui/BracketButton";
-import { BucketContent } from "./BucketContent";
+import { BucketContent, type BucketView } from "./BucketContent";
 import { BucketTabs } from "./BucketTabs";
-import { Sprite } from "@/components/capy/Sprite";
+import { BucketsFooter } from "./BucketsFooter";
 import { TodayView } from "@/components/today/TodayView";
+import { Banners } from "@/components/layout/Banners";
 import { BUCKET_PALETTE, VIEW_FADE } from "./constants";
 import { useUIStore } from "@/store/ui";
 import { useLayoutStore } from "@/store/layout";
@@ -14,6 +14,9 @@ import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { parseItemsRules } from "@/lib/rules";
 import { BOTTOM_BAR_MEDIA_QUERY } from "@/constants";
 import type { ViewerBucket } from "@/lib/buckets/access";
+import type { AddDraft } from "./useItemEditor";
+
+const writable = (bucket: ViewerBucket) => parseItemsRules(bucket.itemsRules).readonly !== true;
 
 type BucketsShellProps = {
   buckets: ViewerBucket[];
@@ -22,7 +25,6 @@ type BucketsShellProps = {
 
 export function BucketsShell({ buckets: rawBuckets, focusBucketId = null }: BucketsShellProps) {
   const buckets = rawBuckets.filter((b, i, arr) => arr.findIndex((x) => x.id === b.id) === i);
-  const setChatState = useLayoutStore((s) => s.setChatState);
   const setBottomBarShown = useLayoutStore((s) => s.setBottomBarShown);
   const activeBucketId = useUIStore((s) => s.activeBucketId);
   const setActiveBucketId = useUIStore((s) => s.setActiveBucketId);
@@ -36,8 +38,10 @@ export function BucketsShell({ buckets: rawBuckets, focusBucketId = null }: Buck
     () => false
   );
   const prevBucketsRef = useRef<ViewerBucket[]>(buckets);
-  const addItemRef = useRef<(() => void) | null>(null);
-  const addPending = useRef(false);
+  const viewRef = useRef<BucketView | null>(null);
+  const quickAddRef = useRef<HTMLInputElement>(null);
+  const focusPending = useRef(false);
+  const expandPending = useRef<AddDraft | null>(null);
   const hasBottomBar = useMediaQuery(BOTTOM_BAR_MEDIA_QUERY);
 
   useEffect(() => {
@@ -53,13 +57,26 @@ export function BucketsShell({ buckets: rawBuckets, focusBucketId = null }: Buck
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // A guide hint asking to add: today has nowhere to add to, so it goes to a bucket that takes items
   const addItemRequest = useUIStore((s) => s.addItemRequest);
   const handledAddRequest = useRef(addItemRequest);
   useEffect(() => {
     if (addItemRequest === handledAddRequest.current) return;
     handledAddRequest.current = addItemRequest;
-    addPending.current = true;
-  }, [addItemRequest]);
+    const { todayOpen: onToday, activeBucketId: current, addItemForm } = useUIStore.getState();
+    const shown = buckets.find((b) => b.id === current) ?? buckets[0];
+    const target = shown && writable(shown) ? shown : onToday ? buckets.find(writable) : undefined;
+    if (!target) return;
+    if (onToday) setActiveBucketId(target.id);
+    if (addItemForm) expandPending.current = { title: "", assigneeId: null };
+    else focusPending.current = true;
+  }, [addItemRequest, buckets, setActiveBucketId]);
+
+  useEffect(() => {
+    if (!focusPending.current || !quickAddRef.current) return;
+    focusPending.current = false;
+    quickAddRef.current.focus();
+  });
 
   useEffect(() => {
     if (newBucketId === null || !buckets.some((b) => b.id === newBucketId)) return;
@@ -86,35 +103,36 @@ export function BucketsShell({ buckets: rawBuckets, focusBucketId = null }: Buck
   const activeIndex = buckets.findIndex((b) => b.id === activeId);
   const accentColor = BUCKET_PALETTE[Math.max(activeIndex, 0) % BUCKET_PALETTE.length];
 
-  // A switch first fades the old view out, and until the new one mounts, add would open the old
-  // view's form; an add asked for meanwhile waits for the new view
+  // A switch first fades the old view out, and until the new one mounts, expand would open the old
+  // view's form (or none, on today); an expand asked for meanwhile waits for the new view
   const placeKey = todayOpen ? "today" : activeBucket?.id;
   const [shownKey, setShownKey] = useState<typeof placeKey | null>(null);
   const switching = shownKey !== placeKey;
   useEffect(() => {
-    if (switching || !addPending.current) return;
-    addPending.current = false;
-    addItemRef.current?.();
+    if (switching || !expandPending.current || !viewRef.current) return;
+    viewRef.current?.startAdding(expandPending.current);
+    expandPending.current = null;
   });
 
   if (!activeBucket) return null;
 
-  const canAddItem = todayOpen
-    ? buckets.some((b) => parseItemsRules(b.itemsRules).readonly !== true)
-    : parseItemsRules(activeBucket.itemsRules).readonly !== true;
+  const canAddItem = !todayOpen && writable(activeBucket);
 
-  function addItem() {
-    if (switching) addPending.current = true;
-    else addItemRef.current?.();
+  function expand(draft: AddDraft) {
+    if (switching) expandPending.current = draft;
+    else viewRef.current?.startAdding(draft);
   }
 
   return (
     <div className="flex flex-1 flex-col">
       <BucketTabs buckets={buckets} activeId={activeId} todayOpen={todayOpen} />
+      <Banners />
       <div
         className="max-md:scrollbar-hide flex-1 overflow-y-auto pb-[420px]"
         onClick={(e) => {
-          if (hasBottomBar && canAddItem && e.target === e.currentTarget) addItem();
+          if (hasBottomBar && canAddItem && e.target === e.currentTarget) {
+            quickAddRef.current?.focus();
+          }
         }}
       >
         {hydrated && (
@@ -134,39 +152,23 @@ export function BucketsShell({ buckets: rawBuckets, focusBucketId = null }: Buck
               className="mx-auto w-full max-w-6xl"
             >
               {todayOpen ? (
-                <TodayView buckets={buckets} addItemRef={addItemRef} />
+                <TodayView buckets={buckets} />
               ) : (
-                <BucketContent
-                  bucket={activeBucket}
-                  accentColor={accentColor}
-                  addItemRef={addItemRef}
-                />
+                <BucketContent bucket={activeBucket} accentColor={accentColor} viewRef={viewRef} />
               )}
             </motion.div>
           </AnimatePresence>
         )}
       </div>
 
-      <div className="border-border bg-background sticky bottom-0 grid grid-cols-[1fr_auto_1fr] items-center border-t-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
-        <div className="col-start-2">
-          {canAddItem && (
-            <BracketButton
-              onClick={addItem}
-              style={{ color: accentColor }}
-              className="min-h-14 px-3 text-base"
-            >
-              add +
-            </BracketButton>
-          )}
-        </div>
-        <button
-          onClick={() => setChatState("open")}
-          aria-label="chat with capy"
-          className="mr-3 flex min-h-14 items-center justify-self-end transition-transform active:scale-95 md:hidden"
-        >
-          <Sprite id="capy-idle-blink" size={48} />
-        </button>
-      </div>
+      <BucketsFooter
+        bucket={todayOpen ? null : activeBucket}
+        color={accentColor}
+        canAdd={canAddItem}
+        inputRef={quickAddRef}
+        onAdded={() => void viewRef.current?.refetch()}
+        onExpand={expand}
+      />
     </div>
   );
 }

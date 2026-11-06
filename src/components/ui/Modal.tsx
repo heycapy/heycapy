@@ -82,6 +82,9 @@ export function Modal({
               }}
               onCloseAutoFocus={(e) => {
                 e.preventDefault();
+                // something focused while this closed (a guide hint pointing at the add box) keeps it
+                const active = document.activeElement;
+                if (active && active !== document.body) return;
                 if (returnTo?.isConnected) returnTo.focus();
               }}
               {...(label ? { "aria-labelledby": undefined, "aria-label": label } : {})}

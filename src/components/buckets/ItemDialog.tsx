@@ -1,8 +1,7 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useRef, useState } from "react";
 import { BracketButton } from "@/components/ui/BracketButton";
 import { type Ampm, type TimeValue } from "@/components/ui/TimeField";
 import { ItemFieldsForm } from "./ItemFieldsForm";
-import { ItemBucketField, type BucketChoice } from "./ItemBucketField";
 import { ItemAssigneeField, type AssigneeChoice } from "./ItemAssigneeField";
 import { ItemDialogFrame } from "./ItemDialogFrame";
 import { ItemPageFrame } from "./ItemPageFrame";
@@ -56,7 +55,6 @@ type ItemDialogProps = {
   onConfirm: (title: string | undefined, clock: string | null) => void;
   onCancel: () => void;
   onDelete?: () => void;
-  bucketChoice?: BucketChoice;
   assigneeChoice?: AssigneeChoice;
 };
 
@@ -83,7 +81,6 @@ export function ItemDialog({
   onConfirm,
   onCancel,
   onDelete,
-  bucketChoice,
   assigneeChoice,
 }: ItemDialogProps) {
   const scrollBodyRef = useRef<HTMLDivElement>(null);
@@ -106,9 +103,15 @@ export function ItemDialog({
       setTime(timeOfDeadline(onZone, zone));
     },
   });
-  const resetTitleDate = titleDate.reset;
   const resetClock = clock.reset;
   const openingZone = clock.zoneFor(assigneeChoice?.value ?? null, null);
+  const startTitleDate = useEffectEvent(() => {
+    const typed = titleDate.start(title);
+    if (!typed) return;
+    const onZone = moveClock(typed, browserTimezone(), openingZone);
+    onDeadlineChange(onZone);
+    setTime(timeOfDeadline(onZone, openingZone));
+  });
 
   const hasFields = !!(fields && fields.length > 0);
 
@@ -128,12 +131,12 @@ export function ItemDialog({
     if (!didJustOpen) return;
     const id = setTimeout(() => {
       setValidationAttempted(false);
-      resetTitleDate();
       resetClock();
       setTime(timeOfDeadline(deadline, openingZone));
+      startTitleDate();
     }, 0);
     return () => clearTimeout(id);
-  }, [open, deadline, resetTitleDate, resetClock, openingZone]);
+  }, [open, deadline, resetClock, openingZone]);
 
   function handleTitleChange(next: string) {
     onTitleChange(next);
@@ -271,8 +274,6 @@ export function ItemDialog({
         onEnter={handleConfirmClick}
         onDismissDate={titleDate.dismiss}
       />
-
-      {bucketChoice && <ItemBucketField choice={bucketChoice} disabled={pending} />}
 
       {assignees && assignees.members.length > 1 && (
         <ItemAssigneeField choice={assignees} disabled={pending} />

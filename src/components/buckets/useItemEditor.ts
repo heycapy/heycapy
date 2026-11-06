@@ -9,6 +9,9 @@ import type { ItemStatus } from "./constants";
 
 type Item = typeof items.$inferSelect;
 
+// What the add box holds when it opens the full form
+export type AddDraft = { title: string; assigneeId: number | null };
+
 type ItemEditorOptions = {
   bucketId: number;
   defaultStatus: ItemStatus;
@@ -68,8 +71,10 @@ export function useItemEditor({
     setAddError("");
   }
 
-  function startAdding() {
+  function startAdding(draft?: AddDraft) {
     cancelEditing();
+    setAddTitle(draft?.title ?? "");
+    setAddAssignee(draft?.assigneeId ?? null);
     setAddDeadline(defaultDeadline());
     setAddingItem(true);
   }

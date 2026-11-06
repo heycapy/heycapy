@@ -15,6 +15,7 @@ import { useUIStore } from "@/store/ui";
 import { useChatStore } from "@/store/chat";
 import { useTimezoneStore } from "@/store/timezone";
 import { TimezoneMoveBanner } from "./TimezoneMoveBanner";
+import { BannersProvider } from "./Banners";
 import { NewVersionBanner } from "./NewVersionBanner";
 import { FeedbackDialog } from "./FeedbackDialog";
 import { WhatsNewDialog } from "./WhatsNewDialog";
@@ -86,7 +87,7 @@ export function AppShell({
     setGuideOpen(false);
     const target = HINT_TARGETS[task.key];
     if (target.kind === "settings") setSettingsTab(target.tab);
-    if (target.kind === "add-item") requestAddItem();
+    if (target.kind === "add-item") requestAddItem(target.form);
     if (target.kind === "new-bucket") openCreateBucket();
     if (target.kind === "bucket-members") requestMembers();
     if (target.kind === "chat") setChatState("open");
@@ -101,6 +102,14 @@ export function AppShell({
   }
 
   const newVersion = useServerEvents();
+  const banners = (
+    <div className="mx-auto w-full max-w-6xl">
+      {newVersion && <NewVersionBanner />}
+      {!hasWorkingChannel && <NoChannelBanner onSetUp={() => setSettingsTab("notifications")} />}
+      <DeliveryFailureBanner failures={failures} onFix={() => setSettingsTab("notifications")} />
+      <TimezoneMoveBanner />
+    </div>
+  );
 
   useEffect(() => {
     if (!guideFromServer.seen) void markGuideSeenAction();
@@ -131,13 +140,9 @@ export function AppShell({
         guideProgress={`${guideDone}/${guide.tasks.length}`}
         guideUnfinished={guideDone < guide.tasks.length && !guide.hidden}
       />
-      <div className="mx-auto w-full max-w-6xl">
-        {newVersion && <NewVersionBanner />}
-        {!hasWorkingChannel && <NoChannelBanner onSetUp={() => setSettingsTab("notifications")} />}
-        <DeliveryFailureBanner failures={failures} onFix={() => setSettingsTab("notifications")} />
-        <TimezoneMoveBanner />
-      </div>
-      <main className="max-md:scrollbar-hide flex flex-1 flex-col overflow-y-auto">{children}</main>
+      <main className="max-md:scrollbar-hide flex flex-1 flex-col overflow-y-auto">
+        <BannersProvider banners={banners}>{children}</BannersProvider>
+      </main>
       <SettingsSheet
         open={settingsTab !== null}
         initialTab={settingsTab ?? "appearance"}

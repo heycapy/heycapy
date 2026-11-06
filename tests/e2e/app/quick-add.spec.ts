@@ -1,6 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 import { authState } from "../helpers/auth";
-import { addItemButton, itemRow, openBucketOnPhone, uniqueName } from "../helpers/buckets";
+import { addBox, addItemButton, itemRow, openBucketOnPhone, uniqueName } from "../helpers/buckets";
 
 test.use({ storageState: authState("quick-add"), hasTouch: true });
 
@@ -22,7 +22,27 @@ async function tapAndReadFocus(page: Page, tap: () => Promise<void>): Promise<st
   return (await page.locator("body").getAttribute("data-focus-at-tap")) ?? "";
 }
 
-test("the bottom bar's add opens a full screen page with cancel and add at the bottom", async ({
+test("on a phone the add box adds from the bottom bar without leaving the list", async ({
+  page,
+}) => {
+  await openBucketOnPhone(page, uniqueName("Box"));
+  await addBox(page).tap();
+  await expect(addBox(page)).toBeFocused();
+
+  const first = uniqueName("milk");
+  await addBox(page).fill(first);
+  await addBox(page).press("Enter");
+  await expect(itemRow(page, first)).toBeVisible();
+  await expect(addPage(page)).toHaveCount(0);
+
+  const second = uniqueName("bread");
+  await addBox(page).fill(second);
+  await addBox(page).press("Enter");
+  await expect(itemRow(page, second)).toBeVisible();
+  await expect(addBox(page)).toBeFocused();
+});
+
+test("the add box's expand opens a full screen page with cancel and add at the bottom", async ({
   page,
 }) => {
   await openBucketOnPhone(page, uniqueName("Quick"));
@@ -57,7 +77,7 @@ test("the bottom bar's add opens a full screen page with cancel and add at the b
   );
 });
 
-test("tapping the empty space under the list opens the add page", async ({ page }) => {
+test("tapping the empty space under the list puts the cursor in the add box", async ({ page }) => {
   await openBucketOnPhone(page, uniqueName("Empty tap"));
 
   const box = await page.locator("main").boundingBox();
@@ -66,12 +86,7 @@ test("tapping the empty space under the list opens the add page", async ({ page 
     await tapAndReadFocus(page, () =>
       page.touchscreen.tap(box.x + box.width / 2, box.y + box.height - 200)
     )
-  ).toBe("TEXTAREA");
-  const addForm = addPage(page);
-  await expect(addForm).toBeVisible();
-
-  const name = uniqueName("from empty space");
-  await addForm.locator("textarea").fill(name);
-  await addForm.getByRole("button", { name: "[ add ]", exact: true }).tap();
-  await expect(itemRow(page, name)).toBeVisible();
+  ).toBe("INPUT");
+  await expect(addBox(page)).toBeFocused();
+  await expect(addPage(page)).toHaveCount(0);
 });

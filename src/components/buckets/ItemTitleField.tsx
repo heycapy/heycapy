@@ -1,6 +1,6 @@
 import { useLayoutEffect, useRef, useState, type ChangeEvent } from "react";
 import { BracketButton } from "@/components/ui/BracketButton";
-import { clockTime, formatWeekdayDate } from "@/lib/format-date";
+import { describeDeadline } from "@/lib/format-date";
 import {
   findMention,
   mentionOptions,
@@ -16,15 +16,6 @@ import { LABEL } from "@/components/layout/settings-constants";
 
 // Shared by the textarea and the highlight layer behind it, so their text lines up exactly
 const TEXT = "w-full border-b py-1.5 text-base break-words whitespace-pre-wrap sm:text-sm";
-
-function describeDeadline(deadline: string): string {
-  if (deadline.includes("T")) {
-    const d = new Date(deadline);
-    return `${formatWeekdayDate(d)} · ${clockTime(d)}`;
-  }
-  const [year = 0, month = 1, day = 1] = deadline.split("-").map(Number);
-  return `${formatWeekdayDate(new Date(year, month - 1, day))} · all day`;
-}
 
 type ItemTitleFieldProps = {
   open: boolean;

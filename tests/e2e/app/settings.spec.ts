@@ -306,7 +306,7 @@ test.describe("items settings", () => {
     await expect(itemRow(page, active)).toBeVisible();
   });
 
-  test("read only hides the add button and blocks editing", async ({ page }) => {
+  test("read only hides the add box and blocks editing", async ({ page }) => {
     const title = uniqueName("locked item");
     await addItem(page, title);
 
@@ -314,7 +314,7 @@ test.describe("items settings", () => {
     await option(field(dialog, "read only"), "on").click();
     await saveSettings(dialog);
 
-    await expect(option(page.locator("main"), "[ add + ]")).not.toBeVisible();
+    await expect(page.getByRole("textbox", { name: /^add to / })).not.toBeVisible();
     await itemRow(page, title).click();
     await expect(page.getByText("edit item", { exact: true })).not.toBeVisible();
 
@@ -323,7 +323,7 @@ test.describe("items settings", () => {
     await option(field(dialog, "read only"), "off").click();
     await saveSettings(dialog);
 
-    await expect(option(page.locator("main"), "[ add + ]")).toBeVisible();
+    await expect(page.getByRole("textbox", { name: /^add to / })).toBeVisible();
   });
 
   test("default deadline offset previews valid input and flags invalid input", async ({ page }) => {

@@ -136,8 +136,15 @@ test("a hint takes you to the place the task is done", async ({ page }) => {
   await page.keyboard.press("Escape");
   await expect(page.getByRole("button", { name: "[ create invite ]" })).toBeHidden();
 
+  await page.getByRole("button", { name: "today", exact: true }).click();
   await openGuide(page);
   await task(page, "add a reminder").getByRole("button", { name: "[ hint ]" }).click();
+  await expect(guidePanel(page)).toBeHidden();
+  await expect(activeBucketTitle(page)).toHaveText("reminders");
+  await expect(page.getByRole("textbox", { name: "add to reminders" })).toBeFocused();
+
+  await openGuide(page);
+  await task(page, "make a reminder repeat").getByRole("button", { name: "[ hint ]" }).click();
   await expect(page.getByText("new item", { exact: true })).toBeVisible();
 });
 

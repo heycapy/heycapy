@@ -63,5 +63,14 @@ export function useTitleDate({
     setBefore(null);
   }, []);
 
-  return { match, typed, dismiss, pickByHand, reset };
+  // A new item can open with words already typed in the add box. Reads no state, it's being reset;
+  // the caller sets the returned deadline on the clock the form opens on
+  function start(text: string): string | null {
+    reset();
+    const found = active ? findTitleDate(text) : null;
+    if (found) setBefore(deadline);
+    return found?.deadline ?? null;
+  }
+
+  return { match, typed, dismiss, pickByHand, start };
 }

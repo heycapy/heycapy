@@ -73,7 +73,7 @@ export function CapyChat({ appUrl }: { appUrl: string | null }) {
       onClick={() => setChatState("open")}
       className={cn(
         "fixed right-6 bottom-6 z-50 transition-transform hover:scale-110 active:scale-95",
-        bottomBarShown && "max-md:hidden"
+        bottomBarShown && "hidden"
       )}
       aria-label="Open chat"
     >

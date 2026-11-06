@@ -8,9 +8,9 @@ import type { SettingsTab } from "./BucketSettingsForm";
 import { RemindersOffNotice } from "./RemindersOffNotice";
 import { TimezonesNotice } from "./TimezonesNotice";
 import { useBucketItems } from "./useBucketItems";
-import { useItemEditor } from "./useItemEditor";
+import { useItemEditor, type AddDraft } from "./useItemEditor";
 import { useBucketMembers } from "./useBucketMembers";
-import { daysToDisplayStr, parseDurationToDate } from "@/lib/duration";
+import { defaultDeadline } from "./defaultDeadline";
 import { DEFAULT_BUCKET_STATUSES } from "./constants";
 import type { ViewerBucket } from "@/lib/buckets/access";
 import { parseFields } from "./fields";
@@ -21,13 +21,19 @@ import { assignItemAction } from "@/app/(app)/actions";
 import { memberName } from "@/lib/buckets/member-name";
 import { MembersBar, type MemberFilter } from "./MembersBar";
 
+// What the footer's add box reaches into the open bucket for
+export type BucketView = {
+  startAdding: (draft?: AddDraft) => void;
+  refetch: () => Promise<void>;
+};
+
 type BucketContentProps = {
   bucket: ViewerBucket;
   accentColor: string;
-  addItemRef: RefObject<(() => void) | null>;
+  viewRef: RefObject<BucketView | null>;
 };
 
-export function BucketContent({ bucket, accentColor, addItemRef }: BucketContentProps) {
+export function BucketContent({ bucket, accentColor, viewRef }: BucketContentProps) {
   const rules = parseItemsRules(bucket.itemsRules);
   const statuses = DEFAULT_BUCKET_STATUSES;
   const fields = parseFields(bucket.fieldSchema);
@@ -41,10 +47,7 @@ export function BucketContent({ bucket, accentColor, addItemRef }: BucketContent
   const editor = useItemEditor({
     bucketId: bucket.id,
     defaultStatus,
-    defaultDeadline: () =>
-      rules.defaultDeadlineOffsetDays !== null && rules.defaultDeadlineOffsetDays !== undefined
-        ? (parseDurationToDate(daysToDisplayStr(rules.defaultDeadlineOffsetDays)) ?? "")
-        : "",
+    defaultDeadline: () => defaultDeadline(rules.defaultDeadlineOffsetDays),
     onSaved: list.refetch,
   });
   const members = useBucketMembers(bucket.id, editor.dialogProps.open);
@@ -66,9 +69,9 @@ export function BucketContent({ bucket, accentColor, addItemRef }: BucketContent
   const openTab: SettingsTab | null =
     settingsTab ?? (membersRequested ? "members" : settingsRequested ? "items" : null);
   useEffect(() => {
-    addItemRef.current = editor.startAdding;
+    viewRef.current = { startAdding: editor.startAdding, refetch: list.refetch };
     return () => {
-      addItemRef.current = null;
+      viewRef.current = null;
     };
   });
 

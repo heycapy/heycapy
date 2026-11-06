@@ -24,8 +24,10 @@ test("capy in the bottom bar opens the chat as a drawer on phones", async ({ pag
   await page.touchscreen.tap(195, 60);
   await expect(chat).toBeHidden();
 
+  // capy stays in the bottom bar on wide screens too, never also floating over the list
   await page.setViewportSize({ width: 1280, height: 800 });
-  await expect(page.getByRole("button", { name: "chat with capy" })).toBeHidden();
+  await expect(page.getByRole("button", { name: "chat with capy" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Open chat" })).toBeHidden();
 });
 
 test("the bottom bar is easy to tap and clear of the screen's rounded bottom", async ({ page }) => {
@@ -33,12 +35,14 @@ test("the bottom bar is easy to tap and clear of the screen's rounded bottom", a
   await openBucketOnPhone(page, bucket);
   const screenHeight = page.viewportSize()?.height ?? 0;
 
-  for (const control of [
-    addItemButton(page),
-    page.getByRole("button", { name: "chat with capy" }),
-  ]) {
+  // the expand button fills the add box's height inside its 2px border
+  for (const [control, height] of [
+    [page.getByTestId("add-box"), 48],
+    [addItemButton(page), 44],
+    [page.getByRole("button", { name: "chat with capy" }), 48],
+  ] as const) {
     const box = await control.boundingBox();
-    expect(box?.height).toBeGreaterThanOrEqual(48);
+    expect(box?.height).toBeGreaterThanOrEqual(height);
     expect((box?.y ?? 0) + (box?.height ?? 0)).toBeLessThanOrEqual(screenHeight - 8);
   }
 });

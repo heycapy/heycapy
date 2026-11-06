@@ -97,36 +97,14 @@ test("items can be edited from today", async ({ page }) => {
   await expect(itemRow(page, `${title} back`)).toBeVisible();
 });
 
-test("adding from today goes into the bucket viewed last, due today, a picked bucket sticks", async ({
-  page,
-}) => {
+test("today has no add box, only capy and a pointer to the buckets", async ({ page }) => {
   await page.goto("/");
-  const first = await bucketWithItems(page, "Home", []);
-  const second = await bucketWithItems(page, "Work", []);
+  await bucketWithItems(page, "Home", []);
   await todayButton(page).click();
   await expect(page.getByRole("heading", { name: "today", level: 2 })).toBeAttached();
 
-  const addButton = page.getByRole("button", { name: "[ add + ]", exact: true });
-  await addButton.click();
-  const dialog = modal(page, /^new item$/);
-  const bucket = dialog.getByLabel("bucket");
-  await expect(bucket.locator("option:checked")).toHaveText(second);
-  await expect(dialog.getByRole("button", { name: /pick date/ })).toHaveCount(0);
-  await expect(dialog.getByRole("button", { name: "time: all day" })).toBeVisible();
-
-  const inWork = uniqueName("standup notes");
-  await dialog.locator("textarea").first().fill(inWork);
-  await dialog.getByRole("button", { name: "[ add ]", exact: true }).click();
-  await expect(page.getByRole("region", { name: "today" })).toContainText(inWork);
-  await expect(itemRow(page, inWork)).toContainText(second);
-
-  await addButton.click();
-  await bucket.selectOption({ label: first });
-  const inHome = uniqueName("water plants");
-  await dialog.locator("textarea").first().fill(inHome);
-  await dialog.getByRole("button", { name: "[ add ]", exact: true }).click();
-  await expect(itemRow(page, inHome)).toContainText(first);
-
-  await addButton.click();
-  await expect(bucket.locator("option:checked")).toHaveText(first);
+  await expect(page.getByText("open a bucket to add to it")).toBeVisible();
+  await expect(page.getByRole("textbox", { name: /^add to / })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "add with details" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "chat with capy" })).toBeVisible();
 });

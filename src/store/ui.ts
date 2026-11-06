@@ -25,12 +25,11 @@ type UIStore = {
   todayOpen: boolean;
   openToday: () => void;
 
-  todayAddBucketId: number | null;
-  setTodayAddBucketId: (id: number) => void;
-
   // bumped to open the add form from outside the buckets, e.g. a guide hint
   addItemRequest: number;
-  requestAddItem: () => void;
+  // the full add form rather than the add box
+  addItemForm: boolean;
+  requestAddItem: (form: boolean) => void;
 
   // a guide hint asking for the open bucket's members, kept until a bucket view picks it up
   membersRequested: boolean;
@@ -71,11 +70,10 @@ export const useUIStore = create<UIStore>()(
       todayOpen: true,
       openToday: () => set({ todayOpen: true }),
 
-      todayAddBucketId: null,
-      setTodayAddBucketId: (id) => set({ todayAddBucketId: id }),
-
       addItemRequest: 0,
-      requestAddItem: () => set((s) => ({ addItemRequest: s.addItemRequest + 1 })),
+      addItemForm: false,
+      requestAddItem: (form) =>
+        set((s) => ({ addItemRequest: s.addItemRequest + 1, addItemForm: form })),
 
       membersRequested: false,
       requestMembers: () => set({ membersRequested: true, todayOpen: false }),
@@ -96,7 +94,6 @@ export const useUIStore = create<UIStore>()(
       partialize: (s) => ({
         activeBucketId: s.activeBucketId,
         todayOpen: s.todayOpen,
-        todayAddBucketId: s.todayAddBucketId,
       }),
       skipHydration: true,
     }

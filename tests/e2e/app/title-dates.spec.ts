@@ -1,6 +1,12 @@
 import { test, expect, type Page } from "@playwright/test";
 import { authState } from "../helpers/auth";
-import { createAndSelectBucket, itemRow, uniqueName } from "../helpers/buckets";
+import {
+  addBox,
+  addItemButton,
+  createAndSelectBucket,
+  itemRow,
+  uniqueName,
+} from "../helpers/buckets";
 import { modal } from "../helpers/settings";
 
 test.use({ storageState: authState("title-dates") });
@@ -8,13 +14,54 @@ test.use({ storageState: authState("title-dates") });
 // Wednesday Oct 7 2026, 8am
 const WEDNESDAY = new Date(2026, 9, 7, 8, 0);
 
-async function openAdd(page: Page) {
+async function openBucket(page: Page) {
   await page.clock.setFixedTime(WEDNESDAY);
   await page.goto("/");
   await createAndSelectBucket(page, uniqueName("Dates"));
-  await page.getByRole("button", { name: "[ add + ]", exact: true }).click();
+}
+
+async function openAdd(page: Page) {
+  await openBucket(page);
+  await addItemButton(page).click();
   return modal(page, /^(new|edit) item$/);
 }
+
+test("the add box reads a typed date, adds on enter and stays ready for the next", async ({
+  page,
+}) => {
+  await openBucket(page);
+  const title = uniqueName("pay rent");
+  await addBox(page).fill(`${title} friday 5pm`);
+  await expect(page.getByTestId("quick-add-hint")).toHaveText("→ Fri Oct 9 · 5pm");
+
+  await addBox(page).press("Enter");
+  await expect(itemRow(page, title)).toContainText("Oct 9 5pm");
+  await expect(itemRow(page, title)).not.toContainText("friday");
+  await expect(addBox(page)).toHaveValue("");
+  await expect(addBox(page)).toBeFocused();
+  await expect(page.getByTestId("quick-add-hint")).toHaveCount(0);
+  await expect(page.getByText("new item", { exact: true })).toHaveCount(0);
+});
+
+test("expand opens the full form with what was typed, and [×] there clears the date", async ({
+  page,
+}) => {
+  await openBucket(page);
+  const title = `${uniqueName("call mom")} tomorrow`;
+  await addBox(page).fill(title);
+  await addItemButton(page).click();
+
+  const dialog = modal(page, /^new item$/);
+  await expect(dialog.locator("textarea").first()).toHaveValue(title);
+  await expect(dialog.getByTestId("title-date-highlight").locator("span")).toHaveText("tomorrow");
+  await expect(dialog.getByRole("button", { name: "Oct 8", exact: true })).toBeVisible();
+
+  await dialog.getByRole("button", { name: "not a date" }).click();
+  await expect(dialog.getByRole("button", { name: "pick date" })).toBeVisible();
+  await dialog.getByRole("button", { name: "[ add ]", exact: true }).click();
+  await expect(itemRow(page, title)).toBeVisible();
+  await expect(addBox(page)).toHaveValue("");
+});
 
 test("a date typed into the title is highlighted, fills 'when' and leaves the title", async ({
   page,

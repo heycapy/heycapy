@@ -128,7 +128,7 @@ test.describe("items", () => {
   });
 
   test("item add dialog closes on cancel without adding", async ({ page }) => {
-    await page.getByRole("button", { name: "[ add + ]", exact: true }).click();
+    await page.getByRole("button", { name: "add with details", exact: true }).click();
     await expect(page.getByText("new item", { exact: true })).toBeVisible();
     await page.locator("textarea").fill("should not be saved");
     await page.getByRole("button", { name: "[ x ]", exact: true }).click();
@@ -137,7 +137,7 @@ test.describe("items", () => {
   });
 
   test("shows validation error when submitting empty title", async ({ page }) => {
-    await page.getByRole("button", { name: "[ add + ]", exact: true }).click();
+    await page.getByRole("button", { name: "add with details", exact: true }).click();
     await page.getByRole("button", { name: "[ add ]", exact: true }).click();
     await expect(page.getByText(/title is required/i)).toBeVisible();
     await expect(page.getByText("new item", { exact: true })).toBeVisible();

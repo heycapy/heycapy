@@ -45,7 +45,7 @@ export async function addItem(
   title: string,
   opts: { status?: string } = {}
 ): Promise<void> {
-  await page.getByRole("button", { name: "[ add + ]", exact: true }).click();
+  await page.getByRole("button", { name: "add with details", exact: true }).click();
   const dialog = page
     .locator("div.fixed")
     .filter({ has: page.getByText("new item", { exact: true }) });
@@ -70,7 +70,11 @@ export async function openBucketOnPhone(page: Page, name: string): Promise<void>
 }
 
 export function addItemButton(page: Page) {
-  return page.getByRole("button", { name: "[ add + ]", exact: true });
+  return page.getByRole("button", { name: "add with details", exact: true });
+}
+
+export function addBox(page: Page) {
+  return page.getByRole("textbox", { name: /^add to / });
 }
 
 export function itemMenu(page: Page, title: string) {

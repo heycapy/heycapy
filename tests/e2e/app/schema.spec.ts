@@ -65,7 +65,7 @@ test("a saved field persists and shows up in the item dialog and list", async ({
   await closeDialog(settings);
 
   const title = uniqueName("meeting");
-  await page.getByRole("button", { name: "[ add + ]", exact: true }).click();
+  await page.getByRole("button", { name: "add with details", exact: true }).click();
   const dialog = itemDialog(page);
   await dialog.locator("textarea").first().fill(title);
   await dialog.getByPlaceholder("Where").fill("office");
@@ -119,7 +119,9 @@ test("fields can be reordered with up and down", async ({ page }) => {
   await expect(fieldRows(schema).last().getByPlaceholder("field name")).toHaveValue("First");
 });
 
-test("a required field must be filled before adding an item", async ({ page }) => {
+test("a required field must be filled before adding an item, the add box opens the form", async ({
+  page,
+}) => {
   const { dialog: schema, settings } = await openSchema(page);
   const row = await addField(schema, "Amount");
   await option(row, "required").click();
@@ -127,9 +129,13 @@ test("a required field must be filled before adding an item", async ({ page }) =
   await saveSchema(schema);
   await closeDialog(settings);
 
-  await page.getByRole("button", { name: "[ add + ]", exact: true }).click();
+  // the add box can't fill fields, so enter opens the full form with what was typed
+  const title = uniqueName("missing amount");
+  const box = page.getByRole("textbox", { name: /^add to / });
+  await box.fill(title);
+  await box.press("Enter");
   const dialog = itemDialog(page);
-  await dialog.locator("textarea").first().fill(uniqueName("missing amount"));
+  await expect(dialog.locator("textarea").first()).toHaveValue(title);
   await dialog.getByRole("button", { name: "[ add ]", exact: true }).click();
   await expect(dialog.getByText("Amount is required")).toBeVisible();
   await expect(dialog).toBeVisible();

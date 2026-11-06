@@ -88,3 +88,13 @@ function clockText(h: number, m: number): string {
   const min = m > 0 ? `:${String(m).padStart(2, "0")}` : "";
   return `${hour}${min}${ampm}`;
 }
+
+// A deadline as the pickers produce it: an ISO time, or a plain date for all day
+export function describeDeadline(deadline: string): string {
+  if (deadline.includes("T")) {
+    const d = new Date(deadline);
+    return `${formatWeekdayDate(d)} · ${clockTime(d)}`;
+  }
+  const [year = 0, month = 1, day = 1] = deadline.split("-").map(Number);
+  return `${formatWeekdayDate(new Date(year, month - 1, day))} · all day`;
+}

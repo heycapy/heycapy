@@ -10,7 +10,7 @@ test("a time can be picked from the grid or typed, and is saved", async ({ page 
   await createAndSelectBucket(page, uniqueName("Times"));
   const title = uniqueName("dentist");
 
-  await page.getByRole("button", { name: "[ add + ]", exact: true }).click();
+  await page.getByRole("button", { name: "add with details", exact: true }).click();
   const dialog = modal(page, /^(new|edit) item$/);
   await dialog.locator("textarea").first().fill(title);
   await dialog.getByRole("button", { name: "pick date" }).click();
@@ -59,7 +59,7 @@ test("a date without a time shows as all day, and a time can be taken off again"
   await createAndSelectBucket(page, uniqueName("All day"));
   const title = uniqueName("pay rent");
 
-  await page.getByRole("button", { name: "[ add + ]", exact: true }).click();
+  await page.getByRole("button", { name: "add with details", exact: true }).click();
   const dialog = modal(page, /^(new|edit) item$/);
   await dialog.locator("textarea").first().fill(title);
   await dialog.getByRole("button", { name: "pick date" }).click();
@@ -93,7 +93,7 @@ test("a date picked for today after 9am starts at the next half hour", async ({ 
   await page.goto("/");
   await createAndSelectBucket(page, uniqueName("Tonight"));
 
-  await page.getByRole("button", { name: "[ add + ]", exact: true }).click();
+  await page.getByRole("button", { name: "add with details", exact: true }).click();
   const dialog = modal(page, /^(new|edit) item$/);
   await dialog.getByRole("button", { name: "pick date" }).click();
   await page.getByRole("button", { name: String(evening.getDate()), exact: true }).click();
