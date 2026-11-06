@@ -26,6 +26,7 @@ import { MentionList } from "./MentionList";
 import { useBucketMembers } from "./useBucketMembers";
 import { useItemClock } from "./useItemClock";
 import { isEmptyDraft, useDraft, useDraftStore } from "@/store/drafts";
+import { useUIStore } from "@/store/ui";
 
 type QuickAddProps = {
   bucket: ViewerBucket;
@@ -38,11 +39,11 @@ function isBlank(value: unknown): boolean {
   return value === undefined || value === null || value === "";
 }
 
-// Reads the bucket's colour from --accent, set by the footer
 export function QuickAdd({ bucket, inputRef, onAdded, onExpand }: QuickAddProps) {
   const draft = useDraft(bucket.id);
   const updateDraft = useDraftStore((s) => s.updateDraft);
   const clearDraft = useDraftStore((s) => s.clearDraft);
+  const markAdded = useUIStore((s) => s.markAdded);
   const [caret, setCaret] = useState(0);
   const [highlighted, setHighlighted] = useState(0);
   const [closedOn, setClosedOn] = useState<string | null>(null);
@@ -68,7 +69,8 @@ export function QuickAdd({ bucket, inputRef, onAdded, onExpand }: QuickAddProps)
       : typedDate && describeDeadline(typedDate.deadline),
     draft.recurring?.enabled && repeatLabel(draft.recurring),
     assignee && `@${memberName(assignee)}`,
-    (draft.reminders !== null || Object.keys(draft.properties).length > 0) && "+ details",
+    Object.keys(draft.properties).length > 0 && "+ fields",
+    draft.reminders !== null && "+ reminders",
   ].filter(Boolean);
 
   function clear() {
@@ -104,6 +106,7 @@ export function QuickAdd({ bucket, inputRef, onAdded, onExpand }: QuickAddProps)
         clock.clock
       );
       if (result.ok) {
+        markAdded(result.id);
         onAdded();
         return;
       }
@@ -124,7 +127,7 @@ export function QuickAdd({ bucket, inputRef, onAdded, onExpand }: QuickAddProps)
   return (
     <div
       data-testid="add-box"
-      className="border-border bg-card relative flex min-w-0 flex-1 flex-col border-2 focus-within:border-(--accent)"
+      className="relative flex min-h-12 min-w-0 flex-1 flex-col justify-center"
     >
       {listOpen && (
         <div className="bg-background absolute inset-x-0 bottom-full mb-2">
@@ -180,6 +183,15 @@ export function QuickAdd({ bucket, inputRef, onAdded, onExpand }: QuickAddProps)
           autoComplete="off"
           className="placeholder:text-muted-foreground/50 min-w-0 flex-1 bg-transparent py-1 font-mono text-base outline-none sm:text-sm"
         />
+        {/* on the row, not under it, so the footer keeps its height */}
+        {hint.length > 0 && (
+          <span
+            data-testid="quick-add-hint"
+            className="max-w-24 shrink-0 truncate font-mono text-[11px] text-(--accent) sm:max-w-[45%]"
+          >
+            → {hint.join(" · ")}
+          </span>
+        )}
         {!isEmptyDraft(draft) && (
           <button
             type="button"
@@ -202,14 +214,6 @@ export function QuickAdd({ bucket, inputRef, onAdded, onExpand }: QuickAddProps)
           <PixelIcon icon={Scale} />
         </button>
       </div>
-      {hint.length > 0 && (
-        <p
-          data-testid="quick-add-hint"
-          className="-mt-1.5 pb-1.5 pl-8.5 font-mono text-[11px] text-(--accent)"
-        >
-          → {hint.join(" · ")}
-        </p>
-      )}
     </div>
   );
 }

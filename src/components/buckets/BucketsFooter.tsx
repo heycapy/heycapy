@@ -11,7 +11,7 @@ type BucketsFooterProps = {
   color: string;
   canAdd: boolean;
   inputRef: RefObject<HTMLInputElement | null>;
-  // the add box's place, where the full form grows up from on a wider screen
+  // where the full form grows up from on a wider screen
   panelSlotRef: Ref<HTMLDivElement>;
   onAdded: () => void;
   onExpand: () => void;
@@ -30,26 +30,25 @@ export function BucketsFooter({
   const chatOpen = useLayoutStore((s) => s.chatState !== "closed");
 
   return (
-    <div className="border-border bg-background sticky bottom-0 z-20 border-t-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
-      <div className="max-w-column mx-auto flex w-full items-center gap-2 px-2.5 pt-2 sm:px-4">
+    // the footer is the add box: no frame of its own, its top line takes the bucket colour while typing.
+    // Phones keep room below for the screen's rounded corners
+    <div
+      style={{ "--accent": color } as CSSProperties}
+      className="border-border bg-background sticky bottom-0 z-20 border-t-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] focus-within:border-(--accent) sm:pb-[env(safe-area-inset-bottom)]"
+    >
+      <div className="max-w-column relative mx-auto flex w-full items-center gap-2 px-2.5 sm:px-4">
         {!bucket ? (
           <p className="text-muted-foreground min-w-0 flex-1 pl-1 font-mono text-xs">
             open a bucket to add to it
           </p>
         ) : canAdd ? (
-          <div
-            style={{ "--accent": color } as CSSProperties}
-            className="relative flex min-w-0 flex-1"
-          >
-            <QuickAdd
-              key={bucket.id}
-              bucket={bucket}
-              inputRef={inputRef}
-              onAdded={onAdded}
-              onExpand={onExpand}
-            />
-            <div ref={panelSlotRef} className="absolute inset-x-0 bottom-0" />
-          </div>
+          <QuickAdd
+            key={bucket.id}
+            bucket={bucket}
+            inputRef={inputRef}
+            onAdded={onAdded}
+            onExpand={onExpand}
+          />
         ) : (
           <span className="flex-1" />
         )}
@@ -65,6 +64,10 @@ export function BucketsFooter({
           {/* the sheet's frame is mostly empty space, at 1:1 capy fills the square */}
           <Sprite id="capy-idle-blink" size={64} />
         </button>
+        {/* the full form grows up over the whole row, capy too, as wide as the list */}
+        {canAdd && bucket && (
+          <div ref={panelSlotRef} className="absolute inset-x-2.5 bottom-0 sm:inset-x-4" />
+        )}
       </div>
     </div>
   );

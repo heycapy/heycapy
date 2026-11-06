@@ -112,6 +112,7 @@ test("on a wide screen the form grows out of the add box and folds back on a cli
   const kept = uniqueName("cat wants a bigger box");
   await addItem(page, kept);
   const box = await page.getByTestId("add-box").boundingBox();
+  const capy = await page.getByRole("button", { name: "chat with capy" }).boundingBox();
 
   await addBox(page).fill("cat wants more treats");
   await addItemButton(page).click();
@@ -122,9 +123,10 @@ test("on a wide screen the form grows out of the add box and folds back on a cli
   await expect
     .poll(async () => {
       const panel = await form.boundingBox();
-      return panel && box ? [panel.x, panel.width, panel.y + panel.height] : null;
+      return panel ? [panel.x, panel.x + panel.width, panel.y + panel.height] : null;
     })
-    .toEqual([box?.x, box?.width, (box?.y ?? 0) + (box?.height ?? 0)]);
+    .toEqual([box?.x, (capy?.x ?? 0) + (capy?.width ?? 0), (box?.y ?? 0) + (box?.height ?? 0)]);
+  await expect(form.getByText("status", { exact: true })).toHaveCount(0);
   const titleBox = await title.boundingBox();
   const whenBox = await form.getByRole("button", { name: "pick date" }).boundingBox();
   expect(titleBox?.y).toBeGreaterThan(whenBox?.y ?? Infinity);
@@ -132,6 +134,7 @@ test("on a wide screen the form grows out of the add box and folds back on a cli
   await itemRow(page, kept).click();
   await expect(form).toBeHidden();
   await expect(modal(page, /^edit item$/)).toBeVisible();
+  await expect(modal(page, /^edit item$/).getByText("status", { exact: true })).toBeVisible();
   await page.keyboard.press("Escape");
 
   await addItemButton(page).click();
@@ -140,4 +143,40 @@ test("on a wide screen the form grows out of the add box and folds back on a cli
   await expect(form).toBeHidden();
   await expect(addBox(page)).toBeFocused();
   await expect(addBox(page)).toHaveValue("cat wants more treats");
+});
+
+test("in the panel a typed date is undone on the title row, and turning repeat on shows its options", async ({
+  page,
+}) => {
+  await page.clock.setFixedTime(WEDNESDAY);
+  await page.setViewportSize({ width: 1280, height: 560 });
+  await page.goto("/");
+  await createAndSelectBucket(page, uniqueName("Repeat"));
+  await addBox(page).fill("cat wants more treats tomorrow");
+  await addItemButton(page).click();
+  const form = newItemForm(page);
+  await expect(form.getByText(/^due /)).toHaveCount(0);
+  await expect(form.getByRole("button", { name: "not a date" })).toBeVisible();
+
+  await form.getByRole("button", { name: "on", exact: true }).click();
+  await expect(form.getByText("every", { exact: true })).toBeInViewport({ ratio: 1 });
+});
+
+test("the item added last stays marked until the next one is added, from the box or the form", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await createAndSelectBucket(page, uniqueName("Mark"));
+  const marked = page.locator("[data-just-added]");
+  const first = uniqueName("cat wants treats");
+  const second = uniqueName("cat wants a box");
+
+  await addBox(page).fill(first);
+  await addBox(page).press("Enter");
+  await expect(marked).toHaveCount(1);
+  await expect(marked).toContainText(first);
+
+  await addItem(page, second);
+  await expect(marked).toHaveCount(1);
+  await expect(marked).toContainText(second);
 });

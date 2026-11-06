@@ -10,7 +10,7 @@ type ItemFrameProps = {
   panel?: AddPanel;
   wide: boolean;
   scrollBodyRef: RefObject<HTMLDivElement | null>;
-  titleField: ReactNode;
+  titleField: (boxed: boolean) => ReactNode;
   details: ReactNode;
   confirm: ReactNode;
   deleteButton: ReactNode;
@@ -45,7 +45,7 @@ export function ItemFrame({
           deleteButton && <div className="border-border mt-6 border-t pt-4">{deleteButton}</div>
         }
       >
-        {titleField}
+        {titleField(false)}
         {details}
       </ItemPageFrame>
     );
@@ -58,7 +58,7 @@ export function ItemFrame({
         heading={heading}
         panel={panel}
         scrollBodyRef={scrollBodyRef}
-        title={titleField}
+        title={titleField(true)}
         confirm={confirm}
         onCancel={onCancel}
       >
@@ -81,7 +81,7 @@ export function ItemFrame({
         </div>
       }
     >
-      {titleField}
+      {titleField(false)}
       {details}
     </ItemDialogFrame>
   );

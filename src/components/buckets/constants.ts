@@ -5,7 +5,7 @@ import { ChartLine } from "pixelarticons/react/ChartLine.js";
 import { CreditCard } from "pixelarticons/react/CreditCard.js";
 import { Square } from "pixelarticons/react/Square.js";
 import type { PixelIconComponent } from "@/components/ui/PixelIcon";
-import { ITEM_STATUS } from "@/constants";
+import { FOOTER_H, ITEM_STATUS } from "@/constants";
 import type { QuickRemindChoice } from "@/lib/notifications/constants";
 import type { RecurrenceMode, StatusDef } from "@/types/rules";
 import { REMINDER_UNITS } from "@/lib/reminders/constants";
@@ -197,10 +197,10 @@ export const VIEW_FADE = {
 // The list behind the open add panel is dimmed, not covered: it stays clickable
 export const ADD_PANEL_DIM = 0.25;
 
-// Grows up from the add box's own height, so it reads as the box opening
+// Grows up out of the input row, which stays where it is, so it reads as the add box opening
 export const ADD_PANEL_MOTION = {
-  initial: { clipPath: "inset(92% 0% 0% 0%)" },
-  animate: { clipPath: "inset(0% 0% 0% 0%)" },
+  initial: { clipPath: `inset(calc(100% - ${FOOTER_H}px) 0px 0px 0px)` },
+  animate: { clipPath: "inset(calc(0% - 0px) 0px 0px 0px)" },
   transition: { duration: 0.18, ease: "easeOut" },
 } as const;
 

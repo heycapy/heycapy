@@ -19,6 +19,7 @@ import {
   createAndSelectBucket,
   createBucket,
   itemRow,
+  itemTick,
   selectBucket,
   uniqueName,
 } from "../helpers/buckets";
@@ -288,7 +289,9 @@ test.describe("items settings", () => {
     const active = uniqueName("still to do");
     const done = uniqueName("already done");
     await addItem(page, active);
-    await addItem(page, done, { status: "completed" });
+    await addItem(page, done);
+    await itemTick(page, done).click();
+    await expect(itemTick(page, done)).toBeChecked();
 
     let dialog = await openSettings(page);
     await option(field(dialog, "show completed"), "off").click();

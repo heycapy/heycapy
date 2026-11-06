@@ -7,6 +7,7 @@ import type { items } from "@/lib/db/schema";
 import type { RecurringConfig } from "@/types/rules";
 import type { ItemStatus } from "./constants";
 import { useDraft, useDraftStore } from "@/store/drafts";
+import { useUIStore } from "@/store/ui";
 
 type Item = typeof items.$inferSelect;
 
@@ -27,6 +28,7 @@ export function useItemEditor({
   const draft = useDraft(bucketId);
   const updateDraft = useDraftStore((s) => s.updateDraft);
   const clearDraft = useDraftStore((s) => s.clearDraft);
+  const markAdded = useUIStore((s) => s.markAdded);
   const [addingItem, setAddingItem] = useState(false);
   // "when" from words typed in the title or the bucket's default; a picked date lives in the draft
   const [typedDeadline, setTypedDeadline] = useState("");
@@ -108,6 +110,7 @@ export function useItemEditor({
       if (result.ok) {
         closeAdding();
         clearDraft(bucketId);
+        markAdded(result.id);
         await onSaved();
       } else {
         setAddError(result.error);

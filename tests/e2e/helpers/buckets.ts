@@ -40,18 +40,11 @@ export function activeBucketTitle(page: Page) {
   return page.locator('nav[aria-label="buckets"] [aria-current="page"]');
 }
 
-export async function addItem(
-  page: Page,
-  title: string,
-  opts: { status?: string } = {}
-): Promise<void> {
+export async function addItem(page: Page, title: string): Promise<void> {
   await page.getByRole("button", { name: "add with details", exact: true }).click();
   const dialog = newItemForm(page);
   await expect(dialog).toBeVisible();
   await dialog.locator("textarea").fill(title);
-  if (opts.status) {
-    await dialog.getByRole("button", { name: opts.status, exact: true }).click();
-  }
   await dialog.getByRole("button", { name: "[ add ]", exact: true }).click();
   await expect(dialog).not.toBeVisible();
   await expect(itemRow(page, title)).toBeVisible();

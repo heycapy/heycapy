@@ -238,6 +238,7 @@ export function ItemDialog({
           />
         )
       }
+      withStatus={frameMode === "edit"}
       status={status}
       statuses={statuses}
       recurring={recurring}
@@ -272,9 +273,10 @@ export function ItemDialog({
     </BracketButton>
   );
 
-  const titleField = (
+  const titleField = (boxed: boolean) => (
     <ItemTitleField
       open={open}
+      boxed={boxed}
       value={title}
       error={error}
       showRequired={titleHasError}

@@ -5,6 +5,7 @@ import { GripIcon } from "@/components/ui/GripIcon";
 import { formatShortTime } from "@/lib/format-date";
 import { ITEM_STATUS } from "@/constants";
 import { ITEM_HIGHLIGHT_MS } from "./constants";
+import { useUIStore } from "@/store/ui";
 import { TickBox } from "./TickBox";
 import { completionToggle } from "./completion";
 import { useEffect, useRef, useState } from "react";
@@ -116,6 +117,12 @@ export function ItemRow({
   const rowRef = useRef<HTMLDivElement>(null);
   const anchor = `item-${item.id}`;
   const [highlighted, setHighlighted] = useState(() => window.location.hash === `#${anchor}`);
+  const justAdded = useUIStore((s) => s.lastAddedItemId === item.id);
+
+  // the list refetches after an add, so the new row mounts already marked; it can land off screen
+  useEffect(() => {
+    if (justAdded) rowRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  }, [justAdded]);
 
   useEffect(() => {
     if (!highlighted) return;
@@ -164,8 +171,10 @@ export function ItemRow({
     <div
       ref={rowRef}
       id={anchor}
+      data-just-added={justAdded || undefined}
       className={cn(
         "group/row flex items-stretch gap-0 px-3 transition-colors duration-1000",
+        justAdded && "bg-primary/8",
         highlighted && "bg-primary/15",
         isEditing && "bg-muted/20",
         menuOpen && "bg-card duration-0",

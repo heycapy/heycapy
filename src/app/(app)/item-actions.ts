@@ -105,7 +105,7 @@ export async function addItemAction(
   reminders?: number[] | null,
   assigneeId?: number | null,
   clock?: string | null
-): Promise<ActionResult> {
+): Promise<ActionResult<{ id: number }>> {
   const session = await requireSession();
 
   const trimmed = title.trim();
@@ -157,10 +157,10 @@ export async function addItemAction(
       assigneeId: assigneeId ?? null,
     })
     .returning({ id: items.id });
-  if (created) await refreshItemReminders([created.id]);
+  await refreshItemReminders([created.id]);
 
   revalidatePath("/");
-  return { ok: true };
+  return { ok: true, id: created.id };
 }
 
 // The editor doesn't know the series anchor, keep it while the frequency stays the same

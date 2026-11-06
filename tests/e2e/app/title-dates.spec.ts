@@ -72,7 +72,6 @@ test("a date typed into the title is highlighted, fills 'when' and leaves the ti
   await dialog.locator("textarea").first().fill(`${title} friday 5pm`);
 
   await expect(dialog.getByTestId("title-date-highlight").locator("span")).toHaveText("friday 5pm");
-  await expect(dialog.getByText("due Fri Oct 9 · 5pm")).toBeVisible();
   await expect(dialog.getByRole("button", { name: "Oct 9", exact: true })).toBeVisible();
   await expect(dialog.getByRole("button", { name: "time: 5 pm" })).toBeVisible();
 

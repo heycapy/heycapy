@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { DatePicker } from "@/components/ui/DatePicker";
 import { OptionButton } from "@/components/ui/OptionButton";
 import { Toggle } from "@/components/ui/Toggle";
@@ -33,14 +33,24 @@ export function RecurringPicker({
 }: RecurringPickerProps) {
   const [showEndDate, setShowEndDate] = useState(initialShowEndDate);
   const [intervalStr, setIntervalStr] = useState(String(recurring?.interval ?? 1));
+  const rootRef = useRef<HTMLDivElement>(null);
+  const turnedOn = useRef(false);
+
+  // the options open below the switch, often past the bottom of a scrolling form
+  useEffect(() => {
+    if (!turnedOn.current || !recurring?.enabled) return;
+    turnedOn.current = false;
+    rootRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  }, [recurring?.enabled]);
 
   function toggle(on: boolean) {
     if (on === !!recurring?.enabled) return;
+    turnedOn.current = on;
     onChange(on ? { enabled: true, frequency: "monthly", interval: 1, endDate: null } : null);
   }
 
   return (
-    <div className="flex flex-col gap-2">
+    <div ref={rootRef} className="flex scroll-mb-4 flex-col gap-2">
       <div className="flex items-center justify-between">
         <label className={LABEL}>↺ repeats</label>
         <Toggle value={!!recurring?.enabled} onChange={toggle} disabled={disabled} />

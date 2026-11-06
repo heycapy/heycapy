@@ -8,6 +8,7 @@ import {
   createAndSelectBucket,
   createBucket,
   itemRow,
+  newItemForm,
   openNewBucketModal,
   selectBucket,
   uniqueName,
@@ -139,7 +140,10 @@ test.describe("items", () => {
   test("shows validation error when submitting empty title", async ({ page }) => {
     await page.getByRole("button", { name: "add with details", exact: true }).click();
     await page.getByRole("button", { name: "[ add ]", exact: true }).click();
-    await expect(page.getByText(/title is required/i)).toBeVisible();
+    await expect(newItemForm(page).locator("textarea")).toHaveAttribute(
+      "placeholder",
+      "title is required"
+    );
     await expect(page.getByText("new item", { exact: true })).toBeVisible();
   });
 });

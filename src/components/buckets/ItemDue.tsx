@@ -18,7 +18,7 @@ export function ItemDue({ due, status }: ItemDueProps) {
   const label = due && dueLabel(due, status);
   // Shown first but read after the title, so a screen reader starts with what the item is
   return (
-    <span className="bg-foreground/3 order-first -my-2.5 flex w-16 shrink-0 flex-col items-center justify-center self-stretch py-2.5 text-center font-mono text-xs whitespace-nowrap @2xl:w-32">
+    <span className="order-first -my-2.5 flex w-16 shrink-0 flex-col items-center justify-center self-stretch py-2.5 text-center font-mono text-xs whitespace-nowrap @2xl:w-32">
       {label ? (
         <>
           <span className={TONE_CLASS[label.tone]}>{label.state}</span>

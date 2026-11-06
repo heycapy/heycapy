@@ -264,8 +264,8 @@ export const BOTTOM_BAR_MEDIA_QUERY = "(max-width: 767px)";
 export const SHEET_CLOSE_DRAG_PX = 100;
 export const SHEET_CLOSE_DRAG_VELOCITY = 500;
 
-// The buckets page's footer (add box and capy): 2px border, 8px above, 48px box, 8px below
-export const FOOTER_H = 66;
+// The buckets page's footer on a wide screen (add box and capy): 2px border, 48px row
+export const FOOTER_H = 50;
 // Toasts sit just above the footer so they never cover it
-export const TOAST_BOTTOM_OFFSET = 80;
+export const TOAST_BOTTOM_OFFSET = 66;
 export const TOAST_SIDE_OFFSET = 16;

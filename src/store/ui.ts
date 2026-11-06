@@ -42,6 +42,10 @@ type UIStore = {
   requestBucketSettings: (id: number) => void;
   clearSettingsRequest: () => void;
 
+  // the item added last stays marked in its list until the next one is added
+  lastAddedItemId: number | null;
+  markAdded: (id: number) => void;
+
   sheet: PlaceSheet | null;
   openSheet: (sheet: PlaceSheet) => void;
   closeSheet: () => void;
@@ -50,6 +54,9 @@ type UIStore = {
 export const useUIStore = create<UIStore>()(
   persist(
     (set) => ({
+      lastAddedItemId: null,
+      markAdded: (id) => set({ lastAddedItemId: id }),
+
       createBucketOpen: false,
       openCreateBucket: () => set({ createBucketOpen: true }),
       closeCreateBucket: () => set({ createBucketOpen: false }),

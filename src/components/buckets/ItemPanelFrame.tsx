@@ -98,7 +98,7 @@ export function ItemPanelFrame({
             animate={ADD_PANEL_MOTION.animate}
             exit={ADD_PANEL_MOTION.initial}
             transition={ADD_PANEL_MOTION.transition}
-            className="bg-background absolute inset-x-0 bottom-0 flex max-h-[70vh] flex-col border-2 border-(--accent)"
+            className="bg-background border-border absolute inset-x-0 bottom-0 flex max-h-[70vh] flex-col border-x-2"
           >
             <div className="bg-foreground text-background flex shrink-0 items-center gap-2 px-3 py-1.5">
               <h2 id={headingId} className="font-pixel shrink-0 text-xs">
@@ -117,11 +117,9 @@ export function ItemPanelFrame({
             >
               {children}
             </div>
-            <div className="border-border shrink-0 border-t px-5 pt-3">{title}</div>
-            <div className="border-border flex shrink-0 items-center justify-between border-t py-1 pr-3 pl-5">
-              <span className="text-muted-foreground font-mono text-[11px]">
-                enter adds · esc closes and keeps it
-              </span>
+            {/* exactly the footer's row: its line lies over the footer's, the title where the add box's text was */}
+            <div className="bg-card flex min-h-12 shrink-0 items-start gap-1 border-t-2 border-(--accent) pr-1 pl-2">
+              <div className="min-w-0 flex-1">{title}</div>
               {confirm}
             </div>
           </motion.div>
