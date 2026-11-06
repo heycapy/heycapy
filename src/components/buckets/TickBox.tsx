@@ -28,7 +28,7 @@ export function TickBox({ title, checked, color, onToggle }: TickBoxProps) {
           fill="currentColor"
           className={cn(
             "transition-opacity",
-            !checked && "opacity-60",
+            !checked && "opacity-40",
             !checked && onToggle && "group-hover/tick:opacity-100"
           )}
         />
