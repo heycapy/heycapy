@@ -9,6 +9,7 @@ import {
   uniqueName,
 } from "../helpers/buckets";
 import { settingsDialog } from "../helpers/settings";
+import { login, uniqueEmail } from "../helpers/login";
 import { daysFromNow, enableWebhook, postItem } from "../helpers/webhook";
 
 test.use({ storageState: authState("bucket-tabs") });
@@ -162,7 +163,10 @@ async function markColor(page: Page, name: string): Promise<string> {
 }
 
 test("a tab held for a moment drags to a new place, kept after a reload", async ({ page }) => {
-  await page.goto("/");
+  // its own account: the shared one gets buckets from the tests beside it, and each new one
+  // refreshes this page's tabs back to the saved order
+  await page.context().clearCookies();
+  await login(page, uniqueEmail("e2e-tab-order"));
   const names = [uniqueName("Order a"), uniqueName("Order b"), uniqueName("Order c")];
   for (const name of names) await createAndSelectBucket(page, name);
   await expect.poll(() => tabOrder(page, names)).toEqual(names);
@@ -173,9 +177,15 @@ test("a tab held for a moment drags to a new place, kept after a reload", async 
   await page.waitForTimeout(300);
   expect(await tabOrder(page, names)).toEqual(names);
 
+  // the only action whose argument is a list: the order being saved
+  const saved = page.waitForResponse(
+    (r) => r.request().method() === "POST" && (r.request().postData() ?? "").startsWith("[[")
+  );
   await dragTab(page, names[2], names[0], { hold: true });
   const moved = [names[2], names[0], names[1]];
   await expect.poll(() => tabOrder(page, names)).toEqual(moved);
+  // server actions queue up one at a time, so the save can still be waiting its turn
+  await saved;
 
   await page.reload();
   await expect.poll(() => tabOrder(page, names)).toEqual(moved);

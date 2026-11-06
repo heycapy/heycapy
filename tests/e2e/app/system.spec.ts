@@ -2,6 +2,7 @@ import { test, expect } from "@playwright/test";
 import Database from "better-sqlite3";
 import { authState, specUserEmail } from "../helpers/auth";
 import { E2E_DATABASE_FILE } from "../helpers/env";
+import { uniqueEmail, uniqueUsername } from "../helpers/login";
 
 test.use({ storageState: authState("system") });
 
@@ -44,10 +45,11 @@ test("admins give a user credits from the system tab", async ({ page }) => {
 });
 
 test("admins rename a user and give or take bonus username changes", async ({ page }) => {
-  const stamp = Date.now();
-  const email = `e2e-renamed-${stamp}@heycapy.test`;
+  const email = uniqueEmail("e2e-renamed");
+  const old = uniqueUsername("old");
+  const renamed = uniqueUsername("new");
   const db = new Database(E2E_DATABASE_FILE);
-  db.prepare("insert into users (email, username) values (?, ?)").run(email, `old_${stamp}`);
+  db.prepare("insert into users (email, username) values (?, ?)").run(email, old);
   db.close();
 
   await page.goto("/");
@@ -58,7 +60,7 @@ test("admins rename a user and give or take bonus username changes", async ({ pa
   await page.getByLabel("email to find a username").fill(email.toUpperCase());
   await page.getByRole("button", { name: "[ find ]", exact: true }).click();
   const username = page.getByTestId("admin-username");
-  await expect(username).toHaveText(`old_${stamp}`);
+  await expect(username).toHaveText(old);
   await expect(page.getByText("2 of 2 changes left this month")).toBeVisible();
   await expect(page.getByText("never changed")).toBeVisible();
 
@@ -66,11 +68,12 @@ test("admins rename a user and give or take bonus username changes", async ({ pa
   await page.getByRole("button", { name: "[ rename ]", exact: true }).click();
   await expect(page.getByText("that username is reserved")).toBeVisible();
 
-  await page.getByLabel("new username").fill(`New_${stamp}`);
+  // typed with a capital, saved in lower case
+  await page.getByLabel("new username").fill(`N${renamed.slice(1)}`);
   await page.getByRole("button", { name: "[ rename ]", exact: true }).click();
-  await expect(username).toHaveText(`new_${stamp}`);
+  await expect(username).toHaveText(renamed);
   await expect(page.getByText("that username is reserved")).toHaveCount(0);
-  await expect(page.getByText(`old_${stamp} → new_${stamp}`)).toBeVisible();
+  await expect(page.getByText(`${old} → ${renamed}`)).toBeVisible();
   await expect(page.getByText(/ · by an admin$/)).toBeVisible();
   await expect(page.getByText("2 of 2 changes left this month")).toBeVisible();
 

@@ -61,16 +61,19 @@ export default function LoginPage() {
 
   async function handleSendOtp(e: SubmitEvent<HTMLFormElement>) {
     e.preventDefault();
+    // the box, not the state: an email typed while a slow page was still loading never reached it
+    const typed = String(new FormData(e.currentTarget).get("email") ?? "");
+    setEmail(typed);
     setError("");
     setLoading(true);
-    const result = await sendOtpAction(email);
+    const result = await sendOtpAction(typed);
     setLoading(false);
     if (!result.ok) {
       setError(result.error);
       return;
     }
     setDevCode(result.devCode ?? "");
-    setSentTo(email);
+    setSentTo(typed);
     setStep("otp");
     startResendCountdown();
   }
@@ -149,6 +152,7 @@ export default function LoginPage() {
           </div>
           <Input
             type="email"
+            name="email"
             placeholder="you@example.com"
             value={email}
             onChange={(e) => setEmail(e.target.value)}

@@ -310,6 +310,8 @@ test("the form's height follows a section opening in it, instead of jumping", as
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.goto("/");
   await createAndSelectBucket(page, uniqueName("Grow"));
+  // repeat is offered once there's a date
+  await addBox(page).fill("cat wants more treats tomorrow");
   await addItemButton(page).click();
   const form = newItemForm(page);
   await expect(form.locator("textarea").first()).toBeFocused();

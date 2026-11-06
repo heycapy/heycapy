@@ -133,3 +133,29 @@ test.describe("login page", () => {
     await expect(page).toHaveURL(/\/login/);
   });
 });
+
+test("an email typed while a slow page is still loading is the one the code goes to", async ({
+  page,
+}) => {
+  const email = uniqueEmail("e2e-early-typing");
+  // the page shows before its scripts run, as on a slow phone
+  let scriptsFree: () => void = () => {};
+  const held = new Promise<void>((resolve) => (scriptsFree = resolve));
+  await page.route("**/_next/static/chunks/**/*.js*", async (route) => {
+    await held;
+    await route.continue();
+  });
+  await page.goto("/login", { waitUntil: "commit" });
+  const field = page.getByPlaceholder("you@example.com");
+  await field.fill(email);
+
+  scriptsFree();
+  // React has taken the field over once it hangs its props on it
+  await expect
+    .poll(() => field.evaluate((el) => Object.keys(el).some((k) => k.startsWith("__reactProps"))))
+    .toBe(true);
+  await page.getByRole("button", { name: "Send code", exact: true }).click();
+
+  await expect(otpStep(page)).toHaveCSS("opacity", "1");
+  await expect(otpStep(page)).toContainText(email);
+});
