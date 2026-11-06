@@ -8,7 +8,7 @@ import type { SettingsTab } from "./BucketSettingsForm";
 import { RemindersOffNotice } from "./RemindersOffNotice";
 import { TimezonesNotice } from "./TimezonesNotice";
 import { useBucketItems } from "./useBucketItems";
-import { useItemEditor, type AddDraft } from "./useItemEditor";
+import { useItemEditor } from "./useItemEditor";
 import { useBucketMembers } from "./useBucketMembers";
 import { defaultDeadline } from "./defaultDeadline";
 import { DEFAULT_BUCKET_STATUSES } from "./constants";
@@ -23,7 +23,7 @@ import { MembersBar, type MemberFilter } from "./MembersBar";
 
 // What the footer's add box reaches into the open bucket for
 export type BucketView = {
-  startAdding: (draft?: AddDraft) => void;
+  startAdding: () => void;
   refetch: () => Promise<void>;
 };
 

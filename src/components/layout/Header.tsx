@@ -12,6 +12,7 @@ import { createPortal } from "react-dom";
 import { BetaTag } from "@/components/ui/BetaTag";
 import { BracketButton } from "@/components/ui/BracketButton";
 import { logoutAction, logoutEverywhereAction } from "@/app/(app)/actions";
+import { useDraftStore } from "@/store/drafts";
 import { Modal, ModalTitle } from "@/components/ui/Modal";
 import { cn } from "@/lib/utils";
 import { PersonAvatar } from "@/components/avatar/PersonAvatar";
@@ -155,9 +156,11 @@ function GlobalMenu({
       {confirmLogout && (
         <LogoutConfirm
           scope={confirmLogout}
-          onConfirm={() =>
-            void (confirmLogout === "everywhere" ? logoutEverywhereAction() : logoutAction())
-          }
+          onConfirm={() => {
+            // drafts live in this browser tab; the next person to log in here mustn't see them
+            useDraftStore.getState().clearAll();
+            void (confirmLogout === "everywhere" ? logoutEverywhereAction() : logoutAction());
+          }}
           onCancel={() => setConfirmLogout(null)}
         />
       )}

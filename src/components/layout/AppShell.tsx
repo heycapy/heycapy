@@ -13,6 +13,7 @@ import { JoinBucketDialog } from "@/components/buckets/JoinBucketDialog";
 import { SearchDrawer } from "@/components/search/SearchDrawer";
 import { useUIStore } from "@/store/ui";
 import { useChatStore } from "@/store/chat";
+import { useDraftStore } from "@/store/drafts";
 import { useTimezoneStore } from "@/store/timezone";
 import { TimezoneMoveBanner } from "./TimezoneMoveBanner";
 import { BannersProvider } from "./Banners";
@@ -118,6 +119,7 @@ export function AppShell({
   useEffect(() => {
     void useUIStore.persist.rehydrate();
     void useChatStore.persist.rehydrate();
+    void useDraftStore.persist.rehydrate();
     void useTimezoneStore.persist.rehydrate();
     void saveTimezoneIfDefaultAction(Intl.DateTimeFormat().resolvedOptions().timeZone);
   }, []);

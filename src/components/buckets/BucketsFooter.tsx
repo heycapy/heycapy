@@ -4,7 +4,6 @@ import { useLayoutStore } from "@/store/layout";
 import { cn } from "@/lib/utils";
 import type { ViewerBucket } from "@/lib/buckets/access";
 import { QuickAdd } from "./QuickAdd";
-import type { AddDraft } from "./useItemEditor";
 
 type BucketsFooterProps = {
   // null on today, which has nowhere to add to
@@ -13,7 +12,7 @@ type BucketsFooterProps = {
   canAdd: boolean;
   inputRef: RefObject<HTMLInputElement | null>;
   onAdded: () => void;
-  onExpand: (draft: AddDraft) => void;
+  onExpand: () => void;
 };
 
 export function BucketsFooter({

@@ -14,7 +14,6 @@ import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { parseItemsRules } from "@/lib/rules";
 import { BOTTOM_BAR_MEDIA_QUERY } from "@/constants";
 import type { ViewerBucket } from "@/lib/buckets/access";
-import type { AddDraft } from "./useItemEditor";
 
 const writable = (bucket: ViewerBucket) => parseItemsRules(bucket.itemsRules).readonly !== true;
 
@@ -41,7 +40,7 @@ export function BucketsShell({ buckets: rawBuckets, focusBucketId = null }: Buck
   const viewRef = useRef<BucketView | null>(null);
   const quickAddRef = useRef<HTMLInputElement>(null);
   const focusPending = useRef(false);
-  const expandPending = useRef<AddDraft | null>(null);
+  const expandPending = useRef(false);
   const hasBottomBar = useMediaQuery(BOTTOM_BAR_MEDIA_QUERY);
 
   useEffect(() => {
@@ -68,7 +67,7 @@ export function BucketsShell({ buckets: rawBuckets, focusBucketId = null }: Buck
     const target = shown && writable(shown) ? shown : onToday ? buckets.find(writable) : undefined;
     if (!target) return;
     if (onToday) setActiveBucketId(target.id);
-    if (addItemForm) expandPending.current = { title: "", assigneeId: null };
+    if (addItemForm) expandPending.current = true;
     else focusPending.current = true;
   }, [addItemRequest, buckets, setActiveBucketId]);
 
@@ -110,17 +109,17 @@ export function BucketsShell({ buckets: rawBuckets, focusBucketId = null }: Buck
   const switching = shownKey !== placeKey;
   useEffect(() => {
     if (switching || !expandPending.current || !viewRef.current) return;
-    viewRef.current?.startAdding(expandPending.current);
-    expandPending.current = null;
+    viewRef.current.startAdding();
+    expandPending.current = false;
   });
 
   if (!activeBucket) return null;
 
   const canAddItem = !todayOpen && writable(activeBucket);
 
-  function expand(draft: AddDraft) {
-    if (switching) expandPending.current = draft;
-    else viewRef.current?.startAdding(draft);
+  function expand() {
+    if (switching) expandPending.current = true;
+    else viewRef.current?.startAdding();
   }
 
   return (

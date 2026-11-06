@@ -37,6 +37,8 @@ type ItemDialogProps = {
   mode: "add" | "edit";
   title: string;
   deadline: string;
+  // a new item whose date was picked in an earlier go at the form: typed words don't change it
+  deadlinePicked?: boolean;
   status: string;
   statuses: StatusDef[];
   fields?: FieldDef[];
@@ -48,6 +50,7 @@ type ItemDialogProps = {
   pending?: boolean;
   onTitleChange: (v: string) => void;
   onDeadlineChange: (v: string) => void;
+  onDeadlinePicked?: () => void;
   onStatusChange: (v: string) => void;
   onPropertiesChange?: (v: Record<string, unknown>) => void;
   onRecurringChange?: (v: RecurringConfig | null) => void;
@@ -74,6 +77,8 @@ export function ItemDialog({
   pending,
   onTitleChange,
   onDeadlineChange,
+  deadlinePicked = false,
+  onDeadlinePicked,
   onStatusChange,
   onPropertiesChange,
   onRecurringChange,
@@ -106,7 +111,7 @@ export function ItemDialog({
   const resetClock = clock.reset;
   const openingZone = clock.zoneFor(assigneeChoice?.value ?? null, null);
   const startTitleDate = useEffectEvent(() => {
-    const typed = titleDate.start(title);
+    const typed = titleDate.start(title, deadlinePicked);
     if (!typed) return;
     const onZone = moveClock(typed, browserTimezone(), openingZone);
     onDeadlineChange(onZone);
@@ -145,6 +150,7 @@ export function ItemDialog({
 
   function handleDateChange(newDate: string) {
     titleDate.pickByHand();
+    onDeadlinePicked?.();
     const date = newDate && isLastDayRepeat(recurring) ? lastDayOfMonth(newDate) : newDate;
     const next = deadline ? time : defaultTimeFor(date, new Date(), zone);
     if (!deadline) setTime(next);
@@ -166,6 +172,7 @@ export function ItemDialog({
 
   function handleTimeChange(time: TimeValue) {
     titleDate.pickByHand();
+    onDeadlinePicked?.();
     setTime(time);
     if (datePart) onDeadlineChange(buildDeadline(datePart, time.hour, time.min, time.ampm, zone));
   }
