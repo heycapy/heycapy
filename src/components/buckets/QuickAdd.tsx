@@ -127,8 +127,13 @@ export function QuickAdd({ bucket, inputRef, onAdded, onExpand }: QuickAddProps)
   return (
     <div
       data-testid="add-box"
-      className="relative flex min-h-12 min-w-0 flex-1 flex-col justify-center"
+      className="group/add relative flex min-h-12 min-w-0 flex-1 flex-col justify-center"
     >
+      {/* while typing, the footer's top line takes the bucket colour above the box only */}
+      <span
+        aria-hidden
+        className="absolute inset-x-0 -top-0.5 hidden h-0.5 bg-(--accent) group-focus-within/add:block"
+      />
       {listOpen && (
         <div className="bg-background absolute inset-x-0 bottom-full mb-2">
           <MentionList

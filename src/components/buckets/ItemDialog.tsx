@@ -331,6 +331,7 @@ export function ItemDialog({
       confirm={confirmButton}
       deleteButton={deleteButton}
       onCancel={onCancel}
+      onSubmit={handleConfirmClick}
     />
   );
 }

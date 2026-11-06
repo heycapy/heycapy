@@ -162,7 +162,7 @@ export function ItemTitleField({
               // The layer behind draws the text so the date words can take their own colour
               typedDate && "caret-foreground text-transparent",
               error || showRequired
-                ? "border-destructive placeholder:text-destructive"
+                ? "border-destructive placeholder:text-destructive/50"
                 : "border-border placeholder:text-muted-foreground",
               rowIcon && "border-transparent"
             )}

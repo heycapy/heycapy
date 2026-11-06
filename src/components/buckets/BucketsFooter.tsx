@@ -30,11 +30,11 @@ export function BucketsFooter({
   const chatOpen = useLayoutStore((s) => s.chatState !== "closed");
 
   return (
-    // the footer is the add box: no frame of its own, its top line takes the bucket colour while typing.
-    // Phones keep room below for the screen's rounded corners
+    // the footer is the add box: no frame of its own. Phones keep room below for the screen's
+    // rounded corners
     <div
       style={{ "--accent": color } as CSSProperties}
-      className="border-border bg-background sticky bottom-0 z-20 border-t-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] focus-within:border-(--accent) sm:pb-[env(safe-area-inset-bottom)]"
+      className="border-border bg-background sticky bottom-0 z-20 border-t-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:pb-[env(safe-area-inset-bottom)]"
     >
       <div className="max-w-column relative mx-auto flex w-full items-center gap-2 px-2.5 sm:px-4">
         {!bucket ? (

@@ -209,3 +209,32 @@ test("editing opens the same panel from the footer, and closing gives focus back
   await expect(edit).toBeHidden();
   await expect(itemRow(page, title)).toBeFocused();
 });
+
+test("Ctrl/Cmd+Enter adds or saves from any field of the form", async ({ page }) => {
+  await page.goto("/");
+  await createAndSelectBucket(page, uniqueName("Keys"));
+  const title = uniqueName("cat wants a new tree house");
+  await addBox(page).fill(title);
+  await addItemButton(page).click();
+  const form = newItemForm(page);
+  await form.getByRole("button", { name: "pick date" }).focus();
+  await page.keyboard.press("ControlOrMeta+Enter");
+  await expect(form).toBeHidden();
+  await expect(itemRow(page, title)).toBeVisible();
+  await expect(page.locator("[data-just-added]")).toHaveCount(1);
+
+  await itemRow(page, title).click();
+  const edit = editForm(page);
+  await edit.locator("textarea").first().fill(`${title} today`);
+  await edit.getByRole("button", { name: "completed", exact: true }).focus();
+  await page.keyboard.press("ControlOrMeta+Enter");
+  await expect(edit).toBeHidden();
+  await expect(itemRow(page, `${title} today`)).toBeVisible();
+
+  const once = uniqueName("cat wants a bigger box");
+  await addItemButton(page).click();
+  await form.locator("textarea").first().fill(once);
+  await page.keyboard.press("ControlOrMeta+Enter");
+  await expect(form).toBeHidden();
+  await expect(itemRow(page, once)).toHaveCount(1);
+});
