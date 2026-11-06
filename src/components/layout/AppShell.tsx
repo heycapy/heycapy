@@ -137,7 +137,7 @@ export function AppShell({
         <DeliveryFailureBanner failures={failures} onFix={() => setSettingsTab("notifications")} />
         <TimezoneMoveBanner />
       </div>
-      <main className="flex flex-1 flex-col overflow-y-auto">{children}</main>
+      <main className="max-md:scrollbar-hide flex flex-1 flex-col overflow-y-auto">{children}</main>
       <SettingsSheet
         open={settingsTab !== null}
         initialTab={settingsTab ?? "appearance"}

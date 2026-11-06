@@ -112,7 +112,7 @@ export function BucketsShell({ buckets: rawBuckets, focusBucketId = null }: Buck
     <div className="flex flex-1 flex-col">
       <BucketTabs buckets={buckets} activeId={activeId} todayOpen={todayOpen} />
       <div
-        className="flex-1 overflow-y-auto pb-[420px]"
+        className="max-md:scrollbar-hide flex-1 overflow-y-auto pb-[420px]"
         onClick={(e) => {
           if (hasBottomBar && canAddItem && e.target === e.currentTarget) addItem();
         }}
@@ -147,15 +147,8 @@ export function BucketsShell({ buckets: rawBuckets, focusBucketId = null }: Buck
         )}
       </div>
 
-      <div className="border-border bg-background sticky bottom-0 border-t-2">
-        <button
-          onClick={() => setChatState("open")}
-          aria-label="chat with capy"
-          className="absolute right-3 bottom-full flex items-end transition-transform active:scale-95 md:hidden"
-        >
-          <Sprite id="capy-idle-blink" size={52} />
-        </button>
-        <div className="flex justify-center pb-[max(0.5rem,env(safe-area-inset-bottom))]">
+      <div className="border-border bg-background sticky bottom-0 grid grid-cols-[1fr_auto_1fr] items-center border-t-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
+        <div className="col-start-2">
           {canAddItem && (
             <BracketButton
               onClick={addItem}
@@ -166,6 +159,13 @@ export function BucketsShell({ buckets: rawBuckets, focusBucketId = null }: Buck
             </BracketButton>
           )}
         </div>
+        <button
+          onClick={() => setChatState("open")}
+          aria-label="chat with capy"
+          className="mr-3 flex min-h-14 items-center justify-self-end transition-transform active:scale-95 md:hidden"
+        >
+          <Sprite id="capy-idle-blink" size={48} />
+        </button>
       </div>
     </div>
   );

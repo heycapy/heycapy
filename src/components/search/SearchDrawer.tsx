@@ -87,7 +87,7 @@ function SearchBody({ onClose }: { onClose: () => void }) {
             </div>
           </div>
 
-          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+          <div className="max-md:scrollbar-hide min-h-0 flex-1 overflow-y-auto overscroll-contain">
             <div className="flex min-h-full flex-col justify-end py-3">
               <CrossBucketList
                 data={data}
