@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { OtpInput } from "@/components/ui/otp-input";
 import { safeNextPath } from "@/lib/auth/next-path";
+import { clearSignedInState } from "@/store/signedOut";
 import { sendOtpAction, verifyOtpAction } from "./actions";
 
 type Step = "email" | "otp";
@@ -28,6 +29,11 @@ export default function LoginPage() {
   const [devCode, setDevCode] = useState("");
   const [devCopied, setDevCopied] = useState(false);
   const [resendCountdown, setResendCountdown] = useState(0);
+
+  // also reached when a session ends on its own, with no logout click to clear the tab
+  useEffect(() => {
+    clearSignedInState();
+  }, []);
   const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   function startResendCountdown() {
