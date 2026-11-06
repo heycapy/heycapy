@@ -24,7 +24,7 @@ export const GUIDE_TASKS = [
     key: "complete_item",
     title: "tick a reminder done",
     credits: 2,
-    hint: "tap the dot next to a reminder and pick completed",
+    hint: "tap the box next to a reminder to tick it done",
   },
   {
     key: "reminder_time",
