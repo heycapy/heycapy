@@ -5,7 +5,8 @@ import { useState, type RefObject } from "react";
 import { toast } from "sonner";
 import { addItemAction } from "@/app/(app)/actions";
 import { PixelIcon } from "@/components/ui/PixelIcon";
-import { ITEM_TITLE_MAX_LENGTH } from "@/constants";
+import { ITEM_TITLE_MAX_LENGTH, MOBILE_MEDIA_QUERY } from "@/constants";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { memberName } from "@/lib/buckets/member-name";
 import type { ViewerBucket } from "@/lib/buckets/access";
 import { describeDeadline } from "@/lib/format-date";
@@ -19,7 +20,7 @@ import { findTitleDate } from "@/lib/items/title-date";
 import { repeatLabel } from "@/lib/items/repeat-label";
 import { parseItemsRules } from "@/lib/rules";
 import { browserTimezone, moveClock } from "@/lib/time";
-import { ADD_BOX_EXAMPLES } from "./constants";
+import { ADD_BOX_EXAMPLES, ADD_BOX_EXAMPLES_SHORT } from "./constants";
 import { defaultDeadline } from "./defaultDeadline";
 import { parseFields } from "./fields";
 import { MentionList } from "./MentionList";
@@ -48,6 +49,7 @@ export function QuickAdd({ bucket, inputRef, onAdded, onExpand }: QuickAddProps)
   const [highlighted, setHighlighted] = useState(0);
   const [closedOn, setClosedOn] = useState<string | null>(null);
   const members = useBucketMembers(bucket.id, null);
+  const isPhone = useMediaQuery(MOBILE_MEDIA_QUERY);
   const clock = useItemClock(members, draft.assigneeId);
 
   const text = draft.title;
@@ -181,7 +183,11 @@ export function QuickAdd({ bucket, inputRef, onAdded, onExpand }: QuickAddProps)
             }
             if (e.key === "Escape") clear();
           }}
-          placeholder={ADD_BOX_EXAMPLES[bucket.id % ADD_BOX_EXAMPLES.length]}
+          placeholder={
+            (isPhone ? ADD_BOX_EXAMPLES_SHORT : ADD_BOX_EXAMPLES)[
+              bucket.id % ADD_BOX_EXAMPLES.length
+            ]
+          }
           aria-label={`add to ${bucketName}`}
           maxLength={ITEM_TITLE_MAX_LENGTH}
           enterKeyHint="done"

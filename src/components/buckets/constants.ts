@@ -214,3 +214,13 @@ export const ADD_BOX_EXAMPLES = [
   "cat's bowl is empty, fix it by 6pm",
   "cat wants a bigger box friday",
 ];
+
+// The same notes, short enough for a phone's add box (21 characters fit at 360px)
+export const ADD_BOX_EXAMPLES_SHORT = [
+  "cat: greens tomorrow",
+  "cat: treats at 8pm",
+  "cat: space tonight",
+  "cat: new tree sunday",
+  "cat: fill bowl by 6pm",
+  "cat: big box friday",
+];
