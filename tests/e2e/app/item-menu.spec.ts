@@ -175,6 +175,29 @@ test("done from the menu in today takes the item off the list and completes it",
   await expect(itemTick(page, title)).toBeChecked();
 });
 
+test("the menu of a search result opens on top of search and works", async ({ page }) => {
+  const title = uniqueName("find the charger");
+  await addItem(page, title);
+
+  await page.getByRole("button", { name: "search", exact: true }).click();
+  const search = page.getByRole("dialog", { name: "search" });
+  await search.getByRole("textbox", { name: "search all items" }).fill(title);
+  const row = search.getByRole("button", { name: title });
+  await row.hover();
+  await row.locator("xpath=..").getByRole("button", { name: "item menu", exact: true }).click();
+  await itemMenu(page, title).getByRole("button", { name: "copy title", exact: true }).click();
+  await expect(itemMenu(page, title)).toBeHidden();
+  await expect(search).toBeVisible();
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(title);
+
+  await row.hover();
+  await row.locator("xpath=..").getByRole("button", { name: "item menu", exact: true }).click();
+  await expect(itemMenu(page, title)).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(itemMenu(page, title)).toBeHidden();
+  await expect(search).toBeVisible();
+});
+
 test("read-only buckets only offer copy title", async ({ page }) => {
   const title = uniqueName("read me");
   await addItem(page, title);

@@ -20,6 +20,7 @@ import { parseRecurring } from "@/lib/items/occurrence";
 import { repeatLabel } from "@/lib/items/repeat-label";
 import { PersonAvatar } from "@/components/avatar/PersonAvatar";
 import { ItemDue } from "./ItemDue";
+import { MODAL_PANEL_SELECTOR } from "@/components/ui/constants";
 
 export type ItemAssignee = { userId: number; name: string; avatar: string | null; isYou: boolean };
 
@@ -168,7 +169,7 @@ export function ItemRow({
         highlighted && "bg-primary/15",
         isEditing && "bg-muted/20",
         menuOpen && "bg-card duration-0",
-        (isCompleted || isMissed) && "opacity-60"
+        (isCompleted || isMissed) && "opacity-45"
       )}
     >
       {dragControls && (
@@ -249,7 +250,12 @@ export function ItemRow({
           type="button"
           onClick={(e) => {
             const rect = e.currentTarget.getBoundingClientRect();
-            onMenu({ x: rect.left, top: rect.top, bottom: rect.bottom });
+            onMenu({
+              x: rect.left,
+              top: rect.top,
+              bottom: rect.bottom,
+              within: e.currentTarget.closest<HTMLElement>(MODAL_PANEL_SELECTOR),
+            });
           }}
           aria-label="item menu"
           className={cn(
