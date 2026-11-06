@@ -238,3 +238,39 @@ test("Ctrl/Cmd+Enter adds or saves from any field of the form", async ({ page })
   await expect(form).toBeHidden();
   await expect(itemRow(page, once)).toHaveCount(1);
 });
+
+test("Enter in the form's title starts a new line, and it grows to 4 lines before scrolling", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await createAndSelectBucket(page, uniqueName("Lines"));
+  const first = uniqueName("cat's list");
+  await addItemButton(page).click();
+  const form = newItemForm(page);
+  const title = form.locator("textarea").first();
+  await title.fill(first);
+  const oneLine = (await title.boundingBox())?.height ?? 0;
+
+  await title.press("Enter");
+  await title.pressSequentially("treats");
+  await expect(form).toBeVisible();
+  await expect(title).toHaveValue(`${first}\ntreats`);
+  const twoLines = (await title.boundingBox())?.height ?? 0;
+  const line = twoLines - oneLine;
+  expect(line).toBeGreaterThan(0);
+
+  for (const word of ["greens", "a box", "a tree house", "more treats"]) {
+    await title.press("Enter");
+    await title.pressSequentially(word);
+  }
+  expect((await title.boundingBox())?.height).toBeCloseTo(oneLine + 3 * line, 0);
+  expect(await title.evaluate((el) => el.scrollHeight > el.clientHeight)).toBe(true);
+
+  await page.keyboard.press("ControlOrMeta+Enter");
+  await expect(form).toBeHidden();
+  const row = page.getByRole("button", { name: new RegExp(first) });
+  await expect(row).toBeVisible();
+  // the row keeps the lines too, as many as the form shows
+  const lines = row.locator("span.block.truncate");
+  await expect(lines).toHaveText([first, "treats", "greens", "a box …"]);
+});

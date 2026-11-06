@@ -3,7 +3,7 @@ import { WarningDiamond } from "pixelarticons/react/WarningDiamond.js";
 import { PixelIcon } from "@/components/ui/PixelIcon";
 import { GripIcon } from "@/components/ui/GripIcon";
 import { formatShortTime } from "@/lib/format-date";
-import { ITEM_STATUS } from "@/constants";
+import { ITEM_STATUS, TITLE_LINES_SHOWN } from "@/constants";
 import { ITEM_HIGHLIGHT_MS } from "./constants";
 import { useUIStore } from "@/store/ui";
 import { TickBox } from "./TickBox";
@@ -136,6 +136,9 @@ export function ItemRow({
   const isMissed = item.status === ITEM_STATUS.missed;
   const remindAgain = remindAgainLabel(item);
   const recurringFreq = getRecurringFrequency(item.recurring);
+  const allLines = item.title.split("\n").filter((line) => line.trim());
+  const titleLines = allLines.slice(0, TITLE_LINES_SHOWN);
+  const moreLines = allLines.length > TITLE_LINES_SHOWN;
   const badges = fields ? getShowInRowBadges(fields, item.properties) : [];
   const meta = [
     otherClock && <span key="clock">({otherClock})</span>,
@@ -206,12 +209,15 @@ export function ItemRow({
       >
         <span className="min-w-0 flex-1">
           <span
-            className={cn(
-              "block truncate text-sm",
-              isCompleted && "text-muted-foreground line-through"
-            )}
+            className={cn("block text-sm", isCompleted && "text-muted-foreground line-through")}
           >
-            {item.title}
+            {/* a title keeps its lines, as many as the form shows, each cut short on its own */}
+            {titleLines.map((line, i) => (
+              <span key={i} className="block truncate">
+                {line}
+                {i === titleLines.length - 1 && moreLines && " …"}
+              </span>
+            ))}
           </span>
           {badges.length > 0 && (
             <span className="mt-0.5 flex flex-wrap gap-1">

@@ -18,6 +18,15 @@ import { LABEL } from "@/components/layout/settings-constants";
 // Shared by the textarea and the highlight layer behind it, so their text lines up exactly
 const TEXT = "w-full border-b text-base break-words whitespace-pre-wrap";
 
+// Grows with its lines up to its max height; measuring resets the scroll, so it's put back, at the
+// bottom while typing at the end
+function fitHeight(el: HTMLTextAreaElement) {
+  const top = el.scrollTop;
+  el.style.height = "auto";
+  el.style.height = `${el.scrollHeight}px`;
+  el.scrollTop = el.selectionEnd === el.value.length ? el.scrollHeight : top;
+}
+
 type ItemTitleFieldProps = {
   open: boolean;
   // set in the panel: drawn as the footer row it grew from, led by this icon: no label or underline, the date's [×]
@@ -31,7 +40,6 @@ type ItemTitleFieldProps = {
   // Typing @ in a shared bucket offers its members, picking one assigns the item
   mention?: { members: MentionMember[]; onPick: (userId: number | null) => void };
   onChange: (v: string) => void;
-  onEnter: () => void;
   onDismissDate: () => void;
 };
 
@@ -45,16 +53,17 @@ export function ItemTitleField({
   typedDate,
   mention,
   onChange,
-  onEnter,
   onDismissDate,
 }: ItemTitleFieldProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const highlightRef = useRef<HTMLDivElement>(null);
   const caretAfterPick = useRef<number | null>(null);
   const [caret, setCaret] = useState(0);
   const [highlighted, setHighlighted] = useState(0);
   const [closedOn, setClosedOn] = useState<string | null>(null);
 
-  const text = cn(TEXT, rowIcon ? "py-3" : "py-1.5 sm:text-sm");
+  // Enter starts a new line (Ctrl/Cmd+Enter submits the form); past 4 lines the title scrolls
+  const text = cn(TEXT, rowIcon ? "max-h-[4lh]" : "max-h-[calc(4lh+0.75rem)] py-1.5 sm:text-sm");
 
   const found = mention ? findMention(value, caret) : null;
   const options = found && mention ? mentionOptions(mention.members, found.query) : [];
@@ -65,8 +74,7 @@ export function ItemTitleField({
     if (!open || disabled) return;
     const el = textareaRef.current;
     if (!el) return;
-    el.style.height = "auto";
-    el.style.height = `${el.scrollHeight}px`;
+    fitHeight(el);
     el.focus();
     el.setSelectionRange(el.value.length, el.value.length);
   }, [open, disabled]);
@@ -74,18 +82,22 @@ export function ItemTitleField({
   useLayoutEffect(() => {
     const el = textareaRef.current;
     if (!el || caretAfterPick.current === null) return;
-    el.style.height = "auto";
-    el.style.height = `${el.scrollHeight}px`;
+    fitHeight(el);
     el.setSelectionRange(caretAfterPick.current, caretAfterPick.current);
     caretAfterPick.current = null;
   }, [value]);
+
+  // the layer can appear (a date typed) after the title already scrolled
+  useLayoutEffect(() => {
+    if (highlightRef.current && textareaRef.current)
+      highlightRef.current.scrollTop = textareaRef.current.scrollTop;
+  });
 
   function handleChange(e: ChangeEvent<HTMLTextAreaElement>) {
     onChange(e.target.value);
     setCaret(e.target.selectionStart);
     setHighlighted(0);
-    e.target.style.height = "auto";
-    e.target.style.height = `${e.target.scrollHeight}px`;
+    fitHeight(e.target);
   }
 
   function pick(option: MentionOption) {
@@ -104,69 +116,75 @@ export function ItemTitleField({
       </label>
       <div className={cn(rowIcon && "flex items-start gap-2")}>
         {rowIcon && <PixelIcon icon={rowIcon} className="mt-4.5 shrink-0 text-(--accent)" />}
-        <div className="relative min-w-0 flex-1">
-          {typedDate && (
-            <div
-              aria-hidden
-              data-testid="title-date-highlight"
+        {/* in the panel the row's padding sits outside the scrolling text, so only whole lines show */}
+        <div className={cn("min-w-0 flex-1", rowIcon && "py-3")}>
+          <div className="relative">
+            {typedDate && (
+              <div
+                ref={highlightRef}
+                aria-hidden
+                data-testid="title-date-highlight"
+                className={cn(
+                  text,
+                  "text-foreground pointer-events-none absolute inset-0 overflow-hidden border-transparent",
+                  disabled && "opacity-50"
+                )}
+              >
+                {value.slice(0, typedDate.start)}
+                <span className="text-primary">{value.slice(typedDate.start, typedDate.end)}</span>
+                {value.slice(typedDate.end)}
+              </div>
+            )}
+            <textarea
+              ref={textareaRef}
+              value={value}
+              onChange={handleChange}
+              onSelect={(e) => setCaret(e.currentTarget.selectionStart)}
+              // the coloured date words are drawn behind, they scroll along with the text
+              onScroll={(e) => {
+                if (highlightRef.current)
+                  highlightRef.current.scrollTop = e.currentTarget.scrollTop;
+              }}
+              data-handles-escape={listOpen || undefined}
+              onKeyDown={(e) => {
+                if (listOpen) {
+                  if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+                    e.preventDefault();
+                    const step = e.key === "ArrowDown" ? 1 : -1;
+                    setHighlighted((highlighted + step + options.length) % options.length);
+                    return;
+                  }
+                  if (e.key === "Enter" || e.key === "Tab") {
+                    e.preventDefault();
+                    pick(options[Math.min(highlighted, options.length - 1)]);
+                    return;
+                  }
+                  if (e.key === "Escape") {
+                    e.stopPropagation();
+                    setClosedOn(value);
+                    return;
+                  }
+                }
+              }}
+              // in the panel the row stays put: the empty title says what's missing itself
+              placeholder={rowIcon && showRequired ? "title is required" : "what needs doing?"}
+              maxLength={ITEM_TITLE_MAX_LENGTH}
+              disabled={disabled}
+              rows={1}
               className={cn(
                 text,
-                "text-foreground pointer-events-none absolute inset-0 border-transparent",
-                disabled && "opacity-50"
+                !rowIcon && "focus:border-foreground",
+                // no scroll bar, so the text wraps exactly as the layer behind it does
+                "scrollbar-hide relative block resize-none overflow-y-auto bg-transparent outline-none disabled:opacity-50",
+                // The layer behind draws the text so the date words can take their own colour
+                typedDate && "caret-foreground text-transparent",
+                error || showRequired
+                  ? "border-destructive placeholder:text-destructive/50"
+                  : "border-border placeholder:text-muted-foreground",
+                rowIcon && "border-transparent"
               )}
-            >
-              {value.slice(0, typedDate.start)}
-              <span className="text-primary">{value.slice(typedDate.start, typedDate.end)}</span>
-              {value.slice(typedDate.end)}
-            </div>
-          )}
-          <textarea
-            ref={textareaRef}
-            value={value}
-            onChange={handleChange}
-            onSelect={(e) => setCaret(e.currentTarget.selectionStart)}
-            data-handles-escape={listOpen || undefined}
-            onKeyDown={(e) => {
-              if (listOpen) {
-                if (e.key === "ArrowDown" || e.key === "ArrowUp") {
-                  e.preventDefault();
-                  const step = e.key === "ArrowDown" ? 1 : -1;
-                  setHighlighted((highlighted + step + options.length) % options.length);
-                  return;
-                }
-                if (e.key === "Enter" || e.key === "Tab") {
-                  e.preventDefault();
-                  pick(options[Math.min(highlighted, options.length - 1)]);
-                  return;
-                }
-                if (e.key === "Escape") {
-                  e.stopPropagation();
-                  setClosedOn(value);
-                  return;
-                }
-              }
-              if (e.key === "Enter" && !e.shiftKey && value.trim()) {
-                e.preventDefault();
-                onEnter();
-              }
-            }}
-            // in the panel the row stays put: the empty title says what's missing itself
-            placeholder={rowIcon && showRequired ? "title is required" : "what needs doing?"}
-            maxLength={ITEM_TITLE_MAX_LENGTH}
-            disabled={disabled}
-            rows={1}
-            className={cn(
-              text,
-              !rowIcon && "focus:border-foreground",
-              "relative block resize-none overflow-hidden bg-transparent outline-none disabled:opacity-50",
-              // The layer behind draws the text so the date words can take their own colour
-              typedDate && "caret-foreground text-transparent",
-              error || showRequired
-                ? "border-destructive placeholder:text-destructive/50"
-                : "border-border placeholder:text-muted-foreground",
-              rowIcon && "border-transparent"
-            )}
-          />
+            />
+          </div>
         </div>
         {rowIcon && typedDate && (
           <BracketButton onClick={onDismissDate} aria-label="not a date" className="mt-3 px-1">

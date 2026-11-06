@@ -286,7 +286,6 @@ export function ItemDialog({
       typedDate={titleDate.match}
       mention={mention}
       onChange={handleTitleChange}
-      onEnter={handleConfirmClick}
       onDismissDate={titleDate.dismiss}
     />
   );

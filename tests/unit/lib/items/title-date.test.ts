@@ -16,6 +16,14 @@ describe("findTitleDate", () => {
     });
   });
 
+  it("keeps the title's lines when the date words come out", () => {
+    expect(findTitleDate("cat's list\ntreats\nmore treats friday 5pm", now)).toMatchObject({
+      title: "cat's list\ntreats\nmore treats",
+      deadline: at(10, 2, 17),
+    });
+    expect(findTitleDate("cat's list\nfriday 5pm\ntreats", now)?.title).toBe("cat's list\ntreats");
+  });
+
   it("reads the common ways of writing a date", () => {
     const cases: [string, string, string][] = [
       ["dentist tomorrow at 3:30pm", "dentist", at(10, 1, 15, 30)],

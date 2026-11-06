@@ -266,6 +266,9 @@ export const SHEET_CLOSE_DRAG_VELOCITY = 500;
 
 // The buckets page's footer on a wide screen (add box and capy): 2px border, 48px row
 export const FOOTER_H = 50;
+
+// An item form's title grows to this many lines before it scrolls; a row shows as many
+export const TITLE_LINES_SHOWN = 4;
 // Toasts sit just above the footer so they never cover it
 export const TOAST_BOTTOM_OFFSET = 66;
 export const TOAST_SIDE_OFFSET = 16;
