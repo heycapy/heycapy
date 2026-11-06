@@ -25,6 +25,8 @@ import { markGuideSeenAction } from "@/app/(app)/guide-actions";
 import { saveTimezoneIfDefaultAction } from "@/app/(app)/user-settings-actions";
 import { useServerEvents } from "@/hooks/useServerEvents";
 import { AssistantNameProvider } from "@/components/capy/assistant-name";
+import { useChatDocked } from "@/components/capy/useChatDocked";
+import { cn } from "@/lib/utils";
 import type { ChannelFailure } from "@/lib/notifications/failures";
 import { toast } from "sonner";
 import { GuidePanel } from "@/components/guide/GuidePanel";
@@ -78,6 +80,7 @@ export function AppShell({
   const openCreateBucket = useUIStore((s) => s.openCreateBucket);
   const requestMembers = useUIStore((s) => s.requestMembers);
   const setChatState = useLayoutStore((s) => s.setChatState);
+  const { docked: chatDocked } = useChatDocked();
 
   function openGuide() {
     setGuideOpen(true);
@@ -127,24 +130,32 @@ export function AppShell({
   return (
     <>
       <PurchaseReturn onPaid={() => setSettingsTab("credits")} />
-      <Header
-        email={email}
-        userId={userId}
-        avatar={avatar}
-        onSettingsOpen={() => setSettingsTab("appearance")}
-        onArchiveOpen={() => openSheet("archive")}
-        onTrashOpen={() => openSheet("trash")}
-        onJoinOpen={() => openSheet("join")}
-        onFeedbackOpen={feedbackEnabled ? () => setFeedbackOpen(true) : null}
-        onWhatsNewOpen={openWhatsNew}
-        unseenRelease={releaseUnseen}
-        onGuideOpen={openGuide}
-        guideProgress={`${guideDone}/${guide.tasks.length}`}
-        guideUnfinished={guideDone < guide.tasks.length && !guide.hidden}
-      />
-      <main className="max-md:scrollbar-hide flex flex-1 flex-col overflow-y-auto">
-        <BannersProvider banners={banners}>{children}</BannersProvider>
-      </main>
+      <div
+        data-chat-docked={chatDocked || undefined}
+        className={cn(
+          "flex min-h-0 flex-1 flex-col transition-[padding] duration-200 ease-out",
+          chatDocked && "pr-chat"
+        )}
+      >
+        <Header
+          email={email}
+          userId={userId}
+          avatar={avatar}
+          onSettingsOpen={() => setSettingsTab("appearance")}
+          onArchiveOpen={() => openSheet("archive")}
+          onTrashOpen={() => openSheet("trash")}
+          onJoinOpen={() => openSheet("join")}
+          onFeedbackOpen={feedbackEnabled ? () => setFeedbackOpen(true) : null}
+          onWhatsNewOpen={openWhatsNew}
+          unseenRelease={releaseUnseen}
+          onGuideOpen={openGuide}
+          guideProgress={`${guideDone}/${guide.tasks.length}`}
+          guideUnfinished={guideDone < guide.tasks.length && !guide.hidden}
+        />
+        <main className="max-md:scrollbar-hide flex flex-1 flex-col overflow-y-auto">
+          <BannersProvider banners={banners}>{children}</BannersProvider>
+        </main>
+      </div>
       <SettingsSheet
         open={settingsTab !== null}
         initialTab={settingsTab ?? "appearance"}

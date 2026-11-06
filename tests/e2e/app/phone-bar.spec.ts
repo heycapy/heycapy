@@ -1,9 +1,13 @@
 import { test, expect } from "@playwright/test";
 import { authState } from "../helpers/auth";
 import {
+  addItem,
   addItemButton,
   createAndSelectBucket,
+  editForm,
+  itemRow,
   openBucketOnPhone,
+  openItemMenu,
   uniqueName,
 } from "../helpers/buckets";
 
@@ -97,10 +101,10 @@ test("search opens as a drawer with the box at the bottom, results above it", as
   await expect(search).toHaveCount(0);
 });
 
-test("on wide screens the chat grows above capy, clear of the add box, and capy closes it", async ({
+test("on a laptop the chat grows above capy, clear of the add box, and capy closes it", async ({
   page,
 }) => {
-  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.setViewportSize({ width: 1024, height: 800 });
   await page.goto("/");
   await createAndSelectBucket(page, uniqueName("Wide chat"));
   const capy = page.getByRole("button", { name: "chat with capy" });
@@ -132,4 +136,79 @@ test("on wide screens the chat grows above capy, clear of the add box, and capy 
   await capy.click();
   await expect(chat).toBeHidden();
   await expect(capy).toHaveAttribute("aria-expanded", "false");
+});
+
+test("on a wide screen the chat stands beside the list, which moves over for it", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/");
+  await createAndSelectBucket(page, uniqueName("Docked chat"));
+  const title = uniqueName("a long title that would sit under the chat");
+  await addItem(page, title);
+  const row = itemRow(page, title);
+  const capy = page.getByRole("button", { name: "chat with capy" });
+  const listCentre = async () => {
+    const box = await page.getByTestId("add-box").boundingBox();
+    return (box?.x ?? 0) + (box?.width ?? 0) / 2;
+  };
+  const centredAlone = await listCentre();
+
+  await capy.click();
+  const input = page.getByPlaceholder("ask capy...");
+  await expect(input).toBeFocused();
+  const panel = page.locator("div.fixed").filter({ has: input }).last();
+  // the whole height of the window, against its right edge
+  await expect
+    .poll(async () => {
+      const box = await panel.boundingBox();
+      return [box?.y, box?.height, Math.round((box?.x ?? 0) + (box?.width ?? 0))];
+    })
+    .toEqual([0, 900, 1440]);
+  const chatLeft = (await panel.boundingBox())?.x ?? 0;
+  await expect
+    .poll(async () => {
+      const box = await row.boundingBox();
+      return (box?.x ?? 0) + (box?.width ?? 0);
+    })
+    .toBeLessThanOrEqual(chatLeft);
+  await expect.poll(listCentre).toBeLessThan(centredAlone - 100);
+  // there's nothing under it to see, so no minimize, and the shortcut closes it
+  await expect(panel.getByRole("button", { name: "Collapse" })).toHaveCount(0);
+
+  await row.click();
+  await expect(editForm(page)).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(editForm(page)).toBeHidden();
+
+  await page.keyboard.press("ControlOrMeta+\\");
+  await expect(input).toBeHidden();
+  await expect(capy).toHaveAttribute("aria-expanded", "false");
+  await expect.poll(listCentre).toBeCloseTo(centredAlone, 0);
+});
+
+test("toasts centre on the list while the chat is beside it", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/");
+  await createAndSelectBucket(page, uniqueName("Docked toast"));
+  const title = uniqueName("bins");
+  await addItem(page, title);
+  await page.getByRole("button", { name: "chat with capy" }).click();
+  await expect(page.getByPlaceholder("ask capy...")).toBeFocused();
+
+  await openItemMenu(page, title);
+  await page
+    .getByRole("button", { name: /delete/ })
+    .last()
+    .click();
+  const toast = page.locator("[data-sonner-toast]", { hasText: title });
+  await expect(toast).toBeVisible();
+  const list = await page.getByTestId("add-box").boundingBox();
+  const listCentre = (list?.x ?? 0) + (list?.width ?? 0) / 2;
+  await expect
+    .poll(async () => {
+      const box = await toast.boundingBox();
+      return Math.abs((box?.x ?? 0) + (box?.width ?? 0) / 2 - listCentre);
+    })
+    .toBeLessThanOrEqual(40);
 });

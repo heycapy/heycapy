@@ -261,6 +261,7 @@ export const FEEDBACK_LIMIT_SITE_TOTAL = 30;
 
 export const MOBILE_MEDIA_QUERY = "(max-width: 639px)";
 export const BOTTOM_BAR_MEDIA_QUERY = "(max-width: 767px)";
+export const CHAT_DOCK_MEDIA_QUERY = "(min-width: 1280px)";
 export const SHEET_CLOSE_DRAG_PX = 100;
 export const SHEET_CLOSE_DRAG_VELOCITY = 500;
 

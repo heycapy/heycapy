@@ -27,6 +27,7 @@
 
 @theme {
   --container-column: 47.5rem;
+  --spacing-chat: 27.5rem;
 }
 
 /* Avatar colours are the same on every theme so everyone sees the drawing as it was made */
@@ -647,6 +648,11 @@ body:has([data-item-panel]) [data-sonner-toaster] {
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.15s;
+}
+
+/* with the chat docked at the side, toasts centre on the list instead of the window */
+body:has([data-chat-docked]) [data-sonner-toaster][data-x-position="center"] {
+  left: calc(50% - var(--spacing-chat) / 2);
 }
 
 /* [x] sits at the end of the row with room to tap, instead of over the text */
