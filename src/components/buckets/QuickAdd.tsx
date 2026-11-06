@@ -17,6 +17,7 @@ import {
 import { findTitleDate } from "@/lib/items/title-date";
 import { parseItemsRules } from "@/lib/rules";
 import { browserTimezone, moveClock } from "@/lib/time";
+import { ADD_BOX_EXAMPLES } from "./constants";
 import { defaultDeadline } from "./defaultDeadline";
 import { parseFields } from "./fields";
 import { MentionList } from "./MentionList";
@@ -161,12 +162,12 @@ export function QuickAdd({ bucket, color, inputRef, onAdded, onExpand }: QuickAd
               submit();
             }
           }}
-          placeholder={`add to ${bucketName}…`}
+          placeholder={ADD_BOX_EXAMPLES[bucket.id % ADD_BOX_EXAMPLES.length]}
           aria-label={`add to ${bucketName}`}
           maxLength={ITEM_TITLE_MAX_LENGTH}
           enterKeyHint="done"
           autoComplete="off"
-          className="placeholder:text-muted-foreground min-w-0 flex-1 bg-transparent py-1 font-mono text-base outline-none sm:text-sm"
+          className="placeholder:text-muted-foreground/50 min-w-0 flex-1 bg-transparent py-1 font-mono text-base outline-none sm:text-sm"
         />
         <button
           type="button"

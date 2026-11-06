@@ -193,3 +193,14 @@ export const VIEW_FADE = {
   visible: { opacity: 1, y: 0 },
   gone: { opacity: 0, y: -6 },
 } as const;
+
+// Shown in the empty add box, one per bucket: notes the cat left for its human. Each carries a date
+// so it also shows that dates can be typed
+export const ADD_BOX_EXAMPLES = [
+  "cat wants the green stuff tomorrow asap",
+  "cat wants more treats today 8pm",
+  "cat needs some space tonight",
+  "cat wants a new tree house sunday",
+  "cat's bowl is empty, fix it by 6pm",
+  "cat wants a bigger box friday",
+];

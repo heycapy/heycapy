@@ -1,6 +1,9 @@
 import { useLayoutEffect, useRef, useState } from "react";
 import { motion, useDragControls, type PanInfo } from "framer-motion";
+import { Close } from "pixelarticons/react/Close.js";
+import { Search } from "pixelarticons/react/Search.js";
 import { BracketButton } from "@/components/ui/BracketButton";
+import { PixelIcon } from "@/components/ui/PixelIcon";
 import { Modal, ModalTitle } from "@/components/ui/Modal";
 import { ItemDialog } from "@/components/buckets/ItemDialog";
 import { useItemEditor } from "@/components/buckets/useItemEditor";
@@ -105,8 +108,10 @@ function SearchBody({ onClose }: { onClose: () => void }) {
             </div>
           </div>
 
-          <div className="border-border shrink-0 border-t-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] md:pb-0">
-            <div className="flex h-14 items-center gap-3 px-4 md:h-11">
+          {/* framed and sized like the add box in the buckets footer */}
+          <div className="border-border shrink-0 border-t-2 px-2.5 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:px-4">
+            <div className="border-border bg-card focus-within:border-foreground flex items-center gap-2 border-2 pl-2.5">
+              <PixelIcon icon={Search} className="text-muted-foreground shrink-0" />
               <input
                 ref={inputRef}
                 type="text"
@@ -117,18 +122,22 @@ function SearchBody({ onClose }: { onClose: () => void }) {
                 placeholder="search all items…"
                 aria-label="search all items"
                 maxLength={200}
-                className="placeholder:text-muted-foreground/50 h-full min-w-0 flex-1 bg-transparent font-mono text-base outline-none md:text-sm"
+                className="placeholder:text-muted-foreground/50 min-w-0 flex-1 bg-transparent py-1 font-mono text-base outline-none sm:text-sm"
               />
-              {query && (
-                <BracketButton
+              {query ? (
+                <button
+                  type="button"
                   onClick={() => {
                     setQuery("");
                     inputRef.current?.focus();
                   }}
-                  className="h-full text-sm"
+                  aria-label="clear search"
+                  className="text-muted-foreground hover:text-foreground flex size-11 shrink-0 items-center justify-center transition-colors"
                 >
-                  clear
-                </BracketButton>
+                  <PixelIcon icon={Close} />
+                </button>
+              ) : (
+                <span aria-hidden className="size-11 shrink-0" />
               )}
             </div>
           </div>
