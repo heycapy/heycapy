@@ -96,7 +96,7 @@ export function CapyChat({ appUrl }: { appUrl: string | null }) {
     chatState === "fullscreen"
       ? "inset-2"
       : bottomBarShown
-        ? "right-[max(1rem,calc((100vw-72rem)/2+1rem))] bottom-[calc(var(--footer-h)+0.5rem)] w-110"
+        ? "right-[max(1rem,calc((100vw-var(--container-column))/2+1rem))] bottom-[calc(var(--footer-h)+0.5rem)] w-110"
         : "right-6 bottom-6 w-110"
   );
 

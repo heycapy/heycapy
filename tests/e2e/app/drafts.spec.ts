@@ -2,9 +2,11 @@ import { test, expect, type Page } from "@playwright/test";
 import { authState } from "../helpers/auth";
 import {
   addBox,
+  addItem,
   addItemButton,
   createAndSelectBucket,
   itemRow,
+  newItemForm,
   selectBucket,
   uniqueName,
 } from "../helpers/buckets";
@@ -28,7 +30,7 @@ test("closing the full form keeps what was typed, edits there included, and [×]
 
   await addBox(page).fill("buy cat food");
   await addItemButton(page).click();
-  const dialog = modal(page, /^new item$/);
+  const dialog = newItemForm(page);
   const title = dialog.locator("textarea").first();
   await expect(title).toHaveValue("buy cat food");
   await title.fill("buy cat food and litter");
@@ -59,7 +61,7 @@ test("a date picked in the form stays with the draft and wins over typed words",
   const title = uniqueName("vet visit");
   await addBox(page).fill(title);
   await addItemButton(page).click();
-  const dialog = modal(page, /^new item$/);
+  const dialog = newItemForm(page);
   await dialog.getByRole("button", { name: "pick date" }).click();
   await page.getByRole("button", { name: "20", exact: true }).click();
   await expect(dialog.getByRole("button", { name: "Oct 20", exact: true })).toBeVisible();
@@ -100,4 +102,42 @@ test("each bucket keeps its own draft, through a reload", async ({ page }) => {
   await expect(addBox(page)).toHaveValue("cat wants more treats");
   await selectBucket(page, second);
   await expect(addBox(page)).toHaveValue("cat wants a new tree house");
+});
+
+test("on a wide screen the form grows out of the add box and folds back on a click outside", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await createAndSelectBucket(page, uniqueName("Box"));
+  const kept = uniqueName("cat wants a bigger box");
+  await addItem(page, kept);
+  const box = await page.getByTestId("add-box").boundingBox();
+
+  await addBox(page).fill("cat wants more treats");
+  await addItemButton(page).click();
+  const form = newItemForm(page);
+  await expect(form).toContainText(/in Box/);
+  const title = form.locator("textarea").first();
+  await expect(title).toBeFocused();
+  await expect
+    .poll(async () => {
+      const panel = await form.boundingBox();
+      return panel && box ? [panel.x, panel.width, panel.y + panel.height] : null;
+    })
+    .toEqual([box?.x, box?.width, (box?.y ?? 0) + (box?.height ?? 0)]);
+  const titleBox = await title.boundingBox();
+  const whenBox = await form.getByRole("button", { name: "pick date" }).boundingBox();
+  expect(titleBox?.y).toBeGreaterThan(whenBox?.y ?? Infinity);
+
+  await itemRow(page, kept).click();
+  await expect(form).toBeHidden();
+  await expect(modal(page, /^edit item$/)).toBeVisible();
+  await page.keyboard.press("Escape");
+
+  await addItemButton(page).click();
+  await expect(title).toHaveValue("cat wants more treats");
+  await page.keyboard.press("Escape");
+  await expect(form).toBeHidden();
+  await expect(addBox(page)).toBeFocused();
+  await expect(addBox(page)).toHaveValue("cat wants more treats");
 });

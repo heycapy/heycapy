@@ -1,13 +1,12 @@
 import { test, expect, type Page } from "@playwright/test";
 import { authState } from "../helpers/auth";
-import { createAndSelectBucket, itemRow, uniqueName } from "../helpers/buckets";
-import { modal } from "../helpers/settings";
+import { createAndSelectBucket, itemForm, itemRow, uniqueName } from "../helpers/buckets";
 
 test.use({ storageState: authState("recurring") });
 test.describe.configure({ mode: "default" });
 
 function itemDialog(page: Page) {
-  return modal(page, /^(new|edit) item$/);
+  return itemForm(page);
 }
 
 async function addMonthlyItemDueToday(page: Page, title: string): Promise<void> {

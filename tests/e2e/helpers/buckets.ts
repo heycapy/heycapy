@@ -46,9 +46,7 @@ export async function addItem(
   opts: { status?: string } = {}
 ): Promise<void> {
   await page.getByRole("button", { name: "add with details", exact: true }).click();
-  const dialog = page
-    .locator("div.fixed")
-    .filter({ has: page.getByText("new item", { exact: true }) });
+  const dialog = newItemForm(page);
   await expect(dialog).toBeVisible();
   await dialog.locator("textarea").fill(title);
   if (opts.status) {
@@ -57,6 +55,15 @@ export async function addItem(
   await dialog.getByRole("button", { name: "[ add ]", exact: true }).click();
   await expect(dialog).not.toBeVisible();
   await expect(itemRow(page, title)).toBeVisible();
+}
+
+// a page on a phone, the panel grown out of the add box on a wider screen
+export function newItemForm(page: Page) {
+  return page.getByRole("dialog", { name: "new item", exact: true });
+}
+
+export function itemForm(page: Page) {
+  return page.getByRole("dialog", { name: /^(new|edit) item$/ });
 }
 
 export function itemRow(page: Page, title: string) {

@@ -1,7 +1,7 @@
 import { Scale } from "pixelarticons/react/Scale.js";
 import { Close } from "pixelarticons/react/Close.js";
 import { Plus } from "pixelarticons/react/Plus.js";
-import { useState, type CSSProperties, type RefObject } from "react";
+import { useState, type RefObject } from "react";
 import { toast } from "sonner";
 import { addItemAction } from "@/app/(app)/actions";
 import { PixelIcon } from "@/components/ui/PixelIcon";
@@ -29,7 +29,6 @@ import { isEmptyDraft, useDraft, useDraftStore } from "@/store/drafts";
 
 type QuickAddProps = {
   bucket: ViewerBucket;
-  color: string;
   inputRef: RefObject<HTMLInputElement | null>;
   onAdded: () => void;
   onExpand: () => void;
@@ -39,7 +38,8 @@ function isBlank(value: unknown): boolean {
   return value === undefined || value === null || value === "";
 }
 
-export function QuickAdd({ bucket, color, inputRef, onAdded, onExpand }: QuickAddProps) {
+// Reads the bucket's colour from --accent, set by the footer
+export function QuickAdd({ bucket, inputRef, onAdded, onExpand }: QuickAddProps) {
   const draft = useDraft(bucket.id);
   const updateDraft = useDraftStore((s) => s.updateDraft);
   const clearDraft = useDraftStore((s) => s.clearDraft);
@@ -124,7 +124,6 @@ export function QuickAdd({ bucket, color, inputRef, onAdded, onExpand }: QuickAd
   return (
     <div
       data-testid="add-box"
-      style={{ "--accent": color } as CSSProperties}
       className="border-border bg-card relative flex min-w-0 flex-1 flex-col border-2 focus-within:border-(--accent)"
     >
       {listOpen && (

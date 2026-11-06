@@ -1,7 +1,13 @@
 import { test, expect } from "@playwright/test";
 import Database from "better-sqlite3";
 import { E2E_DATABASE_FILE } from "../helpers/env";
-import { addItemButton, createAndSelectBucket, itemRow, uniqueName } from "../helpers/buckets";
+import {
+  addItemButton,
+  createAndSelectBucket,
+  itemRow,
+  newItemForm,
+  uniqueName,
+} from "../helpers/buckets";
 import { login, uniqueEmail } from "../helpers/login";
 import { giveOwnSmtp } from "../helpers/email";
 import {
@@ -91,7 +97,7 @@ test("a bucket on one clock doesn't mention clocks in its rules", async ({ page 
   await closeDialog(settings);
 
   await addItemButton(page).click();
-  const dialog = modal(page, /^new item$/);
+  const dialog = newItemForm(page);
   await dialog.locator("textarea").fill("water the plants tomorrow 9am");
   await expect(dialog.getByRole("button", { name: "9 am" })).toBeVisible();
   await expect(dialog.getByRole("group", { name: "time on" })).toHaveCount(0);
@@ -152,7 +158,7 @@ test("a time for someone on another clock is set on theirs, unless picked by han
   await page.goto(`/?bucket=${bucketId}`);
   await expect(page.getByText("people here are in 2 timezones · India, UK")).toBeVisible();
 
-  const dialog = modal(page, /^new item$/);
+  const dialog = newItemForm(page);
   const clocks = dialog.getByRole("group", { name: "time on" });
   const assignTo = (name: RegExp) => dialog.getByRole("button", { name }).click();
 
@@ -214,7 +220,7 @@ test("the time field shows everyone's time and warns softly about their nights",
   await page.goto(`/?bucket=${bucketId}`);
   await expect(page.getByText("people here are in 2 timezones · India, UK")).toBeVisible();
 
-  const dialog = modal(page, /^new item$/);
+  const dialog = newItemForm(page);
   const preview = dialog.getByTestId("time-preview");
   const title = `call the bank ${Date.now()}`;
   await addItemButton(page).click();

@@ -95,7 +95,7 @@ export function BucketTabs({ buckets, activeId, todayOpen }: BucketTabsProps) {
   return (
     <nav
       aria-label="buckets"
-      className="bg-background sticky top-0 z-10 mx-auto w-full max-w-6xl sm:px-4"
+      className="bg-background max-w-column sticky top-0 z-10 mx-auto w-full sm:px-4"
     >
       <div className="border-border flex border-b-2">
         <BracketButton

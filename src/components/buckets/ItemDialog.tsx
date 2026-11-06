@@ -3,8 +3,8 @@ import { BracketButton } from "@/components/ui/BracketButton";
 import { type Ampm, type TimeValue } from "@/components/ui/TimeField";
 import { ItemFieldsForm } from "./ItemFieldsForm";
 import { ItemAssigneeField, type AssigneeChoice } from "./ItemAssigneeField";
-import { ItemDialogFrame } from "./ItemDialogFrame";
-import { ItemPageFrame } from "./ItemPageFrame";
+import { ItemFrame } from "./ItemFrame";
+import type { AddPanel } from "./ItemPanelFrame";
 import { ItemTitleField } from "./ItemTitleField";
 import { ItemWhenSection } from "./ItemWhenSection";
 import { ItemTimeHints } from "./ItemTimeHints";
@@ -59,6 +59,7 @@ type ItemDialogProps = {
   onCancel: () => void;
   onDelete?: () => void;
   assigneeChoice?: AssigneeChoice;
+  panel?: AddPanel;
 };
 
 export function ItemDialog({
@@ -87,6 +88,7 @@ export function ItemDialog({
   onCancel,
   onDelete,
   assigneeChoice,
+  panel,
 }: ItemDialogProps) {
   const scrollBodyRef = useRef<HTMLDivElement>(null);
   const scrollToFirst = useScrollToFirst(scrollBodyRef);
@@ -95,6 +97,9 @@ export function ItemDialog({
   const [timeMin, setTimeMin] = useState("00");
   const [timeAmpm, setTimeAmpm] = useState<Ampm>("am");
   const wasOpenRef = useRef(false);
+  // kept while closing, so the form folds away in the frame it opened in
+  const [frameMode, setFrameMode] = useState(mode);
+  if (open && mode !== frameMode) setFrameMode(mode);
   const [validationAttempted, setValidationAttempted] = useState(false);
   const clock = useItemClock(assigneeChoice?.members ?? [], assigneeChoice?.value ?? null);
   const zone = clock.zone;
@@ -253,7 +258,7 @@ export function ItemDialog({
       disabled={pending}
       className="text-foreground px-2 py-3 text-base"
     >
-      {mode === "add" ? "add" : "update"}
+      {frameMode === "add" ? "add" : "update"}
     </BracketButton>
   );
   const deleteButton = onDelete && (
@@ -267,21 +272,23 @@ export function ItemDialog({
     </BracketButton>
   );
 
-  const form = (
-    <>
-      <ItemTitleField
-        open={open}
-        value={title}
-        error={error}
-        showRequired={titleHasError}
-        disabled={pending}
-        typedDate={titleDate.match}
-        mention={mention}
-        onChange={handleTitleChange}
-        onEnter={handleConfirmClick}
-        onDismissDate={titleDate.dismiss}
-      />
+  const titleField = (
+    <ItemTitleField
+      open={open}
+      value={title}
+      error={error}
+      showRequired={titleHasError}
+      disabled={pending}
+      typedDate={titleDate.match}
+      mention={mention}
+      onChange={handleTitleChange}
+      onEnter={handleConfirmClick}
+      onDismissDate={titleDate.dismiss}
+    />
+  );
 
+  const details = (
+    <>
       {assignees && assignees.members.length > 1 && (
         <ItemAssigneeField choice={assignees} disabled={pending} />
       )}
@@ -307,40 +314,19 @@ export function ItemDialog({
     </>
   );
 
-  const heading = mode === "add" ? "new item" : "edit item";
-
-  if (isMobile) {
-    return (
-      <ItemPageFrame
-        open={open}
-        heading={heading}
-        scrollBodyRef={scrollBodyRef}
-        onCancel={onCancel}
-        confirm={confirmButton}
-        secondary={
-          deleteButton && <div className="border-border mt-6 border-t pt-4">{deleteButton}</div>
-        }
-      >
-        {form}
-      </ItemPageFrame>
-    );
-  }
-
   return (
-    <ItemDialogFrame
+    <ItemFrame
       open={open}
-      heading={heading}
+      mode={frameMode}
+      isMobile={isMobile}
+      panel={panel}
       wide={hasFields}
       scrollBodyRef={scrollBodyRef}
+      titleField={titleField}
+      details={details}
+      confirm={confirmButton}
+      deleteButton={deleteButton}
       onCancel={onCancel}
-      footer={
-        <div className="flex w-full items-center justify-between">
-          {deleteButton || <span />}
-          {confirmButton}
-        </div>
-      }
-    >
-      {form}
-    </ItemDialogFrame>
+    />
   );
 }

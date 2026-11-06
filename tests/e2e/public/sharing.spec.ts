@@ -1,7 +1,7 @@
 import { test, expect, type Locator, type Page } from "@playwright/test";
 import Database from "better-sqlite3";
 import { E2E_DATABASE_FILE } from "../helpers/env";
-import { addItem, itemRow, openItemMenu } from "../helpers/buckets";
+import { addItem, itemRow, newItemForm, openItemMenu } from "../helpers/buckets";
 import { login, uniqueEmail, uniqueUsername } from "../helpers/login";
 import { giveOwnSmtp } from "../helpers/email";
 import {
@@ -304,10 +304,6 @@ test("an owner hands the bucket to a member, then can leave it", async ({ page, 
   await friend.close();
 });
 
-function newItemDialog(page: Page): Locator {
-  return page.locator("div.fixed").filter({ has: page.getByText("new item", { exact: true }) });
-}
-
 test("an item can be assigned to a member, and a bucket nobody shares has no such field", async ({
   page,
   browser,
@@ -318,9 +314,9 @@ test("an item can be assigned to a member, and a bucket nobody shares has no suc
   await page.goto(`/?bucket=${bucketId}`);
 
   await page.getByRole("button", { name: "add with details", exact: true }).click();
-  await expect(newItemDialog(page)).toBeVisible();
-  await expect(newItemDialog(page).getByText("assigned to")).toHaveCount(0);
-  await newItemDialog(page).getByRole("button", { name: "[ x ]", exact: true }).click();
+  await expect(newItemForm(page)).toBeVisible();
+  await expect(newItemForm(page).getByText("assigned to")).toHaveCount(0);
+  await newItemForm(page).getByRole("button", { name: "[ x ]", exact: true }).click();
 
   await openMembers(page);
   await page.getByRole("button", { name: bracket("create invite") }).click();
@@ -333,7 +329,7 @@ test("an item can be assigned to a member, and a bucket nobody shares has no suc
   const title = `take out the bins ${Date.now()}`;
   await page.goto(`/?bucket=${bucketId}`);
   await page.getByRole("button", { name: "add with details", exact: true }).click();
-  const dialog = newItemDialog(page);
+  const dialog = newItemForm(page);
   await dialog.locator("textarea").fill(title);
   await dialog.getByRole("button", { name: sam, exact: true }).click();
   await dialog.getByRole("button", { name: "[ add ]", exact: true }).click();
@@ -534,7 +530,7 @@ test("typing @ in the title picks a member in a shared bucket, and does nothing 
   await page.goto(`/?bucket=${bucketId}`);
 
   await page.getByRole("button", { name: "add with details", exact: true }).click();
-  const solo = newItemDialog(page);
+  const solo = newItemForm(page);
   await solo.locator("textarea").fill("@");
   await expect(solo.getByRole("listbox")).toHaveCount(0);
   await solo.locator("textarea").fill("remind @sa about it");
@@ -552,7 +548,7 @@ test("typing @ in the title picks a member in a shared bucket, and does nothing 
 
   await page.goto(`/?bucket=${bucketId}`);
   await page.getByRole("button", { name: "add with details", exact: true }).click();
-  const dialog = newItemDialog(page);
+  const dialog = newItemForm(page);
   const title = dialog.locator("textarea");
 
   await title.fill("mail bob@example.com");
@@ -620,7 +616,7 @@ test("people see each other's avatars next to their names, a generated one if ne
   await closeDialog(modal(page, /^bucket settings \[/));
 
   await page.getByRole("button", { name: "add with details", exact: true }).click();
-  const dialog = newItemDialog(page);
+  const dialog = newItemForm(page);
   await expect(sams(dialog.getByRole("button", { name: sam, exact: true }))).toHaveAttribute(
     "width",
     "16"

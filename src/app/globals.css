@@ -25,6 +25,10 @@
   --font-pixel: var(--font-pixel), monospace;
 }
 
+@theme {
+  --container-column: 47.5rem;
+}
+
 /* Avatar colours are the same on every theme so everyone sees the drawing as it was made */
 @theme {
   --color-avatar-0: #1a1a1a;
@@ -636,6 +640,13 @@ body {
   [data-sonner-toaster] {
     width: auto !important;
   }
+}
+
+/* toasts sit where the open add panel's title is; they step aside until it folds */
+body:has([data-add-panel]) [data-sonner-toaster] {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s;
 }
 
 /* [x] sits at the end of the row with room to tap, instead of over the text */

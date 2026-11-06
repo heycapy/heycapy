@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 import { authState } from "../helpers/auth";
-import { createAndSelectBucket, itemRow, uniqueName } from "../helpers/buckets";
-import { modal, openSettings, saveSettings, switchTab } from "../helpers/settings";
+import { createAndSelectBucket, itemForm, itemRow, uniqueName } from "../helpers/buckets";
+import { openSettings, saveSettings, switchTab } from "../helpers/settings";
 
 test.use({ storageState: authState("reminders") });
 
@@ -16,7 +16,7 @@ test("an item can have several reminders, added from presets or typed, and remov
   const title = uniqueName("flight");
 
   await page.getByRole("button", { name: "add with details", exact: true }).click();
-  const dialog = modal(page, /^(new|edit) item$/);
+  const dialog = itemForm(page);
   await dialog.locator("textarea").first().fill(title);
   await expect(dialog.getByText("reminders", { exact: true })).toHaveCount(0);
   await dialog.getByRole("button", { name: "pick date" }).click();
@@ -58,7 +58,7 @@ test("a typed reminder over 90 days is refused, and four is the limit", async ({
   await createAndSelectBucket(page, uniqueName("Limits"));
 
   await page.getByRole("button", { name: "add with details", exact: true }).click();
-  const dialog = modal(page, /^(new|edit) item$/);
+  const dialog = itemForm(page);
   await dialog.locator("textarea").first().fill(uniqueName("renew passport"));
   await dialog.getByRole("button", { name: "pick date" }).click();
   await page.getByRole("button", { name: "20", exact: true }).click();
@@ -95,7 +95,7 @@ test("new items start with the bucket's default reminders", async ({ page }) => 
   await saveSettings(settings);
 
   await page.getByRole("button", { name: "add with details", exact: true }).click();
-  const dialog = modal(page, /^(new|edit) item$/);
+  const dialog = itemForm(page);
   await dialog.locator("textarea").first().fill(uniqueName("electricity"));
   await dialog.getByRole("button", { name: "pick date" }).click();
   await page.getByRole("button", { name: "20", exact: true }).click();

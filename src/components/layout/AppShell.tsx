@@ -104,7 +104,7 @@ export function AppShell({
 
   const newVersion = useServerEvents();
   const banners = (
-    <div className="mx-auto w-full max-w-6xl">
+    <div className="max-w-column mx-auto w-full">
       {newVersion && <NewVersionBanner />}
       {!hasWorkingChannel && <NoChannelBanner onSetUp={() => setSettingsTab("notifications")} />}
       <DeliveryFailureBanner failures={failures} onFix={() => setSettingsTab("notifications")} />

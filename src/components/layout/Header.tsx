@@ -281,7 +281,7 @@ export function Header({
   guideUnfinished,
 }: HeaderProps) {
   return (
-    <header className="mx-auto flex w-full max-w-6xl items-center justify-end px-3 pt-2">
+    <header className="max-w-column mx-auto flex w-full items-center justify-end px-3 pt-2">
       <GlobalMenu
         email={email}
         userId={userId}

@@ -41,6 +41,7 @@ export function BucketsShell({ buckets: rawBuckets, focusBucketId = null }: Buck
   const quickAddRef = useRef<HTMLInputElement>(null);
   const focusPending = useRef(false);
   const expandPending = useRef(false);
+  const [panelSlot, setPanelSlot] = useState<HTMLDivElement | null>(null);
   const hasBottomBar = useMediaQuery(BOTTOM_BAR_MEDIA_QUERY);
 
   useEffect(() => {
@@ -148,12 +149,21 @@ export function BucketsShell({ buckets: rawBuckets, focusBucketId = null }: Buck
               onAnimationStart={(started) => {
                 if (started === "visible") setShownKey(placeKey);
               }}
-              className="mx-auto w-full max-w-6xl"
+              className="max-w-column mx-auto w-full"
             >
               {todayOpen ? (
                 <TodayView buckets={buckets} />
               ) : (
-                <BucketContent bucket={activeBucket} accentColor={accentColor} viewRef={viewRef} />
+                <BucketContent
+                  bucket={activeBucket}
+                  accentColor={accentColor}
+                  viewRef={viewRef}
+                  addPanel={
+                    panelSlot
+                      ? { slot: panelSlot, onCollapsed: () => quickAddRef.current?.focus() }
+                      : undefined
+                  }
+                />
               )}
             </motion.div>
           </AnimatePresence>
@@ -165,6 +175,7 @@ export function BucketsShell({ buckets: rawBuckets, focusBucketId = null }: Buck
         color={accentColor}
         canAdd={canAddItem}
         inputRef={quickAddRef}
+        panelSlotRef={setPanelSlot}
         onAdded={() => void viewRef.current?.refetch()}
         onExpand={expand}
       />

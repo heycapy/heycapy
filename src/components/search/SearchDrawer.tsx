@@ -71,7 +71,7 @@ function SearchBody({ onClose }: { onClose: () => void }) {
             if (info.offset.y > SHEET_CLOSE_DRAG_PX || info.velocity.y > SHEET_CLOSE_DRAG_VELOCITY)
               onClose();
           }}
-          className="border-border bg-background pointer-events-auto mx-auto flex h-[85%] w-full flex-col border-t-2 md:h-[70%] md:max-w-2xl md:border-x-2"
+          className="border-border bg-background md:max-w-column pointer-events-auto mx-auto flex h-[85%] w-full flex-col border-t-2 md:h-[70%] md:border-x-2"
         >
           <div
             onPointerDown={(e) => {

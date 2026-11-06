@@ -194,6 +194,16 @@ export const VIEW_FADE = {
   gone: { opacity: 0, y: -6 },
 } as const;
 
+// The list behind the open add panel is dimmed, not covered: it stays clickable
+export const ADD_PANEL_DIM = 0.25;
+
+// Grows up from the add box's own height, so it reads as the box opening
+export const ADD_PANEL_MOTION = {
+  initial: { clipPath: "inset(92% 0% 0% 0%)" },
+  animate: { clipPath: "inset(0% 0% 0% 0%)" },
+  transition: { duration: 0.18, ease: "easeOut" },
+} as const;
+
 // Shown in the empty add box, one per bucket: notes the cat left for its human. Each carries a date
 // so it also shows that dates can be typed
 export const ADD_BOX_EXAMPLES = [

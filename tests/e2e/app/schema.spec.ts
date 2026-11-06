@@ -1,11 +1,10 @@
 import { test, expect, type Locator, type Page } from "@playwright/test";
 import { authState } from "../helpers/auth";
-import { addItem, createAndSelectBucket, itemRow, uniqueName } from "../helpers/buckets";
+import { addItem, createAndSelectBucket, itemForm, itemRow, uniqueName } from "../helpers/buckets";
 import {
   closeDialog,
   expectSelected,
   field,
-  modal,
   openFromSettings,
   openSettings,
   option,
@@ -38,7 +37,7 @@ async function saveSchema(schema: Locator): Promise<void> {
 }
 
 function itemDialog(page: Page): Locator {
-  return modal(page, /^(new|edit) item$/);
+  return itemForm(page);
 }
 
 test.beforeEach(async ({ page }) => {

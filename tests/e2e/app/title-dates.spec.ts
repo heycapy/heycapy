@@ -5,6 +5,7 @@ import {
   addItemButton,
   createAndSelectBucket,
   itemRow,
+  newItemForm,
   uniqueName,
 } from "../helpers/buckets";
 import { modal } from "../helpers/settings";
@@ -23,7 +24,7 @@ async function openBucket(page: Page) {
 async function openAdd(page: Page) {
   await openBucket(page);
   await addItemButton(page).click();
-  return modal(page, /^(new|edit) item$/);
+  return newItemForm(page);
 }
 
 test("the add box reads a typed date, adds on enter and stays ready for the next", async ({
@@ -51,7 +52,7 @@ test("expand opens the full form with what was typed, and [×] there clears the 
   await addBox(page).fill(title);
   await addItemButton(page).click();
 
-  const dialog = modal(page, /^new item$/);
+  const dialog = newItemForm(page);
   await expect(dialog.locator("textarea").first()).toHaveValue(title);
   await expect(dialog.getByTestId("title-date-highlight").locator("span")).toHaveText("tomorrow");
   await expect(dialog.getByRole("button", { name: "Oct 8", exact: true })).toBeVisible();
@@ -119,7 +120,8 @@ test("editing an item never reads dates from its title", async ({ page }) => {
   await dialog.getByRole("button", { name: "[ add ]", exact: true }).click();
 
   await itemRow(page, title).click();
-  await dialog.locator("textarea").first().fill(`${title} tomorrow`);
-  await expect(dialog.getByTestId("title-date-highlight")).toHaveCount(0);
-  await expect(dialog.getByRole("button", { name: "pick date" })).toBeVisible();
+  const edit = modal(page, /^edit item$/);
+  await edit.locator("textarea").first().fill(`${title} tomorrow`);
+  await expect(edit.getByTestId("title-date-highlight")).toHaveCount(0);
+  await expect(edit.getByRole("button", { name: "pick date" })).toBeVisible();
 });

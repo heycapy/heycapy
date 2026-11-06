@@ -53,15 +53,16 @@ export function ItemTitleField({
   const options = found && mention ? mentionOptions(mention.members, found.query) : [];
   const listOpen = found !== null && options.length > 0 && closedOn !== value;
 
+  // A form opened while the last add is still saving starts disabled, and can only take focus after
   useLayoutEffect(() => {
-    if (!open) return;
+    if (!open || disabled) return;
     const el = textareaRef.current;
     if (!el) return;
     el.style.height = "auto";
     el.style.height = `${el.scrollHeight}px`;
     el.focus();
     el.setSelectionRange(el.value.length, el.value.length);
-  }, [open]);
+  }, [open, disabled]);
 
   useLayoutEffect(() => {
     const el = textareaRef.current;

@@ -1,7 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { authState } from "../helpers/auth";
-import { createAndSelectBucket, itemRow, uniqueName } from "../helpers/buckets";
-import { modal } from "../helpers/settings";
+import { createAndSelectBucket, itemForm, itemRow, uniqueName } from "../helpers/buckets";
 
 test.use({ storageState: authState("time-picker") });
 
@@ -11,7 +10,7 @@ test("a time can be picked from the grid or typed, and is saved", async ({ page 
   const title = uniqueName("dentist");
 
   await page.getByRole("button", { name: "add with details", exact: true }).click();
-  const dialog = modal(page, /^(new|edit) item$/);
+  const dialog = itemForm(page);
   await dialog.locator("textarea").first().fill(title);
   await dialog.getByRole("button", { name: "pick date" }).click();
   await page.getByRole("button", { name: String(new Date().getDate()), exact: true }).click();
@@ -60,7 +59,7 @@ test("a date without a time shows as all day, and a time can be taken off again"
   const title = uniqueName("pay rent");
 
   await page.getByRole("button", { name: "add with details", exact: true }).click();
-  const dialog = modal(page, /^(new|edit) item$/);
+  const dialog = itemForm(page);
   await dialog.locator("textarea").first().fill(title);
   await dialog.getByRole("button", { name: "pick date" }).click();
   await page.getByRole("button", { name: "28", exact: true }).click();
@@ -94,7 +93,7 @@ test("a date picked for today after 9am starts at the next half hour", async ({ 
   await createAndSelectBucket(page, uniqueName("Tonight"));
 
   await page.getByRole("button", { name: "add with details", exact: true }).click();
-  const dialog = modal(page, /^(new|edit) item$/);
+  const dialog = itemForm(page);
   await dialog.getByRole("button", { name: "pick date" }).click();
   await page.getByRole("button", { name: String(evening.getDate()), exact: true }).click();
   await expect(dialog.getByRole("button", { name: "time: 9:30 pm" })).toBeVisible();

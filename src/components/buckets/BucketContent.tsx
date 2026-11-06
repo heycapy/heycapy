@@ -2,6 +2,7 @@ import { parseItemsRules, parseNotificationRules } from "@/lib/rules";
 import { ITEM_STATUS, isClosedStatus } from "@/constants";
 import { useEffect, useState, type RefObject } from "react";
 import { ItemDialog } from "./ItemDialog";
+import type { AddPanel } from "./ItemPanelFrame";
 import { ItemList } from "./ItemList";
 import { BucketSettings } from "./BucketSettings";
 import type { SettingsTab } from "./BucketSettingsForm";
@@ -31,9 +32,10 @@ type BucketContentProps = {
   bucket: ViewerBucket;
   accentColor: string;
   viewRef: RefObject<BucketView | null>;
+  addPanel?: Omit<AddPanel, "bucketName">;
 };
 
-export function BucketContent({ bucket, accentColor, viewRef }: BucketContentProps) {
+export function BucketContent({ bucket, accentColor, viewRef, addPanel }: BucketContentProps) {
   const rules = parseItemsRules(bucket.itemsRules);
   const statuses = DEFAULT_BUCKET_STATUSES;
   const fields = parseFields(bucket.fieldSchema);
@@ -141,6 +143,7 @@ export function BucketContent({ bucket, accentColor, viewRef }: BucketContentPro
         bucketReminders={parseNotificationRules(bucket.notificationsRules).defaultReminders}
         statuses={statuses}
         fields={fields.length > 0 ? fields : undefined}
+        panel={addPanel && { ...addPanel, bucketName }}
       />
 
       <BucketSettings
