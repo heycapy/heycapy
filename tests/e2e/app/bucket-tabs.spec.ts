@@ -77,6 +77,25 @@ test("a late item marks its bucket and today, and the mark goes once it's done",
   await expect(bucketTab(page, bucket)).not.toHaveAttribute("data-late");
 });
 
+test("the tabs stay at the top while a long list scrolls", async ({ page }) => {
+  await page.goto("/");
+  const bucket = uniqueName("Long");
+  await createAndSelectBucket(page, bucket);
+  const webhook = await enableWebhook(page);
+  const last = uniqueName("item 30");
+  for (let n = 1; n <= 30; n++) {
+    const title = n === 30 ? last : uniqueName(`item ${n}`);
+    expect((await postItem(page.request, webhook, { title })).status()).toBe(201);
+  }
+  await page.setViewportSize({ width: 390, height: 600 });
+  await page.reload();
+
+  await page.getByRole("button", { name: last }).scrollIntoViewIfNeeded();
+  await expect(page.getByRole("button", { name: last })).toBeInViewport();
+  await expect(bucketTab(page, bucket)).toBeInViewport();
+  expect((await tabs(page).boundingBox())?.y).toBeLessThanOrEqual(60);
+});
+
 test.describe("on a phone", () => {
   test.use({ hasTouch: true });
 
