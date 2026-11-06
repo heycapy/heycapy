@@ -4,11 +4,11 @@ import {
   addBox,
   addItemButton,
   createAndSelectBucket,
+  editForm,
   itemRow,
   newItemForm,
   uniqueName,
 } from "../helpers/buckets";
-import { modal } from "../helpers/settings";
 
 test.use({ storageState: authState("title-dates") });
 
@@ -119,7 +119,7 @@ test("editing an item never reads dates from its title", async ({ page }) => {
   await dialog.getByRole("button", { name: "[ add ]", exact: true }).click();
 
   await itemRow(page, title).click();
-  const edit = modal(page, /^edit item$/);
+  const edit = editForm(page);
   await edit.locator("textarea").first().fill(`${title} tomorrow`);
   await expect(edit.getByTestId("title-date-highlight")).toHaveCount(0);
   await expect(edit.getByRole("button", { name: "pick date" })).toBeVisible();

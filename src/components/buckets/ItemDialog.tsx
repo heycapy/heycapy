@@ -1,10 +1,12 @@
+import { Pencil } from "pixelarticons/react/Pencil.js";
+import { Plus } from "pixelarticons/react/Plus.js";
 import { useEffect, useEffectEvent, useRef, useState } from "react";
 import { BracketButton } from "@/components/ui/BracketButton";
 import { type Ampm, type TimeValue } from "@/components/ui/TimeField";
 import { ItemFieldsForm } from "./ItemFieldsForm";
 import { ItemAssigneeField, type AssigneeChoice } from "./ItemAssigneeField";
 import { ItemFrame } from "./ItemFrame";
-import type { AddPanel } from "./ItemPanelFrame";
+import type { ItemPanel } from "./ItemPanelFrame";
 import { ItemTitleField } from "./ItemTitleField";
 import { ItemWhenSection } from "./ItemWhenSection";
 import { ItemTimeHints } from "./ItemTimeHints";
@@ -59,7 +61,7 @@ type ItemDialogProps = {
   onCancel: () => void;
   onDelete?: () => void;
   assigneeChoice?: AssigneeChoice;
-  panel?: AddPanel;
+  panel?: ItemPanel;
 };
 
 export function ItemDialog({
@@ -276,7 +278,7 @@ export function ItemDialog({
   const titleField = (boxed: boolean) => (
     <ItemTitleField
       open={open}
-      boxed={boxed}
+      rowIcon={boxed ? (frameMode === "add" ? Plus : Pencil) : undefined}
       value={title}
       error={error}
       showRequired={titleHasError}

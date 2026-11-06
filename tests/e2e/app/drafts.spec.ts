@@ -5,12 +5,12 @@ import {
   addItem,
   addItemButton,
   createAndSelectBucket,
+  editForm,
   itemRow,
   newItemForm,
   selectBucket,
   uniqueName,
 } from "../helpers/buckets";
-import { modal } from "../helpers/settings";
 
 test.use({ storageState: authState("drafts") });
 
@@ -133,8 +133,8 @@ test("on a wide screen the form grows out of the add box and folds back on a cli
 
   await itemRow(page, kept).click();
   await expect(form).toBeHidden();
-  await expect(modal(page, /^edit item$/)).toBeVisible();
-  await expect(modal(page, /^edit item$/).getByText("status", { exact: true })).toBeVisible();
+  await expect(editForm(page)).toBeVisible();
+  await expect(editForm(page).getByText("status", { exact: true })).toBeVisible();
   await page.keyboard.press("Escape");
 
   await addItemButton(page).click();
@@ -179,4 +179,33 @@ test("the item added last stays marked until the next one is added, from the box
   await addItem(page, second);
   await expect(marked).toHaveCount(1);
   await expect(marked).toContainText(second);
+});
+
+test("editing opens the same panel from the footer, and closing gives focus back to the row", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const bucket = uniqueName("Edit");
+  await createAndSelectBucket(page, bucket);
+  const title = uniqueName("cat's bowl is empty");
+  await addItem(page, title);
+  const capy = await page.getByRole("button", { name: "chat with capy" }).boundingBox();
+
+  await itemRow(page, title).focus();
+  await page.keyboard.press("Enter");
+  const edit = editForm(page);
+  await expect(edit).toContainText(`in ${bucket}`);
+  await expect(edit.locator("textarea").first()).toHaveValue(title);
+  await expect(edit.getByText("status", { exact: true })).toBeVisible();
+  await expect(edit.getByRole("button", { name: "delete item" })).toBeVisible();
+  await expect
+    .poll(async () => {
+      const panel = await edit.boundingBox();
+      return panel ? panel.x + panel.width : null;
+    })
+    .toBe((capy?.x ?? 0) + (capy?.width ?? 0));
+
+  await page.keyboard.press("Escape");
+  await expect(edit).toBeHidden();
+  await expect(itemRow(page, title)).toBeFocused();
 });

@@ -1,30 +1,42 @@
-import { useEffect, useEffectEvent, useId, useRef, type ReactNode, type RefObject } from "react";
+import {
+  useEffect,
+  useEffectEvent,
+  useId,
+  useRef,
+  useState,
+  type ReactNode,
+  type RefObject,
+} from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { BracketButton } from "@/components/ui/BracketButton";
 import { HANDLES_ESCAPE_SELECTOR, POPOVER_SELECTOR } from "@/components/ui/constants";
 import { ADD_PANEL_DIM, ADD_PANEL_MOTION } from "./constants";
 
-// Where the add box opens into a form, and what to do once it folds back
-export type AddPanel = {
+// Where the footer opens into the item form, and where focus goes once a new item's form folds back
+export type ItemPanel = {
   slot: HTMLElement;
-  bucketName: string;
+  bucketName?: string;
   onCollapsed: () => void;
 };
 
 type ItemPanelFrameProps = {
   open: boolean;
   heading: string;
-  panel: AddPanel;
+  panel: ItemPanel;
   scrollBodyRef: RefObject<HTMLDivElement | null>;
   title: ReactNode;
   confirm: ReactNode;
+  // under the details, like delete when editing
+  secondary?: ReactNode;
+  // a new item's form hands focus to the add box; an edit gives it back to the row it came from
+  returnToOpener: boolean;
   children: ReactNode;
   onCancel: () => void;
 };
 
-// The add box grows up into the form: not modal, the list stays usable and a click on it folds
-// the form away, keeping the draft
+// The footer grows up into the form: not modal, the list stays usable and a click on it folds the
+// form away (a new item keeps its draft, an edit is dropped like a cancel)
 export function ItemPanelFrame({
   open,
   heading,
@@ -32,12 +44,22 @@ export function ItemPanelFrame({
   scrollBodyRef,
   title,
   confirm,
+  secondary,
+  returnToOpener,
   children,
   onCancel,
 }: ItemPanelFrameProps) {
   const headingId = useId();
   const panelRef = useRef<HTMLDivElement>(null);
   const wasOpen = useRef(open);
+  // read while rendering open: by the time effects run the title has already taken focus
+  const [opener, setOpener] = useState<HTMLElement | null>(null);
+  const [shownOpen, setShownOpen] = useState(open);
+  if (open !== shownOpen) {
+    setShownOpen(open);
+    if (open)
+      setOpener(document.activeElement instanceof HTMLElement ? document.activeElement : null);
+  }
   const cancel = useEffectEvent(onCancel);
   const collapsed = useEffectEvent(panel.onCollapsed);
 
@@ -72,8 +94,10 @@ export function ItemPanelFrame({
     if (!closing) return;
     const active = document.activeElement;
     // a click on something else outside keeps its focus
-    if (!active || active === document.body || panelRef.current?.contains(active)) collapsed();
-  }, [open]);
+    if (active && active !== document.body && !panelRef.current?.contains(active)) return;
+    if (returnToOpener && opener?.isConnected) opener.focus();
+    else collapsed();
+  }, [open, returnToOpener, opener]);
 
   return createPortal(
     <AnimatePresence>
@@ -93,7 +117,7 @@ export function ItemPanelFrame({
             ref={panelRef}
             role="dialog"
             aria-labelledby={headingId}
-            data-add-panel
+            data-item-panel
             initial={ADD_PANEL_MOTION.initial}
             animate={ADD_PANEL_MOTION.animate}
             exit={ADD_PANEL_MOTION.initial}
@@ -105,7 +129,7 @@ export function ItemPanelFrame({
                 {heading}
               </h2>
               <span className="min-w-0 flex-1 truncate font-mono text-xs opacity-60">
-                in {panel.bucketName}
+                {panel.bucketName && `in ${panel.bucketName}`}
               </span>
               <BracketButton type="button" variant="inverted" onClick={onCancel}>
                 x
@@ -116,6 +140,7 @@ export function ItemPanelFrame({
               className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain px-5 py-4"
             >
               {children}
+              {secondary}
             </div>
             {/* exactly the footer's row: its line lies over the footer's, the title where the add box's text was */}
             <div className="bg-card flex min-h-12 shrink-0 items-start gap-1 border-t-2 border-(--accent) pr-1 pl-2">

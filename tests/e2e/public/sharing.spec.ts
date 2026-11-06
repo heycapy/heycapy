@@ -1,7 +1,7 @@
 import { test, expect, type Locator, type Page } from "@playwright/test";
 import Database from "better-sqlite3";
 import { E2E_DATABASE_FILE } from "../helpers/env";
-import { addItem, itemRow, newItemForm, openItemMenu } from "../helpers/buckets";
+import { addItem, editForm, itemRow, newItemForm, openItemMenu } from "../helpers/buckets";
 import { login, uniqueEmail, uniqueUsername } from "../helpers/login";
 import { giveOwnSmtp } from "../helpers/email";
 import {
@@ -184,7 +184,7 @@ test("an owner can cancel an invite before it is used", async ({ page, browser }
 
 async function deleteItem(page: Page, title: string) {
   await itemRow(page, title).click();
-  const dialog = modal(page, /^edit item$/);
+  const dialog = editForm(page);
   await dialog.getByRole("button", { name: "delete item" }).click();
   await expect(itemRow(page, title)).toHaveCount(0);
 }
@@ -347,7 +347,7 @@ test("an item can be assigned to a member, and a bucket nobody shares has no suc
   await friend.reload();
   await expect(itemRow(friend, title)).toContainText("→ you");
   await itemRow(friend, title).click();
-  const edit = modal(friend, /^edit item$/);
+  const edit = editForm(friend);
   await edit.getByRole("button", { name: "anyone", exact: true }).click();
   await edit.getByRole("button", { name: "[ update ]", exact: true }).click();
   await expect(edit).not.toBeVisible();
@@ -382,7 +382,7 @@ test("a shared item's assignee can be changed when it's edited from today or sea
   await page.goto("/");
   await page.getByRole("button", { name: "today", exact: true }).click();
   await itemRow(page, title).click();
-  const fromToday = modal(page, /^edit item$/);
+  const fromToday = editForm(page);
   await fromToday.getByRole("button", { name: sam, exact: true }).click();
   await fromToday.getByRole("button", { name: "[ update ]", exact: true }).click();
   await expect(fromToday).not.toBeVisible();
@@ -395,7 +395,7 @@ test("a shared item's assignee can be changed when it's edited from today or sea
   const search = page.getByRole("dialog", { name: "search" });
   await search.getByRole("textbox", { name: "search all items" }).fill(title);
   await search.getByRole("button", { name: title }).click();
-  const fromSearch = modal(page, /^edit item$/);
+  const fromSearch = editForm(page);
   await fromSearch.getByRole("button", { name: "anyone", exact: true }).click();
   await fromSearch.getByRole("button", { name: "[ update ]", exact: true }).click();
   await expect(fromSearch).not.toBeVisible();
@@ -641,9 +641,7 @@ test("people see each other's avatars next to their names, a generated one if ne
   await expect(sams(itemRow(page, title))).toHaveAttribute("width", "16");
 
   await itemRow(page, title).click();
-  await modal(page, /^edit item$/)
-    .getByRole("button", { name: "delete item" })
-    .click();
+  await editForm(page).getByRole("button", { name: "delete item" }).click();
   await expect(itemRow(page, title)).toHaveCount(0);
   await page.getByRole("button", { name: "your menu", exact: true }).click();
   await page.getByRole("button", { name: "trash", exact: true }).click();

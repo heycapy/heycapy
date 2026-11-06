@@ -64,10 +64,8 @@ export function BucketsFooter({
           {/* the sheet's frame is mostly empty space, at 1:1 capy fills the square */}
           <Sprite id="capy-idle-blink" size={64} />
         </button>
-        {/* the full form grows up over the whole row, capy too, as wide as the list */}
-        {canAdd && bucket && (
-          <div ref={panelSlotRef} className="absolute inset-x-2.5 bottom-0 sm:inset-x-4" />
-        )}
+        {/* the item form grows up over the whole row, capy too, as wide as the list */}
+        <div ref={panelSlotRef} className="absolute inset-x-2.5 bottom-0 sm:inset-x-4" />
       </div>
     </div>
   );

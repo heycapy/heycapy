@@ -1,13 +1,13 @@
 import type { ReactNode, RefObject } from "react";
 import { ItemDialogFrame } from "./ItemDialogFrame";
 import { ItemPageFrame } from "./ItemPageFrame";
-import { ItemPanelFrame, type AddPanel } from "./ItemPanelFrame";
+import { ItemPanelFrame, type ItemPanel } from "./ItemPanelFrame";
 
 type ItemFrameProps = {
   open: boolean;
   mode: "add" | "edit";
   isMobile: boolean;
-  panel?: AddPanel;
+  panel?: ItemPanel;
   wide: boolean;
   scrollBodyRef: RefObject<HTMLDivElement | null>;
   titleField: (boxed: boolean) => ReactNode;
@@ -17,7 +17,8 @@ type ItemFrameProps = {
   onCancel: () => void;
 };
 
-// A phone gets a page; on a wider screen a new item grows out of the add box, an edit is a dialog
+// A phone gets a page; on a wider screen the form grows out of the footer, or is a dialog where
+// there's no footer to grow from (search)
 export function ItemFrame({
   open,
   mode,
@@ -51,7 +52,7 @@ export function ItemFrame({
     );
   }
 
-  if (panel && mode === "add") {
+  if (panel) {
     return (
       <ItemPanelFrame
         open={open}
@@ -60,6 +61,10 @@ export function ItemFrame({
         scrollBodyRef={scrollBodyRef}
         title={titleField(true)}
         confirm={confirm}
+        secondary={
+          deleteButton && <div className="border-border mt-6 border-t pt-4">{deleteButton}</div>
+        }
+        returnToOpener={mode === "edit"}
         onCancel={onCancel}
       >
         {details}

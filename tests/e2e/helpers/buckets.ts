@@ -55,6 +55,10 @@ export function newItemForm(page: Page) {
   return page.getByRole("dialog", { name: "new item", exact: true });
 }
 
+export function editForm(page: Page) {
+  return page.getByRole("dialog", { name: "edit item", exact: true });
+}
+
 export function itemForm(page: Page) {
   return page.getByRole("dialog", { name: /^(new|edit) item$/ });
 }

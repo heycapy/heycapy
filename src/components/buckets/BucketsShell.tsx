@@ -117,6 +117,9 @@ export function BucketsShell({ buckets: rawBuckets, focusBucketId = null }: Buck
   if (!activeBucket) return null;
 
   const canAddItem = !todayOpen && writable(activeBucket);
+  const itemPanel = panelSlot
+    ? { slot: panelSlot, onCollapsed: () => quickAddRef.current?.focus() }
+    : undefined;
 
   function expand() {
     if (switching) expandPending.current = true;
@@ -152,17 +155,13 @@ export function BucketsShell({ buckets: rawBuckets, focusBucketId = null }: Buck
               className="max-w-column mx-auto w-full"
             >
               {todayOpen ? (
-                <TodayView buckets={buckets} />
+                <TodayView buckets={buckets} panel={itemPanel} />
               ) : (
                 <BucketContent
                   bucket={activeBucket}
                   accentColor={accentColor}
                   viewRef={viewRef}
-                  addPanel={
-                    panelSlot
-                      ? { slot: panelSlot, onCollapsed: () => quickAddRef.current?.focus() }
-                      : undefined
-                  }
+                  panel={itemPanel}
                 />
               )}
             </motion.div>

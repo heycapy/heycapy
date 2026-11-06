@@ -3,6 +3,7 @@ import { authState } from "../helpers/auth";
 import {
   addItem,
   createAndSelectBucket,
+  editForm,
   itemMenu,
   itemRow,
   itemRowContainer,
@@ -11,7 +12,7 @@ import {
   selectBucket,
   uniqueName,
 } from "../helpers/buckets";
-import { field, modal, openSettings, option, saveSettings } from "../helpers/settings";
+import { field, openSettings, option, saveSettings } from "../helpers/settings";
 
 test.use({
   storageState: authState("item-menu"),
@@ -105,7 +106,7 @@ test("a repeating item moves only this time: the next one stays on schedule", as
   await (await openItemMenu(page, title)).getByRole("button", { name: /^due next week / }).click();
 
   await itemRow(page, title).click();
-  const dialog = modal(page, /^edit item$/);
+  const dialog = editForm(page);
   await dialog.getByRole("button", { name: "on", exact: true }).click();
   await dialog.getByRole("button", { name: "week", exact: true }).click();
   await dialog.getByRole("button", { name: "[ update ]", exact: true }).click();
@@ -234,7 +235,7 @@ test.describe("on a phone", () => {
 
     const menu = itemMenu(page, title);
     await expect(menu).toBeVisible();
-    await expect(modal(page, /^edit item$/)).toHaveCount(0);
+    await expect(editForm(page)).toHaveCount(0);
     const menuBox = await menu.boundingBox();
     expect(menuBox?.x).toBeGreaterThanOrEqual(8);
     expect((menuBox?.x ?? 0) + (menuBox?.width ?? 0)).toBeLessThanOrEqual(390 - 8);

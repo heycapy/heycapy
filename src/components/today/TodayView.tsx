@@ -1,4 +1,5 @@
 import { ItemDialog } from "@/components/buckets/ItemDialog";
+import type { ItemPanel } from "@/components/buckets/ItemPanelFrame";
 import { useItemEditor } from "@/components/buckets/useItemEditor";
 import { useBucketMembers } from "@/components/buckets/useBucketMembers";
 import { parseFields } from "@/components/buckets/fields";
@@ -13,7 +14,12 @@ import { useTodayItems } from "./useTodayItems";
 type BucketRow = typeof bucketsTable.$inferSelect;
 
 // Today only edits, items are added in their bucket
-export function TodayView({ buckets }: { buckets: BucketRow[] }) {
+type TodayViewProps = {
+  buckets: BucketRow[];
+  panel?: ItemPanel;
+};
+
+export function TodayView({ buckets, panel }: TodayViewProps) {
   const { data, refetch } = useTodayItems();
   const statuses = DEFAULT_BUCKET_STATUSES;
   const editor = useItemEditor({
@@ -48,6 +54,7 @@ export function TodayView({ buckets }: { buckets: BucketRow[] }) {
         }
         statuses={statuses}
         fields={fields.length > 0 ? fields : undefined}
+        panel={panel && { ...panel, bucketName: formBucket?.name }}
         assigneeChoice={
           formBucket && {
             bucketId: formBucket.id,

@@ -2,9 +2,8 @@ import { test, expect, type Page } from "@playwright/test";
 import Database from "better-sqlite3";
 import { MONTH_SHORT_NAMES } from "@/constants";
 import { E2E_DATABASE_FILE } from "../helpers/env";
-import { itemRow } from "../helpers/buckets";
+import { editForm, itemRow } from "../helpers/buckets";
 import { login, uniqueEmail } from "../helpers/login";
-import { modal } from "../helpers/settings";
 
 test.use({ timezoneId: "Asia/Kolkata" });
 
@@ -72,7 +71,7 @@ test("an all-day item set in India is on the same date in London, and saving it 
   await expectAllDayOn(member, title, label);
 
   await itemRow(member, title).click();
-  const dialog = modal(member, /^edit item$/);
+  const dialog = editForm(member);
   await expect(dialog.getByRole("button", { name: /all day/ })).toBeVisible();
   const renamed = `${title} (paid by Sam)`;
   await dialog.locator("textarea").fill(renamed);

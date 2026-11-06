@@ -1,7 +1,12 @@
 import { test, expect, type Page } from "@playwright/test";
 import { authState } from "../helpers/auth";
-import { activeBucketTitle, createAndSelectBucket, itemRow, uniqueName } from "../helpers/buckets";
-import { modal } from "../helpers/settings";
+import {
+  activeBucketTitle,
+  createAndSelectBucket,
+  editForm,
+  itemRow,
+  uniqueName,
+} from "../helpers/buckets";
 import { daysFromNow, enableWebhook, postItem } from "../helpers/webhook";
 
 test.use({ storageState: authState("today") });
@@ -91,7 +96,8 @@ test("items can be edited from today", async ({ page }) => {
   await todayButton(page).click();
 
   await itemRow(page, title).click();
-  const dialog = modal(page, /^edit item$/);
+  const dialog = editForm(page);
+  await expect(dialog).toHaveAttribute("data-item-panel");
   await dialog.locator("textarea").first().fill(`${title} back`);
   await dialog.getByRole("button", { name: "[ update ]", exact: true }).click();
   await expect(itemRow(page, `${title} back`)).toBeVisible();

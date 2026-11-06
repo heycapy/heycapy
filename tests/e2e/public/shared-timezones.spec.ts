@@ -4,20 +4,14 @@ import { E2E_DATABASE_FILE } from "../helpers/env";
 import {
   addItemButton,
   createAndSelectBucket,
+  editForm,
   itemRow,
   newItemForm,
   uniqueName,
 } from "../helpers/buckets";
 import { login, uniqueEmail } from "../helpers/login";
 import { giveOwnSmtp } from "../helpers/email";
-import {
-  closeDialog,
-  field,
-  modal,
-  openSettings,
-  settingsDialog,
-  switchTab,
-} from "../helpers/settings";
+import { closeDialog, field, openSettings, settingsDialog, switchTab } from "../helpers/settings";
 
 test.use({ timezoneId: "Asia/Kolkata" });
 
@@ -119,7 +113,7 @@ test("a timed item shows the time on the other clock that matters", async ({ pag
   await expect(itemRow(member, title)).toContainText(/\(\d{1,2}:30pm India\)/);
 
   await itemRow(page, title).click();
-  const picker = modal(page, /^edit item$/);
+  const picker = editForm(page);
   await expect(picker.getByRole("button", { name: /\(you\)\s*India$/ })).toBeVisible();
   await expect(picker.getByRole("button", { name: /\sUK · no reminders set up$/ })).toBeVisible();
   await london.close();

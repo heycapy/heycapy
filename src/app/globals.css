@@ -642,8 +642,8 @@ body {
   }
 }
 
-/* toasts sit where the open add panel's title is; they step aside until it folds */
-body:has([data-add-panel]) [data-sonner-toaster] {
+/* toasts sit where the open item panel's title is; they step aside until it folds */
+body:has([data-item-panel]) [data-sonner-toaster] {
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.15s;
