@@ -1,4 +1,4 @@
-import { useEffect, useState, useTransition } from "react";
+import { useCallback, useEffect, useState, useTransition } from "react";
 import { useTheme } from "next-themes";
 import {
   checkAIKeyAction,
@@ -8,6 +8,7 @@ import {
   disconnectTelegramAction,
 } from "@/app/(app)/actions";
 import { useUIStore } from "@/store/ui";
+import { useLeaveGuard } from "@/hooks/useLeaveGuard";
 import { useAIStatus } from "@/hooks/useAIStatus";
 import { AppearanceTab, NotificationsTab, AITab, PersonalityTab } from "./SettingsTabs";
 import { AccountTab } from "./AccountTab";
@@ -203,10 +204,15 @@ export function SettingsSheet({ open, initialTab, onClose }: SettingsSheetProps)
   const usernameUnsaved =
     usernameDraft !== null && normalizeUsername(usernameDraft) !== (username ?? "");
 
+  const needsConfirm = unsaved.dirty || !!avatarDraft || usernameUnsaved;
+  const askToConfirm = useCallback(() => setConfirmClose(true), []);
+
   function requestClose() {
-    if (unsaved.dirty || avatarDraft || usernameUnsaved) setConfirmClose(true);
+    if (needsConfirm) setConfirmClose(true);
     else onClose();
   }
+
+  useLeaveGuard(open, needsConfirm, askToConfirm);
 
   function discard() {
     setReloads((n) => n + 1);

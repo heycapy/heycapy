@@ -45,6 +45,7 @@ export function Modal({
   children,
 }: ModalProps) {
   const panel = MODAL_PANELS[variant];
+  const side = variant === "side";
   const z = MODAL_LAYERS[layer];
   // Radix only gives focus back to its own Trigger, and these open from our buttons
   const [returnTo, setReturnTo] = useState(() => (open ? focusedElement() : null));
@@ -55,29 +56,36 @@ export function Modal({
   }
 
   return (
-    <Dialog.Root open={open} onOpenChange={(next) => !next && onClose()}>
+    <Dialog.Root open={open} onOpenChange={(next) => !next && onClose()} modal={!side}>
       <AnimatePresence onExitComplete={onExitComplete}>
         {open && (
           <Dialog.Portal forceMount>
-            <Dialog.Overlay asChild forceMount>
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: variant === "page" ? 0 : 0.45 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.12 }}
-                className={cn("fixed inset-0 bg-black", z.overlay)}
-              />
-            </Dialog.Overlay>
+            {!side && (
+              <Dialog.Overlay asChild forceMount>
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: variant === "page" ? 0 : 0.45 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.12 }}
+                  className={cn("fixed inset-0 bg-black", z.overlay)}
+                />
+              </Dialog.Overlay>
+            )}
             <Dialog.Content
               asChild
               forceMount
               aria-describedby={undefined}
+              // beside the list it stays while the list is used; only its [x] or Escape close it
+              onInteractOutside={side ? (e) => e.preventDefault() : undefined}
               onEscapeKeyDown={(e) => {
                 // Escape closes an open picker or suggestion list first, not the whole modal
                 if (
                   document.querySelector(`${MODAL_PANEL_SELECTOR} ${POPOVER_SELECTOR}`) ||
                   document.activeElement?.closest(HANDLES_ESCAPE_SELECTOR)
                 )
+                  e.preventDefault();
+                // beside the list, Escape typed in the list (the add box, an item's panel) is the list's
+                if (side && !document.activeElement?.closest(MODAL_PANEL_SELECTOR))
                   e.preventDefault();
               }}
               onCloseAutoFocus={(e) => {
@@ -123,13 +131,26 @@ export function ModalTitle({ className, children }: ModalTitleProps) {
   );
 }
 
-type ModalHeaderProps = { title: ReactNode; onClose: () => void };
+// plain: the row the docked chat has, for a panel docked in the same column
+type ModalHeaderProps = { title: ReactNode; onClose: () => void; plain?: boolean };
 
-export function ModalHeader({ title, onClose }: ModalHeaderProps) {
+export function ModalHeader({ title, onClose, plain }: ModalHeaderProps) {
   return (
-    <div className="bg-foreground text-background flex shrink-0 items-center justify-between gap-2 px-3 py-1.5">
-      <ModalTitle>{title}</ModalTitle>
-      <BracketButton type="button" variant="inverted" onClick={onClose}>
+    <div
+      className={cn(
+        "flex shrink-0 items-center justify-between gap-2",
+        plain
+          ? "bg-card border-border h-10 border-b-2 pr-2 pl-3"
+          : "bg-foreground text-background px-3 py-1.5"
+      )}
+    >
+      <ModalTitle className={cn(plain && "text-[11px]")}>{title}</ModalTitle>
+      <BracketButton
+        type="button"
+        variant={plain ? "default" : "inverted"}
+        className={cn(plain && "px-1")}
+        onClick={onClose}
+      >
         x
       </BracketButton>
     </div>

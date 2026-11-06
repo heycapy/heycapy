@@ -66,31 +66,37 @@ export function AppShell({
   guide: guideFromServer,
   appUrl,
 }: AppShellProps) {
-  const [settingsTab, setSettingsTab] = useState<SettingsTab | null>(null);
-  const sheet = useUIStore((s) => s.sheet);
-  const openSheet = useUIStore((s) => s.openSheet);
-  const closeSheet = useUIStore((s) => s.closeSheet);
+  const [settingsTab, setSettingsTab] = useState<SettingsTab>("appearance");
+  const joinOpen = useUIStore((s) => s.joinOpen);
+  const setJoinOpen = useUIStore((s) => s.setJoinOpen);
+  const sidePanel = useLayoutStore((s) => s.sidePanel);
+  const openSidePanel = useLayoutStore((s) => s.openSidePanel);
+  const closeSidePanel = useLayoutStore((s) => s.closeSidePanel);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
-  const [whatsNewOpen, setWhatsNewOpen] = useState(false);
   const [releaseUnseen, setReleaseUnseen] = useState(unseenRelease);
-  const [guideOpen, setGuideOpen] = useState(!guideFromServer.seen);
   const { guide, refresh: refreshGuide, setHidden: setGuideHidden } = useGuide(guideFromServer);
   const guideDone = guide.tasks.filter((task) => task.done).length;
   const requestAddItem = useUIStore((s) => s.requestAddItem);
   const openCreateBucket = useUIStore((s) => s.openCreateBucket);
   const requestMembers = useUIStore((s) => s.requestMembers);
   const setChatState = useLayoutStore((s) => s.setChatState);
-  const { docked: chatDocked } = useChatDocked();
+  const { canDock, docked: chatDocked } = useChatDocked();
+  const sideColumn = chatDocked || (canDock && sidePanel !== null);
+
+  function openSettings(tab: SettingsTab) {
+    setSettingsTab(tab);
+    openSidePanel("tweaks");
+  }
 
   function openGuide() {
-    setGuideOpen(true);
+    openSidePanel("guide");
     void refreshGuide();
   }
 
   function showHint(task: GuideTask) {
-    setGuideOpen(false);
+    closeSidePanel("guide");
     const target = HINT_TARGETS[task.key];
-    if (target.kind === "settings") setSettingsTab(target.tab);
+    if (target.kind === "settings") openSettings(target.tab);
     if (target.kind === "add-item") requestAddItem(target.form);
     if (target.kind === "new-bucket") openCreateBucket();
     if (target.kind === "bucket-members") requestMembers();
@@ -99,7 +105,7 @@ export function AppShell({
   }
 
   function openWhatsNew() {
-    setWhatsNewOpen(true);
+    openSidePanel("whats-new");
     if (!releaseUnseen) return;
     setReleaseUnseen(false);
     void markReleasesSeenAction();
@@ -109,15 +115,17 @@ export function AppShell({
   const banners = (
     <div className="max-w-column mx-auto w-full">
       {newVersion && <NewVersionBanner />}
-      {!hasWorkingChannel && <NoChannelBanner onSetUp={() => setSettingsTab("notifications")} />}
-      <DeliveryFailureBanner failures={failures} onFix={() => setSettingsTab("notifications")} />
+      {!hasWorkingChannel && <NoChannelBanner onSetUp={() => openSettings("notifications")} />}
+      <DeliveryFailureBanner failures={failures} onFix={() => openSettings("notifications")} />
       <TimezoneMoveBanner />
     </div>
   );
 
   useEffect(() => {
-    if (!guideFromServer.seen) void markGuideSeenAction();
-  }, [guideFromServer.seen]);
+    if (guideFromServer.seen) return;
+    openSidePanel("guide");
+    void markGuideSeenAction();
+  }, [guideFromServer.seen, openSidePanel]);
 
   useEffect(() => {
     void useUIStore.persist.rehydrate();
@@ -129,22 +137,22 @@ export function AppShell({
 
   return (
     <AssistantNameProvider name={assistantName}>
-      <PurchaseReturn onPaid={() => setSettingsTab("credits")} />
+      <PurchaseReturn onPaid={() => openSettings("credits")} />
       <div
-        data-chat-docked={chatDocked || undefined}
+        data-side-column={sideColumn || undefined}
         className={cn(
           "flex min-h-0 flex-1 flex-col transition-[padding] duration-200 ease-out",
-          chatDocked && "pr-chat"
+          sideColumn && "pr-chat"
         )}
       >
         <Header
           email={email}
           userId={userId}
           avatar={avatar}
-          onSettingsOpen={() => setSettingsTab("appearance")}
-          onArchiveOpen={() => openSheet("archive")}
-          onTrashOpen={() => openSheet("trash")}
-          onJoinOpen={() => openSheet("join")}
+          onSettingsOpen={() => openSettings("appearance")}
+          onArchiveOpen={() => openSidePanel("archive")}
+          onTrashOpen={() => openSidePanel("trash")}
+          onJoinOpen={() => setJoinOpen(true)}
           onFeedbackOpen={feedbackEnabled ? () => setFeedbackOpen(true) : null}
           onWhatsNewOpen={openWhatsNew}
           unseenRelease={releaseUnseen}
@@ -157,26 +165,26 @@ export function AppShell({
         </main>
       </div>
       <SettingsSheet
-        open={settingsTab !== null}
-        initialTab={settingsTab ?? "appearance"}
-        onClose={() => setSettingsTab(null)}
+        open={sidePanel === "tweaks"}
+        initialTab={settingsTab}
+        onClose={() => closeSidePanel("tweaks")}
       />
-      <ArchivedBucketsSheet open={sheet === "archive"} onClose={closeSheet} />
-      <TrashSheet open={sheet === "trash"} onClose={closeSheet} />
-      <JoinBucketDialog open={sheet === "join"} onClose={closeSheet} />
+      <ArchivedBucketsSheet
+        open={sidePanel === "archive"}
+        onClose={() => closeSidePanel("archive")}
+      />
+      <TrashSheet open={sidePanel === "trash"} onClose={() => closeSidePanel("trash")} />
+      <JoinBucketDialog open={joinOpen} onClose={() => setJoinOpen(false)} />
       <FeedbackDialog open={feedbackOpen} onClose={() => setFeedbackOpen(false)} />
       <WhatsNewDialog
-        open={whatsNewOpen}
-        onClose={() => setWhatsNewOpen(false)}
-        onShowGuide={() => {
-          setWhatsNewOpen(false);
-          openGuide();
-        }}
+        open={sidePanel === "whats-new"}
+        onClose={() => closeSidePanel("whats-new")}
+        onShowGuide={openGuide}
       />
       <GuidePanel
-        open={guideOpen}
+        open={sidePanel === "guide"}
         guide={guide}
-        onClose={() => setGuideOpen(false)}
+        onClose={() => closeSidePanel("guide")}
         onHint={showHint}
         onHiddenChange={setGuideHidden}
       />

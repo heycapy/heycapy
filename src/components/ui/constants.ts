@@ -24,7 +24,13 @@ export const MODAL_PANELS = {
     animate: { x: 0 },
     transition: { duration: 0.2, ease: "easeInOut" },
   },
-  // a full-screen holder: the panel inside animates and drags itself
+  side: {
+    className:
+      "bg-background border-border fixed inset-y-0 right-0 flex w-chat flex-col border-l-2 outline-none",
+    initial: { x: "100%" },
+    animate: { x: 0 },
+    transition: { duration: 0.18, ease: "easeOut" },
+  },
   drawer: {
     className: "pointer-events-none fixed inset-0 outline-none",
     initial: { opacity: 1 },

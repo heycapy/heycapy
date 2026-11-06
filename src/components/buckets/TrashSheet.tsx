@@ -1,6 +1,6 @@
 import { useEffect, useState, useTransition, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { Modal, ModalHeader } from "@/components/ui/Modal";
+import { SidePanel } from "@/components/ui/SidePanel";
 import { BracketButton } from "@/components/ui/BracketButton";
 import {
   deleteItemForeverAction,
@@ -141,9 +141,7 @@ export function TrashSheet({ open, onClose }: TrashSheetProps) {
   const canEmpty = bucketRows.length > 0 || itemRows.some((i) => i.canDelete);
 
   return (
-    <Modal open={open} onClose={onClose} variant="sheet">
-      <ModalHeader title="trash" onClose={onClose} />
-
+    <SidePanel open={open} onClose={onClose} title="trash" narrow="sheet">
       <div className="border-border flex items-center justify-between gap-3 border-b px-4 py-2">
         <p className={HINT}>deleted forever after {TRASH_RETENTION_DAYS} days in the trash</p>
         {canEmpty &&
@@ -272,6 +270,6 @@ export function TrashSheet({ open, onClose }: TrashSheetProps) {
           </>
         )}
       </div>
-    </Modal>
+    </SidePanel>
   );
 }

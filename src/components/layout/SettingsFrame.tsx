@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
-import { Modal, ModalHeader } from "@/components/ui/Modal";
+import { SidePanel } from "@/components/ui/SidePanel";
 import { ACCENT_BUTTONS } from "./settings-constants";
 
 type SettingsFrameProps = {
@@ -11,9 +11,14 @@ type SettingsFrameProps = {
 
 export function SettingsFrame({ open, onRequestClose, children }: SettingsFrameProps) {
   return (
-    <Modal open={open} onClose={onRequestClose} variant="sheet" className={cn(ACCENT_BUTTONS)}>
-      <ModalHeader title="tweaks" onClose={onRequestClose} />
+    <SidePanel
+      open={open}
+      onClose={onRequestClose}
+      title="tweaks"
+      narrow="sheet"
+      className={cn(ACCENT_BUTTONS)}
+    >
       {children}
-    </Modal>
+    </SidePanel>
   );
 }

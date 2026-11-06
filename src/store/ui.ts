@@ -1,8 +1,6 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 
-export type PlaceSheet = "archive" | "trash" | "join";
-
 type UIStore = {
   createBucketOpen: boolean;
   openCreateBucket: () => void;
@@ -51,9 +49,8 @@ type UIStore = {
   openItem: (bucketId: number | null, itemId: number) => void;
   clearHighlight: (itemId: number) => void;
 
-  sheet: PlaceSheet | null;
-  openSheet: (sheet: PlaceSheet) => void;
-  closeSheet: () => void;
+  joinOpen: boolean;
+  setJoinOpen: (open: boolean) => void;
 };
 
 export const useUIStore = create<UIStore>()(
@@ -107,9 +104,8 @@ export const useUIStore = create<UIStore>()(
         set({ settingsRequestedId: id, activeBucketId: id, todayOpen: false }),
       clearSettingsRequest: () => set({ settingsRequestedId: null }),
 
-      sheet: null,
-      openSheet: (sheet) => set({ sheet }),
-      closeSheet: () => set({ sheet: null }),
+      joinOpen: false,
+      setJoinOpen: (open) => set({ joinOpen: open }),
     }),
     {
       name: "heycapy-ui",

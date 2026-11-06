@@ -1,6 +1,6 @@
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Modal, ModalHeader } from "@/components/ui/Modal";
+import { SidePanel } from "@/components/ui/SidePanel";
 import { BracketButton } from "@/components/ui/BracketButton";
 import {
   getArchivedBucketsAction,
@@ -54,9 +54,7 @@ export function ArchivedBucketsSheet({ open, onClose }: ArchivedBucketsSheetProp
   }
 
   return (
-    <Modal open={open} onClose={onClose} variant="sheet">
-      <ModalHeader title="archived buckets" onClose={onClose} />
-
+    <SidePanel open={open} onClose={onClose} title="archived buckets" narrow="sheet">
       <div className="flex flex-1 flex-col overflow-y-auto">
         {loading ? (
           <p className="text-muted-foreground px-4 py-6 text-center font-mono text-xs">
@@ -116,6 +114,6 @@ export function ArchivedBucketsSheet({ open, onClose }: ArchivedBucketsSheetProp
           </div>
         )}
       </div>
-    </Modal>
+    </SidePanel>
   );
 }

@@ -10,7 +10,11 @@ import {
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { BracketButton } from "@/components/ui/BracketButton";
-import { HANDLES_ESCAPE_SELECTOR, POPOVER_SELECTOR } from "@/components/ui/constants";
+import {
+  HANDLES_ESCAPE_SELECTOR,
+  MODAL_PANEL_SELECTOR,
+  POPOVER_SELECTOR,
+} from "@/components/ui/constants";
 import { ADD_PANEL_DIM, ADD_PANEL_MOTION } from "./constants";
 
 // Where the footer opens into the item form, and where focus goes once a new item's form folds back
@@ -81,11 +85,13 @@ export function ItemPanelFrame({
       );
     }
     function onKey(e: KeyboardEvent) {
-      if (e.key !== "Escape" || e.defaultPrevented) return;
-      // Escape closes an open picker or suggestion list first
+      if (e.key !== "Escape") return;
+      // Escape closes an open picker or suggestion list first, and one typed in a dialog or in
+      // tweaks is theirs (tweaks beside the list marks every Escape as handled, even this one)
       if (
         document.querySelector(POPOVER_SELECTOR) ||
-        document.activeElement?.closest(HANDLES_ESCAPE_SELECTOR)
+        document.activeElement?.closest(HANDLES_ESCAPE_SELECTOR) ||
+        document.activeElement?.closest(MODAL_PANEL_SELECTOR)
       )
         return;
       cancel();

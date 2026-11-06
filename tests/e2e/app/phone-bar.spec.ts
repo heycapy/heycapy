@@ -221,3 +221,98 @@ test("toasts centre on the list while the chat is beside it", async ({ page }) =
     })
     .toBeLessThanOrEqual(40);
 });
+
+test("on a wide screen tweaks stands beside the list like the chat, and the list stays usable", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/");
+  await createAndSelectBucket(page, uniqueName("Docked tweaks"));
+  const title = uniqueName("a row to click while tweaks is open");
+  await addItem(page, title);
+
+  await page.getByRole("button", { name: "your menu" }).click();
+  await page.getByRole("button", { name: "tweaks", exact: true }).click();
+  const tweaks = page.getByRole("dialog", { name: "tweaks" });
+  await expect
+    .poll(async () => {
+      const box = await tweaks.boundingBox();
+      return [box?.y, box?.height, Math.round((box?.x ?? 0) + (box?.width ?? 0))];
+    })
+    .toEqual([0, 900, 1440]);
+  const tweaksLeft = (await tweaks.boundingBox())?.x ?? 0;
+  const addBox = page.getByTestId("add-box");
+  const box = await addBox.boundingBox();
+  expect((box?.x ?? 0) + (box?.width ?? 0)).toBeLessThanOrEqual(tweaksLeft);
+
+  // Escape typed in the list is the list's
+  const input = addBox.locator("input");
+  await input.fill("half typed");
+  await input.press("Escape");
+  await expect(input).toHaveValue("");
+  await itemRow(page, title).click();
+  await expect(editForm(page)).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(editForm(page)).toBeHidden();
+  await expect(tweaks).toBeVisible();
+
+  await tweaks.getByRole("button", { name: "notifications", exact: true }).click();
+  await page.keyboard.press("Escape");
+  await expect(tweaks).toBeHidden();
+});
+
+test("one panel at the side at a time: the chat, tweaks, trash, what's new", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/");
+  await createAndSelectBucket(page, uniqueName("One side"));
+  const capy = page.getByRole("button", { name: "chat with capy" });
+  const chatInput = page.getByPlaceholder("ask capy...");
+  const fromMenu = async (item: string | RegExp) => {
+    await page.getByRole("button", { name: "your menu" }).click();
+    await page.getByRole("button", { name: item, exact: typeof item === "string" }).click();
+  };
+  const tweaks = page.getByRole("dialog", { name: "tweaks" });
+  const trash = page.getByRole("dialog", { name: "trash" });
+  const whatsNew = page.getByRole("dialog", { name: "what's new" });
+
+  await capy.click();
+  await expect(chatInput).toBeVisible();
+  await fromMenu("tweaks");
+  await expect(tweaks).toBeVisible();
+  await expect(chatInput).toBeHidden();
+
+  await fromMenu("trash");
+  await expect(trash).toBeVisible();
+  await expect(tweaks).toBeHidden();
+
+  await fromMenu(/^what's new/);
+  await expect(whatsNew).toBeVisible();
+  await expect(trash).toBeHidden();
+  await expect(page.locator("[data-modal-panel]")).toHaveCount(1);
+
+  await capy.click();
+  await expect(chatInput).toBeVisible();
+  await expect(whatsNew).toBeHidden();
+});
+
+test("tweaks with unsaved changes asks before the chat takes its place", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/");
+  await createAndSelectBucket(page, uniqueName("Unsaved side"));
+  await page.getByRole("button", { name: "your menu" }).click();
+  await page.getByRole("button", { name: "tweaks", exact: true }).click();
+  const tweaks = page.getByRole("dialog", { name: "tweaks" });
+  await tweaks.getByRole("button", { name: "personality", exact: true }).click();
+  await tweaks.getByRole("textbox").first().fill("jarvis");
+
+  const capy = page.getByRole("button", { name: "chat with capy" });
+  await capy.click();
+  const warning = tweaks.getByRole("alertdialog", { name: "unsaved changes" });
+  await expect(warning).toBeVisible();
+  await expect(page.getByPlaceholder("ask capy...")).toBeHidden();
+
+  await warning.getByRole("button", { name: "discard" }).click();
+  await expect(tweaks).toBeHidden();
+  await capy.click();
+  await expect(page.getByPlaceholder("ask capy...")).toBeVisible();
+});
