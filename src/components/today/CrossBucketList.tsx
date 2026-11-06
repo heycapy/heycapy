@@ -4,7 +4,8 @@ import { cn } from "@/lib/utils";
 import { ItemRow } from "@/components/buckets/ItemRow";
 import { itemAssignee } from "@/components/buckets/assignee";
 import { parseFields } from "@/components/buckets/fields";
-import { BUCKET_PALETTE, DEFAULT_BUCKET_STATUSES } from "@/components/buckets/constants";
+import { DEFAULT_BUCKET_STATUSES } from "@/components/buckets/constants";
+import { bucketColor } from "@/components/buckets/bucket-color";
 import { deleteItemAction, moveItemAction, updateItemAction } from "@/app/(app)/actions";
 import { ItemMenu, type MenuAt } from "@/components/buckets/ItemMenu";
 import { PressableRow } from "@/components/buckets/PressableRow";
@@ -72,7 +73,7 @@ export function CrossBucketList({
   function row(item: Item) {
     const bucket = bucketOf(item);
     const readonly = bucket?.readonly === true;
-    const color = bucket && BUCKET_PALETTE[bucket.index % BUCKET_PALETTE.length];
+    const color = bucket && bucketColor(bucket.index);
     const assignee = data?.assignees[item.id];
     return (
       <PressableRow key={item.id} onMenu={(at) => setMenu({ item, at })}>

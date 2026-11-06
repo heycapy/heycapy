@@ -52,6 +52,17 @@ export const DEFAULT_BUCKET_STATUSES: StatusDef[] = [
 
 export const ITEM_HIGHLIGHT_MS = 3000;
 export const JUST_ADDED_MS = 4000;
+// A tab is held this long before it moves, so a tap still opens it and a swipe still scrolls the tabs
+export const TAB_HOLD_MS = 350;
+// moving further than this while holding is a scroll, not a hold
+export const TAB_HOLD_SLOP_PX = 6;
+// how a lifted tab shows it's ready to move
+export const TAB_LIFT_SCALE = 1.06;
+export const TAB_LIFT_VIBRATE_MS = 15;
+// a dropped tab snaps into its slot (a stiff spring, damped so it doesn't wobble), and the tabs it
+// passes slide over as quickly
+export const TAB_DROP_SPRING = { bounceStiffness: 1400, bounceDamping: 75 } as const;
+export const TAB_SLIDE = { duration: 0.12, ease: "easeOut" } as const;
 export const MENU_GAP = 6;
 export const SCREEN_MARGIN = 8;
 export const UNDO_DELETE_MS = 6000;
@@ -204,6 +215,8 @@ export const ADD_PANEL_MOTION = {
   animate: { clipPath: "inset(calc(0% - 0px) 0px 0px 0px)" },
   transition: { duration: 0.18, ease: "easeOut" },
 } as const;
+// the open form's height follows a section opening or closing in it (repeat, reminders)
+export const ITEM_PANEL_RESIZE = { duration: 0.18, ease: "easeOut" } as const;
 
 // Shown in the empty add box, one per bucket: notes the cat left for its human. Each carries a date
 // so it also shows that dates can be typed

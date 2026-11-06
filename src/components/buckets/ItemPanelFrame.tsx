@@ -1,4 +1,5 @@
 import {
+  useCallback,
   useEffect,
   useEffectEvent,
   useId,
@@ -15,7 +16,7 @@ import {
   MODAL_PANEL_SELECTOR,
   POPOVER_SELECTOR,
 } from "@/components/ui/constants";
-import { ADD_PANEL_DIM, ADD_PANEL_MOTION } from "./constants";
+import { ADD_PANEL_DIM, ADD_PANEL_MOTION, ITEM_PANEL_RESIZE } from "./constants";
 
 // Where the footer opens into the item form, and where focus goes once a new item's form folds back
 export type ItemPanel = {
@@ -59,11 +60,20 @@ export function ItemPanelFrame({
   // read while rendering open: by the time effects run the title has already taken focus
   const [opener, setOpener] = useState<HTMLElement | null>(null);
   const [shownOpen, setShownOpen] = useState(open);
+  // the form's own height, measured; the body animates to it, and past the panel's cap it scrolls
+  const [contentHeight, setContentHeight] = useState<number | null>(null);
   if (open !== shownOpen) {
     setShownOpen(open);
+    setContentHeight(null);
     if (open)
       setOpener(document.activeElement instanceof HTMLElement ? document.activeElement : null);
   }
+  const measureContent = useCallback((el: HTMLDivElement | null) => {
+    if (!el) return;
+    const observer = new ResizeObserver(() => setContentHeight(el.offsetHeight));
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
   const cancel = useEffectEvent(onCancel);
   const collapsed = useEffectEvent(panel.onCollapsed);
 
@@ -151,13 +161,18 @@ export function ItemPanelFrame({
                 x
               </BracketButton>
             </div>
-            <div
+            <motion.div
               ref={scrollBodyRef}
-              className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain px-5 py-4"
+              initial={false}
+              animate={{ height: contentHeight ?? "auto" }}
+              transition={ITEM_PANEL_RESIZE}
+              className="min-h-0 shrink overflow-x-hidden overflow-y-auto overscroll-contain"
             >
-              {children}
-              {secondary}
-            </div>
+              <div ref={measureContent} className="px-5 py-4">
+                {children}
+                {secondary}
+              </div>
+            </motion.div>
             {/* exactly the footer's row: its line lies over the footer's, the title where the add box's text was */}
             <div className="bg-card flex min-h-12 shrink-0 items-start gap-1 border-t-2 border-(--accent) pr-1 pl-2">
               <div className="min-w-0 flex-1">{title}</div>

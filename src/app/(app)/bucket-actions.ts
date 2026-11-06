@@ -6,11 +6,12 @@ import { and, desc, eq, isNotNull, isNull } from "drizzle-orm";
 import { getSession } from "@/lib/auth/session";
 import { requireSession } from "./action-helpers";
 import { db } from "@/lib/db";
-import { buckets } from "@/lib/db/schema";
+import { bucketMembers, buckets } from "@/lib/db/schema";
 import { encryptValue, decryptValue, generateWebhookKey } from "@/lib/crypto";
 import { z } from "zod";
 import {
   BUCKET_NAME_MAX_LENGTH,
+  BUCKET_ORDER_MAX,
   DUPLICATE_BUCKET_NAME_ERROR,
   TELEGRAM_ALIAS_MAX_LENGTH,
   TELEGRAM_RESERVED_COMMANDS,
@@ -143,6 +144,27 @@ export async function updateBucketTelegramConfigAction(
     .update(buckets)
     .set({ telegramConfig: JSON.stringify(parsed.data), updatedAt: new Date() })
     .where(and(eq(buckets.id, bucketId), eq(buckets.userId, session.userId)));
+  revalidatePath("/");
+  return { ok: true };
+}
+
+const BucketOrder = z.array(z.number().int().positive()).max(BUCKET_ORDER_MAX);
+
+export async function reorderBucketsAction(orderedIds: number[]): Promise<ActionResult> {
+  const session = await requireSession();
+  const parsed = BucketOrder.safeParse(orderedIds);
+  if (!parsed.success) return { ok: false, error: "Invalid bucket order" };
+
+  db.transaction((tx) => {
+    parsed.data.forEach((bucketId, i) =>
+      tx
+        .update(bucketMembers)
+        .set({ sortOrder: i })
+        .where(and(eq(bucketMembers.bucketId, bucketId), eq(bucketMembers.userId, session.userId)))
+        .run()
+    );
+  });
+
   revalidatePath("/");
   return { ok: true };
 }

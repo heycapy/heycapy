@@ -80,7 +80,7 @@ async function withBuckets(userId: number, found: Item[]): Promise<CrossBucketIt
     .select()
     .from(buckets)
     .where(and(inArray(buckets.id, memberBucketIds(userId)), inLiveBucket))
-    .orderBy(asc(buckets.sortOrder), asc(buckets.createdAt));
+    .orderBy(asc(buckets.sortOrder), asc(buckets.createdAt), asc(buckets.id));
   const used = new Set(rows.map((i) => i.bucketId));
   const badges: Record<number, ReminderBadge> = {};
   for (const bucket of all.filter((b) => used.has(b.id))) {

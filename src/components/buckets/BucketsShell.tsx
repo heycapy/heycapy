@@ -7,7 +7,8 @@ import { BucketTabs } from "./BucketTabs";
 import { BucketsFooter } from "./BucketsFooter";
 import { TodayView } from "@/components/today/TodayView";
 import { Banners } from "@/components/layout/Banners";
-import { BUCKET_PALETTE, VIEW_FADE } from "./constants";
+import { VIEW_FADE } from "./constants";
+import { bucketColor } from "./bucket-color";
 import { useUIStore } from "@/store/ui";
 import { useLayoutStore } from "@/store/layout";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
@@ -103,8 +104,7 @@ export function BucketsShell({ buckets: rawBuckets, focusBucketId = null }: Buck
   }, [buckets, activeBucketId, setActiveBucketId]);
 
   const activeBucket = buckets.find((b) => b.id === activeId) ?? buckets[0];
-  const activeIndex = buckets.findIndex((b) => b.id === activeId);
-  const accentColor = BUCKET_PALETTE[Math.max(activeIndex, 0) % BUCKET_PALETTE.length];
+  const accentColor = bucketColor(activeBucket?.colorIndex ?? 0);
 
   // A switch first fades the old view out, and until the new one mounts, expand would open the old
   // view's form (or none, on today); an expand asked for meanwhile waits for the new view

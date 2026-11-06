@@ -305,3 +305,33 @@ test("a click on the list only folds the open panel away, it doesn't open what's
   await itemRow(page, second).click();
   await expect(edit.locator("textarea").first()).toHaveValue(second);
 });
+
+test("the form's height follows a section opening in it, instead of jumping", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto("/");
+  await createAndSelectBucket(page, uniqueName("Grow"));
+  await addItemButton(page).click();
+  const form = newItemForm(page);
+  await expect(form.locator("textarea").first()).toBeFocused();
+  const before = (await form.boundingBox())?.height ?? 0;
+
+  // every frame's height from the click on, until it settles
+  const heights = form.evaluate((el) => {
+    const seen: number[] = [];
+    return new Promise<number[]>((resolve) => {
+      const started = performance.now();
+      const sample = () => {
+        seen.push(el.getBoundingClientRect().height);
+        if (performance.now() - started < 600) requestAnimationFrame(sample);
+        else resolve(seen);
+      };
+      requestAnimationFrame(sample);
+    });
+  });
+  await form.getByRole("button", { name: "on", exact: true }).click();
+  const seen = await heights;
+  const after = seen[seen.length - 1] ?? 0;
+
+  expect(after).toBeGreaterThan(before + 40);
+  expect(seen.some((h) => h > before + 2 && h < after - 2)).toBe(true);
+});

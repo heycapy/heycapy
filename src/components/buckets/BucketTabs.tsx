@@ -1,14 +1,18 @@
 import { Clock } from "pixelarticons/react/Clock.js";
 import { Search } from "pixelarticons/react/Search.js";
 import { SlidersHorizontal } from "pixelarticons/react/SlidersHorizontal.js";
-import { useEffect, useId, useRef, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { Reorder, motion } from "framer-motion";
+import { toast } from "sonner";
 import { BracketButton } from "@/components/ui/BracketButton";
 import { PixelIcon } from "@/components/ui/PixelIcon";
 import { useLayoutStore } from "@/store/layout";
 import { useUIStore } from "@/store/ui";
 import { cn } from "@/lib/utils";
-import { BUCKET_PALETTE } from "./constants";
+import { bucketColor } from "./bucket-color";
 import { useLateBuckets } from "./useLateBuckets";
+import { ReorderTab } from "./ReorderTab";
+import { reorderBucketsAction } from "@/app/(app)/bucket-actions";
 import type { ViewerBucket } from "@/lib/buckets/access";
 
 type BucketTabsProps = {
@@ -85,6 +89,34 @@ export function BucketTabs({ buckets, activeId, todayOpen }: BucketTabsProps) {
   const requestBucketSettings = useUIStore((s) => s.requestBucketSettings);
   const openCreateBucket = useUIStore((s) => s.openCreateBucket);
   const activeKey = todayOpen ? "today" : activeId;
+  const serverOrder = buckets.map((b) => b.id);
+  const [order, setOrder] = useState(serverOrder);
+  const [orderFrom, setOrderFrom] = useState(serverOrder.join());
+  if (orderFrom !== serverOrder.join()) {
+    setOrderFrom(serverOrder.join());
+    setOrder(serverOrder);
+  }
+  const byId = new Map(buckets.map((b) => [b.id, b]));
+  const dragging = useRef(false);
+
+  // a phone would scroll the tabs under a finger that's dragging one
+  useEffect(() => {
+    const strip = stripRef.current;
+    if (!strip) return;
+    const hold = (e: TouchEvent) => dragging.current && e.preventDefault();
+    strip.addEventListener("touchmove", hold, { passive: false });
+    return () => strip.removeEventListener("touchmove", hold);
+  }, []);
+
+  async function saveOrder() {
+    dragging.current = false;
+    if (order.join() === serverOrder.join()) return;
+    const result = await reorderBucketsAction(order);
+    if (!result.ok) {
+      setOrder(serverOrder);
+      toast.error(result.error);
+    }
+  }
 
   useEffect(() => {
     stripRef.current
@@ -106,7 +138,12 @@ export function BucketTabs({ buckets, activeId, todayOpen }: BucketTabsProps) {
           <PixelIcon icon={Search} />
         </BracketButton>
         <span aria-hidden className="bg-border my-3.5 w-px shrink-0" />
-        <div ref={stripRef} className="scrollbar-hide flex min-w-0 flex-1 overflow-x-auto">
+        {/* layoutScroll: a dragged tab is placed right while the tabs are scrolled */}
+        <motion.div
+          ref={stripRef}
+          layoutScroll
+          className="scrollbar-hide flex min-w-0 flex-1 overflow-x-auto"
+        >
           <PlaceTab
             active={todayOpen}
             color="var(--foreground)"
@@ -118,21 +155,38 @@ export function BucketTabs({ buckets, activeId, todayOpen }: BucketTabsProps) {
               today
             </span>
           </PlaceTab>
-          {buckets.map((bucket, i) => {
-            const active = !todayOpen && bucket.id === activeId;
-            return (
-              <PlaceTab
-                key={bucket.id}
-                active={active}
-                color={BUCKET_PALETTE[i % BUCKET_PALETTE.length]}
-                lateHintId={late.has(bucket.id) ? lateHint : undefined}
-                onSelect={() => setActiveBucketId(bucket.id)}
-                onSettings={active ? () => requestBucketSettings(bucket.id) : undefined}
-              >
-                {bucket.icon ? `${bucket.icon} ${bucket.name}` : bucket.name}
-              </PlaceTab>
-            );
-          })}
+          <Reorder.Group
+            as="div"
+            axis="x"
+            values={order}
+            onReorder={setOrder}
+            className="flex shrink-0"
+          >
+            {order.map((id) => {
+              const bucket = byId.get(id);
+              if (!bucket) return null;
+              const active = !todayOpen && bucket.id === activeId;
+              return (
+                <ReorderTab
+                  key={bucket.id}
+                  id={bucket.id}
+                  color={bucketColor(bucket.colorIndex)}
+                  onDragStart={() => (dragging.current = true)}
+                  onDragEnd={() => void saveOrder()}
+                >
+                  <PlaceTab
+                    active={active}
+                    color={bucketColor(bucket.colorIndex)}
+                    lateHintId={late.has(bucket.id) ? lateHint : undefined}
+                    onSelect={() => setActiveBucketId(bucket.id)}
+                    onSettings={active ? () => requestBucketSettings(bucket.id) : undefined}
+                  >
+                    {bucket.icon ? `${bucket.icon} ${bucket.name}` : bucket.name}
+                  </PlaceTab>
+                </ReorderTab>
+              );
+            })}
+          </Reorder.Group>
           <BracketButton
             onClick={openCreateBucket}
             aria-label="new bucket"
@@ -140,7 +194,7 @@ export function BucketTabs({ buckets, activeId, todayOpen }: BucketTabsProps) {
           >
             + new
           </BracketButton>
-        </div>
+        </motion.div>
       </div>
       <span id={lateHint} hidden>
         has late items

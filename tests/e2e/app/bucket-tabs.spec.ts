@@ -127,3 +127,62 @@ test.describe("on a phone", () => {
     await expect(page.getByRole("dialog", { name: "tweaks" })).toBeVisible();
   });
 });
+
+// The tabs of these buckets, left to right
+async function tabOrder(page: Page, names: string[]): Promise<string[]> {
+  const shown = await tabs(page).getByRole("button").allTextContents();
+  return shown.map((text) => text.trim()).filter((text) => names.includes(text));
+}
+
+async function dragTab(page: Page, name: string, onto: string, { hold }: { hold: boolean }) {
+  const from = await bucketTab(page, name).boundingBox();
+  const to = await bucketTab(page, onto).boundingBox();
+  if (!from || !to) throw new Error("tab not on screen");
+  await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2);
+  await page.mouse.down();
+  const lifted = bucketTab(page, name).locator("xpath=ancestor::*[@data-lifted][1]");
+  if (hold) {
+    await page.waitForTimeout(500);
+    // it shows it's ready to move before the pointer does
+    await expect(lifted).toHaveCount(1);
+  }
+  await page.mouse.move(to.x + 4, to.y + to.height / 2, { steps: 12 });
+  if (!hold) await expect(lifted).toHaveCount(0);
+  await page.mouse.up();
+  await expect(lifted).toHaveCount(0);
+}
+
+// The short mark under the open tab, in the bucket's colour
+async function markColor(page: Page, name: string): Promise<string> {
+  await bucketTab(page, name).click();
+  return bucketTab(page, name)
+    .locator("span[aria-hidden]")
+    .first()
+    .evaluate((el) => getComputedStyle(el).backgroundColor);
+}
+
+test("a tab held for a moment drags to a new place, kept after a reload", async ({ page }) => {
+  await page.goto("/");
+  const names = [uniqueName("Order a"), uniqueName("Order b"), uniqueName("Order c")];
+  for (const name of names) await createAndSelectBucket(page, name);
+  await expect.poll(() => tabOrder(page, names)).toEqual(names);
+  const colorOfLast = await markColor(page, names[2]);
+
+  // a quick drag isn't a hold: nothing moves
+  await dragTab(page, names[2], names[0], { hold: false });
+  await page.waitForTimeout(300);
+  expect(await tabOrder(page, names)).toEqual(names);
+
+  await dragTab(page, names[2], names[0], { hold: true });
+  const moved = [names[2], names[0], names[1]];
+  await expect.poll(() => tabOrder(page, names)).toEqual(moved);
+
+  await page.reload();
+  await expect.poll(() => tabOrder(page, names)).toEqual(moved);
+  // a bucket keeps its colour wherever it goes
+  expect(await markColor(page, names[2])).toBe(colorOfLast);
+
+  // a plain click still opens the tab
+  await bucketTab(page, names[1]).click();
+  await expect(activeBucketTitle(page)).toHaveText(names[1]);
+});
