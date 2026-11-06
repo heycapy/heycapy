@@ -164,7 +164,7 @@ test("in the panel a typed date is undone on the title row, and turning repeat o
   await expect(form.getByText("every", { exact: true })).toBeInViewport({ ratio: 1 });
 });
 
-test("the item added last stays marked until the next one is added, from the box or the form", async ({
+test("the item added last is marked for a few seconds, from the box or the form", async ({
   page,
 }) => {
   await page.goto("/");
@@ -181,6 +181,7 @@ test("the item added last stays marked until the next one is added, from the box
   await addItem(page, second);
   await expect(marked).toHaveCount(1);
   await expect(marked).toContainText(second);
+  await expect(marked).toHaveCount(0, { timeout: 6000 });
 });
 
 test("editing opens the same panel from the footer, and closing gives focus back to the row", async ({

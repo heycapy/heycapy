@@ -42,9 +42,10 @@ type UIStore = {
   requestBucketSettings: (id: number) => void;
   clearSettingsRequest: () => void;
 
-  // the item added last stays marked in its list until the next one is added
+  // the item added last is marked in its list for a few seconds
   lastAddedItemId: number | null;
   markAdded: (id: number) => void;
+  clearAdded: (id: number) => void;
 
   highlightedItemId: number | null;
   openItem: (bucketId: number | null, itemId: number) => void;
@@ -60,6 +61,7 @@ export const useUIStore = create<UIStore>()(
     (set) => ({
       lastAddedItemId: null,
       markAdded: (id) => set({ lastAddedItemId: id }),
+      clearAdded: (id) => set((s) => (s.lastAddedItemId === id ? { lastAddedItemId: null } : {})),
 
       highlightedItemId: null,
       openItem: (bucketId, itemId) =>

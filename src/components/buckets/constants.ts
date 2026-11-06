@@ -51,6 +51,7 @@ export const DEFAULT_BUCKET_STATUSES: StatusDef[] = [
 ];
 
 export const ITEM_HIGHLIGHT_MS = 3000;
+export const JUST_ADDED_MS = 4000;
 export const MENU_GAP = 6;
 export const SCREEN_MARGIN = 8;
 export const UNDO_DELETE_MS = 6000;

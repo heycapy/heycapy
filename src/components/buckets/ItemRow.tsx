@@ -4,7 +4,7 @@ import { PixelIcon } from "@/components/ui/PixelIcon";
 import { GripIcon } from "@/components/ui/GripIcon";
 import { formatShortTime } from "@/lib/format-date";
 import { ITEM_STATUS, TITLE_LINES_SHOWN } from "@/constants";
-import { ITEM_HIGHLIGHT_MS } from "./constants";
+import { ITEM_HIGHLIGHT_MS, JUST_ADDED_MS } from "./constants";
 import { useUIStore } from "@/store/ui";
 import { TickBox } from "./TickBox";
 import { completionToggle } from "./completion";
@@ -119,11 +119,15 @@ export function ItemRow({
   const highlighted = useUIStore((s) => s.highlightedItemId === item.id);
   const clearHighlight = useUIStore((s) => s.clearHighlight);
   const justAdded = useUIStore((s) => s.lastAddedItemId === item.id);
+  const clearAdded = useUIStore((s) => s.clearAdded);
 
   // the list refetches after an add, so the new row mounts already marked; it can land off screen
   useEffect(() => {
-    if (justAdded) rowRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
-  }, [justAdded]);
+    if (!justAdded) return;
+    rowRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    const fade = setTimeout(() => clearAdded(item.id), JUST_ADDED_MS);
+    return () => clearTimeout(fade);
+  }, [justAdded, clearAdded, item.id]);
 
   useEffect(() => {
     if (!highlighted) return;
