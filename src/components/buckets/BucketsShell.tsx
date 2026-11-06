@@ -11,6 +11,7 @@ import { BUCKET_PALETTE, VIEW_FADE } from "./constants";
 import { useUIStore } from "@/store/ui";
 import { useLayoutStore } from "@/store/layout";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
+import { itemLink } from "@/lib/items/item-link";
 import { parseItemsRules } from "@/lib/rules";
 import { BOTTOM_BAR_MEDIA_QUERY } from "@/constants";
 import type { ViewerBucket } from "@/lib/buckets/access";
@@ -27,6 +28,7 @@ export function BucketsShell({ buckets: rawBuckets, focusBucketId = null }: Buck
   const setBottomBarShown = useLayoutStore((s) => s.setBottomBarShown);
   const activeBucketId = useUIStore((s) => s.activeBucketId);
   const setActiveBucketId = useUIStore((s) => s.setActiveBucketId);
+  const openItem = useUIStore((s) => s.openItem);
   const newBucketId = useUIStore((s) => s.newBucketId);
   const clearNewBucket = useUIStore((s) => s.clearNewBucket);
   const todayOpen = useUIStore((s) => s.todayOpen);
@@ -49,11 +51,12 @@ export function BucketsShell({ buckets: rawBuckets, focusBucketId = null }: Buck
     return () => setBottomBarShown(false);
   }, [setBottomBarShown]);
 
+  // A link from a reminder or a webhook: drop ?bucket and #item so a reload doesn't jump back
   useEffect(() => {
-    if (focusBucketId === null) return;
-    setActiveBucketId(focusBucketId);
-    // Keep the #item anchor, drop ?bucket so a reload doesn't jump back
-    window.history.replaceState(null, "", `/${window.location.hash}`);
+    const linked = itemLink(`/${window.location.search}${window.location.hash}`);
+    if (linked) openItem(focusBucketId, linked.itemId);
+    else if (focusBucketId !== null) setActiveBucketId(focusBucketId);
+    if (linked || focusBucketId !== null) window.history.replaceState(null, "", "/");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

@@ -14,12 +14,14 @@ import { CHAT_MAX_H, CHAT_TOP_GAP, HEADER_H } from "./chatTypes";
 import { FOOTER_H } from "@/constants";
 import { useLayoutStore, type ChatState } from "@/store/layout";
 import { useChatDocked } from "./useChatDocked";
+import { useUIStore } from "@/store/ui";
 
 export function CapyChat({ appUrl }: { appUrl: string | null }) {
   const chatState = useLayoutStore((s) => s.chatState);
   const setChatState = useLayoutStore((s) => s.setChatState);
   const bottomBarShown = useLayoutStore((s) => s.bottomBarShown);
   const { canDock, docked } = useChatDocked();
+  const openItem = useUIStore((s) => s.openItem);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
@@ -141,6 +143,10 @@ export function CapyChat({ appUrl }: { appUrl: string | null }) {
         status={status}
         fullscreen={fullscreen}
         appUrl={appUrl}
+        onOpenItem={(bucketId, itemId) => {
+          openItem(bucketId, itemId);
+          if (isMobile) setChatState("closed");
+        }}
       />
       {inputBar}
     </>

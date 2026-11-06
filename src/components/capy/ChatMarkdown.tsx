@@ -1,15 +1,19 @@
 import ReactMarkdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { appHref } from "./chatLinks";
+import { itemLink } from "@/lib/items/item-link";
+
+export type OpenItem = (bucketId: number | null, itemId: number) => void;
 
 type Props = {
   content: string;
   appUrl: string | null;
+  onOpenItem: OpenItem;
 };
 
 const heading = "mt-2 mb-1 font-bold first:mt-0";
 
-function chatComponents(appUrl: string | null): Components {
+function chatComponents(appUrl: string | null, onOpenItem: OpenItem): Components {
   return {
     p: ({ children }) => <p className="mb-1.5 last:mb-0">{children}</p>,
     h1: ({ children }) => <p className={`${heading} text-sm`}>{children}</p>,
@@ -74,8 +78,17 @@ function chatComponents(appUrl: string | null): Components {
     a: ({ href, children }) => {
       const inApp = appHref(href, window.location.origin, appUrl);
       if (inApp) {
+        const item = itemLink(inApp);
         return (
-          <a href={inApp} className="underline underline-offset-2">
+          <a
+            href={inApp}
+            onClick={(e) => {
+              if (!item || e.metaKey || e.ctrlKey || e.shiftKey) return;
+              e.preventDefault();
+              onOpenItem(item.bucketId, item.itemId);
+            }}
+            className="underline underline-offset-2"
+          >
             {children}
           </a>
         );
@@ -91,9 +104,9 @@ function chatComponents(appUrl: string | null): Components {
   };
 }
 
-export function ChatMarkdown({ content, appUrl }: Props) {
+export function ChatMarkdown({ content, appUrl, onOpenItem }: Props) {
   return (
-    <ReactMarkdown remarkPlugins={[remarkGfm]} components={chatComponents(appUrl)}>
+    <ReactMarkdown remarkPlugins={[remarkGfm]} components={chatComponents(appUrl, onOpenItem)}>
       {content}
     </ReactMarkdown>
   );

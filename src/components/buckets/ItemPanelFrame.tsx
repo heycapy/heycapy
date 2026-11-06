@@ -69,6 +69,16 @@ export function ItemPanelFrame({
       const target = e.target as Element;
       if (panelRef.current?.contains(target) || target.closest(POPOVER_SELECTOR)) return;
       cancel();
+      const swallow = (click: MouseEvent) => {
+        click.preventDefault();
+        click.stopPropagation();
+      };
+      document.addEventListener("click", swallow, { capture: true, once: true });
+      document.addEventListener(
+        "pointerup",
+        () => setTimeout(() => document.removeEventListener("click", swallow, true)),
+        { capture: true, once: true }
+      );
     }
     function onKey(e: KeyboardEvent) {
       if (e.key !== "Escape" || e.defaultPrevented) return;

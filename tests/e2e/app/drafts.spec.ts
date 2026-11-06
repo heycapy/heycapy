@@ -133,6 +133,8 @@ test("on a wide screen the form grows out of the add box and folds back on a cli
 
   await itemRow(page, kept).click();
   await expect(form).toBeHidden();
+  await expect(editForm(page)).toBeHidden();
+  await itemRow(page, kept).click();
   await expect(editForm(page)).toBeVisible();
   await expect(editForm(page).getByText("status", { exact: true })).toBeVisible();
   await page.keyboard.press("Escape");
@@ -273,4 +275,32 @@ test("Enter in the form's title starts a new line, and it grows to 4 lines befor
   // the row keeps the lines too, as many as the form shows
   const lines = row.locator("span.block.truncate");
   await expect(lines).toHaveText([first, "treats", "greens", "a box …"]);
+});
+
+test("a click on the list only folds the open panel away, it doesn't open what's under it", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await createAndSelectBucket(page, uniqueName("Fold"));
+  const first = uniqueName("cat's bowl");
+  const second = uniqueName("cat's tree");
+  await addItem(page, first);
+  await addItem(page, second);
+  const edit = editForm(page);
+
+  await itemRow(page, first).click();
+  await expect(edit.locator("textarea").first()).toHaveValue(first);
+  await itemRow(page, first).click();
+  await expect(edit).toBeHidden();
+  await page.waitForTimeout(300);
+  await expect(edit).toBeHidden();
+
+  await itemRow(page, first).click();
+  await expect(edit).toBeVisible();
+  await itemRow(page, second).click();
+  await expect(edit).toBeHidden();
+
+  // the next click works as usual
+  await itemRow(page, second).click();
+  await expect(edit.locator("textarea").first()).toHaveValue(second);
 });

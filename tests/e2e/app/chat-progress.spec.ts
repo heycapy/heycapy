@@ -2,6 +2,13 @@ import { test, expect, type Page } from "@playwright/test";
 import { createServer, type Server } from "node:http";
 import Database from "better-sqlite3";
 import { authState, specUserEmail } from "../helpers/auth";
+import {
+  activeBucketTitle,
+  addItem,
+  createAndSelectBucket,
+  itemRow,
+  uniqueName,
+} from "../helpers/buckets";
 import { E2E_DATABASE_FILE, E2E_SERVER_OLLAMA_PORT } from "../helpers/env";
 
 test.use({ storageState: authState("chat-progress") });
@@ -73,4 +80,51 @@ test("shows the provider's error in the chat", async ({ page }) => {
   await ask(page, "hello");
 
   await expect(page.getByText("Ollama error: 500 Internal Server Error").first()).toBeVisible();
+});
+
+test("a link in capy's reply opens the item in place, and the chat stays open", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/");
+  const target = uniqueName("Bills");
+  const title = uniqueName("pay rent");
+  await createAndSelectBucket(page, target);
+  await addItem(page, title);
+  const anchor = await itemRow(page, title)
+    .locator("xpath=ancestor::*[starts-with(@id,'item-')][1]")
+    .getAttribute("id");
+  const bucketId = await page.evaluate(
+    () =>
+      (
+        JSON.parse(sessionStorage.getItem("heycapy-ui") ?? "{}") as {
+          state?: { activeBucketId?: number };
+        }
+      ).state?.activeBucketId
+  );
+  await createAndSelectBucket(page, uniqueName("Other"));
+
+  turns = [
+    {
+      delayMs: 0,
+      message: {
+        role: "assistant",
+        content: `added it: [${title}](/?bucket=${bucketId}#${anchor})`,
+      },
+    },
+  ];
+  await page.getByRole("button", { name: "chat with capy" }).click();
+  const input = page.getByPlaceholder("ask capy...");
+  await input.fill("add pay rent");
+  await input.press("Enter");
+  // a reload would forget this
+  await page.evaluate(() => Object.assign(window, { stayedOnPage: true }));
+  await page.getByRole("link", { name: title }).click();
+
+  await expect(activeBucketTitle(page)).toHaveText(target);
+  const row = page.locator(`#${anchor}`);
+  await expect(row).toBeInViewport();
+  await expect(row).not.toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
+  await expect(input).toBeVisible();
+  expect(await page.evaluate(() => "stayedOnPage" in window)).toBe(true);
 });

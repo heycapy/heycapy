@@ -46,6 +46,10 @@ type UIStore = {
   lastAddedItemId: number | null;
   markAdded: (id: number) => void;
 
+  highlightedItemId: number | null;
+  openItem: (bucketId: number | null, itemId: number) => void;
+  clearHighlight: (itemId: number) => void;
+
   sheet: PlaceSheet | null;
   openSheet: (sheet: PlaceSheet) => void;
   closeSheet: () => void;
@@ -56,6 +60,16 @@ export const useUIStore = create<UIStore>()(
     (set) => ({
       lastAddedItemId: null,
       markAdded: (id) => set({ lastAddedItemId: id }),
+
+      highlightedItemId: null,
+      openItem: (bucketId, itemId) =>
+        set(
+          bucketId === null
+            ? { highlightedItemId: itemId }
+            : { activeBucketId: bucketId, todayOpen: false, highlightedItemId: itemId }
+        ),
+      clearHighlight: (itemId) =>
+        set((s) => (s.highlightedItemId === itemId ? { highlightedItemId: null } : {})),
 
       createBucketOpen: false,
       openCreateBucket: () => set({ createBucketOpen: true }),

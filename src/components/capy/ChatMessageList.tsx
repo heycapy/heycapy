@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
 import { Sprite } from "./Sprite";
-import { ChatMarkdown } from "./ChatMarkdown";
+import { ChatMarkdown, type OpenItem } from "./ChatMarkdown";
 import type { ChatMessage } from "./chatTypes";
 
 type Props = {
@@ -10,6 +10,7 @@ type Props = {
   status?: string | null;
   fullscreen?: boolean;
   appUrl: string | null;
+  onOpenItem: OpenItem;
 };
 
 function BouncingDots() {
@@ -31,7 +32,14 @@ function BouncingDots() {
   );
 }
 
-export function ChatMessageList({ messages, streaming, status, fullscreen, appUrl }: Props) {
+export function ChatMessageList({
+  messages,
+  streaming,
+  status,
+  fullscreen,
+  appUrl,
+  onOpenItem,
+}: Props) {
   const listRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -90,7 +98,7 @@ export function ChatMessageList({ messages, streaming, status, fullscreen, appUr
                     )}
                   </span>
                 ) : msg.role === "assistant" ? (
-                  <ChatMarkdown content={msg.content} appUrl={appUrl} />
+                  <ChatMarkdown content={msg.content} appUrl={appUrl} onOpenItem={onOpenItem} />
                 ) : (
                   msg.content
                 )}

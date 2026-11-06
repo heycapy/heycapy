@@ -116,7 +116,8 @@ export function ItemRow({
   const [reminderOpen, setReminderOpen] = useState(false);
   const rowRef = useRef<HTMLDivElement>(null);
   const anchor = `item-${item.id}`;
-  const [highlighted, setHighlighted] = useState(() => window.location.hash === `#${anchor}`);
+  const highlighted = useUIStore((s) => s.highlightedItemId === item.id);
+  const clearHighlight = useUIStore((s) => s.clearHighlight);
   const justAdded = useUIStore((s) => s.lastAddedItemId === item.id);
 
   // the list refetches after an add, so the new row mounts already marked; it can land off screen
@@ -127,10 +128,9 @@ export function ItemRow({
   useEffect(() => {
     if (!highlighted) return;
     rowRef.current?.scrollIntoView({ block: "center" });
-    window.history.replaceState(null, "", window.location.pathname + window.location.search);
-    const fade = setTimeout(() => setHighlighted(false), ITEM_HIGHLIGHT_MS);
+    const fade = setTimeout(() => clearHighlight(item.id), ITEM_HIGHLIGHT_MS);
     return () => clearTimeout(fade);
-  }, [highlighted]);
+  }, [highlighted, clearHighlight, item.id]);
   const due = item.deadline ? itemDeadline(item.deadline, item.deadlineTimezone) : null;
   const isCompleted = item.status === ITEM_STATUS.completed;
   const isMissed = item.status === ITEM_STATUS.missed;
