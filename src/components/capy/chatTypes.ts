@@ -1,6 +1,7 @@
 export const HEADER_H = 40;
-export const DEFAULT_W = 308;
-export const DEFAULT_H = 420;
+export const CHAT_MAX_H = 640;
+// keeps the bucket tabs in view above the chat on short screens
+export const CHAT_TOP_GAP = 96;
 
 export type ChatMessage = {
   id: string;

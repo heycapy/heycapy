@@ -1,6 +1,7 @@
 import type { RefObject } from "react";
 import { Sprite } from "@/components/capy/Sprite";
 import { useLayoutStore } from "@/store/layout";
+import { cn } from "@/lib/utils";
 import type { ViewerBucket } from "@/lib/buckets/access";
 import { QuickAdd } from "./QuickAdd";
 import type { AddDraft } from "./useItemEditor";
@@ -24,6 +25,7 @@ export function BucketsFooter({
   onExpand,
 }: BucketsFooterProps) {
   const setChatState = useLayoutStore((s) => s.setChatState);
+  const chatOpen = useLayoutStore((s) => s.chatState !== "closed");
 
   return (
     <div className="border-border bg-background sticky bottom-0 border-t-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
@@ -45,9 +47,13 @@ export function BucketsFooter({
           <span className="flex-1" />
         )}
         <button
-          onClick={() => setChatState("open")}
+          onClick={() => setChatState(chatOpen ? "closed" : "open")}
           aria-label="chat with capy"
-          className="border-border flex size-12 shrink-0 items-center justify-center overflow-hidden border-2 transition-transform active:scale-95"
+          aria-expanded={chatOpen}
+          className={cn(
+            "flex size-12 shrink-0 items-center justify-center overflow-hidden transition-transform active:scale-95",
+            chatOpen && "bg-card"
+          )}
         >
           {/* the sheet's frame is mostly empty space, at 1:1 capy fills the square */}
           <Sprite id="capy-idle-blink" size={64} />

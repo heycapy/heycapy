@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { useChatStream } from "./useChatStream";
 import { ChatMessageList } from "./ChatMessageList";
@@ -10,7 +10,8 @@ import { ChatSessionList } from "./ChatSessionList";
 import { CapyChatDrawer } from "./CapyChatDrawer";
 import { Sprite } from "./Sprite";
 import { AIStatusStrip } from "./AIStatusStrip";
-import { DEFAULT_H, HEADER_H } from "./chatTypes";
+import { CHAT_MAX_H, CHAT_TOP_GAP, HEADER_H } from "./chatTypes";
+import { FOOTER_H } from "@/constants";
 import { useLayoutStore, type ChatState } from "@/store/layout";
 
 export function CapyChat({ appUrl }: { appUrl: string | null }) {
@@ -20,9 +21,13 @@ export function CapyChat({ appUrl }: { appUrl: string | null }) {
   const [historyOpen, setHistoryOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
+  const [screenH, setScreenH] = useState(CHAT_MAX_H + CHAT_TOP_GAP);
 
   useEffect(() => {
-    const check = () => setIsMobile(window.innerWidth < 768);
+    const check = () => {
+      setIsMobile(window.innerWidth < 768);
+      setScreenH(window.innerHeight);
+    };
     check();
     window.addEventListener("resize", check);
     return () => window.removeEventListener("resize", check);
@@ -81,11 +86,18 @@ export function CapyChat({ appUrl }: { appUrl: string | null }) {
     </button>
   );
 
-  const bodyH = DEFAULT_H - HEADER_H;
+  const below = bottomBarShown ? FOOTER_H : 0;
+  const bodyH = Math.min(CHAT_MAX_H, screenH - CHAT_TOP_GAP - below) - HEADER_H;
 
+  // Grows up out of the capy that was tapped: right above the footer's square (never over the
+  // add box), or the floating one elsewhere
   const panelClassName = cn(
-    "border-border bg-background flex flex-col border-2 fixed z-50",
-    chatState === "fullscreen" ? "inset-2" : "right-6 bottom-0 w-[308px]"
+    "border-border bg-background flex flex-col border-2 fixed z-50 origin-bottom-right",
+    chatState === "fullscreen"
+      ? "inset-2"
+      : bottomBarShown
+        ? "right-[max(1rem,calc((100vw-72rem)/2+1rem))] bottom-[calc(var(--footer-h)+0.5rem)] w-110"
+        : "right-6 bottom-6 w-110"
   );
 
   const fullscreen = chatState === "fullscreen";
@@ -152,52 +164,66 @@ export function CapyChat({ appUrl }: { appUrl: string | null }) {
     );
   }
 
-  if (chatState === "closed") return trigger;
-
   return (
     <>
-      <motion.div style={{ boxShadow: "5px 5px 0 var(--border)" }} className={panelClassName}>
-        <CapyChatHeader
-          fullscreen={chatState === "fullscreen"}
-          minimized={chatState === "minimized"}
-          onClose={() => setChatState("closed")}
-          onMinimize={() => setChatState((s) => (s === "minimized" ? "open" : "minimized"))}
-          onFullscreen={() => setChatState((s) => (s === "fullscreen" ? "open" : "fullscreen"))}
-          sidebarOpen={sidebarOpen}
-          onToggleSidebar={() => setSidebarOpen((v) => !v)}
-          onHistoryOpen={() => setHistoryOpen(true)}
-          onNewChat={clearChat}
-        />
-
-        {chatState === "fullscreen" ? (
-          <div className="flex min-h-0 flex-1 overflow-hidden">
-            {sidebarOpen && (
-              <aside
-                aria-label="chat history"
-                className="border-border bg-card flex w-72 shrink-0 flex-col border-r-2"
-              >
-                <ChatSessionList
-                  enabled
-                  refreshKey={`${sessionId}-${streaming}`}
-                  activeId={sessionId}
-                  onLoadSession={loadSession}
-                  onNewChat={clearChat}
-                />
-              </aside>
-            )}
-            <div className="flex min-h-0 min-w-0 flex-1 flex-col">{body}</div>
-          </div>
-        ) : (
+      {chatState === "closed" && trigger}
+      <AnimatePresence>
+        {chatState !== "closed" && (
           <motion.div
-            initial={false}
-            animate={{ height: chatState === "minimized" ? 0 : bodyH }}
-            transition={{ duration: 0.2, ease: "easeInOut" }}
-            className="flex flex-col overflow-hidden"
+            key="chat"
+            initial={{ opacity: 0, scale: 0.1 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.1 }}
+            transition={{ duration: 0.18, ease: "easeOut" }}
+            style={{
+              boxShadow: "5px 5px 0 var(--border)",
+              ["--footer-h" as string]: `${FOOTER_H}px`,
+            }}
+            className={panelClassName}
           >
-            {body}
+            <CapyChatHeader
+              fullscreen={chatState === "fullscreen"}
+              minimized={chatState === "minimized"}
+              onClose={() => setChatState("closed")}
+              onMinimize={() => setChatState((s) => (s === "minimized" ? "open" : "minimized"))}
+              onFullscreen={() => setChatState((s) => (s === "fullscreen" ? "open" : "fullscreen"))}
+              sidebarOpen={sidebarOpen}
+              onToggleSidebar={() => setSidebarOpen((v) => !v)}
+              onHistoryOpen={() => setHistoryOpen(true)}
+              onNewChat={clearChat}
+            />
+
+            {chatState === "fullscreen" ? (
+              <div className="flex min-h-0 flex-1 overflow-hidden">
+                {sidebarOpen && (
+                  <aside
+                    aria-label="chat history"
+                    className="border-border bg-card flex w-72 shrink-0 flex-col border-r-2"
+                  >
+                    <ChatSessionList
+                      enabled
+                      refreshKey={`${sessionId}-${streaming}`}
+                      activeId={sessionId}
+                      onLoadSession={loadSession}
+                      onNewChat={clearChat}
+                    />
+                  </aside>
+                )}
+                <div className="flex min-h-0 min-w-0 flex-1 flex-col">{body}</div>
+              </div>
+            ) : (
+              <motion.div
+                initial={false}
+                animate={{ height: chatState === "minimized" ? 0 : bodyH }}
+                transition={{ duration: 0.2, ease: "easeInOut" }}
+                className="flex flex-col overflow-hidden"
+              >
+                {body}
+              </motion.div>
+            )}
           </motion.div>
         )}
-      </motion.div>
+      </AnimatePresence>
 
       {history}
     </>

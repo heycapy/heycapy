@@ -1,6 +1,11 @@
 import { test, expect } from "@playwright/test";
 import { authState } from "../helpers/auth";
-import { addItemButton, openBucketOnPhone, uniqueName } from "../helpers/buckets";
+import {
+  addItemButton,
+  createAndSelectBucket,
+  openBucketOnPhone,
+  uniqueName,
+} from "../helpers/buckets";
 
 test.use({ storageState: authState("phone-bar"), hasTouch: true });
 
@@ -90,4 +95,41 @@ test("search opens as a drawer with the box at the bottom, results above it", as
   for (let step = 1; step <= 10; step++) await page.mouse.move(x, y + step * 25);
   await page.mouse.up();
   await expect(search).toHaveCount(0);
+});
+
+test("on wide screens the chat grows above capy, clear of the add box, and capy closes it", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.goto("/");
+  await createAndSelectBucket(page, uniqueName("Wide chat"));
+  const capy = page.getByRole("button", { name: "chat with capy" });
+  await capy.click();
+  const chat = page.getByPlaceholder("ask capy...");
+  await expect(chat).toBeVisible();
+  await expect(capy).toHaveAttribute("aria-expanded", "true");
+
+  const panel = page.locator("div.fixed").filter({ has: chat }).last();
+  const addBoxTop = (await page.getByTestId("add-box").boundingBox())?.y ?? 0;
+  const capyBox = await capy.boundingBox();
+  await expect
+    .poll(async () => {
+      const box = await panel.boundingBox();
+      return (box?.y ?? 0) + (box?.height ?? 0);
+    })
+    .toBeLessThanOrEqual(addBoxTop);
+  // it grows out of capy
+  await expect
+    .poll(async () => (await panel.boundingBox())?.width ?? 0)
+    .toBeGreaterThanOrEqual(440);
+  const panelBox = await panel.boundingBox();
+  expect(
+    Math.abs(
+      (panelBox?.x ?? 0) + (panelBox?.width ?? 0) - ((capyBox?.x ?? 0) + (capyBox?.width ?? 0))
+    )
+  ).toBeLessThanOrEqual(2);
+
+  await capy.click();
+  await expect(chat).toBeHidden();
+  await expect(capy).toHaveAttribute("aria-expanded", "false");
 });
