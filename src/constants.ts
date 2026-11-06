@@ -263,3 +263,7 @@ export const MOBILE_MEDIA_QUERY = "(max-width: 639px)";
 export const BOTTOM_BAR_MEDIA_QUERY = "(max-width: 767px)";
 export const SHEET_CLOSE_DRAG_PX = 100;
 export const SHEET_CLOSE_DRAG_VELOCITY = 500;
+
+// Toasts sit just above the buckets page's footer (add box and capy, 66px) so they never cover it
+export const TOAST_BOTTOM_OFFSET = 80;
+export const TOAST_SIDE_OFFSET = 16;
