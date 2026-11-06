@@ -9,7 +9,11 @@ import { BetaTag } from "@/components/ui/BetaTag";
 import { BucketRulesFields } from "./BucketRulesFields";
 import { ViewOnlyNotice } from "./ViewOnlyNotice";
 import { MyChannelsPicker, type NotifAvailability } from "./MyChannelsPicker";
-import { parseBucketSettings, type BucketSettingsValues } from "./parseBucketSettings";
+import {
+  parseBucketSettings,
+  savedSettingsKey,
+  type BucketSettingsValues,
+} from "./parseBucketSettings";
 import { parseDurationToDays } from "@/lib/duration";
 import {
   updateBucketSettingsAction,
@@ -61,6 +65,15 @@ export function BucketSettingsForm({
   const [tab, setTab] = useState<SettingsTab>(tabs.includes(initialTab) ? initialTab : tabs[0]);
   const [values, setValues] = useState<BucketSettingsValues>(() => parseBucketSettings(bucket));
   const [channels, setChannels] = useState<MemberChannels>(() => memberChannels(bucket.myChannels));
+  // A save closes the form before the saved bucket arrives, so opening it again at once can start
+  // from the old settings; take the saved ones up when they land
+  const saved = savedSettingsKey(bucket);
+  const [shownSaved, setShownSaved] = useState(saved);
+  if (saved !== shownSaved) {
+    setShownSaved(saved);
+    setValues(parseBucketSettings(bucket));
+    setChannels(memberChannels(bucket.myChannels));
+  }
   const [error, setError] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [notifAvailability, setNotifAvailability] = useState<NotifAvailability>();
