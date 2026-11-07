@@ -16,7 +16,7 @@ export async function openNewBucketModal(page: Page): Promise<void> {
 export async function createBucket(page: Page, name: string): Promise<void> {
   await openNewBucketModal(page);
   await page.getByPlaceholder(/bucket name/i).fill(name);
-  await page.getByRole("button", { name: "Create bucket", exact: true }).click();
+  await page.getByRole("button", { name: "[ create bucket ]", exact: true }).click();
   await expect(page.getByPlaceholder(/bucket name/i)).not.toBeVisible();
   await expect(bucketTab(page, name)).toBeVisible();
 }

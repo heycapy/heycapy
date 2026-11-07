@@ -88,7 +88,7 @@ export function GuidePanel({ open, guide, onClose, onHint, onHiddenChange }: Gui
             {guide.hidden ? "only in your menu for now" : "it stays in your menu"}
           </p>
           <TextButton onClick={() => onHiddenChange(!guide.hidden)} className="shrink-0">
-            {guide.hidden ? "show the dot" : "hide the dot"}
+            {guide.hidden ? "show in header" : "hide from header"}
           </TextButton>
         </div>
       )}

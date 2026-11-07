@@ -1,34 +1,68 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
 import { authState } from "../helpers/auth";
-import { addBox, openBucketOnPhone, openItemMenu, uniqueName } from "../helpers/buckets";
+import {
+  addBox,
+  addItem,
+  addItemButton,
+  createAndSelectBucket,
+  newItemForm,
+  openBucketOnPhone,
+  openItemMenu,
+  uniqueName,
+} from "../helpers/buckets";
 
-test.use({ storageState: authState("toasts"), hasTouch: true });
+test.use({ storageState: authState("toasts") });
 
-test("a toast sits above the bottom bar, only as wide as its text", async ({ page }) => {
-  await openBucketOnPhone(page, uniqueName("Toast"));
-  const title = uniqueName("bins");
-  await addBox(page).fill(title);
-  await addBox(page).press("Enter");
+async function deleteFromMenu(page: Page, title: string, tap: boolean) {
   await openItemMenu(page, title);
-  await page
-    .getByRole("button", { name: /delete/ })
-    .last()
-    .tap();
+  const remove = page.getByRole("button", { name: /delete/ }).last();
+  if (tap) await remove.tap();
+  else await remove.click();
+}
+
+test.describe("on a phone", () => {
+  test.use({ hasTouch: true });
+
+  test("a toast sits at the top, centred and only as wide as its text", async ({ page }) => {
+    await openBucketOnPhone(page, uniqueName("Toast"));
+    const title = uniqueName("bins");
+    await addBox(page).fill(title);
+    await addBox(page).press("Enter");
+    await deleteFromMenu(page, title, true);
+
+    const toast = page.locator("[data-sonner-toast]", { hasText: title });
+    await expect(toast).toBeVisible();
+    await expect.poll(async () => (await toast.boundingBox())?.y ?? Infinity).toBeLessThan(80);
+    const box = await toast.boundingBox();
+    const screenWidth = page.viewportSize()?.width ?? 0;
+    expect(box?.width ?? Infinity).toBeLessThan(screenWidth - 32);
+    const left = box?.x ?? 0;
+    const right = screenWidth - left - (box?.width ?? 0);
+    expect(Math.abs(left - right)).toBeLessThanOrEqual(4);
+  });
+});
+
+test("on a wide screen a toast sits bottom left and stays in view over an open form", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.goto("/");
+  await createAndSelectBucket(page, uniqueName("Toast"));
+  const title = uniqueName("bins");
+  await addItem(page, title);
+  await deleteFromMenu(page, title, false);
+  await addItemButton(page).click();
+  await expect(newItemForm(page)).toBeVisible();
 
   const toast = page.locator("[data-sonner-toast]", { hasText: title });
-  await expect(toast).toContainText(title);
-  const addBoxTop = (await page.getByTestId("add-box").boundingBox())?.y ?? 0;
-  // it slides up into place
-  await expect
-    .poll(async () => {
-      const box = await toast.boundingBox();
-      return (box?.y ?? 0) + (box?.height ?? 0);
-    })
-    .toBeLessThanOrEqual(addBoxTop);
-  const toastBox = await toast.boundingBox();
-  const screenWidth = page.viewportSize()?.width ?? 0;
-  expect(toastBox?.width ?? Infinity).toBeLessThan(screenWidth - 32);
-  const left = toastBox?.x ?? 0;
-  const right = screenWidth - left - (toastBox?.width ?? 0);
-  expect(Math.abs(left - right)).toBeLessThanOrEqual(4);
+  await expect(toast).toBeVisible();
+  await expect(toast).toHaveCSS("opacity", "1");
+  const box = await toast.boundingBox();
+  expect(box?.x ?? Infinity).toBeLessThanOrEqual(24);
+  const onTop = await toast.evaluate((el) => {
+    const r = el.getBoundingClientRect();
+    const hit = document.elementFromPoint(r.right - 8, r.top + r.height / 2);
+    return !!hit && el.contains(hit);
+  });
+  expect(onTop).toBe(true);
 });

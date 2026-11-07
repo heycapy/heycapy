@@ -39,18 +39,16 @@ export function CapyChatHeader({
       onClick={onMinimize}
     >
       {fullscreen && onToggleSidebar && (
-        <TextButton
-          variant="ghost"
+        <IconButton
+          icon="sidebar"
           onClick={(e) => {
             e.stopPropagation();
             onToggleSidebar();
           }}
           aria-label={sidebarOpen ? "Hide history" : "Show history"}
           aria-expanded={sidebarOpen}
-          className="px-1"
-        >
-          {sidebarOpen ? "sidebar >" : "sidebar <"}
-        </TextButton>
+          className="flex h-6 w-6 items-center justify-center"
+        />
       )}
 
       <span className="font-display text-2xs flex-1 truncate pl-1">{name}</span>

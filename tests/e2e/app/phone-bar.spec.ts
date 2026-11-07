@@ -82,7 +82,8 @@ test("search opens as a drawer with the box at the bottom, results above it", as
 
   await row.tap();
   const edit = page.getByRole("dialog", { name: "edit item" });
-  await edit.getByRole("button", { name: "[ cancel ]", exact: true }).tap();
+  await expect(edit).toBeVisible();
+  await page.keyboard.press("Escape");
   await expect(edit).toBeHidden();
   await expect(search).toBeVisible();
 
@@ -193,7 +194,7 @@ test("on a wide screen the chat stands beside the list, which moves over for it"
   await expect.poll(listCentre).toBeCloseTo(centredAlone, 0);
 });
 
-test("toasts centre on the list while the chat is beside it", async ({ page }) => {
+test("toasts stay bottom left, clear of the chat beside the list", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/");
   await createAndSelectBucket(page, uniqueName("Docked toast"));
@@ -209,14 +210,10 @@ test("toasts centre on the list while the chat is beside it", async ({ page }) =
     .click();
   const toast = page.locator("[data-sonner-toast]", { hasText: title });
   await expect(toast).toBeVisible();
-  const list = await page.getByTestId("add-box").boundingBox();
-  const listCentre = (list?.x ?? 0) + (list?.width ?? 0) / 2;
-  await expect
-    .poll(async () => {
-      const box = await toast.boundingBox();
-      return Math.abs((box?.x ?? 0) + (box?.width ?? 0) / 2 - listCentre);
-    })
-    .toBeLessThanOrEqual(40);
+  const chat = await page.getByPlaceholder("ask capy...").boundingBox();
+  const box = await toast.boundingBox();
+  expect(box?.x ?? Infinity).toBeLessThanOrEqual(24);
+  expect((box?.x ?? 0) + (box?.width ?? 0)).toBeLessThan(chat?.x ?? 0);
 });
 
 test("on a wide screen tweaks stands beside the list like the chat, and the list stays usable", async ({

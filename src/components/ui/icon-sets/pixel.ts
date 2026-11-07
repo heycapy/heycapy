@@ -28,6 +28,7 @@ import { Plus } from "pixelarticons/react/Plus.js";
 import { Reload } from "pixelarticons/react/Reload.js";
 import { Scale } from "pixelarticons/react/Scale.js";
 import { Search } from "pixelarticons/react/Search.js";
+import { Layout } from "pixelarticons/react/Layout.js";
 import { SlidersHorizontal } from "pixelarticons/react/SlidersHorizontal.js";
 import { Square } from "pixelarticons/react/Square.js";
 import { Trash } from "pixelarticons/react/Trash.js";
@@ -72,6 +73,7 @@ export const PIXEL_ICON_SET: IconSet = {
     plus: Plus,
     reload: Reload,
     search: Search,
+    sidebar: Layout,
     sliders: SlidersHorizontal,
     square: Square,
     trash: Trash,

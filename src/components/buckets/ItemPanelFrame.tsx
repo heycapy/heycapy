@@ -74,6 +74,20 @@ export function ItemPanelFrame({
     const room = panel.slot.getBoundingClientRect().bottom - top - PHONE_DRAWER_TOP_GAP_PX;
     el.style.maxHeight = `${room}px`;
   }, [phone, open, visible, panel.slot]);
+  useEffect(() => {
+    const el = panelRef.current;
+    if (!open || !el) return;
+    const root = document.documentElement.style;
+    const observer = new ResizeObserver(() => {
+      const footer = panel.slot.parentElement?.offsetHeight ?? 0;
+      root.setProperty("--item-panel-cover", `${Math.max(0, el.offsetHeight - footer)}px`);
+    });
+    observer.observe(el);
+    return () => {
+      observer.disconnect();
+      root.removeProperty("--item-panel-cover");
+    };
+  }, [open, panel.slot]);
   const wasOpen = useRef(open);
   const [opener, setOpener] = useState<HTMLElement | null>(null);
   const [shownOpen, setShownOpen] = useState(open);
@@ -112,12 +126,16 @@ export function ItemPanelFrame({
         { capture: true, once: true }
       );
     }
+    function modalOverPanel() {
+      const modal = document.activeElement?.closest(MODAL_PANEL_SELECTOR);
+      return !!modal && !modal.contains(panelRef.current);
+    }
     function onKey(e: KeyboardEvent) {
       if (e.key !== "Escape") return;
       if (
         document.querySelector(POPOVER_SELECTOR) ||
         document.activeElement?.closest(HANDLES_ESCAPE_SELECTOR) ||
-        document.activeElement?.closest(MODAL_PANEL_SELECTOR)
+        modalOverPanel()
       )
         return;
       cancel();

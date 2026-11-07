@@ -5,7 +5,7 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import { motion, AnimatePresence, type Transition } from "framer-motion";
 import { useUIStore } from "@/store/ui";
 import { Modal, ModalTitle } from "@/components/ui/Modal";
-import { Button } from "@/components/ui/button";
+import { CloseButton } from "@/components/ui/CloseButton";
 import { TextButton } from "@/components/ui/TextButton";
 import { createBucketAction } from "@/app/(app)/actions";
 import { TEMPLATE_ICONS } from "./constants";
@@ -73,7 +73,7 @@ export function CreateBucketModal({ templates }: CreateBucketModalProps) {
       open={createBucketOpen}
       onClose={closeCreateBucket}
       onExitComplete={handleExitComplete}
-      className="bg-background border-border top-[18%] overflow-hidden rounded-md border shadow-2xl sm:top-[18%]"
+      className="bg-background border-border rounded-panel border-frame shadow-raised-lg top-[18%] overflow-hidden sm:top-[18%]"
     >
       <AnimatePresence mode="wait" initial={false}>
         {step === "pick" ? (
@@ -86,14 +86,12 @@ export function CreateBucketModal({ templates }: CreateBucketModalProps) {
           >
             <div className="flex items-start justify-between border-b px-4 py-3">
               <div>
-                <ModalTitle className="text-sm">New bucket</ModalTitle>
+                <ModalTitle className="text-sm">new bucket</ModalTitle>
                 <p className="text-muted-foreground mt-0.5 text-xs">
-                  Pick a template to get started.
+                  pick a template to start from
                 </p>
               </div>
-              <TextButton onClick={closeCreateBucket} aria-label="close">
-                <Icon name="close" />
-              </TextButton>
+              <CloseButton onClick={closeCreateBucket} />
             </div>
 
             <div className="max-h-[55vh] overflow-y-auto">
@@ -104,7 +102,7 @@ export function CreateBucketModal({ templates }: CreateBucketModalProps) {
                   <button
                     key={t.id}
                     onClick={() => handlePickTemplate(t)}
-                    className="border-border bg-card hover:bg-muted flex flex-col gap-1 rounded border p-2 text-left transition-colors sm:gap-1.5 sm:p-3"
+                    className="border-border hover:bg-muted rounded-control flex flex-col gap-1 border bg-(--tile-bg) p-2 text-left transition-colors sm:gap-1.5 sm:p-3"
                   >
                     <Icon
                       name={TEMPLATE_ICONS[t.name] ?? "package"}
@@ -139,11 +137,9 @@ export function CreateBucketModal({ templates }: CreateBucketModalProps) {
                     setError("");
                   }}
                 />
-                <ModalTitle className="text-sm">Name it</ModalTitle>
+                <ModalTitle className="text-sm">name it</ModalTitle>
               </div>
-              <TextButton onClick={closeCreateBucket} aria-label="close">
-                <Icon name="close" />
-              </TextButton>
+              <CloseButton onClick={closeCreateBucket} />
             </div>
             <div className="flex flex-col gap-3 p-4">
               <input
@@ -153,10 +149,10 @@ export function CreateBucketModal({ templates }: CreateBucketModalProps) {
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && name.trim()) handleCreate();
                 }}
-                placeholder="Bucket name…"
+                placeholder="bucket name…"
                 maxLength={BUCKET_NAME_MAX_LENGTH}
                 disabled={pending}
-                className="border-border bg-input placeholder:text-muted-foreground focus:ring-ring rounded border px-3 py-2 text-sm outline-none focus:ring-1 disabled:opacity-50"
+                className="border-border bg-input placeholder:text-muted-foreground focus:ring-ring rounded-control border px-3 py-2 text-sm outline-none focus:ring-1 disabled:opacity-50"
               />
               {name.length > 0 && (
                 <p
@@ -169,9 +165,14 @@ export function CreateBucketModal({ templates }: CreateBucketModalProps) {
                 </p>
               )}
               {error && <p className="text-destructive text-xs">{error}</p>}
-              <Button onClick={handleCreate} loading={pending} disabled={!name.trim()}>
-                Create bucket
-              </Button>
+              <TextButton
+                variant="primary"
+                onClick={handleCreate}
+                disabled={pending || !name.trim()}
+                className="self-end"
+              >
+                {pending ? "creating…" : "create bucket"}
+              </TextButton>
             </div>
           </motion.div>
         )}

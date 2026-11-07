@@ -31,6 +31,7 @@ function SearchBody({ onClose }: { onClose: () => void }) {
   const [query, setQuery] = useState("");
   const { data, refetch } = useSearchItems(query);
   const inputRef = useRef<HTMLInputElement>(null);
+  const [panelSlot, setPanelSlot] = useState<HTMLDivElement | null>(null);
   const visible = useVisualViewport();
   const term = query.trim();
   const statuses = DEFAULT_BUCKET_STATUSES;
@@ -70,7 +71,7 @@ function SearchBody({ onClose }: { onClose: () => void }) {
             if (info.offset.y > SHEET_CLOSE_DRAG_PX || info.velocity.y > SHEET_CLOSE_DRAG_VELOCITY)
               onClose();
           }}
-          className="border-border bg-background md:max-w-column rounded-t-panel border-t-frame md:border-x-frame pointer-events-auto mx-auto flex h-[85%] w-full flex-col overflow-hidden md:h-[70%]"
+          className="border-border bg-background md:max-w-column rounded-t-panel border-t-frame md:border-x-frame pointer-events-auto relative mx-auto flex h-[85%] w-full flex-col overflow-hidden md:h-[70%]"
         >
           <div
             onPointerDown={(e) => {
@@ -135,6 +136,7 @@ function SearchBody({ onClose }: { onClose: () => void }) {
               )}
             </div>
           </div>
+          <div ref={setPanelSlot} className="absolute inset-x-0 bottom-0" />
         </motion.div>
       </div>
 
@@ -151,6 +153,15 @@ function SearchBody({ onClose }: { onClose: () => void }) {
         }
         statuses={statuses}
         fields={fields.length > 0 ? fields : undefined}
+        panel={
+          panelSlot
+            ? {
+                slot: panelSlot,
+                bucketName: editingBucket?.name,
+                onCollapsed: () => inputRef.current?.focus(),
+              }
+            : undefined
+        }
       />
     </>
   );

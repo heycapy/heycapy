@@ -133,7 +133,7 @@ export function BucketsShell({ buckets: rawBuckets, focusBucketId = null }: Buck
       <BucketTabs buckets={buckets} activeId={activeId} todayOpen={todayOpen} />
       <Banners />
       <div
-        className="max-md:scrollbar-hide flex-1 overflow-y-auto pb-[420px]"
+        className="max-md:scrollbar-hide flex-1 overflow-y-auto pb-[calc(0.5rem+var(--item-panel-cover,0px))]"
         onClick={(e) => {
           if (hasBottomBar && canAddItem && e.target === e.currentTarget) {
             quickAddRef.current?.focus();

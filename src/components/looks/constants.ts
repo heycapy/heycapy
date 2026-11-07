@@ -12,6 +12,7 @@ export type LookParts = {
   listFrame: "framed" | "bare";
   optionButton: "raised" | "flat";
   toggle: "buttons" | "switch";
+  bucketTab: "underline" | "pill";
 };
 
 export const LOOK_PARTS: Record<Look, LookParts> = {
@@ -23,6 +24,7 @@ export const LOOK_PARTS: Record<Look, LookParts> = {
     listFrame: "framed",
     optionButton: "raised",
     toggle: "buttons",
+    bucketTab: "underline",
   },
   modern: {
     iconSet: "line",
@@ -32,5 +34,6 @@ export const LOOK_PARTS: Record<Look, LookParts> = {
     listFrame: "bare",
     optionButton: "flat",
     toggle: "switch",
+    bucketTab: "pill",
   },
 };

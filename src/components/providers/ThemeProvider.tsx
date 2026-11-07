@@ -3,9 +3,11 @@
 import { ThemeProvider as NextThemesProvider } from "next-themes";
 import { Toaster } from "sonner";
 import type { ReactNode } from "react";
-import { TOAST_BOTTOM_OFFSET, TOAST_SIDE_OFFSET } from "@/constants";
+import { MOBILE_MEDIA_QUERY, TOAST_BOTTOM_OFFSET, TOAST_SIDE_OFFSET } from "@/constants";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
+  const phone = useMediaQuery(MOBILE_MEDIA_QUERY);
   return (
     <NextThemesProvider
       attribute="data-theme"
@@ -34,14 +36,14 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     >
       {children}
       <Toaster
-        position="bottom-center"
-        offset={{ bottom: TOAST_BOTTOM_OFFSET }}
+        position={phone ? "top-center" : "bottom-left"}
+        offset={{ bottom: TOAST_BOTTOM_OFFSET, left: TOAST_SIDE_OFFSET }}
         mobileOffset={{
-          bottom: `calc(${TOAST_BOTTOM_OFFSET}px + env(safe-area-inset-bottom))`,
+          top: `calc(${TOAST_SIDE_OFFSET}px + env(safe-area-inset-top))`,
           left: TOAST_SIDE_OFFSET,
           right: TOAST_SIDE_OFFSET,
         }}
-        swipeDirections={["left", "right", "bottom"]}
+        swipeDirections={phone ? ["left", "right", "top"] : ["left", "bottom"]}
         visibleToasts={3}
         expand
         closeButton

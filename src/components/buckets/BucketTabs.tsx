@@ -6,6 +6,7 @@ import { Icon } from "@/components/ui/Icon";
 import { useLayoutStore } from "@/store/layout";
 import { useUIStore } from "@/store/ui";
 import { cn } from "@/lib/utils";
+import { useLookParts } from "@/components/looks/LookProvider";
 import { bucketColor } from "./bucket-color";
 import { useLateBuckets } from "./useLateBuckets";
 import { ReorderTab } from "./ReorderTab";
@@ -35,8 +36,15 @@ function PlaceTab({
   onSettings?: () => void;
   children: ReactNode;
 }) {
+  const pill = useLookParts().bucketTab === "pill";
   return (
-    <span className="flex shrink-0 items-center">
+    <span
+      className={cn(
+        "rounded-control flex shrink-0 items-center transition-colors",
+        pill && "my-1.5",
+        pill && active && "bg-(--selected-bg)"
+      )}
+    >
       <button
         type="button"
         onClick={onSelect}
@@ -44,13 +52,21 @@ function PlaceTab({
         aria-describedby={lateHintId}
         data-late={lateHintId ? true : undefined}
         className={cn(
-          "font-display flex h-11 items-center px-3 text-xs whitespace-nowrap transition-colors",
+          "font-display flex items-center px-3 text-xs whitespace-nowrap transition-colors",
+          pill ? "h-(--control-h) gap-2" : "h-11",
           active ? "text-foreground" : "text-muted-foreground hover:text-foreground"
         )}
       >
-        <span className="relative pt-0.5 pb-1.5">
+        {pill && active && (
+          <span
+            aria-hidden
+            className="size-2 shrink-0 rounded-full"
+            style={{ backgroundColor: color }}
+          />
+        )}
+        <span className={cn("relative", !pill && "pt-0.5 pb-1.5")}>
           <span className="block max-w-32 truncate">{children}</span>
-          {active && (
+          {active && !pill && (
             <span
               aria-hidden
               className="absolute bottom-0 left-0 h-0.5 w-2.5"
@@ -58,7 +74,10 @@ function PlaceTab({
             />
           )}
           {lateHintId && (
-            <span aria-hidden className="bg-destructive absolute -top-0.5 -right-2 size-1" />
+            <span
+              aria-hidden
+              className="bg-destructive absolute -top-0.5 -right-2 size-(--late-dot) rounded-(--dot-radius)"
+            />
           )}
         </span>
       </button>
@@ -67,7 +86,7 @@ function PlaceTab({
           icon="sliders"
           onClick={onSettings}
           aria-label="bucket settings"
-          className="-ml-1 flex h-11 items-center pr-3"
+          className={cn("-ml-1 flex items-center pr-3", pill ? "h-(--control-h)" : "h-11")}
         />
       )}
     </span>
@@ -133,7 +152,7 @@ export function BucketTabs({ buckets, activeId, todayOpen }: BucketTabsProps) {
         >
           <Icon name="search" />
         </TextButton>
-        <span aria-hidden className="bg-border my-3.5 w-px shrink-0" />
+        <span aria-hidden className="bg-border h-4 w-px shrink-0 self-center" />
         <motion.div
           ref={stripRef}
           layoutScroll

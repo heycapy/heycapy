@@ -12,9 +12,9 @@ function yourMenu(page: Page) {
 }
 
 function guideItem(page: Page, done = /\d+/) {
-  return page.getByRole("button", {
-    name: new RegExp(`^getting started ${done.source}/${TOTAL}$`),
-  });
+  return page
+    .getByRole("button", { name: new RegExp(`^getting started ${done.source}/${TOTAL}$`) })
+    .and(page.locator("button:not(header button)"));
 }
 
 async function openGuide(page: Page) {
@@ -90,27 +90,28 @@ test("a new account starts on reminders, and a done task ticks and pays", async 
   await expect(task(page, "send a test email from your own email account")).toContainText("+5");
 });
 
-test("the dot on your avatar can go, the guide stays in the menu", async ({ page }) => {
+test("the guide's header button can go, the guide stays in the menu", async ({ page }) => {
   await signUp(page);
-  await expect(yourMenu(page)).toHaveAccessibleDescription("something new inside");
+  const inHeader = page.getByRole("banner").getByRole("button", { name: /^getting started / });
+  await expect(inHeader).toBeVisible();
 
   await openGuide(page);
   // hideGuideAction(true): the dot hides before it's saved, and a reload would drop the save
   const saved = page.waitForResponse(
     (r) => r.request().headers()["next-action"] !== undefined && r.request().postData() === "[true]"
   );
-  await guidePanel(page).getByRole("button", { name: "[ hide the dot ]" }).click();
+  await guidePanel(page).getByRole("button", { name: "[ hide from header ]" }).click();
   await saved;
   await guidePanel(page).getByRole("button", { name: "[ x ]" }).click();
-  await expect(yourMenu(page)).toHaveAccessibleDescription("");
+  await expect(inHeader).toHaveCount(0);
 
   await page.reload();
   await expect(activeBucketTitle(page)).toHaveText("reminders");
-  await expect(yourMenu(page)).toHaveAccessibleDescription("");
+  await expect(inHeader).toHaveCount(0);
   await openGuide(page);
-  await guidePanel(page).getByRole("button", { name: "[ show the dot ]" }).click();
+  await guidePanel(page).getByRole("button", { name: "[ show in header ]" }).click();
   await guidePanel(page).getByRole("button", { name: "[ x ]" }).click();
-  await expect(yourMenu(page)).toHaveAccessibleDescription("something new inside");
+  await expect(inHeader).toBeVisible();
 });
 
 test("a hint takes you to the place the task is done", async ({ page }) => {

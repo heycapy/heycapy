@@ -101,7 +101,7 @@ test.describe("archived buckets", () => {
       .click();
     await page.getByRole("button", { name: /^Blank/ }).click();
     await page.getByPlaceholder(/bucket name/i).fill(name);
-    await page.getByRole("button", { name: "Create bucket", exact: true }).click();
+    await page.getByRole("button", { name: "[ create bucket ]", exact: true }).click();
     await expect(page.getByText("A bucket with this name already exists.")).toBeVisible();
   });
 });

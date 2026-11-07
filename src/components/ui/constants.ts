@@ -50,6 +50,7 @@ export type ModalVariant = keyof typeof MODAL_PANELS;
 // Popovers inside a modal render in its panel; see usePopover
 export const MODAL_PANEL_SELECTOR = "[data-modal-panel]";
 export const POPOVER_SELECTOR = "[data-popover]";
+export const ITEM_PANEL_SELECTOR = "[data-item-panel]";
 // set on a field while its own list is open, so Escape closes the list and not the modal
 export const HANDLES_ESCAPE_SELECTOR = "[data-handles-escape]";
 
@@ -86,6 +87,7 @@ export const ICON_NAMES = [
   "plus",
   "reload",
   "search",
+  "sidebar",
   "sliders",
   "square",
   "trash",

@@ -40,7 +40,7 @@ test.describe("buckets", () => {
 
     await openNewBucketModal(page);
     await page.getByPlaceholder(/bucket name/i).fill(name);
-    await page.getByRole("button", { name: "Create bucket", exact: true }).click();
+    await page.getByRole("button", { name: "[ create bucket ]", exact: true }).click();
     await expect(page.getByText("A bucket with this name already exists.")).toBeVisible();
     await expect(page.getByPlaceholder(/bucket name/i)).toBeVisible();
   });
@@ -51,7 +51,7 @@ test.describe("buckets", () => {
 
     await openNewBucketModal(page);
     await page.getByPlaceholder(/bucket name/i).fill(name.toUpperCase());
-    await page.getByRole("button", { name: "Create bucket", exact: true }).click();
+    await page.getByRole("button", { name: "[ create bucket ]", exact: true }).click();
     await expect(page.getByText("A bucket with this name already exists.")).toBeVisible();
   });
 });

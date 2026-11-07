@@ -1,5 +1,5 @@
 import { Icon } from "@/components/ui/Icon";
-import { useId, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { TextButton } from "@/components/ui/TextButton";
 import { logoutAction, logoutEverywhereAction } from "@/app/(app)/actions";
@@ -70,14 +70,18 @@ function LogoutConfirm({
 }
 
 function NewDot({ className }: { className?: string }) {
-  return <span aria-hidden className={cn("bg-primary size-1.5 shrink-0", className)} />;
+  return (
+    <span
+      aria-hidden
+      className={cn("bg-primary size-1.5 shrink-0 rounded-(--dot-radius)", className)}
+    />
+  );
 }
 
 function GlobalMenu({
   email,
   userId,
   avatar,
-  showDot,
   onSettings,
   onArchive,
   onTrash,
@@ -91,7 +95,6 @@ function GlobalMenu({
   email: string;
   userId: number;
   avatar: string | null;
-  showDot: boolean;
   onSettings: () => void;
   onArchive: () => void;
   onTrash: () => void;
@@ -107,7 +110,6 @@ function GlobalMenu({
   const containerRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const [pos, setPos] = useState({ top: 0, left: 0 });
-  const dotHint = useId();
 
   function toggle() {
     if (!containerRef.current) return;
@@ -133,17 +135,12 @@ function GlobalMenu({
           aria-label="your menu"
           aria-haspopup="menu"
           aria-expanded={open}
-          aria-describedby={showDot ? dotHint : undefined}
           className="flex p-1.5"
         >
           <span role="img" aria-label="your avatar" className="flex">
             <PersonAvatar userId={userId} avatar={avatar} size={32} />
           </span>
         </button>
-        {showDot && <NewDot className="absolute top-1 right-1" />}
-        <span id={dotHint} hidden>
-          something new inside
-        </span>
       </div>
 
       {confirmLogout && (
@@ -254,12 +251,28 @@ export function Header({
   guideUnfinished,
 }: HeaderProps) {
   return (
-    <header className="max-w-column mx-auto flex w-full items-center justify-end px-3 pt-2">
+    <header className="max-w-column mx-auto flex w-full items-center justify-end gap-1 px-3 pt-2">
+      {guideUnfinished && (
+        <TextButton
+          variant="ghost"
+          onClick={onGuideOpen}
+          aria-label={`getting started ${guideProgress}`}
+        >
+          <Icon name="map" className="mr-1.5" />
+          <span className="hidden sm:inline">getting started&nbsp;</span>
+          {guideProgress}
+        </TextButton>
+      )}
+      {unseenRelease && (
+        <TextButton variant="ghost" onClick={onWhatsNewOpen}>
+          <NewDot className="mr-1.5" />
+          what&apos;s new
+        </TextButton>
+      )}
       <GlobalMenu
         email={email}
         userId={userId}
         avatar={avatar}
-        showDot={unseenRelease || guideUnfinished}
         onSettings={onSettingsOpen}
         onArchive={onArchiveOpen}
         onTrash={onTrashOpen}

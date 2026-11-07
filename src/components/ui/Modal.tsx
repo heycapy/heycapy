@@ -12,6 +12,7 @@ import {
   MODAL_PANEL_SELECTOR,
   POPOVER_SELECTOR,
   HANDLES_ESCAPE_SELECTOR,
+  ITEM_PANEL_SELECTOR,
   type ModalLayer,
   type ModalVariant,
 } from "./constants";
@@ -81,6 +82,7 @@ export function Modal({
                 // Escape closes an open picker or suggestion list first, not the whole modal
                 if (
                   document.querySelector(`${MODAL_PANEL_SELECTOR} ${POPOVER_SELECTOR}`) ||
+                  document.querySelector(`${MODAL_PANEL_SELECTOR} ${ITEM_PANEL_SELECTOR}`) ||
                   document.activeElement?.closest(HANDLES_ESCAPE_SELECTOR)
                 )
                   e.preventDefault();
