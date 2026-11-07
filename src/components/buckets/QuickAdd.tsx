@@ -129,7 +129,7 @@ export function QuickAdd({ bucket, inputRef, onAdded, onExpand }: QuickAddProps)
     >
       <span
         aria-hidden
-        className="absolute inset-x-0 -top-0.5 hidden h-0.5 bg-(--accent) group-focus-within/add:block"
+        className="absolute inset-x-0 -top-0.5 hidden h-0.5 bg-(--accent) group-focus-within/add:[display:var(--add-focus-line)]"
       />
       {listOpen && (
         <div className="bg-background absolute inset-x-0 bottom-full mb-2">

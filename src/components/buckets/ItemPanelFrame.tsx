@@ -63,7 +63,9 @@ export function ItemPanelFrame({
   onCancel,
 }: ItemPanelFrameProps) {
   const headingId = useId();
-  const inverted = useLookParts().panelHeader === "inverted";
+  const { panelHeader, footer } = useLookParts();
+  const inverted = panelHeader === "inverted";
+  const floating = footer === "floating";
   const dragControls = useDragControls();
   const visible = useVisualViewport();
   const panelRef = useRef<HTMLDivElement>(null);
@@ -194,7 +196,8 @@ export function ItemPanelFrame({
             }}
             className={cn(
               "bg-background border-border rounded-t-panel absolute inset-x-0 bottom-0 flex flex-col",
-              !phone && "border-x-frame max-h-[70vh]"
+              !phone && "border-x-frame max-h-[70vh]",
+              floating && "rounded-panel border-frame shadow-raised-lg overflow-hidden"
             )}
           >
             <div

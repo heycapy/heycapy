@@ -90,6 +90,7 @@
   --lift-bg: var(--card);
   --lift-shadow: var(--raised-shadow-sm);
   --lift-outline: dashed;
+  --add-focus-line: block;
 }
 
 [data-look="modern"] {
@@ -140,6 +141,7 @@
   --lift-bg: var(--background);
   --lift-shadow: var(--raised-shadow-md);
   --lift-outline: none;
+  --add-focus-line: none;
 }
 
 @media (width >= 48rem) {
