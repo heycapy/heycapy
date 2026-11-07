@@ -98,7 +98,7 @@ export function BucketContent({ bucket, accentColor, viewRef, panel }: BucketCon
         onSetUp={() => setSettingsTab("notifications")}
       />
 
-      <div className="border-border border-b-frame sm:border-x-frame sm:shadow-raised-sm @container overflow-hidden sm:mx-4">
+      <div className="border-border border-b-frame sm:border-x-frame sm:shadow-raised-sm sm:rounded-b-panel @container overflow-hidden sm:mx-4">
         <ItemList
           loading={list.loading}
           items={shownItems}

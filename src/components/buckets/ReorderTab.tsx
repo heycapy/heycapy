@@ -82,7 +82,7 @@ export function ReorderTab({ id, color, onDragStart, onDragEnd, children }: Reor
       className={cn(
         "bg-background relative flex shrink-0 select-none [-webkit-touch-callout:none]",
         lifted &&
-          "bg-card shadow-raised-sm z-10 cursor-grabbing outline-2 -outline-offset-2 outline-(--tab-color) outline-dashed"
+          "bg-card shadow-raised-sm rounded-control z-10 cursor-grabbing outline-2 -outline-offset-2 outline-(--tab-color) outline-dashed"
       )}
     >
       {children}

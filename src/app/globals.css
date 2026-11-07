@@ -27,13 +27,17 @@
   --font-display: var(--display-font);
   --radius-panel: var(--panel-radius);
   --radius-control: var(--control-radius);
+  --text-3xs: var(--text-size-3xs);
+  --text-2xs: var(--text-size-2xs);
+  --text-xs: var(--text-size-xs);
+  --text-xs--line-height: var(--text-leading-xs);
+  --text-sm: var(--text-size-sm);
+  --text-sm--line-height: var(--text-leading-sm);
 }
 
 @theme {
   --container-column: 47.5rem;
   --spacing-chat: 27.5rem;
-  --text-2xs: 0.6875rem;
-  --text-3xs: 0.625rem;
 }
 
 /* What a look changes. Pages before login pin data-look="original" so they keep these under any look */
@@ -43,12 +47,37 @@
   --display-font: var(--font-pixel), monospace;
   --panel-radius: 0px;
   --control-radius: 0px;
+  --text-size-3xs: 0.625rem;
+  --text-size-2xs: 0.6875rem;
+  --text-size-xs: 0.75rem;
+  --text-leading-xs: calc(1 / 0.75);
+  --text-size-sm: 0.875rem;
+  --text-leading-sm: calc(1.25 / 0.875);
   --frame-width: 2px;
   --raised-shadow-sm: 2px 2px 0 var(--border);
   --raised-shadow: 3px 3px 0 var(--border);
   --raised-shadow-md: 4px 4px 0 var(--border);
   --raised-shadow-lg: 5px 5px 0 var(--border);
   --edge-shadow: -4px 0 0 var(--border);
+}
+
+[data-look="modern"] {
+  --ui-font: var(--font-geist-sans), system-ui, sans-serif;
+  --display-font: var(--font-geist-sans), system-ui, sans-serif;
+  --panel-radius: 12px;
+  --control-radius: 8px;
+  --text-size-3xs: 0.75rem;
+  --text-size-2xs: 0.75rem;
+  --text-size-xs: 0.875rem;
+  --text-leading-xs: calc(1.25 / 0.875);
+  --text-size-sm: 0.9375rem;
+  --text-leading-sm: calc(1.375 / 0.9375);
+  --frame-width: 1px;
+  --raised-shadow-sm: 0 1px 2px rgb(0 0 0 / 0.06);
+  --raised-shadow: 0 1px 2px rgb(0 0 0 / 0.06), 0 4px 12px rgb(0 0 0 / 0.05);
+  --raised-shadow-md: 0 2px 4px rgb(0 0 0 / 0.06), 0 8px 24px rgb(0 0 0 / 0.07);
+  --raised-shadow-lg: 0 4px 8px rgb(0 0 0 / 0.06), 0 16px 40px rgb(0 0 0 / 0.1);
+  --edge-shadow: -8px 0 24px rgb(0 0 0 / 0.08);
 }
 
 @utility shadow-raised-sm {

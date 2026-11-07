@@ -30,7 +30,7 @@ export function AppearanceTab({
               className="flex flex-col items-center gap-1.5"
             >
               <span
-                className="border-border border-frame h-8 w-full transition-all"
+                className="border-border border-frame rounded-control h-8 w-full transition-all"
                 style={{
                   background: t.bg,
                   borderColor: theme === t.id ? t.fg : undefined,

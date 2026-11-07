@@ -173,14 +173,14 @@ export function ItemPanelFrame({
                 onCancel();
             }}
             className={cn(
-              "bg-background border-border absolute inset-x-0 bottom-0 flex flex-col",
+              "bg-background border-border rounded-t-panel absolute inset-x-0 bottom-0 flex flex-col",
               !phone && "border-x-frame max-h-[70vh]"
             )}
           >
             <div
               onPointerDown={phone ? (e) => dragControls.start(e) : undefined}
               className={cn(
-                "bg-foreground text-background shrink-0 px-4 py-2.5",
+                "bg-foreground text-background rounded-t-panel shrink-0 px-4 py-2.5",
                 phone && "touch-none pt-1 select-none"
               )}
             >
