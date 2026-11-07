@@ -102,12 +102,15 @@ export function CapyChat({ appUrl }: { appUrl: string | null }) {
   const panelClassName = cn(
     "border-border bg-background flex flex-col fixed z-50 origin-bottom-right",
     docked
-      ? "inset-y-0 right-0 w-chat border-l-2"
-      : chatState === "fullscreen"
-        ? "inset-2 border-2"
-        : bottomBarShown
-          ? "right-[max(1rem,calc((100vw-var(--container-column))/2+1rem))] bottom-[calc(var(--footer-h)+0.5rem)] w-chat border-2"
-          : "right-6 bottom-6 w-chat border-2"
+      ? "inset-y-0 right-0 w-chat border-l-frame"
+      : cn(
+          "rounded-panel border-frame shadow-raised-lg",
+          chatState === "fullscreen"
+            ? "inset-2"
+            : bottomBarShown
+              ? "right-[max(1rem,calc((100vw-var(--container-column))/2+1rem))] bottom-[calc(var(--footer-h)+0.5rem)] w-chat"
+              : "right-6 bottom-6 w-chat"
+        )
   );
   const panelMotion = docked
     ? { initial: { x: "100%" }, animate: { x: 0, opacity: 1, scale: 1 }, exit: { x: "100%" } }
@@ -194,10 +197,7 @@ export function CapyChat({ appUrl }: { appUrl: string | null }) {
             key="chat"
             {...panelMotion}
             transition={{ duration: 0.18, ease: "easeOut" }}
-            style={{
-              boxShadow: docked ? "none" : "5px 5px 0 var(--border)",
-              ["--footer-h" as string]: `${FOOTER_H}px`,
-            }}
+            style={{ ["--footer-h" as string]: `${FOOTER_H}px` }}
             className={panelClassName}
           >
             <CapyChatHeader
@@ -221,7 +221,7 @@ export function CapyChat({ appUrl }: { appUrl: string | null }) {
                 {sidebarOpen && (
                   <aside
                     aria-label="chat history"
-                    className="border-border bg-card flex w-72 shrink-0 flex-col border-r-2"
+                    className="border-border bg-card border-r-frame flex w-72 shrink-0 flex-col"
                   >
                     <ChatSessionList
                       enabled

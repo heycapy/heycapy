@@ -11,7 +11,7 @@ export function Tab({ active, tone = "primary", className, ...props }: TabProps)
     <button
       type="button"
       className={cn(
-        "font-ui shrink-0 px-2 text-xs whitespace-nowrap transition-colors",
+        "rounded-control font-ui shrink-0 px-2 text-xs whitespace-nowrap transition-colors",
         active && "bg-foreground text-background",
         !active && tone === "primary" && "text-primary hover:text-foreground",
         !active && tone === "muted" && "text-muted-foreground hover:text-foreground",

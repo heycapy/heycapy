@@ -9,7 +9,7 @@ type SaveBarProps = {
 
 export function SaveBar({ pending, onSave, onDiscard }: SaveBarProps) {
   return (
-    <div className="border-border bg-background flex items-center justify-between gap-2 border-t-2 px-3 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))]">
+    <div className="border-border bg-background border-t-frame flex items-center justify-between gap-2 px-3 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))]">
       <span className="text-muted-foreground font-ui text-xs">unsaved changes</span>
       <div className="flex gap-3">
         <TextButton onClick={onDiscard} disabled={pending}>
@@ -37,8 +37,7 @@ export function CloseWarning({ pending, onSave, onDiscard, onKeepEditing }: Clos
       <div
         role="alertdialog"
         aria-label="unsaved changes"
-        className="border-border bg-background flex w-full max-w-xs flex-col gap-3 border-2 p-4"
-        style={{ boxShadow: "4px 4px 0 var(--border)" }}
+        className="border-border bg-background rounded-panel border-frame shadow-raised-md flex w-full max-w-xs flex-col gap-3 p-4"
       >
         <p className="font-ui text-xs">
           {onSave

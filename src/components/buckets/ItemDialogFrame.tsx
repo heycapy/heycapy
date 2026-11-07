@@ -27,7 +27,7 @@ export function ItemDialogFrame({
       onClose={onCancel}
       className={cn("top-[5%] sm:top-[5%]", wide ? "max-w-md" : "max-w-sm")}
     >
-      <div className="border-border bg-background flex max-h-[78vh] flex-col overflow-hidden border-2">
+      <div className="border-border bg-background rounded-panel border-frame flex max-h-[78vh] flex-col overflow-hidden">
         <ModalHeader title={heading} onClose={onCancel} />
         <div
           ref={scrollBodyRef}

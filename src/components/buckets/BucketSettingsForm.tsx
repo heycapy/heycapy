@@ -155,7 +155,7 @@ export function BucketSettingsForm({
   return (
     <div
       className={cn(
-        "border-border bg-background flex max-h-[85vh] flex-col overflow-hidden border-2",
+        "border-border bg-background rounded-panel border-frame flex max-h-[85vh] flex-col overflow-hidden",
         ACCENT_BUTTONS
       )}
     >

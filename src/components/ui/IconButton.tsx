@@ -14,7 +14,7 @@ export function IconButton({ icon, tone = "default", className, ...props }: Icon
     <button
       type="button"
       className={cn(
-        "text-muted-foreground shrink-0 transition-colors",
+        "text-muted-foreground rounded-control shrink-0 transition-colors",
         tone === "default" && "hover:text-foreground",
         tone === "destructive" && "hover:text-destructive",
         className

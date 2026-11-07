@@ -124,7 +124,7 @@ export function BucketTabs({ buckets, activeId, todayOpen }: BucketTabsProps) {
       aria-label="buckets"
       className="bg-background max-w-column sticky top-0 z-10 mx-auto w-full sm:px-4"
     >
-      <div className="border-border flex border-b-2">
+      <div className="border-border border-b-frame flex">
         <TextButton
           onClick={() => setSearchOpen(true)}
           aria-label="search"

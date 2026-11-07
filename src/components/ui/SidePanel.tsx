@@ -27,7 +27,7 @@ export function SidePanel({ open, onClose, title, narrow, className, children }:
       <Modal open={open} onClose={onClose}>
         <div
           className={cn(
-            "border-border bg-background flex max-h-[75dvh] flex-col overflow-hidden border-2",
+            "border-border bg-background rounded-panel border-frame flex max-h-[75dvh] flex-col overflow-hidden",
             className
           )}
         >

@@ -100,14 +100,13 @@ export function ItemMenu({ at, onClose, ...props }: ItemMenuProps) {
         data-popover
         tabIndex={-1}
         className={cn(
-          "bg-background border-border z-[57] max-h-[calc(100dvh-16px)] w-80 max-w-[calc(100vw-16px)] overflow-y-auto border-2 outline-none",
+          "bg-background border-border rounded-panel border-frame shadow-raised-sm z-[57] max-h-[calc(100dvh-16px)] w-80 max-w-[calc(100vw-16px)] overflow-y-auto outline-none",
           at.within ? "pointer-events-auto absolute" : "fixed"
         )}
         style={{
           top: pos?.top ?? 0,
           left: pos?.left ?? 0,
           visibility: pos ? "visible" : "hidden",
-          boxShadow: "2px 2px 0 var(--border)",
         }}
       >
         <MenuBody {...props} onClose={onClose} />

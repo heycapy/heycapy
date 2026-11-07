@@ -137,7 +137,7 @@ export function ModalHeader({ title, onClose, plain }: ModalHeaderProps) {
       className={cn(
         "flex shrink-0 items-center justify-between gap-2",
         plain
-          ? "bg-card border-border h-10 border-b-2 pr-2 pl-3"
+          ? "bg-card border-border border-b-frame h-10 pr-2 pl-3"
           : "bg-foreground text-background px-3 py-1.5"
       )}
     >

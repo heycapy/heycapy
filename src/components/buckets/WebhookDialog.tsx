@@ -17,7 +17,7 @@ export function WebhookDialog({ open, bucket, onClose }: WebhookDialogProps) {
     <Modal open={open} onClose={onClose} layer="raised">
       <div
         className={cn(
-          "border-border bg-background flex max-h-[85vh] flex-col overflow-hidden border-2",
+          "border-border bg-background rounded-panel border-frame flex max-h-[85vh] flex-col overflow-hidden",
           ACCENT_BUTTONS
         )}
       >

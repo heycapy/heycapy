@@ -9,21 +9,21 @@ export type ModalLayer = keyof typeof MODAL_LAYERS;
 export const MODAL_PANELS = {
   dialog: {
     className:
-      "fixed top-[8%] left-1/2 w-[calc(100%-2rem)] max-w-sm -translate-x-1/2 shadow-[5px_5px_0_var(--border)] outline-none sm:top-[12%]",
+      "fixed top-[8%] left-1/2 w-[calc(100%-2rem)] max-w-sm -translate-x-1/2 rounded-panel shadow-raised-lg outline-none sm:top-[12%]",
     initial: { opacity: 0, scale: 0.96, y: -10 },
     animate: { opacity: 1, scale: 1, y: 0 },
     transition: { duration: 0.15, ease: "easeOut" },
   },
   sheet: {
     className:
-      "bg-background border-border fixed top-0 right-0 flex h-full w-full flex-col border-l-2 shadow-[-4px_0_0_var(--border)] outline-none sm:w-80",
+      "bg-background border-border fixed top-0 right-0 flex h-full w-full flex-col border-l-frame shadow-edge outline-none sm:w-80",
     initial: { x: "100%" },
     animate: { x: 0 },
     transition: { duration: 0.2, ease: "easeInOut" },
   },
   side: {
     className:
-      "bg-background border-border fixed inset-y-0 right-0 flex w-chat flex-col border-l-2 outline-none",
+      "bg-background border-border fixed inset-y-0 right-0 flex w-chat flex-col border-l-frame outline-none",
     initial: { x: "100%" },
     animate: { x: 0 },
     transition: { duration: 0.18, ease: "easeOut" },

@@ -104,8 +104,8 @@ export function CrossBucketList({
   return (
     <div
       className={cn(
-        "border-border @container overflow-hidden border-b-2 sm:mx-4 sm:border-x-2 sm:shadow-[2px_2px_0_var(--border)]",
-        boxed && "mx-4 border-x-2 border-t-2 shadow-[2px_2px_0_var(--border)]"
+        "border-border border-b-frame sm:border-x-frame sm:shadow-raised-sm @container overflow-hidden sm:mx-4",
+        boxed && "border-x-frame border-t-frame shadow-raised-sm mx-4"
       )}
     >
       {!data ? (

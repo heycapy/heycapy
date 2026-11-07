@@ -177,7 +177,7 @@ test("on a wide screen the chat stands beside the list, which moves over for it"
       ([sel, start]) => document.querySelector(start)?.closest(sel)?.getBoundingClientRect().top,
       [selector, from]
     );
-  expect(await topLine(".border-t-2", '[placeholder="ask capy..."]')).toBe(
+  expect(await topLine(".border-t-frame", '[placeholder="ask capy..."]')).toBe(
     await topLine(".sticky", '[data-testid="add-box"]')
   );
   await expect(panel.getByRole("button", { name: "Collapse" })).toHaveCount(0);

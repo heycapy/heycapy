@@ -32,7 +32,7 @@ export function CapyChatHeader({
     <div
       style={{ height: HEADER_H }}
       className={cn(
-        "border-border bg-card flex items-center gap-1 border-b-2 px-2 select-none",
+        "border-border bg-card border-b-frame flex items-center gap-1 px-2 select-none",
         onMinimize && "cursor-pointer"
       )}
       onClick={onMinimize}

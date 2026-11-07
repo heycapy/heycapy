@@ -13,12 +13,12 @@ export function OptionButton({ active = false, className, ...props }: OptionButt
       type="button"
       aria-pressed={active}
       className={cn(
-        "font-ui border px-2.5 py-1.5 text-xs transition-[color,border-color,background-color,transform,box-shadow] disabled:opacity-40",
+        "rounded-control font-ui border px-2.5 py-1.5 text-xs transition-[color,border-color,background-color,transform,box-shadow] disabled:opacity-40",
         active
           ? "border-foreground bg-foreground text-background translate-x-[2px] translate-y-[2px]"
           : cn(
               "border-border/50 text-muted-foreground",
-              "shadow-[2px_2px_0_var(--border)]",
+              "shadow-raised-sm",
               "hover:border-border hover:text-foreground",
               "active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
             ),

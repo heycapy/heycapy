@@ -48,7 +48,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
         toastOptions={{
           classNames: {
             toast:
-              "!bg-background !text-foreground !border-border !border-2 !rounded-none font-ui !text-xs !shadow-[2px_2px_0_var(--border)] !py-2 !pr-1 !pl-3 !gap-2",
+              "!bg-background !text-foreground !border-border !rounded-panel !border-frame font-ui !text-xs !shadow-raised-sm !py-2 !pr-1 !pl-3 !gap-2",
             title: "!text-foreground font-ui !text-xs",
             description: "!text-muted-foreground font-ui !text-xs",
             error: "!border-destructive",

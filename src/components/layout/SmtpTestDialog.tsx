@@ -63,7 +63,7 @@ export function SmtpTestDialog({
       layer="raised"
       className="top-1/2 max-w-md -translate-y-1/2 shadow-none sm:top-1/2"
     >
-      <div className="bg-background border-border flex w-full flex-col gap-0 border-2">
+      <div className="bg-background border-border rounded-panel border-frame flex w-full flex-col gap-0">
         <ModalHeader title="send test email" onClose={onClose} />
 
         <div className="flex flex-col gap-3 p-4">

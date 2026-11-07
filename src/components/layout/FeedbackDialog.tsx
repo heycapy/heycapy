@@ -51,7 +51,7 @@ export function FeedbackDialog({ open, onClose }: FeedbackDialogProps) {
           else send();
         }}
         className={cn(
-          "border-border bg-background flex flex-col overflow-hidden border-2",
+          "border-border bg-background rounded-panel border-frame flex flex-col overflow-hidden",
           ACCENT_BUTTONS
         )}
       >

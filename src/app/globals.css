@@ -32,6 +32,63 @@
   --font-display: var(--font-pixel), monospace;
   --text-2xs: 0.6875rem;
   --text-3xs: 0.625rem;
+  --radius-panel: 0px;
+  --radius-control: 0px;
+}
+
+/* Tailwind writes theme shadows into each utility, so these read variables a look can change */
+:root {
+  --frame-width: 2px;
+  --raised-shadow-sm: 2px 2px 0 var(--border);
+  --raised-shadow: 3px 3px 0 var(--border);
+  --raised-shadow-md: 4px 4px 0 var(--border);
+  --raised-shadow-lg: 5px 5px 0 var(--border);
+  --edge-shadow: -4px 0 0 var(--border);
+}
+
+@utility shadow-raised-sm {
+  box-shadow: var(--raised-shadow-sm);
+}
+
+@utility shadow-raised {
+  box-shadow: var(--raised-shadow);
+}
+
+@utility shadow-raised-md {
+  box-shadow: var(--raised-shadow-md);
+}
+
+@utility shadow-raised-lg {
+  box-shadow: var(--raised-shadow-lg);
+}
+
+@utility shadow-edge {
+  box-shadow: var(--edge-shadow);
+}
+
+@utility border-frame {
+  border-width: var(--frame-width);
+}
+
+@utility border-t-frame {
+  border-top-width: var(--frame-width);
+}
+
+@utility border-b-frame {
+  border-bottom-width: var(--frame-width);
+}
+
+@utility border-l-frame {
+  border-left-width: var(--frame-width);
+}
+
+@utility border-r-frame {
+  border-right-width: var(--frame-width);
+}
+
+@utility border-x-frame {
+  border-left-width: var(--frame-width);
+  border-right-width: var(--frame-width);
 }
 
 /* Avatar colours are the same on every theme so everyone sees the drawing as it was made */

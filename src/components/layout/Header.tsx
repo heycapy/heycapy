@@ -51,9 +51,9 @@ function LogoutConfirm({
     <Modal
       open
       onClose={onCancel}
-      className="top-1/2 w-auto max-w-[calc(100%-2rem)] min-w-[220px] -translate-y-1/2 shadow-[3px_3px_0_var(--border)] sm:top-1/2"
+      className="shadow-raised top-1/2 w-auto max-w-[calc(100%-2rem)] min-w-[220px] -translate-y-1/2 sm:top-1/2"
     >
-      <div className="bg-background border-border border-2 p-5">
+      <div className="bg-background border-border rounded-panel border-frame p-5">
         <ModalTitle className="mb-1 text-sm">{copy.title}</ModalTitle>
         <p className="text-muted-foreground font-ui mb-4 text-xs">{copy.body}</p>
         <div className="flex gap-2">
@@ -162,12 +162,11 @@ function GlobalMenu({
           <>
             <div className="fixed inset-0 z-30" onClick={() => setOpen(false)} />
             <div
-              className="bg-background border-border fixed z-40 w-max max-w-[calc(100vw-2rem)] min-w-44 border-2 py-1 whitespace-nowrap"
+              className="bg-background border-border rounded-panel border-frame shadow-raised-sm fixed z-40 w-max max-w-[calc(100vw-2rem)] min-w-44 py-1 whitespace-nowrap"
               style={{
                 top: pos.top,
                 left: pos.left,
                 transform: "translateX(-100%)",
-                boxShadow: "2px 2px 0 var(--border)",
               }}
             >
               <div className="text-muted-foreground border-border font-ui mb-1 max-w-64 truncate border-b px-3 pt-0.5 pb-1.5 text-xs">

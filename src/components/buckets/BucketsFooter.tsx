@@ -35,7 +35,7 @@ export function BucketsFooter({
   return (
     <div
       style={{ "--accent": color, "--keyboard-inset": `${keyboardInset}px` } as CSSProperties}
-      className="border-border bg-background sticky bottom-(--keyboard-inset) z-20 border-t-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:pb-[env(safe-area-inset-bottom)]"
+      className="border-border bg-background border-t-frame sticky bottom-(--keyboard-inset) z-20 pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:pb-[env(safe-area-inset-bottom)]"
     >
       <div className="max-w-column relative mx-auto flex w-full items-center gap-2 px-2.5 sm:px-4">
         {!bucket ? (

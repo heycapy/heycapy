@@ -95,7 +95,7 @@ export function TimeField({ value, onChange, disabled, allowAllDay = false }: Ti
           style={{ top: pos.top, left: pos.left, width: PANEL.width }}
           className={cn(
             positioning,
-            "border-border bg-card z-[65] flex flex-col gap-2.5 border-2 p-3 shadow-[3px_3px_0_var(--border)] select-none"
+            "border-border bg-card rounded-panel border-frame shadow-raised z-[65] flex flex-col gap-2.5 p-3 select-none"
           )}
         >
           <div role="group" aria-label="hour" className="flex flex-col gap-1">

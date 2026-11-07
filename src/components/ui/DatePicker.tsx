@@ -42,7 +42,7 @@ export function DatePicker({ value, onChange, disabled }: DatePickerProps) {
           style={{ top: pos.top, left: pos.left, width: CALENDAR.width }}
           className={cn(
             positioning,
-            "border-border bg-card z-[65] border-2 p-3 shadow-[3px_3px_0_var(--border)] select-none"
+            "border-border bg-card rounded-panel border-frame shadow-raised z-[65] p-3 select-none"
           )}
         >
           <Calendar value={value} onSelect={selectDay} />

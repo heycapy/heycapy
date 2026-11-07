@@ -49,7 +49,7 @@ export function JoinBucketDialog({ open, onClose }: JoinBucketDialogProps) {
           join();
         }}
         className={cn(
-          "border-border bg-background flex flex-col overflow-hidden border-2",
+          "border-border bg-background rounded-panel border-frame flex flex-col overflow-hidden",
           ACCENT_BUTTONS
         )}
       >

@@ -10,7 +10,7 @@ type DeliveryFailuresDialogProps = {
 export function DeliveryFailuresDialog({ failure, onClose }: DeliveryFailuresDialogProps) {
   return (
     <Modal open onClose={onClose} className="top-[12%] sm:top-[12%]">
-      <div className="border-border bg-background flex max-h-[70vh] flex-col border-2">
+      <div className="border-border bg-background rounded-panel border-frame flex max-h-[70vh] flex-col">
         <ModalHeader title={`failed [${failure.label}]`} onClose={onClose} />
         <ul className="divide-border/50 flex flex-col divide-y divide-dotted overflow-y-auto overscroll-contain px-4 py-2">
           {failure.deliveries.map((delivery, i) => (

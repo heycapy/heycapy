@@ -70,7 +70,7 @@ function SearchBody({ onClose }: { onClose: () => void }) {
             if (info.offset.y > SHEET_CLOSE_DRAG_PX || info.velocity.y > SHEET_CLOSE_DRAG_VELOCITY)
               onClose();
           }}
-          className="border-border bg-background md:max-w-column pointer-events-auto mx-auto flex h-[85%] w-full flex-col border-t-2 md:h-[70%] md:border-x-2"
+          className="border-border bg-background md:max-w-column border-t-frame md:border-x-frame pointer-events-auto mx-auto flex h-[85%] w-full flex-col md:h-[70%]"
         >
           <div
             onPointerDown={(e) => {
@@ -107,7 +107,7 @@ function SearchBody({ onClose }: { onClose: () => void }) {
             </div>
           </div>
 
-          <div className="border-border focus-within:border-foreground shrink-0 border-t-2 px-2.5 pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:px-4 sm:pb-[env(safe-area-inset-bottom)]">
+          <div className="border-border focus-within:border-foreground border-t-frame shrink-0 px-2.5 pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:px-4 sm:pb-[env(safe-area-inset-bottom)]">
             <div className="flex min-h-12 items-center gap-2 pl-2.5">
               <Icon name="search" className="text-muted-foreground shrink-0" />
               <input

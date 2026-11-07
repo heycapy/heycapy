@@ -174,7 +174,7 @@ export function ItemPanelFrame({
             }}
             className={cn(
               "bg-background border-border absolute inset-x-0 bottom-0 flex flex-col",
-              !phone && "max-h-[70vh] border-x-2"
+              !phone && "border-x-frame max-h-[70vh]"
             )}
           >
             <div
@@ -190,10 +190,10 @@ export function ItemPanelFrame({
                 </div>
               )}
               <div className="flex items-center gap-2">
-                <h2 id={headingId} className="font-pixel shrink-0 text-sm">
+                <h2 id={headingId} className="font-display shrink-0 text-sm">
                   {heading}
                 </h2>
-                <span className="min-w-0 flex-1 truncate font-mono text-xs opacity-60">
+                <span className="font-ui min-w-0 flex-1 truncate text-xs opacity-60">
                   {panel.bucketName && `in ${panel.bucketName}`}
                 </span>
                 <TextButton
@@ -219,7 +219,7 @@ export function ItemPanelFrame({
                 {secondary}
               </div>
             </motion.div>
-            <div className="bg-card flex min-h-12 shrink-0 items-start gap-1 border-t-2 border-(--accent) pr-1 pl-2">
+            <div className="bg-card border-t-frame flex min-h-12 shrink-0 items-start gap-1 border-(--accent) pr-1 pl-2">
               <div className="min-w-0 flex-1">{title}</div>
               {confirm}
             </div>
