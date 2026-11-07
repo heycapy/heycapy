@@ -7,6 +7,7 @@ import { APP_NAME, APP_TAGLINE, LOOK } from "@/constants";
 import { getSession } from "@/lib/auth/session";
 import { lookFor } from "@/lib/account/look";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
+import { LookProvider } from "@/components/looks/LookProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -57,7 +58,9 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
       suppressHydrationWarning
     >
       <body className="bg-background text-foreground font-ui h-full pr-[env(safe-area-inset-right)] pl-[env(safe-area-inset-left)]">
-        <ThemeProvider>{children}</ThemeProvider>
+        <LookProvider look={look}>
+          <ThemeProvider>{children}</ThemeProvider>
+        </LookProvider>
       </body>
     </html>
   );

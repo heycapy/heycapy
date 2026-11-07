@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { LOOK } from "@/constants";
+import { LookProvider } from "@/components/looks/LookProvider";
 
 export default function AuthLayout({ children }: { children: ReactNode }) {
   return (
@@ -8,7 +9,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
       data-look={LOOK.original}
       className="bg-background text-foreground flex min-h-svh flex-col"
     >
-      {children}
+      <LookProvider look={LOOK.original}>{children}</LookProvider>
     </div>
   );
 }

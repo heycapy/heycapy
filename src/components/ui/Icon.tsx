@@ -1,19 +1,16 @@
+"use client";
+
 import type { SVGProps } from "react";
-import { PIXEL_ICON_SET, type IconName } from "./icons";
+import { useLookParts } from "@/components/looks/LookProvider";
+import { ICON_SETS } from "./icon-sets";
+import type { IconName } from "./icons";
 
 type IconProps = Omit<SVGProps<SVGSVGElement>, "width" | "height"> & {
   name: IconName;
 };
 
 export function Icon({ name, ...props }: IconProps) {
-  const Svg = PIXEL_ICON_SET.icons[name];
-  return (
-    <Svg
-      width={PIXEL_ICON_SET.size}
-      height={PIXEL_ICON_SET.size}
-      {...PIXEL_ICON_SET.svg}
-      aria-hidden
-      {...props}
-    />
-  );
+  const set = ICON_SETS[useLookParts().iconSet];
+  const Svg = set.icons[name];
+  return <Svg width={set.size} height={set.size} {...set.svg} aria-hidden {...props} />;
 }

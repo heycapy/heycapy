@@ -32,7 +32,8 @@ const eslintConfig = defineConfig([
           patterns: [
             {
               group: ["pixelarticons", "pixelarticons/*", "lucide-react", "lucide-react/*"],
-              message: "Use <Icon name> from @/components/ui/Icon; icon sets live in ui/icons.ts.",
+              message:
+                "Use <Icon name> from @/components/ui/Icon; icon sets live in ui/icon-sets/.",
             },
           ],
         },
@@ -40,7 +41,7 @@ const eslintConfig = defineConfig([
     },
   },
   {
-    files: ["src/components/ui/icons.ts"],
+    files: ["src/components/ui/icon-sets/*.ts"],
     rules: { "no-restricted-imports": "off" },
   },
 ]);

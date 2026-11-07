@@ -1,7 +1,9 @@
 import { test, expect } from "@playwright/test";
 import Database from "better-sqlite3";
 import { authState, specUserEmail } from "../helpers/auth";
+import { createBucket, uniqueName } from "../helpers/buckets";
 import { E2E_DATABASE_FILE } from "../helpers/env";
+import { ICON_SETS } from "@/components/ui/icon-sets";
 
 test.use({ storageState: authState("look") });
 test.describe.configure({ mode: "serial" });
@@ -16,14 +18,19 @@ function setLook(look: string) {
 
 test.afterAll(() => setLook("original"));
 
-test("the page carries the look saved on the account", async ({ page }) => {
+test("the page carries the look saved on the account, icons included", async ({ page }) => {
+  const searchIcon = page.getByRole("button", { name: "search" }).locator("svg");
+
   setLook("original");
   await page.goto("/");
+  await createBucket(page, uniqueName("look"));
   await expect(page.locator("html")).toHaveAttribute("data-look", "original");
+  await expect(searchIcon).toHaveAttribute("width", String(ICON_SETS.pixel.size));
 
   setLook("modern");
   await page.reload();
   await expect(page.locator("html")).toHaveAttribute("data-look", "modern");
+  await expect(searchIcon).toHaveAttribute("width", String(ICON_SETS.line.size));
 });
 
 test("pages before login keep the original look under any account look", async ({ page }) => {

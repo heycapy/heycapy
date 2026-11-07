@@ -49,3 +49,43 @@ export const MODAL_PANEL_SELECTOR = "[data-modal-panel]";
 export const POPOVER_SELECTOR = "[data-popover]";
 // set on a field while its own list is open, so Escape closes the list and not the modal
 export const HANDLES_ESCAPE_SELECTOR = "[data-handles-escape]";
+
+// Every icon set supplies all of these, so swapping sets can never leave a hole
+export const ICON_NAMES = [
+  "archive",
+  "arrow-left",
+  "arrow-up",
+  "bell",
+  "briefcase",
+  "calendar",
+  "chart",
+  "check",
+  "chevron-left",
+  "chevron-right",
+  "clock",
+  "close",
+  "collapse",
+  "credit-card",
+  "expand",
+  "eye",
+  "eye-off",
+  "grip",
+  "list",
+  "logout",
+  "map",
+  "megaphone",
+  "message",
+  "mic",
+  "minus",
+  "more",
+  "package",
+  "pencil",
+  "plus",
+  "reload",
+  "search",
+  "sliders",
+  "square",
+  "trash",
+  "user-plus",
+  "warning",
+] as const;
