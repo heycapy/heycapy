@@ -52,6 +52,34 @@ test("keyboard focus shows the look's ring", async ({ page }) => {
   expect(await outline()).toEqual(["solid", "2px"]);
 });
 
+test("the look is picked in tweaks and stays picked", async ({ page }) => {
+  const html = page.locator("html");
+  const searchIcon = page.getByRole("button", { name: "search" }).locator("svg");
+
+  setLook("original");
+  await page.goto("/");
+  await page.getByRole("button", { name: "your menu", exact: true }).click();
+  await page.getByRole("button", { name: "tweaks", exact: true }).click();
+  const tweaks = page.getByRole("dialog", { name: "tweaks" });
+
+  await tweaks.getByRole("button", { name: "modern", exact: true }).click();
+  await expect(html).toHaveAttribute("data-look", "modern");
+  await expect(searchIcon).toHaveAttribute("width", String(ICON_SETS.line.size));
+  await expect(tweaks.getByRole("button", { name: "modern", exact: true })).toHaveAttribute(
+    "aria-pressed",
+    "true"
+  );
+
+  await page.reload();
+  await expect(html).toHaveAttribute("data-look", "modern");
+
+  await page.getByRole("button", { name: "your menu", exact: true }).click();
+  await page.getByRole("button", { name: "tweaks", exact: true }).click();
+  await tweaks.getByRole("button", { name: "original", exact: true }).click();
+  await expect(html).toHaveAttribute("data-look", "original");
+  await expect(searchIcon).toHaveAttribute("width", String(ICON_SETS.pixel.size));
+});
+
 test("pages before login keep the original look under any account look", async ({ page }) => {
   setLook("modern");
   await page.goto("/join/NOTACODE");

@@ -1,4 +1,5 @@
-import { GEMINI_DEFAULT_MODEL, type TranscriptionProvider } from "@/constants";
+import { GEMINI_DEFAULT_MODEL, LOOK, type TranscriptionProvider } from "@/constants";
+import type { Look } from "@/components/looks/constants";
 
 export const LABEL = "text-foreground font-ui text-xs font-medium";
 export const HINT = "text-muted-foreground font-ui text-2xs leading-tight";
@@ -50,6 +51,11 @@ export type AISource = "heycapy" | "own";
 export const AI_SOURCE_OPTIONS: { value: AISource; label: string }[] = [
   { value: "heycapy", label: "heycapy ai" },
   { value: "own", label: "your own key" },
+];
+
+export const LOOK_OPTIONS: { value: Look; label: string }[] = [
+  { value: LOOK.original, label: "original" },
+  { value: LOOK.modern, label: "modern" },
 ];
 
 export const TONE_OPTIONS: { value: UserTone; label: string }[] = [

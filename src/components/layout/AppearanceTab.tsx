@@ -2,6 +2,7 @@ import { cn } from "@/lib/utils";
 import { charCountColor } from "@/components/ui/input";
 import { LABEL, INPUT, THEMES } from "./settings-constants";
 import { TIMEZONE_MAX_LENGTH } from "@/constants";
+import { LookPicker } from "./LookPicker";
 
 type AppearanceTabProps = {
   theme: string | undefined;
@@ -20,6 +21,7 @@ export function AppearanceTab({
 }: AppearanceTabProps) {
   return (
     <>
+      <LookPicker />
       <div className="flex flex-col gap-1.5">
         <label className={LABEL}>theme</label>
         <div className="grid grid-cols-3 gap-2">
