@@ -2,7 +2,6 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { TextButton } from "@/components/ui/TextButton";
 import { Modal, ModalHeader } from "@/components/ui/Modal";
-import { BetaTag } from "@/components/ui/BetaTag";
 import { ACCENT_BUTTONS } from "@/components/layout/settings-constants";
 import { cn } from "@/lib/utils";
 import { joinBucketAction } from "@/app/(app)/actions";
@@ -53,15 +52,7 @@ export function JoinBucketDialog({ open, onClose }: JoinBucketDialogProps) {
           ACCENT_BUTTONS
         )}
       >
-        <ModalHeader
-          title={
-            <>
-              join a bucket
-              <BetaTag feature="sharing" />
-            </>
-          }
-          onClose={close}
-        />
+        <ModalHeader title="join a bucket" onClose={close} />
         <div className="flex flex-col gap-3 px-4 py-4">
           <p className="text-muted-foreground font-ui text-2xs leading-tight">
             type the code someone sent you, or just open their link.

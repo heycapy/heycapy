@@ -5,7 +5,6 @@ import { cn, toggled } from "@/lib/utils";
 import { charCountColor } from "@/components/ui/input";
 import { TextButton } from "@/components/ui/TextButton";
 import { ModalHeader } from "@/components/ui/Modal";
-import { BetaTag } from "@/components/ui/BetaTag";
 import { BucketRulesFields } from "./BucketRulesFields";
 import { ViewOnlyNotice } from "./ViewOnlyNotice";
 import { MyChannelsPicker, type NotifAvailability } from "./MyChannelsPicker";
@@ -193,8 +192,6 @@ export function BucketSettingsForm({
           {tabs.map((t) => (
             <Tab key={t} active={tab === t} onClick={() => setTab(t)} className="py-1">
               {t}
-              {/* the tab row is just wide enough for the four names on a phone */}
-              {t === "members" && <BetaTag feature="sharing" className="hidden sm:inline" />}
             </Tab>
           ))}
         </div>

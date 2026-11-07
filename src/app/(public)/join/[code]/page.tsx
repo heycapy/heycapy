@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { getSession } from "@/lib/auth/session";
 import { Sprite } from "@/components/capy/Sprite";
-import { BetaTag } from "@/components/ui/BetaTag";
 import { ConfirmJoin } from "./ConfirmJoin";
 
 export const metadata: Metadata = {
@@ -23,10 +22,7 @@ export default async function JoinPage({ params }: { params: Promise<{ code: str
           <Sprite id="capy-idle-blink" size={96} />
           <h1 className="font-display text-sm">heycapy</h1>
         </div>
-        <p className="font-ui text-xs">
-          someone invited you to share a bucket
-          <BetaTag feature="sharing" />
-        </p>
+        <p className="font-ui text-xs">someone invited you to share a bucket</p>
         {session ? (
           <ConfirmJoin code={code} />
         ) : (
