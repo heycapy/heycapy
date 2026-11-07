@@ -70,7 +70,7 @@ function SearchBody({ onClose }: { onClose: () => void }) {
             if (info.offset.y > SHEET_CLOSE_DRAG_PX || info.velocity.y > SHEET_CLOSE_DRAG_VELOCITY)
               onClose();
           }}
-          className="border-border bg-background md:max-w-column border-t-frame md:border-x-frame pointer-events-auto mx-auto flex h-[85%] w-full flex-col md:h-[70%]"
+          className="border-border bg-background md:max-w-column rounded-t-panel border-t-frame md:border-x-frame pointer-events-auto mx-auto flex h-[85%] w-full flex-col overflow-hidden md:h-[70%]"
         >
           <div
             onPointerDown={(e) => {

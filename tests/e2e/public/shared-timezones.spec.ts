@@ -8,6 +8,8 @@ import {
   itemRow,
   newItemForm,
   uniqueName,
+  openDetail,
+  detailChip,
 } from "../helpers/buckets";
 import { login, uniqueEmail } from "../helpers/login";
 import { giveOwnSmtp } from "../helpers/email";
@@ -93,7 +95,7 @@ test("a bucket on one clock doesn't mention clocks in its rules", async ({ page 
   await addItemButton(page).click();
   const dialog = newItemForm(page);
   await dialog.locator("textarea").fill("water the plants tomorrow 9am");
-  await expect(dialog.getByRole("button", { name: "9 am" })).toBeVisible();
+  await expect(detailChip(dialog, "date")).toHaveAccessibleName(/ · 9 am$/);
   await expect(dialog.getByRole("group", { name: "time on" })).toHaveCount(0);
 });
 
@@ -114,6 +116,7 @@ test("a timed item shows the time on the other clock that matters", async ({ pag
 
   await itemRow(page, title).click();
   const picker = editForm(page);
+  await openDetail(picker, "assignee");
   await expect(picker.getByRole("button", { name: /\(you\)\s*India$/ })).toBeVisible();
   await expect(picker.getByRole("button", { name: /\sUK · no reminders set up$/ })).toBeVisible();
   await london.close();
@@ -154,7 +157,10 @@ test("a time for someone on another clock is set on theirs, unless picked by han
 
   const dialog = newItemForm(page);
   const clocks = dialog.getByRole("group", { name: "time on" });
-  const assignTo = (name: RegExp) => dialog.getByRole("button", { name }).click();
+  const assignTo = async (name: RegExp) => {
+    await openDetail(dialog, "assignee");
+    await dialog.getByRole("button", { name }).click();
+  };
 
   const forSam = `call the bank ${Date.now()}`;
   await addItemButton(page).click();
@@ -165,7 +171,7 @@ test("a time for someone on another clock is set on theirs, unless picked by han
   );
   await assignTo(/\sUK( · no reminders set up)?$/);
   await expect(clocks.getByRole("button", { name: "UK" })).toHaveAttribute("aria-pressed", "true");
-  await expect(dialog.getByRole("button", { name: "9 am" })).toBeVisible();
+  await expect(detailChip(dialog, "date")).toHaveAccessibleName(/ · 9 am$/);
   await dialog.getByRole("button", { name: "[ add ]", exact: true }).click();
   await expect(itemRow(page, forSam)).toBeVisible();
   const sams = savedDeadline(forSam);
@@ -187,7 +193,7 @@ test("a time for someone on another clock is set on theirs, unless picked by han
     "aria-pressed",
     "true"
   );
-  await expect(dialog.getByRole("button", { name: "9 am" })).toBeVisible();
+  await expect(detailChip(dialog, "date")).toHaveAccessibleName(/ · 9 am$/);
   await dialog.getByRole("button", { name: "[ add ]", exact: true }).click();
   await expect(itemRow(page, onIndia)).toBeVisible();
   const indias = savedDeadline(onIndia);
@@ -224,6 +230,7 @@ test("the time field shows everyone's time and warns softly about their nights",
     /^⚠ at night for (\S+) · \1's quiet hours hold the reminder until after it's due$/
   );
 
+  await openDetail(dialog, "assignee");
   await dialog.getByRole("button", { name: /\sUK( · no reminders set up)?$/ }).click();
   await expect(preview).toHaveText(/^9am for \S+ · \d{1,2}:30pm for you$/);
   await expect(dialog.getByRole("status")).toHaveCount(0);

@@ -225,3 +225,13 @@ export const ADD_BOX_EXAMPLES_SHORT = [
   "cat: fill bowl by 6pm",
   "cat: big box friday",
 ];
+
+export const ITEM_DETAIL_PANELS = [
+  "date",
+  "repeat",
+  "reminders",
+  "assignee",
+  "status",
+  "more",
+] as const;
+export type ItemDetailPanel = (typeof ITEM_DETAIL_PANELS)[number];

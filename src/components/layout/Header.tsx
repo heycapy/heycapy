@@ -7,7 +7,8 @@ import { clearSignedInState } from "@/store/signedOut";
 import { Modal, ModalTitle } from "@/components/ui/Modal";
 import { cn } from "@/lib/utils";
 import { PersonAvatar } from "@/components/avatar/PersonAvatar";
-import { MenuItem } from "@/components/ui/MenuItem";
+import { MenuItem, MenuSeparator } from "@/components/ui/MenuItem";
+import { MENU_SURFACE } from "@/components/ui/constants";
 
 type HeaderProps = {
   email: string;
@@ -161,16 +162,20 @@ function GlobalMenu({
           <>
             <div className="fixed inset-0 z-30" onClick={() => setOpen(false)} />
             <div
-              className="bg-background border-border rounded-panel border-frame shadow-raised-sm fixed z-40 w-max max-w-[calc(100vw-2rem)] min-w-44 py-1 whitespace-nowrap"
+              className={cn(
+                MENU_SURFACE,
+                "fixed z-40 w-max max-w-[calc(100vw-2rem)] min-w-44 py-1 whitespace-nowrap"
+              )}
               style={{
                 top: pos.top,
                 left: pos.left,
                 transform: "translateX(-100%)",
               }}
             >
-              <div className="text-muted-foreground border-border font-ui mb-1 max-w-64 truncate border-b px-3 pt-0.5 pb-1.5 text-xs">
+              <div className="text-muted-foreground font-ui max-w-64 truncate px-3 pt-0.5 pb-1.5 text-xs">
                 {email}
               </div>
+              <MenuSeparator className="mt-0" />
               <MenuItem onClick={() => pick(onSettings)} className="gap-2.5 py-2">
                 <Icon name="sliders" />
                 tweaks
@@ -208,7 +213,7 @@ function GlobalMenu({
                 getting started
                 <span className="text-muted-foreground">{guideProgress}</span>
               </MenuItem>
-              <div className="border-border my-1 border-t" />
+              <MenuSeparator />
               <MenuItem
                 tone="destructive"
                 onClick={() => pick(() => setConfirmLogout("here"))}

@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
+import { openNotificationSection } from "../helpers/settings";
 import { authState } from "../helpers/auth";
 
 test.use({ storageState: authState("push") });
@@ -8,6 +9,7 @@ async function openPushSettings(page: Page) {
   await page.getByRole("button", { name: "your menu", exact: true }).click();
   await page.getByRole("button", { name: "tweaks" }).click();
   await page.getByRole("button", { name: "notifications", exact: true }).click();
+  await openNotificationSection(page, "push");
   return page
     .locator("div")
     .filter({ has: page.getByText("push", { exact: true }) })

@@ -65,8 +65,8 @@
   --chip-padding: 0 0.25rem;
   --chip-weight: inherit;
   --button-accent: var(--primary);
-  --tab-active-bg: var(--foreground);
-  --tab-active-fg: var(--background);
+  --selected-bg: var(--foreground);
+  --selected-fg: var(--background);
   --control-h: auto;
   --section-case: uppercase;
   --section-tracking: 0.1em;
@@ -75,6 +75,14 @@
   --box-space: 0px;
   --toast-close-text: "[x]";
   --toast-close-icon: none;
+  --dock-inset: 0px;
+  --dock-border: 0 0 0 var(--frame-width);
+  --dock-radius: 0px;
+  --side-shadow: none;
+  --menu-inset: 0px;
+  --menu-row-divider: 1px;
+  --bar-button-h: 3rem;
+  --bar-button-px: 0.25rem;
 }
 
 [data-look="modern"] {
@@ -93,15 +101,15 @@
   --raised-shadow: 0 1px 2px rgb(0 0 0 / 0.06), 0 4px 12px rgb(0 0 0 / 0.05);
   --raised-shadow-md: 0 2px 4px rgb(0 0 0 / 0.06), 0 8px 24px rgb(0 0 0 / 0.07);
   --raised-shadow-lg: 0 4px 8px rgb(0 0 0 / 0.06), 0 16px 40px rgb(0 0 0 / 0.1);
-  --edge-shadow: -8px 0 24px rgb(0 0 0 / 0.08);
+  --edge-shadow: var(--raised-shadow-lg);
   --divider-style: solid;
   --rule-style: solid;
   --chip-radius: 9999px;
   --chip-padding: 1px 0.5rem;
   --chip-weight: 600;
   --button-accent: var(--foreground);
-  --tab-active-bg: var(--muted);
-  --tab-active-fg: var(--foreground);
+  --selected-bg: var(--muted);
+  --selected-fg: var(--foreground);
   --control-h: 2.5rem;
   --section-case: none;
   --section-tracking: normal;
@@ -110,6 +118,14 @@
   --box-space: 1rem;
   --toast-close-text: none;
   --toast-close-icon: block;
+  --dock-inset: 0.5rem;
+  --dock-border: var(--frame-width);
+  --dock-radius: var(--panel-radius);
+  --side-shadow: var(--raised-shadow-lg);
+  --menu-inset: 0.25rem;
+  --menu-row-divider: 0px;
+  --bar-button-h: var(--control-h);
+  --bar-button-px: 0.75rem;
 }
 
 @media (width >= 48rem) {
@@ -162,6 +178,20 @@
 
 .box + .box {
   margin-top: var(--box-space);
+}
+
+@utility dock {
+  top: var(--dock-inset);
+  right: var(--dock-inset);
+  bottom: var(--dock-inset);
+  border-width: var(--dock-border);
+  border-radius: var(--dock-radius);
+  overflow: hidden;
+}
+
+@utility bar-button {
+  height: var(--bar-button-h);
+  padding-inline: var(--bar-button-px);
 }
 
 @utility chip {

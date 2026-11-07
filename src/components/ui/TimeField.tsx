@@ -16,6 +16,11 @@ const LABEL = "text-muted-foreground font-ui text-2xs";
 
 export type TimeValue = { hour: string; min: string; ampm: Ampm };
 
+export function timeLabel({ hour, min, ampm }: TimeValue): string {
+  if (!hour) return "all day";
+  return min === "00" ? `${hour} ${ampm}` : `${hour}:${min} ${ampm}`;
+}
+
 type TimeFieldProps = {
   value: TimeValue;
   onChange: (value: TimeValue) => void;
@@ -58,7 +63,7 @@ export function TimeField({ value, onChange, disabled, allowAllDay = false }: Ti
   const [typedInvalid, setTypedInvalid] = useState(false);
   const minutes = QUARTERS.includes(min) ? QUARTERS : [...QUARTERS, min].sort();
   const allDay = !hour;
-  const display = allDay ? "all day" : min === "00" ? `${hour} ${ampm}` : `${hour}:${min} ${ampm}`;
+  const display = timeLabel(value);
 
   function applyTyped() {
     const parsed = parseTimeInput(typed);

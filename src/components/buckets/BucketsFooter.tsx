@@ -58,7 +58,7 @@ export function BucketsFooter({
           onClick={() => setChatState(chatOpen ? "closed" : "open")}
           aria-label="chat with capy"
           aria-expanded={chatOpen}
-          className={cn("h-12 max-w-32 shrink-0 px-1", chatOpen && "text-foreground")}
+          className={cn("bar-button max-w-32 shrink-0", chatOpen && "text-foreground")}
         >
           <span className="truncate">{assistantName}</span>
         </TextButton>

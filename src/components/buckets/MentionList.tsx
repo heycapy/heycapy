@@ -14,7 +14,7 @@ export function MentionList({ options, highlighted, onPick, onHover }: MentionLi
     <ul
       role="listbox"
       aria-label="assign to"
-      className="border-border divide-border divide-y border"
+      className="border-border divide-border rounded-control divide-y-(length:--menu-row-divider) border p-(--menu-inset)"
     >
       {options.map((option, index) => (
         <li
@@ -28,8 +28,8 @@ export function MentionList({ options, highlighted, onPick, onHover }: MentionLi
           }}
           onPointerMove={() => onHover(index)}
           className={cn(
-            "font-ui flex cursor-pointer items-center px-3 py-1.5 text-xs",
-            index === highlighted ? "bg-foreground text-background" : "text-foreground"
+            "rounded-control font-ui flex cursor-pointer items-center px-3 py-1.5 text-xs",
+            index === highlighted ? "bg-(--selected-bg) text-(--selected-fg)" : "text-foreground"
           )}
         >
           <span className="flex min-w-0 items-center gap-1.5">

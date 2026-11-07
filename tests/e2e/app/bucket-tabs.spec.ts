@@ -36,7 +36,7 @@ test("today and every bucket are tabs; the active one has the gear", async ({ pa
   await expect(bucketTab(page, second)).not.toHaveAttribute("aria-current");
 
   await gear(page).click();
-  await expect(settingsDialog(page)).toContainText(`bucket settings [${first}]`);
+  await expect(settingsDialog(page)).toContainText(`bucket settings ${first}`);
   await page.keyboard.press("Escape");
   await expect(settingsDialog(page)).toBeHidden();
 

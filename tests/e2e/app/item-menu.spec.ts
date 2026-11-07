@@ -11,6 +11,7 @@ import {
   openItemMenu,
   selectBucket,
   uniqueName,
+  openDetail,
 } from "../helpers/buckets";
 import { field, openSettings, option, saveSettings } from "../helpers/settings";
 
@@ -107,6 +108,7 @@ test("a repeating item moves only this time: the next one stays on schedule", as
 
   await itemRow(page, title).click();
   const dialog = editForm(page);
+  await openDetail(dialog, "repeat");
   await dialog.getByRole("button", { name: "on", exact: true }).click();
   await dialog.getByRole("button", { name: "week", exact: true }).click();
   await dialog.getByRole("button", { name: "[ update ]", exact: true }).click();

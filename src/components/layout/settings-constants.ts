@@ -53,6 +53,16 @@ export const AI_SOURCE_OPTIONS: { value: AISource; label: string }[] = [
   { value: "own", label: "your own key" },
 ];
 
+export const NOTIFICATION_SECTIONS = [
+  "reminders",
+  "email",
+  "push",
+  "ntfy",
+  "telegram",
+  "other apps",
+] as const;
+export type NotificationSection = (typeof NOTIFICATION_SECTIONS)[number];
+
 export const LOOK_OPTIONS: { value: Look; label: string }[] = [
   { value: LOOK.original, label: "original" },
   { value: LOOK.modern, label: "modern" },

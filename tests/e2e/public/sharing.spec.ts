@@ -1,17 +1,25 @@
 import { test, expect, type Locator, type Page } from "@playwright/test";
 import Database from "better-sqlite3";
 import { E2E_DATABASE_FILE } from "../helpers/env";
-import { addItem, editForm, itemRow, newItemForm, openItemMenu } from "../helpers/buckets";
+import {
+  addItem,
+  detailChip,
+  editForm,
+  itemRow,
+  newItemForm,
+  openDetail,
+  openItemMenu,
+} from "../helpers/buckets";
 import { login, uniqueEmail, uniqueUsername } from "../helpers/login";
 import { giveOwnSmtp } from "../helpers/email";
 import {
   closeDialog,
   expectSelected,
   field,
-  modal,
   openSettings as openSettingsDialog,
   option,
   saveSettings,
+  settingsDialog,
   switchTab,
 } from "../helpers/settings";
 
@@ -331,6 +339,7 @@ test("an item can be assigned to a member, and a bucket nobody shares has no suc
   await page.getByRole("button", { name: "add with details", exact: true }).click();
   const dialog = newItemForm(page);
   await dialog.locator("textarea").fill(title);
+  await openDetail(dialog, "assignee");
   await dialog.getByRole("button", { name: sam, exact: true }).click();
   await dialog.getByRole("button", { name: "[ add ]", exact: true }).click();
   await expect(itemRow(page, title)).toContainText(`→ ${sam}`);
@@ -348,6 +357,7 @@ test("an item can be assigned to a member, and a bucket nobody shares has no suc
   await expect(itemRow(friend, title)).toContainText("→ you");
   await itemRow(friend, title).click();
   const edit = editForm(friend);
+  await openDetail(edit, "assignee");
   await edit.getByRole("button", { name: "anyone", exact: true }).click();
   await edit.getByRole("button", { name: "[ update ]", exact: true }).click();
   await expect(edit).not.toBeVisible();
@@ -383,6 +393,7 @@ test("a shared item's assignee can be changed when it's edited from today or sea
   await page.getByRole("button", { name: "today", exact: true }).click();
   await itemRow(page, title).click();
   const fromToday = editForm(page);
+  await openDetail(fromToday, "assignee");
   await fromToday.getByRole("button", { name: sam, exact: true }).click();
   await fromToday.getByRole("button", { name: "[ update ]", exact: true }).click();
   await expect(fromToday).not.toBeVisible();
@@ -396,6 +407,7 @@ test("a shared item's assignee can be changed when it's edited from today or sea
   await search.getByRole("textbox", { name: "search all items" }).fill(title);
   await search.getByRole("button", { name: title }).click();
   const fromSearch = editForm(page);
+  await openDetail(fromSearch, "assignee");
   await fromSearch.getByRole("button", { name: "anyone", exact: true }).click();
   await fromSearch.getByRole("button", { name: "[ update ]", exact: true }).click();
   await expect(fromSearch).not.toBeVisible();
@@ -565,10 +577,7 @@ test("typing @ in the title picks a member in a shared bucket, and does nothing 
   await expect(dialog.getByRole("option", { name: new RegExp(`^${sam}`) })).toBeVisible();
   await title.press("Enter");
   await expect(title).toHaveValue("buy oat milk");
-  await expect(dialog.getByRole("button", { name: new RegExp(`^${sam}`) })).toHaveAttribute(
-    "aria-pressed",
-    "true"
-  );
+  await expect(detailChip(dialog, "assignee")).toHaveAccessibleName(`assignee: ${sam}`);
   await dialog.getByRole("button", { name: "[ add ]", exact: true }).click();
   await expect(itemRow(page, "buy oat milk")).toContainText(`→ ${sam}`);
 
@@ -582,10 +591,7 @@ test("typing @ in the title picks a member in a shared bucket, and does nothing 
   );
   await dialog.getByRole("option", { name: new RegExp(`^${sam}`) }).click();
   await expect(title).toHaveValue("water the plants");
-  await expect(dialog.getByRole("button", { name: new RegExp(`^${sam}`) })).toHaveAttribute(
-    "aria-pressed",
-    "true"
-  );
+  await expect(detailChip(dialog, "assignee")).toHaveAccessibleName(`assignee: ${sam}`);
 });
 
 test("people see each other's avatars next to their names, a generated one if never drawn", async ({
@@ -613,10 +619,11 @@ test("people see each other's avatars next to their names, a generated one if ne
   await expect(rows).toHaveCount(2);
   await expect(rows.nth(0).locator('svg[width="32"] rect')).not.toHaveCount(0);
   await expect(sams(rows.nth(1))).toHaveAttribute("width", "32");
-  await closeDialog(modal(page, /^bucket settings \[/));
+  await closeDialog(settingsDialog(page));
 
   await page.getByRole("button", { name: "add with details", exact: true }).click();
   const dialog = newItemForm(page);
+  await openDetail(dialog, "assignee");
   await expect(sams(dialog.getByRole("button", { name: sam, exact: true }))).toHaveAttribute(
     "width",
     "16"

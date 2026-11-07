@@ -14,7 +14,7 @@ import type { ReminderBadge } from "@/lib/reminders/status";
 import { ItemReminderInfo } from "./ItemReminderInfo";
 import { AssignChips, AssignList } from "./ItemMenuAssign";
 import type { ItemMenuProps } from "./ItemMenu";
-import { MenuItem } from "@/components/ui/MenuItem";
+import { MenuItem, MenuSection } from "@/components/ui/MenuItem";
 
 type View = "main" | "date" | "people" | "reminders";
 
@@ -68,7 +68,6 @@ export function MenuBody({
   const recurring = parseRecurring(item.recurring);
   const repeat = recurring?.enabled && item.deadline ? repeatLabel(recurring) : null;
   const current = item.deadline ? itemDeadline(item.deadline, item.deadlineTimezone).at : null;
-  const section = "border-border border-t border-rule py-1";
 
   function run(action: () => void) {
     onClose();
@@ -125,53 +124,53 @@ export function MenuBody({
       </div>
 
       {view !== "main" && (
-        <div className={cn(section, "flex items-center gap-2 px-3")}>
+        <MenuSection className="flex items-center gap-2 px-3">
           <TextButton onClick={() => setView("main")} className="py-1.5">
             back
           </TextButton>
           <span className="text-muted-foreground font-ui text-xs">{VIEW_LABEL[view]}</span>
-        </div>
+        </MenuSection>
       )}
 
       {view === "date" && (
-        <div className={cn(section, "px-3 pt-1 pb-3")}>
+        <MenuSection className="px-3 pt-1 pb-3">
           <Calendar
             value={current ? deadlineDate(current.toISOString()) : ""}
             onSelect={(date) => void move(deadlineOn(date, current))}
           />
-        </div>
+        </MenuSection>
       )}
 
       {view === "people" && assign && (
-        <div className={section}>
+        <MenuSection>
           <AssignList
             members={assign.members}
             assigneeId={assigneeId}
             busy={assigning}
             onAssign={(userId) => void assignTo(userId)}
           />
-        </div>
+        </MenuSection>
       )}
 
       {view === "reminders" && (
-        <div className={cn(section, "max-h-[50dvh] overflow-y-auto overscroll-contain px-3 py-2")}>
+        <MenuSection className="max-h-[50dvh] overflow-y-auto overscroll-contain px-3 py-2">
           <ItemReminderInfo itemId={item.id} />
-        </div>
+        </MenuSection>
       )}
 
       {view === "main" && (
         <>
           {!readonly && (
-            <div className={section}>
+            <MenuSection>
               <MenuButton onClick={() => run(onComplete)}>
                 <span className="text-foreground">{completeLabel}</span>
                 <SwipeHint>swipe →</SwipeHint>
               </MenuButton>
-            </div>
+            </MenuSection>
           )}
 
           {!readonly && (
-            <div className={section}>
+            <MenuSection>
               {quickDates(current).map((option) => {
                 const day = formatWeekdayDate(option.at);
                 const time = option.allDay ? "all day" : clockTime(option.at);
@@ -192,11 +191,11 @@ export function MenuBody({
                 <span className="text-foreground flex-1">pick a date…</span>
                 <Icon name="chevron-right" className="text-muted-foreground" />
               </MenuButton>
-            </div>
+            </MenuSection>
           )}
 
           {!readonly && assign && (
-            <div className={section}>
+            <MenuSection>
               <AssignChips
                 members={assign.members}
                 assigneeId={assigneeId}
@@ -204,11 +203,11 @@ export function MenuBody({
                 onAssign={(userId) => void assignTo(userId)}
                 onMore={() => setView("people")}
               />
-            </div>
+            </MenuSection>
           )}
 
           {!readonly && (
-            <div className={section}>
+            <MenuSection>
               <MenuButton onClick={() => setView("reminders")}>
                 <span className="text-foreground flex-1">reminders</span>
                 <span className="text-muted-foreground">
@@ -216,22 +215,22 @@ export function MenuBody({
                 </span>
                 <Icon name="chevron-right" className="text-muted-foreground" />
               </MenuButton>
-            </div>
+            </MenuSection>
           )}
 
-          <div className={section}>
+          <MenuSection>
             <MenuButton onClick={() => void copyTitle()}>
               <span className="text-foreground">copy title</span>
             </MenuButton>
-          </div>
+          </MenuSection>
 
           {!readonly && (
-            <div className={section}>
+            <MenuSection>
               <MenuButton onClick={() => run(onDelete)} tone="destructive">
                 delete
                 <SwipeHint>← swipe</SwipeHint>
               </MenuButton>
-            </div>
+            </MenuSection>
           )}
         </>
       )}

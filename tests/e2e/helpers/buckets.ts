@@ -114,3 +114,15 @@ export async function untilStill(page: Page, target: Locator): Promise<void> {
     })
     .toBe(true);
 }
+
+export function detailChip(form: Locator, name: string) {
+  return form
+    .getByRole("group", { name: "item details" })
+    .getByRole("button", { name: new RegExp(`^${name}(:|$)`) });
+}
+
+export async function openDetail(form: Locator, name: string): Promise<void> {
+  const chip = detailChip(form, name);
+  if ((await chip.getAttribute("aria-expanded")) !== "true") await chip.click();
+  await expect(chip).toHaveAttribute("aria-expanded", "true");
+}

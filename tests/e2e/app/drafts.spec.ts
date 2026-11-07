@@ -11,6 +11,8 @@ import {
   selectBucket,
   uniqueName,
   untilStill,
+  openDetail,
+  detailChip,
 } from "../helpers/buckets";
 
 test.use({ storageState: authState("drafts") });
@@ -62,9 +64,9 @@ test("a date picked in the form stays with the draft and wins over typed words",
   await addBox(page).fill(title);
   await addItemButton(page).click();
   const dialog = newItemForm(page);
-  await dialog.getByRole("button", { name: "pick date" }).click();
+  await openDetail(dialog, "date");
   await page.getByRole("button", { name: "20", exact: true }).click();
-  await expect(dialog.getByRole("button", { name: "Oct 20", exact: true })).toBeVisible();
+  await expect(detailChip(dialog, "date")).toHaveAccessibleName(/^date: Oct 20 · /);
   await dialog.getByRole("button", { name: "[ x ]", exact: true }).click();
   await expect(dialog).toBeHidden();
 
@@ -74,7 +76,7 @@ test("a date picked in the form stays with the draft and wins over typed words",
   await expect(hint).toContainText("Oct 20");
 
   await addItemButton(page).click();
-  await expect(dialog.getByRole("button", { name: "Oct 20", exact: true })).toBeVisible();
+  await expect(detailChip(dialog, "date")).toHaveAccessibleName(/^date: Oct 20 · /);
   await expect(dialog.getByTestId("title-date-highlight")).toHaveCount(0);
   await dialog.getByRole("button", { name: "[ x ]", exact: true }).click();
 
@@ -128,7 +130,7 @@ test("on a wide screen the form grows out of the add box and folds back on a cli
     .toEqual([box?.x, (capy?.x ?? 0) + (capy?.width ?? 0), (box?.y ?? 0) + (box?.height ?? 0)]);
   await expect(form.getByText("status", { exact: true })).toHaveCount(0);
   const titleBox = await title.boundingBox();
-  const whenBox = await form.getByRole("button", { name: "pick date" }).boundingBox();
+  const whenBox = await detailChip(form, "date").boundingBox();
   expect(titleBox?.y).toBeGreaterThan(whenBox?.y ?? Infinity);
 
   await itemRow(page, kept).click();
@@ -136,7 +138,7 @@ test("on a wide screen the form grows out of the add box and folds back on a cli
   await expect(editForm(page)).toBeHidden();
   await itemRow(page, kept).click();
   await expect(editForm(page)).toBeVisible();
-  await expect(editForm(page).getByText("status", { exact: true })).toBeVisible();
+  await expect(detailChip(editForm(page), "status")).toBeVisible();
   await page.keyboard.press("Escape");
 
   await addItemButton(page).click();
@@ -161,6 +163,7 @@ test("in the panel a typed date is undone on the title row, and turning repeat o
   await expect(form.getByText(/^due /)).toHaveCount(0);
   await expect(form.getByRole("button", { name: "not a date" })).toBeVisible();
 
+  await openDetail(form, "repeat");
   await form.getByRole("button", { name: "on", exact: true }).click();
   await expect(form.getByText("every", { exact: true })).toBeInViewport({ ratio: 1 });
 });
@@ -200,7 +203,7 @@ test("editing opens the same panel from the footer, and closing gives focus back
   const edit = editForm(page);
   await expect(edit).toContainText(`in ${bucket}`);
   await expect(edit.locator("textarea").first()).toHaveValue(title);
-  await expect(edit.getByText("status", { exact: true })).toBeVisible();
+  await expect(detailChip(edit, "status")).toBeVisible();
   await expect(edit.getByRole("button", { name: "delete item" })).toBeVisible();
   await expect
     .poll(async () => {
@@ -221,7 +224,7 @@ test("Ctrl/Cmd+Enter adds or saves from any field of the form", async ({ page })
   await addBox(page).fill(title);
   await addItemButton(page).click();
   const form = newItemForm(page);
-  await form.getByRole("button", { name: "pick date" }).focus();
+  await detailChip(form, "date").focus();
   await page.keyboard.press("ControlOrMeta+Enter");
   await expect(form).toBeHidden();
   await expect(itemRow(page, title)).toBeVisible();
@@ -230,7 +233,7 @@ test("Ctrl/Cmd+Enter adds or saves from any field of the form", async ({ page })
   await itemRow(page, title).click();
   const edit = editForm(page);
   await edit.locator("textarea").first().fill(`${title} today`);
-  await edit.getByRole("button", { name: "completed", exact: true }).focus();
+  await detailChip(edit, "status").focus();
   await page.keyboard.press("ControlOrMeta+Enter");
   await expect(edit).toBeHidden();
   await expect(itemRow(page, `${title} today`)).toBeVisible();
@@ -328,7 +331,7 @@ test("the form's height follows a section opening in it, instead of jumping", as
       requestAnimationFrame(sample);
     });
   });
-  await form.getByRole("button", { name: "on", exact: true }).click();
+  await detailChip(form, "date").click();
   const seen = await heights;
   const after = seen[seen.length - 1] ?? 0;
 

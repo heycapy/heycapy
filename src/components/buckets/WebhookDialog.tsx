@@ -21,7 +21,7 @@ export function WebhookDialog({ open, bucket, onClose }: WebhookDialogProps) {
           ACCENT_BUTTONS
         )}
       >
-        <ModalHeader title={`webhook [${bucket.name}]`} onClose={onClose} />
+        <ModalHeader title="webhook" context={bucket.name} onClose={onClose} />
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4">
           <WebhookPanel bucket={bucket} />
         </div>

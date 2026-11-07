@@ -6,6 +6,7 @@ import type { BucketMember } from "@/lib/buckets/members";
 import { MENU_GAP, SCREEN_MARGIN } from "./constants";
 import { MenuBody } from "./ItemMenuBody";
 import { cn } from "@/lib/utils";
+import { MENU_SURFACE } from "@/components/ui/constants";
 
 type Item = typeof items.$inferSelect;
 
@@ -100,7 +101,8 @@ export function ItemMenu({ at, onClose, ...props }: ItemMenuProps) {
         data-popover
         tabIndex={-1}
         className={cn(
-          "bg-background border-border rounded-panel border-frame shadow-raised-sm z-[57] max-h-[calc(100dvh-16px)] w-80 max-w-[calc(100vw-16px)] overflow-y-auto outline-none",
+          MENU_SURFACE,
+          "z-[57] max-h-[calc(100dvh-16px)] w-80 max-w-[calc(100vw-16px)] overflow-y-auto outline-none",
           at.within ? "pointer-events-auto absolute" : "fixed"
         )}
         style={{

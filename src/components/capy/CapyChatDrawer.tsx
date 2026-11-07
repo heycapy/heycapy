@@ -15,7 +15,7 @@ export function CapyChatDrawer({ open, header, children, onClose }: CapyChatDraw
         <Drawer.Overlay className="fixed inset-0 z-50 bg-black/30" />
         <Drawer.Content
           aria-describedby={undefined}
-          className="border-border bg-background border-t-frame fixed inset-x-0 bottom-0 z-50 flex h-[85dvh] flex-col overflow-hidden outline-none"
+          className="border-border bg-background rounded-t-panel border-t-frame fixed inset-x-0 bottom-0 z-50 flex h-[85dvh] flex-col overflow-hidden outline-none"
         >
           <Drawer.Title className="sr-only">chat with capy</Drawer.Title>
           <div className="bg-card flex shrink-0 justify-center pt-2">

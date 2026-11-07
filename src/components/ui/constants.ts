@@ -16,14 +16,14 @@ export const MODAL_PANELS = {
   },
   sheet: {
     className:
-      "bg-background border-border fixed top-0 right-0 flex h-full w-full flex-col border-l-frame shadow-edge outline-none sm:w-80",
+      "bg-background border-border dock fixed flex w-[calc(100%-2*var(--dock-inset))] flex-col shadow-edge outline-none sm:w-80",
     initial: { x: "100%" },
     animate: { x: 0 },
     transition: { duration: 0.2, ease: "easeInOut" },
   },
   side: {
     className:
-      "bg-background border-border fixed inset-y-0 right-0 flex w-chat flex-col border-l-frame outline-none",
+      "bg-background border-border dock fixed flex w-chat flex-col shadow-(--side-shadow) outline-none",
     initial: { x: "100%" },
     animate: { x: 0 },
     transition: { duration: 0.18, ease: "easeOut" },
@@ -41,6 +41,9 @@ export const MODAL_PANELS = {
     transition: { duration: 0.12 },
   },
 } as const;
+
+export const MENU_SURFACE =
+  "bg-background border-border rounded-panel border-frame shadow-raised-sm p-(--menu-inset)";
 
 export type ModalVariant = keyof typeof MODAL_PANELS;
 

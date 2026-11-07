@@ -1,6 +1,13 @@
 import { test, expect, type Page } from "@playwright/test";
 import { authState } from "../helpers/auth";
-import { createAndSelectBucket, itemForm, itemRow, uniqueName } from "../helpers/buckets";
+import {
+  createAndSelectBucket,
+  itemForm,
+  itemRow,
+  uniqueName,
+  openDetail,
+  detailChip,
+} from "../helpers/buckets";
 
 test.use({ storageState: authState("recurring") });
 test.describe.configure({ mode: "default" });
@@ -13,8 +20,9 @@ async function addMonthlyItemDueToday(page: Page, title: string): Promise<void> 
   await page.getByRole("button", { name: "add with details", exact: true }).click();
   const dialog = itemDialog(page);
   await dialog.locator("textarea").first().fill(title);
-  await dialog.getByRole("button", { name: "pick date" }).click();
+  await openDetail(dialog, "date");
   await page.getByRole("button", { name: String(new Date().getDate()), exact: true }).click();
+  await openDetail(dialog, "repeat");
   await dialog.getByRole("button", { name: "on", exact: true }).click();
   await expect(dialog.getByRole("button", { name: "on", exact: true })).toHaveAttribute(
     "aria-pressed",
@@ -36,6 +44,7 @@ test("repeats on picked weekdays, then on the last day of the month", async ({ p
 
   await itemRow(page, title).click();
   const dialog = itemDialog(page);
+  await openDetail(dialog, "repeat");
   await dialog.getByRole("button", { name: "week", exact: true }).click();
   await expect(dialog.getByText("↺ every week · on the deadline's day")).toBeVisible();
   for (const day of ["mon", "wed", "fri"]) {
@@ -47,6 +56,7 @@ test("repeats on picked weekdays, then on the last day of the month", async ({ p
   await expect(itemRow(page, title)).toContainText("↺ mon, wed, fri");
 
   await itemRow(page, title).click();
+  await openDetail(dialog, "repeat");
   await expect(dialog.getByRole("button", { name: "wed", exact: true })).toHaveAttribute(
     "aria-pressed",
     "true"
@@ -69,12 +79,15 @@ test("repeating on the last day moves the date to the month's last day", async (
   const dialog = itemDialog(page);
   const title = uniqueName("pay rent");
   await dialog.locator("textarea").first().fill(title);
-  await dialog.getByRole("button", { name: "pick date" }).click();
+  await openDetail(dialog, "date");
   await page.getByRole("button", { name: "21", exact: true }).click();
+  await openDetail(dialog, "repeat");
   await dialog.getByRole("button", { name: "on", exact: true }).click();
   await dialog.getByRole("button", { name: "month", exact: true }).click();
   await dialog.getByRole("button", { name: "last day", exact: true }).click();
-  await expect(dialog.getByRole("button", { name: lastLabel, exact: true })).toBeVisible();
+  await expect(detailChip(dialog, "date")).toHaveAccessibleName(
+    new RegExp(`^date: ${lastLabel} · `)
+  );
 
   await dialog.getByRole("button", { name: "[ add ]", exact: true }).click();
   await expect(itemRow(page, title)).toContainText(lastLabel);

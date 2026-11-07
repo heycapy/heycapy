@@ -8,6 +8,8 @@ import {
   itemRow,
   newItemForm,
   uniqueName,
+  openDetail,
+  detailChip,
 } from "../helpers/buckets";
 
 test.use({ storageState: authState("title-dates") });
@@ -55,10 +57,10 @@ test("expand opens the full form with what was typed, and [×] there clears the 
   const dialog = newItemForm(page);
   await expect(dialog.locator("textarea").first()).toHaveValue(title);
   await expect(dialog.getByTestId("title-date-highlight").locator("span")).toHaveText("tomorrow");
-  await expect(dialog.getByRole("button", { name: "Oct 8", exact: true })).toBeVisible();
+  await expect(detailChip(dialog, "date")).toHaveAccessibleName(/^date: Oct 8 · /);
 
   await dialog.getByRole("button", { name: "not a date" }).click();
-  await expect(dialog.getByRole("button", { name: "pick date" })).toBeVisible();
+  await expect(detailChip(dialog, "date")).toHaveAccessibleName("date");
   await dialog.getByRole("button", { name: "[ add ]", exact: true }).click();
   await expect(itemRow(page, title)).toBeVisible();
   await expect(addBox(page)).toHaveValue("");
@@ -72,8 +74,7 @@ test("a date typed into the title is highlighted, fills 'when' and leaves the ti
   await dialog.locator("textarea").first().fill(`${title} friday 5pm`);
 
   await expect(dialog.getByTestId("title-date-highlight").locator("span")).toHaveText("friday 5pm");
-  await expect(dialog.getByRole("button", { name: "Oct 9", exact: true })).toBeVisible();
-  await expect(dialog.getByRole("button", { name: "time: 5 pm" })).toBeVisible();
+  await expect(detailChip(dialog, "date")).toHaveAccessibleName("date: Oct 9 · 5 pm");
 
   await dialog.getByRole("button", { name: "[ add ]", exact: true }).click();
   await expect(dialog).not.toBeVisible();
@@ -85,11 +86,11 @@ test("[×] keeps the words as text and clears the date", async ({ page }) => {
   const dialog = await openAdd(page);
   const title = `${uniqueName("call mom")} tomorrow`;
   await dialog.locator("textarea").first().fill(title);
-  await expect(dialog.getByRole("button", { name: "Oct 8", exact: true })).toBeVisible();
+  await expect(detailChip(dialog, "date")).toHaveAccessibleName(/^date: Oct 8 · /);
 
   await dialog.getByRole("button", { name: "not a date" }).click();
   await expect(dialog.getByTestId("title-date-highlight")).toHaveCount(0);
-  await expect(dialog.getByRole("button", { name: "pick date" })).toBeVisible();
+  await expect(detailChip(dialog, "date")).toHaveAccessibleName("date");
 
   await dialog.getByRole("button", { name: "[ add ]", exact: true }).click();
   await expect(itemRow(page, title)).toBeVisible();
@@ -101,15 +102,15 @@ test("deleting the words gives the date back, and a picked date wins over typing
   const dialog = await openAdd(page);
   const input = dialog.locator("textarea").first();
   await input.fill("gym friday");
-  await expect(dialog.getByRole("button", { name: "Oct 9", exact: true })).toBeVisible();
+  await expect(detailChip(dialog, "date")).toHaveAccessibleName(/^date: Oct 9 · /);
   await input.fill("gym");
-  await expect(dialog.getByRole("button", { name: "pick date" })).toBeVisible();
+  await expect(detailChip(dialog, "date")).toHaveAccessibleName("date");
 
-  await dialog.getByRole("button", { name: "pick date" }).click();
+  await openDetail(dialog, "date");
   await page.getByRole("button", { name: "20", exact: true }).click();
   await input.fill("gym friday 6pm");
   await expect(dialog.getByTestId("title-date-highlight")).toHaveCount(0);
-  await expect(dialog.getByRole("button", { name: "Oct 20", exact: true })).toBeVisible();
+  await expect(detailChip(dialog, "date")).toHaveAccessibleName(/^date: Oct 20 · /);
 });
 
 test("editing an item never reads dates from its title", async ({ page }) => {
@@ -122,5 +123,5 @@ test("editing an item never reads dates from its title", async ({ page }) => {
   const edit = editForm(page);
   await edit.locator("textarea").first().fill(`${title} tomorrow`);
   await expect(edit.getByTestId("title-date-highlight")).toHaveCount(0);
-  await expect(edit.getByRole("button", { name: "pick date" })).toBeVisible();
+  await expect(detailChip(edit, "date")).toHaveAccessibleName("date");
 });

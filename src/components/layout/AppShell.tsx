@@ -142,7 +142,7 @@ export function AppShell({
         data-side-column={sideColumn || undefined}
         className={cn(
           "flex min-h-0 flex-1 flex-col transition-[padding] duration-200 ease-out",
-          sideColumn && "pr-chat"
+          sideColumn && "pr-[calc(var(--spacing-chat)+var(--dock-inset))]"
         )}
       >
         <Header

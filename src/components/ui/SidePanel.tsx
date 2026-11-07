@@ -8,16 +8,25 @@ type SidePanelProps = {
   open: boolean;
   onClose: () => void;
   title: string;
+  context?: string;
   narrow: "sheet" | "dialog";
   className?: string;
   children: ReactNode;
 };
 
-export function SidePanel({ open, onClose, title, narrow, className, children }: SidePanelProps) {
+export function SidePanel({
+  open,
+  onClose,
+  title,
+  context,
+  narrow,
+  className,
+  children,
+}: SidePanelProps) {
   const docked = useMediaQuery(SIDE_DOCK_MEDIA_QUERY);
   const content = (
     <>
-      <ModalHeader title={title} onClose={onClose} plain={docked} />
+      <ModalHeader title={title} context={context} onClose={onClose} plain={docked} />
       {children}
     </>
   );

@@ -7,6 +7,7 @@ import {
   openBucketOnPhone,
   uniqueName,
   untilStill,
+  detailChip,
 } from "../helpers/buckets";
 import { dragDown, fakeKeyboard, setKeyboard } from "../helpers/touch";
 
@@ -121,6 +122,7 @@ test("while typing, the drawer sits on the keyboard and stays clear of the heade
   await addItemButton(page).tap();
   const addForm = addPage(page);
   const add = addForm.getByRole("button", { name: "[ add ]", exact: true });
+  await detailChip(addForm, "repeat").tap();
   await addForm.getByRole("button", { name: "on", exact: true }).tap();
   const headerBottom = async () => {
     const box = await page.locator("header").boundingBox();

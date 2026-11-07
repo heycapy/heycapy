@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
+import { openNotificationSection } from "../helpers/settings";
 import { authState } from "../helpers/auth";
 
 test.use({
@@ -11,6 +12,7 @@ async function openTelegramSettings(page: Page) {
   await page.getByRole("button", { name: "your menu", exact: true }).click();
   await page.getByRole("button", { name: "tweaks" }).click();
   await page.getByRole("button", { name: "notifications", exact: true }).click();
+  await openNotificationSection(page, "telegram");
   return page
     .locator("div")
     .filter({ has: page.getByText("telegram", { exact: true }) })

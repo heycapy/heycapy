@@ -18,3 +18,24 @@ export function MenuItem({ tone = "default", className, ...props }: MenuItemProp
     />
   );
 }
+
+export function MenuSection({ className, ...props }: ComponentProps<"div">) {
+  return (
+    <div
+      className={cn(
+        "border-border border-rule -mx-(--menu-inset) border-t px-(--menu-inset) py-1",
+        className
+      )}
+      {...props}
+    />
+  );
+}
+
+export function MenuSeparator({ className }: { className?: string }) {
+  return (
+    <div
+      role="separator"
+      className={cn("border-border -mx-(--menu-inset) my-1 border-t", className)}
+    />
+  );
+}

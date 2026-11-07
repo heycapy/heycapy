@@ -102,7 +102,7 @@ export function CapyChat({ appUrl }: { appUrl: string | null }) {
   const panelClassName = cn(
     "border-border bg-background flex flex-col fixed z-50 origin-bottom-right",
     docked
-      ? "inset-y-0 right-0 w-chat border-l-frame"
+      ? "dock w-chat shadow-(--side-shadow)"
       : cn(
           "rounded-panel border-frame shadow-raised-lg",
           chatState === "fullscreen"

@@ -1,10 +1,9 @@
-import { ACCENT_BUTTONS, BOX, SECTION, HINT, LABEL } from "@/components/layout/settings-constants";
+import { BOX, SECTION, HINT, LABEL } from "@/components/layout/settings-constants";
 import { useEffect, useId, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { cn, toggled } from "@/lib/utils";
 import { charCountColor } from "@/components/ui/input";
 import { TextButton } from "@/components/ui/TextButton";
-import { ModalHeader } from "@/components/ui/Modal";
 import { BucketRulesFields } from "./BucketRulesFields";
 import { ViewOnlyNotice } from "./ViewOnlyNotice";
 import { MyChannelsPicker, type NotifAvailability } from "./MyChannelsPicker";
@@ -152,14 +151,7 @@ export function BucketSettingsForm({
   const showSave = tab === "notifications" || (bucket.isOwner && tab === "items");
 
   return (
-    <div
-      className={cn(
-        "border-border bg-background rounded-panel border-frame flex max-h-[85vh] flex-col overflow-hidden",
-        ACCENT_BUTTONS
-      )}
-    >
-      <ModalHeader title={`bucket settings [${bucket.name}]`} onClose={onClose} />
-
+    <div className="flex min-h-0 flex-1 flex-col">
       <div className="flex shrink-0 flex-col gap-4 px-4 pt-4 pb-0">
         {bucket.isOwner && (
           <div className="flex flex-col gap-1.5">
@@ -322,7 +314,11 @@ export function BucketSettingsForm({
           {!bucket.isOwner && error && (
             <span className="text-destructive font-ui mr-auto text-xs">{error}</span>
           )}
-          <TextButton onClick={handleSave} disabled={!values.name.trim() || pending}>
+          <TextButton
+            variant="primary"
+            onClick={handleSave}
+            disabled={!values.name.trim() || pending}
+          >
             save
           </TextButton>
         </div>

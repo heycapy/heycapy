@@ -75,11 +75,11 @@ test("escape closes the schema editor first, then bucket settings", async ({ pag
   await page.goto("/");
   await createAndSelectBucket(page, uniqueName("Dialogs"));
   await openSettings(page);
-  const settings = page.getByRole("dialog", { name: /^bucket settings \[/ });
+  const settings = page.getByRole("dialog", { name: /^bucket settings / });
   await switchTab(settings, "advanced");
   await settings.getByRole("button", { name: "[ configure schema ]" }).click();
 
-  const schema = page.getByRole("dialog", { name: /^schema \[/ });
+  const schema = page.getByRole("dialog", { name: /^schema / });
   await expect(schema).toBeVisible();
   await expectFocusInside(page, schema);
 

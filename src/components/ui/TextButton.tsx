@@ -46,7 +46,8 @@ function textButtonClass(shape: LookParts["textButton"], variant: Variant, class
         : "text-muted-foreground hover:text-destructive"),
     variant === "warning" &&
       (plain ? "text-warning hover:bg-warning/10" : "text-muted-foreground hover:text-warning"),
-    className
+    className,
+    plain && "px-3"
   );
 }
 

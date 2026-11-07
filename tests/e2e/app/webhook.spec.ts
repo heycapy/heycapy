@@ -20,7 +20,7 @@ test("panel shows the endpoint for this bucket and masks the key", async ({ page
     page,
     "advanced",
     "[ configure webhook ]",
-    /^webhook \[/
+    /^webhook /
   );
   await expect(dialog.getByText(webhook.url, { exact: true })).toBeVisible();
   // Masked everywhere, including the curl example
@@ -92,7 +92,7 @@ test("validates the payload", async ({ request }) => {
 });
 
 test("archived buckets stop accepting webhook items", async ({ page, request }) => {
-  const settings = await openFromSettings(page, "advanced", "[ configure webhook ]", /^webhook \[/);
+  const settings = await openFromSettings(page, "advanced", "[ configure webhook ]", /^webhook /);
   await closeDialog(settings.dialog);
   await settings.settings.getByRole("button", { name: "[ archive ]", exact: true }).click();
   await expect(settings.settings).not.toBeVisible();

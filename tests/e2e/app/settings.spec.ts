@@ -41,7 +41,7 @@ test.describe("settings modal", () => {
 
   test("opens on the items tab with the bucket name in the header", async ({ page }) => {
     const dialog = await openSettings(page);
-    await expect(dialog.getByText(`bucket settings [${bucketName}]`)).toBeVisible();
+    await expect(dialog.getByText(`bucket settings ${bucketName}`)).toBeVisible();
     await expect(nameInput(dialog)).toHaveValue(bucketName);
     await expect(field(dialog, "sort by")).toBeVisible();
     await expect(field(dialog, "show completed")).toBeVisible();
@@ -54,9 +54,18 @@ test.describe("settings modal", () => {
     await closeDialog(dialog);
   });
 
-  test("backdrop click closes the modal", async ({ page }) => {
+  test("docked beside the list it stays open on an outside click", async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
     const dialog = await openSettings(page);
-    // an outside click only counts once the dialog has finished opening, as for a person
+    await expect(dialog).toHaveCSS("opacity", "1");
+    await page.mouse.click(10, 10);
+    await expect(dialog).toBeVisible();
+  });
+
+  test("as a sheet over the list an outside click closes it", async ({ page }) => {
+    await page.setViewportSize({ width: 1024, height: 800 });
+    const dialog = await openSettings(page);
+    // an outside click only counts once the sheet has finished opening, as for a person
     await expect(dialog).toHaveCSS("opacity", "1");
     await page.mouse.click(10, 10);
     await expect(dialog).not.toBeVisible();
@@ -540,7 +549,7 @@ test.describe("notifications settings", () => {
 
   test("configure telegram opens its dialog on top of settings", async ({ page }) => {
     await option(dialog, "[ configure telegram ]").click();
-    const telegram = modal(page, /^telegram config \[/);
+    const telegram = modal(page, /^telegram config /);
     await expect(telegram).toBeVisible();
 
     await option(telegram, "[ x ]").click();
@@ -562,7 +571,7 @@ test.describe("advanced settings", () => {
 
   test("configure schema opens its dialog on top of settings", async ({ page }) => {
     await option(dialog, "[ configure schema ]").click();
-    const schema = modal(page, /^schema \[/);
+    const schema = modal(page, /^schema /);
     await expect(schema).toBeVisible();
 
     await option(schema, "[ x ]").click();
@@ -572,7 +581,7 @@ test.describe("advanced settings", () => {
 
   test("configure webhook opens its dialog on top of settings", async ({ page }) => {
     await option(dialog, "[ configure webhook ]").click();
-    const webhook = modal(page, /^webhook \[/);
+    const webhook = modal(page, /^webhook /);
     await expect(webhook).toBeVisible();
 
     await option(webhook, "[ x ]").click();

@@ -1,6 +1,12 @@
 import { test, expect } from "@playwright/test";
 import { authState } from "../helpers/auth";
-import { createAndSelectBucket, itemForm, itemRow, uniqueName } from "../helpers/buckets";
+import {
+  createAndSelectBucket,
+  itemForm,
+  itemRow,
+  uniqueName,
+  openDetail,
+} from "../helpers/buckets";
 
 test.use({ storageState: authState("time-picker") });
 
@@ -12,7 +18,7 @@ test("a time can be picked from the grid or typed, and is saved", async ({ page 
   await page.getByRole("button", { name: "add with details", exact: true }).click();
   const dialog = itemForm(page);
   await dialog.locator("textarea").first().fill(title);
-  await dialog.getByRole("button", { name: "pick date" }).click();
+  await openDetail(dialog, "date");
   await page.getByRole("button", { name: String(new Date().getDate()), exact: true }).click();
 
   await dialog.getByRole("button", { name: /^time: / }).click();
@@ -29,6 +35,7 @@ test("a time can be picked from the grid or typed, and is saved", async ({ page 
   await expect(itemRow(page, title)).toContainText("4:30pm");
 
   await itemRow(page, title).click();
+  await openDetail(dialog, "date");
   await dialog.getByRole("button", { name: /^time: / }).click();
   const typed = picker.getByRole("textbox", { name: "type a time" });
   await typed.pressSequentially("9");
@@ -42,6 +49,7 @@ test("a time can be picked from the grid or typed, and is saved", async ({ page 
   await expect(itemRow(page, title)).toContainText("9:37pm");
 
   await itemRow(page, title).click();
+  await openDetail(dialog, "date");
   await dialog.getByRole("button", { name: /^time: / }).click();
   await typed.pressSequentially("5");
   await typed.press("Enter");
@@ -61,7 +69,7 @@ test("a date without a time shows as all day, and a time can be taken off again"
   await page.getByRole("button", { name: "add with details", exact: true }).click();
   const dialog = itemForm(page);
   await dialog.locator("textarea").first().fill(title);
-  await dialog.getByRole("button", { name: "pick date" }).click();
+  await openDetail(dialog, "date");
   await page.getByRole("button", { name: "28", exact: true }).click();
   await expect(dialog.getByRole("button", { name: "time: 9 am" })).toBeVisible();
 
@@ -74,6 +82,7 @@ test("a date without a time shows as all day, and a time can be taken off again"
   await expect(itemRow(page, title)).not.toContainText("9am");
 
   await itemRow(page, title).click();
+  await openDetail(dialog, "date");
   await expect(dialog.getByRole("button", { name: "time: all day" })).toBeVisible();
   await dialog.getByRole("button", { name: /^time: / }).click();
   await picker
@@ -94,7 +103,7 @@ test("a date picked for today after 9am starts at the next half hour", async ({ 
 
   await page.getByRole("button", { name: "add with details", exact: true }).click();
   const dialog = itemForm(page);
-  await dialog.getByRole("button", { name: "pick date" }).click();
+  await openDetail(dialog, "date");
   await page.getByRole("button", { name: String(evening.getDate()), exact: true }).click();
   await expect(dialog.getByRole("button", { name: "time: 9:30 pm" })).toBeVisible();
 });

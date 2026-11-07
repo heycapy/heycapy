@@ -63,7 +63,7 @@ function TelegramConfigForm({ bucket, onClose }: Omit<TelegramConfigDialogProps,
         ACCENT_BUTTONS
       )}
     >
-      <ModalHeader title={`telegram config [${bucket.name}]`} onClose={onClose} />
+      <ModalHeader title="telegram config" context={bucket.name} onClose={onClose} />
       <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
         <TelegramConfigPanel config={config} onChange={setConfig} disabled={pending} />
       </div>

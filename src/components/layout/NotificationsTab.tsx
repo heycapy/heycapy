@@ -2,7 +2,16 @@ import { useState } from "react";
 import { TextButton } from "@/components/ui/TextButton";
 import { Toggle } from "@/components/ui/Toggle";
 import { EMAIL_GUIDE_URL } from "@/constants";
-import { LABEL, INPUT, SECTION, BOX, HINT } from "./settings-constants";
+import { Tab } from "@/components/ui/Tab";
+import {
+  LABEL,
+  INPUT,
+  SECTION,
+  BOX,
+  HINT,
+  NOTIFICATION_SECTIONS,
+  type NotificationSection,
+} from "./settings-constants";
 import { NtfySettings } from "./NtfySettings";
 import { PushSettings } from "./PushSettings";
 import { QuietHoursSettings, type QuietHours } from "./QuietHoursSettings";
@@ -85,19 +94,34 @@ export function NotificationsTab({
 }: NotificationsTabProps) {
   const [testDialogOpen, setTestDialogOpen] = useState(false);
   const [smtpPassFocused, setSmtpPassFocused] = useState(false);
+  const [section, setSection] = useState<NotificationSection>(() =>
+    workingChannels.length === 0 ? "email" : "reminders"
+  );
 
   const effectiveDeliverTo = notificationEmailTo || userEmail;
 
   return (
     <div className="flex flex-col gap-3">
-      <QuietHoursSettings value={quietHours} onChange={setQuietHours} pending={pending} />
-      <BucketDefaultsSettings
-        value={bucketDefaults}
-        onChange={setBucketDefaults}
-        workingChannels={workingChannels}
-        pending={pending}
-      />
-      <div className={BOX}>
+      <nav
+        aria-label="notification settings"
+        className="scrollbar-hide -mx-1 flex shrink-0 gap-0.5 overflow-x-auto"
+      >
+        {NOTIFICATION_SECTIONS.map((s) => (
+          <Tab key={s} active={section === s} tone="muted" onClick={() => setSection(s)}>
+            {s}
+          </Tab>
+        ))}
+      </nav>
+      <div hidden={section !== "reminders"} className="flex flex-col gap-3">
+        <QuietHoursSettings value={quietHours} onChange={setQuietHours} pending={pending} />
+        <BucketDefaultsSettings
+          value={bucketDefaults}
+          onChange={setBucketDefaults}
+          workingChannels={workingChannels}
+          pending={pending}
+        />
+      </div>
+      <div hidden={section !== "email"} className={BOX}>
         <span className={SECTION}>email</span>
         <p className={HINT}>
           reminder emails go out through your own email account. gmail works with an app password ·{" "}
@@ -204,27 +228,35 @@ export function NotificationsTab({
         </TextButton>
       </div>
 
-      <PushSettings pending={pending} />
-      <NtfySettings
-        notificationsPush={notificationsPush}
-        setNotificationsPush={setNotificationsPush}
-        ntfyUrl={ntfyUrl}
-        setNtfyUrl={setNtfyUrl}
-        ntfyTopic={ntfyTopic}
-        setNtfyTopic={setNtfyTopic}
-        pending={pending}
-      />
-      <TelegramSettings
-        notificationsTelegram={notificationsTelegram}
-        setNotificationsTelegram={setNotificationsTelegram}
-        telegramChatId={telegramChatId}
-        telegramBotConfigured={telegramBotConfigured}
-        onDisconnectTelegram={onDisconnectTelegram}
-        onRecheckTelegram={onRecheckTelegram}
-        telegramActionPending={telegramActionPending}
-        pending={pending}
-      />
-      <WebhookSettings />
+      <div hidden={section !== "push"}>
+        <PushSettings pending={pending} />
+      </div>
+      <div hidden={section !== "ntfy"}>
+        <NtfySettings
+          notificationsPush={notificationsPush}
+          setNotificationsPush={setNotificationsPush}
+          ntfyUrl={ntfyUrl}
+          setNtfyUrl={setNtfyUrl}
+          ntfyTopic={ntfyTopic}
+          setNtfyTopic={setNtfyTopic}
+          pending={pending}
+        />
+      </div>
+      <div hidden={section !== "telegram"}>
+        <TelegramSettings
+          notificationsTelegram={notificationsTelegram}
+          setNotificationsTelegram={setNotificationsTelegram}
+          telegramChatId={telegramChatId}
+          telegramBotConfigured={telegramBotConfigured}
+          onDisconnectTelegram={onDisconnectTelegram}
+          onRecheckTelegram={onRecheckTelegram}
+          telegramActionPending={telegramActionPending}
+          pending={pending}
+        />
+      </div>
+      <div hidden={section !== "other apps"}>
+        <WebhookSettings />
+      </div>
       <SmtpTestDialog
         open={testDialogOpen}
         onClose={() => setTestDialogOpen(false)}

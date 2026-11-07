@@ -11,7 +11,7 @@ export function ReminderInfoDialog({ itemId, title, onClose }: ReminderInfoDialo
   return (
     <Modal open onClose={onClose} className="top-[12%] sm:top-[12%]">
       <div className="border-border bg-background rounded-panel border-frame flex max-h-[76dvh] flex-col overflow-hidden">
-        <ModalHeader title={`reminder [${title}]`} onClose={onClose} />
+        <ModalHeader title="reminder" context={title} onClose={onClose} />
         <div className="overflow-y-auto overscroll-contain px-4 py-4">
           <ItemReminderInfo itemId={itemId} />
         </div>

@@ -1,11 +1,11 @@
 import { expect, type Locator, type Page } from "@playwright/test";
 
 export function modal(page: Page, header: RegExp): Locator {
-  return page.locator("div.fixed").filter({ has: page.getByText(header) });
+  return page.getByRole("dialog", { name: header });
 }
 
 export function settingsDialog(page: Page): Locator {
-  return modal(page, /^bucket settings \[/);
+  return page.getByRole("dialog", { name: /^bucket settings / });
 }
 
 export async function openSettings(page: Page): Promise<Locator> {
@@ -65,4 +65,11 @@ export async function openFromSettings(
   const dialog = modal(page, header);
   await expect(dialog).toBeVisible();
   return { settings, dialog };
+}
+
+export async function openNotificationSection(page: Page, section: string): Promise<void> {
+  await page
+    .getByRole("navigation", { name: "notification settings" })
+    .getByRole("button", { name: section, exact: true })
+    .click();
 }

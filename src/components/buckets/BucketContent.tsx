@@ -1,6 +1,6 @@
 import { parseItemsRules, parseNotificationRules } from "@/lib/rules";
 import { ITEM_STATUS, isClosedStatus } from "@/constants";
-import { useEffect, useState, type RefObject } from "react";
+import { useCallback, useEffect, useRef, useState, type RefObject } from "react";
 import { ItemDialog } from "./ItemDialog";
 import type { ItemPanel } from "./ItemPanelFrame";
 import { ItemList } from "./ItemList";
@@ -16,6 +16,7 @@ import { DEFAULT_BUCKET_STATUSES } from "./constants";
 import type { ViewerBucket } from "@/lib/buckets/access";
 import { parseFields } from "./fields";
 import { useUIStore } from "@/store/ui";
+import { useLayoutStore } from "@/store/layout";
 import { placesOf } from "@/lib/timezones/gap";
 import { toast } from "sonner";
 import { useLookParts } from "@/components/looks/LookProvider";
@@ -47,7 +48,6 @@ export function BucketContent({ bucket, accentColor, viewRef, panel }: BucketCon
   const bucketName = bucket.icon ? `${bucket.icon} ${bucket.name}` : bucket.name;
   const framed = useLookParts().listFrame === "framed";
 
-  const [settingsTab, setSettingsTab] = useState<SettingsTab | null>(null);
   const list = useBucketItems(bucket.id, bucket.itemsRules, rules.showCompleted !== false);
   const editor = useItemEditor({
     bucketId: bucket.id,
@@ -71,8 +71,41 @@ export function BucketContent({ bucket, accentColor, viewRef, panel }: BucketCon
     activeFilter === "all"
       ? list.orderedItems
       : list.orderedItems.filter((i) => i.assigneeId === assigneeShown);
-  const openTab: SettingsTab | null =
-    settingsTab ?? (membersRequested ? "members" : settingsRequested ? "items" : null);
+  const settingsTab = useLayoutStore((s) =>
+    s.sidePanel === "bucket-settings" && s.bucketSettings?.bucketId === bucket.id
+      ? s.bucketSettings.tab
+      : null
+  );
+  const openBucketSettings = useLayoutStore((s) => s.openBucketSettings);
+  const closeSidePanel = useLayoutStore((s) => s.closeSidePanel);
+  const openSettings = useCallback(
+    (tab: SettingsTab) => openBucketSettings(bucket.id, tab),
+    [openBucketSettings, bucket.id]
+  );
+
+  const settingsOpenRef = useRef(false);
+  useEffect(() => {
+    settingsOpenRef.current = settingsTab !== null;
+  }, [settingsTab]);
+  useEffect(
+    () => () => {
+      if (settingsOpenRef.current) closeSidePanel("bucket-settings");
+    },
+    [closeSidePanel]
+  );
+
+  useEffect(() => {
+    if (!membersRequested && !settingsRequested) return;
+    openSettings(membersRequested ? "members" : "items");
+    clearMembersRequest();
+    clearSettingsRequest();
+  }, [
+    membersRequested,
+    settingsRequested,
+    openSettings,
+    clearMembersRequest,
+    clearSettingsRequest,
+  ]);
   useEffect(() => {
     viewRef.current = { startAdding: editor.startAdding, refetch: list.refetch };
     return () => {
@@ -89,7 +122,7 @@ export function BucketContent({ bucket, accentColor, viewRef, panel }: BucketCon
           members={members}
           filter={activeFilter}
           onFilter={setFilter}
-          onOpenMembers={() => setSettingsTab("members")}
+          onOpenMembers={() => openSettings("members")}
         />
       )}
 
@@ -98,7 +131,7 @@ export function BucketContent({ bucket, accentColor, viewRef, panel }: BucketCon
       <RemindersOffNotice
         myChannels={bucket.myChannels}
         hasDatedItems={list.items.some((i) => i.deadline && !isClosedStatus(i.status))}
-        onSetUp={() => setSettingsTab("notifications")}
+        onSetUp={() => openSettings("notifications")}
       />
 
       <div
@@ -156,14 +189,12 @@ export function BucketContent({ bucket, accentColor, viewRef, panel }: BucketCon
       />
 
       <BucketSettings
-        open={openTab !== null}
-        initialTab={openTab ?? undefined}
+        open={settingsTab !== null}
+        initialTab={settingsTab ?? undefined}
         bucket={bucket}
         clocksDiffer={placesOf(members).differ}
         onClose={() => {
-          setSettingsTab(null);
-          clearMembersRequest();
-          clearSettingsRequest();
+          closeSidePanel("bucket-settings");
         }}
       />
     </div>

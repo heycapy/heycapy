@@ -14,7 +14,7 @@ type DatePickerProps = {
 
 const CALENDAR = { width: 252, height: 300 };
 
-function formatDisplay(str: string): string {
+export function formatDisplay(str: string): string {
   const parsed = parseDate(str);
   if (!parsed) return "";
   return `${MONTH_SHORT_NAMES[parsed.month]} ${parsed.day}`;

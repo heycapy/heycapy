@@ -24,7 +24,8 @@ export function CloseButton({ variant = "default", className, ...props }: CloseB
       aria-label="close"
       className={cn(
         "text-muted-foreground hover:bg-muted hover:text-foreground rounded-control flex size-(--control-h) shrink-0 items-center justify-center transition-colors",
-        className
+        className,
+        "p-0"
       )}
       {...props}
     >

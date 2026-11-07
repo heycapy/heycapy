@@ -86,7 +86,7 @@ function SchemaEditorForm({ bucket, onClose }: Omit<SchemaEditorDialogProps, "op
         ACCENT_BUTTONS
       )}
     >
-      <ModalHeader title={`schema [${bucket.name}]`} onClose={onClose} />
+      <ModalHeader title="schema" context={bucket.name} onClose={onClose} />
 
       <div
         ref={scrollBodyRef}

@@ -130,9 +130,14 @@ export function ModalTitle({ className, children }: ModalTitleProps) {
   );
 }
 
-type ModalHeaderProps = { title: ReactNode; onClose: () => void; plain?: boolean };
+type ModalHeaderProps = {
+  title: ReactNode;
+  context?: string;
+  onClose: () => void;
+  plain?: boolean;
+};
 
-export function ModalHeader({ title, onClose, plain }: ModalHeaderProps) {
+export function ModalHeader({ title, context, onClose, plain }: ModalHeaderProps) {
   const { panelHeader } = useLookParts();
   const inverted = !plain && panelHeader === "inverted";
   return (
@@ -144,7 +149,10 @@ export function ModalHeader({ title, onClose, plain }: ModalHeaderProps) {
           : "bg-card border-border border-b-frame min-h-10 pr-2 pl-3"
       )}
     >
-      <ModalTitle className={cn(plain && "text-2xs")}>{title}</ModalTitle>
+      <ModalTitle className={cn(plain && "text-2xs")}>
+        {title}
+        {context && <span className="text-muted-foreground"> {context}</span>}
+      </ModalTitle>
       <CloseButton
         type="button"
         variant={inverted ? "inverted" : "default"}

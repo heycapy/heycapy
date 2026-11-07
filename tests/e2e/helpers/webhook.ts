@@ -8,7 +8,7 @@ export async function enableWebhook(page: Page): Promise<Webhook> {
     page,
     "advanced",
     "[ configure webhook ]",
-    /^webhook \[/
+    /^webhook /
   );
   await dialog.getByRole("button", { name: /rotate key/ }).click();
   const keyEl = dialog.locator("code").filter({ hasText: /^hc_live_[A-Za-z0-9_-]+$/ });

@@ -13,7 +13,7 @@ export function Tab({ active, tone = "primary", className, ...props }: TabProps)
       aria-current={active ? "true" : undefined}
       className={cn(
         "rounded-control font-ui min-h-(--control-h) shrink-0 px-2 text-xs whitespace-nowrap transition-colors",
-        active && "bg-(--tab-active-bg) text-(--tab-active-fg)",
+        active && "bg-(--selected-bg) text-(--selected-fg)",
         !active && tone === "primary" && "hover:text-foreground text-(--button-accent)",
         !active && tone === "muted" && "text-muted-foreground hover:text-foreground",
         className

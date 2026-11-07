@@ -24,7 +24,7 @@ export function ItemAssigneeField({
   const someoneReminded = choice.members.some((m) => m.remindable);
   const leftOut = (member: BucketMember) => someoneReminded && !member.remindable;
   return (
-    <div className="flex flex-col gap-1.5 pb-5">
+    <div className="flex flex-col gap-1.5">
       <label className={LABEL}>assigned to</label>
       <div className="flex flex-wrap items-start gap-1.5">
         <OptionButton

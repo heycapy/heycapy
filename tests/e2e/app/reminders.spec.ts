@@ -1,6 +1,13 @@
 import { test, expect } from "@playwright/test";
 import { authState } from "../helpers/auth";
-import { createAndSelectBucket, itemForm, itemRow, uniqueName } from "../helpers/buckets";
+import {
+  createAndSelectBucket,
+  itemForm,
+  itemRow,
+  uniqueName,
+  openDetail,
+  detailChip,
+} from "../helpers/buckets";
 import { openSettings, saveSettings, switchTab } from "../helpers/settings";
 
 test.use({ storageState: authState("reminders") });
@@ -18,9 +25,10 @@ test("an item can have several reminders, added from presets or typed, and remov
   await page.getByRole("button", { name: "add with details", exact: true }).click();
   const dialog = itemForm(page);
   await dialog.locator("textarea").first().fill(title);
-  await expect(dialog.getByText("reminders", { exact: true })).toHaveCount(0);
-  await dialog.getByRole("button", { name: "pick date" }).click();
+  await expect(detailChip(dialog, "reminders")).toHaveAccessibleName("reminders");
+  await openDetail(dialog, "date");
   await page.getByRole("button", { name: String(morning.getDate()), exact: true }).click();
+  await openDetail(dialog, "reminders");
 
   await expect(dialog.getByText("bucket default", { exact: true })).toBeVisible();
   await expect(dialog.getByRole("button", { name: "remove reminder at time" })).toBeVisible();
@@ -43,6 +51,7 @@ test("an item can have several reminders, added from presets or typed, and remov
   await expect(dialog).not.toBeVisible();
 
   await itemRow(page, title).click();
+  await openDetail(dialog, "reminders");
   await expect(chips).toHaveText(["3 days before ×", "1 hour before ×", "at time ×"]);
   await dialog.getByRole("button", { name: "remove reminder at time" }).click();
   await expect(chips).toHaveText(["3 days before ×", "1 hour before ×"]);
@@ -50,6 +59,7 @@ test("an item can have several reminders, added from presets or typed, and remov
   await expect(dialog).not.toBeVisible();
 
   await itemRow(page, title).click();
+  await openDetail(dialog, "reminders");
   await expect(chips).toHaveText(["3 days before ×", "1 hour before ×"]);
 });
 
@@ -60,8 +70,9 @@ test("a typed reminder over 90 days is refused, and four is the limit", async ({
   await page.getByRole("button", { name: "add with details", exact: true }).click();
   const dialog = itemForm(page);
   await dialog.locator("textarea").first().fill(uniqueName("renew passport"));
-  await dialog.getByRole("button", { name: "pick date" }).click();
+  await openDetail(dialog, "date");
   await page.getByRole("button", { name: "20", exact: true }).click();
+  await openDetail(dialog, "reminders");
 
   await dialog.getByRole("button", { name: "[ + add ]", exact: true }).click();
   await dialog.getByRole("textbox", { name: "custom reminder amount" }).fill("13");
@@ -97,8 +108,9 @@ test("new items start with the bucket's default reminders", async ({ page }) => 
   await page.getByRole("button", { name: "add with details", exact: true }).click();
   const dialog = itemForm(page);
   await dialog.locator("textarea").first().fill(uniqueName("electricity"));
-  await dialog.getByRole("button", { name: "pick date" }).click();
+  await openDetail(dialog, "date");
   await page.getByRole("button", { name: "20", exact: true }).click();
+  await openDetail(dialog, "reminders");
   await expect(dialog.getByText("bucket default", { exact: true })).toBeVisible();
   await expect(dialog.getByRole("button", { name: /^remove reminder / })).toHaveText([
     "2 days before ×",

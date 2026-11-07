@@ -4,10 +4,11 @@ import { useLookParts } from "@/components/looks/LookProvider";
 import { type Ampm, type TimeValue } from "@/components/ui/TimeField";
 import { ItemFieldsForm } from "./ItemFieldsForm";
 import { ItemAssigneeField, type AssigneeChoice } from "./ItemAssigneeField";
+import { memberName } from "@/lib/buckets/member-name";
 import { ItemFrame } from "./ItemFrame";
 import type { ItemPanel } from "./ItemPanelFrame";
 import { ItemTitleField } from "./ItemTitleField";
-import { ItemWhenSection } from "./ItemWhenSection";
+import { ItemDetails } from "./ItemDetails";
 import { ItemTimeHints } from "./ItemTimeHints";
 import { useItemClock } from "./useItemClock";
 import { useTitleDate } from "./useTitleDate";
@@ -220,8 +221,27 @@ export function ItemDialog({
       ? { members: assignees.members, onPick: changeAssignee }
       : undefined;
 
-  const whenAndStatus = (
-    <ItemWhenSection
+  const assigned = assignees?.members.find((m) => m.userId === assignees.value);
+  const assignee = assignees &&
+    assignees.members.length > 1 && {
+      label: assigned ? `${memberName(assigned)}${assigned.isYou ? " (you)" : ""}` : "anyone",
+      set: !!assigned,
+      field: <ItemAssigneeField choice={assignees} disabled={pending} />,
+    };
+  const more = onPropertiesChange && fields && hasFields && (
+    <div className="rounded-control border-border border">
+      <ItemFieldsForm
+        fields={fields}
+        values={properties ?? {}}
+        disabled={pending}
+        showErrors={validationAttempted}
+        onChange={onPropertiesChange}
+      />
+    </div>
+  );
+
+  const details = (
+    <ItemDetails
       datePart={datePart}
       allDay={!deadline.includes("T")}
       time={time}
@@ -250,6 +270,9 @@ export function ItemDialog({
       onStatusChange={onStatusChange}
       onRecurringChange={onRecurringChange && handleRecurringChange}
       onRemindersChange={onRemindersChange}
+      assignee={assignee || undefined}
+      more={more || undefined}
+      showMore={!!fields?.some((f) => f.validation?.required)}
     />
   );
 
@@ -287,33 +310,6 @@ export function ItemDialog({
       onChange={handleTitleChange}
       onDismissDate={titleDate.dismiss}
     />
-  );
-
-  const details = (
-    <>
-      {assignees && assignees.members.length > 1 && (
-        <ItemAssigneeField choice={assignees} disabled={pending} />
-      )}
-
-      {hasFields ? (
-        <div className="flex flex-col gap-5">
-          {onPropertiesChange && fields && (
-            <div className="rounded-control border-border border">
-              <ItemFieldsForm
-                fields={fields}
-                values={properties ?? {}}
-                disabled={pending}
-                showErrors={validationAttempted}
-                onChange={onPropertiesChange}
-              />
-            </div>
-          )}
-          {whenAndStatus}
-        </div>
-      ) : (
-        <div className="flex flex-col gap-5">{whenAndStatus}</div>
-      )}
-    </>
   );
 
   return (
