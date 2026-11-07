@@ -1,9 +1,7 @@
 import { useLayoutEffect, useRef, useState } from "react";
 import { motion, useDragControls, type PanInfo } from "framer-motion";
-import { Close } from "pixelarticons/react/Close.js";
-import { Search } from "pixelarticons/react/Search.js";
 import { BracketButton } from "@/components/ui/BracketButton";
-import { PixelIcon } from "@/components/ui/PixelIcon";
+import { Icon } from "@/components/ui/Icon";
 import { Modal, ModalTitle } from "@/components/ui/Modal";
 import { ItemDialog } from "@/components/buckets/ItemDialog";
 import { useItemEditor } from "@/components/buckets/useItemEditor";
@@ -110,7 +108,7 @@ function SearchBody({ onClose }: { onClose: () => void }) {
 
           <div className="border-border focus-within:border-foreground shrink-0 border-t-2 px-2.5 pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:px-4 sm:pb-[env(safe-area-inset-bottom)]">
             <div className="flex min-h-12 items-center gap-2 pl-2.5">
-              <PixelIcon icon={Search} className="text-muted-foreground shrink-0" />
+              <Icon name="search" className="text-muted-foreground shrink-0" />
               <input
                 ref={inputRef}
                 type="text"
@@ -133,7 +131,7 @@ function SearchBody({ onClose }: { onClose: () => void }) {
                   aria-label="clear search"
                   className="text-muted-foreground hover:text-foreground flex size-11 shrink-0 items-center justify-center transition-colors"
                 >
-                  <PixelIcon icon={Close} />
+                  <Icon name="close" />
                 </button>
               ) : (
                 <span aria-hidden className="size-11 shrink-0" />

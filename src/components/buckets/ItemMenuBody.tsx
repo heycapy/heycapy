@@ -1,10 +1,9 @@
 import { useState, type ReactNode } from "react";
 import { toast } from "sonner";
-import { ChevronRight } from "pixelarticons/react/ChevronRight.js";
 import { cn } from "@/lib/utils";
 import { Calendar } from "@/components/ui/Calendar";
 import { BracketButton } from "@/components/ui/BracketButton";
-import { PixelIcon } from "@/components/ui/PixelIcon";
+import { Icon } from "@/components/ui/Icon";
 import { clockTime, formatShort, formatWeekdayDate } from "@/lib/format-date";
 import { deadlineDate, itemDeadline } from "@/lib/time";
 import { deadlineOn, quickDates } from "@/lib/items/quick-dates";
@@ -212,7 +211,7 @@ export function MenuBody({
               })}
               <MenuButton onClick={() => setView("date")}>
                 <span className="text-foreground flex-1">pick a date…</span>
-                <PixelIcon icon={ChevronRight} className="text-muted-foreground" />
+                <Icon name="chevron-right" className="text-muted-foreground" />
               </MenuButton>
             </div>
           )}
@@ -236,7 +235,7 @@ export function MenuBody({
                 <span className="text-muted-foreground">
                   {reminderState(reminderBadge, nextReminderAt)}
                 </span>
-                <PixelIcon icon={ChevronRight} className="text-muted-foreground" />
+                <Icon name="chevron-right" className="text-muted-foreground" />
               </MenuButton>
             </div>
           )}

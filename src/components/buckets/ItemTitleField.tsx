@@ -1,5 +1,6 @@
 import { useLayoutEffect, useRef, useState, type ChangeEvent } from "react";
-import { PixelIcon, type PixelIconComponent } from "@/components/ui/PixelIcon";
+import { Icon } from "@/components/ui/Icon";
+import type { IconName } from "@/components/ui/icons";
 import { BracketButton } from "@/components/ui/BracketButton";
 import { describeDeadline } from "@/lib/format-date";
 import {
@@ -27,7 +28,7 @@ function fitHeight(el: HTMLTextAreaElement) {
 
 type ItemTitleFieldProps = {
   open: boolean;
-  rowIcon?: PixelIconComponent;
+  rowIcon?: IconName;
   value: string;
   error?: string;
   showRequired: boolean;
@@ -108,7 +109,7 @@ export function ItemTitleField({
         title
       </label>
       <div className={cn(rowIcon && "flex items-start gap-2")}>
-        {rowIcon && <PixelIcon icon={rowIcon} className="mt-4.5 shrink-0 text-(--accent)" />}
+        {rowIcon && <Icon name={rowIcon} className="mt-4.5 shrink-0 text-(--accent)" />}
         <div className={cn("min-w-0 flex-1", rowIcon && "py-3")}>
           <div className="relative">
             {typedDate && (

@@ -1,6 +1,4 @@
-import { Plus } from "pixelarticons/react/Plus.js";
-import { Trash } from "pixelarticons/react/Trash.js";
-import { PixelIcon } from "@/components/ui/PixelIcon";
+import { Icon } from "@/components/ui/Icon";
 import { useEffect, useRef, useState } from "react";
 import { Toggle } from "@/components/ui/Toggle";
 import { BracketButton } from "@/components/ui/BracketButton";
@@ -95,7 +93,7 @@ function FieldRow({
           aria-label="remove field"
           className="text-muted-foreground hover:text-destructive shrink-0 transition-colors disabled:opacity-40"
         >
-          <PixelIcon icon={Trash} />
+          <Icon name="trash" />
         </button>
       </div>
       {hasError && <p className="text-destructive font-mono text-[11px]">field name is required</p>}
@@ -216,7 +214,7 @@ export function FieldsSection({
           aria-label="add field"
           className="text-muted-foreground hover:text-foreground shrink-0 transition-colors disabled:opacity-40"
         >
-          <PixelIcon icon={Plus} />
+          <Icon name="plus" />
         </button>
       </div>
       {fields.length === 0 && (

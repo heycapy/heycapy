@@ -1,5 +1,3 @@
-import { Pencil } from "pixelarticons/react/Pencil.js";
-import { Plus } from "pixelarticons/react/Plus.js";
 import { useEffect, useEffectEvent, useRef, useState } from "react";
 import { BracketButton } from "@/components/ui/BracketButton";
 import { type Ampm, type TimeValue } from "@/components/ui/TimeField";
@@ -276,7 +274,7 @@ export function ItemDialog({
   const titleField = (boxed: boolean) => (
     <ItemTitleField
       open={open}
-      rowIcon={boxed ? (frameMode === "add" ? Plus : Pencil) : undefined}
+      rowIcon={boxed ? (frameMode === "add" ? "plus" : "pencil") : undefined}
       value={title}
       error={error}
       showRequired={titleHasError}

@@ -1,12 +1,4 @@
-import { Archive } from "pixelarticons/react/Archive.js";
-import { Logout } from "pixelarticons/react/Logout.js";
-import { Map as MapIcon } from "pixelarticons/react/Map.js";
-import { Message } from "pixelarticons/react/Message.js";
-import { SlidersHorizontal } from "pixelarticons/react/SlidersHorizontal.js";
-import { Megaphone } from "pixelarticons/react/Megaphone.js";
-import { Trash } from "pixelarticons/react/Trash.js";
-import { UserPlus } from "pixelarticons/react/UserPlus.js";
-import { PixelIcon } from "@/components/ui/PixelIcon";
+import { Icon } from "@/components/ui/Icon";
 import { useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { BetaTag } from "@/components/ui/BetaTag";
@@ -184,14 +176,14 @@ function GlobalMenu({
                 onClick={() => pick(onSettings)}
                 className="text-foreground hover:bg-muted flex w-full items-center gap-2.5 px-3 py-2 font-mono text-xs transition-colors"
               >
-                <PixelIcon icon={SlidersHorizontal} />
+                <Icon name="sliders" />
                 tweaks
               </button>
               <button
                 onClick={() => pick(onJoin)}
                 className="text-foreground hover:bg-muted flex w-full items-center gap-2.5 px-3 py-2 font-mono text-xs transition-colors"
               >
-                <PixelIcon icon={UserPlus} />
+                <Icon name="user-plus" />
                 <span>
                   join a bucket
                   <BetaTag feature="sharing" />
@@ -201,14 +193,14 @@ function GlobalMenu({
                 onClick={() => pick(onArchive)}
                 className="text-foreground hover:bg-muted flex w-full items-center gap-2.5 px-3 py-2 font-mono text-xs transition-colors"
               >
-                <PixelIcon icon={Archive} />
+                <Icon name="archive" />
                 archived
               </button>
               <button
                 onClick={() => pick(onTrash)}
                 className="text-foreground hover:bg-muted flex w-full items-center gap-2.5 px-3 py-2 font-mono text-xs transition-colors"
               >
-                <PixelIcon icon={Trash} />
+                <Icon name="trash" />
                 trash
               </button>
               {onFeedback && (
@@ -216,7 +208,7 @@ function GlobalMenu({
                   onClick={() => pick(onFeedback)}
                   className="text-foreground hover:bg-muted flex w-full items-center gap-2.5 px-3 py-2 font-mono text-xs transition-colors"
                 >
-                  <PixelIcon icon={Message} />
+                  <Icon name="message" />
                   feedback
                 </button>
               )}
@@ -224,7 +216,7 @@ function GlobalMenu({
                 onClick={() => pick(onWhatsNew)}
                 className="text-foreground hover:bg-muted flex w-full items-center gap-2.5 px-3 py-2 font-mono text-xs transition-colors"
               >
-                <PixelIcon icon={Megaphone} />
+                <Icon name="megaphone" />
                 what&apos;s new
                 {unseenRelease && (
                   <>
@@ -237,7 +229,7 @@ function GlobalMenu({
                 onClick={() => pick(onGuide)}
                 className="text-foreground hover:bg-muted flex w-full items-center gap-2.5 px-3 py-2 font-mono text-xs transition-colors"
               >
-                <PixelIcon icon={MapIcon} />
+                <Icon name="map" />
                 getting started
                 <span className="text-muted-foreground">{guideProgress}</span>
               </button>
@@ -246,14 +238,14 @@ function GlobalMenu({
                 onClick={() => pick(() => setConfirmLogout("here"))}
                 className="text-destructive hover:bg-muted flex w-full items-center gap-2.5 px-3 py-2 font-mono text-xs transition-colors"
               >
-                <PixelIcon icon={Logout} />
+                <Icon name="logout" />
                 logout
               </button>
               <button
                 onClick={() => pick(() => setConfirmLogout("everywhere"))}
                 className="text-destructive hover:bg-muted flex w-full items-center gap-2.5 px-3 py-2 font-mono text-xs transition-colors"
               >
-                <PixelIcon icon={Logout} />
+                <Icon name="logout" />
                 logout everywhere
               </button>
             </div>

@@ -1,7 +1,4 @@
-import { MoreHorizontal } from "pixelarticons/react/MoreHorizontal.js";
-import { WarningDiamond } from "pixelarticons/react/WarningDiamond.js";
-import { PixelIcon } from "@/components/ui/PixelIcon";
-import { GripIcon } from "@/components/ui/GripIcon";
+import { Icon } from "@/components/ui/Icon";
 import { formatShortTime } from "@/lib/format-date";
 import { ITEM_STATUS, TITLE_LINES_SHOWN } from "@/constants";
 import { ITEM_HIGHLIGHT_MS, JUST_ADDED_MS } from "./constants";
@@ -193,7 +190,7 @@ export function ItemRow({
           onPointerDown={(e) => dragControls.start(e)}
           aria-label="drag to reorder"
         >
-          <PixelIcon icon={GripIcon} />
+          <Icon name="grip" />
         </button>
       )}
 
@@ -259,7 +256,7 @@ export function ItemRow({
           title="reminder failed"
           className="text-destructive flex shrink-0 items-center pl-2 transition-opacity hover:opacity-70"
         >
-          <PixelIcon icon={WarningDiamond} />
+          <Icon name="warning" />
         </button>
       )}
       {onMenu && (
@@ -282,7 +279,7 @@ export function ItemRow({
               "[@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover/row:opacity-100 [@media(hover:hover)]:focus-visible:opacity-100"
           )}
         >
-          <PixelIcon icon={MoreHorizontal} />
+          <Icon name="more" />
         </button>
       )}
       {reminderOpen && (

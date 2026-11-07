@@ -1,6 +1,4 @@
-import { ChevronLeft } from "pixelarticons/react/ChevronLeft.js";
-import { ChevronRight } from "pixelarticons/react/ChevronRight.js";
-import { PixelIcon } from "@/components/ui/PixelIcon";
+import { Icon } from "@/components/ui/Icon";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 
@@ -61,7 +59,7 @@ export function Calendar({ value, onSelect }: CalendarProps) {
           aria-label="previous month"
           className="text-muted-foreground hover:text-foreground p-1.5 transition-colors"
         >
-          <PixelIcon icon={ChevronLeft} />
+          <Icon name="chevron-left" />
         </button>
         <span className="font-pixel text-xs">
           {MONTHS[viewMonth]} {viewYear}
@@ -72,7 +70,7 @@ export function Calendar({ value, onSelect }: CalendarProps) {
           aria-label="next month"
           className="text-muted-foreground hover:text-foreground p-1.5 transition-colors"
         >
-          <PixelIcon icon={ChevronRight} />
+          <Icon name="chevron-right" />
         </button>
       </div>
 

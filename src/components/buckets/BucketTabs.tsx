@@ -1,11 +1,8 @@
-import { Clock } from "pixelarticons/react/Clock.js";
-import { Search } from "pixelarticons/react/Search.js";
-import { SlidersHorizontal } from "pixelarticons/react/SlidersHorizontal.js";
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { Reorder, motion } from "framer-motion";
 import { toast } from "sonner";
 import { BracketButton } from "@/components/ui/BracketButton";
-import { PixelIcon } from "@/components/ui/PixelIcon";
+import { Icon } from "@/components/ui/Icon";
 import { useLayoutStore } from "@/store/layout";
 import { useUIStore } from "@/store/ui";
 import { cn } from "@/lib/utils";
@@ -71,7 +68,7 @@ function PlaceTab({
           aria-label="bucket settings"
           className="text-muted-foreground hover:text-foreground -ml-1 flex h-11 items-center pr-3 transition-colors"
         >
-          <PixelIcon icon={SlidersHorizontal} />
+          <Icon name="sliders" />
         </button>
       )}
     </span>
@@ -134,7 +131,7 @@ export function BucketTabs({ buckets, activeId, todayOpen }: BucketTabsProps) {
           aria-label="search"
           className="shrink-0 py-0 pr-3 pl-4 sm:pl-3"
         >
-          <PixelIcon icon={Search} />
+          <Icon name="search" />
         </BracketButton>
         <span aria-hidden className="bg-border my-3.5 w-px shrink-0" />
         <motion.div
@@ -149,7 +146,7 @@ export function BucketTabs({ buckets, activeId, todayOpen }: BucketTabsProps) {
             onSelect={openToday}
           >
             <span className="flex items-center gap-1.5">
-              <PixelIcon icon={Clock} />
+              <Icon name="clock" />
               today
             </span>
           </PlaceTab>

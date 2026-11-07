@@ -1,7 +1,4 @@
-import { Collapse } from "pixelarticons/react/Collapse.js";
-import { Minus } from "pixelarticons/react/Minus.js";
-import { Scale } from "pixelarticons/react/Scale.js";
-import { PixelIcon } from "@/components/ui/PixelIcon";
+import { Icon } from "@/components/ui/Icon";
 import { BracketButton } from "@/components/ui/BracketButton";
 import { HEADER_H } from "./chatTypes";
 import { useAssistantName } from "./assistant-name";
@@ -87,7 +84,7 @@ export function CapyChatHeader({
           className="text-muted-foreground hover:text-foreground flex h-6 w-6 items-center justify-center transition-colors"
           aria-label={minimized ? "Expand" : "Collapse"}
         >
-          <PixelIcon icon={Minus} />
+          <Icon name="minus" />
         </button>
       )}
       {onFullscreen && (
@@ -99,7 +96,7 @@ export function CapyChatHeader({
           className="text-muted-foreground hover:text-foreground flex h-6 w-6 items-center justify-center transition-colors"
           aria-label={fullscreen ? "Exit fullscreen" : "Fullscreen"}
         >
-          {fullscreen ? <PixelIcon icon={Collapse} /> : <PixelIcon icon={Scale} />}
+          {fullscreen ? <Icon name="collapse" /> : <Icon name="expand" />}
         </button>
       )}
       <BracketButton

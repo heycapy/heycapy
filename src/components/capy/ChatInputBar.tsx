@@ -1,6 +1,4 @@
-import { ArrowUp } from "pixelarticons/react/ArrowUp.js";
-import { Mic } from "pixelarticons/react/Mic.js";
-import { PixelIcon } from "@/components/ui/PixelIcon";
+import { Icon } from "@/components/ui/Icon";
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState, createElement } from "react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -223,7 +221,7 @@ export const ChatInputBar = forwardRef<ChatInputBarHandle, Props>(function ChatI
               aria-label="Record voice"
               className="border-border text-muted-foreground hover:border-foreground hover:text-foreground mb-0.5 shrink-0 border p-2.5 transition-colors disabled:cursor-not-allowed disabled:opacity-40 md:p-1"
             >
-              <PixelIcon icon={Mic} />
+              <Icon name="mic" />
             </button>
             {streaming ? (
               <button
@@ -245,7 +243,7 @@ export const ChatInputBar = forwardRef<ChatInputBarHandle, Props>(function ChatI
                 )}
                 aria-label="Send"
               >
-                <PixelIcon icon={ArrowUp} />
+                <Icon name="arrow-up" />
               </button>
             )}
           </div>

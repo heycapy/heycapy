@@ -1,5 +1,4 @@
-import { Close } from "pixelarticons/react/Close.js";
-import { PixelIcon } from "@/components/ui/PixelIcon";
+import { Icon } from "@/components/ui/Icon";
 import type { ReactNode } from "react";
 import { DatePicker } from "@/components/ui/DatePicker";
 import { TimeField, type TimeValue } from "@/components/ui/TimeField";
@@ -65,7 +64,7 @@ export function ItemWhenSection({
               aria-label="remove date"
               className="text-muted-foreground hover:text-destructive -mr-1 shrink-0 p-1 transition-colors"
             >
-              <PixelIcon icon={Close} />
+              <Icon name="close" />
             </button>
           )}
         </div>

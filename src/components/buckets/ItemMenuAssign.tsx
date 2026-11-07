@@ -1,7 +1,5 @@
-import { Check } from "pixelarticons/react/Check.js";
-import { ChevronRight } from "pixelarticons/react/ChevronRight.js";
 import { PersonAvatar } from "@/components/avatar/PersonAvatar";
-import { PixelIcon } from "@/components/ui/PixelIcon";
+import { Icon } from "@/components/ui/Icon";
 import type { BucketMember } from "@/lib/buckets/members";
 import { memberName } from "@/lib/buckets/member-name";
 import { cn } from "@/lib/utils";
@@ -61,7 +59,7 @@ export function AssignChips({
           className={cn(chip, "text-muted-foreground hover:text-foreground")}
         >
           +{members.length - shown.length} more
-          <PixelIcon icon={ChevronRight} />
+          <Icon name="chevron-right" />
         </button>
       )}
     </div>
@@ -83,12 +81,12 @@ export function AssignList({ members, assigneeId, busy, onAssign }: AssignProps)
         >
           <PersonAvatar userId={m.userId} avatar={m.avatar} className="shrink-0" />
           <span className="min-w-0 flex-1 truncate">{nameOf(m)}</span>
-          {assigneeId === m.userId && <PixelIcon icon={Check} />}
+          {assigneeId === m.userId && <Icon name="check" />}
         </button>
       ))}
       <button type="button" disabled={busy} onClick={() => onAssign(null)} className={row}>
         <span className="text-muted-foreground min-w-0 flex-1">anyone</span>
-        {assigneeId === null && <PixelIcon icon={Check} />}
+        {assigneeId === null && <Icon name="check" />}
       </button>
     </div>
   );

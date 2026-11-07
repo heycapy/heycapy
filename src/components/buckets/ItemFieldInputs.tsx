@@ -1,5 +1,4 @@
-import { Close } from "pixelarticons/react/Close.js";
-import { PixelIcon } from "@/components/ui/PixelIcon";
+import { Icon } from "@/components/ui/Icon";
 import { useState } from "react";
 import { DatePicker } from "@/components/ui/DatePicker";
 import { TimeField, type Ampm } from "@/components/ui/TimeField";
@@ -156,7 +155,7 @@ export function DatetimeFieldInput({
             onClick={clear}
             className="text-muted-foreground hover:text-destructive shrink-0 transition-colors"
           >
-            <PixelIcon icon={Close} />
+            <Icon name="close" />
           </button>
         )}
       </div>

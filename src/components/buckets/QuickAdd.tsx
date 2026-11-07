@@ -1,10 +1,7 @@
-import { Scale } from "pixelarticons/react/Scale.js";
-import { Close } from "pixelarticons/react/Close.js";
-import { Plus } from "pixelarticons/react/Plus.js";
 import { useState, type RefObject } from "react";
 import { toast } from "sonner";
 import { addItemAction } from "@/app/(app)/actions";
-import { PixelIcon } from "@/components/ui/PixelIcon";
+import { Icon } from "@/components/ui/Icon";
 import { ITEM_TITLE_MAX_LENGTH, MOBILE_MEDIA_QUERY } from "@/constants";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { memberName } from "@/lib/buckets/member-name";
@@ -144,7 +141,7 @@ export function QuickAdd({ bucket, inputRef, onAdded, onExpand }: QuickAddProps)
         </div>
       )}
       <div className="flex items-center gap-2 pl-2.5">
-        <PixelIcon icon={Plus} className="shrink-0 text-(--accent)" />
+        <Icon name="plus" className="shrink-0 text-(--accent)" />
         <input
           ref={inputRef}
           value={text}
@@ -209,7 +206,7 @@ export function QuickAdd({ bucket, inputRef, onAdded, onExpand }: QuickAddProps)
             aria-label="clear"
             className="text-muted-foreground hover:text-foreground flex h-11 w-9 shrink-0 items-center justify-center transition-colors"
           >
-            <PixelIcon icon={Close} />
+            <Icon name="close" />
           </button>
         )}
         <button
@@ -218,7 +215,7 @@ export function QuickAdd({ bucket, inputRef, onAdded, onExpand }: QuickAddProps)
           aria-label="add with details"
           className="text-muted-foreground hover:text-foreground flex size-11 shrink-0 items-center justify-center transition-colors"
         >
-          <PixelIcon icon={Scale} />
+          <Icon name="expand" />
         </button>
       </div>
     </div>

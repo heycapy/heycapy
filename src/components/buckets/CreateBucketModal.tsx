@@ -1,9 +1,6 @@
 "use client";
 
-import { ArrowLeft } from "pixelarticons/react/ArrowLeft.js";
-import { Close } from "pixelarticons/react/Close.js";
-import { Package } from "pixelarticons/react/Package.js";
-import { PixelIcon } from "@/components/ui/PixelIcon";
+import { Icon } from "@/components/ui/Icon";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { motion, AnimatePresence, type Transition } from "framer-motion";
 import { useUIStore } from "@/store/ui";
@@ -94,7 +91,7 @@ export function CreateBucketModal({ templates }: CreateBucketModalProps) {
                 </p>
               </div>
               <BracketButton onClick={closeCreateBucket} aria-label="close">
-                <PixelIcon icon={Close} />
+                <Icon name="close" />
               </BracketButton>
             </div>
 
@@ -108,8 +105,8 @@ export function CreateBucketModal({ templates }: CreateBucketModalProps) {
                     onClick={() => handlePickTemplate(t)}
                     className="border-border bg-card hover:bg-muted flex flex-col gap-1 rounded border p-2 text-left transition-colors sm:gap-1.5 sm:p-3"
                   >
-                    <PixelIcon
-                      icon={TEMPLATE_ICONS[t.name] ?? Package}
+                    <Icon
+                      name={TEMPLATE_ICONS[t.name] ?? "package"}
                       className="text-muted-foreground"
                     />
                     <span className="font-pixel truncate text-xs sm:text-xs">{t.name}</span>
@@ -140,12 +137,12 @@ export function CreateBucketModal({ templates }: CreateBucketModalProps) {
                   }}
                   className="text-muted-foreground hover:text-foreground transition-colors"
                 >
-                  <PixelIcon icon={ArrowLeft} />
+                  <Icon name="arrow-left" />
                 </button>
                 <ModalTitle className="text-sm">Name it</ModalTitle>
               </div>
               <BracketButton onClick={closeCreateBucket} aria-label="close">
-                <PixelIcon icon={Close} />
+                <Icon name="close" />
               </BracketButton>
             </div>
             <div className="flex flex-col gap-3 p-4">
