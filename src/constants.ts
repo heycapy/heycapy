@@ -138,6 +138,13 @@ export const VOICE_NO_SPEECH_ERROR = "Nothing was heard. Try again a bit closer 
 export const OLLAMA_DEFAULT_URL = "https://ollama.yourdomain.com";
 export const NTFY_DEFAULT_URL = "https://ntfy.sh";
 
+export const LOOK = {
+  original: "original",
+  modern: "modern",
+} as const;
+
+export const LOOKS = [LOOK.original, LOOK.modern] as const;
+
 export const ITEM_STATUS = {
   active: "active",
   completed: "completed",

@@ -3,7 +3,9 @@ import type { Metadata, Viewport } from "next";
 import { headers } from "next/headers";
 import { Geist, Geist_Mono, Silkscreen } from "next/font/google";
 import "./globals.css";
-import { APP_NAME, APP_TAGLINE } from "@/constants";
+import { APP_NAME, APP_TAGLINE, LOOK } from "@/constants";
+import { getSession } from "@/lib/auth/session";
+import { lookFor } from "@/lib/account/look";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
 
 const geistSans = Geist({
@@ -43,10 +45,14 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-export default function RootLayout({ children }: { children: ReactNode }) {
+export default async function RootLayout({ children }: { children: ReactNode }) {
+  const session = await getSession();
+  const look = session ? await lookFor(session.userId) : LOOK.original;
+
   return (
     <html
       lang="en"
+      data-look={look}
       className={`${geistSans.variable} ${geistMono.variable} ${silkscreen.variable} h-full antialiased`}
       suppressHydrationWarning
     >

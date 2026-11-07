@@ -23,21 +23,26 @@
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
   --font-pixel: var(--font-pixel), monospace;
+  --font-ui: var(--ui-font);
+  --font-display: var(--display-font);
+  --radius-panel: var(--panel-radius);
+  --radius-control: var(--control-radius);
 }
 
 @theme {
   --container-column: 47.5rem;
   --spacing-chat: 27.5rem;
-  --font-ui: var(--font-mono);
-  --font-display: var(--font-pixel), monospace;
   --text-2xs: 0.6875rem;
   --text-3xs: 0.625rem;
-  --radius-panel: 0px;
-  --radius-control: 0px;
 }
 
-/* Tailwind writes theme shadows into each utility, so these read variables a look can change */
-:root {
+/* What a look changes. Pages before login pin data-look="original" so they keep these under any look */
+:root,
+[data-look="original"] {
+  --ui-font: var(--font-mono);
+  --display-font: var(--font-pixel), monospace;
+  --panel-radius: 0px;
+  --control-radius: 0px;
   --frame-width: 2px;
   --raised-shadow-sm: 2px 2px 0 var(--border);
   --raised-shadow: 3px 3px 0 var(--border);
