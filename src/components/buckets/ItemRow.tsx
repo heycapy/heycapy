@@ -177,6 +177,7 @@ export function ItemRow({
       ref={rowRef}
       id={anchor}
       data-just-added={justAdded || undefined}
+      data-editing={isEditing || undefined}
       className={cn(
         "group/row flex items-stretch gap-0 px-3 transition-colors duration-1000",
         justAdded && "bg-primary/8",

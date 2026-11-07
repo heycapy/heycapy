@@ -159,7 +159,7 @@ export function AppShell({
           guideProgress={`${guideDone}/${guide.tasks.length}`}
           guideUnfinished={guideDone < guide.tasks.length && !guide.hidden}
         />
-        <main className="max-md:scrollbar-hide flex flex-1 flex-col overflow-y-auto">
+        <main className="max-md:scrollbar-hide relative flex flex-1 flex-col overflow-y-auto">
           <BannersProvider banners={banners}>{children}</BannersProvider>
         </main>
       </div>

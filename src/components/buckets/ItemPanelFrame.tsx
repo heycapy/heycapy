@@ -23,6 +23,8 @@ import {
   ADD_PANEL_DIM_FADE,
   ADD_PANEL_MOTION,
   ITEM_PANEL_RESIZE,
+  EDIT_ROW_GAP_PX,
+  OUTSIDE_TAP_CLICK_MS,
   PHONE_DRAWER_TOP_GAP_PX,
 } from "./constants";
 import { useVisualViewport } from "@/hooks/useVisualViewport";
@@ -90,6 +92,30 @@ export function ItemPanelFrame({
       root.removeProperty("--item-panel-cover");
     };
   }, [open, panel.slot]);
+  useEffect(() => {
+    const main = panel.slot.closest("main");
+    if (!open || !main) return;
+    const scrollbar = main.offsetWidth - main.clientWidth;
+    main.style.overflowY = "hidden";
+    main.style.paddingRight = `${scrollbar}px`;
+    return () => {
+      main.style.overflowY = "";
+      main.style.paddingRight = "";
+    };
+  }, [open, panel.slot]);
+
+  useEffect(() => {
+    const el = panelRef.current;
+    if (!open || !returnToOpener || !el) return;
+    const frame = requestAnimationFrame(() => {
+      const row = document.querySelector<HTMLElement>("[data-editing]");
+      if (!row) return;
+      const panelTop = panel.slot.getBoundingClientRect().bottom - el.offsetHeight;
+      const hidden = row.getBoundingClientRect().bottom - panelTop + EDIT_ROW_GAP_PX;
+      if (hidden > 0) row.closest("main")?.scrollBy({ top: hidden, behavior: "smooth" });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [open, returnToOpener, panel.slot]);
   const wasOpen = useRef(open);
   const [opener, setOpener] = useState<HTMLElement | null>(null);
   const [shownOpen, setShownOpen] = useState(open);
@@ -121,12 +147,10 @@ export function ItemPanelFrame({
         click.preventDefault();
         click.stopPropagation();
       };
+      const stop = () => document.removeEventListener("click", swallow, true);
       document.addEventListener("click", swallow, { capture: true, once: true });
-      document.addEventListener(
-        "pointerup",
-        () => setTimeout(() => document.removeEventListener("click", swallow, true)),
-        { capture: true, once: true }
-      );
+      document.addEventListener("pointerdown", stop, { capture: true, once: true });
+      setTimeout(stop, OUTSIDE_TAP_CLICK_MS);
     }
     function modalOverPanel() {
       const modal = document.activeElement?.closest(MODAL_PANEL_SELECTOR);

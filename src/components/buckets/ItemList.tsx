@@ -42,7 +42,7 @@ type ItemListProps = {
 export function ItemList({
   loading,
   items,
-  emptyText = "no items yet · press + to add one",
+  emptyText,
   orderedItemsRef,
   draggable,
   readonly,
@@ -65,7 +65,9 @@ export function ItemList({
   if (loading || items.length === 0) {
     return (
       <p className="text-muted-foreground font-ui px-4 py-6 text-center text-xs">
-        {loading ? "loading..." : emptyText}
+        {loading
+          ? "loading..."
+          : (emptyText ?? (readonly ? "no items yet" : "no items yet · type one below"))}
       </p>
     );
   }
