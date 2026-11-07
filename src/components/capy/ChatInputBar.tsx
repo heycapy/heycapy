@@ -190,7 +190,7 @@ export const ChatInputBar = forwardRef<ChatInputBarHandle, Props>(function ChatI
             {recording && (
               <button
                 onClick={() => mediaRecorderRef.current?.stop()}
-                className="border-primary text-foreground font-display text-2xs shrink-0 border px-1.5 py-0.5 transition-opacity hover:opacity-70"
+                className="rounded-control border-primary text-foreground font-display text-2xs shrink-0 border px-1.5 py-0.5 transition-opacity hover:opacity-70"
               >
                 ■ stop
               </button>
@@ -219,14 +219,14 @@ export const ChatInputBar = forwardRef<ChatInputBarHandle, Props>(function ChatI
               disabled={streaming}
               title="voice input (ctrl+shift+m)"
               aria-label="Record voice"
-              className="border-border text-muted-foreground hover:border-foreground hover:text-foreground mb-0.5 shrink-0 border p-2.5 transition-colors disabled:cursor-not-allowed disabled:opacity-40 md:p-1"
+              className="rounded-control border-border text-muted-foreground hover:border-foreground hover:text-foreground mb-0.5 shrink-0 border p-2.5 transition-colors disabled:cursor-not-allowed disabled:opacity-40 md:p-1"
             >
               <Icon name="mic" />
             </button>
             {streaming ? (
               <button
                 onClick={onStop}
-                className="text-destructive border-destructive font-display text-2xs md:text-2xs mb-0.5 shrink-0 border px-2.5 py-2.5 transition-opacity hover:opacity-70 md:px-1.5 md:py-0.5"
+                className="rounded-control text-destructive border-destructive font-display text-2xs md:text-2xs mb-0.5 shrink-0 border px-2.5 py-2.5 transition-opacity hover:opacity-70 md:px-1.5 md:py-0.5"
                 aria-label="Stop"
               >
                 stop
@@ -236,7 +236,7 @@ export const ChatInputBar = forwardRef<ChatInputBarHandle, Props>(function ChatI
                 onClick={onSend}
                 disabled={!input.trim()}
                 className={cn(
-                  "border-border mb-0.5 shrink-0 border p-2.5 transition-colors md:p-1",
+                  "rounded-control border-border mb-0.5 shrink-0 border p-2.5 transition-colors md:p-1",
                   input.trim()
                     ? "bg-foreground text-background"
                     : "text-muted-foreground cursor-not-allowed"

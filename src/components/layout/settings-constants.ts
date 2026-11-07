@@ -9,17 +9,17 @@ export const INPUT =
   "border-b border-border w-full bg-transparent py-1.5 font-ui text-xs outline-none placeholder:text-muted-foreground/50 focus:border-foreground disabled:opacity-50";
 
 export const SECTION = "text-foreground font-ui text-xs font-semibold tracking-widest uppercase";
-export const BOX = "border-border flex flex-col gap-4 border p-3";
+export const BOX = "rounded-control border-border flex flex-col gap-4 border p-3";
 export const USERNAME_CHECK_DEBOUNCE_MS = 400;
 // every button in tweaks in the theme's accent so they read as buttons, without touching a picked option or tab
 export const ACCENT_BUTTONS = [
-  "[&_[data-variant=default]]:text-primary",
+  "[&_[data-variant=default]]:text-(--button-accent)",
   "[&_[data-variant=default]:hover]:text-foreground",
-  "[&_[data-variant=destructive]]:text-primary",
+  "[&_[data-variant=destructive]]:text-(--button-accent)",
   "[&_[data-variant=destructive]:hover]:text-destructive",
-  "[&_[data-variant=warning]]:text-primary",
+  "[&_[data-variant=warning]]:text-(--button-accent)",
   "[&_[data-variant=warning]:hover]:text-warning",
-  "[&_button[aria-pressed=false]]:text-primary",
+  "[&_button[aria-pressed=false]]:text-(--button-accent)",
   "[&_button[aria-pressed=false]:hover]:text-foreground",
 ].join(" ");
 

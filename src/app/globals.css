@@ -18,10 +18,10 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
+  --radius-sm: max(calc(var(--radius) - 4px), var(--control-radius));
+  --radius-md: max(calc(var(--radius) - 2px), var(--control-radius));
+  --radius-lg: max(var(--radius), var(--control-radius));
+  --radius-xl: max(calc(var(--radius) + 4px), var(--panel-radius));
   --font-pixel: var(--font-pixel), monospace;
   --font-ui: var(--ui-font);
   --font-display: var(--display-font);
@@ -64,6 +64,9 @@
   --chip-radius: 0px;
   --chip-padding: 0 0.25rem;
   --chip-weight: inherit;
+  --button-accent: var(--primary);
+  --tab-active-bg: var(--foreground);
+  --tab-active-fg: var(--background);
 }
 
 [data-look="modern"] {
@@ -88,6 +91,9 @@
   --chip-radius: 9999px;
   --chip-padding: 1px 0.5rem;
   --chip-weight: 600;
+  --button-accent: var(--muted-foreground);
+  --tab-active-bg: var(--muted);
+  --tab-active-fg: var(--foreground);
 }
 
 /* Original keeps the browser's own focus outline; layered so outline-none still wins */

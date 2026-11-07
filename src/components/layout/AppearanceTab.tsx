@@ -3,6 +3,7 @@ import { charCountColor } from "@/components/ui/input";
 import { LABEL, INPUT, THEMES } from "./settings-constants";
 import { TIMEZONE_MAX_LENGTH } from "@/constants";
 import { LookPicker } from "./LookPicker";
+import { useLookParts } from "@/components/looks/LookProvider";
 
 type AppearanceTabProps = {
   theme: string | undefined;
@@ -19,6 +20,7 @@ export function AppearanceTab({
   setTimezone,
   pending,
 }: AppearanceTabProps) {
+  const raised = useLookParts().optionButton === "raised";
   return (
     <>
       <LookPicker />
@@ -36,7 +38,12 @@ export function AppearanceTab({
                 style={{
                   background: t.bg,
                   borderColor: theme === t.id ? t.fg : undefined,
-                  boxShadow: theme === t.id ? `2px 2px 0 ${t.fg}` : undefined,
+                  boxShadow:
+                    theme !== t.id
+                      ? undefined
+                      : raised
+                        ? `2px 2px 0 ${t.fg}`
+                        : `0 0 0 2px var(--background), 0 0 0 4px ${t.fg}`,
                 }}
               />
               <span

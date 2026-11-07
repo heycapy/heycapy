@@ -26,7 +26,7 @@ export function AssignChips({
   const shown =
     members.length > ASSIGN_CHIPS_MAX ? members.slice(0, ASSIGN_CHIPS_MAX - 1) : members;
   const chip =
-    "border-border flex max-w-32 items-center gap-1 border px-1.5 py-1 transition-colors disabled:opacity-50";
+    "rounded-control border-border flex max-w-32 items-center gap-1 border px-1.5 py-1 transition-colors disabled:opacity-50";
   return (
     <div
       role="group"

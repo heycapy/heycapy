@@ -56,7 +56,7 @@ function FieldRow({
   return (
     <div
       className={cn(
-        "border-border flex flex-col gap-3 border p-3",
+        "rounded-control border-border flex flex-col gap-3 border p-3",
         hasError && "border-destructive"
       )}
       data-field-idx={dataIdx}

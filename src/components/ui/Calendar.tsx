@@ -97,7 +97,7 @@ export function Calendar({ value, onSelect }: CalendarProps) {
               key={day}
               onClick={() => onSelect(toDateStr(viewYear, viewMonth, day))}
               className={cn(
-                "font-ui mx-auto flex h-8 w-8 items-center justify-center text-xs transition-colors",
+                "rounded-control font-ui mx-auto flex h-8 w-8 items-center justify-center text-xs transition-colors",
                 isSelected && "bg-primary text-primary-foreground",
                 !isSelected && isToday && "border-border text-foreground border font-bold",
                 !isSelected && !isToday && "text-foreground hover:bg-muted"

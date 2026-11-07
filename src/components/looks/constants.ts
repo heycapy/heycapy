@@ -9,6 +9,8 @@ export type LookParts = {
   tickBox: "pixel" | "round";
   textButton: "bracketed" | "plain";
   panelHeader: "inverted" | "plain";
+  listFrame: "framed" | "bare";
+  optionButton: "raised" | "flat";
 };
 
 export const LOOK_PARTS: Record<Look, LookParts> = {
@@ -17,6 +19,15 @@ export const LOOK_PARTS: Record<Look, LookParts> = {
     tickBox: "pixel",
     textButton: "bracketed",
     panelHeader: "inverted",
+    listFrame: "framed",
+    optionButton: "raised",
   },
-  modern: { iconSet: "line", tickBox: "round", textButton: "plain", panelHeader: "plain" },
+  modern: {
+    iconSet: "line",
+    tickBox: "round",
+    textButton: "plain",
+    panelHeader: "plain",
+    listFrame: "bare",
+    optionButton: "flat",
+  },
 };

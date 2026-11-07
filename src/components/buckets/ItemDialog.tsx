@@ -295,7 +295,7 @@ export function ItemDialog({
       {hasFields ? (
         <div className="flex flex-col gap-5">
           {onPropertiesChange && fields && (
-            <div className="border-border border">
+            <div className="rounded-control border-border border">
               <ItemFieldsForm
                 fields={fields}
                 values={properties ?? {}}

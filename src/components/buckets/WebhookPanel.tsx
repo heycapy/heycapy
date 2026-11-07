@@ -127,7 +127,7 @@ export function WebhookPanel({ bucket }: WebhookPanelProps) {
       <div className="flex flex-col gap-1.5">
         <label className={LABEL}>endpoint url</label>
         <span className={HINT}>POST to this URL to create an item in this bucket</span>
-        <div className="border-border flex items-center border">
+        <div className="rounded-control border-border flex items-center border">
           <code className="text-muted-foreground text-2xs flex-1 overflow-hidden bg-transparent px-2 py-1 font-mono text-ellipsis">
             {webhookUrl}
           </code>
@@ -142,7 +142,7 @@ export function WebhookPanel({ bucket }: WebhookPanelProps) {
         <span className={HINT}>
           send as Authorization: Bearer {"<key>"} — rotate to invalidate the old key
         </span>
-        <div className="border-border flex items-center border">
+        <div className="rounded-control border-border flex items-center border">
           <code className="text-muted-foreground text-2xs flex-1 overflow-hidden bg-transparent px-2 py-1 font-mono text-ellipsis">
             {key
               ? revealed
@@ -176,7 +176,7 @@ export function WebhookPanel({ bucket }: WebhookPanelProps) {
       <div className="flex flex-col gap-1.5">
         <label className={LABEL}>test with curl</label>
         <span className={HINT}>paste this in your terminal to create a test item</span>
-        <div className="border-border relative border">
+        <div className="rounded-control border-border relative border">
           <pre className="text-muted-foreground text-2xs overflow-x-auto bg-transparent p-2 font-mono">
             {key
               ? buildCurlCommand(webhookUrl, revealed ? key : WEBHOOK_KEY_MASK, schema)

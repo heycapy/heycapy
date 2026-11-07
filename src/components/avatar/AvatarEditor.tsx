@@ -164,7 +164,10 @@ export function AvatarEditor({ draft, onDraft }: AvatarEditorProps) {
         {AVATAR_PREVIEW_BACKGROUNDS.map((background) => (
           <div
             key={background.name}
-            className={cn("border-border flex items-end gap-3 border p-2", background.className)}
+            className={cn(
+              "rounded-control border-border flex items-end gap-3 border p-2",
+              background.className
+            )}
           >
             {AVATAR_DISPLAY_SIZES.map((size) => (
               <Avatar

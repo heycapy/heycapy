@@ -87,7 +87,7 @@ export function InviteSection({ bucketId }: { bucketId: number }) {
       </TextButton>
 
       {fresh && (
-        <div className="border-border flex flex-col gap-2.5 border p-3">
+        <div className="rounded-control border-border flex flex-col gap-2.5 border p-3">
           <div className="flex items-center justify-between gap-2">
             <span
               data-testid="invite-code"

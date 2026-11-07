@@ -77,7 +77,7 @@ export function ChatMessageList({
             >
               <div
                 className={cn(
-                  "font-ui w-fit px-3 py-2 text-xs leading-relaxed break-words",
+                  "rounded-control font-ui w-fit px-3 py-2 text-xs leading-relaxed break-words",
                   fullscreen ? "max-w-[65ch]" : "max-w-[85%]",
                   msg.role === "user"
                     ? "bg-foreground text-background"

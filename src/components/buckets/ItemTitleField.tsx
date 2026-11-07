@@ -202,7 +202,7 @@ export function ItemTitleField({
       )}
       {typedDate && !rowIcon && (
         <div className="flex items-center gap-2">
-          <span className="border-primary text-foreground font-ui border px-2 py-1 text-xs">
+          <span className="rounded-control border-primary text-foreground font-ui border px-2 py-1 text-xs">
             due {describeDeadline(typedDate.deadline)}
           </span>
           <TextButton onClick={onDismissDate} aria-label="not a date" className="px-1">

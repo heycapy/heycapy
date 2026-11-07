@@ -52,7 +52,7 @@ export function AvatarToolbar(props: AvatarToolbarProps) {
             onClick={() => props.onColour(index)}
             disabled={disabled}
             className={cn(
-              "border-border size-7 border transition-shadow disabled:opacity-40",
+              "rounded-control border-border size-7 border transition-shadow disabled:opacity-40",
               entry.swatch,
               colour === index && "ring-foreground ring-offset-background ring-2 ring-offset-2"
             )}

@@ -17,7 +17,7 @@ export default function Error({
       </div>
       <button
         onClick={reset}
-        className="border-border text-muted-foreground hover:text-foreground font-ui border px-3 py-1.5 text-xs transition-colors"
+        className="rounded-control border-border text-muted-foreground hover:text-foreground font-ui border px-3 py-1.5 text-xs transition-colors"
       >
         try again
       </button>

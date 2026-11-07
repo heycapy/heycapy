@@ -121,8 +121,9 @@ test("a hint takes you to the place the task is done", async ({ page }) => {
   await expect(guidePanel(page)).toBeHidden();
   const tweaks = page.getByRole("dialog", { name: "tweaks" });
   await expect(tweaks).toBeVisible();
-  await expect(tweaks.getByRole("button", { name: "appearance", exact: true })).toHaveClass(
-    /bg-foreground/
+  await expect(tweaks.getByRole("button", { name: "appearance", exact: true })).toHaveAttribute(
+    "aria-current",
+    "true"
   );
   await expect(page.getByText("pick any theme you like")).toBeVisible();
   await tweaks.getByRole("button", { name: "[ x ]" }).click();

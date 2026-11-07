@@ -18,6 +18,8 @@ import { parseFields } from "./fields";
 import { useUIStore } from "@/store/ui";
 import { placesOf } from "@/lib/timezones/gap";
 import { toast } from "sonner";
+import { useLookParts } from "@/components/looks/LookProvider";
+import { cn } from "@/lib/utils";
 import { assignItemAction } from "@/app/(app)/actions";
 import { memberName } from "@/lib/buckets/member-name";
 import { MembersBar, type MemberFilter } from "./MembersBar";
@@ -43,6 +45,7 @@ export function BucketContent({ bucket, accentColor, viewRef, panel }: BucketCon
     statuses.find((s) => s.isDefault)?.name ?? statuses[0]?.name ?? ITEM_STATUS.active;
   const readonly = rules.readonly === true;
   const bucketName = bucket.icon ? `${bucket.icon} ${bucket.name}` : bucket.name;
+  const framed = useLookParts().listFrame === "framed";
 
   const [settingsTab, setSettingsTab] = useState<SettingsTab | null>(null);
   const list = useBucketItems(bucket.id, bucket.itemsRules, rules.showCompleted !== false);
@@ -98,7 +101,13 @@ export function BucketContent({ bucket, accentColor, viewRef, panel }: BucketCon
         onSetUp={() => setSettingsTab("notifications")}
       />
 
-      <div className="border-border border-b-frame sm:border-x-frame sm:shadow-raised-sm sm:rounded-b-panel @container overflow-hidden sm:mx-4">
+      <div
+        className={cn(
+          "@container overflow-hidden sm:mx-4",
+          framed &&
+            "border-border border-b-frame sm:border-x-frame sm:shadow-raised-sm sm:rounded-b-panel"
+        )}
+      >
         <ItemList
           loading={list.loading}
           items={shownItems}

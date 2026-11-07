@@ -50,7 +50,7 @@ export function BuyCredits() {
         {packs.map((pack) => (
           <div
             key={pack.id}
-            className="border-border flex items-center justify-between gap-3 border p-2.5"
+            className="rounded-control border-border flex items-center justify-between gap-3 border p-2.5"
           >
             <div className="font-ui flex flex-col gap-0.5">
               <span className="text-foreground text-sm">

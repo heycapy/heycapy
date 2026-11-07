@@ -223,7 +223,7 @@ export function ItemRow({
               {badges.map((b) => (
                 <span
                   key={b.label}
-                  className="border-border text-muted-foreground font-ui text-2xs border px-1 py-1 [text-box:trim-both_cap_alphabetic]"
+                  className="rounded-control border-border text-muted-foreground font-ui text-2xs border px-1 py-1 [text-box:trim-both_cap_alphabetic]"
                 >
                   {b.label}: {b.value}
                 </span>

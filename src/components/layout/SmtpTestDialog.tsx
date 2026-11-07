@@ -86,13 +86,13 @@ export function SmtpTestDialog({
             />
           </div>
 
-          <div className="border-border flex flex-col gap-2 border p-3">
+          <div className="rounded-control border-border flex flex-col gap-2 border p-3">
             <span className="text-muted-foreground font-ui text-2xs tracking-widest uppercase">
               preview
             </span>
             <div
               style={{ fontFamily: mono }}
-              className="border-border text-2xs flex flex-col border"
+              className="rounded-control border-border text-2xs flex flex-col border"
             >
               <div className="border-border border-b px-3 py-2">
                 <p className="text-2xs">

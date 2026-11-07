@@ -2,7 +2,7 @@ export function ViewOnlyNotice({ tab }: { tab: "items" | "notifications" }) {
   return (
     <div
       role="note"
-      className="border-foreground bg-muted/40 border-rule flex flex-col gap-1 border px-3 py-2.5"
+      className="rounded-control border-foreground bg-muted/40 border-rule flex flex-col gap-1 border px-3 py-2.5"
     >
       <p className="text-foreground font-ui text-sm font-semibold">view only</p>
       <p className="text-foreground/80 font-ui text-xs leading-snug">

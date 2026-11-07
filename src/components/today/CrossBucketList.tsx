@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { useLookParts } from "@/components/looks/LookProvider";
 import { ItemRow } from "@/components/buckets/ItemRow";
 import { itemAssignee } from "@/components/buckets/assignee";
 import { parseFields } from "@/components/buckets/fields";
@@ -42,6 +43,7 @@ export function CrossBucketList({
   boxed = false,
 }: CrossBucketListProps) {
   const [menu, setMenu] = useState<{ item: Item; at: MenuAt } | null>(null);
+  const framed = useLookParts().listFrame === "framed";
   const statuses = DEFAULT_BUCKET_STATUSES;
   const showDue = sections.some((section) => section.items.some((item) => item.deadline));
   const bucketOf = (item: Item) => data?.buckets.find((b) => b.id === item.bucketId);
@@ -104,7 +106,9 @@ export function CrossBucketList({
   return (
     <div
       className={cn(
-        "border-border border-b-frame sm:border-x-frame sm:shadow-raised-sm sm:rounded-b-panel @container overflow-hidden sm:mx-4",
+        "@container overflow-hidden sm:mx-4",
+        (framed || boxed) &&
+          "border-border border-b-frame sm:border-x-frame sm:shadow-raised-sm sm:rounded-b-panel",
         boxed && "border-x-frame border-t-frame shadow-raised-sm rounded-panel mx-4"
       )}
     >
