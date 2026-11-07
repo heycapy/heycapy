@@ -59,6 +59,11 @@
   --raised-shadow-md: 4px 4px 0 var(--border);
   --raised-shadow-lg: 5px 5px 0 var(--border);
   --edge-shadow: -4px 0 0 var(--border);
+  --divider-style: dotted;
+  --rule-style: dashed;
+  --chip-radius: 0px;
+  --chip-padding: 0 0.25rem;
+  --chip-weight: inherit;
 }
 
 [data-look="modern"] {
@@ -78,6 +83,49 @@
   --raised-shadow-md: 0 2px 4px rgb(0 0 0 / 0.06), 0 8px 24px rgb(0 0 0 / 0.07);
   --raised-shadow-lg: 0 4px 8px rgb(0 0 0 / 0.06), 0 16px 40px rgb(0 0 0 / 0.1);
   --edge-shadow: -8px 0 24px rgb(0 0 0 / 0.08);
+  --divider-style: solid;
+  --rule-style: solid;
+  --chip-radius: 9999px;
+  --chip-padding: 1px 0.5rem;
+  --chip-weight: 600;
+}
+
+/* Original keeps the browser's own focus outline; layered so outline-none still wins */
+@layer base {
+  [data-look="modern"] :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+
+  [data-look="modern"] [data-look="original"] :focus-visible {
+    outline: revert;
+    outline-offset: revert;
+  }
+}
+
+@utility divide-divider {
+  :where(& > :not(:last-child)) {
+    --tw-border-style: var(--divider-style);
+    border-style: var(--divider-style);
+  }
+}
+
+@utility divide-rule {
+  :where(& > :not(:last-child)) {
+    --tw-border-style: var(--rule-style);
+    border-style: var(--rule-style);
+  }
+}
+
+@utility border-rule {
+  --tw-border-style: var(--rule-style);
+  border-style: var(--rule-style);
+}
+
+@utility chip {
+  border-radius: var(--chip-radius);
+  padding: var(--chip-padding);
+  font-weight: var(--chip-weight);
 }
 
 @utility shadow-raised-sm {

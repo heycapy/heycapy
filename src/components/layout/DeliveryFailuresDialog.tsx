@@ -12,7 +12,7 @@ export function DeliveryFailuresDialog({ failure, onClose }: DeliveryFailuresDia
     <Modal open onClose={onClose} className="top-[12%] sm:top-[12%]">
       <div className="border-border bg-background rounded-panel border-frame flex max-h-[70vh] flex-col">
         <ModalHeader title={`failed [${failure.label}]`} onClose={onClose} />
-        <ul className="divide-border/50 flex flex-col divide-y divide-dotted overflow-y-auto overscroll-contain px-4 py-2">
+        <ul className="divide-border/50 divide-divider flex flex-col divide-y overflow-y-auto overscroll-contain px-4 py-2">
           {failure.deliveries.map((delivery, i) => (
             <li key={i} className="font-ui flex flex-col gap-0.5 py-2 text-xs">
               <span className="text-foreground truncate">{delivery.title}</span>

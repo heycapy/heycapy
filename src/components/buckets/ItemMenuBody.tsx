@@ -67,7 +67,7 @@ export function MenuBody({
   const recurring = parseRecurring(item.recurring);
   const repeat = recurring?.enabled && item.deadline ? repeatLabel(recurring) : null;
   const current = item.deadline ? itemDeadline(item.deadline, item.deadlineTimezone).at : null;
-  const section = "border-border border-t border-dashed py-1";
+  const section = "border-border border-t border-rule py-1";
 
   function run(action: () => void) {
     onClose();

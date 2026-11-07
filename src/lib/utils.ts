@@ -15,6 +15,8 @@ const twMerge = extendTailwindMerge({
       "border-w-b": [{ "border-b": ["frame"] }],
       "border-w-l": [{ "border-l": ["frame"] }],
       "border-w-r": [{ "border-r": ["frame"] }],
+      "border-style": [{ border: ["rule"] }],
+      "divide-style": [{ divide: ["divider", "rule"] }],
     },
   },
 });

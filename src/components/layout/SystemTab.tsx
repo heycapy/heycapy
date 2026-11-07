@@ -76,7 +76,7 @@ export function SystemTab() {
         {status.errors.length === 0 ? (
           <p className={MUTED}>none in the last 14 days</p>
         ) : (
-          <ul className="divide-border/50 flex flex-col divide-y divide-dotted">
+          <ul className="divide-border/50 divide-divider flex flex-col divide-y">
             {status.errors.map((e) => (
               <li key={e.id} className="font-ui flex flex-col gap-0.5 py-1.5 text-xs">
                 <span className="text-muted-foreground">

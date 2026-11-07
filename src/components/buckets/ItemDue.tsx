@@ -2,7 +2,7 @@ import { dueLabel, type DueTone } from "@/lib/items/due-label";
 import { cn } from "@/lib/utils";
 
 const TONE_CLASS: Record<DueTone, string> = {
-  late: "bg-destructive/15 text-destructive px-1",
+  late: "bg-destructive/15 text-destructive chip",
   today: "font-medium text-(--status-on-hold)",
   near: "text-foreground",
   later: "text-muted-foreground",

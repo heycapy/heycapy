@@ -61,7 +61,7 @@ export function PersonalityTab({
           onChange={setPersonalityTone}
           disabled={pending}
         />
-        <div className="border-border mt-1 flex flex-col gap-1.5 border-t border-dashed pt-2.5">
+        <div className="border-border border-rule mt-1 flex flex-col gap-1.5 border-t pt-2.5">
           <span className="text-muted-foreground font-ui text-2xs">my favorite</span>
           <OptionGroup
             options={FAVORITE_TONE_OPTIONS}

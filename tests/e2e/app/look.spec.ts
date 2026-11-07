@@ -33,6 +33,25 @@ test("the page carries the look saved on the account, icons included", async ({ 
   await expect(searchIcon).toHaveAttribute("width", String(ICON_SETS.line.size));
 });
 
+test("keyboard focus shows the look's ring", async ({ page }) => {
+  const search = page.getByRole("button", { name: "search" });
+  const outline = () =>
+    search.evaluate((el) => {
+      const style = getComputedStyle(el);
+      return [style.outlineStyle, style.outlineWidth];
+    });
+
+  setLook("original");
+  await page.goto("/");
+  await search.focus();
+  expect(await outline()).toEqual(["auto", "1px"]);
+
+  setLook("modern");
+  await page.reload();
+  await search.focus();
+  expect(await outline()).toEqual(["solid", "2px"]);
+});
+
 test("pages before login keep the original look under any account look", async ({ page }) => {
   setLook("modern");
   await page.goto("/join/NOTACODE");

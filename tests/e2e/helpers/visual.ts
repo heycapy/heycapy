@@ -88,11 +88,13 @@ export function screenshotTests(spec: string, look: Look) {
 
   test.skip(!!process.env.CI, "screenshots are made and checked locally");
 
+  // The seed finds buttons by their original names, "[ add ]" and the like
   test.beforeAll(async ({ browser }) => {
-    setLook(spec, look);
+    setLook(spec, LOOK.original);
     const page = await browser.newPage({ storageState: authState(spec) });
     await seed(page);
     await page.close();
+    setLook(spec, look);
   });
 
   for (const theme of THEMES) {

@@ -122,7 +122,7 @@ export function BucketRulesFields({
       disabled
       aria-label="set by the owner"
       className={cn(
-        "border-border flex min-w-0 flex-col gap-4 border border-dashed p-3",
+        "border-border border-rule flex min-w-0 flex-col gap-4 border p-3",
         LOCKED_CONTROLS
       )}
     >

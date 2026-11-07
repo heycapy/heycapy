@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils";
 import { useEffect, useState, useTransition } from "react";
-import { TextButton } from "@/components/ui/TextButton";
+import { TextButton, TextLink } from "@/components/ui/TextButton";
 import { AvatarEditor, type AvatarDraft } from "@/components/avatar/AvatarEditor";
 import {
   deleteAccountAction,
@@ -104,13 +104,9 @@ export function AccountTab({
           one file with your buckets, items, settings, notification history and chats. secrets like
           api keys and passwords are never included.
         </p>
-        <a
-          href="/api/account/export"
-          download
-          className="text-primary hover:text-foreground font-ui self-start text-xs transition-colors"
-        >
-          <span className="opacity-50">[</span>download my data<span className="opacity-50">]</span>
-        </a>
+        <TextLink href="/api/account/export" download className="text-primary self-start py-0">
+          download my data
+        </TextLink>
       </div>
 
       <div className={BOX}>

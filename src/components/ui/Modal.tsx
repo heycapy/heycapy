@@ -5,6 +5,7 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { AnimatePresence, motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { TextButton } from "./TextButton";
+import { useLookParts } from "@/components/looks/LookProvider";
 import {
   MODAL_LAYERS,
   MODAL_PANELS,
@@ -132,20 +133,22 @@ export function ModalTitle({ className, children }: ModalTitleProps) {
 type ModalHeaderProps = { title: ReactNode; onClose: () => void; plain?: boolean };
 
 export function ModalHeader({ title, onClose, plain }: ModalHeaderProps) {
+  const { panelHeader } = useLookParts();
+  const inverted = !plain && panelHeader === "inverted";
   return (
     <div
       className={cn(
         "flex shrink-0 items-center justify-between gap-2",
-        plain
-          ? "bg-card border-border border-b-frame h-10 pr-2 pl-3"
-          : "bg-foreground text-background px-3 py-1.5"
+        inverted
+          ? "bg-foreground text-background px-3 py-1.5"
+          : "bg-card border-border border-b-frame min-h-10 pr-2 pl-3"
       )}
     >
       <ModalTitle className={cn(plain && "text-2xs")}>{title}</ModalTitle>
       <TextButton
         type="button"
-        variant={plain ? "default" : "inverted"}
-        className={cn(plain && "px-1")}
+        variant={inverted ? "inverted" : "default"}
+        className={cn(!inverted && "px-1")}
         onClick={onClose}
       >
         x

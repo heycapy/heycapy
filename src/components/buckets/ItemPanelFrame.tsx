@@ -12,6 +12,7 @@ import {
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion, useDragControls, type PanInfo } from "framer-motion";
 import { TextButton } from "@/components/ui/TextButton";
+import { useLookParts } from "@/components/looks/LookProvider";
 import {
   HANDLES_ESCAPE_SELECTOR,
   MODAL_PANEL_SELECTOR,
@@ -62,6 +63,7 @@ export function ItemPanelFrame({
   onCancel,
 }: ItemPanelFrameProps) {
   const headingId = useId();
+  const inverted = useLookParts().panelHeader === "inverted";
   const dragControls = useDragControls();
   const visible = useVisualViewport();
   const panelRef = useRef<HTMLDivElement>(null);
@@ -180,13 +182,19 @@ export function ItemPanelFrame({
             <div
               onPointerDown={phone ? (e) => dragControls.start(e) : undefined}
               className={cn(
-                "bg-foreground text-background rounded-t-panel shrink-0 px-4 py-2.5",
+                "rounded-t-panel shrink-0 px-4 py-2.5",
+                inverted && "bg-foreground text-background",
                 phone && "touch-none pt-1 select-none"
               )}
             >
               {phone && (
                 <div aria-hidden className="flex justify-center pb-1">
-                  <div className="bg-background/50 h-1 w-10 rounded-full" />
+                  <div
+                    className={cn(
+                      "h-1 w-10 rounded-full",
+                      inverted ? "bg-background/50" : "bg-muted-foreground/40"
+                    )}
+                  />
                 </div>
               )}
               <div className="flex items-center gap-2">
@@ -198,7 +206,7 @@ export function ItemPanelFrame({
                 </span>
                 <TextButton
                   type="button"
-                  variant="inverted"
+                  variant={inverted ? "inverted" : "default"}
                   onClick={onCancel}
                   aria-label={phone ? `close ${heading}` : undefined}
                   className={cn(phone && "sr-only")}

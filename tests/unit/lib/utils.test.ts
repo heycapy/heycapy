@@ -19,3 +19,10 @@ it("treats the named text sizes and fonts as sizes and fonts, not colours", () =
   expect(cn("text-3xs", "text-foreground")).toBe("text-3xs text-foreground");
   expect(cn("font-display", "font-ui")).toBe("font-ui");
 });
+
+it("keeps a look's line style next to a line colour", () => {
+  expect(cn("divide-border/50", "divide-divider")).toBe("divide-border/50 divide-divider");
+  expect(cn("divide-border", "divide-rule")).toBe("divide-border divide-rule");
+  expect(cn("border-border", "border-rule")).toBe("border-border border-rule");
+  expect(cn("border-rule", "border-solid")).toBe("border-solid");
+});

@@ -145,7 +145,7 @@ export function SystemCredits() {
             {showActivity ? "hide activity" : "show activity"}
           </TextButton>
           {showActivity && (
-            <ul className="divide-border/50 border-border flex max-h-48 flex-col divide-y divide-dotted overflow-y-auto border px-2">
+            <ul className="divide-border/50 border-border divide-divider flex max-h-48 flex-col divide-y overflow-y-auto border px-2">
               {credits.rows.map((row) => (
                 <li key={row.id} className={cn(MUTED, "flex flex-col py-1")}>
                   <span className="flex justify-between gap-2">

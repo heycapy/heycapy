@@ -124,7 +124,7 @@ export function SystemUsernames() {
           {user.changes.length === 0 ? (
             <p className={MUTED}>never changed</p>
           ) : (
-            <ul className="divide-border/50 border-border flex max-h-48 flex-col divide-y divide-dotted overflow-y-auto border px-2">
+            <ul className="divide-border/50 border-border divide-divider flex max-h-48 flex-col divide-y overflow-y-auto border px-2">
               {user.changes.map((change) => (
                 <li key={change.id} className={cn(MUTED, "flex flex-col py-1")}>
                   <span>

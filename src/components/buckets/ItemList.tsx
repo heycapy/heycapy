@@ -142,7 +142,7 @@ export function ItemList({
           axis="y"
           values={items}
           onReorder={onReorder}
-          className="divide-border/50 m-0 list-none divide-y divide-dotted p-0"
+          className="divide-border/50 divide-divider m-0 list-none divide-y p-0"
         >
           {items.map((item) => (
             <DraggableItem key={item.id} {...rowProps(item)} orderedItemsRef={orderedItemsRef} />
@@ -154,7 +154,7 @@ export function ItemList({
   }
 
   return (
-    <div className="divide-border/50 divide-y divide-dotted">
+    <div className="divide-border/50 divide-divider divide-y">
       {items.map((item) => (
         <PressableRow key={item.id} onMenu={(at) => setMenu({ item, at })}>
           <ItemRow {...rowProps(item)} />
