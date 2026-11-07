@@ -12,7 +12,8 @@ import { DetailChip } from "./DetailChip";
 import { ItemStatusField } from "./ItemStatusField";
 import { RecurringPicker } from "./RecurringPicker";
 import { ReminderPicker } from "./ReminderPicker";
-import type { ItemDetailPanel } from "./constants";
+import { DETAIL_EDITOR as EDITOR, NEEDS_DATE, type ItemDetailPanel } from "./constants";
+import { HINT } from "@/components/layout/settings-constants";
 
 type ItemDetailsProps = {
   datePart: string;
@@ -64,13 +65,22 @@ export function ItemDetails({
   onRemindersChange,
 }: ItemDetailsProps) {
   const [panel, setPanel] = useState<ItemDetailPanel | null>(null);
+  const [afterDate, setAfterDate] = useState<ItemDetailPanel | null>(null);
   const hasDate = datePart.length > 0;
   const reminderList = reminders ?? bucketReminders ?? [];
   const statusDef = statuses.find((s) => s.name === status);
 
   function toggle(next: ItemDetailPanel, needsDate = false) {
+    setAfterDate(needsDate && !hasDate ? next : null);
     if (needsDate && !hasDate) return setPanel("date");
     setPanel((current) => (current === next ? null : next));
+  }
+
+  function pickDate(date: string) {
+    onDateChange(date);
+    if (!afterDate) return;
+    setPanel(afterDate);
+    setAfterDate(null);
   }
 
   return (
@@ -91,6 +101,7 @@ export function ItemDetails({
             label={hasDate && recurring?.enabled ? describeRepeat(recurring) : "repeat"}
             set={hasDate && !!recurring?.enabled}
             open={panel === "repeat"}
+            hint={hasDate ? undefined : NEEDS_DATE}
             onClick={() => toggle("repeat", true)}
           />
         )}
@@ -101,6 +112,7 @@ export function ItemDetails({
             label={hasDate ? remindersLabel(reminderList, allDay) : "reminders"}
             set={hasDate && reminderList.length > 0}
             open={panel === "reminders"}
+            hint={hasDate ? undefined : NEEDS_DATE}
             onClick={() => toggle("reminders", true)}
           />
         )}
@@ -139,9 +151,10 @@ export function ItemDetails({
       {hasDate && clock}
 
       {panel === "date" && (
-        <div className="flex flex-col gap-3">
+        <div className={EDITOR}>
+          {afterDate && <p className={HINT}>{NEEDS_DATE}</p>}
           <div className="max-w-xs">
-            <Calendar value={datePart} onSelect={onDateChange} />
+            <Calendar value={datePart} onSelect={pickDate} />
           </div>
           {hasDate && (
             <div className="flex items-center gap-2">
@@ -160,34 +173,40 @@ export function ItemDetails({
       )}
 
       {panel === "repeat" && hasDate && onRecurringChange && (
-        <RecurringPicker
-          recurring={recurring}
-          deadlineDay={Number(datePart.slice(8, 10))}
-          initialShowEndDate={!!recurring?.endDate}
-          disabled={pending}
-          onChange={onRecurringChange}
-        />
+        <div className={EDITOR}>
+          <RecurringPicker
+            recurring={recurring}
+            deadlineDay={Number(datePart.slice(8, 10))}
+            initialShowEndDate={!!recurring?.endDate}
+            disabled={pending}
+            onChange={onRecurringChange}
+          />
+        </div>
       )}
 
       {panel === "reminders" && hasDate && onRemindersChange && bucketReminders && (
-        <ReminderPicker
-          reminders={reminderList}
-          followsBucket={!reminders}
-          allDay={allDay}
-          disabled={pending}
-          onChange={onRemindersChange}
-        />
+        <div className={EDITOR}>
+          <ReminderPicker
+            reminders={reminderList}
+            followsBucket={!reminders}
+            allDay={allDay}
+            disabled={pending}
+            onChange={onRemindersChange}
+          />
+        </div>
       )}
 
-      {panel === "assignee" && assignee?.field}
+      {panel === "assignee" && assignee && <div className={EDITOR}>{assignee.field}</div>}
 
       {panel === "status" && (
-        <ItemStatusField
-          status={status}
-          statuses={statuses}
-          onChange={onStatusChange}
-          disabled={pending}
-        />
+        <div className={EDITOR}>
+          <ItemStatusField
+            status={status}
+            statuses={statuses}
+            onChange={onStatusChange}
+            disabled={pending}
+          />
+        </div>
       )}
 
       {(showMore || panel === "more") && more}

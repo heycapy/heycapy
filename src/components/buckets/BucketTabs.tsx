@@ -42,7 +42,8 @@ function PlaceTab({
       className={cn(
         "rounded-control flex shrink-0 items-center transition-colors",
         pill && "my-1.5",
-        pill && active && "bg-(--selected-bg)"
+        pill && active && "bg-(--selected-bg)",
+        pill && !active && "hover:bg-muted/60"
       )}
     >
       <button
@@ -205,7 +206,7 @@ export function BucketTabs({ buckets, activeId, todayOpen }: BucketTabsProps) {
             variant="ghost"
             onClick={openCreateBucket}
             aria-label="new bucket"
-            className="shrink-0 py-0 pr-4 pl-3 whitespace-nowrap"
+            className="shrink-0 self-center py-0 pr-4 pl-3 whitespace-nowrap"
           >
             + new
           </TextButton>

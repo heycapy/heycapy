@@ -1,4 +1,5 @@
 export const HEADER_H = 40;
+export const SIDEBAR_W = 288;
 export const CHAT_MAX_H = 640;
 // keeps the bucket tabs in view above the chat on short screens
 export const CHAT_TOP_GAP = 96;

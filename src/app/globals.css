@@ -91,6 +91,7 @@
   --lift-shadow: var(--raised-shadow-sm);
   --lift-outline: dashed;
   --add-focus-line: block;
+  --rail-border: 0 var(--frame-width) 0 0;
 }
 
 [data-look="modern"] {
@@ -142,6 +143,7 @@
   --lift-shadow: var(--raised-shadow-md);
   --lift-outline: none;
   --add-focus-line: none;
+  --rail-border: var(--frame-width);
 }
 
 @media (width >= 48rem) {
@@ -203,6 +205,12 @@
   border-width: var(--dock-border);
   border-radius: var(--dock-radius);
   overflow: hidden;
+}
+
+@utility rail {
+  border-width: var(--rail-border);
+  border-radius: var(--dock-radius);
+  margin: var(--dock-inset) 0 var(--dock-inset) var(--dock-inset);
 }
 
 @utility bar-button {

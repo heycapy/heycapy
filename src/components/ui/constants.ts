@@ -87,10 +87,12 @@ export const ICON_NAMES = [
   "plus",
   "reload",
   "search",
-  "sidebar",
+  "sidebar-close",
+  "sidebar-open",
   "sliders",
   "square",
   "trash",
   "user-plus",
   "warning",
 ] as const;
+export const TOOLTIP_FLIP_PX = 48;

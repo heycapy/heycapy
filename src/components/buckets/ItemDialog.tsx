@@ -288,6 +288,7 @@ export function ItemDialog({
   );
   const deleteButton = onDelete && (
     <TextButton
+      icon="trash"
       onClick={onDelete}
       disabled={pending}
       variant="destructive"

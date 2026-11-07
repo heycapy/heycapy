@@ -125,7 +125,7 @@ export function MenuBody({
 
       {view !== "main" && (
         <MenuSection className="flex items-center gap-2 px-3">
-          <TextButton onClick={() => setView("main")} className="py-1.5">
+          <TextButton icon="arrow-left" onClick={() => setView("main")} className="py-1.5">
             back
           </TextButton>
           <span className="text-muted-foreground font-ui text-xs">{VIEW_LABEL[view]}</span>

@@ -106,12 +106,15 @@ export function ChatSessionList({
             no history yet
           </p>
         ) : (
-          <div className="divide-border divide-y">
+          <div className="divide-border divide-y-(length:--menu-row-divider) p-(--menu-inset)">
             {sessions.map((s) => (
               <div
                 key={s.id}
                 aria-current={s.id === activeId ? "true" : undefined}
-                className={cn("flex items-center gap-3 px-4 py-3", s.id === activeId && "bg-muted")}
+                className={cn(
+                  "rounded-control flex items-center gap-3 px-4 py-3",
+                  s.id === activeId && "bg-muted"
+                )}
               >
                 <div className="min-w-0 flex-1">
                   <p className="font-ui truncate text-xs">{s.title}</p>
@@ -135,10 +138,15 @@ export function ChatSessionList({
                     </>
                   ) : (
                     <>
-                      <TextButton onClick={() => handleLoad(s.id)} disabled={pending}>
+                      <TextButton
+                        variant="ghost"
+                        onClick={() => handleLoad(s.id)}
+                        disabled={pending}
+                      >
                         load
                       </TextButton>
                       <TextButton
+                        icon="trash"
                         variant="destructive"
                         onClick={() => setConfirmingId(s.id)}
                         disabled={pending}

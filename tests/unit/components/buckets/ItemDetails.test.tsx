@@ -49,3 +49,16 @@ it("keeps required fields in view instead of behind more", () => {
   expect(screen.queryByRole("button", { name: /^more/ })).toBeNull();
   expect(screen.getByText("custom fields")).toBeTruthy();
 });
+
+it("asks for a date first, then goes on to the editor that needed it", () => {
+  const onDateChange = vi.fn();
+  const { rerender } = render(<ItemDetails {...base} datePart="" onDateChange={onDateChange} />);
+  const described = chip(/^repeat/).getAttribute("aria-describedby") ?? "";
+  expect(document.getElementById(described)?.textContent).toBe("pick a date first");
+  fireEvent.click(chip(/^repeat/));
+  expect(screen.getByText("pick a date first", { selector: "p" })).toBeTruthy();
+  fireEvent.click(screen.getByRole("button", { name: "20" }));
+  expect(onDateChange).toHaveBeenCalled();
+  rerender(<ItemDetails {...base} datePart="2031-03-20" onDateChange={onDateChange} />);
+  expect(chip(/^repeat/).getAttribute("aria-expanded")).toBe("true");
+});

@@ -50,7 +50,7 @@ export function RecurringPicker({
 
   return (
     <div ref={rootRef} className="flex scroll-mb-4 flex-col gap-2">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center gap-3">
         <label className={LABEL}>↺ repeats</label>
         <Toggle
           label="repeats"

@@ -86,7 +86,13 @@ export function ReminderPicker({
         })}
         {reminders.length === 0 && <span className={MUTED}>none</span>}
         {!full && !adding && (
-          <TextButton onClick={() => setAdding(true)} disabled={disabled} className="px-1">
+          <TextButton
+            icon="plus"
+            iconLabel="add reminder"
+            onClick={() => setAdding(true)}
+            disabled={disabled}
+            className="px-1"
+          >
             + add
           </TextButton>
         )}

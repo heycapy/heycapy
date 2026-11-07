@@ -1,6 +1,9 @@
 "use client";
 
 import { cn } from "@/lib/utils";
+import { Icon } from "./Icon";
+import { Tooltip } from "./Tooltip";
+import type { IconName } from "./icons";
 import { useLookParts } from "@/components/looks/LookProvider";
 import type { LookParts } from "@/components/looks/constants";
 import type { ComponentProps, ReactNode } from "react";
@@ -17,6 +20,8 @@ interface TextButtonProps extends ComponentProps<"button"> {
    * warning     — base: text-muted-foreground, hover: text-warning (yellow).
    */
   variant?: Variant;
+  icon?: IconName;
+  iconLabel?: string;
 }
 
 function textButtonClass(shape: LookParts["textButton"], variant: Variant, className?: string) {
@@ -64,11 +69,28 @@ function Label({ shape, children }: { shape: LookParts["textButton"]; children: 
 
 export function TextButton({
   variant = "default",
+  icon,
+  iconLabel,
   className,
   children,
   ...props
 }: TextButtonProps) {
   const shape = useLookParts().textButton;
+  if (icon && shape === "plain") {
+    const name = iconLabel ?? (typeof children === "string" ? children : undefined);
+    return (
+      <Tooltip text={name}>
+        <button
+          data-variant={variant}
+          aria-label={name}
+          className={cn(textButtonClass(shape, variant, className), "size-(--control-h) px-0")}
+          {...props}
+        >
+          <Icon name={icon} />
+        </button>
+      </Tooltip>
+    );
+  }
   return (
     <button
       data-variant={variant}

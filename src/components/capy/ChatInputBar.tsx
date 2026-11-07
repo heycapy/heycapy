@@ -2,6 +2,8 @@ import { Icon } from "@/components/ui/Icon";
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState, createElement } from "react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { Tooltip } from "@/components/ui/Tooltip";
+import { useLookParts } from "@/components/looks/LookProvider";
 import { Sprite } from "./Sprite";
 import { VOICE_MAX_SECONDS } from "@/constants";
 import { useAssistantName } from "./assistant-name";
@@ -158,15 +160,24 @@ export const ChatInputBar = forwardRef<ChatInputBarHandle, Props>(function ChatI
   }
 
   const isRecordingOrTranscribing = recording || transcribing;
+  const floating = useLookParts().footer === "floating";
 
   return (
     <div
       className={cn(
-        "border-t-frame flex flex-col justify-center px-3 py-2 transition-colors md:min-h-[calc(3rem+2px)]",
-        recording ? "border-primary" : "border-border"
+        "flex flex-col justify-center transition-colors",
+        floating ? "px-3 pt-1 pb-3" : "border-t-frame px-3 py-2 md:min-h-[calc(3rem+2px)]",
+        !floating && (recording ? "border-primary" : "border-border")
       )}
     >
-      <div className={cn(centered && "mx-auto w-full max-w-[720px]")}>
+      <div
+        className={cn(
+          centered && "mx-auto w-full max-w-[720px]",
+          floating &&
+            "rounded-panel border-frame shadow-raised bg-background px-3 py-2 transition-colors focus-within:border-(--ring)",
+          floating && (recording ? "border-primary" : "border-border")
+        )}
+      >
         {isRecordingOrTranscribing ? (
           // as tall as the mic and send buttons so the bar keeps its height while capy listens
           <div className="flex min-h-9.5 items-center gap-3 md:min-h-6.5">
@@ -214,15 +225,16 @@ export const ChatInputBar = forwardRef<ChatInputBarHandle, Props>(function ChatI
                 el.style.height = `${Math.min(el.scrollHeight, 80)}px`;
               }}
             />
-            <button
-              onClick={() => void handleMicClick()}
-              disabled={streaming}
-              title="voice input (ctrl+shift+m)"
-              aria-label="Record voice"
-              className="rounded-control border-border text-muted-foreground hover:border-foreground hover:text-foreground mb-0.5 shrink-0 border-(length:--icon-frame) p-2.5 transition-colors disabled:cursor-not-allowed disabled:opacity-40 md:p-1"
-            >
-              <Icon name="mic" />
-            </button>
+            <Tooltip text="voice input (ctrl+shift+m)" className="mb-0.5 shrink-0">
+              <button
+                onClick={() => void handleMicClick()}
+                disabled={streaming}
+                aria-label="Record voice"
+                className="rounded-control border-border text-muted-foreground hover:border-foreground hover:text-foreground border-(length:--icon-frame) p-2.5 transition-colors disabled:cursor-not-allowed disabled:opacity-40 md:p-1"
+              >
+                <Icon name="mic" />
+              </button>
+            </Tooltip>
             {streaming ? (
               <button
                 onClick={onStop}

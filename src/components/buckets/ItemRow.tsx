@@ -1,4 +1,5 @@
 import { Icon } from "@/components/ui/Icon";
+import { Tooltip } from "@/components/ui/Tooltip";
 import { formatShortTime } from "@/lib/format-date";
 import { ITEM_STATUS, TITLE_LINES_SHOWN } from "@/constants";
 import { ITEM_HIGHLIGHT_MS, JUST_ADDED_MS } from "./constants";
@@ -249,15 +250,16 @@ export function ItemRow({
 
       {/* Only a failed send shows in the row; everything else about reminders is in the menu */}
       {reminderBadge === "failed" && (
-        <button
-          type="button"
-          onClick={() => setReminderOpen(true)}
-          aria-label="reminder failed"
-          title="reminder failed"
-          className="text-destructive flex shrink-0 items-center pl-2 transition-opacity hover:opacity-70"
-        >
-          <Icon name="warning" />
-        </button>
+        <Tooltip text="reminder failed" className="shrink-0">
+          <button
+            type="button"
+            onClick={() => setReminderOpen(true)}
+            aria-label="reminder failed"
+            className="text-destructive flex items-center pl-2 transition-opacity hover:opacity-70"
+          >
+            <Icon name="warning" />
+          </button>
+        </Tooltip>
       )}
       {onMenu && (
         <IconButton

@@ -10,7 +10,7 @@ import { ChatSessionList } from "./ChatSessionList";
 import { CapyChatDrawer } from "./CapyChatDrawer";
 import { Sprite } from "./Sprite";
 import { AIStatusStrip } from "./AIStatusStrip";
-import { CHAT_MAX_H, CHAT_TOP_GAP, HEADER_H } from "./chatTypes";
+import { CHAT_MAX_H, CHAT_TOP_GAP, HEADER_H, SIDEBAR_W } from "./chatTypes";
 import { FOOTER_H } from "@/constants";
 import { useLayoutStore, type ChatState } from "@/store/layout";
 import { useChatDocked } from "./useChatDocked";
@@ -218,20 +218,29 @@ export function CapyChat({ appUrl }: { appUrl: string | null }) {
 
             {chatState === "fullscreen" ? (
               <div className="flex min-h-0 flex-1 overflow-hidden">
-                {sidebarOpen && (
-                  <aside
-                    aria-label="chat history"
-                    className="border-border bg-card border-r-frame flex w-72 shrink-0 flex-col"
-                  >
-                    <ChatSessionList
-                      enabled
-                      refreshKey={`${sessionId}-${streaming}`}
-                      activeId={sessionId}
-                      onLoadSession={loadSession}
-                      onNewChat={clearChat}
-                    />
-                  </aside>
-                )}
+                <AnimatePresence initial={false}>
+                  {sidebarOpen && (
+                    <motion.aside
+                      key="history"
+                      aria-label="chat history"
+                      initial={{ width: 0, opacity: 0 }}
+                      animate={{ width: SIDEBAR_W, opacity: 1 }}
+                      exit={{ width: 0, opacity: 0 }}
+                      transition={{ duration: 0.2, ease: "easeInOut" }}
+                      className="rail border-border bg-card flex shrink-0 flex-col overflow-hidden"
+                    >
+                      <div className="flex min-h-0 flex-1 flex-col" style={{ width: SIDEBAR_W }}>
+                        <ChatSessionList
+                          enabled
+                          refreshKey={`${sessionId}-${streaming}`}
+                          activeId={sessionId}
+                          onLoadSession={loadSession}
+                          onNewChat={clearChat}
+                        />
+                      </div>
+                    </motion.aside>
+                  )}
+                </AnimatePresence>
                 <div className="flex min-h-0 min-w-0 flex-1 flex-col">{body}</div>
               </div>
             ) : docked ? (

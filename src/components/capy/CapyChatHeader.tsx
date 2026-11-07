@@ -40,7 +40,7 @@ export function CapyChatHeader({
     >
       {fullscreen && onToggleSidebar && (
         <IconButton
-          icon="sidebar"
+          icon={sidebarOpen ? "sidebar-close" : "sidebar-open"}
           onClick={(e) => {
             e.stopPropagation();
             onToggleSidebar();
@@ -55,6 +55,7 @@ export function CapyChatHeader({
 
       {!fullscreen && (
         <TextButton
+          icon="clock"
           variant="ghost"
           onClick={(e) => {
             e.stopPropagation();
@@ -67,6 +68,8 @@ export function CapyChatHeader({
       )}
 
       <TextButton
+        icon="plus"
+        iconLabel="new chat"
         variant="ghost"
         onClick={(e) => {
           e.stopPropagation();
