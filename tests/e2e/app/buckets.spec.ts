@@ -132,7 +132,7 @@ test.describe("items", () => {
     await page.getByRole("button", { name: "add with details", exact: true }).click();
     await expect(page.getByText("new item", { exact: true })).toBeVisible();
     await page.locator("textarea").fill("should not be saved");
-    await page.getByRole("button", { name: "[ x ]", exact: true }).click();
+    await page.keyboard.press("Escape");
     await expect(page.getByText("new item", { exact: true })).not.toBeVisible();
     await expect(page.getByText("no items yet")).toBeVisible();
   });

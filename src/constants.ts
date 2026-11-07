@@ -145,6 +145,14 @@ export const LOOK = {
 
 export const LOOKS = [LOOK.original, LOOK.modern] as const;
 
+export const CONTROL_SIZE = {
+  small: "small",
+  medium: "medium",
+  large: "large",
+} as const;
+
+export const CONTROL_SIZES = [CONTROL_SIZE.small, CONTROL_SIZE.medium, CONTROL_SIZE.large] as const;
+
 export const ITEM_STATUS = {
   active: "active",
   completed: "completed",

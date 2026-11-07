@@ -1,4 +1,4 @@
-import { ITEM_STATUS, LOOK, LOOKS } from "@/constants";
+import { CONTROL_SIZE, CONTROL_SIZES, ITEM_STATUS, LOOK, LOOKS } from "@/constants";
 import {
   index,
   integer,
@@ -86,6 +86,7 @@ export const userSettings = sqliteTable("user_settings", {
     .notNull()
     .default("capy"),
   look: text("look", { enum: LOOKS }).notNull().default(LOOK.original),
+  controlSize: text("control_size", { enum: CONTROL_SIZES }).notNull().default(CONTROL_SIZE.medium),
   timezone: text("timezone").notNull().default("UTC"),
   personalityName: text("personality_name").notNull().default("Capy"),
   personalityTone: text("personality_tone", {

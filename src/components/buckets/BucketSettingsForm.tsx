@@ -180,9 +180,9 @@ export function BucketSettingsForm({
             {error && <span className="text-destructive font-ui text-xs">{error}</span>}
           </div>
         )}
-        <div className="border-border flex overflow-x-auto border-b">
+        <div className="border-border scrollbar-hide -mx-1.5 flex gap-0.5 overflow-x-auto border-b px-0 pb-1">
           {tabs.map((t) => (
-            <Tab key={t} active={tab === t} onClick={() => setTab(t)} className="py-1">
+            <Tab key={t} active={tab === t} onClick={() => setTab(t)} className="px-1.5 py-1.5">
               {t}
             </Tab>
           ))}

@@ -110,7 +110,7 @@ export function BucketMembersPanel({
         <p className="text-muted-foreground font-ui text-xs">
           people in this bucket{members ? ` (${members.length}/${BUCKET_MEMBERS_MAX})` : ""}
         </p>
-        <ul className="border-border divide-border flex flex-col divide-y border">
+        <ul className="rounded-control border-border divide-border flex flex-col divide-y overflow-hidden border">
           {members?.map((member) => (
             <li key={member.userId} className="flex flex-col gap-1.5 px-3 py-2">
               <div className="flex items-center justify-between gap-3">

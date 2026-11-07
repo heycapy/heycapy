@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { DatePicker } from "@/components/ui/DatePicker";
 import { OptionButton } from "@/components/ui/OptionButton";
 import { Toggle } from "@/components/ui/Toggle";
+import { TextButton } from "@/components/ui/TextButton";
 import { LAST_DAY_OF_MONTH, WEEKDAY_NAMES, WORK_WEEK } from "@/constants";
 import { describeRepeat } from "@/lib/items/repeat-label";
 import { RECURRING_FREQUENCIES } from "./constants";
@@ -157,23 +158,23 @@ export function RecurringPicker({
                 onChange={(v) => onChange({ ...recurring, endDate: v || null })}
                 disabled={disabled}
               />
-              <button
+              <TextButton
+                variant="ghost"
+                icon="close"
+                iconLabel="remove end date"
+                aria-label="remove end date"
                 onClick={() => {
                   setShowEndDate(false);
                   onChange({ ...recurring, endDate: null });
                 }}
-                className="text-muted-foreground hover:text-foreground font-ui text-xs transition-colors"
               >
                 ×
-              </button>
+              </TextButton>
             </div>
           ) : (
-            <button
-              onClick={() => setShowEndDate(true)}
-              className="text-muted-foreground hover:text-foreground font-ui w-fit text-xs transition-colors"
-            >
+            <TextButton variant="ghost" onClick={() => setShowEndDate(true)} className="w-fit">
               + set end date
-            </button>
+            </TextButton>
           )}
         </div>
       )}

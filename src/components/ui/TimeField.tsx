@@ -5,6 +5,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { formatTypedTime, parseTimeInput } from "@/lib/time-input";
 import { TextButton } from "./TextButton";
+import { OptionButton } from "./OptionButton";
 import { usePopover } from "./usePopover";
 
 export type Ampm = "am" | "pm";
@@ -46,7 +47,7 @@ function Cell({
       aria-pressed={selected}
       aria-label={label}
       className={cn(
-        "font-ui flex h-8 items-center justify-center text-xs transition-colors",
+        "rounded-control font-ui flex h-8 items-center justify-center text-xs transition-colors",
         selected ? "bg-primary text-primary-foreground" : "text-foreground hover:bg-muted"
       )}
     >
@@ -191,20 +192,19 @@ export function TimeField({ value, onChange, disabled, allowAllDay = false }: Ti
 
   return (
     <div className="shrink-0">
-      <button
+      <OptionButton
         ref={triggerRef}
-        type="button"
+        active={open}
+        aria-pressed={undefined}
+        aria-expanded={open}
         onClick={() => !disabled && toggle()}
         disabled={disabled}
         aria-label={`time: ${display}`}
-        className={cn(
-          "font-ui flex items-center gap-2 border-b py-1.5 text-sm transition-all active:translate-y-[1px] disabled:opacity-50",
-          allDay ? "border-border text-muted-foreground" : "border-foreground text-foreground"
-        )}
+        className={cn("inline-flex items-center gap-1.5", !allDay && !open && "text-foreground")}
       >
+        <Icon name="clock" className="shrink-0" />
         <span>{display}</span>
-        <Icon name="clock" className="opacity-60" />
-      </button>
+      </OptionButton>
       {portalTarget && createPortal(panel, portalTarget)}
     </div>
   );

@@ -9,6 +9,7 @@ type Props = {
   fullscreen: boolean;
   minimized: boolean;
   onClose: () => void;
+  closeHidden?: boolean;
   onMinimize?: () => void;
   onFullscreen?: () => void;
   sidebarOpen?: boolean;
@@ -21,6 +22,7 @@ export function CapyChatHeader({
   fullscreen,
   minimized,
   onClose,
+  closeHidden,
   onMinimize,
   onFullscreen,
   sidebarOpen,
@@ -51,7 +53,7 @@ export function CapyChatHeader({
         />
       )}
 
-      <span className="font-display text-2xs flex-1 truncate pl-1">{name}</span>
+      <span className="font-display flex-1 truncate pl-1 text-xs">{name}</span>
 
       {!fullscreen && (
         <TextButton
@@ -102,14 +104,16 @@ export function CapyChatHeader({
           aria-label={fullscreen ? "Exit fullscreen" : "Fullscreen"}
         />
       )}
-      <CloseButton
-        onClick={(e) => {
-          e.stopPropagation();
-          onClose();
-        }}
-        aria-label="close chat"
-        className="px-1"
-      />
+      <span className={cn(closeHidden && "sr-only")}>
+        <CloseButton
+          onClick={(e) => {
+            e.stopPropagation();
+            onClose();
+          }}
+          aria-label="close chat"
+          className="px-1"
+        />
+      </span>
     </div>
   );
 }

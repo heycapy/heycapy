@@ -1,7 +1,8 @@
-import type { LOOKS } from "@/constants";
+import type { CONTROL_SIZES, LOOKS } from "@/constants";
 import type { IconSetId } from "@/components/ui/icon-sets";
 
 export type Look = (typeof LOOKS)[number];
+export type ControlSize = (typeof CONTROL_SIZES)[number];
 
 // A look is a bundle of parts; components read a part, never the look's name
 export type LookParts = {

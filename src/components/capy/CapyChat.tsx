@@ -176,6 +176,7 @@ export function CapyChat({ appUrl }: { appUrl: string | null }) {
               fullscreen={false}
               minimized={false}
               onClose={() => setChatState("closed")}
+              closeHidden
               onHistoryOpen={() => setHistoryOpen(true)}
               onNewChat={clearChat}
             />

@@ -1,5 +1,5 @@
-import { GEMINI_DEFAULT_MODEL, LOOK, type TranscriptionProvider } from "@/constants";
-import type { Look } from "@/components/looks/constants";
+import { CONTROL_SIZE, GEMINI_DEFAULT_MODEL, LOOK, type TranscriptionProvider } from "@/constants";
+import type { ControlSize, Look } from "@/components/looks/constants";
 
 export const LABEL = "text-foreground font-ui text-xs font-medium";
 export const HINT = "text-muted-foreground font-ui text-2xs leading-tight";
@@ -62,6 +62,12 @@ export const NOTIFICATION_SECTIONS = [
   "other apps",
 ] as const;
 export type NotificationSection = (typeof NOTIFICATION_SECTIONS)[number];
+
+export const CONTROL_SIZE_OPTIONS: { value: ControlSize; label: string }[] = [
+  { value: CONTROL_SIZE.small, label: "small" },
+  { value: CONTROL_SIZE.medium, label: "medium" },
+  { value: CONTROL_SIZE.large, label: "large" },
+];
 
 export const LOOK_OPTIONS: { value: Look; label: string }[] = [
   { value: LOOK.original, label: "original" },

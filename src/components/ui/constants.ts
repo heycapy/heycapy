@@ -69,6 +69,7 @@ export const ICON_NAMES = [
   "clock",
   "close",
   "collapse",
+  "copy",
   "credit-card",
   "expand",
   "eye",
@@ -96,3 +97,11 @@ export const ICON_NAMES = [
   "warning",
 ] as const;
 export const TOOLTIP_FLIP_PX = 48;
+
+export const DRAWER_DIM = 0.25;
+export const DRAWER_DIM_FADE = { duration: 0.3, ease: "easeOut" } as const;
+export const DRAWER_MOTION = {
+  initial: { y: "100%" },
+  animate: { y: 0, transition: { type: "spring", duration: 0.5, bounce: 0 } },
+  exit: { y: "100%", transition: { duration: 0.25, ease: [0.32, 0.72, 0, 1] } },
+} as const;

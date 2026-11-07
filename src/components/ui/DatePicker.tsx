@@ -1,3 +1,4 @@
+import { OptionButton } from "./OptionButton";
 import { Icon } from "@/components/ui/Icon";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
@@ -68,22 +69,19 @@ export function DatePicker({ value, onChange, disabled }: DatePickerProps) {
   );
 
   return (
-    <div className="w-full">
-      <button
+    <div>
+      <OptionButton
         ref={triggerRef}
-        type="button"
+        active={open}
+        aria-pressed={undefined}
+        aria-expanded={open}
         onClick={() => !disabled && toggle()}
         disabled={disabled}
-        className={cn(
-          "font-ui flex w-full items-center justify-between gap-2 border-b py-1.5 text-sm transition-all active:translate-y-[1px] disabled:opacity-50",
-          value
-            ? "border-foreground text-foreground"
-            : "border-border text-muted-foreground hover:border-foreground/50 hover:text-foreground"
-        )}
+        className={cn("inline-flex items-center gap-1.5", value && !open && "text-foreground")}
       >
+        <Icon name="calendar" className="shrink-0" />
         <span>{value ? formatDisplay(value) : "pick date"}</span>
-        <Icon name="calendar" className="opacity-60" />
-      </button>
+      </OptionButton>
       {portalTarget && createPortal(panel, portalTarget)}
     </div>
   );

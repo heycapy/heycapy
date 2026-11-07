@@ -10,25 +10,25 @@ import {
   type RefObject,
 } from "react";
 import { createPortal } from "react-dom";
-import { AnimatePresence, motion, useDragControls, type PanInfo } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import { CloseButton } from "@/components/ui/CloseButton";
+import { DrawerHandle, useDrawerDrag } from "@/components/ui/Drawer";
 import { useLookParts } from "@/components/looks/LookProvider";
 import {
+  DRAWER_DIM,
+  DRAWER_DIM_FADE,
+  DRAWER_MOTION,
   HANDLES_ESCAPE_SELECTOR,
   MODAL_PANEL_SELECTOR,
   POPOVER_SELECTOR,
 } from "@/components/ui/constants";
 import {
-  ADD_PANEL_DIM,
-  ADD_PANEL_DIM_FADE,
-  ADD_PANEL_MOTION,
   ITEM_PANEL_RESIZE,
   EDIT_ROW_GAP_PX,
   OUTSIDE_TAP_CLICK_MS,
   PHONE_DRAWER_TOP_GAP_PX,
 } from "./constants";
 import { useVisualViewport } from "@/hooks/useVisualViewport";
-import { SHEET_CLOSE_DRAG_PX, SHEET_CLOSE_DRAG_VELOCITY } from "@/constants";
 import { cn } from "@/lib/utils";
 
 export type ItemPanel = {
@@ -68,7 +68,7 @@ export function ItemPanelFrame({
   const { panelHeader, footer } = useLookParts();
   const inverted = panelHeader === "inverted";
   const floating = footer === "floating";
-  const dragControls = useDragControls();
+  const { startDrag, dragProps } = useDrawerDrag(onCancel, phone);
   const visible = useVisualViewport();
   const panelRef = useRef<HTMLDivElement>(null);
   useLayoutEffect(() => {
@@ -192,9 +192,9 @@ export function ItemPanelFrame({
             key={`dim-${opening}`}
             aria-hidden
             initial={{ opacity: 0 }}
-            animate={{ opacity: ADD_PANEL_DIM }}
+            animate={{ opacity: DRAWER_DIM }}
             exit={{ opacity: 0 }}
-            transition={ADD_PANEL_DIM_FADE}
+            transition={DRAWER_DIM_FADE}
             className="pointer-events-none fixed inset-0 bg-black"
           />
           <motion.div
@@ -203,21 +203,10 @@ export function ItemPanelFrame({
             role="dialog"
             aria-labelledby={headingId}
             data-item-panel
-            initial={ADD_PANEL_MOTION.initial}
-            animate={ADD_PANEL_MOTION.animate}
-            exit={ADD_PANEL_MOTION.exit}
-            drag={phone ? "y" : false}
-            dragListener={false}
-            dragControls={dragControls}
-            dragConstraints={{ top: 0, bottom: 0 }}
-            dragElastic={{ top: 0, bottom: 1 }}
-            onDragEnd={(_, info: PanInfo) => {
-              if (
-                info.offset.y > SHEET_CLOSE_DRAG_PX ||
-                info.velocity.y > SHEET_CLOSE_DRAG_VELOCITY
-              )
-                onCancel();
-            }}
+            initial={DRAWER_MOTION.initial}
+            animate={DRAWER_MOTION.animate}
+            exit={DRAWER_MOTION.exit}
+            {...dragProps}
             className={cn(
               "bg-background border-border rounded-t-panel absolute inset-x-0 bottom-0 flex flex-col",
               !phone && "border-x-frame max-h-[70vh]",
@@ -225,23 +214,14 @@ export function ItemPanelFrame({
             )}
           >
             <div
-              onPointerDown={phone ? (e) => dragControls.start(e) : undefined}
+              onPointerDown={startDrag}
               className={cn(
                 "rounded-t-panel shrink-0 px-4 py-2.5",
                 inverted && "bg-foreground text-background",
                 phone && "touch-none pt-1 select-none"
               )}
             >
-              {phone && (
-                <div aria-hidden className="flex justify-center pb-1">
-                  <div
-                    className={cn(
-                      "h-1 w-10 rounded-full",
-                      inverted ? "bg-background/50" : "bg-muted-foreground/40"
-                    )}
-                  />
-                </div>
-              )}
+              {phone && <DrawerHandle className="pt-0" />}
               <div className="flex items-center gap-2">
                 <h2 id={headingId} className="font-display shrink-0 text-sm">
                   {heading}
@@ -249,13 +229,9 @@ export function ItemPanelFrame({
                 <span className="font-ui min-w-0 flex-1 truncate text-xs opacity-60">
                   {panel.bucketName && `in ${panel.bucketName}`}
                 </span>
-                <CloseButton
-                  type="button"
-                  variant={inverted ? "inverted" : "default"}
-                  onClick={onCancel}
-                  aria-label={phone ? `close ${heading}` : undefined}
-                  className={cn(phone && "sr-only")}
-                />
+                <span className="sr-only">
+                  <CloseButton type="button" onClick={onCancel} aria-label={`close ${heading}`} />
+                </span>
               </div>
             </div>
             <motion.div

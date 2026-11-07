@@ -44,6 +44,7 @@ import {
   CUSTOM_PROMPT_MAX_LENGTH,
   CUSTOM_PROMPT_REQUIRED_ERROR,
   EMAIL_COLORS,
+  CONTROL_SIZES,
   LOOKS,
   TELEGRAM_API_BASE,
   TELEGRAM_LINK_BASE,
@@ -479,6 +480,19 @@ export async function setLookAction(look: string): Promise<ActionResult> {
   await db
     .update(userSettings)
     .set({ look: parsed.data })
+    .where(eq(userSettings.userId, session.userId));
+  revalidatePath("/", "layout");
+  return { ok: true };
+}
+
+export async function setControlSizeAction(size: string): Promise<ActionResult> {
+  const session = await getSession();
+  if (!session) return { ok: false, error: "Unauthorized" };
+  const parsed = z.enum(CONTROL_SIZES).safeParse(size);
+  if (!parsed.success) return { ok: false, error: `Unknown size "${size}"` };
+  await db
+    .update(userSettings)
+    .set({ controlSize: parsed.data })
     .where(eq(userSettings.userId, session.userId));
   revalidatePath("/", "layout");
   return { ok: true };

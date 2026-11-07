@@ -324,7 +324,7 @@ test("an item can be assigned to a member, and a bucket nobody shares has no suc
   await page.getByRole("button", { name: "add with details", exact: true }).click();
   await expect(newItemForm(page)).toBeVisible();
   await expect(newItemForm(page).getByText("assigned to")).toHaveCount(0);
-  await newItemForm(page).getByRole("button", { name: "[ x ]", exact: true }).click();
+  await page.keyboard.press("Escape");
 
   await openMembers(page);
   await page.getByRole("button", { name: bracket("create invite") }).click();
@@ -547,7 +547,7 @@ test("typing @ in the title picks a member in a shared bucket, and does nothing 
   await expect(solo.getByRole("listbox")).toHaveCount(0);
   await solo.locator("textarea").fill("remind @sa about it");
   await expect(solo.getByRole("listbox")).toHaveCount(0);
-  await solo.getByRole("button", { name: "[ x ]", exact: true }).click();
+  await page.keyboard.press("Escape");
 
   await openMembers(page);
   await page.getByRole("button", { name: bracket("create invite") }).click();

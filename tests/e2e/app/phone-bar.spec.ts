@@ -9,6 +9,7 @@ import {
   openBucketOnPhone,
   openItemMenu,
   uniqueName,
+  untilStill,
 } from "../helpers/buckets";
 
 test.use({ storageState: authState("phone-bar"), hasTouch: true });
@@ -48,7 +49,6 @@ test("the bottom bar is easy to tap and clear of the screen's rounded bottom", a
   for (const [control, height] of [
     [page.getByTestId("add-box"), 48],
     [addItemButton(page), 44],
-    [page.getByRole("button", { name: "chat with capy" }), 48],
   ] as const) {
     const box = await control.boundingBox();
     expect(box?.height).toBeGreaterThanOrEqual(height);
@@ -92,7 +92,9 @@ test("search opens as a drawer with the box at the bottom, results above it", as
 
   await page.getByRole("button", { name: "search", exact: true }).tap();
   await expect(search).toBeVisible();
-  const header = await search.getByRole("heading", { name: "search every bucket" }).boundingBox();
+  const heading = search.getByRole("heading", { name: "search every bucket" });
+  await untilStill(page, heading);
+  const header = await heading.boundingBox();
   const x = (header?.x ?? 0) + 40;
   const y = (header?.y ?? 0) + 5;
   await page.mouse.move(x, y);
@@ -102,7 +104,7 @@ test("search opens as a drawer with the box at the bottom, results above it", as
   await expect(search).toHaveCount(0);
 });
 
-test("on a laptop the chat grows above capy, clear of the add box, and capy closes it", async ({
+test("on a laptop the chat opens above the add box, lined up with it, and capy closes it", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 1024, height: 800 });
@@ -115,22 +117,21 @@ test("on a laptop the chat grows above capy, clear of the add box, and capy clos
   await expect(capy).toHaveAttribute("aria-expanded", "true");
 
   const panel = page.locator("div.fixed").filter({ has: chat }).last();
-  const addBoxTop = (await page.getByTestId("add-box").boundingBox())?.y ?? 0;
-  const capyBox = await capy.boundingBox();
+  const addBox = await page.getByTestId("add-box").boundingBox();
+  const addBoxTop = addBox?.y ?? 0;
   await expect
     .poll(async () => {
       const box = await panel.boundingBox();
       return (box?.y ?? 0) + (box?.height ?? 0);
     })
     .toBeLessThanOrEqual(addBoxTop);
-  // it grows out of capy
   await expect
     .poll(async () => (await panel.boundingBox())?.width ?? 0)
     .toBeGreaterThanOrEqual(440);
   const panelBox = await panel.boundingBox();
   expect(
     Math.abs(
-      (panelBox?.x ?? 0) + (panelBox?.width ?? 0) - ((capyBox?.x ?? 0) + (capyBox?.width ?? 0))
+      (panelBox?.x ?? 0) + (panelBox?.width ?? 0) - ((addBox?.x ?? 0) + (addBox?.width ?? 0))
     )
   ).toBeLessThanOrEqual(2);
 

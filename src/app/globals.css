@@ -92,6 +92,12 @@
   --lift-outline: dashed;
   --add-focus-line: block;
   --rail-border: 0 var(--frame-width) 0 0;
+  --add-box-h: 3rem;
+  --add-icon: 2.75rem;
+  --drawer-border: var(--frame-width) 0 0;
+  --drawer-radius: var(--panel-radius) var(--panel-radius) 0 0;
+  --drawer-inset: 0px;
+  --drawer-shadow: none;
 }
 
 [data-look="modern"] {
@@ -119,7 +125,7 @@
   --button-accent: var(--foreground);
   --selected-bg: var(--muted);
   --selected-fg: var(--foreground);
-  --control-h: 2.5rem;
+  --control-h: 2.25rem;
   --section-case: none;
   --section-tracking: normal;
   --box-border: 0px;
@@ -144,10 +150,32 @@
   --lift-outline: none;
   --add-focus-line: none;
   --rail-border: var(--frame-width);
+  --add-box-h: calc(var(--control-h) + 0.5rem);
+  --add-icon: var(--control-h);
+  --drawer-border: var(--frame-width);
+  --drawer-radius: var(--panel-radius);
+  --drawer-inset: 0.5rem;
+  --drawer-shadow: var(--raised-shadow-lg);
+}
+
+[data-look="modern"][data-size="small"] {
+  --control-h: 2rem;
+}
+
+[data-look="modern"][data-size="large"] {
+  --control-h: 2.5rem;
 }
 
 @media (width >= 48rem) {
   [data-look="modern"] {
+    --control-h: 1.75rem;
+  }
+
+  [data-look="modern"][data-size="small"] {
+    --control-h: 1.5rem;
+  }
+
+  [data-look="modern"][data-size="large"] {
     --control-h: 2rem;
   }
 }
@@ -211,6 +239,12 @@
   border-width: var(--rail-border);
   border-radius: var(--dock-radius);
   margin: var(--dock-inset) 0 var(--dock-inset) var(--dock-inset);
+}
+
+@utility drawer-frame {
+  border-width: var(--drawer-border);
+  border-radius: var(--drawer-radius);
+  box-shadow: var(--drawer-shadow);
 }
 
 @utility bar-button {

@@ -12,6 +12,7 @@ import { ChevronRight } from "pixelarticons/react/ChevronRight.js";
 import { Clock } from "pixelarticons/react/Clock.js";
 import { Close } from "pixelarticons/react/Close.js";
 import { Collapse } from "pixelarticons/react/Collapse.js";
+import { Copy } from "pixelarticons/react/Copy.js";
 import { CreditCard } from "pixelarticons/react/CreditCard.js";
 import { Eye } from "pixelarticons/react/Eye.js";
 import { EyeOff } from "pixelarticons/react/EyeOff.js";
@@ -56,6 +57,7 @@ export const PIXEL_ICON_SET: IconSet = {
     clock: Clock,
     close: Close,
     collapse: Collapse,
+    copy: Copy,
     "credit-card": CreditCard,
     expand: Scale,
     eye: Eye,

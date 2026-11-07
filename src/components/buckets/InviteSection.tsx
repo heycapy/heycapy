@@ -1,6 +1,7 @@
 import { useEffect, useState, useTransition } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import { TextButton } from "@/components/ui/TextButton";
+import { CopyButton } from "@/components/ui/CopyButton";
 import { createInviteAction, listInvitesAction, revokeInviteAction } from "@/app/(app)/actions";
 import { INVITE_TTL_MS } from "@/lib/buckets/constants";
 import { formatInviteCode } from "@/lib/buckets/invite-code";
@@ -88,20 +89,19 @@ export function InviteSection({ bucketId }: { bucketId: number }) {
 
       {fresh && (
         <div className="rounded-control border-border flex flex-col gap-2.5 border p-3">
-          <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
             <span
               data-testid="invite-code"
               className="font-mono text-sm font-bold tracking-widest select-all"
             >
               {formatInviteCode(fresh.code)}
             </span>
-            <TextButton
-              type="button"
+            <CopyButton
+              copied={copied === "code"}
+              label="copy code"
               onClick={() => copy("code", fresh.code)}
               className={COPY_BUTTON}
-            >
-              {copied === "code" ? "copied" : "copy code"}
-            </TextButton>
+            />
           </div>
           <div className="flex items-center gap-2">
             <input
@@ -111,13 +111,12 @@ export function InviteSection({ bucketId }: { bucketId: number }) {
               aria-label="invite link"
               className="border-border focus:border-foreground w-full border-b bg-transparent py-1.5 font-mono text-xs outline-none"
             />
-            <TextButton
-              type="button"
+            <CopyButton
+              copied={copied === "link"}
+              label="copy link"
               onClick={() => copy("link", fresh.link)}
               className={COPY_BUTTON}
-            >
-              {copied === "link" ? "copied" : "copy link"}
-            </TextButton>
+            />
           </div>
           <QRCodeSVG
             value={fresh.link}

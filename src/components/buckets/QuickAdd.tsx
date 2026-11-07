@@ -2,6 +2,7 @@ import { useState, type RefObject } from "react";
 import { toast } from "sonner";
 import { addItemAction } from "@/app/(app)/actions";
 import { Icon } from "@/components/ui/Icon";
+import { InputBar, InputBarAction, InputBarIcon } from "@/components/ui/InputBar";
 import { ITEM_TITLE_MAX_LENGTH, MOBILE_MEDIA_QUERY } from "@/constants";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { memberName } from "@/lib/buckets/member-name";
@@ -21,24 +22,25 @@ import { ADD_BOX_EXAMPLES, ADD_BOX_EXAMPLES_SHORT } from "./constants";
 import { defaultDeadline } from "./defaultDeadline";
 import { parseFields } from "./fields";
 import { MentionList } from "./MentionList";
+import { BucketTargetPicker } from "./BucketTargetPicker";
 import { useBucketMembers } from "./useBucketMembers";
 import { useItemClock } from "./useItemClock";
 import { isEmptyDraft, useDraft, useDraftStore } from "@/store/drafts";
 import { useUIStore } from "@/store/ui";
-import { IconButton } from "@/components/ui/IconButton";
 
 type QuickAddProps = {
   bucket: ViewerBucket;
   inputRef: RefObject<HTMLInputElement | null>;
   onAdded: () => void;
   onExpand: () => void;
+  targets?: { buckets: ViewerBucket[]; onPick: (bucketId: number) => void };
 };
 
 function isBlank(value: unknown): boolean {
   return value === undefined || value === null || value === "";
 }
 
-export function QuickAdd({ bucket, inputRef, onAdded, onExpand }: QuickAddProps) {
+export function QuickAdd({ bucket, inputRef, onAdded, onExpand, targets }: QuickAddProps) {
   const draft = useDraft(bucket.id);
   const updateDraft = useDraftStore((s) => s.updateDraft);
   const clearDraft = useDraftStore((s) => s.clearDraft);
@@ -125,7 +127,7 @@ export function QuickAdd({ bucket, inputRef, onAdded, onExpand }: QuickAddProps)
   return (
     <div
       data-testid="add-box"
-      className="group/add relative flex min-h-12 min-w-0 flex-1 flex-col justify-center"
+      className="group/add relative flex min-h-(--add-box-h) min-w-0 flex-1 flex-col justify-center"
     >
       <span
         aria-hidden
@@ -141,8 +143,12 @@ export function QuickAdd({ bucket, inputRef, onAdded, onExpand }: QuickAddProps)
           />
         </div>
       )}
-      <div className="flex items-center gap-2 pl-2.5">
-        <Icon name="plus" className="shrink-0 text-(--accent)" />
+      <InputBar>
+        {targets ? (
+          <BucketTargetPicker bucket={bucket} buckets={targets.buckets} onPick={targets.onPick} />
+        ) : (
+          <Icon name="plus" className="shrink-0 text-(--accent)" />
+        )}
         <input
           ref={inputRef}
           value={text}
@@ -198,23 +204,20 @@ export function QuickAdd({ bucket, inputRef, onAdded, onExpand }: QuickAddProps)
           </span>
         )}
         {!isEmptyDraft(draft) && (
-          <IconButton
+          <InputBarIcon
             icon="close"
+            label="clear"
             onClick={() => {
               clear();
               inputRef.current?.focus();
             }}
-            aria-label="clear"
-            className="flex h-11 w-9 items-center justify-center"
           />
         )}
-        <IconButton
-          icon="expand"
-          onClick={onExpand}
-          aria-label="add with details"
-          className="flex size-11 items-center justify-center"
-        />
-      </div>
+        {text.trim() && (
+          <InputBarAction icon="arrow-up" label="add" name="add item" onClick={submit} />
+        )}
+        <InputBarIcon icon="expand" label="add with details" onClick={onExpand} />
+      </InputBar>
     </div>
   );
 }

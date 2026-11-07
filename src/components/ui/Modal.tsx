@@ -7,6 +7,8 @@ import { cn } from "@/lib/utils";
 import { CloseButton } from "./CloseButton";
 import { useLookParts } from "@/components/looks/LookProvider";
 import {
+  DRAWER_DIM,
+  DRAWER_DIM_FADE,
   MODAL_LAYERS,
   MODAL_PANELS,
   MODAL_PANEL_SELECTOR,
@@ -66,9 +68,11 @@ export function Modal({
               <Dialog.Overlay asChild forceMount>
                 <motion.div
                   initial={{ opacity: 0 }}
-                  animate={{ opacity: variant === "page" ? 0 : 0.45 }}
+                  animate={{
+                    opacity: variant === "page" ? 0 : variant === "drawer" ? DRAWER_DIM : 0.45,
+                  }}
                   exit={{ opacity: 0 }}
-                  transition={{ duration: 0.12 }}
+                  transition={variant === "drawer" ? DRAWER_DIM_FADE : { duration: 0.12 }}
                   className={cn("fixed inset-0 bg-black", z.overlay)}
                 />
               </Dialog.Overlay>

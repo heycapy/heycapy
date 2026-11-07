@@ -2,9 +2,9 @@
 
 import { cn } from "@/lib/utils";
 import { useLookParts } from "@/components/looks/LookProvider";
-import { type ButtonHTMLAttributes } from "react";
+import type { ComponentProps } from "react";
 
-interface OptionButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+interface OptionButtonProps extends ComponentProps<"button"> {
   active?: boolean;
 }
 

@@ -1,5 +1,6 @@
 import { useState, useTransition } from "react";
 import { TextButton } from "@/components/ui/TextButton";
+import { CopyButton } from "@/components/ui/CopyButton";
 import { newWebhookSecretAction } from "@/app/(app)/actions";
 import { WEBHOOK_SECRET_MASK } from "@/constants";
 import { LABEL, HINT } from "./settings-constants";
@@ -47,9 +48,6 @@ export function WebhookSecret({ webhookId, secret, onChanged }: WebhookSecretPro
           <TextButton type="button" onClick={() => setShow((v) => !v)}>
             {show ? "hide" : "show"}
           </TextButton>
-          <TextButton type="button" onClick={copy}>
-            {copied ? "copied" : "copy"}
-          </TextButton>
           <TextButton
             type="button"
             variant="warning"
@@ -60,7 +58,10 @@ export function WebhookSecret({ webhookId, secret, onChanged }: WebhookSecretPro
           </TextButton>
         </div>
       </div>
-      <p className="font-mono text-xs break-all">{show ? secret : WEBHOOK_SECRET_MASK}</p>
+      <div className="flex items-center gap-1">
+        <p className="font-mono text-xs break-all">{show ? secret : WEBHOOK_SECRET_MASK}</p>
+        <CopyButton copied={copied} onClick={copy} />
+      </div>
       {confirming ? (
         <ConfirmRow
           text="sure? your server needs the new one"

@@ -195,14 +195,6 @@ export const VIEW_FADE = {
   gone: { opacity: 0, y: -6 },
 } as const;
 
-export const ADD_PANEL_DIM = 0.25;
-
-export const ADD_PANEL_MOTION = {
-  initial: { y: "100%" },
-  animate: { y: 0, transition: { type: "spring", duration: 0.5, bounce: 0 } },
-  exit: { y: "100%", transition: { duration: 0.25, ease: [0.32, 0.72, 0, 1] } },
-} as const;
-export const ADD_PANEL_DIM_FADE = { duration: 0.3, ease: "easeOut" } as const;
 export const ITEM_PANEL_RESIZE = { duration: 0.18, ease: "easeOut" } as const;
 export const PHONE_DRAWER_TOP_GAP_PX = 12;
 

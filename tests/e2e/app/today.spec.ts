@@ -85,7 +85,7 @@ test("search next to add finds items in any bucket, dated or not", async ({ page
   await box.fill(`${tag} nothing like this`);
   await expect(search.getByText("no items match")).toBeVisible();
 
-  await search.getByRole("button", { name: "[ x ]", exact: true }).click();
+  await page.keyboard.press("Escape");
   await expect(search).toHaveCount(0);
 });
 
@@ -103,14 +103,25 @@ test("items can be edited from today", async ({ page }) => {
   await expect(itemRow(page, `${title} back`)).toBeVisible();
 });
 
-test("today has no add box, only capy and a pointer to the buckets", async ({ page }) => {
+test("today adds to the bucket picked beside the add box", async ({ page }) => {
   await page.goto("/");
   await bucketWithItems(page, "Home", []);
+  const work = await bucketWithItems(page, "Work", []);
   await todayButton(page).click();
   await expect(page.getByRole("heading", { name: "today", level: 2 })).toBeAttached();
 
-  await expect(page.getByText("open a bucket to add to it")).toBeVisible();
-  await expect(page.getByRole("textbox", { name: /^add to / })).toHaveCount(0);
-  await expect(page.getByRole("button", { name: "add with details" })).toHaveCount(0);
-  await expect(page.getByRole("button", { name: "chat with capy" })).toBeVisible();
+  await page.getByRole("button", { name: /change bucket$/ }).click();
+  await page
+    .getByRole("group", { name: "add to bucket" })
+    .getByRole("button", { name: work })
+    .click();
+  const box = page.getByRole("textbox", { name: `add to ${work}` });
+  await expect(box).toBeFocused();
+  await box.fill("water the plants today");
+  await box.press("Enter");
+  await expect(itemRow(page, "water the plants")).toBeVisible();
+
+  await page.getByRole("button", { name: work, exact: true }).click();
+  await expect(activeBucketTitle(page)).toHaveText(work);
+  await expect(itemRow(page, "water the plants")).toBeVisible();
 });

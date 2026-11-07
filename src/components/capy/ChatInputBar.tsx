@@ -1,8 +1,7 @@
-import { Icon } from "@/components/ui/Icon";
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState, createElement } from "react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { Tooltip } from "@/components/ui/Tooltip";
+import { InputBar, InputBarAction, InputBarIcon } from "@/components/ui/InputBar";
 import { useLookParts } from "@/components/looks/LookProvider";
 import { Sprite } from "./Sprite";
 import { VOICE_MAX_SECONDS } from "@/constants";
@@ -166,7 +165,7 @@ export const ChatInputBar = forwardRef<ChatInputBarHandle, Props>(function ChatI
     <div
       className={cn(
         "flex flex-col justify-center transition-colors",
-        floating ? "px-3 pt-1 pb-3" : "border-t-frame px-3 py-2 md:min-h-[calc(3rem+2px)]",
+        floating ? "px-3 pt-1 pb-3" : "border-t-frame",
         !floating && (recording ? "border-primary" : "border-border")
       )}
     >
@@ -174,41 +173,38 @@ export const ChatInputBar = forwardRef<ChatInputBarHandle, Props>(function ChatI
         className={cn(
           centered && "mx-auto w-full max-w-[720px]",
           floating &&
-            "rounded-panel border-frame shadow-raised bg-background px-3 py-2 transition-colors focus-within:border-(--ring)",
+            "rounded-panel border-frame shadow-raised bg-background transition-colors focus-within:border-(--ring)",
           floating && (recording ? "border-primary" : "border-border")
         )}
       >
         {isRecordingOrTranscribing ? (
-          // as tall as the mic and send buttons so the bar keeps its height while capy listens
-          <div className="flex min-h-9.5 items-center gap-3 md:min-h-6.5">
-            <div className="flex flex-1 items-center gap-2">
+          <InputBar>
+            <span className="font-display flex min-w-0 flex-1 items-center gap-2 text-xs">
               {recording ? (
                 <>
-                  <span className="text-primary font-display animate-[pulse_0.8s_ease-in-out_infinite] text-xs">
-                    ●
-                  </span>
-                  <span className="text-foreground font-display text-xs">
+                  <span className="text-primary animate-[pulse_0.8s_ease-in-out_infinite]">●</span>
+                  <span className="text-foreground truncate">
                     {name} listening... {formatTime(recSeconds)}
                   </span>
                 </>
               ) : (
-                <span className="text-muted-foreground font-display animate-pulse text-xs">
+                <span className="text-muted-foreground animate-pulse">
                   {name}&apos;s jotting it down...
                 </span>
               )}
-            </div>
-
+            </span>
             {recording && (
-              <button
+              <InputBarAction
+                icon="square"
+                label="stop"
+                name="stop recording"
+                variant="destructive"
                 onClick={() => mediaRecorderRef.current?.stop()}
-                className="rounded-control border-primary text-foreground font-display text-2xs shrink-0 border px-1.5 py-0.5 transition-opacity hover:opacity-70"
-              >
-                ■ stop
-              </button>
+              />
             )}
-          </div>
+          </InputBar>
         ) : (
-          <div className="flex items-end gap-2">
+          <InputBar>
             <textarea
               ref={inputRef}
               value={input}
@@ -217,7 +213,7 @@ export const ChatInputBar = forwardRef<ChatInputBarHandle, Props>(function ChatI
               placeholder={`ask ${name}...`}
               rows={1}
               disabled={streaming}
-              className="placeholder:text-muted-foreground font-ui flex-1 resize-none bg-transparent text-xs outline-none disabled:opacity-50 md:mb-0.5 md:py-[5px]"
+              className="placeholder:text-muted-foreground/50 font-ui min-w-0 flex-1 resize-none bg-transparent py-1 text-base leading-6 outline-none disabled:opacity-50 sm:text-sm"
               style={{ maxHeight: 80 }}
               onInput={(e) => {
                 const el = e.currentTarget;
@@ -225,40 +221,31 @@ export const ChatInputBar = forwardRef<ChatInputBarHandle, Props>(function ChatI
                 el.style.height = `${Math.min(el.scrollHeight, 80)}px`;
               }}
             />
-            <Tooltip text="voice input (ctrl+shift+m)" className="mb-0.5 shrink-0">
-              <button
-                onClick={() => void handleMicClick()}
-                disabled={streaming}
-                aria-label="Record voice"
-                className="rounded-control border-border text-muted-foreground hover:border-foreground hover:text-foreground border-(length:--icon-frame) p-2.5 transition-colors disabled:cursor-not-allowed disabled:opacity-40 md:p-1"
-              >
-                <Icon name="mic" />
-              </button>
-            </Tooltip>
+            <InputBarIcon
+              icon="mic"
+              label="Record voice"
+              tip="voice input (ctrl+shift+m)"
+              disabled={streaming}
+              onClick={() => void handleMicClick()}
+            />
             {streaming ? (
-              <button
+              <InputBarAction
+                icon="square"
+                label="stop"
+                name="Stop"
+                variant="destructive"
                 onClick={onStop}
-                className="rounded-control text-destructive border-destructive font-display text-2xs md:text-2xs mb-0.5 shrink-0 border px-2.5 py-2.5 transition-opacity hover:opacity-70 md:px-1.5 md:py-0.5"
-                aria-label="Stop"
-              >
-                stop
-              </button>
+              />
             ) : (
-              <button
-                onClick={onSend}
+              <InputBarAction
+                icon="arrow-up"
+                label="send"
+                name="Send"
                 disabled={!input.trim()}
-                className={cn(
-                  "rounded-control border-border mb-0.5 shrink-0 border-(length:--icon-frame) p-2.5 transition-colors md:p-1",
-                  input.trim()
-                    ? "bg-foreground text-background"
-                    : "text-muted-foreground cursor-not-allowed"
-                )}
-                aria-label="Send"
-              >
-                <Icon name="arrow-up" />
-              </button>
+                onClick={onSend}
+              />
             )}
-          </div>
+          </InputBar>
         )}
       </div>
     </div>

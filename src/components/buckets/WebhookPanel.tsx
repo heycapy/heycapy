@@ -1,6 +1,7 @@
 import { Icon } from "@/components/ui/Icon";
 import { useEffect, useState, useTransition } from "react";
 import { TextButton } from "@/components/ui/TextButton";
+import { CopyButton } from "@/components/ui/CopyButton";
 import { getWebhookKeyAction, rotateWebhookKeyAction } from "@/app/(app)/actions";
 import type { buckets } from "@/lib/db/schema";
 import { BucketSchema } from "@/types/rules";
@@ -127,13 +128,11 @@ export function WebhookPanel({ bucket }: WebhookPanelProps) {
       <div className="flex flex-col gap-1.5">
         <label className={LABEL}>endpoint url</label>
         <span className={HINT}>POST to this URL to create an item in this bucket</span>
-        <div className="rounded-control border-border flex items-center border">
-          <code className="text-muted-foreground text-2xs flex-1 overflow-hidden bg-transparent px-2 py-1 font-mono text-ellipsis">
+        <div className="rounded-control border-border flex w-fit max-w-full items-center gap-1 border p-1">
+          <code className="text-muted-foreground text-2xs min-w-0 overflow-hidden bg-transparent px-1 py-1 font-mono text-ellipsis whitespace-nowrap">
             {webhookUrl}
           </code>
-          <TextButton onClick={copyUrl} className="text-2xs shrink-0 px-2">
-            {urlCopied ? "copied" : "copy"}
-          </TextButton>
+          <CopyButton copied={urlCopied} onClick={copyUrl} className="text-2xs" />
         </div>
       </div>
 
@@ -142,8 +141,8 @@ export function WebhookPanel({ bucket }: WebhookPanelProps) {
         <span className={HINT}>
           send as Authorization: Bearer {"<key>"} — rotate to invalidate the old key
         </span>
-        <div className="rounded-control border-border flex items-center border">
-          <code className="text-muted-foreground text-2xs flex-1 overflow-hidden bg-transparent px-2 py-1 font-mono text-ellipsis">
+        <div className="rounded-control border-border flex w-fit max-w-full items-center gap-1 border p-1">
+          <code className="text-muted-foreground text-2xs min-w-0 overflow-hidden bg-transparent px-1 py-1 font-mono text-ellipsis whitespace-nowrap">
             {key
               ? revealed
                 ? key
@@ -159,9 +158,7 @@ export function WebhookPanel({ bucket }: WebhookPanelProps) {
             aria-label={revealed ? "hide key" : "show key"}
             className="px-2 disabled:opacity-30"
           />
-          <TextButton onClick={copyKey} disabled={!key} className="text-2xs shrink-0 px-2">
-            {copied ? "copied" : "copy"}
-          </TextButton>
+          <CopyButton copied={copied} onClick={copyKey} disabled={!key} className="text-2xs" />
         </div>
         <TextButton
           onClick={handleRotate}
@@ -174,16 +171,11 @@ export function WebhookPanel({ bucket }: WebhookPanelProps) {
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <label className={LABEL}>test with curl</label>
-        <span className={HINT}>paste this in your terminal to create a test item</span>
-        <div className="rounded-control border-border relative border">
-          <pre className="text-muted-foreground text-2xs overflow-x-auto bg-transparent p-2 font-mono">
-            {key
-              ? buildCurlCommand(webhookUrl, revealed ? key : WEBHOOK_KEY_MASK, schema)
-              : buildExamplePayload(schema)}
-          </pre>
+        <div className="flex items-center gap-1">
+          <label className={LABEL}>test with curl</label>
           {key && (
-            <TextButton
+            <CopyButton
+              copied={curlCopied}
               onClick={() => {
                 void navigator.clipboard
                   .writeText(buildCurlCommand(webhookUrl, key, schema))
@@ -192,11 +184,17 @@ export function WebhookPanel({ bucket }: WebhookPanelProps) {
                     setTimeout(() => setCurlCopied(false), 2000);
                   });
               }}
-              className="text-2xs absolute right-1.5 bottom-1.5"
-            >
-              {curlCopied ? "copied" : "copy"}
-            </TextButton>
+              className="text-2xs"
+            />
           )}
+        </div>
+        <span className={HINT}>paste this in your terminal to create a test item</span>
+        <div className="rounded-control border-border relative border">
+          <pre className="text-muted-foreground text-2xs overflow-x-auto bg-transparent p-2 font-mono">
+            {key
+              ? buildCurlCommand(webhookUrl, revealed ? key : WEBHOOK_KEY_MASK, schema)
+              : buildExamplePayload(schema)}
+          </pre>
         </div>
       </div>
     </div>

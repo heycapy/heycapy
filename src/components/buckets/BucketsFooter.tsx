@@ -1,7 +1,4 @@
 import type { CSSProperties, Ref, RefObject } from "react";
-import { TextButton } from "@/components/ui/TextButton";
-import { useAssistantName } from "@/components/capy/assistant-name";
-import { useLayoutStore } from "@/store/layout";
 import { useKeyboardInset } from "@/hooks/useKeyboardInset";
 import { cn } from "@/lib/utils";
 import { useLookParts } from "@/components/looks/LookProvider";
@@ -9,8 +6,8 @@ import type { ViewerBucket } from "@/lib/buckets/access";
 import { QuickAdd } from "./QuickAdd";
 
 type BucketsFooterProps = {
-  // null on today, which has nowhere to add to
   bucket: ViewerBucket | null;
+  targets?: { buckets: ViewerBucket[]; onPick: (bucketId: number) => void };
   color: string;
   canAdd: boolean;
   inputRef: RefObject<HTMLInputElement | null>;
@@ -27,10 +24,8 @@ export function BucketsFooter({
   panelSlotRef,
   onAdded,
   onExpand,
+  targets,
 }: BucketsFooterProps) {
-  const setChatState = useLayoutStore((s) => s.setChatState);
-  const chatOpen = useLayoutStore((s) => s.chatState !== "closed");
-  const assistantName = useAssistantName();
   const keyboardInset = useKeyboardInset();
   const floating = useLookParts().footer === "floating";
 
@@ -63,19 +58,11 @@ export function BucketsFooter({
             inputRef={inputRef}
             onAdded={onAdded}
             onExpand={onExpand}
+            targets={targets}
           />
         ) : (
           <span className="flex-1" />
         )}
-        <TextButton
-          variant="ghost"
-          onClick={() => setChatState(chatOpen ? "closed" : "open")}
-          aria-label="chat with capy"
-          aria-expanded={chatOpen}
-          className={cn("bar-button max-w-32 shrink-0", chatOpen && "text-foreground")}
-        >
-          <span className="truncate">{assistantName}</span>
-        </TextButton>
         <div
           ref={panelSlotRef}
           className={cn(

@@ -67,7 +67,7 @@ test("a date picked in the form stays with the draft and wins over typed words",
   await openDetail(dialog, "date");
   await page.getByRole("button", { name: "20", exact: true }).click();
   await expect(detailChip(dialog, "date")).toHaveAccessibleName(/^date: Oct 20 · /);
-  await dialog.getByRole("button", { name: "[ x ]", exact: true }).click();
+  await page.keyboard.press("Escape");
   await expect(dialog).toBeHidden();
 
   const hint = page.getByTestId("quick-add-hint");
@@ -78,7 +78,7 @@ test("a date picked in the form stays with the draft and wins over typed words",
   await addItemButton(page).click();
   await expect(detailChip(dialog, "date")).toHaveAccessibleName(/^date: Oct 20 · /);
   await expect(dialog.getByTestId("title-date-highlight")).toHaveCount(0);
-  await dialog.getByRole("button", { name: "[ x ]", exact: true }).click();
+  await page.keyboard.press("Escape");
 
   await addBox(page).press("Enter");
   await expect(itemRow(page, `${title} tomorrow`)).toContainText("Oct 20");
@@ -114,7 +114,6 @@ test("on a wide screen the form grows out of the add box and folds back on a cli
   const kept = uniqueName("cat wants a bigger box");
   await addItem(page, kept);
   const box = await page.getByTestId("add-box").boundingBox();
-  const capy = await page.getByRole("button", { name: "chat with capy" }).boundingBox();
 
   await addBox(page).fill("cat wants more treats");
   await addItemButton(page).click();
@@ -127,7 +126,7 @@ test("on a wide screen the form grows out of the add box and folds back on a cli
       const panel = await form.boundingBox();
       return panel ? [panel.x, panel.x + panel.width, panel.y + panel.height] : null;
     })
-    .toEqual([box?.x, (capy?.x ?? 0) + (capy?.width ?? 0), (box?.y ?? 0) + (box?.height ?? 0)]);
+    .toEqual([box?.x, (box?.x ?? 0) + (box?.width ?? 0), (box?.y ?? 0) + (box?.height ?? 0)]);
   await expect(form.getByText("status", { exact: true })).toHaveCount(0);
   const titleBox = await title.boundingBox();
   const whenBox = await detailChip(form, "date").boundingBox();
@@ -196,7 +195,7 @@ test("editing opens the same panel from the footer, and closing gives focus back
   await createAndSelectBucket(page, bucket);
   const title = uniqueName("cat's bowl is empty");
   await addItem(page, title);
-  const capy = await page.getByRole("button", { name: "chat with capy" }).boundingBox();
+  const box = await page.getByTestId("add-box").boundingBox();
 
   await itemRow(page, title).focus();
   await page.keyboard.press("Enter");
@@ -210,7 +209,7 @@ test("editing opens the same panel from the footer, and closing gives focus back
       const panel = await edit.boundingBox();
       return panel ? panel.x + panel.width : null;
     })
-    .toBe((capy?.x ?? 0) + (capy?.width ?? 0));
+    .toBe((box?.x ?? 0) + (box?.width ?? 0));
 
   await page.keyboard.press("Escape");
   await expect(edit).toBeHidden();

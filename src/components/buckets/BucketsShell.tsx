@@ -44,6 +44,8 @@ export function BucketsShell({ buckets: rawBuckets, focusBucketId = null }: Buck
   const quickAddRef = useRef<HTMLInputElement>(null);
   const focusPending = useRef(false);
   const expandPending = useRef(false);
+  const [todayAddId, setTodayAddId] = useState<number | null>(null);
+  const tickRefresh = useUIStore((s) => s.tickRefresh);
   const [panelSlot, setPanelSlot] = useState<HTMLDivElement | null>(null);
   const hasBottomBar = useMediaQuery(BOTTOM_BAR_MEDIA_QUERY);
 
@@ -118,12 +120,22 @@ export function BucketsShell({ buckets: rawBuckets, focusBucketId = null }: Buck
 
   if (!activeBucket) return null;
 
-  const canAddItem = !todayOpen && writable(activeBucket);
+  const writableBuckets = buckets.filter(writable);
+  const todayTarget =
+    writableBuckets.find((b) => b.id === todayAddId) ??
+    (writable(activeBucket) ? activeBucket : writableBuckets[0]);
+  const footerBucket = todayOpen ? (todayTarget ?? null) : activeBucket;
+  const canAddItem = footerBucket !== null && writable(footerBucket);
   const itemPanel = panelSlot
     ? { slot: panelSlot, onCollapsed: () => quickAddRef.current?.focus() }
     : undefined;
 
   function expand() {
+    if (todayOpen && todayTarget) {
+      expandPending.current = true;
+      setActiveBucketId(todayTarget.id);
+      return;
+    }
     if (switching) expandPending.current = true;
     else viewRef.current?.startAdding();
   }
@@ -172,12 +184,23 @@ export function BucketsShell({ buckets: rawBuckets, focusBucketId = null }: Buck
       </div>
 
       <BucketsFooter
-        bucket={todayOpen ? null : activeBucket}
+        bucket={footerBucket}
+        targets={
+          todayOpen
+            ? {
+                buckets: writableBuckets,
+                onPick: (id) => {
+                  setTodayAddId(id);
+                  requestAnimationFrame(() => quickAddRef.current?.focus());
+                },
+              }
+            : undefined
+        }
         color={accentColor}
         canAdd={canAddItem}
         inputRef={quickAddRef}
         panelSlotRef={setPanelSlot}
-        onAdded={() => void viewRef.current?.refetch()}
+        onAdded={() => (todayOpen ? tickRefresh() : void viewRef.current?.refetch())}
         onExpand={expand}
       />
     </div>

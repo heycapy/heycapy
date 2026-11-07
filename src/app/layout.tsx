@@ -3,9 +3,9 @@ import type { Metadata, Viewport } from "next";
 import { headers } from "next/headers";
 import { Geist, Geist_Mono, Silkscreen } from "next/font/google";
 import "./globals.css";
-import { APP_NAME, APP_TAGLINE, LOOK } from "@/constants";
+import { APP_NAME, APP_TAGLINE, CONTROL_SIZE, LOOK } from "@/constants";
 import { getSession } from "@/lib/auth/session";
-import { lookFor } from "@/lib/account/look";
+import { appearanceFor } from "@/lib/account/look";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import { LookProvider } from "@/components/looks/LookProvider";
 
@@ -48,17 +48,20 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function RootLayout({ children }: { children: ReactNode }) {
   const session = await getSession();
-  const look = session ? await lookFor(session.userId) : LOOK.original;
+  const { look, controlSize } = session
+    ? await appearanceFor(session.userId)
+    : { look: LOOK.original, controlSize: CONTROL_SIZE.medium };
 
   return (
     <html
       lang="en"
       data-look={look}
+      data-size={controlSize}
       className={`${geistSans.variable} ${geistMono.variable} ${silkscreen.variable} h-full antialiased`}
       suppressHydrationWarning
     >
       <body className="bg-background text-foreground font-ui h-full pr-[env(safe-area-inset-right)] pl-[env(safe-area-inset-left)]">
-        <LookProvider look={look}>
+        <LookProvider look={look} controlSize={controlSize}>
           <ThemeProvider>{children}</ThemeProvider>
         </LookProvider>
       </body>

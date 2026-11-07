@@ -3,6 +3,7 @@ import { cn } from "@/lib/utils";
 import { charCountColor } from "@/components/ui/input";
 import { Toggle } from "@/components/ui/Toggle";
 import { TextButton } from "@/components/ui/TextButton";
+import { CopyButton } from "@/components/ui/CopyButton";
 import { NTFY_DEFAULT_URL, SETTINGS_URL_MAX_LENGTH, NTFY_TOPIC_MAX_LENGTH } from "@/constants";
 import { sendTestNotificationAction } from "@/app/(app)/actions";
 import { BOX, INPUT, LABEL, SECTION } from "./settings-constants";
@@ -75,11 +76,6 @@ export function NtfySettings({
         <div className="flex items-center justify-between">
           <label className={LABEL}>topic</label>
           <div className="flex items-center gap-2">
-            {ntfyTopic && (
-              <TextButton type="button" onClick={handleCopyNtfy}>
-                {ntfyCopied ? "copied" : "copy"}
-              </TextButton>
-            )}
             <TextButton
               type="button"
               disabled={pending}
@@ -93,15 +89,18 @@ export function NtfySettings({
             </TextButton>
           </div>
         </div>
-        <input
-          type="text"
-          value={ntfyTopic}
-          onChange={(e) => setNtfyTopic(e.target.value)}
-          placeholder="heycapy-k3m9xp2qlr7a"
-          maxLength={NTFY_TOPIC_MAX_LENGTH}
-          disabled={pending}
-          className={INPUT}
-        />
+        <div className="flex items-center gap-1">
+          <input
+            type="text"
+            value={ntfyTopic}
+            onChange={(e) => setNtfyTopic(e.target.value)}
+            placeholder="heycapy-k3m9xp2qlr7a"
+            maxLength={NTFY_TOPIC_MAX_LENGTH}
+            disabled={pending}
+            className={INPUT}
+          />
+          {ntfyTopic && <CopyButton copied={ntfyCopied} onClick={handleCopyNtfy} />}
+        </div>
         {ntfyTopic.length > 0 && (
           <p
             className={cn(

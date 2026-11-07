@@ -2,6 +2,8 @@ import { Icon } from "@/components/ui/Icon";
 import { useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { TextButton } from "@/components/ui/TextButton";
+import { useAssistantName } from "@/components/capy/assistant-name";
+import { useLayoutStore } from "@/store/layout";
 import { logoutAction, logoutEverywhereAction } from "@/app/(app)/actions";
 import { clearSignedInState } from "@/store/signedOut";
 import { Modal, ModalTitle } from "@/components/ui/Modal";
@@ -235,6 +237,25 @@ function GlobalMenu({
   );
 }
 
+function ChatButton() {
+  const name = useAssistantName();
+  const chatOpen = useLayoutStore((s) => s.chatState !== "closed");
+  const setChatState = useLayoutStore((s) => s.setChatState);
+  return (
+    <TextButton
+      variant="ghost"
+      icon="message"
+      iconLabel={`chat with ${name}`}
+      aria-label="chat with capy"
+      aria-expanded={chatOpen}
+      onClick={() => setChatState(chatOpen ? "closed" : "open")}
+      className={cn("max-w-32", chatOpen && "text-foreground")}
+    >
+      {name}
+    </TextButton>
+  );
+}
+
 export function Header({
   email,
   userId,
@@ -269,6 +290,7 @@ export function Header({
           what&apos;s new
         </TextButton>
       )}
+      <ChatButton />
       <GlobalMenu
         email={email}
         userId={userId}

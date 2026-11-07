@@ -1,5 +1,6 @@
 import { useState, useTransition } from "react";
 import { TextButton } from "@/components/ui/TextButton";
+import { CopyButton } from "@/components/ui/CopyButton";
 import { QRCodeSVG } from "qrcode.react";
 import { Toggle } from "@/components/ui/Toggle";
 import { createTelegramLinkAction, sendTestNotificationAction } from "@/app/(app)/actions";
@@ -131,9 +132,11 @@ export function TelegramSettings({
                   aria-label="telegram connect link"
                   className={INPUT}
                 />
-                <TextButton type="button" onClick={handleCopyLink} className="text-2xs shrink-0">
-                  {copyState === "copied" ? "copied" : "copy"}
-                </TextButton>
+                <CopyButton
+                  copied={copyState === "copied"}
+                  onClick={handleCopyLink}
+                  className="text-2xs"
+                />
               </div>
               <QRCodeSVG
                 value={link}
