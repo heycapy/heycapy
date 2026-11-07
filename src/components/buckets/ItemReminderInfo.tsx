@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState, useTransition } from "react";
 import { cn } from "@/lib/utils";
-import { BracketButton } from "@/components/ui/BracketButton";
+import { TextButton } from "@/components/ui/TextButton";
 import { cancelRemindAgainAction, getItemReminderInfoAction } from "@/app/(app)/actions";
 import type {
   ActionEvent,
@@ -128,9 +128,9 @@ export function ItemReminderInfo({ itemId }: { itemId: number }) {
               ⏰ reminding again {formatShort(info.remindAgain.at)} · asked from{" "}
               {info.remindAgain.source}
             </span>
-            <BracketButton onClick={cancelRemindAgain} disabled={cancelling} className="text-xs">
+            <TextButton onClick={cancelRemindAgain} disabled={cancelling} className="text-xs">
               cancel
-            </BracketButton>
+            </TextButton>
           </p>
         )}
         {cancelError && <p className="text-destructive">{cancelError}</p>}

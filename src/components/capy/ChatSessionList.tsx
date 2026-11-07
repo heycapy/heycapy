@@ -1,5 +1,5 @@
 import { useEffect, useState, useTransition } from "react";
-import { BracketButton } from "@/components/ui/BracketButton";
+import { TextButton } from "@/components/ui/TextButton";
 import {
   getChatSessionsAction,
   getChatMessagesAction,
@@ -93,9 +93,9 @@ export function ChatSessionList({
   return (
     <>
       <div className="border-border border-b px-4 py-2">
-        <BracketButton onClick={handleNewChat} disabled={pending}>
+        <TextButton onClick={handleNewChat} disabled={pending}>
           new chat
-        </BracketButton>
+        </TextButton>
       </div>
 
       <div className="flex flex-1 flex-col overflow-y-auto">
@@ -124,29 +124,29 @@ export function ChatSessionList({
                 <div className="flex shrink-0 gap-2">
                   {confirmingId === s.id ? (
                     <>
-                      <BracketButton
+                      <TextButton
                         variant="destructive"
                         onClick={() => handleDelete(s.id)}
                         disabled={pending}
                       >
                         confirm
-                      </BracketButton>
-                      <BracketButton onClick={() => setConfirmingId(null)} disabled={pending}>
+                      </TextButton>
+                      <TextButton onClick={() => setConfirmingId(null)} disabled={pending}>
                         cancel
-                      </BracketButton>
+                      </TextButton>
                     </>
                   ) : (
                     <>
-                      <BracketButton onClick={() => handleLoad(s.id)} disabled={pending}>
+                      <TextButton onClick={() => handleLoad(s.id)} disabled={pending}>
                         load
-                      </BracketButton>
-                      <BracketButton
+                      </TextButton>
+                      <TextButton
                         variant="destructive"
                         onClick={() => setConfirmingId(s.id)}
                         disabled={pending}
                       >
                         delete
-                      </BracketButton>
+                      </TextButton>
                     </>
                   )}
                 </div>

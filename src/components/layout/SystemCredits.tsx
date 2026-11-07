@@ -1,6 +1,6 @@
 import { useState, useTransition } from "react";
 import { cn } from "@/lib/utils";
-import { BracketButton } from "@/components/ui/BracketButton";
+import { TextButton } from "@/components/ui/TextButton";
 import {
   adjustUserCreditsAction,
   getUserCreditsAction,
@@ -79,13 +79,13 @@ export function SystemCredits() {
           disabled={pending}
           className={cn(INPUT, "min-w-0 flex-1")}
         />
-        <BracketButton
+        <TextButton
           type="submit"
           disabled={pending || !email.trim()}
           className="shrink-0 whitespace-nowrap"
         >
           look up
-        </BracketButton>
+        </TextButton>
       </form>
 
       {credits && (
@@ -133,17 +133,17 @@ export function SystemCredits() {
                 className={INPUT}
               />
             </div>
-            <BracketButton type="submit" disabled={pending || !amount} className="self-end">
+            <TextButton type="submit" disabled={pending || !amount} className="self-end">
               {Number(amount) < 0 ? "take" : "give"}
-            </BracketButton>
+            </TextButton>
           </form>
-          <BracketButton
+          <TextButton
             type="button"
             onClick={() => setShowActivity((v) => !v)}
             className="self-start"
           >
             {showActivity ? "hide activity" : "show activity"}
-          </BracketButton>
+          </TextButton>
           {showActivity && (
             <ul className="divide-border/50 border-border flex max-h-48 flex-col divide-y divide-dotted overflow-y-auto border px-2">
               {credits.rows.map((row) => (

@@ -1,6 +1,6 @@
 import { useTransition } from "react";
 import { cn } from "@/lib/utils";
-import { BracketButton } from "@/components/ui/BracketButton";
+import { TextButton } from "@/components/ui/TextButton";
 import { checkAIKeyAction } from "@/app/(app)/actions";
 import { useAIStatus } from "@/hooks/useAIStatus";
 import { useUIStore } from "@/store/ui";
@@ -65,9 +65,9 @@ export function AIStatusBox({ ownKeyPicked }: { ownKeyPicked: boolean }) {
           </span>
         )}
         {!heycapyPicked && ownKeySaved && (
-          <BracketButton onClick={check} disabled={checking}>
+          <TextButton onClick={check} disabled={checking}>
             check
-          </BracketButton>
+          </TextButton>
         )}
       </div>
 

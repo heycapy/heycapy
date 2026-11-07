@@ -1,5 +1,5 @@
 import { useEffect, useEffectEvent, useRef, useState } from "react";
-import { BracketButton } from "@/components/ui/BracketButton";
+import { TextButton } from "@/components/ui/TextButton";
 import { type Ampm, type TimeValue } from "@/components/ui/TimeField";
 import { ItemFieldsForm } from "./ItemFieldsForm";
 import { ItemAssigneeField, type AssigneeChoice } from "./ItemAssigneeField";
@@ -252,23 +252,23 @@ export function ItemDialog({
   );
 
   const confirmButton = (
-    <BracketButton
+    <TextButton
       onClick={handleConfirmClick}
       disabled={pending}
       className="text-foreground px-2 py-3 text-base"
     >
       {frameMode === "add" ? "add" : "update"}
-    </BracketButton>
+    </TextButton>
   );
   const deleteButton = onDelete && (
-    <BracketButton
+    <TextButton
       onClick={onDelete}
       disabled={pending}
       variant="destructive"
       aria-label="delete item"
     >
       delete
-    </BracketButton>
+    </TextButton>
   );
 
   const titleField = (boxed: boolean) => (

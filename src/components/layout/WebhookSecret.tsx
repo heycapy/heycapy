@@ -1,5 +1,5 @@
 import { useState, useTransition } from "react";
-import { BracketButton } from "@/components/ui/BracketButton";
+import { TextButton } from "@/components/ui/TextButton";
 import { newWebhookSecretAction } from "@/app/(app)/actions";
 import { WEBHOOK_SECRET_MASK } from "@/constants";
 import { LABEL, HINT } from "./settings-constants";
@@ -44,20 +44,20 @@ export function WebhookSecret({ webhookId, secret, onChanged }: WebhookSecretPro
       <div className="flex items-center justify-between">
         <label className={LABEL}>secret</label>
         <div className="flex items-center gap-2 whitespace-nowrap">
-          <BracketButton type="button" onClick={() => setShow((v) => !v)}>
+          <TextButton type="button" onClick={() => setShow((v) => !v)}>
             {show ? "hide" : "show"}
-          </BracketButton>
-          <BracketButton type="button" onClick={copy}>
+          </TextButton>
+          <TextButton type="button" onClick={copy}>
             {copied ? "copied" : "copy"}
-          </BracketButton>
-          <BracketButton
+          </TextButton>
+          <TextButton
             type="button"
             variant="warning"
             onClick={() => setConfirming(true)}
             disabled={pending}
           >
             new
-          </BracketButton>
+          </TextButton>
         </div>
       </div>
       <p className="font-mono text-xs break-all">{show ? secret : WEBHOOK_SECRET_MASK}</p>

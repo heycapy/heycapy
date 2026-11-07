@@ -1,5 +1,5 @@
 import type { ReactNode, RefObject } from "react";
-import { BracketButton } from "@/components/ui/BracketButton";
+import { TextButton } from "@/components/ui/TextButton";
 import { Modal, ModalTitle } from "@/components/ui/Modal";
 
 type ItemPageFrameProps = {
@@ -34,9 +34,9 @@ export function ItemPageFrame({
         {secondary}
       </div>
       <div className="border-border flex shrink-0 items-center justify-between border-t-2 px-4 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
-        <BracketButton onClick={onCancel} className="px-2 py-3 text-base">
+        <TextButton onClick={onCancel} className="px-2 py-3 text-base">
           cancel
-        </BracketButton>
+        </TextButton>
         {confirm}
       </div>
     </Modal>

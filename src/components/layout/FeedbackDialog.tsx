@@ -1,5 +1,5 @@
 import { useState, useTransition } from "react";
-import { BracketButton } from "@/components/ui/BracketButton";
+import { TextButton } from "@/components/ui/TextButton";
 import { Modal, ModalHeader } from "@/components/ui/Modal";
 import { ACCENT_BUTTONS } from "@/components/layout/settings-constants";
 import { cn } from "@/lib/utils";
@@ -94,11 +94,11 @@ export function FeedbackDialog({ open, onClose }: FeedbackDialogProps) {
         </div>
         <div className="border-border flex justify-end border-t px-3 py-2.5">
           {sent ? (
-            <BracketButton type="submit">close</BracketButton>
+            <TextButton type="submit">close</TextButton>
           ) : (
-            <BracketButton type="submit" disabled={!ready}>
+            <TextButton type="submit" disabled={!ready}>
               {pending ? "..." : "send"}
-            </BracketButton>
+            </TextButton>
           )}
         </div>
       </form>

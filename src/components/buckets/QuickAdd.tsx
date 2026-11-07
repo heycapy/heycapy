@@ -25,6 +25,7 @@ import { useBucketMembers } from "./useBucketMembers";
 import { useItemClock } from "./useItemClock";
 import { isEmptyDraft, useDraft, useDraftStore } from "@/store/drafts";
 import { useUIStore } from "@/store/ui";
+import { IconButton } from "@/components/ui/IconButton";
 
 type QuickAddProps = {
   bucket: ViewerBucket;
@@ -197,26 +198,22 @@ export function QuickAdd({ bucket, inputRef, onAdded, onExpand }: QuickAddProps)
           </span>
         )}
         {!isEmptyDraft(draft) && (
-          <button
-            type="button"
+          <IconButton
+            icon="close"
             onClick={() => {
               clear();
               inputRef.current?.focus();
             }}
             aria-label="clear"
-            className="text-muted-foreground hover:text-foreground flex h-11 w-9 shrink-0 items-center justify-center transition-colors"
-          >
-            <Icon name="close" />
-          </button>
+            className="flex h-11 w-9 items-center justify-center"
+          />
         )}
-        <button
-          type="button"
+        <IconButton
+          icon="expand"
           onClick={onExpand}
           aria-label="add with details"
-          className="text-muted-foreground hover:text-foreground flex size-11 shrink-0 items-center justify-center transition-colors"
-        >
-          <Icon name="expand" />
-        </button>
+          className="flex size-11 items-center justify-center"
+        />
       </div>
     </div>
   );

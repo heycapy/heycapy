@@ -1,6 +1,6 @@
 import { memberChannels } from "@/lib/rules";
 import { useEffect, useState } from "react";
-import { BracketButton } from "@/components/ui/BracketButton";
+import { TextButton } from "@/components/ui/TextButton";
 import { getNotifAvailabilityAction } from "@/app/(app)/actions";
 import { MEDIUM_OPTIONS, type NotificationMedium } from "./constants";
 
@@ -50,9 +50,9 @@ export function RemindersOffNotice({
       className="border-border text-warning mx-4 mb-3 flex items-center justify-between gap-3 border border-dashed px-3 py-2 font-mono text-xs"
     >
       <span>⚠ this bucket won&apos;t send you reminders — none of your channels for it work</span>
-      <BracketButton onClick={onSetUp} className="shrink-0">
+      <TextButton onClick={onSetUp} className="shrink-0">
         set up
-      </BracketButton>
+      </TextButton>
     </div>
   );
 }

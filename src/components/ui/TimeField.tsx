@@ -4,7 +4,7 @@ import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { formatTypedTime, parseTimeInput } from "@/lib/time-input";
-import { BracketButton } from "./BracketButton";
+import { TextButton } from "./TextButton";
 import { usePopover } from "./usePopover";
 
 export type Ampm = "am" | "pm";
@@ -172,12 +172,12 @@ export function TimeField({ value, onChange, disabled, allowAllDay = false }: Ti
                   : "border-border focus:border-foreground"
               )}
             />
-            <BracketButton
+            <TextButton
               onClick={() => (typed.trim() ? applyTyped() : setOpen(false))}
               className="shrink-0 py-1"
             >
               done
-            </BracketButton>
+            </TextButton>
           </div>
         </motion.div>
       )}

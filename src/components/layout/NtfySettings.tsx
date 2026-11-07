@@ -2,7 +2,7 @@ import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { charCountColor } from "@/components/ui/input";
 import { Toggle } from "@/components/ui/Toggle";
-import { BracketButton } from "@/components/ui/BracketButton";
+import { TextButton } from "@/components/ui/TextButton";
 import { NTFY_DEFAULT_URL, SETTINGS_URL_MAX_LENGTH, NTFY_TOPIC_MAX_LENGTH } from "@/constants";
 import { sendTestNotificationAction } from "@/app/(app)/actions";
 import { BOX, INPUT, LABEL, SECTION } from "./settings-constants";
@@ -71,11 +71,11 @@ export function NtfySettings({
           <label className={LABEL}>topic</label>
           <div className="flex items-center gap-2">
             {ntfyTopic && (
-              <BracketButton type="button" onClick={handleCopyNtfy}>
+              <TextButton type="button" onClick={handleCopyNtfy}>
                 {ntfyCopied ? "copied" : "copy"}
-              </BracketButton>
+              </TextButton>
             )}
-            <BracketButton
+            <TextButton
               type="button"
               disabled={pending}
               onClick={() =>
@@ -85,7 +85,7 @@ export function NtfySettings({
               }
             >
               generate
-            </BracketButton>
+            </TextButton>
           </div>
         </div>
         <input

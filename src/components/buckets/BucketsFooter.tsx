@@ -1,5 +1,5 @@
 import type { CSSProperties, Ref, RefObject } from "react";
-import { BracketButton } from "@/components/ui/BracketButton";
+import { TextButton } from "@/components/ui/TextButton";
 import { useAssistantName } from "@/components/capy/assistant-name";
 import { useLayoutStore } from "@/store/layout";
 import { useKeyboardInset } from "@/hooks/useKeyboardInset";
@@ -53,14 +53,14 @@ export function BucketsFooter({
         ) : (
           <span className="flex-1" />
         )}
-        <BracketButton
+        <TextButton
           onClick={() => setChatState(chatOpen ? "closed" : "open")}
           aria-label="chat with capy"
           aria-expanded={chatOpen}
           className={cn("h-12 max-w-32 shrink-0 px-1", chatOpen && "text-foreground")}
         >
           <span className="truncate">{assistantName}</span>
-        </BracketButton>
+        </TextButton>
         <div ref={panelSlotRef} className="absolute inset-x-0 bottom-0 sm:inset-x-4" />
       </div>
     </div>

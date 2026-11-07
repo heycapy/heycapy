@@ -1,7 +1,6 @@
-import { Icon } from "@/components/ui/Icon";
 import { useEffect, useRef, useState } from "react";
 import { Toggle } from "@/components/ui/Toggle";
-import { BracketButton } from "@/components/ui/BracketButton";
+import { TextButton } from "@/components/ui/TextButton";
 import { charCountColor } from "@/components/ui/input";
 import { OptionButton } from "@/components/ui/OptionButton";
 import { OptionGroup } from "@/components/ui/OptionGroup";
@@ -11,6 +10,7 @@ import { CURRENCY_OPTIONS } from "./constants";
 import { fieldKey } from "@/lib/buckets/field-schema";
 import { FIELD_LABEL_MAX_LENGTH } from "@/constants";
 import { cn } from "@/lib/utils";
+import { IconButton } from "@/components/ui/IconButton";
 
 export const SCHEMA_LABEL = "text-muted-foreground font-mono text-xs";
 export const SCHEMA_HINT = "text-muted-foreground font-mono text-[11px] leading-tight";
@@ -87,14 +87,14 @@ function FieldRow({
             </p>
           )}
         </div>
-        <button
+        <IconButton
+          icon="trash"
+          tone="destructive"
           onClick={onRemove}
           disabled={disabled}
           aria-label="remove field"
-          className="text-muted-foreground hover:text-destructive shrink-0 transition-colors disabled:opacity-40"
-        >
-          <Icon name="trash" />
-        </button>
+          className="disabled:opacity-40"
+        />
       </div>
       {hasError && <p className="text-destructive font-mono text-[11px]">field name is required</p>}
 
@@ -170,12 +170,12 @@ function FieldRow({
 
       {(onMoveUp || onMoveDown) && (
         <div className="flex justify-end gap-1">
-          <BracketButton onClick={onMoveUp} disabled={disabled || !canMoveUp}>
+          <TextButton onClick={onMoveUp} disabled={disabled || !canMoveUp}>
             up
-          </BracketButton>
-          <BracketButton onClick={onMoveDown} disabled={disabled || !canMoveDown}>
+          </TextButton>
+          <TextButton onClick={onMoveDown} disabled={disabled || !canMoveDown}>
             down
-          </BracketButton>
+          </TextButton>
         </div>
       )}
     </div>
@@ -208,14 +208,13 @@ export function FieldsSection({
             extra information attached to each item — like an amount, priority, or URL
           </p>
         </div>
-        <button
+        <IconButton
+          icon="plus"
           onClick={onAdd}
           disabled={disabled}
           aria-label="add field"
-          className="text-muted-foreground hover:text-foreground shrink-0 transition-colors disabled:opacity-40"
-        >
-          <Icon name="plus" />
-        </button>
+          className="disabled:opacity-40"
+        />
       </div>
       {fields.length === 0 && (
         <p className={SCHEMA_HINT}>no fields defined — items only have a title and deadline</p>

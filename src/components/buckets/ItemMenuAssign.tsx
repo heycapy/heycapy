@@ -4,6 +4,7 @@ import type { BucketMember } from "@/lib/buckets/members";
 import { memberName } from "@/lib/buckets/member-name";
 import { cn } from "@/lib/utils";
 import { ASSIGN_CHIPS_MAX } from "./constants";
+import { MenuItem } from "@/components/ui/MenuItem";
 
 type AssignProps = {
   members: BucketMember[];
@@ -67,27 +68,24 @@ export function AssignChips({
 }
 
 export function AssignList({ members, assigneeId, busy, onAssign }: AssignProps) {
-  const row =
-    "hover:bg-muted flex w-full items-center gap-2 px-3 py-2.5 text-left font-mono text-xs transition-colors disabled:opacity-50 sm:py-2";
   return (
     <div className="py-1">
       {members.map((m) => (
-        <button
+        <MenuItem
           key={m.userId}
-          type="button"
           disabled={busy}
           onClick={() => onAssign(m.userId)}
-          className={row}
+          className="gap-2"
         >
           <PersonAvatar userId={m.userId} avatar={m.avatar} className="shrink-0" />
           <span className="min-w-0 flex-1 truncate">{nameOf(m)}</span>
           {assigneeId === m.userId && <Icon name="check" />}
-        </button>
+        </MenuItem>
       ))}
-      <button type="button" disabled={busy} onClick={() => onAssign(null)} className={row}>
+      <MenuItem disabled={busy} onClick={() => onAssign(null)} className="gap-2">
         <span className="text-muted-foreground min-w-0 flex-1">anyone</span>
         {assigneeId === null && <Icon name="check" />}
-      </button>
+      </MenuItem>
     </div>
   );
 }

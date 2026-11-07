@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { PersonAvatar } from "@/components/avatar/PersonAvatar";
-import { BracketButton } from "@/components/ui/BracketButton";
+import { TextButton } from "@/components/ui/TextButton";
 import type { BucketMember } from "@/lib/buckets/members";
 import { memberName } from "@/lib/buckets/member-name";
 import { cn } from "@/lib/utils";
@@ -36,9 +36,9 @@ export function MembersBar({ members, filter, onFilter, onOpenMembers }: Members
 
   return (
     <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 px-4 pb-2 font-mono text-xs">
-      <BracketButton onClick={onOpenMembers} className="px-1">
+      <TextButton onClick={onOpenMembers} className="px-1">
         {members.length} people
-      </BracketButton>
+      </TextButton>
       <div role="group" aria-label="show items for" className="flex min-w-0 flex-wrap gap-x-1">
         {options.map((option) => {
           const active = option.value === filter;

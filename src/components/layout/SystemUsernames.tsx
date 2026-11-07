@@ -1,6 +1,6 @@
 import { useState, useTransition } from "react";
 import { cn } from "@/lib/utils";
-import { BracketButton } from "@/components/ui/BracketButton";
+import { TextButton } from "@/components/ui/TextButton";
 import {
   adjustUsernameBonusAction,
   getUserUsernameAction,
@@ -53,13 +53,13 @@ export function SystemUsernames() {
           disabled={pending}
           className={cn(INPUT, "min-w-0 flex-1")}
         />
-        <BracketButton
+        <TextButton
           type="submit"
           disabled={pending || !email.trim()}
           className="shrink-0 whitespace-nowrap"
         >
           find
-        </BracketButton>
+        </TextButton>
       </form>
 
       {user && (
@@ -91,13 +91,13 @@ export function SystemUsernames() {
               disabled={pending}
               className={cn(INPUT, "min-w-0 flex-1")}
             />
-            <BracketButton
+            <TextButton
               type="submit"
               disabled={pending || !rename.trim()}
               className="shrink-0 whitespace-nowrap"
             >
               rename
-            </BracketButton>
+            </TextButton>
           </form>
           <p className={MUTED}>
             a rename here never uses their changes and can take a name someone else just let go of.
@@ -107,18 +107,18 @@ export function SystemUsernames() {
             <span className="font-mono text-xs" data-testid="admin-username-bonus">
               {user.allowance.bonus} bonus
             </span>
-            <BracketButton
+            <TextButton
               onClick={() => run(() => adjustUsernameBonusAction({ email: user.email, delta: 1 }))}
               disabled={pending}
             >
               +1
-            </BracketButton>
-            <BracketButton
+            </TextButton>
+            <TextButton
               onClick={() => run(() => adjustUsernameBonusAction({ email: user.email, delta: -1 }))}
               disabled={pending || user.allowance.bonus === 0}
             >
               −1
-            </BracketButton>
+            </TextButton>
           </div>
 
           {user.changes.length === 0 ? (

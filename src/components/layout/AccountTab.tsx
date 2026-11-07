@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils";
 import { useEffect, useState, useTransition } from "react";
-import { BracketButton } from "@/components/ui/BracketButton";
+import { TextButton } from "@/components/ui/TextButton";
 import { AvatarEditor, type AvatarDraft } from "@/components/avatar/AvatarEditor";
 import {
   deleteAccountAction,
@@ -126,14 +126,14 @@ export function AccountTab({
                 your account.
               </p>
             )}
-            <BracketButton
+            <TextButton
               variant="destructive"
               onClick={() => setStep("confirm")}
               disabled={sharedBuckets.length > 0}
               className="self-start"
             >
               delete account
-            </BracketButton>
+            </TextButton>
           </>
         )}
 
@@ -145,12 +145,12 @@ export function AccountTab({
               days. download your data first if you want to keep it.
             </p>
             <div className="flex gap-3">
-              <BracketButton variant="destructive" onClick={sendCode} disabled={pending}>
+              <TextButton variant="destructive" onClick={sendCode} disabled={pending}>
                 {pending ? "sending..." : "email me a code"}
-              </BracketButton>
-              <BracketButton onClick={reset} disabled={pending}>
+              </TextButton>
+              <TextButton onClick={reset} disabled={pending}>
                 cancel
-              </BracketButton>
+              </TextButton>
             </div>
           </>
         )}
@@ -170,16 +170,16 @@ export function AccountTab({
               className={INPUT}
             />
             <div className="flex gap-3">
-              <BracketButton
+              <TextButton
                 variant="destructive"
                 onClick={confirmDelete}
                 disabled={pending || code.length !== 6}
               >
                 {pending ? "deleting..." : "delete forever"}
-              </BracketButton>
-              <BracketButton onClick={reset} disabled={pending}>
+              </TextButton>
+              <TextButton onClick={reset} disabled={pending}>
                 cancel
-              </BracketButton>
+              </TextButton>
             </div>
           </>
         )}

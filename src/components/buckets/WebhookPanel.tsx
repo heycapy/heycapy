@@ -1,11 +1,12 @@
 import { Icon } from "@/components/ui/Icon";
 import { useEffect, useState, useTransition } from "react";
-import { BracketButton } from "@/components/ui/BracketButton";
+import { TextButton } from "@/components/ui/TextButton";
 import { getWebhookKeyAction, rotateWebhookKeyAction } from "@/app/(app)/actions";
 import type { buckets } from "@/lib/db/schema";
 import { BucketSchema } from "@/types/rules";
 import { ITEM_STATUS, WEBHOOK_KEY_MASK } from "@/constants";
 import { HINT, LABEL } from "@/components/layout/settings-constants";
+import { IconButton } from "@/components/ui/IconButton";
 
 type BucketRow = typeof buckets.$inferSelect;
 
@@ -130,9 +131,9 @@ export function WebhookPanel({ bucket }: WebhookPanelProps) {
           <code className="text-muted-foreground flex-1 overflow-hidden bg-transparent px-2 py-1 font-mono text-[11px] text-ellipsis">
             {webhookUrl}
           </code>
-          <BracketButton onClick={copyUrl} className="shrink-0 px-2 text-[11px]">
+          <TextButton onClick={copyUrl} className="shrink-0 px-2 text-[11px]">
             {urlCopied ? "copied" : "copy"}
-          </BracketButton>
+          </TextButton>
         </div>
       </div>
 
@@ -151,26 +152,25 @@ export function WebhookPanel({ bucket }: WebhookPanelProps) {
                 ? "no key yet — rotate to generate one"
                 : "loading..."}
           </code>
-          <button
+          <IconButton
+            icon={revealed ? "eye-off" : "eye"}
             onClick={() => setRevealed((v) => !v)}
             disabled={!key}
             aria-label={revealed ? "hide key" : "show key"}
-            className="text-muted-foreground hover:text-foreground shrink-0 px-2 transition-colors disabled:opacity-30"
-          >
-            {revealed ? <Icon name="eye-off" /> : <Icon name="eye" />}
-          </button>
-          <BracketButton onClick={copyKey} disabled={!key} className="shrink-0 px-2 text-[11px]">
+            className="px-2 disabled:opacity-30"
+          />
+          <TextButton onClick={copyKey} disabled={!key} className="shrink-0 px-2 text-[11px]">
             {copied ? "copied" : "copy"}
-          </BracketButton>
+          </TextButton>
         </div>
-        <BracketButton
+        <TextButton
           onClick={handleRotate}
           disabled={pending}
           className="mt-1 flex w-fit items-center gap-1.5"
         >
           <Icon name="reload" />
           rotate key
-        </BracketButton>
+        </TextButton>
       </div>
 
       <div className="flex flex-col gap-1.5">
@@ -183,7 +183,7 @@ export function WebhookPanel({ bucket }: WebhookPanelProps) {
               : buildExamplePayload(schema)}
           </pre>
           {key && (
-            <BracketButton
+            <TextButton
               onClick={() => {
                 void navigator.clipboard
                   .writeText(buildCurlCommand(webhookUrl, key, schema))
@@ -195,7 +195,7 @@ export function WebhookPanel({ bucket }: WebhookPanelProps) {
               className="absolute right-1.5 bottom-1.5 text-[11px]"
             >
               {curlCopied ? "copied" : "copy"}
-            </BracketButton>
+            </TextButton>
           )}
         </div>
       </div>

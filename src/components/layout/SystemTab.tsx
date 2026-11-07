@@ -1,5 +1,5 @@
 import { useEffect, useState, useTransition } from "react";
-import { BracketButton } from "@/components/ui/BracketButton";
+import { TextButton } from "@/components/ui/TextButton";
 import { getSystemStatusAction, type SystemStatus } from "@/app/(app)/actions";
 import { formatShort } from "@/lib/format-date";
 import { BOX, SECTION, MUTED } from "./settings-constants";
@@ -52,9 +52,9 @@ export function SystemTab() {
       <div className={BOX}>
         <div className="flex items-center justify-between">
           <span className={SECTION}>scheduler</span>
-          <BracketButton onClick={load} disabled={pending}>
+          <TextButton onClick={load} disabled={pending}>
             {pending ? "refreshing..." : "refresh"}
-          </BracketButton>
+          </TextButton>
         </div>
         <p
           role="status"

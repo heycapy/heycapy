@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { BracketButton } from "@/components/ui/BracketButton";
+import { TextButton } from "@/components/ui/TextButton";
 import { Toggle } from "@/components/ui/Toggle";
 import { EMAIL_GUIDE_URL } from "@/constants";
 import { LABEL, INPUT, SECTION, BOX, HINT } from "./settings-constants";
@@ -189,14 +189,14 @@ export function NotificationsTab({
           <p className={HINT}>where notifications are sent · defaults to your account email</p>
         </div>
 
-        <BracketButton
+        <TextButton
           type="button"
           onClick={() => setTestDialogOpen(true)}
           disabled={pending || !smtpHost}
           className="self-start"
         >
           send test email
-        </BracketButton>
+        </TextButton>
       </div>
 
       <PushSettings pending={pending} />

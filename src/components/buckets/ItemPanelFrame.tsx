@@ -11,7 +11,7 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion, useDragControls, type PanInfo } from "framer-motion";
-import { BracketButton } from "@/components/ui/BracketButton";
+import { TextButton } from "@/components/ui/TextButton";
 import {
   HANDLES_ESCAPE_SELECTOR,
   MODAL_PANEL_SELECTOR,
@@ -196,7 +196,7 @@ export function ItemPanelFrame({
                 <span className="min-w-0 flex-1 truncate font-mono text-xs opacity-60">
                   {panel.bucketName && `in ${panel.bucketName}`}
                 </span>
-                <BracketButton
+                <TextButton
                   type="button"
                   variant="inverted"
                   onClick={onCancel}
@@ -204,7 +204,7 @@ export function ItemPanelFrame({
                   className={cn(phone && "sr-only")}
                 >
                   x
-                </BracketButton>
+                </TextButton>
               </div>
             </div>
             <motion.div

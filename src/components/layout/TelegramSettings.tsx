@@ -1,5 +1,5 @@
 import { useState, useTransition } from "react";
-import { BracketButton } from "@/components/ui/BracketButton";
+import { TextButton } from "@/components/ui/TextButton";
 import { QRCodeSVG } from "qrcode.react";
 import { Toggle } from "@/components/ui/Toggle";
 import { createTelegramLinkAction, sendTestNotificationAction } from "@/app/(app)/actions";
@@ -72,14 +72,14 @@ export function TelegramSettings({
               <span className={LABEL}>status</span>
               <span className={HINT}>connected · chat id: {telegramChatId}</span>
             </div>
-            <BracketButton
+            <TextButton
               type="button"
               onClick={() => void onDisconnectTelegram()}
               disabled={telegramActionPending || pending}
               className="text-[11px]"
             >
               disconnect
-            </BracketButton>
+            </TextButton>
           </div>
           <div className="flex items-center justify-between">
             <label className={LABEL}>notifications enabled</label>
@@ -102,22 +102,22 @@ export function TelegramSettings({
               <span className={HINT}>not connected</span>
             </div>
             <div className="flex items-center gap-2">
-              <BracketButton
+              <TextButton
                 type="button"
                 onClick={() => void onRecheckTelegram()}
                 disabled={telegramActionPending || pending}
                 className="text-[11px]"
               >
                 recheck
-              </BracketButton>
-              <BracketButton
+              </TextButton>
+              <TextButton
                 type="button"
                 onClick={handleConnect}
                 disabled={connecting || telegramActionPending || pending}
                 className="text-[11px]"
               >
                 {connecting ? "connecting..." : "connect"}
-              </BracketButton>
+              </TextButton>
             </div>
           </div>
           {link && (
@@ -130,13 +130,9 @@ export function TelegramSettings({
                   aria-label="telegram connect link"
                   className={INPUT}
                 />
-                <BracketButton
-                  type="button"
-                  onClick={handleCopyLink}
-                  className="shrink-0 text-[11px]"
-                >
+                <TextButton type="button" onClick={handleCopyLink} className="shrink-0 text-[11px]">
                   {copyState === "copied" ? "copied" : "copy"}
-                </BracketButton>
+                </TextButton>
               </div>
               <QRCodeSVG
                 value={link}

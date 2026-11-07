@@ -1,8 +1,8 @@
-import { useState, type ReactNode } from "react";
+import { useState, type ComponentProps, type ReactNode } from "react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Calendar } from "@/components/ui/Calendar";
-import { BracketButton } from "@/components/ui/BracketButton";
+import { TextButton } from "@/components/ui/TextButton";
 import { Icon } from "@/components/ui/Icon";
 import { clockTime, formatShort, formatWeekdayDate } from "@/lib/format-date";
 import { deadlineDate, itemDeadline } from "@/lib/time";
@@ -13,6 +13,7 @@ import type { ReminderBadge } from "@/lib/reminders/status";
 import { ItemReminderInfo } from "./ItemReminderInfo";
 import { AssignChips, AssignList } from "./ItemMenuAssign";
 import type { ItemMenuProps } from "./ItemMenu";
+import { MenuItem } from "@/components/ui/MenuItem";
 
 type View = "main" | "date" | "people" | "reminders";
 
@@ -25,30 +26,9 @@ const VIEW_LABEL: Record<Exclude<View, "main">, string> = {
 function MenuButton({
   label,
   className,
-  onClick,
-  disabled,
-  children,
-}: {
-  label?: string;
-  className?: string;
-  onClick: () => void;
-  disabled?: boolean;
-  children: ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      aria-label={label}
-      onClick={onClick}
-      disabled={disabled}
-      className={cn(
-        "hover:bg-muted flex w-full items-center gap-4 px-3 py-2.5 text-left font-mono text-xs transition-colors disabled:opacity-50 sm:py-2",
-        className
-      )}
-    >
-      {children}
-    </button>
-  );
+  ...props
+}: ComponentProps<typeof MenuItem> & { label?: string }) {
+  return <MenuItem aria-label={label} className={cn("gap-4", className)} {...props} />;
 }
 
 // Swiping is touch only, so only touch screens are told about it
@@ -140,16 +120,16 @@ export function MenuBody({
             </p>
           )}
         </div>
-        <BracketButton onClick={onClose} aria-label="close menu" className="-my-1 px-3 py-1.5">
+        <TextButton onClick={onClose} aria-label="close menu" className="-my-1 px-3 py-1.5">
           x
-        </BracketButton>
+        </TextButton>
       </div>
 
       {view !== "main" && (
         <div className={cn(section, "flex items-center gap-2 px-3")}>
-          <BracketButton onClick={() => setView("main")} className="py-1.5">
+          <TextButton onClick={() => setView("main")} className="py-1.5">
             back
-          </BracketButton>
+          </TextButton>
           <span className="text-muted-foreground font-mono text-xs">{VIEW_LABEL[view]}</span>
         </div>
       )}
@@ -248,7 +228,7 @@ export function MenuBody({
 
           {!readonly && (
             <div className={section}>
-              <MenuButton onClick={() => run(onDelete)} className="text-destructive">
+              <MenuButton onClick={() => run(onDelete)} tone="destructive">
                 delete
                 <SwipeHint>← swipe</SwipeHint>
               </MenuButton>

@@ -2,7 +2,7 @@ import { ACCENT_BUTTONS } from "@/components/layout/settings-constants";
 import { cn } from "@/lib/utils";
 import { useRef, useState, useTransition } from "react";
 import { Modal, ModalHeader } from "@/components/ui/Modal";
-import { BracketButton } from "@/components/ui/BracketButton";
+import { TextButton } from "@/components/ui/TextButton";
 import { updateBucketSchemaAction } from "@/app/(app)/actions";
 import type { FieldDef, BucketSchema } from "@/types/rules";
 import type { buckets } from "@/lib/db/schema";
@@ -113,9 +113,9 @@ function SchemaEditorForm({ bucket, onClose }: Omit<SchemaEditorDialogProps, "op
       </div>
 
       <div className="border-border flex shrink-0 items-center justify-end border-t px-3 py-2.5">
-        <BracketButton onClick={handleSave} disabled={pending}>
+        <TextButton onClick={handleSave} disabled={pending}>
           save schema
-        </BracketButton>
+        </TextButton>
       </div>
     </div>
   );

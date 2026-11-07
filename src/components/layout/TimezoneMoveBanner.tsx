@@ -1,6 +1,6 @@
 import { useEffect, useState, useSyncExternalStore, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { BracketButton } from "@/components/ui/BracketButton";
+import { TextButton } from "@/components/ui/TextButton";
 import {
   switchTimezoneAction,
   timezoneMoveAction,
@@ -58,12 +58,12 @@ export function TimezoneMoveBanner() {
           you seem to be in {move.here} now · reminders still run on {move.saved} time
         </span>
         <div className="flex shrink-0 gap-2">
-          <BracketButton onClick={handleUpdate} disabled={pending}>
+          <TextButton onClick={handleUpdate} disabled={pending}>
             update
-          </BracketButton>
-          <BracketButton onClick={() => keep(browserTimezone())} disabled={pending}>
+          </TextButton>
+          <TextButton onClick={() => keep(browserTimezone())} disabled={pending}>
             keep {move.saved}
-          </BracketButton>
+          </TextButton>
         </div>
         {error && <span className="text-destructive w-full">{error}</span>}
       </div>

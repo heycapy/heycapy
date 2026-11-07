@@ -1,7 +1,7 @@
 import { useEffect, useState, useTransition } from "react";
 import { getCreditPacksAction, startCheckoutAction } from "@/app/(app)/billing-actions";
 import type { PackOffer } from "@/lib/billing/dodo";
-import { BracketButton } from "@/components/ui/BracketButton";
+import { TextButton } from "@/components/ui/TextButton";
 import { BOX, HINT } from "./settings-constants";
 
 function centsPerMessage(pack: PackOffer): string {
@@ -61,9 +61,9 @@ export function BuyCredits() {
                 per message
               </span>
             </div>
-            <BracketButton onClick={() => buy(pack)} disabled={opening} className="shrink-0">
+            <TextButton onClick={() => buy(pack)} disabled={opening} className="shrink-0">
               buy for ${pack.usd}
-            </BracketButton>
+            </TextButton>
           </div>
         ))}
       </div>

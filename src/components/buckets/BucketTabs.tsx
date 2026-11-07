@@ -1,7 +1,7 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { Reorder, motion } from "framer-motion";
 import { toast } from "sonner";
-import { BracketButton } from "@/components/ui/BracketButton";
+import { TextButton } from "@/components/ui/TextButton";
 import { Icon } from "@/components/ui/Icon";
 import { useLayoutStore } from "@/store/layout";
 import { useUIStore } from "@/store/ui";
@@ -11,6 +11,7 @@ import { useLateBuckets } from "./useLateBuckets";
 import { ReorderTab } from "./ReorderTab";
 import { reorderBucketsAction } from "@/app/(app)/bucket-actions";
 import type { ViewerBucket } from "@/lib/buckets/access";
+import { IconButton } from "@/components/ui/IconButton";
 
 type BucketTabsProps = {
   buckets: ViewerBucket[];
@@ -62,14 +63,12 @@ function PlaceTab({
         </span>
       </button>
       {onSettings && (
-        <button
-          type="button"
+        <IconButton
+          icon="sliders"
           onClick={onSettings}
           aria-label="bucket settings"
-          className="text-muted-foreground hover:text-foreground -ml-1 flex h-11 items-center pr-3 transition-colors"
-        >
-          <Icon name="sliders" />
-        </button>
+          className="-ml-1 flex h-11 items-center pr-3"
+        />
       )}
     </span>
   );
@@ -126,13 +125,13 @@ export function BucketTabs({ buckets, activeId, todayOpen }: BucketTabsProps) {
       className="bg-background max-w-column sticky top-0 z-10 mx-auto w-full sm:px-4"
     >
       <div className="border-border flex border-b-2">
-        <BracketButton
+        <TextButton
           onClick={() => setSearchOpen(true)}
           aria-label="search"
           className="shrink-0 py-0 pr-3 pl-4 sm:pl-3"
         >
           <Icon name="search" />
-        </BracketButton>
+        </TextButton>
         <span aria-hidden className="bg-border my-3.5 w-px shrink-0" />
         <motion.div
           ref={stripRef}
@@ -182,13 +181,13 @@ export function BucketTabs({ buckets, activeId, todayOpen }: BucketTabsProps) {
               );
             })}
           </Reorder.Group>
-          <BracketButton
+          <TextButton
             onClick={openCreateBucket}
             aria-label="new bucket"
             className="shrink-0 py-0 pr-4 pl-3 whitespace-nowrap"
           >
             + new
-          </BracketButton>
+          </TextButton>
         </motion.div>
       </div>
       <span id={lateHint} hidden>

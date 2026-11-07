@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from "react";
-import { BracketButton } from "@/components/ui/BracketButton";
+import { TextButton } from "@/components/ui/TextButton";
 import { OptionButton } from "@/components/ui/OptionButton";
 import { describeReminder } from "@/lib/items/reminder-label";
 import { MAX_REMINDER_OFFSET_MINS, MAX_REMINDERS_PER_ITEM } from "@/lib/reminders/constants";
@@ -86,9 +86,9 @@ export function ReminderPicker({
         })}
         {reminders.length === 0 && <span className={MUTED}>none</span>}
         {!full && !adding && (
-          <BracketButton onClick={() => setAdding(true)} disabled={disabled} className="px-1">
+          <TextButton onClick={() => setAdding(true)} disabled={disabled} className="px-1">
             + add
-          </BracketButton>
+          </TextButton>
         )}
       </div>
       {full && <p className={MUTED}>that&apos;s the max — remove one to add another</p>}
@@ -139,17 +139,17 @@ export function ReminderPicker({
             <span className={`${MUTED} pl-0.5`}>before</span>
           </div>
           <div className="flex items-center gap-3">
-            <BracketButton
+            <TextButton
               onClick={addCustom}
               disabled={disabled}
               aria-label="add custom reminder"
               className="px-1"
             >
               add
-            </BracketButton>
-            <BracketButton onClick={closeAdding} disabled={disabled} className="px-1">
+            </TextButton>
+            <TextButton onClick={closeAdding} disabled={disabled} className="px-1">
               cancel
-            </BracketButton>
+            </TextButton>
           </div>
           {customError && <p className="text-destructive font-mono text-[11px]">{customError}</p>}
         </div>

@@ -3,7 +3,7 @@
 import { cn } from "@/lib/utils";
 import type { ComponentProps } from "react";
 
-interface BracketButtonProps extends ComponentProps<"button"> {
+interface TextButtonProps extends ComponentProps<"button"> {
   /**
    * default     — base: text-muted-foreground, hover: text-foreground.
    * inverted    — used on inverted bg (title bars with bg-foreground). opacity-based.
@@ -13,12 +13,12 @@ interface BracketButtonProps extends ComponentProps<"button"> {
   variant?: "default" | "inverted" | "destructive" | "warning";
 }
 
-export function BracketButton({
+export function TextButton({
   variant = "default",
   className,
   children,
   ...props
-}: BracketButtonProps) {
+}: TextButtonProps) {
   return (
     <button
       data-variant={variant}

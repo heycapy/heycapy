@@ -1,4 +1,3 @@
-import { Icon } from "@/components/ui/Icon";
 import type { ReactNode } from "react";
 import { DatePicker } from "@/components/ui/DatePicker";
 import { TimeField, type TimeValue } from "@/components/ui/TimeField";
@@ -7,6 +6,7 @@ import { ReminderPicker } from "./ReminderPicker";
 import { ItemStatusField } from "./ItemStatusField";
 import type { RecurringConfig, StatusDef } from "@/types/rules";
 import { LABEL } from "@/components/layout/settings-constants";
+import { IconButton } from "@/components/ui/IconButton";
 
 type ItemWhenSectionProps = {
   datePart: string;
@@ -58,14 +58,13 @@ export function ItemWhenSection({
             <TimeField value={time} onChange={onTimeChange} allowAllDay disabled={pending} />
           )}
           {hasDate && !pending && (
-            <button
-              type="button"
+            <IconButton
+              icon="close"
+              tone="destructive"
               onClick={() => onDateChange("")}
               aria-label="remove date"
-              className="text-muted-foreground hover:text-destructive -mr-1 shrink-0 p-1 transition-colors"
-            >
-              <Icon name="close" />
-            </button>
+              className="-mr-1 p-1"
+            />
           )}
         </div>
         {hasDate && clock}

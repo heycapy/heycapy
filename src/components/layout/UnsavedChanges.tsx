@@ -1,5 +1,5 @@
 import { useCallback, useState } from "react";
-import { BracketButton } from "@/components/ui/BracketButton";
+import { TextButton } from "@/components/ui/TextButton";
 
 type SaveBarProps = {
   pending: boolean;
@@ -12,12 +12,12 @@ export function SaveBar({ pending, onSave, onDiscard }: SaveBarProps) {
     <div className="border-border bg-background flex items-center justify-between gap-2 border-t-2 px-3 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))]">
       <span className="text-muted-foreground font-mono text-xs">unsaved changes</span>
       <div className="flex gap-3">
-        <BracketButton onClick={onDiscard} disabled={pending}>
+        <TextButton onClick={onDiscard} disabled={pending}>
           discard
-        </BracketButton>
-        <BracketButton onClick={onSave} disabled={pending} className="text-foreground">
+        </TextButton>
+        <TextButton onClick={onSave} disabled={pending} className="text-foreground">
           {pending ? "saving..." : "save"}
-        </BracketButton>
+        </TextButton>
       </div>
     </div>
   );
@@ -47,16 +47,16 @@ export function CloseWarning({ pending, onSave, onDiscard, onKeepEditing }: Clos
         </p>
         <div className="flex flex-wrap gap-3">
           {onSave && (
-            <BracketButton onClick={onSave} disabled={pending} className="text-foreground">
+            <TextButton onClick={onSave} disabled={pending} className="text-foreground">
               {pending ? "saving..." : "save"}
-            </BracketButton>
+            </TextButton>
           )}
-          <BracketButton onClick={onDiscard} disabled={pending} variant="destructive">
+          <TextButton onClick={onDiscard} disabled={pending} variant="destructive">
             discard
-          </BracketButton>
-          <BracketButton onClick={onKeepEditing} disabled={pending}>
+          </TextButton>
+          <TextButton onClick={onKeepEditing} disabled={pending}>
             keep editing
-          </BracketButton>
+          </TextButton>
         </div>
       </div>
     </div>

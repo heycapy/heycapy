@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { BracketButton } from "@/components/ui/BracketButton";
+import { TextButton } from "@/components/ui/TextButton";
 import type { ReminderActionOutcome } from "@/lib/reminders/quick-actions";
 import { confirmReminderAction } from "./actions";
 
@@ -30,13 +30,13 @@ export function ConfirmReminderAction({
   return (
     <>
       <p className="font-mono text-sm font-bold break-words">{title}</p>
-      <BracketButton
+      <TextButton
         disabled={pending}
         onClick={() => startTransition(async () => setOutcome(await confirmReminderAction(token)))}
         className="text-foreground text-sm"
       >
         {pending ? "..." : label}
-      </BracketButton>
+      </TextButton>
     </>
   );
 }

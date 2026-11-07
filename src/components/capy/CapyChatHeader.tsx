@@ -1,8 +1,8 @@
-import { Icon } from "@/components/ui/Icon";
-import { BracketButton } from "@/components/ui/BracketButton";
+import { TextButton } from "@/components/ui/TextButton";
 import { HEADER_H } from "./chatTypes";
 import { useAssistantName } from "./assistant-name";
 import { cn } from "@/lib/utils";
+import { IconButton } from "@/components/ui/IconButton";
 
 type Props = {
   fullscreen: boolean;
@@ -38,7 +38,7 @@ export function CapyChatHeader({
       onClick={onMinimize}
     >
       {fullscreen && onToggleSidebar && (
-        <BracketButton
+        <TextButton
           onClick={(e) => {
             e.stopPropagation();
             onToggleSidebar();
@@ -48,13 +48,13 @@ export function CapyChatHeader({
           className="px-1"
         >
           {sidebarOpen ? "sidebar >" : "sidebar <"}
-        </BracketButton>
+        </TextButton>
       )}
 
       <span className="font-pixel flex-1 truncate pl-1 text-[11px]">{name}</span>
 
       {!fullscreen && (
-        <BracketButton
+        <TextButton
           onClick={(e) => {
             e.stopPropagation();
             onHistoryOpen();
@@ -62,10 +62,10 @@ export function CapyChatHeader({
           className="px-1"
         >
           history
-        </BracketButton>
+        </TextButton>
       )}
 
-      <BracketButton
+      <TextButton
         onClick={(e) => {
           e.stopPropagation();
           onNewChat();
@@ -73,33 +73,31 @@ export function CapyChatHeader({
         className="px-1"
       >
         new
-      </BracketButton>
+      </TextButton>
 
       {onMinimize && !fullscreen && (
-        <button
+        <IconButton
+          icon="minus"
           onClick={(e) => {
             e.stopPropagation();
             onMinimize();
           }}
-          className="text-muted-foreground hover:text-foreground flex h-6 w-6 items-center justify-center transition-colors"
+          className="flex h-6 w-6 items-center justify-center"
           aria-label={minimized ? "Expand" : "Collapse"}
-        >
-          <Icon name="minus" />
-        </button>
+        />
       )}
       {onFullscreen && (
-        <button
+        <IconButton
+          icon={fullscreen ? "collapse" : "expand"}
           onClick={(e) => {
             e.stopPropagation();
             onFullscreen();
           }}
-          className="text-muted-foreground hover:text-foreground flex h-6 w-6 items-center justify-center transition-colors"
+          className="flex h-6 w-6 items-center justify-center"
           aria-label={fullscreen ? "Exit fullscreen" : "Fullscreen"}
-        >
-          {fullscreen ? <Icon name="collapse" /> : <Icon name="expand" />}
-        </button>
+        />
       )}
-      <BracketButton
+      <TextButton
         onClick={(e) => {
           e.stopPropagation();
           onClose();
@@ -108,7 +106,7 @@ export function CapyChatHeader({
         className="px-1"
       >
         x
-      </BracketButton>
+      </TextButton>
     </div>
   );
 }

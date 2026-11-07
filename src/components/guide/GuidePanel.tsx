@@ -1,7 +1,7 @@
 "use client";
 
 import { SidePanel } from "@/components/ui/SidePanel";
-import { BracketButton } from "@/components/ui/BracketButton";
+import { TextButton } from "@/components/ui/TextButton";
 import { ACCENT_BUTTONS } from "@/components/layout/settings-constants";
 import { cn } from "@/lib/utils";
 import type { GuideState, GuideTask } from "@/lib/guide/guide";
@@ -75,9 +75,9 @@ export function GuidePanel({ open, guide, onClose, onHint, onHiddenChange }: Gui
                   +{credits}
                 </span>
               )}
-              <BracketButton onClick={() => onHint(task)} className="shrink-0">
+              <TextButton onClick={() => onHint(task)} className="shrink-0">
                 hint
-              </BracketButton>
+              </TextButton>
             </li>
           );
         })}
@@ -87,9 +87,9 @@ export function GuidePanel({ open, guide, onClose, onHint, onHiddenChange }: Gui
           <p className="text-muted-foreground">
             {guide.hidden ? "only in your menu for now" : "it stays in your menu"}
           </p>
-          <BracketButton onClick={() => onHiddenChange(!guide.hidden)} className="shrink-0">
+          <TextButton onClick={() => onHiddenChange(!guide.hidden)} className="shrink-0">
             {guide.hidden ? "show the dot" : "hide the dot"}
-          </BracketButton>
+          </TextButton>
         </div>
       )}
     </SidePanel>

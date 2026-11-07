@@ -1,7 +1,7 @@
 import { useEffect, useState, useTransition, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { SidePanel } from "@/components/ui/SidePanel";
-import { BracketButton } from "@/components/ui/BracketButton";
+import { TextButton } from "@/components/ui/TextButton";
 import {
   deleteItemForeverAction,
   emptyTrashAction,
@@ -59,24 +59,24 @@ function TrashRow({
       <div className="flex shrink-0 gap-2">
         {confirming ? (
           <>
-            <BracketButton variant="destructive" onClick={onConfirmDelete} disabled={pending}>
+            <TextButton variant="destructive" onClick={onConfirmDelete} disabled={pending}>
               confirm
-            </BracketButton>
-            <BracketButton onClick={onCancel} disabled={pending}>
+            </TextButton>
+            <TextButton onClick={onCancel} disabled={pending}>
               cancel
-            </BracketButton>
+            </TextButton>
           </>
         ) : (
           <>
             {canRestore && (
-              <BracketButton onClick={onRestore} disabled={pending}>
+              <TextButton onClick={onRestore} disabled={pending}>
                 restore
-              </BracketButton>
+              </TextButton>
             )}
             {canDelete && (
-              <BracketButton variant="destructive" onClick={onAskDelete} disabled={pending}>
+              <TextButton variant="destructive" onClick={onAskDelete} disabled={pending}>
                 delete
-              </BracketButton>
+              </TextButton>
             )}
           </>
         )}
@@ -147,7 +147,7 @@ export function TrashSheet({ open, onClose }: TrashSheetProps) {
         {canEmpty &&
           (confirming === "all" ? (
             <span className="flex shrink-0 gap-2">
-              <BracketButton
+              <TextButton
                 variant="destructive"
                 onClick={() =>
                   run(emptyTrashAction, () => {
@@ -158,20 +158,20 @@ export function TrashSheet({ open, onClose }: TrashSheetProps) {
                 disabled={pending}
               >
                 confirm
-              </BracketButton>
-              <BracketButton onClick={() => setConfirming(null)} disabled={pending}>
+              </TextButton>
+              <TextButton onClick={() => setConfirming(null)} disabled={pending}>
                 cancel
-              </BracketButton>
+              </TextButton>
             </span>
           ) : (
-            <BracketButton
+            <TextButton
               variant="destructive"
               onClick={() => setConfirming("all")}
               disabled={pending}
               className="shrink-0"
             >
               empty trash
-            </BracketButton>
+            </TextButton>
           ))}
       </div>
       {error && (

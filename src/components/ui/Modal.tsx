@@ -4,7 +4,7 @@ import { useState, type ReactNode } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { AnimatePresence, motion } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { BracketButton } from "./BracketButton";
+import { TextButton } from "./TextButton";
 import {
   MODAL_LAYERS,
   MODAL_PANELS,
@@ -142,14 +142,14 @@ export function ModalHeader({ title, onClose, plain }: ModalHeaderProps) {
       )}
     >
       <ModalTitle className={cn(plain && "text-[11px]")}>{title}</ModalTitle>
-      <BracketButton
+      <TextButton
         type="button"
         variant={plain ? "default" : "inverted"}
         className={cn(plain && "px-1")}
         onClick={onClose}
       >
         x
-      </BracketButton>
+      </TextButton>
     </div>
   );
 }

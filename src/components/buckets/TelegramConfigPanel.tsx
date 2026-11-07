@@ -10,7 +10,7 @@ import {
 } from "./constants";
 import type { TelegramBotConfig, TelegramDeadlinePreset } from "./constants";
 import { HINT, INPUT, LABEL } from "@/components/layout/settings-constants";
-import { BracketButton } from "@/components/ui/BracketButton";
+import { TextButton } from "@/components/ui/TextButton";
 import { OptionButton } from "@/components/ui/OptionButton";
 import { OptionGroup } from "@/components/ui/OptionGroup";
 import { Toggle } from "@/components/ui/Toggle";
@@ -204,14 +204,14 @@ export function TelegramConfigPanel({ config, onChange, disabled }: TelegramConf
             disabled={disabled}
             className={cn(INPUT, "min-w-0 flex-1")}
           />
-          <BracketButton
+          <TextButton
             onClick={addCustomSlot}
             disabled={disabled || !customInput.trim()}
             aria-label="add time"
             className="px-1"
           >
             + add
-          </BracketButton>
+          </TextButton>
         </div>
         {customError && <p className="text-destructive font-mono text-[11px]">{customError}</p>}
         <p className={HINT}>
@@ -244,14 +244,14 @@ export function TelegramConfigPanel({ config, onChange, disabled }: TelegramConf
         )}
       </div>
 
-      <BracketButton
+      <TextButton
         onClick={() => onChange(DEFAULT_TELEGRAM_BOT_CONFIG)}
         disabled={disabled}
         variant="warning"
         className="self-start px-1"
       >
         reset to defaults
-      </BracketButton>
+      </TextButton>
     </div>
   );
 }

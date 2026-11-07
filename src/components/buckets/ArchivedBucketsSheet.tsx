@@ -1,7 +1,7 @@
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { SidePanel } from "@/components/ui/SidePanel";
-import { BracketButton } from "@/components/ui/BracketButton";
+import { TextButton } from "@/components/ui/TextButton";
 import {
   getArchivedBucketsAction,
   restoreBucketAction,
@@ -83,29 +83,29 @@ export function ArchivedBucketsSheet({ open, onClose }: ArchivedBucketsSheetProp
                 <div className="flex shrink-0 gap-2">
                   {confirmDeleteId === bucket.id ? (
                     <>
-                      <BracketButton
+                      <TextButton
                         variant="destructive"
                         onClick={() => handleDelete(bucket.id)}
                         disabled={pending}
                       >
                         confirm
-                      </BracketButton>
-                      <BracketButton onClick={() => setConfirmDeleteId(null)} disabled={pending}>
+                      </TextButton>
+                      <TextButton onClick={() => setConfirmDeleteId(null)} disabled={pending}>
                         cancel
-                      </BracketButton>
+                      </TextButton>
                     </>
                   ) : (
                     <>
-                      <BracketButton onClick={() => handleRestore(bucket.id)} disabled={pending}>
+                      <TextButton onClick={() => handleRestore(bucket.id)} disabled={pending}>
                         restore
-                      </BracketButton>
-                      <BracketButton
+                      </TextButton>
+                      <TextButton
                         variant="destructive"
                         onClick={() => setConfirmDeleteId(bucket.id)}
                         disabled={pending}
                       >
                         delete
-                      </BracketButton>
+                      </TextButton>
                     </>
                   )}
                 </div>

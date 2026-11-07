@@ -1,6 +1,6 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { BracketButton } from "@/components/ui/BracketButton";
+import { TextButton } from "@/components/ui/TextButton";
 import { Modal, ModalHeader } from "@/components/ui/Modal";
 import { BetaTag } from "@/components/ui/BetaTag";
 import { ACCENT_BUTTONS } from "@/components/layout/settings-constants";
@@ -84,9 +84,9 @@ export function JoinBucketDialog({ open, onClose }: JoinBucketDialogProps) {
           )}
         </div>
         <div className="border-border flex justify-end border-t px-3 py-2.5">
-          <BracketButton type="submit" disabled={!ready || pending}>
+          <TextButton type="submit" disabled={!ready || pending}>
             {pending ? "..." : "join"}
-          </BracketButton>
+          </TextButton>
         </div>
       </form>
     </Modal>

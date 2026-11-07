@@ -3,7 +3,7 @@ import { useEffect, useId, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { cn, toggled } from "@/lib/utils";
 import { charCountColor } from "@/components/ui/input";
-import { BracketButton } from "@/components/ui/BracketButton";
+import { TextButton } from "@/components/ui/TextButton";
 import { ModalHeader } from "@/components/ui/Modal";
 import { BetaTag } from "@/components/ui/BetaTag";
 import { BucketRulesFields } from "./BucketRulesFields";
@@ -29,15 +29,13 @@ import { memberChannels } from "@/lib/rules";
 import type { MemberChannels } from "@/types/rules";
 import { FollowTag } from "./FollowTag";
 import { BucketMembersPanel } from "./BucketMembersPanel";
+import { Tab } from "@/components/ui/Tab";
 
 export type SettingsTab = "items" | "notifications" | "advanced" | "members";
 
 const OWNER_TABS: SettingsTab[] = ["items", "notifications", "advanced", "members"];
 // A member sees the bucket's rules but changes only where their own reminders go
 const MEMBER_TABS: SettingsTab[] = ["items", "notifications", "members"];
-
-const tabCn = (active: boolean) =>
-  `font-mono text-xs px-2 py-1 transition-colors shrink-0 whitespace-nowrap ${active ? "bg-foreground text-background" : "text-primary hover:text-foreground"}`;
 
 type BucketSettingsFormProps = {
   bucket: ViewerBucket;
@@ -193,11 +191,11 @@ export function BucketSettingsForm({
         )}
         <div className="border-border flex overflow-x-auto border-b">
           {tabs.map((t) => (
-            <button key={t} onClick={() => setTab(t)} className={tabCn(tab === t)}>
+            <Tab key={t} active={tab === t} onClick={() => setTab(t)} className="py-1">
               {t}
               {/* the tab row is just wide enough for the four names on a phone */}
               {t === "members" && <BetaTag feature="sharing" className="hidden sm:inline" />}
-            </button>
+            </Tab>
           ))}
         </div>
       </div>
@@ -257,9 +255,9 @@ export function BucketSettingsForm({
             <p className={HINT}>
               set an alias shortcut, deadline buttons, time slots, and recurring options
             </p>
-            <BracketButton onClick={onOpenTelegram} className="w-fit">
+            <TextButton onClick={onOpenTelegram} className="w-fit">
               configure telegram
-            </BracketButton>
+            </TextButton>
           </div>
         )}
 
@@ -270,9 +268,9 @@ export function BucketSettingsForm({
             <div className="flex flex-col gap-1.5">
               <p className={LABEL}>schema</p>
               <p className={HINT}>define custom fields and notification rules for this bucket</p>
-              <BracketButton onClick={onOpenSchema} className="w-fit">
+              <TextButton onClick={onOpenSchema} className="w-fit">
                 configure schema
-              </BracketButton>
+              </TextButton>
             </div>
 
             <div className="border-border border-t" />
@@ -280,9 +278,9 @@ export function BucketSettingsForm({
             <div className="flex flex-col gap-1.5">
               <p className={LABEL}>webhook</p>
               <p className={HINT}>receive items from external services via HTTP</p>
-              <BracketButton onClick={onOpenWebhook} className="w-fit">
+              <TextButton onClick={onOpenWebhook} className="w-fit">
                 configure webhook
-              </BracketButton>
+              </TextButton>
             </div>
 
             <div className="border-border border-t" />
@@ -294,27 +292,27 @@ export function BucketSettingsForm({
                 bucket, or delete to move it to trash.
               </p>
               <div className="flex flex-wrap items-center gap-2">
-                <BracketButton variant="warning" onClick={handleArchive} disabled={pending}>
+                <TextButton variant="warning" onClick={handleArchive} disabled={pending}>
                   archive
-                </BracketButton>
+                </TextButton>
                 {confirmDelete ? (
                   <>
                     <span className="text-destructive font-mono text-xs">sure?</span>
-                    <BracketButton variant="destructive" onClick={handleDelete} disabled={pending}>
+                    <TextButton variant="destructive" onClick={handleDelete} disabled={pending}>
                       confirm
-                    </BracketButton>
-                    <BracketButton onClick={() => setConfirmDelete(false)} disabled={pending}>
+                    </TextButton>
+                    <TextButton onClick={() => setConfirmDelete(false)} disabled={pending}>
                       cancel
-                    </BracketButton>
+                    </TextButton>
                   </>
                 ) : (
-                  <BracketButton
+                  <TextButton
                     variant="destructive"
                     onClick={() => setConfirmDelete(true)}
                     disabled={pending}
                   >
                     delete
-                  </BracketButton>
+                  </TextButton>
                 )}
               </div>
             </div>
@@ -327,9 +325,9 @@ export function BucketSettingsForm({
           {!bucket.isOwner && error && (
             <span className="text-destructive mr-auto font-mono text-xs">{error}</span>
           )}
-          <BracketButton onClick={handleSave} disabled={!values.name.trim() || pending}>
+          <TextButton onClick={handleSave} disabled={!values.name.trim() || pending}>
             save
-          </BracketButton>
+          </TextButton>
         </div>
       )}
     </div>

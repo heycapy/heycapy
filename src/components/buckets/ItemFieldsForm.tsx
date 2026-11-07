@@ -1,4 +1,3 @@
-import { Icon } from "@/components/ui/Icon";
 import { DatePicker } from "@/components/ui/DatePicker";
 import { OptionButton } from "@/components/ui/OptionButton";
 import type { FieldDef } from "@/types/rules";
@@ -10,6 +9,7 @@ import {
   NumberFieldInput,
   UrlFieldInput,
 } from "./ItemFieldInputs";
+import { IconButton } from "@/components/ui/IconButton";
 
 type ItemFieldsFormProps = {
   fields: FieldDef[];
@@ -144,12 +144,12 @@ function FieldInput({
             <DatePicker value={dateVal} onChange={onChange} disabled={disabled} />
           </div>
           {dateVal && !disabled && (
-            <button
+            <IconButton
+              icon="close"
+              tone="destructive"
               onClick={() => onChange(undefined)}
-              className="text-muted-foreground hover:text-destructive shrink-0 transition-colors"
-            >
-              <Icon name="close" />
-            </button>
+              aria-label="clear date"
+            />
           )}
         </div>
       );

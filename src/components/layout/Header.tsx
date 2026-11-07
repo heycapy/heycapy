@@ -2,12 +2,13 @@ import { Icon } from "@/components/ui/Icon";
 import { useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { BetaTag } from "@/components/ui/BetaTag";
-import { BracketButton } from "@/components/ui/BracketButton";
+import { TextButton } from "@/components/ui/TextButton";
 import { logoutAction, logoutEverywhereAction } from "@/app/(app)/actions";
 import { clearSignedInState } from "@/store/signedOut";
 import { Modal, ModalTitle } from "@/components/ui/Modal";
 import { cn } from "@/lib/utils";
 import { PersonAvatar } from "@/components/avatar/PersonAvatar";
+import { MenuItem } from "@/components/ui/MenuItem";
 
 type HeaderProps = {
   email: string;
@@ -56,12 +57,12 @@ function LogoutConfirm({
         <ModalTitle className="mb-1 text-sm">{copy.title}</ModalTitle>
         <p className="text-muted-foreground mb-4 font-mono text-xs">{copy.body}</p>
         <div className="flex gap-2">
-          <BracketButton onClick={onConfirm} variant="destructive" className="px-2 py-1">
+          <TextButton onClick={onConfirm} variant="destructive" className="px-2 py-1">
             {copy.action}
-          </BracketButton>
-          <BracketButton onClick={onCancel} className="px-2 py-1">
+          </TextButton>
+          <TextButton onClick={onCancel} className="px-2 py-1">
             cancel
-          </BracketButton>
+          </TextButton>
         </div>
       </div>
     </Modal>
@@ -172,50 +173,32 @@ function GlobalMenu({
               <div className="text-muted-foreground border-border mb-1 max-w-64 truncate border-b px-3 pt-0.5 pb-1.5 font-mono text-xs">
                 {email}
               </div>
-              <button
-                onClick={() => pick(onSettings)}
-                className="text-foreground hover:bg-muted flex w-full items-center gap-2.5 px-3 py-2 font-mono text-xs transition-colors"
-              >
+              <MenuItem onClick={() => pick(onSettings)} className="gap-2.5 py-2">
                 <Icon name="sliders" />
                 tweaks
-              </button>
-              <button
-                onClick={() => pick(onJoin)}
-                className="text-foreground hover:bg-muted flex w-full items-center gap-2.5 px-3 py-2 font-mono text-xs transition-colors"
-              >
+              </MenuItem>
+              <MenuItem onClick={() => pick(onJoin)} className="gap-2.5 py-2">
                 <Icon name="user-plus" />
                 <span>
                   join a bucket
                   <BetaTag feature="sharing" />
                 </span>
-              </button>
-              <button
-                onClick={() => pick(onArchive)}
-                className="text-foreground hover:bg-muted flex w-full items-center gap-2.5 px-3 py-2 font-mono text-xs transition-colors"
-              >
+              </MenuItem>
+              <MenuItem onClick={() => pick(onArchive)} className="gap-2.5 py-2">
                 <Icon name="archive" />
                 archived
-              </button>
-              <button
-                onClick={() => pick(onTrash)}
-                className="text-foreground hover:bg-muted flex w-full items-center gap-2.5 px-3 py-2 font-mono text-xs transition-colors"
-              >
+              </MenuItem>
+              <MenuItem onClick={() => pick(onTrash)} className="gap-2.5 py-2">
                 <Icon name="trash" />
                 trash
-              </button>
+              </MenuItem>
               {onFeedback && (
-                <button
-                  onClick={() => pick(onFeedback)}
-                  className="text-foreground hover:bg-muted flex w-full items-center gap-2.5 px-3 py-2 font-mono text-xs transition-colors"
-                >
+                <MenuItem onClick={() => pick(onFeedback)} className="gap-2.5 py-2">
                   <Icon name="message" />
                   feedback
-                </button>
+                </MenuItem>
               )}
-              <button
-                onClick={() => pick(onWhatsNew)}
-                className="text-foreground hover:bg-muted flex w-full items-center gap-2.5 px-3 py-2 font-mono text-xs transition-colors"
-              >
+              <MenuItem onClick={() => pick(onWhatsNew)} className="gap-2.5 py-2">
                 <Icon name="megaphone" />
                 what&apos;s new
                 {unseenRelease && (
@@ -224,30 +207,29 @@ function GlobalMenu({
                     <span className="sr-only">(new)</span>
                   </>
                 )}
-              </button>
-              <button
-                onClick={() => pick(onGuide)}
-                className="text-foreground hover:bg-muted flex w-full items-center gap-2.5 px-3 py-2 font-mono text-xs transition-colors"
-              >
+              </MenuItem>
+              <MenuItem onClick={() => pick(onGuide)} className="gap-2.5 py-2">
                 <Icon name="map" />
                 getting started
                 <span className="text-muted-foreground">{guideProgress}</span>
-              </button>
+              </MenuItem>
               <div className="border-border my-1 border-t" />
-              <button
+              <MenuItem
+                tone="destructive"
                 onClick={() => pick(() => setConfirmLogout("here"))}
-                className="text-destructive hover:bg-muted flex w-full items-center gap-2.5 px-3 py-2 font-mono text-xs transition-colors"
+                className="gap-2.5 py-2"
               >
                 <Icon name="logout" />
                 logout
-              </button>
-              <button
+              </MenuItem>
+              <MenuItem
+                tone="destructive"
                 onClick={() => pick(() => setConfirmLogout("everywhere"))}
-                className="text-destructive hover:bg-muted flex w-full items-center gap-2.5 px-3 py-2 font-mono text-xs transition-colors"
+                className="gap-2.5 py-2"
               >
                 <Icon name="logout" />
                 logout everywhere
-              </button>
+              </MenuItem>
             </div>
           </>,
           document.body

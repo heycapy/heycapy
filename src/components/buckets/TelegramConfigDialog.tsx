@@ -1,7 +1,7 @@
 import { ACCENT_BUTTONS } from "@/components/layout/settings-constants";
 import { cn } from "@/lib/utils";
 import { useState, useTransition } from "react";
-import { BracketButton } from "@/components/ui/BracketButton";
+import { TextButton } from "@/components/ui/TextButton";
 import { Modal, ModalHeader } from "@/components/ui/Modal";
 import { TelegramConfigPanel } from "./TelegramConfigPanel";
 import { updateBucketTelegramConfigAction } from "@/app/(app)/actions";
@@ -73,9 +73,9 @@ function TelegramConfigForm({ bucket, onClose }: Omit<TelegramConfigDialogProps,
         </div>
       )}
       <div className="border-border flex shrink-0 justify-end border-t px-3 py-2.5">
-        <BracketButton onClick={handleSave} disabled={pending}>
+        <TextButton onClick={handleSave} disabled={pending}>
           save
-        </BracketButton>
+        </TextButton>
       </div>
     </div>
   );

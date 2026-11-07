@@ -1,10 +1,10 @@
-import { Icon } from "@/components/ui/Icon";
 import { useState } from "react";
 import { DatePicker } from "@/components/ui/DatePicker";
 import { TimeField, type Ampm } from "@/components/ui/TimeField";
 import { toH12, toH24 } from "@/lib/time";
 import type { FieldDef } from "@/types/rules";
 import { FIELD_INPUT } from "./constants";
+import { IconButton } from "@/components/ui/IconButton";
 
 export function NumberFieldInput({
   field,
@@ -151,12 +151,7 @@ export function DatetimeFieldInput({
           />
         </div>
         {date && !disabled && (
-          <button
-            onClick={clear}
-            className="text-muted-foreground hover:text-destructive shrink-0 transition-colors"
-          >
-            <Icon name="close" />
-          </button>
+          <IconButton icon="close" tone="destructive" onClick={clear} aria-label="clear date" />
         )}
       </div>
       {date && (

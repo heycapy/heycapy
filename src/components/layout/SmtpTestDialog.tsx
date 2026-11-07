@@ -1,5 +1,5 @@
 import { APP_TAGLINE } from "@/constants";
-import { BracketButton } from "@/components/ui/BracketButton";
+import { TextButton } from "@/components/ui/TextButton";
 import { Modal, ModalHeader } from "@/components/ui/Modal";
 import { useState, useTransition } from "react";
 import { cn } from "@/lib/utils";
@@ -121,13 +121,13 @@ export function SmtpTestDialog({
           )}
 
           <div className="flex justify-end">
-            <BracketButton
+            <TextButton
               type="button"
               onClick={handleSend}
               disabled={pending || !sendTo || !smtpHost}
             >
               {pending ? "sending..." : "send"}
-            </BracketButton>
+            </TextButton>
           </div>
         </div>
       </div>

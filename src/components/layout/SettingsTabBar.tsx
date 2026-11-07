@@ -1,5 +1,5 @@
-import { cn } from "@/lib/utils";
 import type { SettingsTab } from "./SettingsSheet";
+import { Tab } from "@/components/ui/Tab";
 
 type SettingsTabBarProps = {
   tab: SettingsTab;
@@ -21,16 +21,9 @@ export function SettingsTabBar({ tab, hasCredits, adminUser, onTab }: SettingsTa
   return (
     <div className="border-border flex flex-wrap gap-0.5 border-b px-2 py-1">
       {tabs.map((t) => (
-        <button
-          key={t}
-          onClick={() => onTab(t)}
-          className={cn(
-            "shrink-0 px-2 py-1.5 font-mono text-xs whitespace-nowrap transition-colors",
-            tab === t ? "bg-foreground text-background" : "text-primary hover:text-foreground"
-          )}
-        >
+        <Tab key={t} active={tab === t} onClick={() => onTab(t)} className="py-1.5">
           {t}
-        </button>
+        </Tab>
       ))}
     </div>
   );

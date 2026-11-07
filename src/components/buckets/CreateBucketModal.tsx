@@ -6,13 +6,14 @@ import { motion, AnimatePresence, type Transition } from "framer-motion";
 import { useUIStore } from "@/store/ui";
 import { Modal, ModalTitle } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/button";
-import { BracketButton } from "@/components/ui/BracketButton";
+import { TextButton } from "@/components/ui/TextButton";
 import { createBucketAction } from "@/app/(app)/actions";
 import { TEMPLATE_ICONS } from "./constants";
 import { BUCKET_NAME_MAX_LENGTH } from "@/constants";
 import { cn } from "@/lib/utils";
 import { charCountColor } from "@/components/ui/input";
 import type { templates } from "@/lib/db/schema";
+import { IconButton } from "@/components/ui/IconButton";
 
 type TemplateRow = typeof templates.$inferSelect;
 
@@ -90,9 +91,9 @@ export function CreateBucketModal({ templates }: CreateBucketModalProps) {
                   Pick a template to get started.
                 </p>
               </div>
-              <BracketButton onClick={closeCreateBucket} aria-label="close">
+              <TextButton onClick={closeCreateBucket} aria-label="close">
                 <Icon name="close" />
-              </BracketButton>
+              </TextButton>
             </div>
 
             <div className="max-h-[55vh] overflow-y-auto">
@@ -130,20 +131,19 @@ export function CreateBucketModal({ templates }: CreateBucketModalProps) {
           >
             <div className="flex items-center justify-between border-b px-4 py-3">
               <div className="flex items-center gap-2">
-                <button
+                <IconButton
+                  icon="arrow-left"
+                  aria-label="back"
                   onClick={() => {
                     setStep("pick");
                     setError("");
                   }}
-                  className="text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  <Icon name="arrow-left" />
-                </button>
+                />
                 <ModalTitle className="text-sm">Name it</ModalTitle>
               </div>
-              <BracketButton onClick={closeCreateBucket} aria-label="close">
+              <TextButton onClick={closeCreateBucket} aria-label="close">
                 <Icon name="close" />
-              </BracketButton>
+              </TextButton>
             </div>
             <div className="flex flex-col gap-3 p-4">
               <input

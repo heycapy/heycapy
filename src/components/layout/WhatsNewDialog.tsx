@@ -1,5 +1,5 @@
 import { SidePanel } from "@/components/ui/SidePanel";
-import { BracketButton } from "@/components/ui/BracketButton";
+import { TextButton } from "@/components/ui/TextButton";
 import { ACCENT_BUTTONS } from "@/components/layout/settings-constants";
 import { cn } from "@/lib/utils";
 import { CHANGELOG_URL, RELEASES, RELEASES_SHOWN } from "@/lib/whats-new/constants";
@@ -34,9 +34,9 @@ export function WhatsNewDialog({ open, onClose, onShowGuide }: WhatsNewDialogPro
                   {note.text}
                 </p>
                 {note.showGuide && (
-                  <BracketButton onClick={onShowGuide} className="self-start">
+                  <TextButton onClick={onShowGuide} className="self-start">
                     show me
-                  </BracketButton>
+                  </TextButton>
                 )}
               </div>
             ))}

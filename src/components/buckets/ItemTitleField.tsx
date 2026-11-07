@@ -1,7 +1,7 @@
 import { useLayoutEffect, useRef, useState, type ChangeEvent } from "react";
 import { Icon } from "@/components/ui/Icon";
 import type { IconName } from "@/components/ui/icons";
-import { BracketButton } from "@/components/ui/BracketButton";
+import { TextButton } from "@/components/ui/TextButton";
 import { describeDeadline } from "@/lib/format-date";
 import {
   findMention,
@@ -177,9 +177,9 @@ export function ItemTitleField({
           </div>
         </div>
         {rowIcon && typedDate && (
-          <BracketButton onClick={onDismissDate} aria-label="not a date" className="mt-3 px-1">
+          <TextButton onClick={onDismissDate} aria-label="not a date" className="mt-3 px-1">
             ×
-          </BracketButton>
+          </TextButton>
         )}
       </div>
       {listOpen && (
@@ -208,9 +208,9 @@ export function ItemTitleField({
           <span className="border-primary text-foreground border px-2 py-1 font-mono text-xs">
             due {describeDeadline(typedDate.deadline)}
           </span>
-          <BracketButton onClick={onDismissDate} aria-label="not a date" className="px-1">
+          <TextButton onClick={onDismissDate} aria-label="not a date" className="px-1">
             ×
-          </BracketButton>
+          </TextButton>
         </div>
       )}
     </div>

@@ -1,5 +1,5 @@
 import { useState, useTransition } from "react";
-import { BracketButton } from "@/components/ui/BracketButton";
+import { TextButton } from "@/components/ui/TextButton";
 import { dismissDeliveryFailuresAction } from "@/app/(app)/actions";
 import type { ChannelFailure } from "@/lib/notifications/failures";
 import { channelKey } from "@/lib/notifications/channel-key";
@@ -45,19 +45,19 @@ export function DeliveryFailureBanner({ failures, onFix }: DeliveryFailureBanner
               ⚠ {failure.label}: {count} {count === 1 ? "notification" : "notifications"} failed
               {latestError && ` · ${latestError}`}
             </span>
-            <BracketButton onClick={onFix} className="shrink-0">
+            <TextButton onClick={onFix} className="shrink-0">
               fix
-            </BracketButton>
-            <BracketButton onClick={() => setDetails(failure)} className="shrink-0">
+            </TextButton>
+            <TextButton onClick={() => setDetails(failure)} className="shrink-0">
               details
-            </BracketButton>
-            <BracketButton
+            </TextButton>
+            <TextButton
               onClick={() => dismiss(failure)}
               aria-label={`dismiss ${failure.label} failures`}
               className="shrink-0"
             >
               x
-            </BracketButton>
+            </TextButton>
           </div>
         );
       })}

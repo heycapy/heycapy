@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Sprite } from "@/components/capy/Sprite";
-import { BracketButton } from "@/components/ui/BracketButton";
+import { TextButton } from "@/components/ui/TextButton";
 import { Banners } from "@/components/layout/Banners";
 import { useUIStore } from "@/store/ui";
 import { ArchivedBucketsSheet } from "./ArchivedBucketsSheet";
@@ -43,15 +43,13 @@ export function BucketsEmptyState({ hasArchived, hasTrash }: BucketsEmptyStatePr
             create your first bucket to get started.
           </p>
         </div>
-        <BracketButton onClick={openCreateBucket} className="text-foreground text-sm">
+        <TextButton onClick={openCreateBucket} className="text-foreground text-sm">
           new bucket
-        </BracketButton>
+        </TextButton>
         {(hasArchived || hasTrash) && (
           <div className="flex gap-4">
-            {hasArchived && (
-              <BracketButton onClick={() => setArchivedOpen(true)}>archived</BracketButton>
-            )}
-            {hasTrash && <BracketButton onClick={() => setTrashOpen(true)}>trash</BracketButton>}
+            {hasArchived && <TextButton onClick={() => setArchivedOpen(true)}>archived</TextButton>}
+            {hasTrash && <TextButton onClick={() => setTrashOpen(true)}>trash</TextButton>}
           </div>
         )}
 

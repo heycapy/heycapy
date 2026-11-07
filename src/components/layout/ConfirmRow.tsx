@@ -1,4 +1,4 @@
-import { BracketButton } from "@/components/ui/BracketButton";
+import { TextButton } from "@/components/ui/TextButton";
 import { cn } from "@/lib/utils";
 
 type ConfirmRowProps = {
@@ -13,12 +13,12 @@ export function ConfirmRow({ text, onConfirm, onCancel, disabled, className }: C
   return (
     <div className={cn("flex flex-wrap items-center gap-2", className)}>
       <span className="text-destructive font-mono text-xs">{text}</span>
-      <BracketButton type="button" variant="destructive" onClick={onConfirm} disabled={disabled}>
+      <TextButton type="button" variant="destructive" onClick={onConfirm} disabled={disabled}>
         confirm
-      </BracketButton>
-      <BracketButton type="button" onClick={onCancel} disabled={disabled}>
+      </TextButton>
+      <TextButton type="button" onClick={onCancel} disabled={disabled}>
         cancel
-      </BracketButton>
+      </TextButton>
     </div>
   );
 }

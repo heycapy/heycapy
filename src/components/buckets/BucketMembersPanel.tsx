@@ -1,6 +1,6 @@
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { BracketButton } from "@/components/ui/BracketButton";
+import { TextButton } from "@/components/ui/TextButton";
 import {
   leaveBucketAction,
   listMembersAction,
@@ -130,19 +130,19 @@ export function BucketMembersPanel({
                 </div>
                 {bucket.isOwner && member.role === "member" && !confirmingFor(member.userId) && (
                   <div className="flex shrink-0 gap-1">
-                    <BracketButton
+                    <TextButton
                       onClick={() => setConfirming({ userId: member.userId, action: "owner" })}
                       disabled={pending}
                     >
                       make owner
-                    </BracketButton>
-                    <BracketButton
+                    </TextButton>
+                    <TextButton
                       variant="destructive"
                       onClick={() => setConfirming({ userId: member.userId, action: "remove" })}
                       disabled={pending}
                     >
                       remove
-                    </BracketButton>
+                    </TextButton>
                   </div>
                 )}
               </div>
@@ -189,14 +189,14 @@ export function BucketMembersPanel({
               onCancel={() => setConfirming(null)}
             />
           ) : (
-            <BracketButton
+            <TextButton
               variant="destructive"
               onClick={() => setConfirming("leave")}
               disabled={pending}
               className="w-fit"
             >
               leave bucket
-            </BracketButton>
+            </TextButton>
           )}
         </div>
       )}

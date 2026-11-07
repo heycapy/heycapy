@@ -19,6 +19,7 @@ import { repeatLabel } from "@/lib/items/repeat-label";
 import { PersonAvatar } from "@/components/avatar/PersonAvatar";
 import { ItemDue } from "./ItemDue";
 import { MODAL_PANEL_SELECTOR } from "@/components/ui/constants";
+import { IconButton } from "@/components/ui/IconButton";
 
 export type ItemAssignee = { userId: number; name: string; avatar: string | null; isYou: boolean };
 
@@ -185,13 +186,12 @@ export function ItemRow({
       )}
     >
       {dragControls && (
-        <button
-          className="text-muted-foreground/60 hover:text-foreground flex shrink-0 cursor-grab touch-none items-center justify-center pr-2.5 transition-colors active:cursor-grabbing"
+        <IconButton
+          icon="grip"
+          className="text-muted-foreground/60 flex cursor-grab touch-none items-center justify-center pr-2.5 active:cursor-grabbing"
           onPointerDown={(e) => dragControls.start(e)}
           aria-label="drag to reorder"
-        >
-          <Icon name="grip" />
-        </button>
+        />
       )}
 
       <TickBox
@@ -260,8 +260,8 @@ export function ItemRow({
         </button>
       )}
       {onMenu && (
-        <button
-          type="button"
+        <IconButton
+          icon="more"
           onClick={(e) => {
             const rect = e.currentTarget.getBoundingClientRect();
             onMenu({
@@ -273,14 +273,12 @@ export function ItemRow({
           }}
           aria-label="item menu"
           className={cn(
-            "text-muted-foreground hover:text-foreground -mr-3 flex shrink-0 items-center px-3 transition-[color,opacity]",
+            "-mr-3 flex items-center px-3 transition-[color,opacity]",
             // Mouse users see it on hover, touch screens always; right-click and long-press open it too
             !menuOpen &&
               "[@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover/row:opacity-100 [@media(hover:hover)]:focus-visible:opacity-100"
           )}
-        >
-          <Icon name="more" />
-        </button>
+        />
       )}
       {reminderOpen && (
         <ReminderInfoDialog

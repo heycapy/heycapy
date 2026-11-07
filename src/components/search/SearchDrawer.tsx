@@ -1,6 +1,6 @@
 import { useLayoutEffect, useRef, useState } from "react";
 import { motion, useDragControls, type PanInfo } from "framer-motion";
-import { BracketButton } from "@/components/ui/BracketButton";
+import { TextButton } from "@/components/ui/TextButton";
 import { Icon } from "@/components/ui/Icon";
 import { Modal, ModalTitle } from "@/components/ui/Modal";
 import { ItemDialog } from "@/components/buckets/ItemDialog";
@@ -13,6 +13,7 @@ import { ITEM_STATUS, SHEET_CLOSE_DRAG_PX, SHEET_CLOSE_DRAG_VELOCITY } from "@/c
 import { useSearchItems } from "@/components/today/useTodayItems";
 import { useVisualViewport } from "@/hooks/useVisualViewport";
 import { useLayoutStore } from "@/store/layout";
+import { IconButton } from "@/components/ui/IconButton";
 
 export function SearchDrawer() {
   const open = useLayoutStore((s) => s.searchOpen);
@@ -82,9 +83,9 @@ function SearchBody({ onClose }: { onClose: () => void }) {
             </div>
             <div className="flex items-center justify-between px-4">
               <ModalTitle className="py-3">search every bucket</ModalTitle>
-              <BracketButton onClick={onClose} className="px-1 py-3 text-sm">
+              <TextButton onClick={onClose} className="px-1 py-3 text-sm">
                 x
-              </BracketButton>
+              </TextButton>
             </div>
           </div>
 
@@ -122,17 +123,15 @@ function SearchBody({ onClose }: { onClose: () => void }) {
                 className="placeholder:text-muted-foreground/50 min-w-0 flex-1 bg-transparent py-1 font-mono text-base outline-none sm:text-sm"
               />
               {query ? (
-                <button
-                  type="button"
+                <IconButton
+                  icon="close"
                   onClick={() => {
                     setQuery("");
                     inputRef.current?.focus();
                   }}
                   aria-label="clear search"
-                  className="text-muted-foreground hover:text-foreground flex size-11 shrink-0 items-center justify-center transition-colors"
-                >
-                  <Icon name="close" />
-                </button>
+                  className="flex size-11 items-center justify-center"
+                />
               ) : (
                 <span aria-hidden className="size-11 shrink-0" />
               )}

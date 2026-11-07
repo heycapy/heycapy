@@ -1,4 +1,4 @@
-import { BracketButton } from "@/components/ui/BracketButton";
+import { TextButton } from "@/components/ui/TextButton";
 
 export function NoChannelBanner({ onSetUp }: { onSetUp: () => void }) {
   return (
@@ -10,9 +10,9 @@ export function NoChannelBanner({ onSetUp }: { onSetUp: () => void }) {
         <span className="min-w-0 flex-1">
           ⚠ no notification channel works — you won&apos;t get any reminders
         </span>
-        <BracketButton onClick={onSetUp} className="shrink-0">
+        <TextButton onClick={onSetUp} className="shrink-0">
           set up
-        </BracketButton>
+        </TextButton>
       </div>
     </div>
   );

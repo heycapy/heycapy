@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { BracketButton } from "@/components/ui/BracketButton";
+import { TextButton } from "@/components/ui/TextButton";
 import { restoreItemAction } from "@/app/(app)/actions";
 import { UNDO_DELETE_MS } from "./constants";
 
@@ -32,17 +32,17 @@ function UndoToast({
         <span className="text-muted-foreground w-5 text-right text-xs tabular-nums">
           {Math.max(secondsLeft, 0)}s
         </span>
-        <BracketButton
+        <TextButton
           onClick={() => {
             toast.dismiss(id);
             onUndo();
           }}
         >
           undo
-        </BracketButton>
-        <BracketButton onClick={() => toast.dismiss(id)} aria-label="dismiss">
+        </TextButton>
+        <TextButton onClick={() => toast.dismiss(id)} aria-label="dismiss">
           x
-        </BracketButton>
+        </TextButton>
       </div>
       <div
         aria-hidden

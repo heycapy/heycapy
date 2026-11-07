@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useTransition } from "react";
-import { BracketButton } from "@/components/ui/BracketButton";
+import { TextButton } from "@/components/ui/TextButton";
 import { getAvatarAction, saveAvatarAction } from "@/app/(app)/actions";
 import {
   avatarCode,
@@ -186,26 +186,26 @@ export function AvatarEditor({ draft, onDraft }: AvatarEditorProps) {
         </p>
       )}
       <div>
-        <BracketButton onClick={() => save(current)} disabled={busy || !changed}>
+        <TextButton onClick={() => save(current)} disabled={busy || !changed}>
           {pending ? "saving..." : empty ? "use the one made for me" : "save avatar"}
-        </BracketButton>
+        </TextButton>
       </div>
       {saved !== null &&
         (confirmingRemove ? (
           <div className="flex flex-col gap-2">
             <p className={MUTED}>remove your avatar? people will see the one made for you.</p>
             <div className="flex gap-3">
-              <BracketButton variant="destructive" onClick={() => save(null)} disabled={busy}>
+              <TextButton variant="destructive" onClick={() => save(null)} disabled={busy}>
                 confirm
-              </BracketButton>
-              <BracketButton onClick={() => setConfirmingRemove(false)} disabled={busy}>
+              </TextButton>
+              <TextButton onClick={() => setConfirmingRemove(false)} disabled={busy}>
                 cancel
-              </BracketButton>
+              </TextButton>
             </div>
           </div>
         ) : (
           <div>
-            <BracketButton
+            <TextButton
               variant="destructive"
               onClick={() => {
                 setMessage(null);
@@ -214,7 +214,7 @@ export function AvatarEditor({ draft, onDraft }: AvatarEditorProps) {
               disabled={busy}
             >
               remove avatar
-            </BracketButton>
+            </TextButton>
           </div>
         ))}
 

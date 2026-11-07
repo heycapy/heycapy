@@ -1,5 +1,5 @@
 import { useEffect, useState, useTransition } from "react";
-import { BracketButton } from "@/components/ui/BracketButton";
+import { TextButton } from "@/components/ui/TextButton";
 import {
   getPushSetupAction,
   removePushDeviceAction,
@@ -159,23 +159,23 @@ export function PushSettings({ pending }: { pending: boolean }) {
             <span className={HINT}>{thisDevice ? "on" : "off"}</span>
           </div>
           {thisDevice ? (
-            <BracketButton
+            <TextButton
               type="button"
               onClick={() => handleRemove(thisDevice)}
               disabled={working || pending}
               className="text-[11px]"
             >
               turn off
-            </BracketButton>
+            </TextButton>
           ) : (
-            <BracketButton
+            <TextButton
               type="button"
               onClick={handleEnable}
               disabled={working || pending || !publicKey}
               className="text-[11px]"
             >
               {working ? "turning on..." : "turn on"}
-            </BracketButton>
+            </TextButton>
           )}
         </div>
       )}
@@ -207,7 +207,7 @@ export function PushSettings({ pending }: { pending: boolean }) {
                     })}
                   </span>
                 </span>
-                <BracketButton
+                <TextButton
                   type="button"
                   onClick={() => handleRemove(device)}
                   disabled={working || pending}
@@ -215,7 +215,7 @@ export function PushSettings({ pending }: { pending: boolean }) {
                   className="text-[11px]"
                 >
                   x
-                </BracketButton>
+                </TextButton>
               </li>
             ))}
           </ul>
