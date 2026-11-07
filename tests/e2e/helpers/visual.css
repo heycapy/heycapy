@@ -1,0 +1,4 @@
+/* The add box's example depends on the bucket id, which changes from run to run */
+::placeholder {
+  color: transparent !important;
+}
