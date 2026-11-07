@@ -16,7 +16,7 @@ export function OptionButton({ active = false, className, ...props }: OptionButt
       aria-pressed={active}
       className={cn(
         "rounded-control font-ui border text-xs transition-[color,border-color,background-color,transform,box-shadow] disabled:opacity-40",
-        raised ? "px-2.5 py-1.5" : "inline-flex min-h-10 items-center px-3",
+        raised ? "px-2.5 py-1.5" : "inline-flex min-h-(--control-h) items-center gap-1.5 px-3",
         raised &&
           (active
             ? "border-foreground bg-foreground text-background translate-x-[2px] translate-y-[2px]"

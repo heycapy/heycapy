@@ -42,7 +42,12 @@ export function NtfySettings({
       <span className={SECTION}>ntfy (push)</span>
       <div className="flex items-center justify-between">
         <label className={LABEL}>enabled</label>
-        <Toggle value={notificationsPush} onChange={setNotificationsPush} disabled={pending} />
+        <Toggle
+          label="ntfy notifications"
+          value={notificationsPush}
+          onChange={setNotificationsPush}
+          disabled={pending}
+        />
       </div>
       <div className="flex flex-col gap-1.5">
         <label className={LABEL}>server url</label>

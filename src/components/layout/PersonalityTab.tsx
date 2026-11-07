@@ -91,7 +91,12 @@ export function PersonalityTab({
       )}
       <div className="flex flex-col gap-1.5">
         <label className={LABEL}>use emoji</label>
-        <Toggle value={personalityEmoji} onChange={setPersonalityEmoji} disabled={pending} />
+        <Toggle
+          label="use emoji"
+          value={personalityEmoji}
+          onChange={setPersonalityEmoji}
+          disabled={pending}
+        />
       </div>
     </>
   );

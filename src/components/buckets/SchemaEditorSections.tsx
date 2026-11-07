@@ -271,14 +271,24 @@ export function NotificationsSection({
       <div className="flex flex-col gap-1.5">
         <p className={SCHEMA_LABEL}>notify on arrival</p>
         <p className={SCHEMA_HINT}>send a notification every time a new item arrives via webhook</p>
-        <Toggle value={notifyOnArrival} onChange={onArrivalChange} disabled={disabled} />
+        <Toggle
+          label="notify on arrival"
+          value={notifyOnArrival}
+          onChange={onArrivalChange}
+          disabled={disabled}
+        />
       </div>
       <div className="flex flex-col gap-1.5">
         <p className={SCHEMA_LABEL}>notify when overdue</p>
         <p className={SCHEMA_HINT}>
           send a notification when an item passes its deadline without being completed
         </p>
-        <Toggle value={notifyWhenOverdue} onChange={onOverdueChange} disabled={disabled} />
+        <Toggle
+          label="notify when overdue"
+          value={notifyWhenOverdue}
+          onChange={onOverdueChange}
+          disabled={disabled}
+        />
         {notifyWhenOverdue && (
           <div className="mt-1.5 flex flex-col gap-1.5">
             <p className={SCHEMA_HINT}>repeat reminder</p>

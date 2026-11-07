@@ -19,7 +19,7 @@ export function SettingsTabBar({ tab, hasCredits, adminUser, onTab }: SettingsTa
     ...(adminUser ? (["system"] as const) : []),
   ];
   return (
-    <div className="border-border flex flex-wrap gap-0.5 border-b px-2 py-1">
+    <div className="border-border scrollbar-hide flex gap-0.5 overflow-x-auto border-b px-2 py-1">
       {tabs.map((t) => (
         <Tab key={t} active={tab === t} onClick={() => onTab(t)} className="py-1.5">
           {t}

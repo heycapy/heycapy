@@ -1,6 +1,6 @@
 import { useLayoutEffect, useRef, useState } from "react";
 import { motion, useDragControls, type PanInfo } from "framer-motion";
-import { TextButton } from "@/components/ui/TextButton";
+import { CloseButton } from "@/components/ui/CloseButton";
 import { Icon } from "@/components/ui/Icon";
 import { Modal, ModalTitle } from "@/components/ui/Modal";
 import { ItemDialog } from "@/components/buckets/ItemDialog";
@@ -83,9 +83,7 @@ function SearchBody({ onClose }: { onClose: () => void }) {
             </div>
             <div className="flex items-center justify-between px-4">
               <ModalTitle className="py-3">search every bucket</ModalTitle>
-              <TextButton onClick={onClose} className="px-1 py-3 text-sm">
-                x
-              </TextButton>
+              <CloseButton onClick={onClose} className="px-1 py-3 text-sm" />
             </div>
           </div>
 

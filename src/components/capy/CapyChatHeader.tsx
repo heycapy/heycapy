@@ -1,4 +1,5 @@
 import { TextButton } from "@/components/ui/TextButton";
+import { CloseButton } from "@/components/ui/CloseButton";
 import { HEADER_H } from "./chatTypes";
 import { useAssistantName } from "./assistant-name";
 import { cn } from "@/lib/utils";
@@ -39,6 +40,7 @@ export function CapyChatHeader({
     >
       {fullscreen && onToggleSidebar && (
         <TextButton
+          variant="ghost"
           onClick={(e) => {
             e.stopPropagation();
             onToggleSidebar();
@@ -55,6 +57,7 @@ export function CapyChatHeader({
 
       {!fullscreen && (
         <TextButton
+          variant="ghost"
           onClick={(e) => {
             e.stopPropagation();
             onHistoryOpen();
@@ -66,6 +69,7 @@ export function CapyChatHeader({
       )}
 
       <TextButton
+        variant="ghost"
         onClick={(e) => {
           e.stopPropagation();
           onNewChat();
@@ -97,16 +101,14 @@ export function CapyChatHeader({
           aria-label={fullscreen ? "Exit fullscreen" : "Fullscreen"}
         />
       )}
-      <TextButton
+      <CloseButton
         onClick={(e) => {
           e.stopPropagation();
           onClose();
         }}
         aria-label="close chat"
         className="px-1"
-      >
-        x
-      </TextButton>
+      />
     </div>
   );
 }

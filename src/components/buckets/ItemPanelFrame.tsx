@@ -11,7 +11,7 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion, useDragControls, type PanInfo } from "framer-motion";
-import { TextButton } from "@/components/ui/TextButton";
+import { CloseButton } from "@/components/ui/CloseButton";
 import { useLookParts } from "@/components/looks/LookProvider";
 import {
   HANDLES_ESCAPE_SELECTOR,
@@ -204,15 +204,13 @@ export function ItemPanelFrame({
                 <span className="font-ui min-w-0 flex-1 truncate text-xs opacity-60">
                   {panel.bucketName && `in ${panel.bucketName}`}
                 </span>
-                <TextButton
+                <CloseButton
                   type="button"
                   variant={inverted ? "inverted" : "default"}
                   onClick={onCancel}
                   aria-label={phone ? `close ${heading}` : undefined}
                   className={cn(phone && "sr-only")}
-                >
-                  x
-                </TextButton>
+                />
               </div>
             </div>
             <motion.div

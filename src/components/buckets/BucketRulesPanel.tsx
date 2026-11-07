@@ -93,13 +93,13 @@ export function BucketRulesPanel({
           <div className="flex flex-col gap-1.5">
             <label className={LABEL}>allow drag</label>
             <span className={HINT}>let you drag items to reorder them manually</span>
-            <Toggle value={drag} onChange={onDragChange} />
+            <Toggle label="allow drag" value={drag} onChange={onDragChange} />
           </div>
         )}
         <div className="flex flex-col gap-1.5">
           <label className={LABEL}>show completed</label>
           <span className={HINT}>keep completed items visible in the list</span>
-          <Toggle value={showCompleted} onChange={onShowCompletedChange} />
+          <Toggle label="show completed" value={showCompleted} onChange={onShowCompletedChange} />
         </div>
         <div className="flex flex-col gap-1.5">
           <label className={LABEL}>repeating items</label>
@@ -115,7 +115,7 @@ export function BucketRulesPanel({
         <div className="flex flex-col gap-1.5">
           <label className={LABEL}>read only</label>
           <span className={HINT}>prevent adding or editing items in this bucket</span>
-          <Toggle value={readonly} onChange={onReadonlyChange} />
+          <Toggle label="read only" value={readonly} onChange={onReadonlyChange} />
         </div>
         <div className="flex flex-col gap-1.5">
           <label className={LABEL}>default deadline offset</label>
@@ -187,7 +187,12 @@ export function BucketRulesPanel({
         <div className="flex flex-col gap-1.5">
           <label className={LABEL}>notify on arrival</label>
           <span className={HINT}>send a notification when a webhook adds an item</span>
-          <Toggle value={notifyOnArrival} onChange={onNotifyOnArrivalChange} disabled={disabled} />
+          <Toggle
+            label="notify on arrival"
+            value={notifyOnArrival}
+            onChange={onNotifyOnArrivalChange}
+            disabled={disabled}
+          />
         </div>
       </div>
     </>

@@ -15,7 +15,7 @@ export function SaveBar({ pending, onSave, onDiscard }: SaveBarProps) {
         <TextButton onClick={onDiscard} disabled={pending}>
           discard
         </TextButton>
-        <TextButton onClick={onSave} disabled={pending} className="text-foreground">
+        <TextButton onClick={onSave} disabled={pending} variant="primary">
           {pending ? "saving..." : "save"}
         </TextButton>
       </div>
@@ -46,7 +46,7 @@ export function CloseWarning({ pending, onSave, onDiscard, onKeepEditing }: Clos
         </p>
         <div className="flex flex-wrap gap-3">
           {onSave && (
-            <TextButton onClick={onSave} disabled={pending} className="text-foreground">
+            <TextButton onClick={onSave} disabled={pending} variant="primary">
               {pending ? "saving..." : "save"}
             </TextButton>
           )}

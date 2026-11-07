@@ -84,6 +84,7 @@ export function TelegramSettings({
           <div className="flex items-center justify-between">
             <label className={LABEL}>notifications enabled</label>
             <Toggle
+              label="telegram notifications"
               value={notificationsTelegram}
               onChange={setNotificationsTelegram}
               disabled={pending}

@@ -53,7 +53,7 @@ export function MembersBar({ members, filter, onFilter, onOpenMembers }: Members
               onClick={() => onFilter(option.value)}
               className={cn(
                 "flex max-w-40 items-center transition-colors",
-                bracketed ? "py-1" : "rounded-control min-h-11 px-3 md:min-h-10",
+                bracketed ? "py-1" : "rounded-control min-h-(--control-h) px-3",
                 !bracketed && active && "bg-muted",
                 active ? "text-foreground" : "text-muted-foreground hover:text-foreground"
               )}

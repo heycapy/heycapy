@@ -126,6 +126,7 @@ export function BucketTabs({ buckets, activeId, todayOpen }: BucketTabsProps) {
     >
       <div className="border-border border-b-frame flex">
         <TextButton
+          variant="ghost"
           onClick={() => setSearchOpen(true)}
           aria-label="search"
           className="shrink-0 py-0 pr-3 pl-4 sm:pl-3"
@@ -182,6 +183,7 @@ export function BucketTabs({ buckets, activeId, todayOpen }: BucketTabsProps) {
             })}
           </Reorder.Group>
           <TextButton
+            variant="ghost"
             onClick={openCreateBucket}
             aria-label="new bucket"
             className="shrink-0 py-0 pr-4 pl-3 whitespace-nowrap"

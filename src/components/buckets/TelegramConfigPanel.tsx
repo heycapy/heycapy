@@ -225,6 +225,7 @@ export function TelegramConfigPanel({ config, onChange, disabled }: TelegramConf
           after picking a deadline, show a &quot;Repeats?&quot; step — good for subscriptions
         </p>
         <Toggle
+          label="ask repeats"
           value={config.showRecurring}
           onChange={(value) => set("showRecurring", value)}
           disabled={disabled}

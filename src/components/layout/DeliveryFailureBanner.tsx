@@ -1,5 +1,6 @@
 import { useState, useTransition } from "react";
 import { TextButton } from "@/components/ui/TextButton";
+import { CloseButton } from "@/components/ui/CloseButton";
 import { dismissDeliveryFailuresAction } from "@/app/(app)/actions";
 import type { ChannelFailure } from "@/lib/notifications/failures";
 import { channelKey } from "@/lib/notifications/channel-key";
@@ -51,13 +52,11 @@ export function DeliveryFailureBanner({ failures, onFix }: DeliveryFailureBanner
             <TextButton onClick={() => setDetails(failure)} className="shrink-0">
               details
             </TextButton>
-            <TextButton
+            <CloseButton
               onClick={() => dismiss(failure)}
               aria-label={`dismiss ${failure.label} failures`}
               className="shrink-0"
-            >
-              x
-            </TextButton>
+            />
           </div>
         );
       })}

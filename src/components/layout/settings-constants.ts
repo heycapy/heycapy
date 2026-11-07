@@ -8,8 +8,8 @@ export const MUTED = "text-muted-foreground font-ui text-xs";
 export const INPUT =
   "border-b border-border w-full bg-transparent py-1.5 font-ui text-xs outline-none placeholder:text-muted-foreground/50 focus:border-foreground disabled:opacity-50";
 
-export const SECTION = "text-foreground font-ui text-xs font-semibold tracking-widest uppercase";
-export const BOX = "rounded-control border-border flex flex-col gap-4 border p-3";
+export const SECTION = "text-foreground font-ui text-xs font-semibold section-case";
+export const BOX = "rounded-control border-border box flex flex-col gap-4";
 export const USERNAME_CHECK_DEBOUNCE_MS = 400;
 // every button in tweaks in the theme's accent so they read as buttons, without touching a picked option or tab
 export const ACCENT_BUTTONS = [

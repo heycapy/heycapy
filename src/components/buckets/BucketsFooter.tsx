@@ -54,6 +54,7 @@ export function BucketsFooter({
           <span className="flex-1" />
         )}
         <TextButton
+          variant="ghost"
           onClick={() => setChatState(chatOpen ? "closed" : "open")}
           aria-label="chat with capy"
           aria-expanded={chatOpen}

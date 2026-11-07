@@ -67,6 +67,14 @@
   --button-accent: var(--primary);
   --tab-active-bg: var(--foreground);
   --tab-active-fg: var(--background);
+  --control-h: auto;
+  --section-case: uppercase;
+  --section-tracking: 0.1em;
+  --box-border: 1px;
+  --box-padding: 0.75rem;
+  --box-space: 0px;
+  --toast-close-text: "[x]";
+  --toast-close-icon: none;
 }
 
 [data-look="modern"] {
@@ -91,9 +99,23 @@
   --chip-radius: 9999px;
   --chip-padding: 1px 0.5rem;
   --chip-weight: 600;
-  --button-accent: var(--muted-foreground);
+  --button-accent: var(--foreground);
   --tab-active-bg: var(--muted);
   --tab-active-fg: var(--foreground);
+  --control-h: 2.5rem;
+  --section-case: none;
+  --section-tracking: normal;
+  --box-border: 0px;
+  --box-padding: 0px;
+  --box-space: 1rem;
+  --toast-close-text: none;
+  --toast-close-icon: block;
+}
+
+@media (width >= 48rem) {
+  [data-look="modern"] {
+    --control-h: 2rem;
+  }
 }
 
 /* Original keeps the browser's own focus outline; layered so outline-none still wins */
@@ -126,6 +148,20 @@
 @utility border-rule {
   --tw-border-style: var(--rule-style);
   border-style: var(--rule-style);
+}
+
+@utility section-case {
+  text-transform: var(--section-case);
+  letter-spacing: var(--section-tracking);
+}
+
+@utility box {
+  border-width: var(--box-border);
+  padding: var(--box-padding);
+}
+
+.box + .box {
+  margin-top: var(--box-space);
 }
 
 @utility chip {
@@ -814,10 +850,10 @@ body:has([data-side-column]) [data-sonner-toaster][data-x-position="center"] {
   white-space: nowrap;
 }
 [data-sonner-toast] [data-close-button] svg {
-  display: none;
+  display: var(--toast-close-icon);
 }
 [data-sonner-toast] [data-close-button]::before {
-  content: "[x]";
+  content: var(--toast-close-text);
   font-family: var(--font-geist-mono);
   font-size: 12px;
   line-height: 1;

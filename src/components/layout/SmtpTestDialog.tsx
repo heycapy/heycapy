@@ -87,9 +87,7 @@ export function SmtpTestDialog({
           </div>
 
           <div className="rounded-control border-border flex flex-col gap-2 border p-3">
-            <span className="text-muted-foreground font-ui text-2xs tracking-widest uppercase">
-              preview
-            </span>
+            <span className="text-muted-foreground font-ui text-2xs section-case">preview</span>
             <div
               style={{ fontFamily: mono }}
               className="rounded-control border-border text-2xs flex flex-col border"

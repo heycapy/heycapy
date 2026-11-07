@@ -52,7 +52,12 @@ export function RecurringPicker({
     <div ref={rootRef} className="flex scroll-mb-4 flex-col gap-2">
       <div className="flex items-center justify-between">
         <label className={LABEL}>↺ repeats</label>
-        <Toggle value={!!recurring?.enabled} onChange={toggle} disabled={disabled} />
+        <Toggle
+          label="repeats"
+          value={!!recurring?.enabled}
+          onChange={toggle}
+          disabled={disabled}
+        />
       </div>
 
       {recurring?.enabled && (

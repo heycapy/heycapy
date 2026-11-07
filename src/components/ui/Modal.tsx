@@ -4,7 +4,7 @@ import { useState, type ReactNode } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { AnimatePresence, motion } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { TextButton } from "./TextButton";
+import { CloseButton } from "./CloseButton";
 import { useLookParts } from "@/components/looks/LookProvider";
 import {
   MODAL_LAYERS,
@@ -145,14 +145,12 @@ export function ModalHeader({ title, onClose, plain }: ModalHeaderProps) {
       )}
     >
       <ModalTitle className={cn(plain && "text-2xs")}>{title}</ModalTitle>
-      <TextButton
+      <CloseButton
         type="button"
         variant={inverted ? "inverted" : "default"}
         className={cn(!inverted && "px-1")}
         onClick={onClose}
-      >
-        x
-      </TextButton>
+      />
     </div>
   );
 }

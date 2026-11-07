@@ -113,7 +113,12 @@ export function NotificationsTab({
 
         <div className="flex items-center justify-between">
           <label className={LABEL}>enabled</label>
-          <Toggle value={notificationsEmail} onChange={setNotificationsEmail} disabled={pending} />
+          <Toggle
+            label="email notifications"
+            value={notificationsEmail}
+            onChange={setNotificationsEmail}
+            disabled={pending}
+          />
         </div>
 
         <div className="flex flex-col gap-3">

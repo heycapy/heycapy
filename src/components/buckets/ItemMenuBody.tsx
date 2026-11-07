@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Calendar } from "@/components/ui/Calendar";
 import { TextButton } from "@/components/ui/TextButton";
+import { CloseButton } from "@/components/ui/CloseButton";
 import { Icon } from "@/components/ui/Icon";
 import { clockTime, formatShort, formatWeekdayDate } from "@/lib/format-date";
 import { deadlineDate, itemDeadline } from "@/lib/time";
@@ -120,9 +121,7 @@ export function MenuBody({
             </p>
           )}
         </div>
-        <TextButton onClick={onClose} aria-label="close menu" className="-my-1 px-3 py-1.5">
-          x
-        </TextButton>
+        <CloseButton onClick={onClose} aria-label="close menu" className="-my-1 px-3 py-1.5" />
       </div>
 
       {view !== "main" && (

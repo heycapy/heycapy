@@ -58,7 +58,12 @@ export function AITab({ ai, pending }: AITabProps) {
       </div>
       <div className="flex flex-col gap-1.5">
         <label className={LABEL}>ai notification messages</label>
-        <Toggle value={ai.notifyMessages} onChange={ai.setNotifyMessages} disabled={pending} />
+        <Toggle
+          label="ai notification messages"
+          value={ai.notifyMessages}
+          onChange={ai.setNotifyMessages}
+          disabled={pending}
+        />
         <span className={HINT}>
           generate notification text with AI — may add delay depending on your model and provider
         </span>

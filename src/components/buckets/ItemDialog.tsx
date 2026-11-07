@@ -1,5 +1,6 @@
 import { useEffect, useEffectEvent, useRef, useState } from "react";
 import { TextButton } from "@/components/ui/TextButton";
+import { useLookParts } from "@/components/looks/LookProvider";
 import { type Ampm, type TimeValue } from "@/components/ui/TimeField";
 import { ItemFieldsForm } from "./ItemFieldsForm";
 import { ItemAssigneeField, type AssigneeChoice } from "./ItemAssigneeField";
@@ -92,6 +93,7 @@ export function ItemDialog({
   const scrollBodyRef = useRef<HTMLDivElement>(null);
   const scrollToFirst = useScrollToFirst(scrollBodyRef);
   const isMobile = useMediaQuery(MOBILE_MEDIA_QUERY);
+  const bracketed = useLookParts().textButton === "bracketed";
   const [timeHour, setTimeHour] = useState("9");
   const [timeMin, setTimeMin] = useState("00");
   const [timeAmpm, setTimeAmpm] = useState<Ampm>("am");
@@ -255,7 +257,8 @@ export function ItemDialog({
     <TextButton
       onClick={handleConfirmClick}
       disabled={pending}
-      className="text-foreground px-2 py-3 text-base"
+      variant="primary"
+      className={bracketed ? "px-2 py-3 text-base" : "my-2 mr-1"}
     >
       {frameMode === "add" ? "add" : "update"}
     </TextButton>

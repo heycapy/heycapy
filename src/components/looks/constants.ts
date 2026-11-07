@@ -11,6 +11,7 @@ export type LookParts = {
   panelHeader: "inverted" | "plain";
   listFrame: "framed" | "bare";
   optionButton: "raised" | "flat";
+  toggle: "buttons" | "switch";
 };
 
 export const LOOK_PARTS: Record<Look, LookParts> = {
@@ -21,6 +22,7 @@ export const LOOK_PARTS: Record<Look, LookParts> = {
     panelHeader: "inverted",
     listFrame: "framed",
     optionButton: "raised",
+    toggle: "buttons",
   },
   modern: {
     iconSet: "line",
@@ -29,5 +31,6 @@ export const LOOK_PARTS: Record<Look, LookParts> = {
     panelHeader: "plain",
     listFrame: "bare",
     optionButton: "flat",
+    toggle: "switch",
   },
 };

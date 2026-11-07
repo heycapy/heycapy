@@ -1,5 +1,6 @@
 import { useEffect, useState, useTransition } from "react";
 import { TextButton } from "@/components/ui/TextButton";
+import { CloseButton } from "@/components/ui/CloseButton";
 import {
   getPushSetupAction,
   removePushDeviceAction,
@@ -207,15 +208,13 @@ export function PushSettings({ pending }: { pending: boolean }) {
                     })}
                   </span>
                 </span>
-                <TextButton
+                <CloseButton
                   type="button"
                   onClick={() => handleRemove(device)}
                   disabled={working || pending}
                   aria-label={`remove ${device.name}`}
                   className="text-2xs"
-                >
-                  x
-                </TextButton>
+                />
               </li>
             ))}
           </ul>

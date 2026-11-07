@@ -90,7 +90,12 @@ export function WebhookForm({ webhook, onSaved, onDeleted, onClose }: WebhookFor
       </div>
       <div className="flex items-center justify-between">
         <label className={LABEL}>on by default</label>
-        <Toggle value={isDefault} onChange={setIsDefault} disabled={pending} />
+        <Toggle
+          label="on by default"
+          value={isDefault}
+          onChange={setIsDefault}
+          disabled={pending}
+        />
       </div>
 
       {webhook && !chatWebhookApp(webhook.url) && (

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { TextButton } from "@/components/ui/TextButton";
+import { CloseButton } from "@/components/ui/CloseButton";
 import { restoreItemAction } from "@/app/(app)/actions";
 import { UNDO_DELETE_MS } from "./constants";
 
@@ -40,9 +41,7 @@ function UndoToast({
         >
           undo
         </TextButton>
-        <TextButton onClick={() => toast.dismiss(id)} aria-label="dismiss">
-          x
-        </TextButton>
+        <CloseButton onClick={() => toast.dismiss(id)} aria-label="dismiss" />
       </div>
       <div
         aria-hidden
