@@ -7,7 +7,7 @@ import { formatInviteCode } from "@/lib/buckets/invite-code";
 import type { PendingInvite } from "@/lib/buckets/invites";
 import { HINT } from "@/components/layout/settings-constants";
 
-const COPY_BUTTON = "shrink-0 text-[11px]";
+const COPY_BUTTON = "shrink-0 text-2xs";
 const INVITE_QR_SIZE = 144;
 const HOUR_MS = 60 * 60 * 1000;
 
@@ -77,7 +77,7 @@ export function InviteSection({ bucketId }: { bucketId: number }) {
 
   return (
     <div className="border-border flex flex-col gap-3 border-t pt-4">
-      <p className="text-muted-foreground font-mono text-xs">invite someone</p>
+      <p className="text-muted-foreground font-ui text-xs">invite someone</p>
       <p className={HINT}>
         send a code or a link, they join with one tap. each works once and lasts{" "}
         {INVITE_TTL_MS / HOUR_MS} hours.
@@ -138,7 +138,7 @@ export function InviteSection({ bucketId }: { bucketId: number }) {
           <p className={HINT}>open invites</p>
           {invites.map((invite) => (
             <div key={invite.id} className="flex items-center justify-between gap-2">
-              <span className="text-muted-foreground font-mono text-xs">
+              <span className="text-muted-foreground font-ui text-xs">
                 expires in {hoursLeft(invite.expiresAt)}h
               </span>
               <TextButton
@@ -153,7 +153,7 @@ export function InviteSection({ bucketId }: { bucketId: number }) {
         </div>
       )}
 
-      {error && <span className="text-destructive font-mono text-xs">{error}</span>}
+      {error && <span className="text-destructive font-ui text-xs">{error}</span>}
     </div>
   );
 }

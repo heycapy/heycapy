@@ -221,7 +221,7 @@ export function AvatarEditor({ draft, onDraft }: AvatarEditorProps) {
       {message && (
         <p
           role={message.error ? "alert" : "status"}
-          className={cn("font-mono text-xs", message.error ? "text-destructive" : LABEL)}
+          className={cn("font-ui text-xs", message.error ? "text-destructive" : LABEL)}
         >
           {message.text}
         </p>

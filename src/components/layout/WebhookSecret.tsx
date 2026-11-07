@@ -75,7 +75,7 @@ export function WebhookSecret({ webhookId, secret, onChanged }: WebhookSecretPro
         </p>
       )}
       {error && (
-        <p role="status" className="text-destructive font-mono text-[11px]">
+        <p role="status" className="text-destructive font-ui text-2xs">
           {error}
         </p>
       )}

@@ -107,7 +107,7 @@ export function AccountTab({
         <a
           href="/api/account/export"
           download
-          className="text-primary hover:text-foreground self-start font-mono text-xs transition-colors"
+          className="text-primary hover:text-foreground font-ui self-start text-xs transition-colors"
         >
           <span className="opacity-50">[</span>download my data<span className="opacity-50">]</span>
         </a>
@@ -139,7 +139,7 @@ export function AccountTab({
 
         {step === "confirm" && (
           <>
-            <p className="text-destructive font-mono text-[11px] leading-relaxed">
+            <p className="text-destructive font-ui text-2xs leading-relaxed">
               this deletes everything: buckets, items, history, settings and your telegram
               connection. it can&apos;t be undone. copies in the nightly backups are gone within 7
               days. download your data first if you want to keep it.
@@ -185,7 +185,7 @@ export function AccountTab({
         )}
 
         {error && (
-          <p role="alert" className="text-destructive font-mono text-xs">
+          <p role="alert" className="text-destructive font-ui text-xs">
             {error}
           </p>
         )}

@@ -28,7 +28,7 @@ export function ConfirmJoin({ code }: { code: string }) {
         {pending ? "..." : "join"}
       </TextButton>
       {error && (
-        <p role="alert" className="text-destructive font-mono text-xs">
+        <p role="alert" className="text-destructive font-ui text-xs">
           {error}
         </p>
       )}

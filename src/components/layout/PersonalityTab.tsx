@@ -45,7 +45,7 @@ export function PersonalityTab({
         {personalityName.length > 0 && (
           <p
             className={cn(
-              "text-right font-mono text-[11px] transition-colors",
+              "font-ui text-2xs text-right transition-colors",
               charCountColor(personalityName.length, PERSONALITY_NAME_MAX_LENGTH)
             )}
           >
@@ -62,7 +62,7 @@ export function PersonalityTab({
           disabled={pending}
         />
         <div className="border-border mt-1 flex flex-col gap-1.5 border-t border-dashed pt-2.5">
-          <span className="text-muted-foreground font-mono text-[11px]">my favorite</span>
+          <span className="text-muted-foreground font-ui text-2xs">my favorite</span>
           <OptionGroup
             options={FAVORITE_TONE_OPTIONS}
             value={personalityTone}
@@ -81,7 +81,7 @@ export function PersonalityTab({
             maxLength={CUSTOM_PROMPT_MAX_LENGTH}
             disabled={pending}
             rows={4}
-            className="border-border placeholder:text-muted-foreground/50 focus:border-foreground w-full resize-none border-b bg-transparent py-1.5 font-mono text-xs outline-none disabled:opacity-50"
+            className="border-border placeholder:text-muted-foreground/50 focus:border-foreground font-ui w-full resize-none border-b bg-transparent py-1.5 text-xs outline-none disabled:opacity-50"
           />
           <p className={HINT}>
             only how it should sound, like &quot;talk like a pirate&quot;. keep it friendly: prompts

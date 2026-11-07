@@ -140,7 +140,7 @@ export function WebhookForm({ webhook, onSaved, onDeleted, onClose }: WebhookFor
           ))}
       </div>
       {error && (
-        <p role="status" className="text-destructive font-mono text-[11px]">
+        <p role="status" className="text-destructive font-ui text-2xs">
           {error}
         </p>
       )}

@@ -13,11 +13,7 @@ export function CreditsTab() {
   return (
     <>
       <div className={BOX}>
-        <span
-          role="status"
-          aria-label="capy credits"
-          className="flex items-baseline gap-2 font-mono"
-        >
+        <span role="status" aria-label="capy credits" className="font-ui flex items-baseline gap-2">
           <span className="text-foreground text-2xl leading-none">{balance}</span>
           <span className="text-muted-foreground text-xs">
             capy credits left <span className="whitespace-nowrap">(never expire)</span>

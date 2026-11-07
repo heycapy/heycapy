@@ -20,7 +20,7 @@ type Item = typeof items.$inferSelect;
 
 export type CrossBucketSection = { label: string; items: Item[] };
 
-const HINT = "text-muted-foreground font-mono text-xs";
+const HINT = "text-muted-foreground font-ui text-xs";
 
 type CrossBucketListProps = {
   data: CrossBucketItems | null;

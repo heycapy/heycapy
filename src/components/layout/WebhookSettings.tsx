@@ -65,7 +65,7 @@ export function WebhookSettings() {
             className="border-border flex items-center justify-between gap-3 border-b pb-2"
           >
             <div className="flex min-w-0 flex-col">
-              <span className="truncate font-mono text-xs">{webhook.name}</span>
+              <span className="font-ui truncate text-xs">{webhook.name}</span>
               <span className={`${HINT} truncate`}>
                 {destination(webhook.url)}
                 {webhook.isDefault && " · on by default"}

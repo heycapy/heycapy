@@ -6,7 +6,7 @@ export function CharCount({ length, max }: { length: number; max: number }) {
   return (
     <p
       className={cn(
-        "mt-0.5 text-right font-mono text-[11px] transition-colors",
+        "font-ui text-2xs mt-0.5 text-right transition-colors",
         charCountColor(length, max)
       )}
     >

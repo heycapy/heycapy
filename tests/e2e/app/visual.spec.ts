@@ -147,3 +147,14 @@ test("item menu", async ({ page }) => {
   await expect(itemMenu(page, "renew passport")).toBeVisible();
   await snap(page, "item-menu");
 });
+
+test.describe("signed out", () => {
+  test.use({ storageState: { cookies: [], origins: [] } });
+
+  test("login", async ({ page }) => {
+    await page.addInitScript((t) => localStorage.setItem("theme", t), THEMES[0]);
+    await page.goto("/login");
+    await expect(page.getByPlaceholder("you@example.com")).toBeVisible();
+    await snap(page, "login");
+  });
+});

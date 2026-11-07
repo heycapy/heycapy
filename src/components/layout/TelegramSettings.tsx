@@ -76,7 +76,7 @@ export function TelegramSettings({
               type="button"
               onClick={() => void onDisconnectTelegram()}
               disabled={telegramActionPending || pending}
-              className="text-[11px]"
+              className="text-2xs"
             >
               disconnect
             </TextButton>
@@ -106,7 +106,7 @@ export function TelegramSettings({
                 type="button"
                 onClick={() => void onRecheckTelegram()}
                 disabled={telegramActionPending || pending}
-                className="text-[11px]"
+                className="text-2xs"
               >
                 recheck
               </TextButton>
@@ -114,7 +114,7 @@ export function TelegramSettings({
                 type="button"
                 onClick={handleConnect}
                 disabled={connecting || telegramActionPending || pending}
-                className="text-[11px]"
+                className="text-2xs"
               >
                 {connecting ? "connecting..." : "connect"}
               </TextButton>
@@ -130,7 +130,7 @@ export function TelegramSettings({
                   aria-label="telegram connect link"
                   className={INPUT}
                 />
-                <TextButton type="button" onClick={handleCopyLink} className="shrink-0 text-[11px]">
+                <TextButton type="button" onClick={handleCopyLink} className="text-2xs shrink-0">
                   {copyState === "copied" ? "copied" : "copy"}
                 </TextButton>
               </div>
@@ -155,13 +155,13 @@ export function TelegramSettings({
                 [recheck]
               </p>
               {copyState === "failed" && (
-                <p className="text-destructive font-mono text-[11px]">
+                <p className="text-destructive font-ui text-2xs">
                   couldn&apos;t copy — select the link and copy it
                 </p>
               )}
             </div>
           )}
-          {connectError && <p className="text-destructive font-mono text-[11px]">{connectError}</p>}
+          {connectError && <p className="text-destructive font-ui text-2xs">{connectError}</p>}
         </>
       )}
     </div>

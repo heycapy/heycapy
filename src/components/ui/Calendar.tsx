@@ -61,7 +61,7 @@ export function Calendar({ value, onSelect }: CalendarProps) {
         >
           <Icon name="chevron-left" />
         </button>
-        <span className="font-pixel text-xs">
+        <span className="font-display text-xs">
           {MONTHS[viewMonth]} {viewYear}
         </span>
         <button
@@ -76,7 +76,7 @@ export function Calendar({ value, onSelect }: CalendarProps) {
 
       <div className="mb-1 grid grid-cols-7">
         {DAYS_SHORT.map((d) => (
-          <span key={d} className="text-muted-foreground py-1 text-center font-mono text-[11px]">
+          <span key={d} className="text-muted-foreground font-ui text-2xs py-1 text-center">
             {d}
           </span>
         ))}
@@ -97,7 +97,7 @@ export function Calendar({ value, onSelect }: CalendarProps) {
               key={day}
               onClick={() => onSelect(toDateStr(viewYear, viewMonth, day))}
               className={cn(
-                "mx-auto flex h-8 w-8 items-center justify-center font-mono text-xs transition-colors",
+                "font-ui mx-auto flex h-8 w-8 items-center justify-center text-xs transition-colors",
                 isSelected && "bg-primary text-primary-foreground",
                 !isSelected && isToday && "border-border text-foreground border font-bold",
                 !isSelected && !isToday && "text-foreground hover:bg-muted"

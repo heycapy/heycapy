@@ -163,7 +163,7 @@ export function PushSettings({ pending }: { pending: boolean }) {
               type="button"
               onClick={() => handleRemove(thisDevice)}
               disabled={working || pending}
-              className="text-[11px]"
+              className="text-2xs"
             >
               turn off
             </TextButton>
@@ -172,7 +172,7 @@ export function PushSettings({ pending }: { pending: boolean }) {
               type="button"
               onClick={handleEnable}
               disabled={working || pending || !publicKey}
-              className="text-[11px]"
+              className="text-2xs"
             >
               {working ? "turning on..." : "turn on"}
             </TextButton>
@@ -195,7 +195,7 @@ export function PushSettings({ pending }: { pending: boolean }) {
           <ul className="flex flex-col gap-1">
             {devices.map((device) => (
               <li key={device.id} className="flex items-center justify-between gap-2">
-                <span className="text-foreground/80 truncate font-mono text-xs">
+                <span className="text-foreground/80 font-ui truncate text-xs">
                   {device.name}
                   {device.endpoint === thisEndpoint && " (this device)"}
                   <span className="text-muted-foreground">
@@ -212,7 +212,7 @@ export function PushSettings({ pending }: { pending: boolean }) {
                   onClick={() => handleRemove(device)}
                   disabled={working || pending}
                   aria-label={`remove ${device.name}`}
-                  className="text-[11px]"
+                  className="text-2xs"
                 >
                   x
                 </TextButton>
@@ -226,7 +226,7 @@ export function PushSettings({ pending }: { pending: boolean }) {
         </div>
       )}
 
-      {error && <p className="text-destructive font-mono text-[11px]">{error}</p>}
+      {error && <p className="text-destructive font-ui text-2xs">{error}</p>}
     </div>
   );
 }

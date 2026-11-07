@@ -57,11 +57,9 @@ export function ArchivedBucketsSheet({ open, onClose }: ArchivedBucketsSheetProp
     <SidePanel open={open} onClose={onClose} title="archived buckets" narrow="sheet">
       <div className="flex flex-1 flex-col overflow-y-auto">
         {loading ? (
-          <p className="text-muted-foreground px-4 py-6 text-center font-mono text-xs">
-            loading...
-          </p>
+          <p className="text-muted-foreground font-ui px-4 py-6 text-center text-xs">loading...</p>
         ) : archived.length === 0 ? (
-          <p className="text-muted-foreground px-4 py-6 text-center font-mono text-xs">
+          <p className="text-muted-foreground font-ui px-4 py-6 text-center text-xs">
             no archived buckets
           </p>
         ) : (
@@ -69,9 +67,9 @@ export function ArchivedBucketsSheet({ open, onClose }: ArchivedBucketsSheetProp
             {archived.map((bucket) => (
               <div key={bucket.id} className="flex items-center gap-3 px-4 py-3">
                 <div className="min-w-0 flex-1">
-                  <p className="font-pixel truncate text-xs">{bucket.name}</p>
+                  <p className="font-display truncate text-xs">{bucket.name}</p>
                   {bucket.archivedAt && (
-                    <p className="text-muted-foreground mt-0.5 font-mono text-xs">
+                    <p className="text-muted-foreground font-ui mt-0.5 text-xs">
                       archived{" "}
                       {bucket.archivedAt.toLocaleDateString("en-US", {
                         month: "short",

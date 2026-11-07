@@ -174,19 +174,19 @@ export function BucketSettingsForm({
               onChange={(e) => set("name", e.target.value)}
               maxLength={BUCKET_NAME_MAX_LENGTH}
               disabled={pending}
-              className="border-border focus:border-foreground w-full border-b bg-transparent py-1.5 font-mono text-xs outline-none disabled:opacity-50"
+              className="border-border focus:border-foreground font-ui w-full border-b bg-transparent py-1.5 text-xs outline-none disabled:opacity-50"
             />
             {values.name.length > 0 && (
               <p
                 className={cn(
-                  "text-right font-mono text-[11px] transition-colors",
+                  "font-ui text-2xs text-right transition-colors",
                   charCountColor(values.name.length, BUCKET_NAME_MAX_LENGTH)
                 )}
               >
                 {values.name.length}/{BUCKET_NAME_MAX_LENGTH}
               </p>
             )}
-            {error && <span className="text-destructive font-mono text-xs">{error}</span>}
+            {error && <span className="text-destructive font-ui text-xs">{error}</span>}
           </div>
         )}
         <div className="border-border flex overflow-x-auto border-b">
@@ -297,7 +297,7 @@ export function BucketSettingsForm({
                 </TextButton>
                 {confirmDelete ? (
                   <>
-                    <span className="text-destructive font-mono text-xs">sure?</span>
+                    <span className="text-destructive font-ui text-xs">sure?</span>
                     <TextButton variant="destructive" onClick={handleDelete} disabled={pending}>
                       confirm
                     </TextButton>
@@ -323,7 +323,7 @@ export function BucketSettingsForm({
       {showSave && (
         <div className="border-border flex shrink-0 items-center justify-end gap-3 border-t px-3 py-2.5">
           {!bucket.isOwner && error && (
-            <span className="text-destructive mr-auto font-mono text-xs">{error}</span>
+            <span className="text-destructive font-ui mr-auto text-xs">{error}</span>
           )}
           <TextButton onClick={handleSave} disabled={!values.name.trim() || pending}>
             save

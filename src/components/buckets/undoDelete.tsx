@@ -26,7 +26,7 @@ function UndoToast({
 
   return (
     // the toaster draws the frame, this fills it like any other toast
-    <div className="text-foreground min-w-0 font-mono text-xs">
+    <div className="text-foreground font-ui min-w-0 text-xs">
       <div className="flex items-center gap-3 pr-2">
         <span className="min-w-0 flex-1 truncate">deleted &quot;{title}&quot;</span>
         <span className="text-muted-foreground w-5 text-right text-xs tabular-nums">

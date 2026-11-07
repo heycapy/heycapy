@@ -10,7 +10,7 @@ type SaveBarProps = {
 export function SaveBar({ pending, onSave, onDiscard }: SaveBarProps) {
   return (
     <div className="border-border bg-background flex items-center justify-between gap-2 border-t-2 px-3 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))]">
-      <span className="text-muted-foreground font-mono text-xs">unsaved changes</span>
+      <span className="text-muted-foreground font-ui text-xs">unsaved changes</span>
       <div className="flex gap-3">
         <TextButton onClick={onDiscard} disabled={pending}>
           discard
@@ -40,7 +40,7 @@ export function CloseWarning({ pending, onSave, onDiscard, onKeepEditing }: Clos
         className="border-border bg-background flex w-full max-w-xs flex-col gap-3 border-2 p-4"
         style={{ boxShadow: "4px 4px 0 var(--border)" }}
       >
-        <p className="font-mono text-xs">
+        <p className="font-ui text-xs">
           {onSave
             ? "save your changes before closing?"
             : "your new username isn't saved yet. close and drop your changes?"}

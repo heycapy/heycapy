@@ -58,7 +58,7 @@ export function NtfySettings({
         {ntfyUrl.length > 0 && (
           <p
             className={cn(
-              "mt-0.5 text-right font-mono text-[11px] transition-colors",
+              "font-ui text-2xs mt-0.5 text-right transition-colors",
               charCountColor(ntfyUrl.length, SETTINGS_URL_MAX_LENGTH)
             )}
           >
@@ -100,7 +100,7 @@ export function NtfySettings({
         {ntfyTopic.length > 0 && (
           <p
             className={cn(
-              "mt-0.5 text-right font-mono text-[11px] transition-colors",
+              "font-ui text-2xs mt-0.5 text-right transition-colors",
               charCountColor(ntfyTopic.length, NTFY_TOPIC_MAX_LENGTH)
             )}
           >

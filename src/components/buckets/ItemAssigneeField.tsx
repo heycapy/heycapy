@@ -48,7 +48,7 @@ export function ItemAssigneeField({
               {member.isYou ? " (you)" : ""}
             </span>
             {(showPlaces || leftOut(member)) && (
-              <span className="block text-[11px] opacity-70">
+              <span className="text-2xs block opacity-70">
                 {[
                   showPlaces && (member.place ?? "timezone not set"),
                   leftOut(member) && "no reminders set up",

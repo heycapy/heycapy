@@ -12,7 +12,7 @@ export type Ampm = "am" | "pm";
 const HOURS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"];
 const QUARTERS = ["00", "15", "30", "45"];
 const PANEL = { width: 252, height: 272 };
-const LABEL = "text-muted-foreground font-mono text-[11px]";
+const LABEL = "text-muted-foreground font-ui text-2xs";
 
 export type TimeValue = { hour: string; min: string; ampm: Ampm };
 
@@ -41,7 +41,7 @@ function Cell({
       aria-pressed={selected}
       aria-label={label}
       className={cn(
-        "flex h-8 items-center justify-center font-mono text-xs transition-colors",
+        "font-ui flex h-8 items-center justify-center text-xs transition-colors",
         selected ? "bg-primary text-primary-foreground" : "text-foreground hover:bg-muted"
       )}
     >
@@ -166,7 +166,7 @@ export function TimeField({ value, onChange, disabled, allowAllDay = false }: Ti
               placeholder="or type: 937p"
               aria-label="type a time"
               className={cn(
-                "placeholder:text-muted-foreground/70 min-w-0 flex-1 border-b bg-transparent py-1 font-mono text-xs outline-none",
+                "placeholder:text-muted-foreground/70 font-ui min-w-0 flex-1 border-b bg-transparent py-1 text-xs outline-none",
                 typedInvalid
                   ? "border-destructive text-destructive"
                   : "border-border focus:border-foreground"
@@ -193,7 +193,7 @@ export function TimeField({ value, onChange, disabled, allowAllDay = false }: Ti
         disabled={disabled}
         aria-label={`time: ${display}`}
         className={cn(
-          "flex items-center gap-2 border-b py-1.5 font-mono text-sm transition-all active:translate-y-[1px] disabled:opacity-50",
+          "font-ui flex items-center gap-2 border-b py-1.5 text-sm transition-all active:translate-y-[1px] disabled:opacity-50",
           allDay ? "border-border text-muted-foreground" : "border-foreground text-foreground"
         )}
       >

@@ -48,12 +48,12 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
         toastOptions={{
           classNames: {
             toast:
-              "!bg-background !text-foreground !border-border !border-2 !rounded-none font-mono !text-xs !shadow-[2px_2px_0_var(--border)] !py-2 !pr-1 !pl-3 !gap-2",
-            title: "!text-foreground font-mono !text-xs",
-            description: "!text-muted-foreground font-mono !text-xs",
+              "!bg-background !text-foreground !border-border !border-2 !rounded-none font-ui !text-xs !shadow-[2px_2px_0_var(--border)] !py-2 !pr-1 !pl-3 !gap-2",
+            title: "!text-foreground font-ui !text-xs",
+            description: "!text-muted-foreground font-ui !text-xs",
             error: "!border-destructive",
             closeButton:
-              "!bg-transparent !border-0 !shadow-none !text-muted-foreground hover:!text-foreground font-mono !text-xs",
+              "!bg-transparent !border-0 !shadow-none !text-muted-foreground hover:!text-foreground font-ui !text-xs",
           },
         }}
       />

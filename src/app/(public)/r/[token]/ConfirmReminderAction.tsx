@@ -21,7 +21,7 @@ export function ConfirmReminderAction({
     return (
       <p
         role="status"
-        className={`font-mono text-xs ${outcome.ok ? "text-foreground" : "text-destructive"}`}
+        className={`font-ui text-xs ${outcome.ok ? "text-foreground" : "text-destructive"}`}
       >
         {outcome.message}
       </p>
@@ -29,7 +29,7 @@ export function ConfirmReminderAction({
   }
   return (
     <>
-      <p className="font-mono text-sm font-bold break-words">{title}</p>
+      <p className="font-ui text-sm font-bold break-words">{title}</p>
       <TextButton
         disabled={pending}
         onClick={() => startTransition(async () => setOutcome(await confirmReminderAction(token)))}

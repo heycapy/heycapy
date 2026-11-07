@@ -21,7 +21,7 @@ type TrashSheetProps = {
 
 type ConfirmTarget = `bucket:${number}` | `item:${number}` | "all";
 
-const HINT = "text-muted-foreground font-mono text-xs";
+const HINT = "text-muted-foreground font-ui text-xs";
 
 function deletedOn(date: Date): string {
   return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
@@ -175,18 +175,14 @@ export function TrashSheet({ open, onClose }: TrashSheetProps) {
           ))}
       </div>
       {error && (
-        <p className="text-destructive border-border border-b px-4 py-2 font-mono text-xs">
-          {error}
-        </p>
+        <p className="text-destructive border-border font-ui border-b px-4 py-2 text-xs">{error}</p>
       )}
 
       <div className="flex flex-1 flex-col overflow-y-auto">
         {loading ? (
-          <p className="text-muted-foreground px-4 py-6 text-center font-mono text-xs">
-            loading...
-          </p>
+          <p className="text-muted-foreground font-ui px-4 py-6 text-center text-xs">loading...</p>
         ) : empty ? (
-          <p className="text-muted-foreground px-4 py-6 text-center font-mono text-xs">
+          <p className="text-muted-foreground font-ui px-4 py-6 text-center text-xs">
             trash is empty
           </p>
         ) : (
@@ -197,7 +193,7 @@ export function TrashSheet({ open, onClose }: TrashSheetProps) {
                 {bucketRows.map((bucket) => (
                   <TrashRow
                     key={bucket.id}
-                    title={<p className="font-pixel truncate text-xs">{bucket.name}</p>}
+                    title={<p className="font-display truncate text-xs">{bucket.name}</p>}
                     meta={`${bucket.itemCount} ${bucket.itemCount === 1 ? "item" : "items"} · deleted ${deletedOn(bucket.deletedAt)}`}
                     confirming={confirming === `bucket:${bucket.id}`}
                     pending={pending}
@@ -223,7 +219,7 @@ export function TrashSheet({ open, onClose }: TrashSheetProps) {
                 {itemRows.map((item) => (
                   <TrashRow
                     key={item.id}
-                    title={<p className="truncate font-mono text-xs">{item.title}</p>}
+                    title={<p className="font-ui truncate text-xs">{item.title}</p>}
                     meta={
                       item.bucketInTrash ? (
                         `${item.bucketName} · restore its bucket first`

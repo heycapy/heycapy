@@ -77,7 +77,7 @@ export function ChatMessageList({
             >
               <div
                 className={cn(
-                  "w-fit px-3 py-2 font-mono text-xs leading-relaxed break-words",
+                  "font-ui w-fit px-3 py-2 text-xs leading-relaxed break-words",
                   fullscreen ? "max-w-[65ch]" : "max-w-[85%]",
                   msg.role === "user"
                     ? "bg-foreground text-background"
@@ -91,7 +91,7 @@ export function ChatMessageList({
                       <span
                         role="status"
                         aria-label="capy is working"
-                        className="text-muted-foreground text-[11px]"
+                        className="text-muted-foreground text-2xs"
                       >
                         {status}…
                       </span>
@@ -104,7 +104,7 @@ export function ChatMessageList({
                 )}
               </div>
               {msg.stopped && (
-                <span className="text-muted-foreground font-mono text-[11px]">— stopped</span>
+                <span className="text-muted-foreground font-ui text-2xs">— stopped</span>
               )}
             </div>
           </div>

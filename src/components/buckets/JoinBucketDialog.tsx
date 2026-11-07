@@ -63,7 +63,7 @@ export function JoinBucketDialog({ open, onClose }: JoinBucketDialogProps) {
           onClose={close}
         />
         <div className="flex flex-col gap-3 px-4 py-4">
-          <p className="text-muted-foreground font-mono text-[11px] leading-tight">
+          <p className="text-muted-foreground font-ui text-2xs leading-tight">
             type the code someone sent you, or just open their link.
           </p>
           <input
@@ -75,10 +75,10 @@ export function JoinBucketDialog({ open, onClose }: JoinBucketDialogProps) {
             autoCapitalize="characters"
             spellCheck={false}
             disabled={pending}
-            className="border-border focus:border-foreground placeholder:text-muted-foreground/50 w-full border-b bg-transparent py-1.5 font-mono text-sm tracking-widest outline-none disabled:opacity-50"
+            className="border-border focus:border-foreground placeholder:text-muted-foreground/50 font-ui w-full border-b bg-transparent py-1.5 text-sm tracking-widest outline-none disabled:opacity-50"
           />
           {error && (
-            <p role="alert" className="text-destructive font-mono text-xs">
+            <p role="alert" className="text-destructive font-ui text-xs">
               {error}
             </p>
           )}

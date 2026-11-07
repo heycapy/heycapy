@@ -213,7 +213,7 @@ export function TelegramConfigPanel({ config, onChange, disabled }: TelegramConf
             + add
           </TextButton>
         </div>
-        {customError && <p className="text-destructive font-mono text-[11px]">{customError}</p>}
+        {customError && <p className="text-destructive font-ui text-2xs">{customError}</p>}
         <p className={HINT}>
           {config.timeSlots.length} time{config.timeSlots.length === 1 ? "" : "s"} configured
         </p>

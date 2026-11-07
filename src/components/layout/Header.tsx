@@ -55,7 +55,7 @@ function LogoutConfirm({
     >
       <div className="bg-background border-border border-2 p-5">
         <ModalTitle className="mb-1 text-sm">{copy.title}</ModalTitle>
-        <p className="text-muted-foreground mb-4 font-mono text-xs">{copy.body}</p>
+        <p className="text-muted-foreground font-ui mb-4 text-xs">{copy.body}</p>
         <div className="flex gap-2">
           <TextButton onClick={onConfirm} variant="destructive" className="px-2 py-1">
             {copy.action}
@@ -170,7 +170,7 @@ function GlobalMenu({
                 boxShadow: "2px 2px 0 var(--border)",
               }}
             >
-              <div className="text-muted-foreground border-border mb-1 max-w-64 truncate border-b px-3 pt-0.5 pb-1.5 font-mono text-xs">
+              <div className="text-muted-foreground border-border font-ui mb-1 max-w-64 truncate border-b px-3 pt-0.5 pb-1.5 text-xs">
                 {email}
               </div>
               <MenuItem onClick={() => pick(onSettings)} className="gap-2.5 py-2">

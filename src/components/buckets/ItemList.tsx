@@ -64,7 +64,7 @@ export function ItemList({
 
   if (loading || items.length === 0) {
     return (
-      <p className="text-muted-foreground px-4 py-6 text-center font-mono text-xs">
+      <p className="text-muted-foreground font-ui px-4 py-6 text-center text-xs">
         {loading ? "loading..." : emptyText}
       </p>
     );

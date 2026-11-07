@@ -50,7 +50,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       className={`${geistSans.variable} ${geistMono.variable} ${silkscreen.variable} h-full antialiased`}
       suppressHydrationWarning
     >
-      <body className="bg-background text-foreground h-full pr-[env(safe-area-inset-right)] pl-[env(safe-area-inset-left)] font-mono">
+      <body className="bg-background text-foreground font-ui h-full pr-[env(safe-area-inset-right)] pl-[env(safe-area-inset-left)]">
         <ThemeProvider>{children}</ThemeProvider>
       </body>
     </html>

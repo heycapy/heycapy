@@ -187,7 +187,7 @@ export function UsernameField({ username, draft, onDraft, onSaved }: UsernameFie
         </p>
       )}
       {error && (
-        <p role="alert" className="text-destructive font-mono text-xs">
+        <p role="alert" className="text-destructive font-ui text-xs">
           {error}
         </p>
       )}

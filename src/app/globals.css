@@ -28,6 +28,10 @@
 @theme {
   --container-column: 47.5rem;
   --spacing-chat: 27.5rem;
+  --font-ui: var(--font-mono);
+  --font-display: var(--font-pixel), monospace;
+  --text-2xs: 0.6875rem;
+  --text-3xs: 0.625rem;
 }
 
 /* Avatar colours are the same on every theme so everyone sees the drawing as it was made */

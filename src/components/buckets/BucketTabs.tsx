@@ -44,7 +44,7 @@ function PlaceTab({
         aria-describedby={lateHintId}
         data-late={lateHintId ? true : undefined}
         className={cn(
-          "font-pixel flex h-11 items-center px-3 text-xs whitespace-nowrap transition-colors",
+          "font-display flex h-11 items-center px-3 text-xs whitespace-nowrap transition-colors",
           active ? "text-foreground" : "text-muted-foreground hover:text-foreground"
         )}
       >

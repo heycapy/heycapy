@@ -122,7 +122,7 @@ export function ReminderPicker({
               aria-label="custom reminder amount"
               placeholder="3"
               disabled={disabled}
-              className="border-border focus:border-foreground placeholder:text-muted-foreground/50 w-10 border-b bg-transparent py-0.5 text-center font-mono text-base outline-none disabled:opacity-50 sm:text-xs"
+              className="border-border focus:border-foreground placeholder:text-muted-foreground/50 font-ui w-10 border-b bg-transparent py-0.5 text-center text-base outline-none disabled:opacity-50 sm:text-xs"
             />
             <div role="group" aria-label="custom reminder unit" className="flex gap-1">
               {CUSTOM_REMINDER_UNITS.map((u) => (
@@ -151,7 +151,7 @@ export function ReminderPicker({
               cancel
             </TextButton>
           </div>
-          {customError && <p className="text-destructive font-mono text-[11px]">{customError}</p>}
+          {customError && <p className="text-destructive font-ui text-2xs">{customError}</p>}
         </div>
       )}
     </div>

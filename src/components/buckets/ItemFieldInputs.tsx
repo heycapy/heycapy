@@ -48,7 +48,7 @@ export function NumberFieldInput({
         disabled={disabled}
         className={FIELD_INPUT}
       />
-      {errorMsg && <p className="text-destructive font-mono text-[11px]">{errorMsg}</p>}
+      {errorMsg && <p className="text-destructive font-ui text-2xs">{errorMsg}</p>}
     </div>
   );
 }
@@ -71,7 +71,7 @@ export function CurrencyFieldInput({
     <div className="flex flex-col gap-1">
       <div className="flex items-center gap-1">
         {field.currency && (
-          <span className="text-muted-foreground font-mono text-xs">{field.currency}</span>
+          <span className="text-muted-foreground font-ui text-xs">{field.currency}</span>
         )}
         <input
           type="text"
@@ -87,7 +87,7 @@ export function CurrencyFieldInput({
           className={`${FIELD_INPUT} flex-1`}
         />
       </div>
-      {isInvalid && <p className="text-destructive font-mono text-[11px]">invalid amount</p>}
+      {isInvalid && <p className="text-destructive font-ui text-2xs">invalid amount</p>}
     </div>
   );
 }
@@ -204,7 +204,7 @@ export function UrlFieldInput({
         className={FIELD_INPUT}
       />
       {hasError && (
-        <p className="text-destructive font-mono text-[11px]">must be a valid URL (https://...)</p>
+        <p className="text-destructive font-ui text-2xs">must be a valid URL (https://...)</p>
       )}
     </div>
   );

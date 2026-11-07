@@ -51,7 +51,7 @@ export function CapyChatHeader({
         </TextButton>
       )}
 
-      <span className="font-pixel flex-1 truncate pl-1 text-[11px]">{name}</span>
+      <span className="font-display text-2xs flex-1 truncate pl-1">{name}</span>
 
       {!fullscreen && (
         <TextButton

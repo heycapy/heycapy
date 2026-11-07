@@ -35,7 +35,7 @@ export function MembersBar({ members, filter, onFilter, onOpenMembers }: Members
   ];
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 px-4 pb-2 font-mono text-xs">
+    <div className="font-ui flex flex-wrap items-center justify-between gap-x-4 gap-y-1 px-4 pb-2 text-xs">
       <TextButton onClick={onOpenMembers} className="px-1">
         {members.length} people
       </TextButton>

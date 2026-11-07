@@ -223,7 +223,7 @@ export function ItemRow({
               {badges.map((b) => (
                 <span
                   key={b.label}
-                  className="border-border text-muted-foreground border px-1 py-1 font-mono text-[11px] [text-box:trim-both_cap_alphabetic]"
+                  className="border-border text-muted-foreground font-ui text-2xs border px-1 py-1 [text-box:trim-both_cap_alphabetic]"
                 >
                   {b.label}: {b.value}
                 </span>
@@ -231,7 +231,7 @@ export function ItemRow({
             </span>
           )}
           {meta.length > 0 && (
-            <span className="text-muted-foreground mt-0.5 flex flex-wrap items-center gap-x-1 gap-y-0.5 font-mono text-xs *:whitespace-nowrap">
+            <span className="text-muted-foreground font-ui mt-0.5 flex flex-wrap items-center gap-x-1 gap-y-0.5 text-xs *:whitespace-nowrap">
               {meta.map((part, i) => (
                 <span key={part.key} className="flex items-center gap-1">
                   {i > 0 && <span aria-hidden>·</span>}
@@ -241,7 +241,7 @@ export function ItemRow({
             </span>
           )}
           {remindAgain && (
-            <span className="text-foreground/80 mt-0.5 block font-mono text-xs">{remindAgain}</span>
+            <span className="text-foreground/80 font-ui mt-0.5 block text-xs">{remindAgain}</span>
           )}
         </span>
         {showDue && <ItemDue due={due} status={item.status} />}

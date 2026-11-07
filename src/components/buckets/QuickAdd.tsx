@@ -187,12 +187,12 @@ export function QuickAdd({ bucket, inputRef, onAdded, onExpand }: QuickAddProps)
           maxLength={ITEM_TITLE_MAX_LENGTH}
           enterKeyHint="done"
           autoComplete="off"
-          className="placeholder:text-muted-foreground/50 min-w-0 flex-1 bg-transparent py-1 font-mono text-base outline-none sm:text-sm"
+          className="placeholder:text-muted-foreground/50 font-ui min-w-0 flex-1 bg-transparent py-1 text-base outline-none sm:text-sm"
         />
         {hint.length > 0 && (
           <span
             data-testid="quick-add-hint"
-            className="max-w-24 shrink-0 truncate font-mono text-[11px] text-(--accent) sm:max-w-[45%]"
+            className="font-ui text-2xs max-w-24 shrink-0 truncate text-(--accent) sm:max-w-[45%]"
           >
             → {hint.join(" · ")}
           </span>

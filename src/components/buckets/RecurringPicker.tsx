@@ -58,7 +58,7 @@ export function RecurringPicker({
       {recurring?.enabled && (
         <div className="flex flex-col gap-2">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-muted-foreground font-mono text-xs">every</span>
+            <span className="text-muted-foreground font-ui text-xs">every</span>
             <input
               type="text"
               inputMode="numeric"
@@ -78,7 +78,7 @@ export function RecurringPicker({
                 }
               }}
               disabled={disabled}
-              className="border-border w-10 border-b bg-transparent py-0.5 text-center font-mono text-xs outline-none disabled:opacity-50"
+              className="border-border font-ui w-10 border-b bg-transparent py-0.5 text-center text-xs outline-none disabled:opacity-50"
             />
             <div className="flex flex-wrap gap-1">
               {RECURRING_FREQUENCIES.map((f) => (
@@ -146,7 +146,7 @@ export function RecurringPicker({
           </p>
           {showEndDate ? (
             <div className="flex items-center gap-2">
-              <span className="text-muted-foreground font-mono text-xs">ends</span>
+              <span className="text-muted-foreground font-ui text-xs">ends</span>
               <DatePicker
                 value={recurring.endDate ?? ""}
                 onChange={(v) => onChange({ ...recurring, endDate: v || null })}
@@ -157,7 +157,7 @@ export function RecurringPicker({
                   setShowEndDate(false);
                   onChange({ ...recurring, endDate: null });
                 }}
-                className="text-muted-foreground hover:text-foreground font-mono text-xs transition-colors"
+                className="text-muted-foreground hover:text-foreground font-ui text-xs transition-colors"
               >
                 ×
               </button>
@@ -165,7 +165,7 @@ export function RecurringPicker({
           ) : (
             <button
               onClick={() => setShowEndDate(true)}
-              className="text-muted-foreground hover:text-foreground w-fit font-mono text-xs transition-colors"
+              className="text-muted-foreground hover:text-foreground font-ui w-fit text-xs transition-colors"
             >
               + set end date
             </button>

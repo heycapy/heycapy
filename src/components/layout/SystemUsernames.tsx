@@ -66,7 +66,7 @@ export function SystemUsernames() {
         <>
           <div className="flex flex-col gap-0.5">
             <p className={cn(MUTED, "break-all")}>{user.email}</p>
-            <p className="font-mono text-xs break-all" data-testid="admin-username">
+            <p className="font-ui text-xs break-all" data-testid="admin-username">
               {user.username ?? "no username yet"}
             </p>
             <p className={MUTED}>{allowanceLine(user.allowance)}</p>
@@ -104,7 +104,7 @@ export function SystemUsernames() {
           </p>
 
           <div className="flex flex-wrap items-center gap-3">
-            <span className="font-mono text-xs" data-testid="admin-username-bonus">
+            <span className="font-ui text-xs" data-testid="admin-username-bonus">
               {user.allowance.bonus} bonus
             </span>
             <TextButton
@@ -140,7 +140,7 @@ export function SystemUsernames() {
           )}
         </>
       )}
-      {error && <p className="text-destructive font-mono text-xs">{error}</p>}
+      {error && <p className="text-destructive font-ui text-xs">{error}</p>}
     </div>
   );
 }

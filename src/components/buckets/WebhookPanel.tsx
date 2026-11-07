@@ -128,10 +128,10 @@ export function WebhookPanel({ bucket }: WebhookPanelProps) {
         <label className={LABEL}>endpoint url</label>
         <span className={HINT}>POST to this URL to create an item in this bucket</span>
         <div className="border-border flex items-center border">
-          <code className="text-muted-foreground flex-1 overflow-hidden bg-transparent px-2 py-1 font-mono text-[11px] text-ellipsis">
+          <code className="text-muted-foreground text-2xs flex-1 overflow-hidden bg-transparent px-2 py-1 font-mono text-ellipsis">
             {webhookUrl}
           </code>
-          <TextButton onClick={copyUrl} className="shrink-0 px-2 text-[11px]">
+          <TextButton onClick={copyUrl} className="text-2xs shrink-0 px-2">
             {urlCopied ? "copied" : "copy"}
           </TextButton>
         </div>
@@ -143,7 +143,7 @@ export function WebhookPanel({ bucket }: WebhookPanelProps) {
           send as Authorization: Bearer {"<key>"} — rotate to invalidate the old key
         </span>
         <div className="border-border flex items-center border">
-          <code className="text-muted-foreground flex-1 overflow-hidden bg-transparent px-2 py-1 font-mono text-[11px] text-ellipsis">
+          <code className="text-muted-foreground text-2xs flex-1 overflow-hidden bg-transparent px-2 py-1 font-mono text-ellipsis">
             {key
               ? revealed
                 ? key
@@ -159,7 +159,7 @@ export function WebhookPanel({ bucket }: WebhookPanelProps) {
             aria-label={revealed ? "hide key" : "show key"}
             className="px-2 disabled:opacity-30"
           />
-          <TextButton onClick={copyKey} disabled={!key} className="shrink-0 px-2 text-[11px]">
+          <TextButton onClick={copyKey} disabled={!key} className="text-2xs shrink-0 px-2">
             {copied ? "copied" : "copy"}
           </TextButton>
         </div>
@@ -177,7 +177,7 @@ export function WebhookPanel({ bucket }: WebhookPanelProps) {
         <label className={LABEL}>test with curl</label>
         <span className={HINT}>paste this in your terminal to create a test item</span>
         <div className="border-border relative border">
-          <pre className="text-muted-foreground overflow-x-auto bg-transparent p-2 font-mono text-[11px]">
+          <pre className="text-muted-foreground text-2xs overflow-x-auto bg-transparent p-2 font-mono">
             {key
               ? buildCurlCommand(webhookUrl, revealed ? key : WEBHOOK_KEY_MASK, schema)
               : buildExamplePayload(schema)}
@@ -192,7 +192,7 @@ export function WebhookPanel({ bucket }: WebhookPanelProps) {
                     setTimeout(() => setCurlCopied(false), 2000);
                   });
               }}
-              className="absolute right-1.5 bottom-1.5 text-[11px]"
+              className="text-2xs absolute right-1.5 bottom-1.5"
             >
               {curlCopied ? "copied" : "copy"}
             </TextButton>

@@ -47,7 +47,7 @@ export function RemindersOffNotice({
   return (
     <div
       role="status"
-      className="border-border text-warning mx-4 mb-3 flex items-center justify-between gap-3 border border-dashed px-3 py-2 font-mono text-xs"
+      className="border-border text-warning font-ui mx-4 mb-3 flex items-center justify-between gap-3 border border-dashed px-3 py-2 text-xs"
     >
       <span>⚠ this bucket won&apos;t send you reminders — none of your channels for it work</span>
       <TextButton onClick={onSetUp} className="shrink-0">

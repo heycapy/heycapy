@@ -100,11 +100,9 @@ export function ChatSessionList({
 
       <div className="flex flex-1 flex-col overflow-y-auto">
         {loading ? (
-          <p className="text-muted-foreground px-4 py-6 text-center font-mono text-xs">
-            loading...
-          </p>
+          <p className="text-muted-foreground font-ui px-4 py-6 text-center text-xs">loading...</p>
         ) : sessions.length === 0 ? (
-          <p className="text-muted-foreground px-4 py-6 text-center font-mono text-xs">
+          <p className="text-muted-foreground font-ui px-4 py-6 text-center text-xs">
             no history yet
           </p>
         ) : (
@@ -116,8 +114,8 @@ export function ChatSessionList({
                 className={cn("flex items-center gap-3 px-4 py-3", s.id === activeId && "bg-muted")}
               >
                 <div className="min-w-0 flex-1">
-                  <p className="truncate font-mono text-xs">{s.title}</p>
-                  <p className="text-muted-foreground mt-0.5 font-mono text-xs">
+                  <p className="font-ui truncate text-xs">{s.title}</p>
+                  <p className="text-muted-foreground font-ui mt-0.5 text-xs">
                     {relativeDate(s.updatedAt)}
                   </p>
                 </div>

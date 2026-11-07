@@ -147,9 +147,9 @@ export const CURRENCY_OPTIONS = [
 
 export type CurrencySymbol = (typeof CURRENCY_OPTIONS)[number]["value"];
 
-export const FIELD_LABEL = "text-muted-foreground font-mono text-xs";
+export const FIELD_LABEL = "text-muted-foreground font-ui text-xs";
 export const FIELD_INPUT =
-  "border-b border-border w-full bg-transparent py-1.5 font-mono text-xs outline-none placeholder:text-muted-foreground/50 focus:border-foreground disabled:opacity-50";
+  "border-b border-border w-full bg-transparent py-1.5 font-ui text-xs outline-none placeholder:text-muted-foreground/50 focus:border-foreground disabled:opacity-50";
 
 export const RECURRENCE_MODE_OPTIONS: { value: RecurrenceMode; label: string; hint: string }[] = [
   {

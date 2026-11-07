@@ -154,7 +154,7 @@ export function NotificationsTab({
               />
             </div>
           </div>
-          <p className="text-muted-foreground -mt-1 font-mono text-[11px]">
+          <p className="text-muted-foreground font-ui text-2xs -mt-1">
             port 587 = standard (gmail) · port 465 = ssl
           </p>
           <div className="flex flex-col gap-1.5">

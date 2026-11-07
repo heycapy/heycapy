@@ -247,7 +247,7 @@ export function SettingsSheet({ open, initialTab, onClose }: SettingsSheetProps)
 
       <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-4 py-4">
         {!loaded ? (
-          <p className="text-muted-foreground font-mono text-xs">loading...</p>
+          <p className="text-muted-foreground font-ui text-xs">loading...</p>
         ) : (
           <>
             {tab === "appearance" && (
@@ -326,7 +326,7 @@ export function SettingsSheet({ open, initialTab, onClose }: SettingsSheetProps)
               />
             )}
             {tab === "system" && adminUser && <SystemTab />}
-            {error && <span className="text-destructive font-mono text-xs">{error}</span>}
+            {error && <span className="text-destructive font-ui text-xs">{error}</span>}
           </>
         )}
       </div>

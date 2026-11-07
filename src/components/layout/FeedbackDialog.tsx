@@ -58,12 +58,12 @@ export function FeedbackDialog({ open, onClose }: FeedbackDialogProps) {
         <ModalHeader title="feedback" onClose={close} />
         <div className="flex flex-col gap-3 px-4 py-4">
           {sent ? (
-            <p role="status" className="font-mono text-xs">
+            <p role="status" className="font-ui text-xs">
               got it. thanks.
             </p>
           ) : (
             <>
-              <p className="text-muted-foreground font-mono text-[11px] leading-tight">
+              <p className="text-muted-foreground font-ui text-2xs leading-tight">
                 something broke, or something you&apos;d like? the page you&apos;re on, the app
                 version and your browser go with it, and the reply comes to your email.
               </p>
@@ -82,10 +82,10 @@ export function FeedbackDialog({ open, onClose }: FeedbackDialogProps) {
                 rows={4}
                 autoFocus
                 disabled={pending}
-                className="border-border focus:border-foreground placeholder:text-muted-foreground/50 w-full resize-none border-b bg-transparent py-1.5 font-mono text-sm leading-relaxed outline-none disabled:opacity-50"
+                className="border-border focus:border-foreground placeholder:text-muted-foreground/50 font-ui w-full resize-none border-b bg-transparent py-1.5 text-sm leading-relaxed outline-none disabled:opacity-50"
               />
               {error && (
-                <p role="alert" className="text-destructive font-mono text-xs">
+                <p role="alert" className="text-destructive font-ui text-xs">
                   {error}
                 </p>
               )}

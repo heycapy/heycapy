@@ -193,19 +193,16 @@ export function ItemTitleField({
         </div>
       )}
       {showRequired && !rowIcon && (
-        <p className="text-destructive font-mono text-[11px]">title is required</p>
+        <p className="text-destructive font-ui text-2xs">title is required</p>
       )}
       {error && (
-        <p
-          role="alert"
-          className={cn("text-destructive font-mono text-[11px]", rowIcon && "pb-2 pl-6")}
-        >
+        <p role="alert" className={cn("text-destructive font-ui text-2xs", rowIcon && "pb-2 pl-6")}>
           {error}
         </p>
       )}
       {typedDate && !rowIcon && (
         <div className="flex items-center gap-2">
-          <span className="border-primary text-foreground border px-2 py-1 font-mono text-xs">
+          <span className="border-primary text-foreground font-ui border px-2 py-1 text-xs">
             due {describeDeadline(typedDate.deadline)}
           </span>
           <TextButton onClick={onDismissDate} aria-label="not a date" className="px-1">

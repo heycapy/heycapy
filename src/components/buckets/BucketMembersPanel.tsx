@@ -107,7 +107,7 @@ export function BucketMembersPanel({
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-2">
-        <p className="text-muted-foreground font-mono text-xs">
+        <p className="text-muted-foreground font-ui text-xs">
           people in this bucket{members ? ` (${members.length}/${BUCKET_MEMBERS_MAX})` : ""}
         </p>
         <ul className="border-border divide-border flex flex-col divide-y border">
@@ -117,12 +117,10 @@ export function BucketMembersPanel({
                 <div className="flex min-w-0 items-center gap-2.5">
                   <PersonAvatar userId={member.userId} avatar={member.avatar} size={32} />
                   <div className="min-w-0">
-                    <p className="truncate font-mono text-xs">{memberName(member)}</p>
-                    <p className="text-muted-foreground truncate font-mono text-[11px]">
-                      {member.role}
-                    </p>
+                    <p className="font-ui truncate text-xs">{memberName(member)}</p>
+                    <p className="text-muted-foreground font-ui text-2xs truncate">{member.role}</p>
                     {showZones && (
-                      <p className="text-muted-foreground truncate font-mono text-[11px]">
+                      <p className="text-muted-foreground font-ui text-2xs truncate">
                         {whereTheyAre(member, you, now)}
                       </p>
                     )}
@@ -169,10 +167,10 @@ export function BucketMembersPanel({
         </ul>
       </div>
 
-      {error && <span className="text-destructive font-mono text-xs">{error}</span>}
+      {error && <span className="text-destructive font-ui text-xs">{error}</span>}
 
       {bucket.isOwner && members !== null && members.length > 1 && (
-        <p className="text-muted-foreground font-mono text-[11px] leading-tight">
+        <p className="text-muted-foreground font-ui text-2xs leading-tight">
           to leave, make someone else the owner first
         </p>
       )}

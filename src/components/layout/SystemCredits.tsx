@@ -92,7 +92,7 @@ export function SystemCredits() {
         <>
           <div className="flex flex-col gap-0.5">
             <p className={cn(MUTED, "break-all")}>{credits.email}</p>
-            <p className="font-mono text-xs">{credits.balance} credits</p>
+            <p className="font-ui text-xs">{credits.balance} credits</p>
             <p className={MUTED}>
               {credits.totals.grant + credits.totals.reward + credits.totals.purchase} granted ·{" "}
               {-(credits.totals.message + credits.totals.refund)} used · {credits.totals.refund}{" "}
@@ -157,7 +157,7 @@ export function SystemCredits() {
                     </span>
                   </span>
                   {(row.note || row.actor) && (
-                    <span className="truncate text-[11px]" title={activityDetail(row)}>
+                    <span className="text-2xs truncate" title={activityDetail(row)}>
                       {activityDetail(row)}
                     </span>
                   )}
@@ -167,7 +167,7 @@ export function SystemCredits() {
           )}
         </>
       )}
-      {error && <p className="text-destructive font-mono text-xs">{error}</p>}
+      {error && <p className="text-destructive font-ui text-xs">{error}</p>}
     </div>
   );
 }

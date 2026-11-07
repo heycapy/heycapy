@@ -173,15 +173,15 @@ export const ChatInputBar = forwardRef<ChatInputBarHandle, Props>(function ChatI
             <div className="flex flex-1 items-center gap-2">
               {recording ? (
                 <>
-                  <span className="text-primary font-pixel animate-[pulse_0.8s_ease-in-out_infinite] text-xs">
+                  <span className="text-primary font-display animate-[pulse_0.8s_ease-in-out_infinite] text-xs">
                     ●
                   </span>
-                  <span className="text-foreground font-pixel text-xs">
+                  <span className="text-foreground font-display text-xs">
                     {name} listening... {formatTime(recSeconds)}
                   </span>
                 </>
               ) : (
-                <span className="text-muted-foreground font-pixel animate-pulse text-xs">
+                <span className="text-muted-foreground font-display animate-pulse text-xs">
                   {name}&apos;s jotting it down...
                 </span>
               )}
@@ -190,7 +190,7 @@ export const ChatInputBar = forwardRef<ChatInputBarHandle, Props>(function ChatI
             {recording && (
               <button
                 onClick={() => mediaRecorderRef.current?.stop()}
-                className="border-primary text-foreground font-pixel shrink-0 border px-1.5 py-0.5 text-[11px] transition-opacity hover:opacity-70"
+                className="border-primary text-foreground font-display text-2xs shrink-0 border px-1.5 py-0.5 transition-opacity hover:opacity-70"
               >
                 ■ stop
               </button>
@@ -206,7 +206,7 @@ export const ChatInputBar = forwardRef<ChatInputBarHandle, Props>(function ChatI
               placeholder={`ask ${name}...`}
               rows={1}
               disabled={streaming}
-              className="placeholder:text-muted-foreground flex-1 resize-none bg-transparent font-mono text-xs outline-none disabled:opacity-50 md:mb-0.5 md:py-[5px]"
+              className="placeholder:text-muted-foreground font-ui flex-1 resize-none bg-transparent text-xs outline-none disabled:opacity-50 md:mb-0.5 md:py-[5px]"
               style={{ maxHeight: 80 }}
               onInput={(e) => {
                 const el = e.currentTarget;
@@ -226,7 +226,7 @@ export const ChatInputBar = forwardRef<ChatInputBarHandle, Props>(function ChatI
             {streaming ? (
               <button
                 onClick={onStop}
-                className="text-destructive border-destructive font-pixel mb-0.5 shrink-0 border px-2.5 py-2.5 text-[11px] transition-opacity hover:opacity-70 md:px-1.5 md:py-0.5 md:text-[11px]"
+                className="text-destructive border-destructive font-display text-2xs md:text-2xs mb-0.5 shrink-0 border px-2.5 py-2.5 transition-opacity hover:opacity-70 md:px-1.5 md:py-0.5"
                 aria-label="Stop"
               >
                 stop

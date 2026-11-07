@@ -28,11 +28,11 @@ export function GuidePanel({ open, guide, onClose, onHint, onHiddenChange }: Gui
       className={cn(ACCENT_BUTTONS)}
     >
       <div className="flex flex-col gap-1 border-b px-4 py-3">
-        <p className="text-muted-foreground font-mono text-[11px] leading-snug">
+        <p className="text-muted-foreground font-ui text-2xs leading-snug">
           a few things to try. each one ticks itself once you&apos;ve done it
           {guide.paysCredits && " and gives you capy credits"}.
         </p>
-        <div className="flex items-center justify-between gap-3 font-mono text-xs">
+        <div className="font-ui flex items-center justify-between gap-3 text-xs">
           <p className="text-foreground">
             {doneCount} of {guide.tasks.length} done
           </p>
@@ -52,7 +52,7 @@ export function GuidePanel({ open, guide, onClose, onHint, onHiddenChange }: Gui
               key={task.key}
               aria-label={task.title}
               data-done={task.done}
-              className="flex min-h-9 items-center gap-3 font-mono text-xs"
+              className="font-ui flex min-h-9 items-center gap-3 text-xs"
             >
               <span
                 aria-hidden
@@ -83,7 +83,7 @@ export function GuidePanel({ open, guide, onClose, onHint, onHiddenChange }: Gui
         })}
       </ul>
       {doneCount < guide.tasks.length && (
-        <div className="flex items-center justify-between gap-3 border-t px-4 py-2 font-mono text-[11px]">
+        <div className="font-ui text-2xs flex items-center justify-between gap-3 border-t px-4 py-2">
           <p className="text-muted-foreground">
             {guide.hidden ? "only in your menu for now" : "it stays in your menu"}
           </p>

@@ -115,7 +115,7 @@ export function MenuBody({
         <div className="min-w-0 flex-1">
           <p className="text-foreground truncate text-sm">{item.title}</p>
           {repeat && (
-            <p className="text-muted-foreground mt-0.5 font-mono text-[11px]">
+            <p className="text-muted-foreground font-ui text-2xs mt-0.5">
               ↺ {repeat} · moves only this time
             </p>
           )}
@@ -130,7 +130,7 @@ export function MenuBody({
           <TextButton onClick={() => setView("main")} className="py-1.5">
             back
           </TextButton>
-          <span className="text-muted-foreground font-mono text-xs">{VIEW_LABEL[view]}</span>
+          <span className="text-muted-foreground font-ui text-xs">{VIEW_LABEL[view]}</span>
         </div>
       )}
 

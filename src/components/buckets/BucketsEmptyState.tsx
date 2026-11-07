@@ -37,7 +37,7 @@ export function BucketsEmptyState({ hasArchived, hasTrash }: BucketsEmptyStatePr
       <Banners />
       <div className="flex flex-1 flex-col items-center justify-center gap-5 p-8 pb-[calc(2rem+env(safe-area-inset-bottom))]">
         <Sprite id="capy-idle-blink" size={96} />
-        <div className="text-center font-mono">
+        <div className="font-ui text-center">
           <p className="text-sm">no buckets yet.</p>
           <p className="text-muted-foreground mt-1 text-xs">
             create your first bucket to get started.

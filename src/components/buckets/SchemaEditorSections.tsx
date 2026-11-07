@@ -12,10 +12,10 @@ import { FIELD_LABEL_MAX_LENGTH } from "@/constants";
 import { cn } from "@/lib/utils";
 import { IconButton } from "@/components/ui/IconButton";
 
-export const SCHEMA_LABEL = "text-muted-foreground font-mono text-xs";
-export const SCHEMA_HINT = "text-muted-foreground font-mono text-[11px] leading-tight";
+export const SCHEMA_LABEL = "text-muted-foreground font-ui text-xs";
+export const SCHEMA_HINT = "text-muted-foreground font-ui text-2xs leading-tight";
 const INPUT =
-  "border-b border-border bg-transparent py-1 font-mono text-xs outline-none placeholder:text-muted-foreground/40 focus:border-foreground disabled:opacity-50";
+  "border-b border-border bg-transparent py-1 font-ui text-xs outline-none placeholder:text-muted-foreground/40 focus:border-foreground disabled:opacity-50";
 
 const FIELD_TYPE_OPTIONS = FIELD_TYPES.map((t) => ({ value: t, label: t }));
 
@@ -79,7 +79,7 @@ function FieldRow({
           {field.label.length > 0 && (
             <p
               className={cn(
-                "mt-0.5 text-right font-mono text-[11px] transition-colors",
+                "font-ui text-2xs mt-0.5 text-right transition-colors",
                 charCountColor(field.label.length, FIELD_LABEL_MAX_LENGTH)
               )}
             >
@@ -96,7 +96,7 @@ function FieldRow({
           className="disabled:opacity-40"
         />
       </div>
-      {hasError && <p className="text-destructive font-mono text-[11px]">field name is required</p>}
+      {hasError && <p className="text-destructive font-ui text-2xs">field name is required</p>}
 
       <div className="flex flex-col gap-1.5">
         <span className={SCHEMA_HINT}>type</span>

@@ -21,16 +21,16 @@ export default async function JoinPage({ params }: { params: Promise<{ code: str
       <div className="flex w-full max-w-sm flex-col items-center gap-6 text-center">
         <div className="flex flex-col items-center gap-2">
           <Sprite id="capy-idle-blink" size={96} />
-          <h1 className="font-pixel text-sm">heycapy</h1>
+          <h1 className="font-display text-sm">heycapy</h1>
         </div>
-        <p className="font-mono text-xs">
+        <p className="font-ui text-xs">
           someone invited you to share a bucket
           <BetaTag feature="sharing" />
         </p>
         {session ? (
           <ConfirmJoin code={code} />
         ) : (
-          <a href={loginHref} className="text-foreground font-mono text-sm">
+          <a href={loginHref} className="text-foreground font-ui text-sm">
             <span className="opacity-50">[</span>sign in to join
             <span className="opacity-50">]</span>
           </a>

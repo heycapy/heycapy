@@ -123,7 +123,7 @@ type ModalTitleProps = { className?: string; children: ReactNode };
 
 export function ModalTitle({ className, children }: ModalTitleProps) {
   return (
-    <Dialog.Title className={cn("font-pixel min-w-0 truncate text-xs", className)}>
+    <Dialog.Title className={cn("font-display min-w-0 truncate text-xs", className)}>
       {children}
     </Dialog.Title>
   );
@@ -141,7 +141,7 @@ export function ModalHeader({ title, onClose, plain }: ModalHeaderProps) {
           : "bg-foreground text-background px-3 py-1.5"
       )}
     >
-      <ModalTitle className={cn(plain && "text-[11px]")}>{title}</ModalTitle>
+      <ModalTitle className={cn(plain && "text-2xs")}>{title}</ModalTitle>
       <TextButton
         type="button"
         variant={plain ? "default" : "inverted"}

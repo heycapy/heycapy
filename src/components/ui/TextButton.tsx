@@ -23,7 +23,7 @@ export function TextButton({
     <button
       data-variant={variant}
       className={cn(
-        "inline-flex items-center py-1 font-mono text-xs transition-colors disabled:opacity-25",
+        "font-ui inline-flex items-center py-1 text-xs transition-colors disabled:opacity-25",
         variant === "default" && "text-muted-foreground hover:text-foreground",
         variant === "inverted" && "opacity-60 transition-opacity hover:opacity-100",
         variant === "destructive" && "text-muted-foreground hover:text-destructive",

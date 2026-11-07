@@ -12,7 +12,7 @@ type ConfirmRowProps = {
 export function ConfirmRow({ text, onConfirm, onCancel, disabled, className }: ConfirmRowProps) {
   return (
     <div className={cn("flex flex-wrap items-center gap-2", className)}>
-      <span className="text-destructive font-mono text-xs">{text}</span>
+      <span className="text-destructive font-ui text-xs">{text}</span>
       <TextButton type="button" variant="destructive" onClick={onConfirm} disabled={disabled}>
         confirm
       </TextButton>

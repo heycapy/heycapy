@@ -49,16 +49,14 @@ export function DatePicker({ value, onChange, disabled }: DatePickerProps) {
 
           {value && (
             <div className="border-border mt-3 flex items-center justify-between border-t pt-2.5">
-              <span className="text-muted-foreground font-mono text-xs">
-                {formatDisplay(value)}
-              </span>
+              <span className="text-muted-foreground font-ui text-xs">{formatDisplay(value)}</span>
               <button
                 type="button"
                 onClick={() => {
                   onChange("");
                   setOpen(false);
                 }}
-                className="text-muted-foreground hover:text-destructive flex items-center gap-1 py-1 font-mono text-xs transition-colors"
+                className="text-muted-foreground hover:text-destructive font-ui flex items-center gap-1 py-1 text-xs transition-colors"
               >
                 <Icon name="close" /> clear
               </button>
@@ -77,7 +75,7 @@ export function DatePicker({ value, onChange, disabled }: DatePickerProps) {
         onClick={() => !disabled && toggle()}
         disabled={disabled}
         className={cn(
-          "flex w-full items-center justify-between gap-2 border-b py-1.5 font-mono text-sm transition-all active:translate-y-[1px] disabled:opacity-50",
+          "font-ui flex w-full items-center justify-between gap-2 border-b py-1.5 text-sm transition-all active:translate-y-[1px] disabled:opacity-50",
           value
             ? "border-foreground text-foreground"
             : "border-border text-muted-foreground hover:border-foreground/50 hover:text-foreground"

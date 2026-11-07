@@ -118,7 +118,7 @@ export function ItemReminderInfo({ itemId }: { itemId: number }) {
   const route = goesTo(info);
 
   return (
-    <section aria-label="reminders" className="flex flex-col gap-3 font-mono text-xs">
+    <section aria-label="reminders" className="font-ui flex flex-col gap-3 text-xs">
       <div>
         <p className="text-muted-foreground">status</p>
         {!info.remindAgain && <p>{statusLine(info)}</p>}

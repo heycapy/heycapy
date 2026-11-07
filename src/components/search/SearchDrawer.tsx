@@ -120,7 +120,7 @@ function SearchBody({ onClose }: { onClose: () => void }) {
                 placeholder="search all items…"
                 aria-label="search all items"
                 maxLength={200}
-                className="placeholder:text-muted-foreground/50 min-w-0 flex-1 bg-transparent py-1 font-mono text-base outline-none sm:text-sm"
+                className="placeholder:text-muted-foreground/50 font-ui min-w-0 flex-1 bg-transparent py-1 text-base outline-none sm:text-sm"
               />
               {query ? (
                 <IconButton

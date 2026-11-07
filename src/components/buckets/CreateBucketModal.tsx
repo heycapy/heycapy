@@ -97,7 +97,7 @@ export function CreateBucketModal({ templates }: CreateBucketModalProps) {
             </div>
 
             <div className="max-h-[55vh] overflow-y-auto">
-              {error && <p className="text-destructive px-4 pt-3 font-mono text-xs">{error}</p>}
+              {error && <p className="text-destructive font-ui px-4 pt-3 text-xs">{error}</p>}
 
               <div className="grid grid-cols-2 gap-1.5 p-2 sm:gap-2 sm:p-3">
                 {templates.map((t) => (
@@ -110,9 +110,9 @@ export function CreateBucketModal({ templates }: CreateBucketModalProps) {
                       name={TEMPLATE_ICONS[t.name] ?? "package"}
                       className="text-muted-foreground"
                     />
-                    <span className="font-pixel truncate text-xs sm:text-xs">{t.name}</span>
+                    <span className="font-display truncate text-xs sm:text-xs">{t.name}</span>
                     {t.description && (
-                      <span className="text-muted-foreground line-clamp-2 text-[11px] leading-snug sm:text-xs">
+                      <span className="text-muted-foreground text-2xs line-clamp-2 leading-snug sm:text-xs">
                         {t.description}
                       </span>
                     )}
@@ -161,7 +161,7 @@ export function CreateBucketModal({ templates }: CreateBucketModalProps) {
               {name.length > 0 && (
                 <p
                   className={cn(
-                    "mt-0.5 text-right font-mono text-[11px] transition-colors",
+                    "font-ui text-2xs mt-0.5 text-right transition-colors",
                     charCountColor(name.length, BUCKET_NAME_MAX_LENGTH)
                   )}
                 >

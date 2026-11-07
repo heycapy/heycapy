@@ -39,7 +39,7 @@ export function BucketsFooter({
     >
       <div className="max-w-column relative mx-auto flex w-full items-center gap-2 px-2.5 sm:px-4">
         {!bucket ? (
-          <p className="text-muted-foreground min-w-0 flex-1 pl-1 font-mono text-xs">
+          <p className="text-muted-foreground font-ui min-w-0 flex-1 pl-1 text-xs">
             open a bucket to add to it
           </p>
         ) : canAdd ? (

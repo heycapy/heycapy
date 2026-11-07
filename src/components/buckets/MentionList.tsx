@@ -28,7 +28,7 @@ export function MentionList({ options, highlighted, onPick, onHover }: MentionLi
           }}
           onPointerMove={() => onHover(index)}
           className={cn(
-            "flex cursor-pointer items-center px-3 py-1.5 font-mono text-xs",
+            "font-ui flex cursor-pointer items-center px-3 py-1.5 text-xs",
             index === highlighted ? "bg-foreground text-background" : "text-foreground"
           )}
         >
