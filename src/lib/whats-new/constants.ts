@@ -4,6 +4,23 @@ export type Release = { version: string; notes: ReleaseNote[] };
 
 export const RELEASES: [Release, ...Release[]] = [
   {
+    version: "0.11.0",
+    notes: [
+      {
+        title: "ticking feels right",
+        text: "the box pops the moment you tap it, with a little sound. pick chime, sparkle, success, harp or off in tweaks › appearance.",
+      },
+      {
+        title: "bigger text, less motion",
+        text: "tweaks › appearance has a text size and a reduce motion switch that turns off every animation.",
+      },
+      {
+        title: "quieter toasts",
+        text: "one small line above the add bar, never more than three, and done items stay in new buckets instead of vanishing.",
+      },
+    ],
+  },
+  {
     version: "0.10.0",
     notes: [
       {
