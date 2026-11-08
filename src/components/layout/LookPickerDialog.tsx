@@ -1,7 +1,7 @@
 "use client";
 
 import { useOptimistic, useTransition } from "react";
-import { toast } from "sonner";
+import { notify } from "@/components/ui/notify";
 import { Modal, ModalHeader } from "@/components/ui/Modal";
 import { OptionGroup } from "@/components/ui/OptionGroup";
 import { TextButton } from "@/components/ui/TextButton";
@@ -26,7 +26,7 @@ export function LookPickerDialog({ open, onClose }: LookPickerDialogProps) {
     startTransition(async () => {
       setShown(next);
       const result = await setLookAction(next);
-      if (!result.ok) toast.error(result.error);
+      if (!result.ok) notify.error(result.error);
     });
   }
 

@@ -62,10 +62,15 @@ test('ticking plays the picked sound, unticking and "off" stay quiet', async ({ 
   await page.addInitScript(() => {
     const started: number[] = [];
     Object.assign(window, { tickNotes: started });
-    const create = AudioContext.prototype.createOscillator;
+    const tone = AudioContext.prototype.createOscillator;
+    const pluck = AudioContext.prototype.createBufferSource;
     AudioContext.prototype.createOscillator = function (this: AudioContext) {
       started.push(Date.now());
-      return create.call(this);
+      return tone.call(this);
+    };
+    AudioContext.prototype.createBufferSource = function (this: AudioContext) {
+      started.push(Date.now());
+      return pluck.call(this);
     };
   });
   const notes = () =>
@@ -79,10 +84,10 @@ test('ticking plays the picked sound, unticking and "off" stay quiet', async ({ 
 
   await tick.click();
   await expect(tick).toBeChecked();
-  expect(await notes()).toBe(1);
+  expect(await notes()).toBe(2);
   await tick.click();
   await expect(tick).not.toBeChecked();
-  expect(await notes()).toBe(1);
+  expect(await notes()).toBe(2);
 
   const tweaks = page.getByRole("dialog", { name: "tweaks" });
   const sound = field(tweaks, "tick sound");
@@ -92,20 +97,20 @@ test('ticking plays the picked sound, unticking and "off" stay quiet', async ({ 
   }
 
   await openTweaks();
-  await option(sound, "chime").click();
-  await expect.poll(notes).toBe(3);
+  await option(sound, "harp").click();
+  await expect.poll(notes).toBe(6);
   await option(sound, "off").click();
   await expectSelected(option(sound, "off"));
   await page.keyboard.press("Escape");
   await tick.click();
   await expect(tick).toBeChecked();
-  expect(await notes()).toBe(3);
+  expect(await notes()).toBe(6);
 
   await page.reload();
   await openTweaks();
   await expectSelected(option(sound, "off"));
-  await option(sound, "drop").click();
-  await expectSelected(option(sound, "drop"));
+  await option(sound, "chime").click();
+  await expectSelected(option(sound, "chime"));
 });
 
 test("a read-only bucket's tick box can't be pressed", async ({ page }) => {

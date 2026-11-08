@@ -4,7 +4,9 @@ import {
   ITEM_STATUS,
   LOOK,
   LOOKS,
-  TICK_SOUND,
+  DEFAULT_TICK_SOUND,
+  TEXT_SIZE,
+  TEXT_SIZES,
   TICK_SOUNDS,
 } from "@/constants";
 import {
@@ -97,7 +99,9 @@ export const userSettings = sqliteTable("user_settings", {
     .default("capy"),
   look: text("look", { enum: LOOKS }).notNull().default(LOOK.original),
   controlSize: text("control_size", { enum: CONTROL_SIZES }).notNull().default(CONTROL_SIZE.medium),
-  tickSound: text("tick_sound", { enum: TICK_SOUNDS }).notNull().default(TICK_SOUND.drop),
+  tickSound: text("tick_sound", { enum: TICK_SOUNDS }).notNull().default(DEFAULT_TICK_SOUND),
+  reduceMotion: integer("reduce_motion", { mode: "boolean" }).notNull().default(false),
+  textSize: text("text_size", { enum: TEXT_SIZES }).notNull().default(TEXT_SIZE.default),
   timezone: text("timezone").notNull().default("UTC"),
   personalityName: text("personality_name").notNull().default("Capy"),
   personalityTone: text("personality_tone", {

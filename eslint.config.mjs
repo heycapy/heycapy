@@ -35,6 +35,11 @@ const eslintConfig = defineConfig([
               message:
                 "Use <Icon name> from @/components/ui/Icon; icon sets live in ui/icon-sets/.",
             },
+            {
+              group: ["sonner"],
+              message:
+                "Use notify from @/components/ui/notify so every toast looks and behaves the same.",
+            },
           ],
         },
       ],
@@ -42,6 +47,10 @@ const eslintConfig = defineConfig([
   },
   {
     files: ["src/components/ui/icon-sets/*.ts"],
+    rules: { "no-restricted-imports": "off" },
+  },
+  {
+    files: ["src/components/ui/notify.tsx", "src/components/providers/ThemeProvider.tsx"],
     rules: { "no-restricted-imports": "off" },
   },
 ]);

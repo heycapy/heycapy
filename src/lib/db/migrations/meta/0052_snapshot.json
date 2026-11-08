@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "e3053c40-042d-4013-b182-bca6559a9d43",
+  "id": "2fec3986-4e0b-4e5b-9a5d-c0d5a42891a5",
   "prevId": "4f45e8bb-64a2-42b2-a061-f22b9fd79188",
   "tables": {
     "ai_usage": {
@@ -2182,7 +2182,23 @@
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false,
-          "default": "'drop'"
+          "default": "'chime'"
+        },
+        "reduce_motion": {
+          "name": "reduce_motion",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": false
+        },
+        "text_size": {
+          "name": "text_size",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'default'"
         },
         "timezone": {
           "name": "timezone",

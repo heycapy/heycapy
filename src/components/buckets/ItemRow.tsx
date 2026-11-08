@@ -3,14 +3,15 @@ import { Tooltip } from "@/components/ui/Tooltip";
 import { formatShortTime } from "@/lib/format-date";
 import { ITEM_STATUS, TITLE_LINES_SHOWN } from "@/constants";
 import { ITEM_HIGHLIGHT_MS, JUST_ADDED_MS, TICK_SAVE_FAILED } from "./constants";
-import { toast } from "sonner";
+import { notify } from "@/components/ui/notify";
 import { useUIStore } from "@/store/ui";
 import { useTickSound } from "@/components/looks/LookProvider";
-import { playTickSound } from "@/lib/tick-sound/play";
+import { playTickSound } from "@/lib/sounds/tick";
 import { TickBox } from "./TickBox";
 import { completionToggle } from "./completion";
 import { useEffect, useRef, useState } from "react";
 import type { DragControls } from "framer-motion";
+import { smoothScroll } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 import type { StatusDef, FieldDef } from "@/types/rules";
 import type { ListItem, ReminderBadge } from "@/lib/reminders/status";
@@ -133,7 +134,7 @@ export function ItemRow({
 
   useEffect(() => {
     if (!justAdded) return;
-    rowRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    rowRef.current?.scrollIntoView({ block: "nearest", behavior: smoothScroll() });
     const fade = setTimeout(() => clearAdded(item.id), JUST_ADDED_MS);
     return () => clearTimeout(fade);
   }, [justAdded, clearAdded, item.id]);
@@ -156,7 +157,9 @@ export function ItemRow({
     setTick((t) => ({ checked: !isCompleted, of: item, saving: (t?.saving ?? 0) + 1 }));
     if (!isCompleted) playTickSound(tickSound);
     const saved = await save(completionToggle(shown, statuses).next).catch(() => {
-      toast.error(TICK_SAVE_FAILED);
+      notify.error(TICK_SAVE_FAILED, {
+        action: { label: "retry", onClick: () => void toggle(save) },
+      });
       return false;
     });
     setTick((t) => {

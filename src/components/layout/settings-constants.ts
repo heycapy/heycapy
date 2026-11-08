@@ -2,10 +2,12 @@ import {
   CONTROL_SIZE,
   GEMINI_DEFAULT_MODEL,
   LOOK,
-  TICK_SOUND,
+  TEXT_SIZE,
+  TICK_SOUND_OFF,
   type TranscriptionProvider,
 } from "@/constants";
-import type { ControlSize, Look, TickSound } from "@/components/looks/constants";
+import type { ControlSize, Look, TextSize, TickSound } from "@/components/looks/constants";
+import { SOUND_IDS, SOUNDS } from "@/lib/sounds";
 
 export const LABEL = "text-foreground font-ui text-xs font-medium";
 export const HINT = "text-muted-foreground font-ui text-2xs leading-tight";
@@ -76,9 +78,14 @@ export const CONTROL_SIZE_OPTIONS: { value: ControlSize; label: string }[] = [
 ];
 
 export const TICK_SOUND_OPTIONS: { value: TickSound; label: string }[] = [
-  { value: TICK_SOUND.off, label: "off" },
-  { value: TICK_SOUND.drop, label: "drop" },
-  { value: TICK_SOUND.chime, label: "chime" },
+  { value: TICK_SOUND_OFF, label: "off" },
+  ...SOUND_IDS.map((id) => ({ value: id, label: SOUNDS[id].label })),
+];
+
+export const TEXT_SIZE_OPTIONS: { value: TextSize; label: string }[] = [
+  { value: TEXT_SIZE.default, label: "default" },
+  { value: TEXT_SIZE.large, label: "large" },
+  { value: TEXT_SIZE.larger, label: "larger" },
 ];
 
 export const LOOK_OPTIONS: { value: Look; label: string }[] = [

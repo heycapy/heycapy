@@ -195,7 +195,7 @@ test("on a wide screen the chat stands beside the list, which moves over for it"
   await expect.poll(listCentre).toBeCloseTo(centredAlone, 0);
 });
 
-test("toasts stay bottom left, clear of the chat beside the list", async ({ page }) => {
+test("toasts stay centred over the list, clear of the chat beside it", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/");
   await createAndSelectBucket(page, uniqueName("Docked toast"));
@@ -211,9 +211,12 @@ test("toasts stay bottom left, clear of the chat beside the list", async ({ page
     .click();
   const toast = page.locator("[data-sonner-toast]", { hasText: title });
   await expect(toast).toBeVisible();
+  await expect(toast).toHaveCSS("opacity", "1");
   const chat = await page.getByPlaceholder("ask capy...").boundingBox();
+  const list = await page.locator("main").boundingBox();
   const box = await toast.boundingBox();
-  expect(box?.x ?? Infinity).toBeLessThanOrEqual(24);
+  const centre = (b: typeof box) => (b?.x ?? 0) + (b?.width ?? 0) / 2;
+  expect(Math.abs(centre(box) - centre(list))).toBeLessThanOrEqual(4);
   expect((box?.x ?? 0) + (box?.width ?? 0)).toBeLessThan(chat?.x ?? 0);
 });
 

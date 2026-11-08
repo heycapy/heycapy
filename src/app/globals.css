@@ -27,12 +27,46 @@
   --font-display: var(--display-font);
   --radius-panel: var(--panel-radius);
   --radius-control: var(--control-radius);
-  --text-3xs: var(--text-size-3xs);
-  --text-2xs: var(--text-size-2xs);
-  --text-xs: var(--text-size-xs);
+  --text-3xs: calc(var(--text-size-3xs) * var(--text-scale));
+  --text-2xs: calc(var(--text-size-2xs) * var(--text-scale));
+  --text-xs: calc(var(--text-size-xs) * var(--text-scale));
   --text-xs--line-height: var(--text-leading-xs);
-  --text-sm: var(--text-size-sm);
+  --text-sm: calc(var(--text-size-sm) * var(--text-scale));
   --text-sm--line-height: var(--text-leading-sm);
+  --text-base: calc(1rem * var(--text-scale));
+  --text-xl: calc(1.25rem * var(--text-scale));
+  --text-2xl: calc(1.5rem * var(--text-scale));
+}
+
+/* Larger text scales every font size, never spacing, so layouts keep their shape */
+:root {
+  --text-scale: 1;
+}
+[data-text="large"] {
+  --text-scale: 1.125;
+}
+[data-text="larger"] {
+  --text-scale: 1.25;
+}
+
+/* Reduce motion (tweaks, or the system setting) stops every animation and transition */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+[data-motion="reduce"] *,
+[data-motion="reduce"] ::before,
+[data-motion="reduce"] ::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
 }
 
 @theme {
@@ -73,8 +107,18 @@
   --box-border: 1px;
   --box-padding: 0.75rem;
   --box-space: 0px;
-  --toast-close-text: "[x]";
-  --toast-close-icon: none;
+  --toast-bg: var(--card);
+  --toast-fg: var(--foreground);
+  --toast-action: var(--primary);
+  --toast-border: var(--frame-width);
+  --toast-border-color: var(--border);
+  --toast-radius: 0px;
+  --toast-shadow: var(--raised-shadow-sm);
+  --toast-h: 2rem;
+  --toast-error-bg: var(--card);
+  --toast-error-fg: var(--foreground);
+  --toast-error-border: var(--destructive);
+  --toast-error-icon: var(--destructive);
   --dock-inset: 0px;
   --dock-border: 0 0 0 var(--frame-width);
   --dock-radius: 0px;
@@ -131,8 +175,18 @@
   --box-border: 0px;
   --box-padding: 0px;
   --box-space: 1rem;
-  --toast-close-text: none;
-  --toast-close-icon: block;
+  --toast-bg: var(--background);
+  --toast-fg: var(--foreground);
+  --toast-action: var(--primary);
+  --toast-border: 1px;
+  --toast-border-color: var(--border);
+  --toast-radius: var(--panel-radius);
+  --toast-shadow: var(--raised-shadow-md);
+  --toast-h: 2.25rem;
+  --toast-error-bg: var(--background);
+  --toast-error-fg: var(--foreground);
+  --toast-error-border: var(--destructive);
+  --toast-error-icon: var(--destructive);
   --dock-inset: 0.5rem;
   --dock-border: var(--frame-width);
   --dock-radius: var(--panel-radius);
@@ -909,7 +963,19 @@ body {
 }
 
 [data-sonner-toaster][data-x-position="center"] [data-sonner-toast] {
+  inset-inline: 0;
   margin-inline: auto;
+}
+
+/* with a panel docked on the right, toasts stay centred over the list instead of the window */
+body:has([data-side-column]) [data-sonner-toaster][data-x-position="center"] {
+  left: calc(50% - (var(--spacing-chat) + var(--dock-inset)) / 2);
+}
+
+/* sonner pauses a toast's timer while the stack is hovered or touched; its countdown line follows */
+[data-sonner-toaster]:hover [data-countdown],
+[data-sonner-toast]:focus-within [data-countdown] {
+  animation-play-state: paused;
 }
 
 /* sonner makes the phone toaster 100% wide on top of its side offsets, which pushes it off centre */
@@ -917,27 +983,6 @@ body {
   [data-sonner-toaster] {
     width: auto !important;
   }
-}
-
-/* [x] sits at the end of the row with room to tap, instead of over the text */
-[data-sonner-toast] [data-close-button] {
-  position: static !important;
-  order: 99;
-  flex-shrink: 0;
-  transform: none !important;
-  width: auto !important;
-  height: auto !important;
-  padding: 8px !important;
-  white-space: nowrap;
-}
-[data-sonner-toast] [data-close-button] svg {
-  display: var(--toast-close-icon);
-}
-[data-sonner-toast] [data-close-button]::before {
-  content: var(--toast-close-text);
-  font-family: var(--font-geist-mono);
-  font-size: 12px;
-  line-height: 1;
 }
 
 @media (max-width: 767px) {

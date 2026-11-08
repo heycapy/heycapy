@@ -1,27 +1,36 @@
 "use client";
 
 import { createContext, use, type ReactNode } from "react";
-import { CONTROL_SIZE, LOOK, TICK_SOUND } from "@/constants";
-import { LOOK_PARTS, type ControlSize, type Look, type TickSound } from "./constants";
+import { MotionConfig } from "framer-motion";
+import { DEFAULT_APPEARANCE } from "@/lib/account/constants";
+import {
+  LOOK_PARTS,
+  type ControlSize,
+  type Look,
+  type TextSize,
+  type TickSound,
+} from "./constants";
 
-const LookContext = createContext<{ look: Look; controlSize: ControlSize; tickSound: TickSound }>({
-  look: LOOK.original,
-  controlSize: CONTROL_SIZE.medium,
-  tickSound: TICK_SOUND.drop,
-});
+type Appearance = {
+  look: Look;
+  controlSize: ControlSize;
+  tickSound: TickSound;
+  reduceMotion: boolean;
+  textSize: TextSize;
+};
+
+const LookContext = createContext<Appearance>(DEFAULT_APPEARANCE);
 
 export function LookProvider({
-  look,
-  controlSize = CONTROL_SIZE.medium,
-  tickSound = TICK_SOUND.drop,
   children,
-}: {
-  look: Look;
-  controlSize?: ControlSize;
-  tickSound?: TickSound;
-  children: ReactNode;
-}) {
-  return <LookContext value={{ look, controlSize, tickSound }}>{children}</LookContext>;
+  ...appearance
+}: Partial<Appearance> & { look: Look; children: ReactNode }) {
+  const value = { ...use(LookContext), ...appearance };
+  return (
+    <LookContext value={value}>
+      <MotionConfig reducedMotion={value.reduceMotion ? "always" : "user"}>{children}</MotionConfig>
+    </LookContext>
+  );
 }
 
 export function useLookParts() {
@@ -39,4 +48,12 @@ export function useControlSize() {
 
 export function useTickSound() {
   return use(LookContext).tickSound;
+}
+
+export function useReduceMotion() {
+  return use(LookContext).reduceMotion;
+}
+
+export function useTextSize() {
+  return use(LookContext).textSize;
 }

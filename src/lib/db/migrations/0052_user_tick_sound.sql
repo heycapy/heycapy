@@ -1,1 +1,0 @@
-ALTER TABLE `user_settings` ADD `tick_sound` text DEFAULT 'drop' NOT NULL;

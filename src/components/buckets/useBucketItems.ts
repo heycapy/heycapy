@@ -1,6 +1,6 @@
 import { isClosedStatus } from "@/constants";
 import { useEffect, useRef, useState } from "react";
-import { toast } from "sonner";
+import { notify } from "@/components/ui/notify";
 import {
   deleteItemAction,
   getItemsForBucketAction,
@@ -68,14 +68,14 @@ export function useBucketItems(bucketId: number, itemsRules: string, showComplet
       item.deadline ? deadlineValue(item.deadline, item.deadlineTimezone) : null,
       status
     );
-    if (!result.ok) toast.error(result.error);
+    if (!result.ok) notify.error(result.error);
     await refetch();
     return result.ok;
   }
 
   async function moveItem(item: Item, deadline: string) {
     const result = await moveItemAction(item.id, deadline);
-    if (!result.ok) toast.error(result.error);
+    if (!result.ok) notify.error(result.error);
     await refetch();
   }
 

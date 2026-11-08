@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { toast } from "sonner";
+import { notify } from "@/components/ui/notify";
 import { cn } from "@/lib/utils";
 import { useLookParts } from "@/components/looks/LookProvider";
 import { ItemRow } from "@/components/buckets/ItemRow";
@@ -55,14 +55,14 @@ export function CrossBucketList({
       item.deadline ? deadlineValue(item.deadline, item.deadlineTimezone) : null,
       status
     );
-    if (!result.ok) toast.error(result.error);
+    if (!result.ok) notify.error(result.error);
     await onChanged();
     return result.ok;
   }
 
   async function moveItem(item: Item, deadline: string) {
     const result = await moveItemAction(item.id, deadline);
-    if (!result.ok) toast.error(result.error);
+    if (!result.ok) notify.error(result.error);
     await onChanged();
   }
 

@@ -3,7 +3,8 @@ import type { Metadata, Viewport } from "next";
 import { headers } from "next/headers";
 import { Geist, Geist_Mono, Silkscreen } from "next/font/google";
 import "./globals.css";
-import { APP_NAME, APP_TAGLINE, CONTROL_SIZE, LOOK, TICK_SOUND } from "@/constants";
+import { APP_NAME, APP_TAGLINE } from "@/constants";
+import { DEFAULT_APPEARANCE } from "@/lib/account/constants";
 import { getSession } from "@/lib/auth/session";
 import { appearanceFor } from "@/lib/account/look";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
@@ -48,20 +49,20 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function RootLayout({ children }: { children: ReactNode }) {
   const session = await getSession();
-  const { look, controlSize, tickSound } = session
-    ? await appearanceFor(session.userId)
-    : { look: LOOK.original, controlSize: CONTROL_SIZE.medium, tickSound: TICK_SOUND.drop };
+  const appearance = session ? await appearanceFor(session.userId) : DEFAULT_APPEARANCE;
 
   return (
     <html
       lang="en"
-      data-look={look}
-      data-size={controlSize}
+      data-look={appearance.look}
+      data-size={appearance.controlSize}
+      data-text={appearance.textSize}
+      data-motion={appearance.reduceMotion ? "reduce" : undefined}
       className={`${geistSans.variable} ${geistMono.variable} ${silkscreen.variable} h-full antialiased`}
       suppressHydrationWarning
     >
       <body className="bg-background text-foreground font-ui h-full pr-[env(safe-area-inset-right)] pl-[env(safe-area-inset-left)]">
-        <LookProvider look={look} controlSize={controlSize} tickSound={tickSound}>
+        <LookProvider {...appearance}>
           <ThemeProvider>{children}</ThemeProvider>
         </LookProvider>
       </body>

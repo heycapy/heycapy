@@ -3,6 +3,7 @@ import { cn } from "@/lib/utils";
 import { Sprite } from "./Sprite";
 import { ChatMarkdown, type OpenItem } from "./ChatMarkdown";
 import type { ChatMessage } from "./chatTypes";
+import { smoothScroll } from "@/lib/motion";
 
 type Props = {
   messages: ChatMessage[];
@@ -44,7 +45,7 @@ export function ChatMessageList({
 
   useEffect(() => {
     const list = listRef.current;
-    list?.scrollTo({ top: list.scrollHeight, behavior: "smooth" });
+    list?.scrollTo({ top: list.scrollHeight, behavior: smoothScroll() });
   }, [messages]);
 
   const isLastStreaming = (msg: ChatMessage) => streaming && msg.id === messages.at(-1)?.id;
