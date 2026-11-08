@@ -28,7 +28,7 @@ async function addMonthlyItemDueToday(page: Page, title: string): Promise<void> 
     "aria-pressed",
     "true"
   );
-  await dialog.getByRole("button", { name: "[ add ]", exact: true }).click();
+  await dialog.getByRole("button", { name: "add", exact: true }).click();
   await expect(dialog).not.toBeVisible();
   await expect(itemRow(page, title)).toBeVisible();
 }
@@ -51,7 +51,7 @@ test("repeats on picked weekdays, then on the last day of the month", async ({ p
     await dialog.getByRole("button", { name: day, exact: true }).click();
   }
   await expect(dialog.getByText("↺ every week on mon, wed, fri")).toBeVisible();
-  await dialog.getByRole("button", { name: "[ update ]", exact: true }).click();
+  await dialog.getByRole("button", { name: "update", exact: true }).click();
   await expect(dialog).not.toBeVisible();
   await expect(itemRow(page, title)).toContainText("↺ mon, wed, fri");
 
@@ -66,7 +66,7 @@ test("repeats on picked weekdays, then on the last day of the month", async ({ p
   await dialog.getByRole("button", { name: "month", exact: true }).click();
   await dialog.getByRole("button", { name: "last day", exact: true }).click();
   await expect(dialog.getByText("↺ every month on the last day")).toBeVisible();
-  await dialog.getByRole("button", { name: "[ update ]", exact: true }).click();
+  await dialog.getByRole("button", { name: "update", exact: true }).click();
   await expect(itemRow(page, title)).toContainText("↺ monthly, last day");
 });
 
@@ -89,7 +89,7 @@ test("repeating on the last day moves the date to the month's last day", async (
     new RegExp(`^date: ${lastLabel} · `)
   );
 
-  await dialog.getByRole("button", { name: "[ add ]", exact: true }).click();
+  await dialog.getByRole("button", { name: "add", exact: true }).click();
   await expect(itemRow(page, title)).toContainText(lastLabel);
   await expect(itemRow(page, title)).toContainText("↺ monthly, last day");
   await expect(itemRow(page, title)).not.toContainText("next");

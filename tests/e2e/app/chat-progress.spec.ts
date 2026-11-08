@@ -127,3 +127,24 @@ test("a link in capy's reply opens the item in place, and the chat stays open", 
   await expect(input).toBeVisible();
   expect(await page.evaluate(() => "stayedOnPage" in window)).toBe(true);
 });
+
+test("a click on the floating chat's header leaves it open, only [−] folds it", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1100, height: 800 });
+  await page.goto("/");
+  await page.getByRole("button", { name: "chat with capy" }).click();
+  const input = page.getByPlaceholder("ask capy...");
+  await expect(input).toBeVisible();
+
+  const collapse = page.getByRole("button", { name: "Collapse" });
+  const expand = page.getByRole("button", { name: "Expand" });
+  await page.getByText("capy", { exact: true }).last().click();
+  await expect(collapse).toBeVisible();
+  await expect(expand).toHaveCount(0);
+
+  await collapse.click();
+  await expect(expand).toBeVisible();
+  await expand.click();
+  await expect(collapse).toBeVisible();
+});

@@ -7,13 +7,13 @@ export async function centerOf(target: Locator) {
   return { x: Math.round(box.x + box.width / 2), y: Math.round(box.y + box.height / 2) };
 }
 
-// A finger sliding sideways, driven through Chrome DevTools (the context needs hasTouch)
-export async function touchSwipe(page: Page, target: Locator, dx: number) {
+// A finger sliding, driven through Chrome DevTools (the context needs hasTouch)
+export async function touchSwipe(page: Page, target: Locator, dx: number, dy = 0) {
   const { x, y } = await centerOf(target);
   const cdp = await page.context().newCDPSession(page);
   await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x, y }] });
   for (let step = 1; step <= 10; step++) {
-    const point = { x: Math.round(x + (dx * step) / 10), y };
+    const point = { x: Math.round(x + (dx * step) / 10), y: Math.round(y + (dy * step) / 10) };
     await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [point] });
   }
   await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });

@@ -20,7 +20,7 @@ type BucketTabsProps = {
   todayOpen: boolean;
 };
 
-function PlaceTab({
+export function PlaceTab({
   active,
   color,
   lateHintId,

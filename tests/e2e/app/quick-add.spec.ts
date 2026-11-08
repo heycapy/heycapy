@@ -9,7 +9,7 @@ import {
   untilStill,
   detailChip,
 } from "../helpers/buckets";
-import { dragDown, fakeKeyboard, setKeyboard } from "../helpers/touch";
+import { dragDown, fakeKeyboard, setKeyboard, touchSwipe } from "../helpers/touch";
 
 test.use({ storageState: authState("quick-add"), hasTouch: true });
 
@@ -63,7 +63,7 @@ test("the add box's expand opens a drawer: title and add on one row at the botto
   expect(await tapAndReadFocus(page, () => addItemButton(page).tap())).toBe("TEXTAREA");
   const addForm = addPage(page);
   const title = addForm.locator("textarea");
-  const add = addForm.getByRole("button", { name: "[ add ]", exact: true });
+  const add = addForm.getByRole("button", { name: "add", exact: true });
   await expect(title).toBeFocused();
   expect(await scrolled()).toBe(before);
   await untilStill(page, addForm);
@@ -121,7 +121,7 @@ test("while typing, the drawer sits on the keyboard and stays clear of the heade
   await addBox(page).fill("cat wants more treats tomorrow");
   await addItemButton(page).tap();
   const addForm = addPage(page);
-  const add = addForm.getByRole("button", { name: "[ add ]", exact: true });
+  const add = addForm.getByRole("button", { name: "add", exact: true });
   await detailChip(addForm, "repeat").tap();
   await addForm.getByRole("button", { name: "on", exact: true }).tap();
   const headerBottom = async () => {
@@ -161,4 +161,17 @@ test("tapping the empty space under the list puts the cursor in the add box", as
   ).toBe("INPUT");
   await expect(addBox(page)).toBeFocused();
   await expect(addPage(page)).toHaveCount(0);
+});
+
+test("on a phone a swipe up on the add box's handle opens the full form, once", async ({
+  page,
+}) => {
+  await openBucketOnPhone(page, uniqueName("Swipe"));
+  await addBox(page).fill("cat food");
+
+  await touchSwipe(page, addItemButton(page), 0, -80);
+  const addForm = addPage(page);
+  await expect(addForm).toBeVisible();
+  await expect(addForm.locator("textarea")).toHaveValue("cat food");
+  await expect(page.getByRole("dialog", { name: "new item" })).toHaveCount(1);
 });

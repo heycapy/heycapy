@@ -99,7 +99,7 @@ test("items can be edited from today", async ({ page }) => {
   const dialog = editForm(page);
   await expect(dialog).toHaveAttribute("data-item-panel");
   await dialog.locator("textarea").first().fill(`${title} back`);
-  await dialog.getByRole("button", { name: "[ update ]", exact: true }).click();
+  await dialog.getByRole("button", { name: "update", exact: true }).click();
   await expect(itemRow(page, `${title} back`)).toBeVisible();
 });
 

@@ -20,9 +20,10 @@ import { BannersProvider } from "./Banners";
 import { NewVersionBanner } from "./NewVersionBanner";
 import { FeedbackDialog } from "./FeedbackDialog";
 import { WhatsNewDialog } from "./WhatsNewDialog";
+import { LookPickerDialog } from "./LookPickerDialog";
 import { markReleasesSeenAction } from "@/app/(app)/account-actions";
 import { markGuideSeenAction } from "@/app/(app)/guide-actions";
-import { saveTimezoneIfDefaultAction } from "@/app/(app)/user-settings-actions";
+import { lookPickedAction, saveTimezoneIfDefaultAction } from "@/app/(app)/user-settings-actions";
 import { useServerEvents } from "@/hooks/useServerEvents";
 import { AssistantNameProvider } from "@/components/capy/assistant-name";
 import { useChatDocked } from "@/components/capy/useChatDocked";
@@ -49,6 +50,7 @@ type AppShellProps = {
   assistantName: string;
   feedbackEnabled: boolean;
   unseenRelease: boolean;
+  lookPicked: boolean;
   guide: GuideState;
   appUrl: string | null;
 };
@@ -63,6 +65,7 @@ export function AppShell({
   assistantName,
   feedbackEnabled,
   unseenRelease,
+  lookPicked,
   guide: guideFromServer,
   appUrl,
 }: AppShellProps) {
@@ -74,6 +77,7 @@ export function AppShell({
   const closeSidePanel = useLayoutStore((s) => s.closeSidePanel);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [releaseUnseen, setReleaseUnseen] = useState(unseenRelease);
+  const [pickingLook, setPickingLook] = useState(!lookPicked);
   const { guide, refresh: refreshGuide, setHidden: setGuideHidden } = useGuide(guideFromServer);
   const guideDone = guide.tasks.filter((task) => task.done).length;
   const requestAddItem = useUIStore((s) => s.requestAddItem);
@@ -104,6 +108,11 @@ export function AppShell({
     toast(task.hint);
   }
 
+  function closeLookPicker() {
+    setPickingLook(false);
+    void lookPickedAction();
+  }
+
   function openWhatsNew() {
     openSidePanel("whats-new");
     if (!releaseUnseen) return;
@@ -122,10 +131,10 @@ export function AppShell({
   );
 
   useEffect(() => {
-    if (guideFromServer.seen) return;
+    if (guideFromServer.seen || pickingLook) return;
     openSidePanel("guide");
     void markGuideSeenAction();
-  }, [guideFromServer.seen, openSidePanel]);
+  }, [guideFromServer.seen, pickingLook, openSidePanel]);
 
   useEffect(() => {
     void useUIStore.persist.rehydrate();
@@ -180,6 +189,7 @@ export function AppShell({
         onClose={() => closeSidePanel("whats-new")}
         onShowGuide={openGuide}
       />
+      <LookPickerDialog open={pickingLook} onClose={closeLookPicker} />
       <GuidePanel
         open={sidePanel === "guide"}
         guide={guide}

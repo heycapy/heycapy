@@ -50,7 +50,12 @@ export const GUIDE_TASKS = [
     credits: 4,
     hint: "make an invite code and send it to them",
   },
-  { key: "theme", title: "pick a theme", credits: 2, hint: "pick any theme you like" },
+  {
+    key: "theme",
+    title: "pick a theme and look",
+    credits: 2,
+    hint: "pick any theme or look you like",
+  },
   {
     key: "username",
     title: "change your username",

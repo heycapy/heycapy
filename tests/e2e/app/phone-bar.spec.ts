@@ -45,10 +45,10 @@ test("the bottom bar is easy to tap and clear of the screen's rounded bottom", a
   await openBucketOnPhone(page, bucket);
   const screenHeight = page.viewportSize()?.height ?? 0;
 
-  // the expand button fills the add box's height inside its 2px border
+  // the handle that opens the full form is at least WCAG's 24px tap target
   for (const [control, height] of [
     [page.getByTestId("add-box"), 48],
-    [addItemButton(page), 44],
+    [addItemButton(page), 24],
   ] as const) {
     const box = await control.boundingBox();
     expect(box?.height).toBeGreaterThanOrEqual(height);
@@ -63,7 +63,7 @@ test("search opens as a drawer with the box at the bottom, results above it", as
   await addItemButton(page).tap();
   const form = page.getByRole("dialog", { name: "new item" });
   await form.locator("textarea").first().fill(title);
-  await form.getByRole("button", { name: "[ add ]", exact: true }).tap();
+  await form.getByRole("button", { name: "add", exact: true }).tap();
   await expect(form).toBeHidden();
 
   await page.getByRole("button", { name: "search", exact: true }).tap();

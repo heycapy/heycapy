@@ -76,7 +76,7 @@ test("a saved field persists and shows up in the item dialog and list", async ({
   await dialog.locator("textarea").first().fill(title);
   await openDetail(dialog, "more");
   await dialog.getByPlaceholder("Where").fill("office");
-  await dialog.getByRole("button", { name: "[ add ]", exact: true }).click();
+  await dialog.getByRole("button", { name: "add", exact: true }).click();
   await expect(dialog).not.toBeVisible();
 
   await expect(itemRow(page, title)).toBeVisible();
@@ -143,12 +143,12 @@ test("a required field must be filled before adding an item, the add box opens t
   await box.press("Enter");
   const dialog = itemDialog(page);
   await expect(dialog.locator("textarea").first()).toHaveValue(title);
-  await dialog.getByRole("button", { name: "[ add ]", exact: true }).click();
+  await dialog.getByRole("button", { name: "add", exact: true }).click();
   await expect(dialog.getByText("Amount is required")).toBeVisible();
   await expect(dialog).toBeVisible();
 
   await dialog.getByPlaceholder("Amount").fill("12");
-  await dialog.getByRole("button", { name: "[ add ]", exact: true }).click();
+  await dialog.getByRole("button", { name: "add", exact: true }).click();
   await expect(dialog).not.toBeVisible();
 });
 

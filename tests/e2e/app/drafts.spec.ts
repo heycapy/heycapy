@@ -1,4 +1,4 @@
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect } from "@playwright/test";
 import { authState } from "../helpers/auth";
 import {
   addBox,
@@ -19,16 +19,9 @@ test.use({ storageState: authState("drafts") });
 
 const WEDNESDAY = new Date(2026, 9, 7, 8, 0);
 
-function clearButton(page: Page) {
-  return page.getByRole("button", { name: "clear", exact: true });
-}
-
-test("closing the full form keeps what was typed, edits there included, and [×] clears it", async ({
-  page,
-}) => {
+test("closing the full form keeps what was typed, edits there included", async ({ page }) => {
   await page.goto("/");
   await createAndSelectBucket(page, uniqueName("Cat"));
-  await expect(clearButton(page)).toHaveCount(0);
 
   await addBox(page).fill("buy cat food");
   await addItemButton(page).click();
@@ -40,10 +33,31 @@ test("closing the full form keeps what was typed, edits there included, and [×]
   await expect(dialog).toBeHidden();
 
   await expect(addBox(page)).toHaveValue("buy cat food and litter");
-  await clearButton(page).click();
-  await expect(addBox(page)).toHaveValue("");
-  await expect(addBox(page)).toBeFocused();
-  await expect(clearButton(page)).toHaveCount(0);
+});
+
+test("[×] beside a date picked in the form clears it and keeps what was typed", async ({
+  page,
+}) => {
+  await page.clock.setFixedTime(WEDNESDAY);
+  await page.goto("/");
+  await createAndSelectBucket(page, uniqueName("Picked"));
+  const clearDetails = page.getByRole("button", { name: "clear details" });
+  await addBox(page).fill("vet visit today 5pm");
+  await expect(page.getByTestId("quick-add-hint")).toBeVisible();
+  await expect(clearDetails).toHaveCount(0);
+
+  await addBox(page).fill("vet visit");
+  await addItemButton(page).click();
+  const dialog = newItemForm(page);
+  await openDetail(dialog, "date");
+  await page.getByRole("button", { name: "20", exact: true }).click();
+  await page.keyboard.press("Escape");
+  await expect(dialog).toBeHidden();
+
+  await expect(page.getByTestId("quick-add-hint")).toContainText("Oct 20");
+  await clearDetails.click();
+  await expect(page.getByTestId("quick-add-hint")).toHaveCount(0);
+  await expect(addBox(page)).toHaveValue("vet visit");
 });
 
 test("escape in the add box clears it", async ({ page }) => {

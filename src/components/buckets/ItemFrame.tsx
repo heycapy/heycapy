@@ -12,7 +12,7 @@ type ItemFrameProps = {
   scrollBodyRef: RefObject<HTMLDivElement | null>;
   titleField: (boxed: boolean) => ReactNode;
   details: ReactNode;
-  confirm: ReactNode;
+  confirm: (boxed: boolean) => ReactNode;
   deleteButton: ReactNode;
   onCancel: () => void;
   onSubmit: () => void;
@@ -50,7 +50,7 @@ export function ItemFrame({
           panel={panel}
           scrollBodyRef={scrollBodyRef}
           title={titleField(true)}
-          confirm={confirm}
+          confirm={confirm(true)}
           secondary={
             deleteButton && <div className="border-border mt-6 border-t pt-4">{deleteButton}</div>
           }
@@ -70,7 +70,7 @@ export function ItemFrame({
           heading={heading}
           scrollBodyRef={scrollBodyRef}
           onCancel={onCancel}
-          confirm={confirm}
+          confirm={confirm(false)}
           secondary={
             deleteButton && <div className="border-border mt-6 border-t pt-4">{deleteButton}</div>
           }
@@ -91,7 +91,7 @@ export function ItemFrame({
         footer={
           <div className="flex w-full items-center justify-between">
             {deleteButton || <span />}
-            {confirm}
+            {confirm(false)}
           </div>
         }
       >

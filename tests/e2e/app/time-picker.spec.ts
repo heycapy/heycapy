@@ -31,7 +31,7 @@ test("a time can be picked from the grid or typed, and is saved", async ({ page 
   await picker.getByRole("button", { name: "pm", exact: true }).click();
   await picker.getByRole("button", { name: "[ done ]", exact: true }).click();
   await expect(dialog.getByRole("button", { name: "time: 4:30 pm" })).toBeVisible();
-  await dialog.getByRole("button", { name: "[ add ]", exact: true }).click();
+  await dialog.getByRole("button", { name: "add", exact: true }).click();
   await expect(itemRow(page, title)).toContainText("4:30pm");
 
   await itemRow(page, title).click();
@@ -45,7 +45,7 @@ test("a time can be picked from the grid or typed, and is saved", async ({ page 
   await typed.press("Enter");
   await expect(picker).toHaveCount(0);
   await expect(dialog.getByRole("button", { name: "time: 9:37 pm" })).toBeVisible();
-  await dialog.getByRole("button", { name: "[ update ]", exact: true }).click();
+  await dialog.getByRole("button", { name: "update", exact: true }).click();
   await expect(itemRow(page, title)).toContainText("9:37pm");
 
   await itemRow(page, title).click();
@@ -78,7 +78,7 @@ test("a date without a time shows as all day, and a time can be taken off again"
   await picker.getByRole("button", { name: "all day", exact: true }).click();
   await expect(picker).toHaveCount(0);
   await expect(dialog.getByRole("button", { name: "time: all day" })).toBeVisible();
-  await dialog.getByRole("button", { name: "[ add ]", exact: true }).click();
+  await dialog.getByRole("button", { name: "add", exact: true }).click();
   await expect(itemRow(page, title)).not.toContainText("9am");
 
   await itemRow(page, title).click();
@@ -90,7 +90,7 @@ test("a date without a time shows as all day, and a time can be taken off again"
     .getByRole("button", { name: "6", exact: true })
     .click();
   await picker.getByRole("button", { name: "[ done ]", exact: true }).click();
-  await dialog.getByRole("button", { name: "[ update ]", exact: true }).click();
+  await dialog.getByRole("button", { name: "update", exact: true }).click();
   await expect(itemRow(page, title)).toContainText("6am");
 });
 

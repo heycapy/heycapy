@@ -34,19 +34,12 @@ export function CapyChatHeader({
   return (
     <div
       style={{ height: HEADER_H }}
-      className={cn(
-        "border-border bg-card border-b-frame flex items-center gap-1 px-2 select-none",
-        onMinimize && "cursor-pointer"
-      )}
-      onClick={onMinimize}
+      className="border-border bg-card border-b-frame flex items-center gap-1 px-2 select-none"
     >
       {fullscreen && onToggleSidebar && (
         <IconButton
           icon={sidebarOpen ? "sidebar-close" : "sidebar-open"}
-          onClick={(e) => {
-            e.stopPropagation();
-            onToggleSidebar();
-          }}
+          onClick={() => onToggleSidebar()}
           aria-label={sidebarOpen ? "Hide history" : "Show history"}
           aria-expanded={sidebarOpen}
           className="flex h-6 w-6 items-center justify-center"
@@ -56,15 +49,7 @@ export function CapyChatHeader({
       <span className="font-display flex-1 truncate pl-1 text-xs">{name}</span>
 
       {!fullscreen && (
-        <TextButton
-          icon="clock"
-          variant="ghost"
-          onClick={(e) => {
-            e.stopPropagation();
-            onHistoryOpen();
-          }}
-          className="px-1"
-        >
+        <TextButton icon="clock" variant="ghost" onClick={() => onHistoryOpen()} className="px-1">
           history
         </TextButton>
       )}
@@ -73,10 +58,7 @@ export function CapyChatHeader({
         icon="plus"
         iconLabel="new chat"
         variant="ghost"
-        onClick={(e) => {
-          e.stopPropagation();
-          onNewChat();
-        }}
+        onClick={() => onNewChat()}
         className="px-1"
       >
         new
@@ -85,10 +67,7 @@ export function CapyChatHeader({
       {onMinimize && !fullscreen && (
         <IconButton
           icon="minus"
-          onClick={(e) => {
-            e.stopPropagation();
-            onMinimize();
-          }}
+          onClick={() => onMinimize()}
           className="flex h-6 w-6 items-center justify-center"
           aria-label={minimized ? "Expand" : "Collapse"}
         />
@@ -96,23 +75,13 @@ export function CapyChatHeader({
       {onFullscreen && (
         <IconButton
           icon={fullscreen ? "collapse" : "expand"}
-          onClick={(e) => {
-            e.stopPropagation();
-            onFullscreen();
-          }}
+          onClick={() => onFullscreen()}
           className="flex h-6 w-6 items-center justify-center"
           aria-label={fullscreen ? "Exit fullscreen" : "Fullscreen"}
         />
       )}
       <span className={cn(closeHidden && "sr-only")}>
-        <CloseButton
-          onClick={(e) => {
-            e.stopPropagation();
-            onClose();
-          }}
-          aria-label="close chat"
-          className="px-1"
-        />
+        <CloseButton onClick={() => onClose()} aria-label="close chat" className="px-1" />
       </span>
     </div>
   );

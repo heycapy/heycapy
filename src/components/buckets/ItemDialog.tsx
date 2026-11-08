@@ -8,6 +8,7 @@ import { memberName } from "@/lib/buckets/member-name";
 import { ItemFrame } from "./ItemFrame";
 import type { ItemPanel } from "./ItemPanelFrame";
 import { ItemTitleField } from "./ItemTitleField";
+import { InputBarAction } from "@/components/ui/InputBar";
 import { ItemDetails } from "./ItemDetails";
 import { ItemTimeHints } from "./ItemTimeHints";
 import { useItemClock } from "./useItemClock";
@@ -276,16 +277,27 @@ export function ItemDialog({
     />
   );
 
-  const confirmButton = (
-    <TextButton
-      onClick={handleConfirmClick}
-      disabled={pending}
-      variant="primary"
-      className={bracketed ? "px-2 py-3 text-base" : "my-2 mr-1"}
-    >
-      {frameMode === "add" ? "add" : "update"}
-    </TextButton>
-  );
+  const confirmLabel = frameMode === "add" ? "add" : "update";
+  const confirmButton = (boxed: boolean) =>
+    boxed ? (
+      <div className="mb-[calc(1.5rem-var(--add-icon)/2)] self-end">
+        <InputBarAction
+          icon="arrow-up"
+          label={confirmLabel}
+          disabled={pending}
+          onClick={handleConfirmClick}
+        />
+      </div>
+    ) : (
+      <TextButton
+        onClick={handleConfirmClick}
+        disabled={pending}
+        variant="primary"
+        className={bracketed ? "px-2 py-3 text-base" : "my-2 mr-1"}
+      >
+        {confirmLabel}
+      </TextButton>
+    );
   const deleteButton = onDelete && (
     <TextButton
       icon="trash"
@@ -301,7 +313,7 @@ export function ItemDialog({
   const titleField = (boxed: boolean) => (
     <ItemTitleField
       open={open}
-      rowIcon={boxed ? (frameMode === "add" ? "plus" : "pencil") : undefined}
+      boxed={boxed}
       value={title}
       error={error}
       showRequired={titleHasError}

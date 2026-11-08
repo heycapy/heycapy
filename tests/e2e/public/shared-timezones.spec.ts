@@ -172,7 +172,7 @@ test("a time for someone on another clock is set on theirs, unless picked by han
   await assignTo(/\sUK( · no reminders set up)?$/);
   await expect(clocks.getByRole("button", { name: "UK" })).toHaveAttribute("aria-pressed", "true");
   await expect(detailChip(dialog, "date")).toHaveAccessibleName(/ · 9 am$/);
-  await dialog.getByRole("button", { name: "[ add ]", exact: true }).click();
+  await dialog.getByRole("button", { name: "add", exact: true }).click();
   await expect(itemRow(page, forSam)).toBeVisible();
   const sams = savedDeadline(forSam);
   expect(sams.zone).toBe("Europe/London");
@@ -194,7 +194,7 @@ test("a time for someone on another clock is set on theirs, unless picked by han
     "true"
   );
   await expect(detailChip(dialog, "date")).toHaveAccessibleName(/ · 9 am$/);
-  await dialog.getByRole("button", { name: "[ add ]", exact: true }).click();
+  await dialog.getByRole("button", { name: "add", exact: true }).click();
   await expect(itemRow(page, onIndia)).toBeVisible();
   const indias = savedDeadline(onIndia);
   expect(indias.zone).toBe("Asia/Kolkata");
@@ -240,6 +240,6 @@ test("the time field shows everyone's time and warns softly about their nights",
     .getByRole("button", { name: "India" })
     .click();
   await expect(dialog.getByRole("status")).toHaveText(/quiet hours hold the reminder/);
-  await dialog.getByRole("button", { name: "[ add ]", exact: true }).click();
+  await dialog.getByRole("button", { name: "add", exact: true }).click();
   await expect(itemRow(page, title)).toBeVisible();
 });

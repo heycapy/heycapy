@@ -47,7 +47,7 @@ test("an item can have several reminders, added from presets or typed, and remov
 
   const chips = dialog.getByRole("button", { name: /^remove reminder / });
   await expect(chips).toHaveText(["3 days before ×", "1 hour before ×", "at time ×"]);
-  await dialog.getByRole("button", { name: "[ add ]", exact: true }).click();
+  await dialog.getByRole("button", { name: "add", exact: true }).click();
   await expect(dialog).not.toBeVisible();
 
   await itemRow(page, title).click();
@@ -55,7 +55,7 @@ test("an item can have several reminders, added from presets or typed, and remov
   await expect(chips).toHaveText(["3 days before ×", "1 hour before ×", "at time ×"]);
   await dialog.getByRole("button", { name: "remove reminder at time" }).click();
   await expect(chips).toHaveText(["3 days before ×", "1 hour before ×"]);
-  await dialog.getByRole("button", { name: "[ update ]", exact: true }).click();
+  await dialog.getByRole("button", { name: "update", exact: true }).click();
   await expect(dialog).not.toBeVisible();
 
   await itemRow(page, title).click();

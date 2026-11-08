@@ -1,6 +1,4 @@
 import { useLayoutEffect, useRef, useState, type ChangeEvent } from "react";
-import { Icon } from "@/components/ui/Icon";
-import type { IconName } from "@/components/ui/icons";
 import { TextButton } from "@/components/ui/TextButton";
 import { describeDeadline } from "@/lib/format-date";
 import {
@@ -28,7 +26,7 @@ function fitHeight(el: HTMLTextAreaElement) {
 
 type ItemTitleFieldProps = {
   open: boolean;
-  rowIcon?: IconName;
+  boxed?: boolean;
   value: string;
   error?: string;
   showRequired: boolean;
@@ -42,7 +40,7 @@ type ItemTitleFieldProps = {
 
 export function ItemTitleField({
   open,
-  rowIcon,
+  boxed,
   value,
   error,
   showRequired,
@@ -59,7 +57,7 @@ export function ItemTitleField({
   const [highlighted, setHighlighted] = useState(0);
   const [closedOn, setClosedOn] = useState<string | null>(null);
 
-  const text = cn(TEXT, rowIcon ? "max-h-[4lh]" : "max-h-[calc(4lh+0.75rem)] py-1.5 sm:text-sm");
+  const text = cn(TEXT, boxed ? "max-h-[4lh]" : "max-h-[calc(4lh+0.75rem)] py-1.5 sm:text-sm");
 
   const found = mention ? findMention(value, caret) : null;
   const options = found && mention ? mentionOptions(mention.members, found.query) : [];
@@ -104,13 +102,26 @@ export function ItemTitleField({
   }
 
   return (
-    <div data-title-section className={cn("flex flex-col gap-1.5", rowIcon ? "relative" : "pb-5")}>
-      <label className={cn(LABEL, showRequired && "text-destructive", rowIcon && "sr-only")}>
+    <div data-title-section className={cn("flex flex-col gap-1.5", boxed ? "relative" : "pb-5")}>
+      <label className={cn(LABEL, showRequired && "text-destructive", boxed && "sr-only")}>
         title
       </label>
-      <div className={cn(rowIcon && "flex items-start gap-2")}>
-        {rowIcon && <Icon name={rowIcon} className="mt-4.5 shrink-0 text-(--accent)" />}
-        <div className={cn("min-w-0 flex-1", rowIcon && "py-3")}>
+      <div className={cn(boxed && "flex items-start gap-2")}>
+        <div className={cn("min-w-0 flex-1", boxed && "py-3")}>
+          {boxed && typedDate && (
+            <p className="font-ui text-2xs flex items-center gap-1.5 pb-1">
+              <span className="truncate text-(--accent)">
+                {describeDeadline(typedDate.deadline)}
+              </span>
+              <button
+                type="button"
+                onClick={onDismissDate}
+                className="text-muted-foreground hover:text-foreground shrink-0 underline underline-offset-2"
+              >
+                not a date
+              </button>
+            </p>
+          )}
           <div className="relative">
             {typedDate && (
               <div
@@ -158,32 +169,27 @@ export function ItemTitleField({
                   }
                 }
               }}
-              placeholder={rowIcon && showRequired ? "title is required" : "what needs doing?"}
+              placeholder={boxed && showRequired ? "title is required" : "what needs doing?"}
               maxLength={ITEM_TITLE_MAX_LENGTH}
               disabled={disabled}
               rows={1}
               className={cn(
                 text,
-                !rowIcon && "focus:border-foreground",
+                !boxed && "focus:border-foreground",
                 "scrollbar-hide relative block resize-none overflow-y-auto bg-transparent outline-none disabled:opacity-50",
                 // The layer behind draws the text so the date words can take their own colour
                 typedDate && "caret-foreground text-transparent",
                 error || showRequired
                   ? "border-destructive placeholder:text-destructive/50"
                   : "border-border placeholder:text-muted-foreground",
-                rowIcon && "border-transparent"
+                boxed && "border-transparent"
               )}
             />
           </div>
         </div>
-        {rowIcon && typedDate && (
-          <TextButton onClick={onDismissDate} aria-label="not a date" className="mt-3 px-1">
-            ×
-          </TextButton>
-        )}
       </div>
       {listOpen && (
-        <div className={cn(rowIcon && "bg-background absolute inset-x-0 bottom-full mb-1")}>
+        <div className={cn(boxed && "bg-background absolute inset-x-0 bottom-full mb-1")}>
           <MentionList
             options={options}
             highlighted={Math.min(highlighted, options.length - 1)}
@@ -192,15 +198,15 @@ export function ItemTitleField({
           />
         </div>
       )}
-      {showRequired && !rowIcon && (
+      {showRequired && !boxed && (
         <p className="text-destructive font-ui text-2xs">title is required</p>
       )}
       {error && (
-        <p role="alert" className={cn("text-destructive font-ui text-2xs", rowIcon && "pb-2 pl-6")}>
+        <p role="alert" className={cn("text-destructive font-ui text-2xs", boxed && "pb-2")}>
           {error}
         </p>
       )}
-      {typedDate && !rowIcon && (
+      {typedDate && !boxed && (
         <div className="flex items-center gap-2">
           <span className="rounded-control border-primary text-foreground font-ui border px-2 py-1 text-xs">
             due {describeDeadline(typedDate.deadline)}

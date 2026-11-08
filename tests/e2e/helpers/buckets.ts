@@ -45,7 +45,7 @@ export async function addItem(page: Page, title: string): Promise<void> {
   const dialog = newItemForm(page);
   await expect(dialog).toBeVisible();
   await dialog.locator("textarea").fill(title);
-  await dialog.getByRole("button", { name: "[ add ]", exact: true }).click();
+  await dialog.getByRole("button", { name: "add", exact: true }).click();
   await expect(dialog).not.toBeVisible();
   await expect(itemRow(page, title)).toBeVisible();
 }

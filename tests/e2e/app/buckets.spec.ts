@@ -139,7 +139,7 @@ test.describe("items", () => {
 
   test("shows validation error when submitting empty title", async ({ page }) => {
     await page.getByRole("button", { name: "add with details", exact: true }).click();
-    await page.getByRole("button", { name: "[ add ]", exact: true }).click();
+    await page.getByRole("button", { name: "add", exact: true }).click();
     await expect(newItemForm(page).locator("textarea")).toHaveAttribute(
       "placeholder",
       "title is required"

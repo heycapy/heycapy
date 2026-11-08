@@ -481,7 +481,15 @@ export async function setLookAction(look: string): Promise<ActionResult> {
     .update(userSettings)
     .set({ look: parsed.data })
     .where(eq(userSettings.userId, session.userId));
+  await markGuideTaskDone(session.userId, "theme");
   revalidatePath("/", "layout");
+  return { ok: true };
+}
+
+export async function lookPickedAction(): Promise<ActionResult> {
+  const session = await getSession();
+  if (!session) return { ok: false, error: "Unauthorized" };
+  await db.update(users).set({ lookPicked: true }).where(eq(users.id, session.userId));
   return { ok: true };
 }
 

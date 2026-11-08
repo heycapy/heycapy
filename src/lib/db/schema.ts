@@ -28,6 +28,8 @@ export const users = sqliteTable("users", {
   guideHidden: integer("guide_hidden", { mode: "boolean" }).notNull().default(false),
   // Accounts made before the guide opened by itself count as seen; signup sets it to false
   guideSeen: integer("guide_seen", { mode: "boolean" }).notNull().default(true),
+  // Every account from before the look picker gets it once too
+  lookPicked: integer("look_picked", { mode: "boolean" }).notNull().default(false),
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
     .default(sql`(unixepoch())`),

@@ -35,7 +35,7 @@ test("the add box reads a typed date, adds on enter and stays ready for the next
   await openBucket(page);
   const title = uniqueName("pay rent");
   await addBox(page).fill(`${title} friday 5pm`);
-  await expect(page.getByTestId("quick-add-hint")).toHaveText("→ Fri Oct 9 · 5pm");
+  await expect(page.getByTestId("quick-add-hint")).toHaveText("Fri Oct 9 · 5pm");
 
   await addBox(page).press("Enter");
   await expect(itemRow(page, title)).toContainText("Oct 9 5pm");
@@ -61,7 +61,7 @@ test("expand opens the full form with what was typed, and [×] there clears the 
 
   await dialog.getByRole("button", { name: "not a date" }).click();
   await expect(detailChip(dialog, "date")).toHaveAccessibleName("date");
-  await dialog.getByRole("button", { name: "[ add ]", exact: true }).click();
+  await dialog.getByRole("button", { name: "add", exact: true }).click();
   await expect(itemRow(page, title)).toBeVisible();
   await expect(addBox(page)).toHaveValue("");
 });
@@ -76,7 +76,7 @@ test("a date typed into the title is highlighted, fills 'when' and leaves the ti
   await expect(dialog.getByTestId("title-date-highlight").locator("span")).toHaveText("friday 5pm");
   await expect(detailChip(dialog, "date")).toHaveAccessibleName("date: Oct 9 · 5 pm");
 
-  await dialog.getByRole("button", { name: "[ add ]", exact: true }).click();
+  await dialog.getByRole("button", { name: "add", exact: true }).click();
   await expect(dialog).not.toBeVisible();
   await expect(itemRow(page, title)).toContainText("Oct 9 5pm");
   await expect(itemRow(page, title)).not.toContainText("friday");
@@ -92,7 +92,7 @@ test("[×] keeps the words as text and clears the date", async ({ page }) => {
   await expect(dialog.getByTestId("title-date-highlight")).toHaveCount(0);
   await expect(detailChip(dialog, "date")).toHaveAccessibleName("date");
 
-  await dialog.getByRole("button", { name: "[ add ]", exact: true }).click();
+  await dialog.getByRole("button", { name: "add", exact: true }).click();
   await expect(itemRow(page, title)).toBeVisible();
 });
 
@@ -117,7 +117,7 @@ test("editing an item never reads dates from its title", async ({ page }) => {
   const dialog = await openAdd(page);
   const title = uniqueName("renew passport");
   await dialog.locator("textarea").first().fill(title);
-  await dialog.getByRole("button", { name: "[ add ]", exact: true }).click();
+  await dialog.getByRole("button", { name: "add", exact: true }).click();
 
   await itemRow(page, title).click();
   const edit = editForm(page);

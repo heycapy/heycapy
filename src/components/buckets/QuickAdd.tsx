@@ -1,7 +1,7 @@
 import { useState, type RefObject } from "react";
 import { toast } from "sonner";
 import { addItemAction } from "@/app/(app)/actions";
-import { Icon } from "@/components/ui/Icon";
+import { IconButton } from "@/components/ui/IconButton";
 import { InputBar, InputBarAction, InputBarIcon } from "@/components/ui/InputBar";
 import { ITEM_TITLE_MAX_LENGTH, MOBILE_MEDIA_QUERY } from "@/constants";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
@@ -22,10 +22,11 @@ import { ADD_BOX_EXAMPLES, ADD_BOX_EXAMPLES_SHORT } from "./constants";
 import { defaultDeadline } from "./defaultDeadline";
 import { parseFields } from "./fields";
 import { MentionList } from "./MentionList";
+import { ExpandHandle } from "./AddBoxControls";
 import { BucketTargetPicker } from "./BucketTargetPicker";
 import { useBucketMembers } from "./useBucketMembers";
 import { useItemClock } from "./useItemClock";
-import { isEmptyDraft, useDraft, useDraftStore } from "@/store/drafts";
+import { EMPTY_DRAFT, isEmptyDraft, useDraft, useDraftStore } from "@/store/drafts";
 import { useUIStore } from "@/store/ui";
 
 type QuickAddProps = {
@@ -58,6 +59,7 @@ export function QuickAdd({ bucket, inputRef, onAdded, onExpand, targets }: Quick
     (f) => f.validation?.required && isBlank(draft.properties[f.key])
   );
   const datePicked = draft.deadline !== null;
+  const hasDetails = !isEmptyDraft({ ...draft, title: "" });
   const typedDate = datePicked ? null : findTitleDate(text);
   const assignee = members.find((m) => m.userId === draft.assigneeId);
   const found = members.length > 1 ? findMention(text, caret) : null;
@@ -143,11 +145,25 @@ export function QuickAdd({ bucket, inputRef, onAdded, onExpand, targets }: Quick
           />
         </div>
       )}
+      {isPhone && <ExpandHandle onExpand={onExpand} />}
+      {hint.length > 0 && (
+        <div className="flex items-center gap-1 pt-1.5 pr-2 pl-2.5">
+          <span data-testid="quick-add-hint" className="font-ui text-2xs truncate text-(--accent)">
+            {hint.join(" · ")}
+          </span>
+          {hasDetails && (
+            <IconButton
+              icon="close"
+              aria-label="clear details"
+              onClick={() => updateDraft(bucket.id, { ...EMPTY_DRAFT, title: draft.title })}
+              className="flex size-5 items-center justify-center"
+            />
+          )}
+        </div>
+      )}
       <InputBar>
-        {targets ? (
+        {targets && (
           <BucketTargetPicker bucket={bucket} buckets={targets.buckets} onPick={targets.onPick} />
-        ) : (
-          <Icon name="plus" className="shrink-0 text-(--accent)" />
         )}
         <input
           ref={inputRef}
@@ -195,28 +211,10 @@ export function QuickAdd({ bucket, inputRef, onAdded, onExpand, targets }: Quick
           autoComplete="off"
           className="placeholder:text-muted-foreground/50 font-ui min-w-0 flex-1 bg-transparent py-1 text-base outline-none sm:text-sm"
         />
-        {hint.length > 0 && (
-          <span
-            data-testid="quick-add-hint"
-            className="font-ui text-2xs max-w-24 shrink-0 truncate text-(--accent) sm:max-w-[45%]"
-          >
-            → {hint.join(" · ")}
-          </span>
-        )}
-        {!isEmptyDraft(draft) && (
-          <InputBarIcon
-            icon="close"
-            label="clear"
-            onClick={() => {
-              clear();
-              inputRef.current?.focus();
-            }}
-          />
-        )}
+        {!isPhone && <InputBarIcon icon="expand" label="add with details" onClick={onExpand} />}
         {text.trim() && (
           <InputBarAction icon="arrow-up" label="add" name="add item" onClick={submit} />
         )}
-        <InputBarIcon icon="expand" label="add with details" onClick={onExpand} />
       </InputBar>
     </div>
   );

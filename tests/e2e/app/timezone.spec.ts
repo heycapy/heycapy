@@ -27,7 +27,7 @@ test("updating an item without changes keeps its date and time", async ({ page }
   const before = await row.innerText();
   await row.click();
   const dialog = editForm(page);
-  await dialog.getByRole("button", { name: "[ update ]", exact: true }).click();
+  await dialog.getByRole("button", { name: "update", exact: true }).click();
   await expect(dialog).not.toBeVisible();
 
   await page.reload();

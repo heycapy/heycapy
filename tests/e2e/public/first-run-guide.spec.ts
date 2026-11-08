@@ -33,34 +33,51 @@ function guidePanel(page: Page) {
   return page.getByRole("dialog", { name: "getting started" });
 }
 
+function lookPicker(page: Page) {
+  return page.getByRole("dialog", { name: "pick a look" });
+}
+
 function task(page: Page, title: string) {
   return guidePanel(page).getByRole("listitem", { name: title });
 }
 
 // Parallel tests can start in the same millisecond, the test's own id keeps their accounts apart
-async function signUp(page: Page): Promise<string> {
+async function newAccount(page: Page): Promise<string> {
   const { testId, repeatEachIndex } = test.info();
   const email = uniqueEmail(`${E2E_STARTER_EMAIL_PREFIX}-${testId}-${repeatEachIndex}`);
   await login(page, email);
   await expect(activeBucketTitle(page)).toHaveText("reminders");
+  await expect(lookPicker(page)).toBeVisible();
+  return email;
+}
+
+async function signUp(page: Page): Promise<string> {
+  const email = await newAccount(page);
+  await lookPicker(page).getByRole("button", { name: "[ x ]" }).click();
   await expect(guidePanel(page)).toBeVisible();
   await guidePanel(page).getByRole("button", { name: "[ x ]" }).click();
   await expect(guidePanel(page)).toBeHidden();
   return email;
 }
 
-function guideSeen(email: string): boolean {
+function userFlag(email: string, column: "guide_seen" | "look_picked"): boolean {
   const db = new Database(E2E_DATABASE_FILE);
-  const row = db.prepare("select guide_seen from users where email = ?").get(email) as
-    { guide_seen: number } | undefined;
+  const row = db.prepare(`select ${column} as flag from users where email = ?`).get(email) as
+    { flag: number } | undefined;
   db.close();
-  return row?.guide_seen === 1;
+  return row?.flag === 1;
+}
+
+function resetLookPicked(email: string) {
+  const db = new Database(E2E_DATABASE_FILE);
+  db.prepare("update users set look_picked = 0 where email = ?").run(email);
+  db.close();
 }
 
 test("the guide opens by itself on the first visit only", async ({ page }) => {
   const email = await signUp(page);
   // marked seen without waiting, a reload before it lands would rightly open the guide again
-  await expect.poll(() => guideSeen(email)).toBe(true);
+  await expect.poll(() => userFlag(email, "guide_seen")).toBe(true);
 
   await page.reload();
   await expect(activeBucketTitle(page)).toHaveText("reminders");
@@ -118,7 +135,7 @@ test("a hint takes you to the place the task is done", async ({ page }) => {
   await signUp(page);
 
   await openGuide(page);
-  await task(page, "pick a theme").getByRole("button", { name: "[ hint ]" }).click();
+  await task(page, "pick a theme and look").getByRole("button", { name: "[ hint ]" }).click();
   await expect(guidePanel(page)).toBeHidden();
   const tweaks = page.getByRole("dialog", { name: "tweaks" });
   await expect(tweaks).toBeVisible();
@@ -126,7 +143,7 @@ test("a hint takes you to the place the task is done", async ({ page }) => {
     "aria-current",
     "true"
   );
-  await expect(page.getByText("pick any theme you like")).toBeVisible();
+  await expect(page.getByText("pick any theme or look you like")).toBeVisible();
   await tweaks.getByRole("button", { name: "[ x ]" }).click();
 
   await openGuide(page);
@@ -154,11 +171,70 @@ test("picking a theme ticks its task, the theme saves itself", async ({ page }) 
   await signUp(page);
 
   await openGuide(page);
-  await task(page, "pick a theme").getByRole("button", { name: "[ hint ]" }).click();
+  await task(page, "pick a theme and look").getByRole("button", { name: "[ hint ]" }).click();
   const tweaks = page.getByRole("dialog", { name: "tweaks" });
   await tweaks.getByRole("button", { name: /nord/i }).first().click();
 
-  await expect(page.getByText(/^pick a theme · \+\d+ capy credits$/)).toBeVisible();
+  await expect(page.getByText(/^pick a theme and look · \+\d+ capy credits$/)).toBeVisible();
   await tweaks.getByRole("button", { name: "[ x ]" }).click();
   await expectGuideDone(page, 1);
+});
+
+test("a new account picks a look before the guide opens, and the pick pays its task", async ({
+  page,
+}) => {
+  const email = await newAccount(page);
+  const picker = lookPicker(page);
+  await expect(guidePanel(page)).toBeHidden();
+  await expect(picker.getByRole("button", { name: "original", exact: true })).toHaveAttribute(
+    "aria-pressed",
+    "true"
+  );
+
+  await picker.getByRole("button", { name: "modern", exact: true }).click();
+  await expect(page.locator("html")).toHaveAttribute("data-look", "modern");
+  await expect(picker.getByRole("button", { name: "modern", exact: true })).toHaveAttribute(
+    "aria-pressed",
+    "true"
+  );
+  await expect(page.getByText(/^pick a theme and look · \+\d+ capy credits$/)).toBeVisible();
+
+  const preview = picker.locator("[inert][data-look]");
+  await expect(preview).toHaveAttribute("data-look", "modern");
+  await picker.getByRole("button", { name: "original", exact: true }).click();
+  await expect(preview).toHaveAttribute("data-look", "original");
+  await expect(page.locator("html")).toHaveAttribute("data-look", "original");
+  await picker.getByRole("button", { name: "modern", exact: true }).click();
+  await expect(page.locator("html")).toHaveAttribute("data-look", "modern");
+
+  await picker.getByRole("button", { name: "done", exact: true }).click();
+  await expect(picker).toBeHidden();
+  await expect(guidePanel(page)).toBeVisible();
+  await expect.poll(() => userFlag(email, "look_picked")).toBe(true);
+
+  await page.reload();
+  await expect(activeBucketTitle(page)).toHaveText("reminders");
+  await expect(page.locator("html")).toHaveAttribute("data-look", "modern");
+  await expect(picker).toBeHidden();
+});
+
+test("an account from before the picker sees it once, closing it keeps the look", async ({
+  page,
+}) => {
+  const email = await signUp(page);
+  await expect.poll(() => userFlag(email, "look_picked")).toBe(true);
+  resetLookPicked(email);
+
+  await page.reload();
+  await expect(lookPicker(page)).toBeVisible();
+  await expect(lookPicker(page).getByRole("button", { name: "modern" })).toHaveCount(1);
+  await lookPicker(page).getByRole("button", { name: "[ x ]" }).click();
+  await expect(lookPicker(page)).toBeHidden();
+  await expect(page.locator("html")).toHaveAttribute("data-look", "original");
+  await expect.poll(() => userFlag(email, "look_picked")).toBe(true);
+  await expectGuideDone(page, 0);
+
+  await page.reload();
+  await expect(activeBucketTitle(page)).toHaveText("reminders");
+  await expect(lookPicker(page)).toBeHidden();
 });

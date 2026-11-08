@@ -341,7 +341,7 @@ test("an item can be assigned to a member, and a bucket nobody shares has no suc
   await dialog.locator("textarea").fill(title);
   await openDetail(dialog, "assignee");
   await dialog.getByRole("button", { name: sam, exact: true }).click();
-  await dialog.getByRole("button", { name: "[ add ]", exact: true }).click();
+  await dialog.getByRole("button", { name: "add", exact: true }).click();
   await expect(itemRow(page, title)).toContainText(`→ ${sam}`);
 
   const fromBox = `water the plants ${Date.now()}`;
@@ -349,7 +349,7 @@ test("an item can be assigned to a member, and a bucket nobody shares has no suc
   await box.fill(`${fromBox} @${sam}`);
   await page.getByRole("listbox", { name: "assign to" }).getByRole("option", { name: sam }).click();
   await expect(box).toHaveValue(fromBox);
-  await expect(page.getByTestId("quick-add-hint")).toHaveText(`→ @${sam}`);
+  await expect(page.getByTestId("quick-add-hint")).toHaveText(`@${sam}`);
   await box.press("Enter");
   await expect(itemRow(page, fromBox)).toContainText(`→ ${sam}`);
 
@@ -359,7 +359,7 @@ test("an item can be assigned to a member, and a bucket nobody shares has no suc
   const edit = editForm(friend);
   await openDetail(edit, "assignee");
   await edit.getByRole("button", { name: "anyone", exact: true }).click();
-  await edit.getByRole("button", { name: "[ update ]", exact: true }).click();
+  await edit.getByRole("button", { name: "update", exact: true }).click();
   await expect(edit).not.toBeVisible();
   await expect(itemRow(friend, title)).not.toContainText("→");
 
@@ -395,7 +395,7 @@ test("a shared item's assignee can be changed when it's edited from today or sea
   const fromToday = editForm(page);
   await openDetail(fromToday, "assignee");
   await fromToday.getByRole("button", { name: sam, exact: true }).click();
-  await fromToday.getByRole("button", { name: "[ update ]", exact: true }).click();
+  await fromToday.getByRole("button", { name: "update", exact: true }).click();
   await expect(fromToday).not.toBeVisible();
 
   await page.goto(`/?bucket=${bucketId}`);
@@ -409,7 +409,7 @@ test("a shared item's assignee can be changed when it's edited from today or sea
   const fromSearch = editForm(page);
   await openDetail(fromSearch, "assignee");
   await fromSearch.getByRole("button", { name: "anyone", exact: true }).click();
-  await fromSearch.getByRole("button", { name: "[ update ]", exact: true }).click();
+  await fromSearch.getByRole("button", { name: "update", exact: true }).click();
   await expect(fromSearch).not.toBeVisible();
 
   await page.goto(`/?bucket=${bucketId}`);
@@ -578,7 +578,7 @@ test("typing @ in the title picks a member in a shared bucket, and does nothing 
   await title.press("Enter");
   await expect(title).toHaveValue("buy oat milk");
   await expect(detailChip(dialog, "assignee")).toHaveAccessibleName(`assignee: ${sam}`);
-  await dialog.getByRole("button", { name: "[ add ]", exact: true }).click();
+  await dialog.getByRole("button", { name: "add", exact: true }).click();
   await expect(itemRow(page, "buy oat milk")).toContainText(`→ ${sam}`);
 
   await page.getByRole("button", { name: "add with details", exact: true }).click();
@@ -634,7 +634,7 @@ test("people see each other's avatars next to their names, a generated one if ne
   const title = `call ${Date.now()}`;
   await dialog.locator("textarea").fill(title);
   await dialog.getByRole("button", { name: sam, exact: true }).click();
-  await dialog.getByRole("button", { name: "[ add ]", exact: true }).click();
+  await dialog.getByRole("button", { name: "add", exact: true }).click();
   await expect(itemRow(page, title)).toContainText(`→ ${sam}`);
 
   const fromBox = `water the plants ${Date.now()}`;
@@ -642,7 +642,7 @@ test("people see each other's avatars next to their names, a generated one if ne
   await box.fill(`${fromBox} @${sam}`);
   await page.getByRole("listbox", { name: "assign to" }).getByRole("option", { name: sam }).click();
   await expect(box).toHaveValue(fromBox);
-  await expect(page.getByTestId("quick-add-hint")).toHaveText(`→ @${sam}`);
+  await expect(page.getByTestId("quick-add-hint")).toHaveText(`@${sam}`);
   await box.press("Enter");
   await expect(itemRow(page, fromBox)).toContainText(`→ ${sam}`);
   await expect(sams(itemRow(page, title))).toHaveAttribute("width", "16");

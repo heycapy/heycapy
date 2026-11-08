@@ -1,0 +1,1 @@
+ALTER TABLE `users` ADD `look_picked` integer DEFAULT false NOT NULL;

@@ -76,7 +76,12 @@ export async function verifyOtpAction(email: string, code: string): Promise<Veri
     const firstRun = getsFirstRun(email);
     const [created] = await db
       .insert(users)
-      .values({ email, lastSeenRelease: LATEST_RELEASE, guideSeen: !firstRun })
+      .values({
+        email,
+        lastSeenRelease: LATEST_RELEASE,
+        guideSeen: !firstRun,
+        lookPicked: !firstRun,
+      })
       .returning();
     user = created;
     await db.insert(userSettings).values({ userId: user.id });

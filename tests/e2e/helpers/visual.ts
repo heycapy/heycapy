@@ -43,7 +43,7 @@ async function seed(page: Page) {
   await addItem(page, "bread");
   await page.getByRole("button", { name: "add with details", exact: true }).click();
   await newItemForm(page).locator("textarea").fill("call mum\nabout the trip");
-  await newItemForm(page).getByRole("button", { name: "[ add ]", exact: true }).click();
+  await newItemForm(page).getByRole("button", { name: "add", exact: true }).click();
   await expect(page.getByRole("button", { name: /^call mum/ })).toBeVisible();
   await itemTick(page, "bread").click();
   await expect(itemTick(page, "bread")).toBeChecked();
@@ -88,7 +88,7 @@ export function screenshotTests(spec: string, look: Look) {
 
   test.skip(!!process.env.CI, "screenshots are made and checked locally");
 
-  // The seed finds buttons by their original names, "[ add ]" and the like
+  // The seed finds buttons by their original names, "[ create bucket ]" and the like
   test.beforeAll(async ({ browser }) => {
     setLook(spec, LOOK.original);
     const page = await browser.newPage({ storageState: authState(spec) });
@@ -108,6 +108,8 @@ export function screenshotTests(spec: string, look: Look) {
         await openGroceries(page, theme);
         await page.getByRole("button", { name: "add with details", exact: true }).click();
         await expect(newItemForm(page)).toBeVisible();
+        // the form's send arrow opens under the expand button, its tooltip would come and go
+        await page.mouse.move(0, 0);
         await snap(page, `${theme}-new-item`);
       });
 

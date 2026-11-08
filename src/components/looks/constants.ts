@@ -41,3 +41,11 @@ export const LOOK_PARTS: Record<Look, LookParts> = {
     footer: "floating",
   },
 };
+
+export const LOOK_PREVIEW_BUCKET = "reminders";
+
+// days from today; the past one shows the late chip
+export const LOOK_PREVIEW_ITEMS = [
+  { title: "pay rent", dueInDays: -1, done: false },
+  { title: "water plants", dueInDays: null, done: true },
+] as const;

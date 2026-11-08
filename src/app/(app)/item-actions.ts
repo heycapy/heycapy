@@ -8,7 +8,12 @@ import { requireSession } from "./action-helpers";
 import { db } from "@/lib/db";
 import { items } from "@/lib/db/schema";
 import { findAccessibleBucket, findAccessibleItem, isBucketMember } from "@/lib/buckets/access";
-import { ITEM_GONE_ERROR, ITEM_STATUS, ITEM_TITLE_MAX_LENGTH } from "@/constants";
+import {
+  ITEM_GONE_ERROR,
+  ITEM_STATUS,
+  ITEM_TITLE_MAX_LENGTH,
+  SETTABLE_ITEM_STATUSES,
+} from "@/constants";
 import { RecurringConfig, ReminderOffsets } from "@/types/rules";
 import { initialReminderState, reminderResetForDeadline } from "@/lib/items/reminders";
 import {
@@ -94,6 +99,7 @@ export async function cancelRemindAgainAction(itemId: number): Promise<ActionRes
 
 const NOT_A_MEMBER_ERROR = "That person isn't in this bucket";
 const UNKNOWN_CLOCK_ERROR = "That timezone doesn't exist";
+const INVALID_STATUS_ERROR = "Invalid status";
 
 export async function addItemAction(
   bucketId: number,
@@ -119,6 +125,9 @@ export async function addItemAction(
     return { ok: false, error: "Invalid reminders" };
   }
   if (clock && !isKnownTimezone(clock)) return { ok: false, error: UNKNOWN_CLOCK_ERROR };
+  if (status !== undefined && !SETTABLE_ITEM_STATUSES.includes(status)) {
+    return { ok: false, error: INVALID_STATUS_ERROR };
+  }
 
   const bucket = await findAccessibleBucket(session.userId, bucketId);
   if (!bucket) return { ok: false, error: "Bucket not found" };
@@ -199,6 +208,10 @@ export async function updateItemAction(
 
   const item = await findAccessibleItem(session.userId, itemId);
   if (!item) return { ok: false, error: ITEM_GONE_ERROR };
+  // a missed item's editor sends "missed" back unchanged
+  if (status !== undefined && status !== item.status && !SETTABLE_ITEM_STATUSES.includes(status)) {
+    return { ok: false, error: INVALID_STATUS_ERROR };
+  }
   if (assigneeId && !(await isBucketMember(assigneeId, item.bucketId))) {
     return { ok: false, error: NOT_A_MEMBER_ERROR };
   }

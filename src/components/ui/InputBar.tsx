@@ -3,7 +3,7 @@
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { IconButton } from "./IconButton";
-import { TextButton } from "./TextButton";
+import { Icon } from "./Icon";
 import { Tooltip } from "./Tooltip";
 import type { IconName } from "./icons";
 
@@ -55,16 +55,25 @@ export function InputBarAction({
   onClick,
 }: InputBarActionProps) {
   return (
-    <TextButton
-      variant={variant}
-      icon={icon}
-      iconLabel={name ?? label}
-      aria-label={name ?? label}
-      disabled={disabled}
-      onClick={onClick}
-      className="shrink-0"
-    >
-      {label}
-    </TextButton>
+    <Tooltip text={label} className="shrink-0">
+      <button
+        type="button"
+        aria-label={name ?? label}
+        disabled={disabled}
+        onClick={onClick}
+        className="group/action flex h-(--add-icon) items-center pl-1 disabled:opacity-40"
+      >
+        <span
+          className={cn(
+            "flex size-6 items-center justify-center rounded-(--dot-radius) transition-opacity group-hover/action:opacity-85",
+            variant === "primary"
+              ? "bg-primary text-primary-foreground"
+              : "bg-destructive text-background"
+          )}
+        >
+          <Icon name={icon} />
+        </span>
+      </button>
+    </Tooltip>
   );
 }
