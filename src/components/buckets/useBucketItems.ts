@@ -62,13 +62,15 @@ export function useBucketItems(bucketId: number, itemsRules: string, showComplet
   }
 
   async function changeStatus(item: Item, status: string) {
-    await updateItemAction(
+    const result = await updateItemAction(
       item.id,
       item.title,
       item.deadline ? deadlineValue(item.deadline, item.deadlineTimezone) : null,
       status
     );
+    if (!result.ok) toast.error(result.error);
     await refetch();
+    return result.ok;
   }
 
   async function moveItem(item: Item, deadline: string) {

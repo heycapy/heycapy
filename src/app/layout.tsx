@@ -3,7 +3,7 @@ import type { Metadata, Viewport } from "next";
 import { headers } from "next/headers";
 import { Geist, Geist_Mono, Silkscreen } from "next/font/google";
 import "./globals.css";
-import { APP_NAME, APP_TAGLINE, CONTROL_SIZE, LOOK } from "@/constants";
+import { APP_NAME, APP_TAGLINE, CONTROL_SIZE, LOOK, TICK_SOUND } from "@/constants";
 import { getSession } from "@/lib/auth/session";
 import { appearanceFor } from "@/lib/account/look";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
@@ -48,9 +48,9 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function RootLayout({ children }: { children: ReactNode }) {
   const session = await getSession();
-  const { look, controlSize } = session
+  const { look, controlSize, tickSound } = session
     ? await appearanceFor(session.userId)
-    : { look: LOOK.original, controlSize: CONTROL_SIZE.medium };
+    : { look: LOOK.original, controlSize: CONTROL_SIZE.medium, tickSound: TICK_SOUND.drop };
 
   return (
     <html
@@ -61,7 +61,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
       suppressHydrationWarning
     >
       <body className="bg-background text-foreground font-ui h-full pr-[env(safe-area-inset-right)] pl-[env(safe-area-inset-left)]">
-        <LookProvider look={look} controlSize={controlSize}>
+        <LookProvider look={look} controlSize={controlSize} tickSound={tickSound}>
           <ThemeProvider>{children}</ThemeProvider>
         </LookProvider>
       </body>

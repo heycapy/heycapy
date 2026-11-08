@@ -45,6 +45,7 @@ import {
   CUSTOM_PROMPT_REQUIRED_ERROR,
   EMAIL_COLORS,
   CONTROL_SIZES,
+  TICK_SOUNDS,
   LOOKS,
   TELEGRAM_API_BASE,
   TELEGRAM_LINK_BASE,
@@ -501,6 +502,19 @@ export async function setControlSizeAction(size: string): Promise<ActionResult> 
   await db
     .update(userSettings)
     .set({ controlSize: parsed.data })
+    .where(eq(userSettings.userId, session.userId));
+  revalidatePath("/", "layout");
+  return { ok: true };
+}
+
+export async function setTickSoundAction(sound: string): Promise<ActionResult> {
+  const session = await getSession();
+  if (!session) return { ok: false, error: "Unauthorized" };
+  const parsed = z.enum(TICK_SOUNDS).safeParse(sound);
+  if (!parsed.success) return { ok: false, error: `Unknown sound "${sound}"` };
+  await db
+    .update(userSettings)
+    .set({ tickSound: parsed.data })
     .where(eq(userSettings.userId, session.userId));
   revalidatePath("/", "layout");
   return { ok: true };

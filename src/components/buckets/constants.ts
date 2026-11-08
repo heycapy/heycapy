@@ -47,6 +47,13 @@ export const DEFAULT_BUCKET_STATUSES: StatusDef[] = [
 export const ITEM_HIGHLIGHT_MS = 3000;
 export const JUST_ADDED_MS = 4000;
 export const TAB_HOLD_MS = 350;
+export const TICK_SAVE_FAILED = "couldn't save that, try again";
+// scale keyframes: the round box dips and overshoots, the pixel fill grows past its size
+export const TICK_POP: { box: number[]; fill: number[]; duration: number } = {
+  box: [1, 0.8, 1.2, 1],
+  fill: [0, 1.3, 1],
+  duration: 0.3,
+};
 export const TAB_HOLD_SLOP_PX = 6;
 export const TAB_LIFT_SCALE = 1.06;
 export const TAB_LIFT_VIBRATE_MS = 15;

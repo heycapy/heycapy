@@ -153,6 +153,14 @@ export const CONTROL_SIZE = {
 
 export const CONTROL_SIZES = [CONTROL_SIZE.small, CONTROL_SIZE.medium, CONTROL_SIZE.large] as const;
 
+export const TICK_SOUND = {
+  off: "off",
+  drop: "drop",
+  chime: "chime",
+} as const;
+
+export const TICK_SOUNDS = [TICK_SOUND.off, TICK_SOUND.drop, TICK_SOUND.chime] as const;
+
 export const ITEM_STATUS = {
   active: "active",
   completed: "completed",

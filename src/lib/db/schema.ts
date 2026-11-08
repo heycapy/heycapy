@@ -1,4 +1,12 @@
-import { CONTROL_SIZE, CONTROL_SIZES, ITEM_STATUS, LOOK, LOOKS } from "@/constants";
+import {
+  CONTROL_SIZE,
+  CONTROL_SIZES,
+  ITEM_STATUS,
+  LOOK,
+  LOOKS,
+  TICK_SOUND,
+  TICK_SOUNDS,
+} from "@/constants";
 import {
   index,
   integer,
@@ -89,6 +97,7 @@ export const userSettings = sqliteTable("user_settings", {
     .default("capy"),
   look: text("look", { enum: LOOKS }).notNull().default(LOOK.original),
   controlSize: text("control_size", { enum: CONTROL_SIZES }).notNull().default(CONTROL_SIZE.medium),
+  tickSound: text("tick_sound", { enum: TICK_SOUNDS }).notNull().default(TICK_SOUND.drop),
   timezone: text("timezone").notNull().default("UTC"),
   personalityName: text("personality_name").notNull().default("Capy"),
   personalityTone: text("personality_tone", {

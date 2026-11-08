@@ -4,13 +4,20 @@ import { useTransition } from "react";
 import { toast } from "sonner";
 import { LOOK } from "@/constants";
 import { OptionGroup } from "@/components/ui/OptionGroup";
-import { useControlSize, useLook } from "@/components/looks/LookProvider";
-import { setControlSizeAction, setLookAction } from "@/app/(app)/actions";
-import { CONTROL_SIZE_OPTIONS, LABEL, LOOK_OPTIONS } from "./settings-constants";
+import { useControlSize, useLook, useTickSound } from "@/components/looks/LookProvider";
+import { setControlSizeAction, setLookAction, setTickSoundAction } from "@/app/(app)/actions";
+import { playTickSound } from "@/lib/tick-sound/play";
+import {
+  CONTROL_SIZE_OPTIONS,
+  LABEL,
+  LOOK_OPTIONS,
+  TICK_SOUND_OPTIONS,
+} from "./settings-constants";
 
 export function LookPicker() {
   const look = useLook();
   const controlSize = useControlSize();
+  const tickSound = useTickSound();
   const [pending, startTransition] = useTransition();
 
   function save(action: (value: string) => Promise<{ ok: boolean; error?: string }>) {
@@ -43,6 +50,18 @@ export function LookPicker() {
           />
         </div>
       )}
+      <div className="flex flex-col gap-1.5">
+        <label className={LABEL}>tick sound</label>
+        <OptionGroup
+          options={TICK_SOUND_OPTIONS}
+          value={tickSound}
+          onChange={(sound) => {
+            playTickSound(sound);
+            save(setTickSoundAction)(sound);
+          }}
+          disabled={pending}
+        />
+      </div>
     </>
   );
 }

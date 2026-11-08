@@ -1,7 +1,9 @@
 "use client";
 
+import { motion, useReducedMotion } from "framer-motion";
 import { useLookParts } from "@/components/looks/LookProvider";
 import { cn } from "@/lib/utils";
+import { TICK_POP } from "./constants";
 
 type TickBoxProps = {
   title: string;
@@ -12,6 +14,7 @@ type TickBoxProps = {
 
 export function TickBox({ title, checked, color, onToggle }: TickBoxProps) {
   const round = useLookParts().tickBox === "round";
+  const pop = !useReducedMotion();
   return (
     <button
       type="button"
@@ -28,15 +31,17 @@ export function TickBox({ title, checked, color, onToggle }: TickBoxProps) {
       )}
     >
       {round ? (
-        <RoundTick checked={checked} hover={!checked && !!onToggle} />
+        <RoundTick checked={checked} hover={!checked && !!onToggle} pop={pop} />
       ) : (
-        <PixelTick checked={checked} hover={!checked && !!onToggle} />
+        <PixelTick checked={checked} hover={!checked && !!onToggle} pop={pop} />
       )}
     </button>
   );
 }
 
-function PixelTick({ checked, hover }: { checked: boolean; hover: boolean }) {
+type TickProps = { checked: boolean; hover: boolean; pop: boolean };
+
+function PixelTick({ checked, hover, pop }: TickProps) {
   return (
     <svg width="14" height="14" viewBox="0 0 14 14" shapeRendering="crispEdges" aria-hidden>
       <path
@@ -48,35 +53,52 @@ function PixelTick({ checked, hover }: { checked: boolean; hover: boolean }) {
           hover && "group-hover/tick:opacity-100"
         )}
       />
-      {checked && <path d="M4 4h6v6H4z" fill="currentColor" />}
+      <motion.path
+        d="M4 4h6v6H4z"
+        fill="currentColor"
+        style={{ transformOrigin: "center", transformBox: "fill-box" }}
+        initial={false}
+        animate={
+          checked
+            ? { scale: pop ? TICK_POP.fill : 1, opacity: 1 }
+            : { scale: pop ? 0 : 1, opacity: 0 }
+        }
+        transition={{ duration: TICK_POP.duration }}
+      />
     </svg>
   );
 }
 
-function RoundTick({ checked, hover }: { checked: boolean; hover: boolean }) {
+function RoundTick({ checked, hover, pop }: TickProps) {
   return (
-    <span
+    <motion.span
       aria-hidden
+      initial={false}
+      animate={{ scale: checked && pop ? TICK_POP.box : 1 }}
+      transition={{ duration: TICK_POP.duration }}
       className={cn(
         "flex size-5 items-center justify-center rounded-full border-2 border-current transition-colors",
         checked && "bg-current",
         hover && "group-hover/tick:text-foreground"
       )}
     >
-      {checked && (
-        <svg
-          width="12"
-          height="12"
-          viewBox="0 0 24 24"
-          fill="none"
-          className="stroke-background"
-          strokeWidth="3.5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <path d="M20 6 9 17l-5-5" />
-        </svg>
-      )}
-    </span>
+      <svg
+        width="12"
+        height="12"
+        viewBox="0 0 24 24"
+        fill="none"
+        className="stroke-background"
+        strokeWidth="3.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <motion.path
+          d="M20 6 9 17l-5-5"
+          initial={false}
+          animate={{ pathLength: checked ? 1 : 0, opacity: checked ? 1 : 0 }}
+          transition={{ duration: pop ? TICK_POP.duration : 0 }}
+        />
+      </svg>
+    </motion.span>
   );
 }

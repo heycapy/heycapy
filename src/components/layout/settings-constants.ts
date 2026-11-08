@@ -1,5 +1,11 @@
-import { CONTROL_SIZE, GEMINI_DEFAULT_MODEL, LOOK, type TranscriptionProvider } from "@/constants";
-import type { ControlSize, Look } from "@/components/looks/constants";
+import {
+  CONTROL_SIZE,
+  GEMINI_DEFAULT_MODEL,
+  LOOK,
+  TICK_SOUND,
+  type TranscriptionProvider,
+} from "@/constants";
+import type { ControlSize, Look, TickSound } from "@/components/looks/constants";
 
 export const LABEL = "text-foreground font-ui text-xs font-medium";
 export const HINT = "text-muted-foreground font-ui text-2xs leading-tight";
@@ -67,6 +73,12 @@ export const CONTROL_SIZE_OPTIONS: { value: ControlSize; label: string }[] = [
   { value: CONTROL_SIZE.small, label: "small" },
   { value: CONTROL_SIZE.medium, label: "medium" },
   { value: CONTROL_SIZE.large, label: "large" },
+];
+
+export const TICK_SOUND_OPTIONS: { value: TickSound; label: string }[] = [
+  { value: TICK_SOUND.off, label: "off" },
+  { value: TICK_SOUND.drop, label: "drop" },
+  { value: TICK_SOUND.chime, label: "chime" },
 ];
 
 export const LOOK_OPTIONS: { value: Look; label: string }[] = [

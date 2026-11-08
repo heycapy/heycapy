@@ -365,6 +365,13 @@
       "when": 1794077102017,
       "tag": "0051_look_picked",
       "breakpoints": true
+    },
+    {
+      "idx": 52,
+      "version": "6",
+      "when": 1794127442802,
+      "tag": "0052_user_tick_sound",
+      "breakpoints": true
     }
   ]
 }

@@ -1,24 +1,27 @@
 "use client";
 
 import { createContext, use, type ReactNode } from "react";
-import { CONTROL_SIZE, LOOK } from "@/constants";
-import { LOOK_PARTS, type ControlSize, type Look } from "./constants";
+import { CONTROL_SIZE, LOOK, TICK_SOUND } from "@/constants";
+import { LOOK_PARTS, type ControlSize, type Look, type TickSound } from "./constants";
 
-const LookContext = createContext<{ look: Look; controlSize: ControlSize }>({
+const LookContext = createContext<{ look: Look; controlSize: ControlSize; tickSound: TickSound }>({
   look: LOOK.original,
   controlSize: CONTROL_SIZE.medium,
+  tickSound: TICK_SOUND.drop,
 });
 
 export function LookProvider({
   look,
   controlSize = CONTROL_SIZE.medium,
+  tickSound = TICK_SOUND.drop,
   children,
 }: {
   look: Look;
   controlSize?: ControlSize;
+  tickSound?: TickSound;
   children: ReactNode;
 }) {
-  return <LookContext value={{ look, controlSize }}>{children}</LookContext>;
+  return <LookContext value={{ look, controlSize, tickSound }}>{children}</LookContext>;
 }
 
 export function useLookParts() {
@@ -32,4 +35,8 @@ export function useLook() {
 
 export function useControlSize() {
   return use(LookContext).controlSize;
+}
+
+export function useTickSound() {
+  return use(LookContext).tickSound;
 }
