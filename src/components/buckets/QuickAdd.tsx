@@ -1,5 +1,5 @@
 import { useState, type RefObject } from "react";
-import { toast } from "sonner";
+import { notify } from "@/components/ui/notify";
 import { addItemAction } from "@/app/(app)/actions";
 import { IconButton } from "@/components/ui/IconButton";
 import { InputBar, InputBarAction, InputBarIcon } from "@/components/ui/InputBar";
@@ -112,7 +112,7 @@ export function QuickAdd({ bucket, inputRef, onAdded, onExpand, targets }: Quick
         onAdded();
         return;
       }
-      toast.error(result.error);
+      notify.error(result.error);
       const current = useDraftStore.getState().drafts[bucket.id];
       if (!current || isEmptyDraft(current)) updateDraft(bucket.id, sent);
     })();

@@ -1,6 +1,6 @@
 import { useRef, useState, createElement } from "react";
 import { useRouter } from "next/navigation";
-import { toast } from "sonner";
+import { notify } from "@/components/ui/notify";
 import { Sprite } from "./Sprite";
 import type { Message } from "@/lib/ai/types";
 import { useUIStore } from "@/store/ui";
@@ -99,9 +99,9 @@ export function useChatStream() {
         return;
       }
       const errMsg = err instanceof Error ? err.message : "Something went wrong.";
-      toast.error("oops, ran into a problem", {
+      notify.error("oops, ran into a problem", {
         description: errMsg,
-        icon: createElement(Sprite, { id: "capy-error", size: 28 }),
+        icon: createElement(Sprite, { id: "capy-error", size: 20 }),
       });
       markLastError(errMsg);
     } finally {

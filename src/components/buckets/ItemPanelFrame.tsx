@@ -30,6 +30,7 @@ import {
 } from "./constants";
 import { useVisualViewport } from "@/hooks/useVisualViewport";
 import { cn } from "@/lib/utils";
+import { smoothScroll } from "@/lib/motion";
 
 export type ItemPanel = {
   slot: HTMLElement;
@@ -112,7 +113,7 @@ export function ItemPanelFrame({
       if (!row) return;
       const panelTop = panel.slot.getBoundingClientRect().bottom - el.offsetHeight;
       const hidden = row.getBoundingClientRect().bottom - panelTop + EDIT_ROW_GAP_PX;
-      if (hidden > 0) row.closest("main")?.scrollBy({ top: hidden, behavior: "smooth" });
+      if (hidden > 0) row.closest("main")?.scrollBy({ top: hidden, behavior: smoothScroll() });
     });
     return () => cancelAnimationFrame(frame);
   }, [open, returnToOpener, panel.slot]);

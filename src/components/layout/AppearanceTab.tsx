@@ -3,6 +3,7 @@ import { charCountColor } from "@/components/ui/input";
 import { LABEL, INPUT, THEMES } from "./settings-constants";
 import { TIMEZONE_MAX_LENGTH } from "@/constants";
 import { LookPicker } from "./LookPicker";
+import { ComfortSettings } from "./ComfortSettings";
 import { useLookParts } from "@/components/looks/LookProvider";
 
 type AppearanceTabProps = {
@@ -58,6 +59,7 @@ export function AppearanceTab({
           ))}
         </div>
       </div>
+      <ComfortSettings />
       <div className="flex flex-col gap-1.5">
         <label className={LABEL}>timezone</label>
         <input

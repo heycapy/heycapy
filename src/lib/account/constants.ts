@@ -1,3 +1,5 @@
+import { CONTROL_SIZE, DEFAULT_TICK_SOUND, LOOK, TEXT_SIZE } from "@/constants";
+
 export const USERNAME_PLAIN_ATTEMPTS = 3;
 export const USERNAME_MAX_ATTEMPTS = 20;
 export const USERNAME_SUFFIX_MIN = 10;
@@ -469,3 +471,12 @@ export const AVATAR_PREVIEW_BACKGROUNDS = [
   { name: "light", className: "bg-avatar-light" },
   { name: "dark", className: "bg-avatar-dark" },
 ] as const;
+
+// What a page shows before anyone signs in, and for an account with no settings row yet
+export const DEFAULT_APPEARANCE = {
+  look: LOOK.original,
+  controlSize: CONTROL_SIZE.medium,
+  tickSound: DEFAULT_TICK_SOUND,
+  reduceMotion: false,
+  textSize: TEXT_SIZE.default,
+} as const;

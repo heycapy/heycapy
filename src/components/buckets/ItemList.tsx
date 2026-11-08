@@ -34,7 +34,7 @@ type ItemListProps = {
   onAssign: (item: Item, assigneeId: number | null) => Promise<boolean>;
   onReorder: (items: Item[]) => void;
   onEdit: (item: Item) => void;
-  onStatusChange: (item: Item, status: string) => void;
+  onStatusChange: (item: Item, status: string) => Promise<boolean>;
   onMove: (item: Item, deadline: string) => Promise<void>;
   onDelete: (itemId: number) => void;
 };
@@ -129,7 +129,7 @@ export function ItemList({
       assign={shared ? { members, onAssign: (userId) => onAssign(menu.item, userId) } : undefined}
       completeLabel={completionToggle(menu.item.status, statuses).label}
       onComplete={() =>
-        onStatusChange(menu.item, completionToggle(menu.item.status, statuses).next)
+        void onStatusChange(menu.item, completionToggle(menu.item.status, statuses).next)
       }
       onMove={(deadline) => onMove(menu.item, deadline)}
       onDelete={() => onDelete(menu.item.id)}

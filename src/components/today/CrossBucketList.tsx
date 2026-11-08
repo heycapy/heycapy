@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { toast } from "sonner";
+import { notify } from "@/components/ui/notify";
 import { cn } from "@/lib/utils";
 import { useLookParts } from "@/components/looks/LookProvider";
 import { ItemRow } from "@/components/buckets/ItemRow";
@@ -49,18 +49,20 @@ export function CrossBucketList({
   const bucketOf = (item: Item) => data?.buckets.find((b) => b.id === item.bucketId);
 
   async function changeStatus(item: Item, status: string) {
-    await updateItemAction(
+    const result = await updateItemAction(
       item.id,
       item.title,
       item.deadline ? deadlineValue(item.deadline, item.deadlineTimezone) : null,
       status
     );
+    if (!result.ok) notify.error(result.error);
     await onChanged();
+    return result.ok;
   }
 
   async function moveItem(item: Item, deadline: string) {
     const result = await moveItemAction(item.id, deadline);
-    if (!result.ok) toast.error(result.error);
+    if (!result.ok) notify.error(result.error);
     await onChanged();
   }
 
@@ -86,7 +88,7 @@ export function CrossBucketList({
           isEditing={editingItemId === item.id}
           menuOpen={menu?.item.id === item.id}
           onEditStart={readonly ? undefined : () => onEdit(item)}
-          onStatusChange={readonly ? undefined : (status) => void changeStatus(item, status)}
+          onStatusChange={readonly ? undefined : (status) => changeStatus(item, status)}
           reminderBadge={data?.reminderBadges[item.id]}
           assignee={assignee && itemAssignee(assignee)}
           onMenu={(at) => setMenu({ item, at })}

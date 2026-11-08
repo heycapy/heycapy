@@ -2,6 +2,33 @@
 
 all notable changes to heycapy. versions follow [semver](https://semver.org): a patch version (0.3.1) only fixes things, a minor version (0.4.0) adds features. the database migrates itself on start and migrations only go forward, so back up before upgrading (see the README).
 
+## 0.11.0
+
+ticking an item finally feels like something happened, toasts are smaller and stay out of the way, and heycapy gets its first comfort settings: bigger text and reduced motion.
+
+### new
+
+- ticking an item answers the moment you tap: the box pops (the circle in modern, the pixel dot in original), a short sound plays and android phones give a tiny buzz. before, the box waited for the server and nothing seemed to happen
+- pick the tick sound in tweaks › appearance: chime (the default), sparkle, success, harp, or off. picking one plays it. "off" turns the buzz off too
+- text size in tweaks › appearance: default, large or larger. every text in the app grows, the layout keeps its shape
+- reduce motion in tweaks › appearance: no sliding, fading, popping or smooth scrolling anywhere. heycapy also follows your device's own reduce motion setting now
+- a failed tick puts the box back and says so, with a retry button
+
+### changes
+
+- done items are no longer crossed out. they keep their text and dim a little, so open items still stand out
+- new buckets keep done items in the list by default, whichever template you start from. the todo and ci/cd templates used to hide them. buckets you already have keep their setting
+- toasts sit at the bottom centre, just above the add bar, on phones and desktop. on phones they no longer cover the bucket tabs
+- toasts are one small line in your theme's colours: an icon, the message and an action like undo or retry. only errors have a ×
+- at most three toasts show at once. a fourth closes the oldest, so there's never a pile to clear
+- toasts move up above the add form when it's open, and stay centred over the list when the chat or tweaks is docked beside it
+- errors are announced to screen readers straight away and stay a little longer. escape closes a toast, alt+t jumps to it
+- undo after deleting shows its time left as a thin line under the toast
+
+### upgrading
+
+- one migration (0052) runs on start and adds three settings to `user_settings`: `tick_sound` ("chime"), `reduce_motion` (off) and `text_size` ("default"). back up first, then `docker compose up -d --build` as usual
+
 ## 0.10.0
 
 the biggest release heycapy has had. every screen was redrawn: buckets are tabs along the top, items have a tick box, adding and editing happen in one bar at the bottom, capy sits in the header, and there's a second look to pick from. "original" keeps the pixel style heycapy started with. "modern" is clean, rounded and quiet. nothing about your buckets, items or reminders changes, but almost everything about how you move around them does, so take a minute to look around. one status is gone too: "on hold" (see "removed" below).

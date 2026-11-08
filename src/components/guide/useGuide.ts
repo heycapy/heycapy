@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
-import { toast } from "sonner";
+import { notify } from "@/components/ui/notify";
 import { getGuideAction, hideGuideAction } from "@/app/(app)/actions";
 import type { GuideState } from "@/lib/guide/guide";
 import { HTTPS_ONLY_TASKS } from "./constants";
@@ -37,8 +37,9 @@ export function useGuide(fromServer: GuideState) {
     for (const task of guide.tasks) {
       if (!task.done || announced.current.has(task.key)) continue;
       announced.current.add(task.key);
-      toast(
-        task.earned > 0 ? `${task.title} · +${task.earned} capy credits` : `done: ${task.title}`
+      notify.info(
+        task.earned > 0 ? `${task.title} · +${task.earned} capy credits` : `done: ${task.title}`,
+        { icon: "map" }
       );
     }
   }, [guide]);
@@ -51,7 +52,7 @@ export function useGuide(fromServer: GuideState) {
     setGuide((current) => ({ ...current, hidden }));
     hideGuideAction(hidden).catch(() => {
       setGuide((current) => ({ ...current, hidden: !hidden }));
-      toast.error("couldn't save that, try again");
+      notify.error("couldn't save that, try again");
     });
   }
 

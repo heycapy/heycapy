@@ -18,7 +18,7 @@ type DraggableItemProps = {
   isEditing?: boolean;
   menuOpen?: boolean;
   onEditStart?: () => void;
-  onStatusChange?: (status: string) => void;
+  onStatusChange?: (status: string) => Promise<boolean>;
   onMenu: (at: MenuAt) => void;
   reminderBadge?: ReminderBadge;
   assignee?: ItemAssignee;

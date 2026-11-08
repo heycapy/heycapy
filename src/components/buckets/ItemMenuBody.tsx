@@ -1,5 +1,5 @@
 import { useState, type ComponentProps, type ReactNode } from "react";
-import { toast } from "sonner";
+import { notify } from "@/components/ui/notify";
 import { cn } from "@/lib/utils";
 import { Calendar } from "@/components/ui/Calendar";
 import { TextButton } from "@/components/ui/TextButton";
@@ -103,9 +103,9 @@ export function MenuBody({
     onClose();
     try {
       await navigator.clipboard.writeText(item.title);
-      toast("copied");
+      notify.info("copied");
     } catch {
-      toast.error("couldn't copy");
+      notify.error("couldn't copy");
     }
   }
 

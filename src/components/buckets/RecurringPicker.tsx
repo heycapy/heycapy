@@ -8,6 +8,7 @@ import { describeRepeat } from "@/lib/items/repeat-label";
 import { RECURRING_FREQUENCIES } from "./constants";
 import type { RecurringConfig } from "@/types/rules";
 import { LABEL, MUTED } from "@/components/layout/settings-constants";
+import { smoothScroll } from "@/lib/motion";
 
 const MONDAY_FIRST = [1, 2, 3, 4, 5, 6, 0];
 
@@ -40,7 +41,7 @@ export function RecurringPicker({
   useEffect(() => {
     if (!turnedOn.current || !recurring?.enabled) return;
     turnedOn.current = false;
-    rootRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    rootRef.current?.scrollIntoView({ block: "nearest", behavior: smoothScroll() });
   }, [recurring?.enabled]);
 
   function toggle(on: boolean) {

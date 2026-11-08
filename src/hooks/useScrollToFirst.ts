@@ -1,4 +1,5 @@
 import { useCallback, type RefObject } from "react";
+import { smoothScroll } from "@/lib/motion";
 
 export function useScrollToFirst(containerRef: RefObject<HTMLElement | null>) {
   return useCallback(
@@ -15,7 +16,7 @@ export function useScrollToFirst(containerRef: RefObject<HTMLElement | null>) {
             : target.bottom > box.bottom
               ? target.bottom - box.bottom
               : 0;
-        if (by !== 0) container.scrollBy({ top: by, behavior: "smooth" });
+        if (by !== 0) container.scrollBy({ top: by, behavior: smoothScroll() });
       });
     },
     [containerRef]

@@ -18,7 +18,7 @@ import { parseFields } from "./fields";
 import { useUIStore } from "@/store/ui";
 import { useLayoutStore } from "@/store/layout";
 import { placesOf } from "@/lib/timezones/gap";
-import { toast } from "sonner";
+import { notify } from "@/components/ui/notify";
 import { useLookParts } from "@/components/looks/LookProvider";
 import { cn } from "@/lib/utils";
 import { assignItemAction } from "@/app/(app)/actions";
@@ -155,7 +155,7 @@ export function BucketContent({ bucket, accentColor, viewRef, panel }: BucketCon
           shared={shared}
           onAssign={async (item, assigneeId) => {
             const result = await assignItemAction(item.id, assigneeId);
-            if (!result.ok) toast.error(result.error);
+            if (!result.ok) notify.error(result.error);
             await list.refetch();
             return result.ok;
           }}
@@ -168,7 +168,7 @@ export function BucketContent({ bucket, accentColor, viewRef, panel }: BucketCon
           members={members}
           onReorder={list.reorder}
           onEdit={editor.startEditing}
-          onStatusChange={(item, status) => void list.changeStatus(item, status)}
+          onStatusChange={list.changeStatus}
           onMove={(item, deadline) => list.moveItem(item, deadline)}
           onDelete={(itemId) => void list.deleteItem(itemId)}
         />

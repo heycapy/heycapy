@@ -1,3 +1,5 @@
+import { SOUND_IDS, type SoundId } from "@/lib/sounds";
+
 export const APP_NAME = "HeyCapy";
 export const APP_DOMAIN = "heycapy.xyz";
 export const APP_EMAIL_FROM = `${APP_NAME} <noreply@${APP_DOMAIN}>`;
@@ -153,6 +155,20 @@ export const CONTROL_SIZE = {
 
 export const CONTROL_SIZES = [CONTROL_SIZE.small, CONTROL_SIZE.medium, CONTROL_SIZE.large] as const;
 
+export const TICK_SOUND_OFF = "off";
+
+export const TICK_SOUNDS = [TICK_SOUND_OFF, ...SOUND_IDS] as const;
+
+export const DEFAULT_TICK_SOUND: SoundId = "chime";
+
+export const TEXT_SIZE = {
+  default: "default",
+  large: "large",
+  larger: "larger",
+} as const;
+
+export const TEXT_SIZES = [TEXT_SIZE.default, TEXT_SIZE.large, TEXT_SIZE.larger] as const;
+
 export const ITEM_STATUS = {
   active: "active",
   completed: "completed",
@@ -281,6 +297,10 @@ export const SHEET_CLOSE_DRAG_VELOCITY = 500;
 export const FOOTER_H = 50;
 
 export const TITLE_LINES_SHOWN = 4;
-// Toasts sit just above the footer so they never cover it
+// Toasts sit just above the add bar so they never cover it or the tabs
 export const TOAST_BOTTOM_OFFSET = 66;
+export const TOAST_PHONE_BOTTOM_OFFSET = 88;
+// a tall drawer pushes toasts up, but never closer to the top than this
+export const TOAST_PHONE_TOP_ROOM = 96;
 export const TOAST_SIDE_OFFSET = 16;
+export const TOAST_GAP = 8;

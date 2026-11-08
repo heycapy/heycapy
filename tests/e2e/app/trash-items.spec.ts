@@ -44,7 +44,7 @@ test("a deleted item can be brought straight back with undo", async ({ page }) =
 
   const toast = page.getByText(`deleted "${title}"`);
   await expect(toast).toBeVisible();
-  await page.getByRole("button", { name: "[ undo ]", exact: true }).click();
+  await page.getByRole("button", { name: "undo", exact: true }).click();
   await expect(itemRow(page, title)).toBeVisible();
 });
 
