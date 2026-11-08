@@ -139,3 +139,57 @@ test("with reduce motion a bucket switch swaps the list without a blank or a fad
   await option(field(await openTweaks(page), "reduce motion"), "off").click();
   await expectAfterReload(page, null);
 });
+
+async function watchAnimations(page: Page) {
+  await page.evaluate(() => {
+    const w = window as unknown as { moving: Set<string> };
+    w.moving = new Set();
+    const check = () => {
+      for (const animation of document.getAnimations()) {
+        const duration = Number(animation.effect?.getComputedTiming().duration ?? 0);
+        const target = (animation.effect as KeyframeEffect | null)?.target;
+        if (duration > 1)
+          w.moving.add(`${duration}ms ${target?.className.toString().slice(0, 40)}`);
+      }
+      requestAnimationFrame(check);
+    };
+    check();
+  });
+}
+
+async function animated(page: Page) {
+  return page.evaluate(() => [...(window as unknown as { moving: Set<string> }).moving]);
+}
+
+test("with reduce motion drawers and dialogs open and close without animating", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await createAndSelectBucket(page, uniqueName("Drawers"));
+  await option(field(await openTweaks(page), "reduce motion"), "on").click();
+  await expectAfterReload(page, "reduce");
+  await watchAnimations(page);
+
+  const drawers = [
+    page.getByRole("button", { name: "bucket settings", exact: true }),
+    page.getByRole("button", { name: "add with details", exact: true }),
+    page.getByRole("button", { name: /new bucket|add bucket/i }).first(),
+  ];
+  for (const opener of drawers) {
+    await opener.click();
+    await expect(page.getByRole("dialog")).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+  }
+  const capy = page.getByRole("button", { name: "chat with capy" });
+  await capy.click();
+  await expect(capy).toHaveAttribute("aria-expanded", "true");
+  await capy.click();
+  await expect(capy).toHaveAttribute("aria-expanded", "false");
+  await openTweaks(page);
+  await page.keyboard.press("Escape");
+  expect(await animated(page)).toEqual([]);
+
+  await option(field(await openTweaks(page), "reduce motion"), "off").click();
+  await expectAfterReload(page, null);
+});

@@ -8,7 +8,7 @@ export const RELEASES: [Release, ...Release[]] = [
     notes: [
       {
         title: "calmer reduce motion",
-        text: "the switch works the moment you tap it, and buckets swap without blinking. buckets you've opened show their items straight away.",
+        text: "the switch works the moment you tap it, and buckets, drawers and dialogs appear without blinking. buckets you've opened show their items straight away.",
       },
     ],
   },

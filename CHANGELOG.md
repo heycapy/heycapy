@@ -11,6 +11,7 @@ a small fix release: reduce motion now does what it says.
 - the reduce motion switch takes effect the moment you tap it. before, it waited for the server and the settings around it dimmed and blinked
 - with reduce motion on, switching buckets swaps the list at once. before, the list jumped, faded and went blank for a moment
 - going back to a bucket you've already opened shows its items straight away while they refresh, instead of flashing "loading..." first
+- with reduce motion on, drawers and dialogs (bucket settings, capy, the add form, tweaks, new bucket) open and close at once. before, they still faded and flickered
 - turning reduce motion on or off no longer makes every done item's tick pop again
 
 ### upgrading
