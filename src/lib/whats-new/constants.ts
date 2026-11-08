@@ -4,6 +4,15 @@ export type Release = { version: string; notes: ReleaseNote[] };
 
 export const RELEASES: [Release, ...Release[]] = [
   {
+    version: "0.11.1",
+    notes: [
+      {
+        title: "calmer reduce motion",
+        text: "the switch works the moment you tap it, and buckets swap without blinking. buckets you've opened show their items straight away.",
+      },
+    ],
+  },
+  {
     version: "0.11.0",
     notes: [
       {

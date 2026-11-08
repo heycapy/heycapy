@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, useReducedMotionConfig } from "framer-motion";
 import { BucketContent, type BucketView } from "./BucketContent";
 import { BucketTabs } from "./BucketTabs";
 import { BucketsFooter } from "./BucketsFooter";
@@ -111,7 +111,8 @@ export function BucketsShell({ buckets: rawBuckets, focusBucketId = null }: Buck
   // view's form (or none, on today); an expand asked for meanwhile waits for the new view
   const placeKey = todayOpen ? "today" : activeBucket?.id;
   const [shownKey, setShownKey] = useState<typeof placeKey | null>(null);
-  const switching = shownKey !== placeKey;
+  const still = useReducedMotionConfig();
+  const switching = !still && shownKey !== placeKey;
   useEffect(() => {
     if (switching || !expandPending.current || !viewRef.current) return;
     viewRef.current.startAdding();
@@ -129,6 +130,17 @@ export function BucketsShell({ buckets: rawBuckets, focusBucketId = null }: Buck
   const itemPanel = panelSlot
     ? { slot: panelSlot, onCollapsed: () => quickAddRef.current?.focus() }
     : undefined;
+
+  const view = todayOpen ? (
+    <TodayView buckets={buckets} panel={itemPanel} />
+  ) : (
+    <BucketContent
+      bucket={activeBucket}
+      accentColor={accentColor}
+      viewRef={viewRef}
+      panel={itemPanel}
+    />
+  );
 
   function expand() {
     if (todayOpen && todayTarget) {
@@ -152,35 +164,31 @@ export function BucketsShell({ buckets: rawBuckets, focusBucketId = null }: Buck
           }
         }}
       >
-        {hydrated && (
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={placeKey}
-              variants={VIEW_FADE}
-              initial="hidden"
-              animate="visible"
-              exit="gone"
-              transition={{ duration: 0.15 }}
-              // the view starts coming in as it mounts, with its add form; the leaving view's
-              // animation fires this too, with "gone"
-              onAnimationStart={(started) => {
-                if (started === "visible") setShownKey(placeKey);
-              }}
-              className="max-w-column mx-auto w-full"
-            >
-              {todayOpen ? (
-                <TodayView buckets={buckets} panel={itemPanel} />
-              ) : (
-                <BucketContent
-                  bucket={activeBucket}
-                  accentColor={accentColor}
-                  viewRef={viewRef}
-                  panel={itemPanel}
-                />
-              )}
-            </motion.div>
-          </AnimatePresence>
-        )}
+        {hydrated &&
+          (still ? (
+            <div key={placeKey} className="max-w-column mx-auto w-full">
+              {view}
+            </div>
+          ) : (
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={placeKey}
+                variants={VIEW_FADE}
+                initial="hidden"
+                animate="visible"
+                exit="gone"
+                transition={{ duration: 0.15 }}
+                // the view starts coming in as it mounts, with its add form; the leaving view's
+                // animation fires this too, with "gone"
+                onAnimationStart={(started) => {
+                  if (started === "visible") setShownKey(placeKey);
+                }}
+                className="max-w-column mx-auto w-full"
+              >
+                {view}
+              </motion.div>
+            </AnimatePresence>
+          ))}
       </div>
 
       <BucketsFooter

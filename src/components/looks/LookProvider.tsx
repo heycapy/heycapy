@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, use, type ReactNode } from "react";
+import { createContext, use, useEffect, useOptimistic, type ReactNode } from "react";
 import { MotionConfig } from "framer-motion";
 import { DEFAULT_APPEARANCE } from "@/lib/account/constants";
 import {
@@ -20,17 +20,35 @@ type Appearance = {
 };
 
 const LookContext = createContext<Appearance>(DEFAULT_APPEARANCE);
+const PreviewContext = createContext<(change: Partial<Appearance>) => void>(() => {});
 
 export function LookProvider({
   children,
   ...appearance
 }: Partial<Appearance> & { look: Look; children: ReactNode }) {
-  const value = { ...use(LookContext), ...appearance };
+  const [value, preview] = useOptimistic(
+    { ...use(LookContext), ...appearance },
+    (current, change: Partial<Appearance>) => ({ ...current, ...change })
+  );
+
+  useEffect(() => {
+    if (value.reduceMotion) document.documentElement.dataset.motion = "reduce";
+    else delete document.documentElement.dataset.motion;
+  }, [value.reduceMotion]);
+
   return (
     <LookContext value={value}>
-      <MotionConfig reducedMotion={value.reduceMotion ? "always" : "user"}>{children}</MotionConfig>
+      <PreviewContext value={preview}>
+        <MotionConfig reducedMotion={value.reduceMotion ? "always" : "user"}>
+          {children}
+        </MotionConfig>
+      </PreviewContext>
     </LookContext>
   );
+}
+
+export function usePreviewAppearance() {
+  return use(PreviewContext);
 }
 
 export function useLookParts() {

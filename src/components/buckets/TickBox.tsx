@@ -58,12 +58,8 @@ function PixelTick({ checked, hover, pop }: TickProps) {
         fill="currentColor"
         style={{ transformOrigin: "center", transformBox: "fill-box" }}
         initial={false}
-        animate={
-          checked
-            ? { scale: pop ? TICK_POP.fill : 1, opacity: 1 }
-            : { scale: pop ? 0 : 1, opacity: 0 }
-        }
-        transition={{ duration: TICK_POP.duration }}
+        animate={checked ? { scale: TICK_POP.fill, opacity: 1 } : { scale: 0, opacity: 0 }}
+        transition={{ duration: pop ? TICK_POP.duration : 0 }}
       />
     </svg>
   );
@@ -74,8 +70,8 @@ function RoundTick({ checked, hover, pop }: TickProps) {
     <motion.span
       aria-hidden
       initial={false}
-      animate={{ scale: checked && pop ? TICK_POP.box : 1 }}
-      transition={{ duration: TICK_POP.duration }}
+      animate={{ scale: checked ? TICK_POP.box : 1 }}
+      transition={{ duration: pop ? TICK_POP.duration : 0 }}
       className={cn(
         "flex size-5 items-center justify-center rounded-full border-2 border-current transition-colors",
         checked && "bg-current",
