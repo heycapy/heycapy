@@ -2,7 +2,12 @@
 
 import { OptionGroup } from "@/components/ui/OptionGroup";
 import { Toggle } from "@/components/ui/Toggle";
-import { useReduceMotion, useTextSize, useTickSound } from "@/components/looks/LookProvider";
+import {
+  usePreviewAppearance,
+  useReduceMotion,
+  useTextSize,
+  useTickSound,
+} from "@/components/looks/LookProvider";
 import { setReduceMotionAction, setTextSizeAction, setTickSoundAction } from "@/app/(app)/actions";
 import { playTickSound } from "@/lib/sounds/tick";
 import { HINT, LABEL, TEXT_SIZE_OPTIONS, TICK_SOUND_OPTIONS } from "./settings-constants";
@@ -12,6 +17,7 @@ export function ComfortSettings() {
   const textSize = useTextSize();
   const reduceMotion = useReduceMotion();
   const tickSound = useTickSound();
+  const preview = usePreviewAppearance();
   const { pending, save } = useSaveSetting();
 
   return (
@@ -31,8 +37,9 @@ export function ComfortSettings() {
           <Toggle
             label="reduce motion"
             value={reduceMotion}
-            onChange={(value) => save(setReduceMotionAction, value)}
-            disabled={pending}
+            onChange={(value) =>
+              save(setReduceMotionAction, value, () => preview({ reduceMotion: value }))
+            }
           />
         </div>
         <span className={HINT}>no sliding, fading or popping anywhere in the app</span>

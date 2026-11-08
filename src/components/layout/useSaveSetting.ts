@@ -5,8 +5,9 @@ import type { ActionResult } from "@/types/result";
 export function useSaveSetting() {
   const [pending, startTransition] = useTransition();
 
-  function save<T>(action: (value: T) => Promise<ActionResult>, value: T) {
+  function save<T>(action: (value: T) => Promise<ActionResult>, value: T, preview?: () => void) {
     startTransition(async () => {
+      preview?.();
       const result = await action(value);
       if (!result.ok) notify.error(result.error);
     });

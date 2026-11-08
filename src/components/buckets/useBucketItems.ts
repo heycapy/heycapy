@@ -14,21 +14,33 @@ import { deadlineValue } from "@/lib/time";
 import { offerUndoDelete } from "./undoDelete";
 
 type Item = typeof items.$inferSelect;
+type Loaded = { items: Item[]; reminderBadges: Record<number, ReminderBadge> };
+
+const lastLoaded = new Map<number, Loaded>();
+
+const shown = (list: Item[], showCompleted: boolean) =>
+  showCompleted ? list : list.filter((i) => !isClosedStatus(i.status));
 
 export function useBucketItems(bucketId: number, itemsRules: string, showCompleted: boolean) {
   const refreshTick = useUIStore((s) => s.refreshTick);
   const markItemsLoaded = useUIStore((s) => s.markItemsLoaded);
-  const [fetchedItems, setFetchedItems] = useState<Item[]>([]);
-  const [reminderBadges, setReminderBadges] = useState<Record<number, ReminderBadge>>({});
-  const [loading, setLoading] = useState(true);
-  const [orderedItems, setOrderedItems] = useState<Item[]>([]);
-  const orderedItemsRef = useRef<Item[]>([]);
+  const cached = lastLoaded.get(bucketId);
+  const [fetchedItems, setFetchedItems] = useState<Item[]>(cached?.items ?? []);
+  const [reminderBadges, setReminderBadges] = useState<Record<number, ReminderBadge>>(
+    cached?.reminderBadges ?? {}
+  );
+  const [loading, setLoading] = useState(!cached);
+  const [orderedItems, setOrderedItems] = useState<Item[]>(() =>
+    shown(cached?.items ?? [], showCompleted)
+  );
+  const orderedItemsRef = useRef<Item[]>(orderedItems);
 
   useEffect(() => {
     let cancelled = false;
     void getItemsForBucketAction(bucketId).then((result) => {
       if (cancelled) return;
       if (result.ok) {
+        lastLoaded.set(bucketId, result);
         setFetchedItems(result.items);
         setReminderBadges(result.reminderBadges);
       }
@@ -44,9 +56,7 @@ export function useBucketItems(bucketId: number, itemsRules: string, showComplet
   }, [fetchedItems, markItemsLoaded]);
 
   useEffect(() => {
-    const next = showCompleted
-      ? fetchedItems
-      : fetchedItems.filter((i) => !isClosedStatus(i.status));
+    const next = shown(fetchedItems, showCompleted);
     const id = setTimeout(() => {
       setOrderedItems(next);
       orderedItemsRef.current = next;
@@ -57,6 +67,7 @@ export function useBucketItems(bucketId: number, itemsRules: string, showComplet
   async function refetch() {
     const result = await getItemsForBucketAction(bucketId);
     if (!result.ok) return;
+    lastLoaded.set(bucketId, result);
     setFetchedItems(result.items);
     setReminderBadges(result.reminderBadges);
   }
