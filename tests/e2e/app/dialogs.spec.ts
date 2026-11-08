@@ -48,9 +48,9 @@ async function expectModal(page: Page, dialog: Locator, opener: Locator) {
 async function openFromMenu(page: Page, name: string | RegExp) {
   await page.goto("/");
   await makePageScrollable(page);
-  await page.getByRole("button", { name: "···" }).click();
+  await page.getByRole("button", { name: "your menu", exact: true }).click();
   await page.getByRole("button", { name, exact: typeof name === "string" }).click();
-  return page.getByRole("button", { name: "···" });
+  return page.getByRole("button", { name: "your menu", exact: true });
 }
 
 const FROM_MENU: [string | RegExp, string][] = [
@@ -65,6 +65,7 @@ const FROM_MENU: [string | RegExp, string][] = [
 
 for (const [item, name] of FROM_MENU) {
   test(`${name} keeps the page behind it still and keeps focus`, async ({ page }) => {
+    await page.setViewportSize({ width: 1024, height: 720 });
     const opener = await openFromMenu(page, item);
     await expectModal(page, page.getByRole("dialog", { name }), opener);
   });
@@ -74,11 +75,11 @@ test("escape closes the schema editor first, then bucket settings", async ({ pag
   await page.goto("/");
   await createAndSelectBucket(page, uniqueName("Dialogs"));
   await openSettings(page);
-  const settings = page.getByRole("dialog", { name: /^bucket settings \[/ });
+  const settings = page.getByRole("dialog", { name: /^bucket settings / });
   await switchTab(settings, "advanced");
   await settings.getByRole("button", { name: "[ configure schema ]" }).click();
 
-  const schema = page.getByRole("dialog", { name: /^schema \[/ });
+  const schema = page.getByRole("dialog", { name: /^schema / });
   await expect(schema).toBeVisible();
   await expectFocusInside(page, schema);
 
@@ -94,7 +95,7 @@ test("search keeps the page behind it still", async ({ page }) => {
   await page.goto("/");
   await createAndSelectBucket(page, uniqueName("Dialogs"));
   await makePageScrollable(page);
-  const opener = page.getByRole("button", { name: "[ search ]", exact: true });
+  const opener = page.getByRole("button", { name: "search", exact: true });
   await opener.click();
   const search = page.getByRole("dialog", { name: "search" });
   await expect(search.getByRole("textbox", { name: "search all items" })).toBeFocused();
@@ -104,7 +105,7 @@ test("search keeps the page behind it still", async ({ page }) => {
 test("a click above the search drawer closes it", async ({ page }) => {
   await page.goto("/");
   await createAndSelectBucket(page, uniqueName("Dialogs"));
-  await page.getByRole("button", { name: "[ search ]", exact: true }).click();
+  await page.getByRole("button", { name: "search", exact: true }).click();
   const search = page.getByRole("dialog", { name: "search" });
   await expect(search.getByRole("textbox", { name: "search all items" })).toBeFocused();
   // Radix lets clicks reach the modal one frame after it appears, too soon for a person to notice

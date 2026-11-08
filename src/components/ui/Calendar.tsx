@@ -1,6 +1,4 @@
-import { ChevronLeft } from "pixelarticons/react/ChevronLeft.js";
-import { ChevronRight } from "pixelarticons/react/ChevronRight.js";
-import { PixelIcon } from "@/components/ui/PixelIcon";
+import { Icon } from "@/components/ui/Icon";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 
@@ -61,9 +59,9 @@ export function Calendar({ value, onSelect }: CalendarProps) {
           aria-label="previous month"
           className="text-muted-foreground hover:text-foreground p-1.5 transition-colors"
         >
-          <PixelIcon icon={ChevronLeft} />
+          <Icon name="chevron-left" />
         </button>
-        <span className="font-pixel text-xs">
+        <span className="font-display text-xs">
           {MONTHS[viewMonth]} {viewYear}
         </span>
         <button
@@ -72,13 +70,13 @@ export function Calendar({ value, onSelect }: CalendarProps) {
           aria-label="next month"
           className="text-muted-foreground hover:text-foreground p-1.5 transition-colors"
         >
-          <PixelIcon icon={ChevronRight} />
+          <Icon name="chevron-right" />
         </button>
       </div>
 
       <div className="mb-1 grid grid-cols-7">
         {DAYS_SHORT.map((d) => (
-          <span key={d} className="text-muted-foreground py-1 text-center font-mono text-[11px]">
+          <span key={d} className="text-muted-foreground font-ui text-2xs py-1 text-center">
             {d}
           </span>
         ))}
@@ -99,7 +97,7 @@ export function Calendar({ value, onSelect }: CalendarProps) {
               key={day}
               onClick={() => onSelect(toDateStr(viewYear, viewMonth, day))}
               className={cn(
-                "mx-auto flex h-8 w-8 items-center justify-center font-mono text-xs transition-colors",
+                "rounded-control font-ui mx-auto flex h-8 w-8 items-center justify-center text-xs transition-colors",
                 isSelected && "bg-primary text-primary-foreground",
                 !isSelected && isToday && "border-border text-foreground border font-bold",
                 !isSelected && !isToday && "text-foreground hover:bg-muted"

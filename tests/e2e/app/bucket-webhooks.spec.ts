@@ -11,6 +11,7 @@ import {
   option,
   saveSettings,
   switchTab,
+  openNotificationSection,
 } from "../helpers/settings";
 
 test.use({ storageState: authState("bucket-webhooks") });
@@ -25,9 +26,10 @@ test.beforeEach(() => {
 });
 
 async function addWebhookInTweaks(page: Page, name: string, url: string) {
-  await page.getByRole("button", { name: "···" }).click();
+  await page.getByRole("button", { name: "your menu", exact: true }).click();
   await page.getByRole("button", { name: "tweaks" }).click();
   await page.getByRole("button", { name: "notifications", exact: true }).click();
+  await openNotificationSection(page, "other apps");
   const box = page
     .locator("div")
     .filter({ has: page.getByText("other apps", { exact: true }) })

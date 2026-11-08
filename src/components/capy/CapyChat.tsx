@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
-import { motion } from "framer-motion";
+import { useEffect, useEffectEvent, useRef, useState, type ReactNode } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { useChatStream } from "./useChatStream";
 import { ChatMessageList } from "./ChatMessageList";
@@ -10,19 +10,28 @@ import { ChatSessionList } from "./ChatSessionList";
 import { CapyChatDrawer } from "./CapyChatDrawer";
 import { Sprite } from "./Sprite";
 import { AIStatusStrip } from "./AIStatusStrip";
-import { DEFAULT_H, HEADER_H } from "./chatTypes";
+import { CHAT_MAX_H, CHAT_TOP_GAP, HEADER_H, SIDEBAR_W } from "./chatTypes";
+import { FOOTER_H } from "@/constants";
 import { useLayoutStore, type ChatState } from "@/store/layout";
+import { useChatDocked } from "./useChatDocked";
+import { useUIStore } from "@/store/ui";
 
 export function CapyChat({ appUrl }: { appUrl: string | null }) {
   const chatState = useLayoutStore((s) => s.chatState);
   const setChatState = useLayoutStore((s) => s.setChatState);
   const bottomBarShown = useLayoutStore((s) => s.bottomBarShown);
+  const { canDock, docked } = useChatDocked();
+  const openItem = useUIStore((s) => s.openItem);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
+  const [screenH, setScreenH] = useState(CHAT_MAX_H + CHAT_TOP_GAP);
 
   useEffect(() => {
-    const check = () => setIsMobile(window.innerWidth < 768);
+    const check = () => {
+      setIsMobile(window.innerWidth < 768);
+      setScreenH(window.innerHeight);
+    };
     check();
     window.addEventListener("resize", check);
     return () => window.removeEventListener("resize", check);
@@ -54,26 +63,30 @@ export function CapyChat({ appUrl }: { appUrl: string | null }) {
     }
   }, [chatState, isMobile]);
 
+  const toggleFromKeyboard = useEffectEvent(() =>
+    setChatState((s) => {
+      if (s === "closed" || s === "minimized") return "open";
+      return canDock ? "closed" : "minimized";
+    })
+  );
+
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if ((e.ctrlKey || e.metaKey) && e.key === "\\") {
         e.preventDefault();
-        setChatState((s) => {
-          if (s === "closed" || s === "minimized") return "open";
-          return "minimized";
-        });
+        toggleFromKeyboard();
       }
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [setChatState]);
+  }, []);
 
   const trigger = (
     <button
       onClick={() => setChatState("open")}
       className={cn(
         "fixed right-6 bottom-6 z-50 transition-transform hover:scale-110 active:scale-95",
-        bottomBarShown && "max-md:hidden"
+        bottomBarShown && "hidden"
       )}
       aria-label="Open chat"
     >
@@ -81,12 +94,31 @@ export function CapyChat({ appUrl }: { appUrl: string | null }) {
     </button>
   );
 
-  const bodyH = DEFAULT_H - HEADER_H;
+  const below = bottomBarShown ? FOOTER_H : 0;
+  const bodyH = Math.min(CHAT_MAX_H, screenH - CHAT_TOP_GAP - below) - HEADER_H;
 
+  // Grows up out of the capy that was tapped: right above the footer's square (never over the
+  // add box), or the floating one elsewhere
   const panelClassName = cn(
-    "border-border bg-background flex flex-col border-2 fixed z-50",
-    chatState === "fullscreen" ? "inset-2" : "right-6 bottom-0 w-[308px]"
+    "border-border bg-background flex flex-col fixed z-50 origin-bottom-right",
+    docked
+      ? "dock w-chat shadow-(--side-shadow)"
+      : cn(
+          "rounded-panel border-frame shadow-raised-lg",
+          chatState === "fullscreen"
+            ? "inset-2"
+            : bottomBarShown
+              ? "right-[max(1rem,calc((100vw-var(--container-column))/2+1rem))] bottom-[calc(var(--footer-h)+0.5rem)] w-chat"
+              : "right-6 bottom-6 w-chat"
+        )
   );
+  const panelMotion = docked
+    ? { initial: { x: "100%" }, animate: { x: 0, opacity: 1, scale: 1 }, exit: { x: "100%" } }
+    : {
+        initial: { opacity: 0, scale: 0.1 },
+        animate: { opacity: 1, scale: 1, x: 0 },
+        exit: { opacity: 0, scale: 0.1 },
+      };
 
   const fullscreen = chatState === "fullscreen";
   const centered = (node: ReactNode) =>
@@ -100,7 +132,7 @@ export function CapyChat({ appUrl }: { appUrl: string | null }) {
       streaming={streaming}
       onSend={() => void sendMessage()}
       onStop={stopStreaming}
-      boxed={!isMobile}
+      centered={fullscreen}
     />
   );
 
@@ -113,8 +145,12 @@ export function CapyChat({ appUrl }: { appUrl: string | null }) {
         status={status}
         fullscreen={fullscreen}
         appUrl={appUrl}
+        onOpenItem={(bucketId, itemId) => {
+          openItem(bucketId, itemId);
+          if (isMobile) setChatState("closed");
+        }}
       />
-      {isMobile ? inputBar : <div className="px-3 pb-3">{centered(inputBar)}</div>}
+      {inputBar}
     </>
   );
 
@@ -140,6 +176,7 @@ export function CapyChat({ appUrl }: { appUrl: string | null }) {
               fullscreen={false}
               minimized={false}
               onClose={() => setChatState("closed")}
+              closeHidden
               onHistoryOpen={() => setHistoryOpen(true)}
               onNewChat={clearChat}
             />
@@ -152,52 +189,76 @@ export function CapyChat({ appUrl }: { appUrl: string | null }) {
     );
   }
 
-  if (chatState === "closed") return trigger;
-
   return (
     <>
-      <motion.div style={{ boxShadow: "5px 5px 0 var(--border)" }} className={panelClassName}>
-        <CapyChatHeader
-          fullscreen={chatState === "fullscreen"}
-          minimized={chatState === "minimized"}
-          onClose={() => setChatState("closed")}
-          onMinimize={() => setChatState((s) => (s === "minimized" ? "open" : "minimized"))}
-          onFullscreen={() => setChatState((s) => (s === "fullscreen" ? "open" : "fullscreen"))}
-          sidebarOpen={sidebarOpen}
-          onToggleSidebar={() => setSidebarOpen((v) => !v)}
-          onHistoryOpen={() => setHistoryOpen(true)}
-          onNewChat={clearChat}
-        />
-
-        {chatState === "fullscreen" ? (
-          <div className="flex min-h-0 flex-1 overflow-hidden">
-            {sidebarOpen && (
-              <aside
-                aria-label="chat history"
-                className="border-border bg-card flex w-72 shrink-0 flex-col border-r-2"
-              >
-                <ChatSessionList
-                  enabled
-                  refreshKey={`${sessionId}-${streaming}`}
-                  activeId={sessionId}
-                  onLoadSession={loadSession}
-                  onNewChat={clearChat}
-                />
-              </aside>
-            )}
-            <div className="flex min-h-0 min-w-0 flex-1 flex-col">{body}</div>
-          </div>
-        ) : (
+      {chatState === "closed" && trigger}
+      <AnimatePresence>
+        {chatState !== "closed" && (
           <motion.div
-            initial={false}
-            animate={{ height: chatState === "minimized" ? 0 : bodyH }}
-            transition={{ duration: 0.2, ease: "easeInOut" }}
-            className="flex flex-col overflow-hidden"
+            key="chat"
+            {...panelMotion}
+            transition={{ duration: 0.18, ease: "easeOut" }}
+            style={{ ["--footer-h" as string]: `${FOOTER_H}px` }}
+            className={panelClassName}
           >
-            {body}
+            <CapyChatHeader
+              fullscreen={chatState === "fullscreen"}
+              minimized={chatState === "minimized"}
+              onClose={() => setChatState("closed")}
+              onMinimize={
+                docked
+                  ? undefined
+                  : () => setChatState((s) => (s === "minimized" ? "open" : "minimized"))
+              }
+              onFullscreen={() => setChatState((s) => (s === "fullscreen" ? "open" : "fullscreen"))}
+              sidebarOpen={sidebarOpen}
+              onToggleSidebar={() => setSidebarOpen((v) => !v)}
+              onHistoryOpen={() => setHistoryOpen(true)}
+              onNewChat={clearChat}
+            />
+
+            {chatState === "fullscreen" ? (
+              <div className="flex min-h-0 flex-1 overflow-hidden">
+                <AnimatePresence initial={false}>
+                  {sidebarOpen && (
+                    <motion.aside
+                      key="history"
+                      aria-label="chat history"
+                      initial={{ width: 0, opacity: 0 }}
+                      animate={{ width: SIDEBAR_W, opacity: 1 }}
+                      exit={{ width: 0, opacity: 0 }}
+                      transition={{ duration: 0.2, ease: "easeInOut" }}
+                      className="rail border-border bg-card flex shrink-0 flex-col overflow-hidden"
+                    >
+                      <div className="flex min-h-0 flex-1 flex-col" style={{ width: SIDEBAR_W }}>
+                        <ChatSessionList
+                          enabled
+                          refreshKey={`${sessionId}-${streaming}`}
+                          activeId={sessionId}
+                          onLoadSession={loadSession}
+                          onNewChat={clearChat}
+                        />
+                      </div>
+                    </motion.aside>
+                  )}
+                </AnimatePresence>
+                <div className="flex min-h-0 min-w-0 flex-1 flex-col">{body}</div>
+              </div>
+            ) : docked ? (
+              <div className="flex min-h-0 flex-1 flex-col">{body}</div>
+            ) : (
+              <motion.div
+                initial={false}
+                animate={{ height: chatState === "minimized" ? 0 : bodyH }}
+                transition={{ duration: 0.2, ease: "easeInOut" }}
+                className="flex flex-col overflow-hidden"
+              >
+                {body}
+              </motion.div>
+            )}
           </motion.div>
         )}
-      </motion.div>
+      </AnimatePresence>
 
       {history}
     </>

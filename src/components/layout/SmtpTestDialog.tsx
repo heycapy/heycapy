@@ -1,5 +1,5 @@
 import { APP_TAGLINE } from "@/constants";
-import { BracketButton } from "@/components/ui/BracketButton";
+import { TextButton } from "@/components/ui/TextButton";
 import { Modal, ModalHeader } from "@/components/ui/Modal";
 import { useState, useTransition } from "react";
 import { cn } from "@/lib/utils";
@@ -63,7 +63,7 @@ export function SmtpTestDialog({
       layer="raised"
       className="top-1/2 max-w-md -translate-y-1/2 shadow-none sm:top-1/2"
     >
-      <div className="bg-background border-border flex w-full flex-col gap-0 border-2">
+      <div className="bg-background border-border rounded-panel border-frame flex w-full flex-col gap-0">
         <ModalHeader title="send test email" onClose={onClose} />
 
         <div className="flex flex-col gap-3 p-4">
@@ -86,22 +86,20 @@ export function SmtpTestDialog({
             />
           </div>
 
-          <div className="border-border flex flex-col gap-2 border p-3">
-            <span className="text-muted-foreground font-mono text-[11px] tracking-widest uppercase">
-              preview
-            </span>
+          <div className="rounded-control border-border flex flex-col gap-2 border p-3">
+            <span className="text-muted-foreground font-ui text-2xs section-case">preview</span>
             <div
               style={{ fontFamily: mono }}
-              className="border-border flex flex-col border text-[11px]"
+              className="rounded-control border-border text-2xs flex flex-col border"
             >
               <div className="border-border border-b px-3 py-2">
-                <p className="text-[11px]">
+                <p className="text-2xs">
                   <span className="font-bold">heycapy</span>
                   <span className="text-muted-foreground"> · smtp test</span>
                 </p>
               </div>
               <div className="px-3 py-3">
-                <p className="text-foreground text-[12px]">your smtp is working correctly.</p>
+                <p className="text-foreground text-xs">your smtp is working correctly.</p>
               </div>
               <div className="border-border border-t px-3 py-2">
                 <p className="text-muted-foreground text-xs">{APP_TAGLINE}</p>
@@ -112,7 +110,7 @@ export function SmtpTestDialog({
           {result && (
             <p
               className={cn(
-                "font-mono text-xs",
+                "font-ui text-xs",
                 result.ok ? "text-green-600 dark:text-green-400" : "text-destructive"
               )}
             >
@@ -121,13 +119,13 @@ export function SmtpTestDialog({
           )}
 
           <div className="flex justify-end">
-            <BracketButton
+            <TextButton
               type="button"
               onClick={handleSend}
               disabled={pending || !sendTo || !smtpHost}
             >
               {pending ? "sending..." : "send"}
-            </BracketButton>
+            </TextButton>
           </div>
         </div>
       </div>

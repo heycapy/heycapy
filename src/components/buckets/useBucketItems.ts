@@ -17,6 +17,7 @@ type Item = typeof items.$inferSelect;
 
 export function useBucketItems(bucketId: number, itemsRules: string, showCompleted: boolean) {
   const refreshTick = useUIStore((s) => s.refreshTick);
+  const markItemsLoaded = useUIStore((s) => s.markItemsLoaded);
   const [fetchedItems, setFetchedItems] = useState<Item[]>([]);
   const [reminderBadges, setReminderBadges] = useState<Record<number, ReminderBadge>>({});
   const [loading, setLoading] = useState(true);
@@ -37,6 +38,10 @@ export function useBucketItems(bucketId: number, itemsRules: string, showComplet
       cancelled = true;
     };
   }, [bucketId, itemsRules, refreshTick]);
+
+  useEffect(() => {
+    markItemsLoaded();
+  }, [fetchedItems, markItemsLoaded]);
 
   useEffect(() => {
     const next = showCompleted

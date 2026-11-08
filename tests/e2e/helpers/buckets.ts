@@ -1,4 +1,4 @@
-import { expect, type Page } from "@playwright/test";
+import { expect, type Locator, type Page } from "@playwright/test";
 
 export function uniqueName(prefix: string): string {
   return `${prefix} ${Date.now()}`;
@@ -16,7 +16,7 @@ export async function openNewBucketModal(page: Page): Promise<void> {
 export async function createBucket(page: Page, name: string): Promise<void> {
   await openNewBucketModal(page);
   await page.getByPlaceholder(/bucket name/i).fill(name);
-  await page.getByRole("button", { name: "Create bucket", exact: true }).click();
+  await page.getByRole("button", { name: "[ create bucket ]", exact: true }).click();
   await expect(page.getByPlaceholder(/bucket name/i)).not.toBeVisible();
   await expect(bucketTab(page, name)).toBeVisible();
 }
@@ -24,6 +24,7 @@ export async function createBucket(page: Page, name: string): Promise<void> {
 export async function selectBucket(page: Page, name: string): Promise<void> {
   await bucketTab(page, name).click();
   await expect(activeBucketTitle(page)).toHaveText(name);
+  await expect(page.locator("main h2")).toHaveText(name);
 }
 
 export async function createAndSelectBucket(page: Page, name: string): Promise<void> {
@@ -36,26 +37,29 @@ export function bucketTab(page: Page, name: string) {
 }
 
 export function activeBucketTitle(page: Page) {
-  return page.locator("main span.font-pixel.text-sm").first();
+  return page.locator('nav[aria-label="buckets"] [aria-current="page"]');
 }
 
-export async function addItem(
-  page: Page,
-  title: string,
-  opts: { status?: string } = {}
-): Promise<void> {
-  await page.getByRole("button", { name: "[ add + ]", exact: true }).click();
-  const dialog = page
-    .locator("div.fixed")
-    .filter({ has: page.getByText("new item", { exact: true }) });
+export async function addItem(page: Page, title: string): Promise<void> {
+  await page.getByRole("button", { name: "add with details", exact: true }).click();
+  const dialog = newItemForm(page);
   await expect(dialog).toBeVisible();
   await dialog.locator("textarea").fill(title);
-  if (opts.status) {
-    await dialog.getByRole("button", { name: opts.status, exact: true }).click();
-  }
-  await dialog.getByRole("button", { name: "[ add ]", exact: true }).click();
+  await dialog.getByRole("button", { name: "add", exact: true }).click();
   await expect(dialog).not.toBeVisible();
   await expect(itemRow(page, title)).toBeVisible();
+}
+
+export function newItemForm(page: Page) {
+  return page.getByRole("dialog", { name: "new item", exact: true });
+}
+
+export function editForm(page: Page) {
+  return page.getByRole("dialog", { name: "edit item", exact: true });
+}
+
+export function itemForm(page: Page) {
+  return page.getByRole("dialog", { name: /^(new|edit) item$/ });
 }
 
 export function itemRow(page: Page, title: string) {
@@ -69,7 +73,11 @@ export async function openBucketOnPhone(page: Page, name: string): Promise<void>
 }
 
 export function addItemButton(page: Page) {
-  return page.getByRole("button", { name: "[ add + ]", exact: true });
+  return page.getByRole("button", { name: "add with details", exact: true });
+}
+
+export function addBox(page: Page) {
+  return page.getByRole("textbox", { name: /^add to / });
 }
 
 export function itemMenu(page: Page, title: string) {
@@ -95,4 +103,26 @@ export async function openReminderDetails(page: Page, title: string) {
   const menu = await openItemMenu(page, title);
   await menu.getByRole("button", { name: /^reminders/ }).click();
   return menu.getByRole("region", { name: "reminders" });
+}
+
+export async function untilStill(page: Page, target: Locator): Promise<void> {
+  await expect
+    .poll(async () => {
+      const at = (await target.boundingBox())?.y;
+      await page.waitForTimeout(100);
+      return at !== undefined && at === (await target.boundingBox())?.y;
+    })
+    .toBe(true);
+}
+
+export function detailChip(form: Locator, name: string) {
+  return form
+    .getByRole("group", { name: "item details" })
+    .getByRole("button", { name: new RegExp(`^${name}(:|$)`) });
+}
+
+export async function openDetail(form: Locator, name: string): Promise<void> {
+  const chip = detailChip(form, name);
+  if ((await chip.getAttribute("aria-expanded")) !== "true") await chip.click();
+  await expect(chip).toHaveAttribute("aria-expanded", "true");
 }

@@ -3,6 +3,7 @@ import { authState } from "../helpers/auth";
 import {
   addItem,
   createAndSelectBucket,
+  editForm,
   itemMenu,
   itemRow,
   itemRowContainer,
@@ -10,8 +11,9 @@ import {
   openItemMenu,
   selectBucket,
   uniqueName,
+  openDetail,
 } from "../helpers/buckets";
-import { field, modal, openSettings, option, saveSettings } from "../helpers/settings";
+import { field, openSettings, option, saveSettings } from "../helpers/settings";
 
 test.use({
   storageState: authState("item-menu"),
@@ -105,10 +107,11 @@ test("a repeating item moves only this time: the next one stays on schedule", as
   await (await openItemMenu(page, title)).getByRole("button", { name: /^due next week / }).click();
 
   await itemRow(page, title).click();
-  const dialog = modal(page, /^edit item$/);
+  const dialog = editForm(page);
+  await openDetail(dialog, "repeat");
   await dialog.getByRole("button", { name: "on", exact: true }).click();
   await dialog.getByRole("button", { name: "week", exact: true }).click();
-  await dialog.getByRole("button", { name: "[ update ]", exact: true }).click();
+  await dialog.getByRole("button", { name: "update", exact: true }).click();
   await expect(dialog).not.toBeVisible();
 
   const menu = await openItemMenu(page, title);
@@ -175,6 +178,29 @@ test("done from the menu in today takes the item off the list and completes it",
   await expect(itemTick(page, title)).toBeChecked();
 });
 
+test("the menu of a search result opens on top of search and works", async ({ page }) => {
+  const title = uniqueName("find the charger");
+  await addItem(page, title);
+
+  await page.getByRole("button", { name: "search", exact: true }).click();
+  const search = page.getByRole("dialog", { name: "search" });
+  await search.getByRole("textbox", { name: "search all items" }).fill(title);
+  const row = search.getByRole("button", { name: title });
+  await row.hover();
+  await row.locator("xpath=..").getByRole("button", { name: "item menu", exact: true }).click();
+  await itemMenu(page, title).getByRole("button", { name: "copy title", exact: true }).click();
+  await expect(itemMenu(page, title)).toBeHidden();
+  await expect(search).toBeVisible();
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(title);
+
+  await row.hover();
+  await row.locator("xpath=..").getByRole("button", { name: "item menu", exact: true }).click();
+  await expect(itemMenu(page, title)).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(itemMenu(page, title)).toBeHidden();
+  await expect(search).toBeVisible();
+});
+
 test("read-only buckets only offer copy title", async ({ page }) => {
   const title = uniqueName("read me");
   await addItem(page, title);
@@ -211,7 +237,7 @@ test.describe("on a phone", () => {
 
     const menu = itemMenu(page, title);
     await expect(menu).toBeVisible();
-    await expect(modal(page, /^edit item$/)).toHaveCount(0);
+    await expect(editForm(page)).toHaveCount(0);
     const menuBox = await menu.boundingBox();
     expect(menuBox?.x).toBeGreaterThanOrEqual(8);
     expect((menuBox?.x ?? 0) + (menuBox?.width ?? 0)).toBeLessThanOrEqual(390 - 8);

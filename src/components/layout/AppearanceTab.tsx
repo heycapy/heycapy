@@ -2,6 +2,8 @@ import { cn } from "@/lib/utils";
 import { charCountColor } from "@/components/ui/input";
 import { LABEL, INPUT, THEMES } from "./settings-constants";
 import { TIMEZONE_MAX_LENGTH } from "@/constants";
+import { LookPicker } from "./LookPicker";
+import { useLookParts } from "@/components/looks/LookProvider";
 
 type AppearanceTabProps = {
   theme: string | undefined;
@@ -18,8 +20,10 @@ export function AppearanceTab({
   setTimezone,
   pending,
 }: AppearanceTabProps) {
+  const raised = useLookParts().optionButton === "raised";
   return (
     <>
+      <LookPicker />
       <div className="flex flex-col gap-1.5">
         <label className={LABEL}>theme</label>
         <div className="grid grid-cols-3 gap-2">
@@ -30,16 +34,21 @@ export function AppearanceTab({
               className="flex flex-col items-center gap-1.5"
             >
               <span
-                className="border-border h-8 w-full border-2 transition-all"
+                className="border-border border-frame rounded-control h-8 w-full transition-all"
                 style={{
                   background: t.bg,
                   borderColor: theme === t.id ? t.fg : undefined,
-                  boxShadow: theme === t.id ? `2px 2px 0 ${t.fg}` : undefined,
+                  boxShadow:
+                    theme !== t.id
+                      ? undefined
+                      : raised
+                        ? `2px 2px 0 ${t.fg}`
+                        : `0 0 0 2px var(--background), 0 0 0 4px ${t.fg}`,
                 }}
               />
               <span
                 className={cn(
-                  "text-center font-mono text-xs leading-tight",
+                  "font-ui text-center text-xs leading-tight",
                   theme === t.id ? "text-foreground" : "text-muted-foreground"
                 )}
               >
@@ -63,7 +72,7 @@ export function AppearanceTab({
         {timezone.length > 0 && (
           <p
             className={cn(
-              "mt-0.5 text-right font-mono text-[11px] transition-colors",
+              "font-ui text-2xs mt-0.5 text-right transition-colors",
               charCountColor(timezone.length, TIMEZONE_MAX_LENGTH)
             )}
           >

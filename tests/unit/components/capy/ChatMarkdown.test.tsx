@@ -5,7 +5,7 @@ import { ChatMarkdown } from "@/components/capy/ChatMarkdown";
 afterEach(() => cleanup());
 
 function reply(content: string) {
-  return render(<ChatMarkdown content={content} appUrl={null} />).container;
+  return render(<ChatMarkdown content={content} appUrl={null} onOpenItem={() => {}} />).container;
 }
 
 it("shows a table the user asked for as a table", () => {

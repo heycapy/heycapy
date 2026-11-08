@@ -1,7 +1,7 @@
 "use client";
 
 import { OptionButton } from "@/components/ui/OptionButton";
-import { BracketButton } from "@/components/ui/BracketButton";
+import { TextButton } from "@/components/ui/TextButton";
 import { AVATAR_PALETTE } from "@/lib/account/constants";
 import { cn } from "@/lib/utils";
 import { AVATAR_TOOLS, type AvatarTool } from "./avatar-constants";
@@ -52,7 +52,7 @@ export function AvatarToolbar(props: AvatarToolbarProps) {
             onClick={() => props.onColour(index)}
             disabled={disabled}
             className={cn(
-              "border-border size-7 border transition-shadow disabled:opacity-40",
+              "rounded-control border-border size-7 border transition-shadow disabled:opacity-40",
               entry.swatch,
               colour === index && "ring-foreground ring-offset-background ring-2 ring-offset-2"
             )}
@@ -61,15 +61,15 @@ export function AvatarToolbar(props: AvatarToolbarProps) {
       </div>
 
       <div className="flex gap-3">
-        <BracketButton onClick={props.onUndo} disabled={disabled || !props.canUndo}>
+        <TextButton onClick={props.onUndo} disabled={disabled || !props.canUndo}>
           undo
-        </BracketButton>
-        <BracketButton onClick={props.onRedo} disabled={disabled || !props.canRedo}>
+        </TextButton>
+        <TextButton onClick={props.onRedo} disabled={disabled || !props.canRedo}>
           redo
-        </BracketButton>
-        <BracketButton variant="destructive" onClick={props.onClear} disabled={disabled}>
+        </TextButton>
+        <TextButton variant="destructive" onClick={props.onClear} disabled={disabled}>
           clear
-        </BracketButton>
+        </TextButton>
       </div>
     </div>
   );

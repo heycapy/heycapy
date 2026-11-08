@@ -2,7 +2,7 @@ import { ACCENT_BUTTONS } from "@/components/layout/settings-constants";
 import { cn } from "@/lib/utils";
 import { useRef, useState, useTransition } from "react";
 import { Modal, ModalHeader } from "@/components/ui/Modal";
-import { BracketButton } from "@/components/ui/BracketButton";
+import { TextButton } from "@/components/ui/TextButton";
 import { updateBucketSchemaAction } from "@/app/(app)/actions";
 import type { FieldDef, BucketSchema } from "@/types/rules";
 import type { buckets } from "@/lib/db/schema";
@@ -82,11 +82,11 @@ function SchemaEditorForm({ bucket, onClose }: Omit<SchemaEditorDialogProps, "op
   return (
     <div
       className={cn(
-        "border-border bg-background flex max-h-[92vh] flex-col overflow-hidden border-2",
+        "border-border bg-background rounded-panel border-frame flex max-h-[92vh] flex-col overflow-hidden",
         ACCENT_BUTTONS
       )}
     >
-      <ModalHeader title={`schema [${bucket.name}]`} onClose={onClose} />
+      <ModalHeader title="schema" context={bucket.name} onClose={onClose} />
 
       <div
         ref={scrollBodyRef}
@@ -109,13 +109,13 @@ function SchemaEditorForm({ bucket, onClose }: Omit<SchemaEditorDialogProps, "op
           }}
           disabled={pending}
         />
-        {error && <p className="text-destructive font-mono text-xs">{error}</p>}
+        {error && <p className="text-destructive font-ui text-xs">{error}</p>}
       </div>
 
       <div className="border-border flex shrink-0 items-center justify-end border-t px-3 py-2.5">
-        <BracketButton onClick={handleSave} disabled={pending}>
+        <TextButton onClick={handleSave} disabled={pending}>
           save schema
-        </BracketButton>
+        </TextButton>
       </div>
     </div>
   );

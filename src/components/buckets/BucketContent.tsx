@@ -1,7 +1,8 @@
 import { parseItemsRules, parseNotificationRules } from "@/lib/rules";
 import { ITEM_STATUS, isClosedStatus } from "@/constants";
-import { useEffect, useState, type RefObject } from "react";
+import { useCallback, useEffect, useRef, useState, type RefObject } from "react";
 import { ItemDialog } from "./ItemDialog";
+import type { ItemPanel } from "./ItemPanelFrame";
 import { ItemList } from "./ItemList";
 import { BucketSettings } from "./BucketSettings";
 import type { SettingsTab } from "./BucketSettingsForm";
@@ -10,48 +11,55 @@ import { TimezonesNotice } from "./TimezonesNotice";
 import { useBucketItems } from "./useBucketItems";
 import { useItemEditor } from "./useItemEditor";
 import { useBucketMembers } from "./useBucketMembers";
-import { BracketButton } from "@/components/ui/BracketButton";
-import { daysToDisplayStr, parseDurationToDate } from "@/lib/duration";
+import { defaultDeadline } from "./defaultDeadline";
 import { DEFAULT_BUCKET_STATUSES } from "./constants";
 import type { ViewerBucket } from "@/lib/buckets/access";
 import { parseFields } from "./fields";
-import { useLayoutStore } from "@/store/layout";
 import { useUIStore } from "@/store/ui";
+import { useLayoutStore } from "@/store/layout";
 import { placesOf } from "@/lib/timezones/gap";
 import { toast } from "sonner";
+import { useLookParts } from "@/components/looks/LookProvider";
+import { cn } from "@/lib/utils";
 import { assignItemAction } from "@/app/(app)/actions";
 import { memberName } from "@/lib/buckets/member-name";
 import { MembersBar, type MemberFilter } from "./MembersBar";
 
+// What the footer's add box reaches into the open bucket for
+export type BucketView = {
+  startAdding: () => void;
+  refetch: () => Promise<void>;
+};
+
 type BucketContentProps = {
   bucket: ViewerBucket;
   accentColor: string;
-  addItemRef: RefObject<(() => void) | null>;
+  viewRef: RefObject<BucketView | null>;
+  panel?: Omit<ItemPanel, "bucketName">;
 };
 
-export function BucketContent({ bucket, accentColor, addItemRef }: BucketContentProps) {
+export function BucketContent({ bucket, accentColor, viewRef, panel }: BucketContentProps) {
   const rules = parseItemsRules(bucket.itemsRules);
   const statuses = DEFAULT_BUCKET_STATUSES;
   const fields = parseFields(bucket.fieldSchema);
   const defaultStatus =
     statuses.find((s) => s.isDefault)?.name ?? statuses[0]?.name ?? ITEM_STATUS.active;
   const readonly = rules.readonly === true;
+  const bucketName = bucket.icon ? `${bucket.icon} ${bucket.name}` : bucket.name;
+  const framed = useLookParts().listFrame === "framed";
 
-  const [settingsTab, setSettingsTab] = useState<SettingsTab | null>(null);
-  const setSearchOpen = useLayoutStore((s) => s.setSearchOpen);
   const list = useBucketItems(bucket.id, bucket.itemsRules, rules.showCompleted !== false);
   const editor = useItemEditor({
     bucketId: bucket.id,
     defaultStatus,
-    defaultDeadline: () =>
-      rules.defaultDeadlineOffsetDays !== null && rules.defaultDeadlineOffsetDays !== undefined
-        ? (parseDurationToDate(daysToDisplayStr(rules.defaultDeadlineOffsetDays)) ?? "")
-        : "",
+    defaultDeadline: () => defaultDeadline(rules.defaultDeadlineOffsetDays),
     onSaved: list.refetch,
   });
   const members = useBucketMembers(bucket.id, editor.dialogProps.open);
   const membersRequested = useUIStore((s) => s.membersRequested);
   const clearMembersRequest = useUIStore((s) => s.clearMembersRequest);
+  const settingsRequested = useUIStore((s) => s.settingsRequestedId === bucket.id);
+  const clearSettingsRequest = useUIStore((s) => s.clearSettingsRequest);
   const [filter, setFilter] = useState<MemberFilter>("all");
   const shared = members.length > 1;
   const filtered =
@@ -63,53 +71,58 @@ export function BucketContent({ bucket, accentColor, addItemRef }: BucketContent
     activeFilter === "all"
       ? list.orderedItems
       : list.orderedItems.filter((i) => i.assigneeId === assigneeShown);
-  const openTab: SettingsTab | null = settingsTab ?? (membersRequested ? "members" : null);
+  const settingsTab = useLayoutStore((s) =>
+    s.sidePanel === "bucket-settings" && s.bucketSettings?.bucketId === bucket.id
+      ? s.bucketSettings.tab
+      : null
+  );
+  const openBucketSettings = useLayoutStore((s) => s.openBucketSettings);
+  const closeSidePanel = useLayoutStore((s) => s.closeSidePanel);
+  const openSettings = useCallback(
+    (tab: SettingsTab) => openBucketSettings(bucket.id, tab),
+    [openBucketSettings, bucket.id]
+  );
+
+  const settingsOpenRef = useRef(false);
   useEffect(() => {
-    addItemRef.current = editor.startAdding;
+    settingsOpenRef.current = settingsTab !== null;
+  }, [settingsTab]);
+  useEffect(
+    () => () => {
+      if (settingsOpenRef.current) closeSidePanel("bucket-settings");
+    },
+    [closeSidePanel]
+  );
+
+  useEffect(() => {
+    if (!membersRequested && !settingsRequested) return;
+    openSettings(membersRequested ? "members" : "items");
+    clearMembersRequest();
+    clearSettingsRequest();
+  }, [
+    membersRequested,
+    settingsRequested,
+    openSettings,
+    clearMembersRequest,
+    clearSettingsRequest,
+  ]);
+  useEffect(() => {
+    viewRef.current = { startAdding: editor.startAdding, refetch: list.refetch };
     return () => {
-      addItemRef.current = null;
+      viewRef.current = null;
     };
   });
 
   return (
     <div className="flex flex-col">
-      <div className="flex items-center justify-between px-4 py-3">
-        <div className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden">
-          <span
-            className="h-3.5 w-0.5 shrink-0 rounded-full"
-            style={{ backgroundColor: accentColor }}
-          />
-          <span className="font-pixel min-w-0 truncate overflow-hidden text-sm leading-snug">
-            {bucket.icon ? `${bucket.icon} ${bucket.name}` : bucket.name}
-          </span>
-        </div>
-        <div className="flex items-center gap-2">
-          <BracketButton onClick={() => setSettingsTab("items")} className="px-1 py-1.5">
-            settings
-          </BracketButton>
-          <BracketButton
-            onClick={() => setSearchOpen(true)}
-            className="hidden px-1 py-1.5 md:inline-flex"
-          >
-            search
-          </BracketButton>
-          {!readonly && (
-            <BracketButton
-              onClick={editor.startAdding}
-              className="hidden px-1 py-1.5 md:inline-flex"
-            >
-              add +
-            </BracketButton>
-          )}
-        </div>
-      </div>
+      <h2 className="sr-only">{bucketName}</h2>
 
       {shared && (
         <MembersBar
           members={members}
           filter={activeFilter}
           onFilter={setFilter}
-          onOpenMembers={() => setSettingsTab("members")}
+          onOpenMembers={() => openSettings("members")}
         />
       )}
 
@@ -118,10 +131,16 @@ export function BucketContent({ bucket, accentColor, addItemRef }: BucketContent
       <RemindersOffNotice
         myChannels={bucket.myChannels}
         hasDatedItems={list.items.some((i) => i.deadline && !isClosedStatus(i.status))}
-        onSetUp={() => setSettingsTab("notifications")}
+        onSetUp={() => openSettings("notifications")}
       />
 
-      <div className="border-border @container overflow-hidden border-y-2 sm:mx-4 sm:border-x-2 sm:shadow-[2px_2px_0_var(--border)]">
+      <div
+        className={cn(
+          "@container overflow-hidden sm:mx-4",
+          framed &&
+            "border-border border-b-frame sm:border-x-frame sm:shadow-raised-sm sm:rounded-b-panel"
+        )}
+      >
         <ItemList
           loading={list.loading}
           items={shownItems}
@@ -166,16 +185,16 @@ export function BucketContent({ bucket, accentColor, addItemRef }: BucketContent
         bucketReminders={parseNotificationRules(bucket.notificationsRules).defaultReminders}
         statuses={statuses}
         fields={fields.length > 0 ? fields : undefined}
+        panel={panel && { ...panel, bucketName }}
       />
 
       <BucketSettings
-        open={openTab !== null}
-        initialTab={openTab ?? undefined}
+        open={settingsTab !== null}
+        initialTab={settingsTab ?? undefined}
         bucket={bucket}
         clocksDiffer={placesOf(members).differ}
         onClose={() => {
-          setSettingsTab(null);
-          clearMembersRequest();
+          closeSidePanel("bucket-settings");
         }}
       />
     </div>

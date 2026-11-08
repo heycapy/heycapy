@@ -19,6 +19,7 @@ import {
   createAndSelectBucket,
   createBucket,
   itemRow,
+  itemTick,
   selectBucket,
   uniqueName,
 } from "../helpers/buckets";
@@ -40,7 +41,7 @@ test.describe("settings modal", () => {
 
   test("opens on the items tab with the bucket name in the header", async ({ page }) => {
     const dialog = await openSettings(page);
-    await expect(dialog.getByText(`bucket settings [${bucketName}]`)).toBeVisible();
+    await expect(dialog.getByText(`bucket settings ${bucketName}`)).toBeVisible();
     await expect(nameInput(dialog)).toHaveValue(bucketName);
     await expect(field(dialog, "sort by")).toBeVisible();
     await expect(field(dialog, "show completed")).toBeVisible();
@@ -53,9 +54,18 @@ test.describe("settings modal", () => {
     await closeDialog(dialog);
   });
 
-  test("backdrop click closes the modal", async ({ page }) => {
+  test("docked beside the list it stays open on an outside click", async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
     const dialog = await openSettings(page);
-    // an outside click only counts once the dialog has finished opening, as for a person
+    await expect(dialog).toHaveCSS("opacity", "1");
+    await page.mouse.click(10, 10);
+    await expect(dialog).toBeVisible();
+  });
+
+  test("as a sheet over the list an outside click closes it", async ({ page }) => {
+    await page.setViewportSize({ width: 1024, height: 800 });
+    const dialog = await openSettings(page);
+    // an outside click only counts once the sheet has finished opening, as for a person
     await expect(dialog).toHaveCSS("opacity", "1");
     await page.mouse.click(10, 10);
     await expect(dialog).not.toBeVisible();
@@ -288,7 +298,9 @@ test.describe("items settings", () => {
     const active = uniqueName("still to do");
     const done = uniqueName("already done");
     await addItem(page, active);
-    await addItem(page, done, { status: "completed" });
+    await addItem(page, done);
+    await itemTick(page, done).click();
+    await expect(itemTick(page, done)).toBeChecked();
 
     let dialog = await openSettings(page);
     await option(field(dialog, "show completed"), "off").click();
@@ -306,7 +318,7 @@ test.describe("items settings", () => {
     await expect(itemRow(page, active)).toBeVisible();
   });
 
-  test("read only hides the add button and blocks editing", async ({ page }) => {
+  test("read only hides the add box and blocks editing", async ({ page }) => {
     const title = uniqueName("locked item");
     await addItem(page, title);
 
@@ -314,7 +326,7 @@ test.describe("items settings", () => {
     await option(field(dialog, "read only"), "on").click();
     await saveSettings(dialog);
 
-    await expect(option(page.locator("main"), "[ add + ]")).not.toBeVisible();
+    await expect(page.getByRole("textbox", { name: /^add to / })).not.toBeVisible();
     await itemRow(page, title).click();
     await expect(page.getByText("edit item", { exact: true })).not.toBeVisible();
 
@@ -323,7 +335,7 @@ test.describe("items settings", () => {
     await option(field(dialog, "read only"), "off").click();
     await saveSettings(dialog);
 
-    await expect(option(page.locator("main"), "[ add + ]")).toBeVisible();
+    await expect(page.getByRole("textbox", { name: /^add to / })).toBeVisible();
   });
 
   test("default deadline offset previews valid input and flags invalid input", async ({ page }) => {
@@ -537,7 +549,7 @@ test.describe("notifications settings", () => {
 
   test("configure telegram opens its dialog on top of settings", async ({ page }) => {
     await option(dialog, "[ configure telegram ]").click();
-    const telegram = modal(page, /^telegram config \[/);
+    const telegram = modal(page, /^telegram config /);
     await expect(telegram).toBeVisible();
 
     await option(telegram, "[ x ]").click();
@@ -559,7 +571,7 @@ test.describe("advanced settings", () => {
 
   test("configure schema opens its dialog on top of settings", async ({ page }) => {
     await option(dialog, "[ configure schema ]").click();
-    const schema = modal(page, /^schema \[/);
+    const schema = modal(page, /^schema /);
     await expect(schema).toBeVisible();
 
     await option(schema, "[ x ]").click();
@@ -569,7 +581,7 @@ test.describe("advanced settings", () => {
 
   test("configure webhook opens its dialog on top of settings", async ({ page }) => {
     await option(dialog, "[ configure webhook ]").click();
-    const webhook = modal(page, /^webhook \[/);
+    const webhook = modal(page, /^webhook /);
     await expect(webhook).toBeVisible();
 
     await option(webhook, "[ x ]").click();

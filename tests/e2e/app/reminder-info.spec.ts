@@ -2,13 +2,14 @@ import { test, expect, type Page } from "@playwright/test";
 import { authState } from "../helpers/auth";
 import {
   createAndSelectBucket,
+  editForm,
   itemRow,
   itemRowContainer,
   openItemMenu,
   openReminderDetails,
   uniqueName,
 } from "../helpers/buckets";
-import { field, modal, openSettings, option, saveSettings, switchTab } from "../helpers/settings";
+import { field, openSettings, option, saveSettings, switchTab } from "../helpers/settings";
 import { daysFromNow, enableWebhook, postItem } from "../helpers/webhook";
 
 test.use({ storageState: authState("reminder-info") });
@@ -90,7 +91,7 @@ test("the edit dialog no longer shows reminder details", async ({ page }) => {
   await addDatedItem(page, title);
 
   await itemRow(page, title).click();
-  const edit = modal(page, /^edit item$/);
+  const edit = editForm(page);
   await expect(edit).toBeVisible();
   await expect(edit.getByRole("region", { name: "reminders" })).toHaveCount(0);
 });

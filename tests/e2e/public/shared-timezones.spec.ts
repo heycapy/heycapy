@@ -1,17 +1,19 @@
 import { test, expect } from "@playwright/test";
 import Database from "better-sqlite3";
 import { E2E_DATABASE_FILE } from "../helpers/env";
-import { addItemButton, createAndSelectBucket, itemRow, uniqueName } from "../helpers/buckets";
+import {
+  addItemButton,
+  createAndSelectBucket,
+  editForm,
+  itemRow,
+  newItemForm,
+  uniqueName,
+  openDetail,
+  detailChip,
+} from "../helpers/buckets";
 import { login, uniqueEmail } from "../helpers/login";
 import { giveOwnSmtp } from "../helpers/email";
-import {
-  closeDialog,
-  field,
-  modal,
-  openSettings,
-  settingsDialog,
-  switchTab,
-} from "../helpers/settings";
+import { closeDialog, field, openSettings, settingsDialog, switchTab } from "../helpers/settings";
 
 test.use({ timezoneId: "Asia/Kolkata" });
 
@@ -66,7 +68,7 @@ test("a bucket shared across timezones says where everyone is", async ({ page, b
   await page.goto(`/?bucket=${bucketId}`);
   await expect(page.getByText("people here are in 2 timezones · India, UK")).toBeVisible();
 
-  await page.getByRole("button", { name: /^\[\s*settings\s*\]$/ }).click();
+  await page.getByRole("button", { name: "bucket settings", exact: true }).click();
   await page.getByRole("button", { name: "members", exact: true }).click();
   const rows = page.getByRole("listitem");
   await expect(rows.nth(0)).toContainText("ownerIndia");
@@ -91,9 +93,9 @@ test("a bucket on one clock doesn't mention clocks in its rules", async ({ page 
   await closeDialog(settings);
 
   await addItemButton(page).click();
-  const dialog = modal(page, /^new item$/);
+  const dialog = newItemForm(page);
   await dialog.locator("textarea").fill("water the plants tomorrow 9am");
-  await expect(dialog.getByRole("button", { name: "9 am" })).toBeVisible();
+  await expect(detailChip(dialog, "date")).toHaveAccessibleName(/ · 9 am$/);
   await expect(dialog.getByRole("group", { name: "time on" })).toHaveCount(0);
 });
 
@@ -113,7 +115,8 @@ test("a timed item shows the time on the other clock that matters", async ({ pag
   await expect(itemRow(member, title)).toContainText(/\(\d{1,2}:30pm India\)/);
 
   await itemRow(page, title).click();
-  const picker = modal(page, /^edit item$/);
+  const picker = editForm(page);
+  await openDetail(picker, "assignee");
   await expect(picker.getByRole("button", { name: /\(you\)\s*India$/ })).toBeVisible();
   await expect(picker.getByRole("button", { name: /\sUK · no reminders set up$/ })).toBeVisible();
   await london.close();
@@ -152,9 +155,12 @@ test("a time for someone on another clock is set on theirs, unless picked by han
   await page.goto(`/?bucket=${bucketId}`);
   await expect(page.getByText("people here are in 2 timezones · India, UK")).toBeVisible();
 
-  const dialog = modal(page, /^new item$/);
+  const dialog = newItemForm(page);
   const clocks = dialog.getByRole("group", { name: "time on" });
-  const assignTo = (name: RegExp) => dialog.getByRole("button", { name }).click();
+  const assignTo = async (name: RegExp) => {
+    await openDetail(dialog, "assignee");
+    await dialog.getByRole("button", { name }).click();
+  };
 
   const forSam = `call the bank ${Date.now()}`;
   await addItemButton(page).click();
@@ -165,8 +171,8 @@ test("a time for someone on another clock is set on theirs, unless picked by han
   );
   await assignTo(/\sUK( · no reminders set up)?$/);
   await expect(clocks.getByRole("button", { name: "UK" })).toHaveAttribute("aria-pressed", "true");
-  await expect(dialog.getByRole("button", { name: "9 am" })).toBeVisible();
-  await dialog.getByRole("button", { name: "[ add ]", exact: true }).click();
+  await expect(detailChip(dialog, "date")).toHaveAccessibleName(/ · 9 am$/);
+  await dialog.getByRole("button", { name: "add", exact: true }).click();
   await expect(itemRow(page, forSam)).toBeVisible();
   const sams = savedDeadline(forSam);
   expect(sams.zone).toBe("Europe/London");
@@ -187,8 +193,8 @@ test("a time for someone on another clock is set on theirs, unless picked by han
     "aria-pressed",
     "true"
   );
-  await expect(dialog.getByRole("button", { name: "9 am" })).toBeVisible();
-  await dialog.getByRole("button", { name: "[ add ]", exact: true }).click();
+  await expect(detailChip(dialog, "date")).toHaveAccessibleName(/ · 9 am$/);
+  await dialog.getByRole("button", { name: "add", exact: true }).click();
   await expect(itemRow(page, onIndia)).toBeVisible();
   const indias = savedDeadline(onIndia);
   expect(indias.zone).toBe("Asia/Kolkata");
@@ -214,7 +220,7 @@ test("the time field shows everyone's time and warns softly about their nights",
   await page.goto(`/?bucket=${bucketId}`);
   await expect(page.getByText("people here are in 2 timezones · India, UK")).toBeVisible();
 
-  const dialog = modal(page, /^new item$/);
+  const dialog = newItemForm(page);
   const preview = dialog.getByTestId("time-preview");
   const title = `call the bank ${Date.now()}`;
   await addItemButton(page).click();
@@ -224,6 +230,7 @@ test("the time field shows everyone's time and warns softly about their nights",
     /^⚠ at night for (\S+) · \1's quiet hours hold the reminder until after it's due$/
   );
 
+  await openDetail(dialog, "assignee");
   await dialog.getByRole("button", { name: /\sUK( · no reminders set up)?$/ }).click();
   await expect(preview).toHaveText(/^9am for \S+ · \d{1,2}:30pm for you$/);
   await expect(dialog.getByRole("status")).toHaveCount(0);
@@ -233,6 +240,6 @@ test("the time field shows everyone's time and warns softly about their nights",
     .getByRole("button", { name: "India" })
     .click();
   await expect(dialog.getByRole("status")).toHaveText(/quiet hours hold the reminder/);
-  await dialog.getByRole("button", { name: "[ add ]", exact: true }).click();
+  await dialog.getByRole("button", { name: "add", exact: true }).click();
   await expect(itemRow(page, title)).toBeVisible();
 });

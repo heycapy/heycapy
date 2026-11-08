@@ -1,6 +1,7 @@
 import { useEffect, useRef, type MouseEvent, type PointerEvent, type ReactNode } from "react";
 import { LONG_PRESS_MS, LONG_PRESS_SLOP } from "./constants";
 import type { MenuAt } from "./ItemMenu";
+import { MODAL_PANEL_SELECTOR } from "@/components/ui/constants";
 
 type PressableRowProps = {
   children: ReactNode;
@@ -33,7 +34,12 @@ export function PressableRow({ children, onMenu }: PressableRowProps) {
     pointerTypeRef.current = e.pointerType;
     pressStartRef.current = { x: e.clientX, y: e.clientY };
     const row = e.currentTarget.getBoundingClientRect();
-    pressAnchorRef.current = { x: e.clientX, top: row.top, bottom: row.bottom };
+    pressAnchorRef.current = {
+      x: e.clientX,
+      top: row.top,
+      bottom: row.bottom,
+      within: e.currentTarget.closest<HTMLElement>(MODAL_PANEL_SELECTOR),
+    };
     pressMovedRef.current = false;
     pressFiredRef.current = false;
     cancelPressTimer();
@@ -57,7 +63,12 @@ export function PressableRow({ children, onMenu }: PressableRowProps) {
   function onContextMenu(e: MouseEvent) {
     e.preventDefault();
     if (pointerTypeRef.current === "mouse") {
-      onMenu({ x: e.clientX, top: e.clientY, bottom: e.clientY });
+      onMenu({
+        x: e.clientX,
+        top: e.clientY,
+        bottom: e.clientY,
+        within: e.currentTarget.closest<HTMLElement>(MODAL_PANEL_SELECTOR),
+      });
     } else openMenuByPress();
   }
 

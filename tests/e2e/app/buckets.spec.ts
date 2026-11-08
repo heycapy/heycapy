@@ -8,6 +8,7 @@ import {
   createAndSelectBucket,
   createBucket,
   itemRow,
+  newItemForm,
   openNewBucketModal,
   selectBucket,
   uniqueName,
@@ -39,7 +40,7 @@ test.describe("buckets", () => {
 
     await openNewBucketModal(page);
     await page.getByPlaceholder(/bucket name/i).fill(name);
-    await page.getByRole("button", { name: "Create bucket", exact: true }).click();
+    await page.getByRole("button", { name: "[ create bucket ]", exact: true }).click();
     await expect(page.getByText("A bucket with this name already exists.")).toBeVisible();
     await expect(page.getByPlaceholder(/bucket name/i)).toBeVisible();
   });
@@ -50,7 +51,7 @@ test.describe("buckets", () => {
 
     await openNewBucketModal(page);
     await page.getByPlaceholder(/bucket name/i).fill(name.toUpperCase());
-    await page.getByRole("button", { name: "Create bucket", exact: true }).click();
+    await page.getByRole("button", { name: "[ create bucket ]", exact: true }).click();
     await expect(page.getByText("A bucket with this name already exists.")).toBeVisible();
   });
 });
@@ -128,18 +129,21 @@ test.describe("items", () => {
   });
 
   test("item add dialog closes on cancel without adding", async ({ page }) => {
-    await page.getByRole("button", { name: "[ add + ]", exact: true }).click();
+    await page.getByRole("button", { name: "add with details", exact: true }).click();
     await expect(page.getByText("new item", { exact: true })).toBeVisible();
     await page.locator("textarea").fill("should not be saved");
-    await page.getByRole("button", { name: "[ x ]", exact: true }).click();
+    await page.keyboard.press("Escape");
     await expect(page.getByText("new item", { exact: true })).not.toBeVisible();
     await expect(page.getByText("no items yet")).toBeVisible();
   });
 
   test("shows validation error when submitting empty title", async ({ page }) => {
-    await page.getByRole("button", { name: "[ add + ]", exact: true }).click();
-    await page.getByRole("button", { name: "[ add ]", exact: true }).click();
-    await expect(page.getByText(/title is required/i)).toBeVisible();
+    await page.getByRole("button", { name: "add with details", exact: true }).click();
+    await page.getByRole("button", { name: "add", exact: true }).click();
+    await expect(newItemForm(page).locator("textarea")).toHaveAttribute(
+      "placeholder",
+      "title is required"
+    );
     await expect(page.getByText("new item", { exact: true })).toBeVisible();
   });
 });

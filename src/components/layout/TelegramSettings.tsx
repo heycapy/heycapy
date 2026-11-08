@@ -1,5 +1,6 @@
 import { useState, useTransition } from "react";
-import { BracketButton } from "@/components/ui/BracketButton";
+import { TextButton } from "@/components/ui/TextButton";
+import { CopyButton } from "@/components/ui/CopyButton";
 import { QRCodeSVG } from "qrcode.react";
 import { Toggle } from "@/components/ui/Toggle";
 import { createTelegramLinkAction, sendTestNotificationAction } from "@/app/(app)/actions";
@@ -72,18 +73,19 @@ export function TelegramSettings({
               <span className={LABEL}>status</span>
               <span className={HINT}>connected · chat id: {telegramChatId}</span>
             </div>
-            <BracketButton
+            <TextButton
               type="button"
               onClick={() => void onDisconnectTelegram()}
               disabled={telegramActionPending || pending}
-              className="text-[11px]"
+              className="text-2xs"
             >
               disconnect
-            </BracketButton>
+            </TextButton>
           </div>
           <div className="flex items-center justify-between">
             <label className={LABEL}>notifications enabled</label>
             <Toggle
+              label="telegram notifications"
               value={notificationsTelegram}
               onChange={setNotificationsTelegram}
               disabled={pending}
@@ -102,22 +104,22 @@ export function TelegramSettings({
               <span className={HINT}>not connected</span>
             </div>
             <div className="flex items-center gap-2">
-              <BracketButton
+              <TextButton
                 type="button"
                 onClick={() => void onRecheckTelegram()}
                 disabled={telegramActionPending || pending}
-                className="text-[11px]"
+                className="text-2xs"
               >
                 recheck
-              </BracketButton>
-              <BracketButton
+              </TextButton>
+              <TextButton
                 type="button"
                 onClick={handleConnect}
                 disabled={connecting || telegramActionPending || pending}
-                className="text-[11px]"
+                className="text-2xs"
               >
                 {connecting ? "connecting..." : "connect"}
-              </BracketButton>
+              </TextButton>
             </div>
           </div>
           {link && (
@@ -130,13 +132,11 @@ export function TelegramSettings({
                   aria-label="telegram connect link"
                   className={INPUT}
                 />
-                <BracketButton
-                  type="button"
+                <CopyButton
+                  copied={copyState === "copied"}
                   onClick={handleCopyLink}
-                  className="shrink-0 text-[11px]"
-                >
-                  {copyState === "copied" ? "copied" : "copy"}
-                </BracketButton>
+                  className="text-2xs"
+                />
               </div>
               <QRCodeSVG
                 value={link}
@@ -159,13 +159,13 @@ export function TelegramSettings({
                 [recheck]
               </p>
               {copyState === "failed" && (
-                <p className="text-destructive font-mono text-[11px]">
+                <p className="text-destructive font-ui text-2xs">
                   couldn&apos;t copy — select the link and copy it
                 </p>
               )}
             </div>
           )}
-          {connectError && <p className="text-destructive font-mono text-[11px]">{connectError}</p>}
+          {connectError && <p className="text-destructive font-ui text-2xs">{connectError}</p>}
         </>
       )}
     </div>

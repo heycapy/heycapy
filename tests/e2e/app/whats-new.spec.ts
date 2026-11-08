@@ -23,7 +23,7 @@ function menuItem(page: Page) {
 test("someone from before the update sees a dot until they open what's new", async ({ page }) => {
   lastSeenRelease("0.3.0");
   await page.goto("/");
-  await page.getByRole("button", { name: "···" }).click();
+  await page.getByRole("button", { name: "your menu", exact: true }).click();
   await expect(menuItem(page)).toHaveAccessibleName("what's new (new)");
 
   await menuItem(page).click();
@@ -41,13 +41,13 @@ test("someone from before the update sees a dot until they open what's new", asy
   await expect(dialog).not.toBeVisible();
 
   await page.reload();
-  await page.getByRole("button", { name: "···" }).click();
+  await page.getByRole("button", { name: "your menu", exact: true }).click();
   await expect(menuItem(page)).toHaveAccessibleName("what's new");
 });
 
 test("a new account has nothing unseen", async ({ page }) => {
   lastSeenRelease(LATEST_RELEASE);
   await page.goto("/");
-  await page.getByRole("button", { name: "···" }).click();
+  await page.getByRole("button", { name: "your menu", exact: true }).click();
   await expect(menuItem(page)).toHaveAccessibleName("what's new");
 });

@@ -1,6 +1,6 @@
 import { useState, useTransition } from "react";
 import { cn } from "@/lib/utils";
-import { BracketButton } from "@/components/ui/BracketButton";
+import { TextButton } from "@/components/ui/TextButton";
 import {
   adjustUsernameBonusAction,
   getUserUsernameAction,
@@ -53,20 +53,20 @@ export function SystemUsernames() {
           disabled={pending}
           className={cn(INPUT, "min-w-0 flex-1")}
         />
-        <BracketButton
+        <TextButton
           type="submit"
           disabled={pending || !email.trim()}
           className="shrink-0 whitespace-nowrap"
         >
           find
-        </BracketButton>
+        </TextButton>
       </form>
 
       {user && (
         <>
           <div className="flex flex-col gap-0.5">
             <p className={cn(MUTED, "break-all")}>{user.email}</p>
-            <p className="font-mono text-xs break-all" data-testid="admin-username">
+            <p className="font-ui text-xs break-all" data-testid="admin-username">
               {user.username ?? "no username yet"}
             </p>
             <p className={MUTED}>{allowanceLine(user.allowance)}</p>
@@ -91,40 +91,40 @@ export function SystemUsernames() {
               disabled={pending}
               className={cn(INPUT, "min-w-0 flex-1")}
             />
-            <BracketButton
+            <TextButton
               type="submit"
               disabled={pending || !rename.trim()}
               className="shrink-0 whitespace-nowrap"
             >
               rename
-            </BracketButton>
+            </TextButton>
           </form>
           <p className={MUTED}>
             a rename here never uses their changes and can take a name someone else just let go of.
           </p>
 
           <div className="flex flex-wrap items-center gap-3">
-            <span className="font-mono text-xs" data-testid="admin-username-bonus">
+            <span className="font-ui text-xs" data-testid="admin-username-bonus">
               {user.allowance.bonus} bonus
             </span>
-            <BracketButton
+            <TextButton
               onClick={() => run(() => adjustUsernameBonusAction({ email: user.email, delta: 1 }))}
               disabled={pending}
             >
               +1
-            </BracketButton>
-            <BracketButton
+            </TextButton>
+            <TextButton
               onClick={() => run(() => adjustUsernameBonusAction({ email: user.email, delta: -1 }))}
               disabled={pending || user.allowance.bonus === 0}
             >
               −1
-            </BracketButton>
+            </TextButton>
           </div>
 
           {user.changes.length === 0 ? (
             <p className={MUTED}>never changed</p>
           ) : (
-            <ul className="divide-border/50 border-border flex max-h-48 flex-col divide-y divide-dotted overflow-y-auto border px-2">
+            <ul className="divide-border/50 border-border divide-divider flex max-h-48 flex-col divide-y overflow-y-auto border px-2">
               {user.changes.map((change) => (
                 <li key={change.id} className={cn(MUTED, "flex flex-col py-1")}>
                   <span>
@@ -140,7 +140,7 @@ export function SystemUsernames() {
           )}
         </>
       )}
-      {error && <p className="text-destructive font-mono text-xs">{error}</p>}
+      {error && <p className="text-destructive font-ui text-xs">{error}</p>}
     </div>
   );
 }

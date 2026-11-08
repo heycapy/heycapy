@@ -7,7 +7,7 @@ test.use({ storageState: authState("telegram") });
 test.describe.configure({ mode: "default" });
 
 async function openTelegram(page: Page) {
-  return openFromSettings(page, "notifications", "[ configure telegram ]", /^telegram config \[/);
+  return openFromSettings(page, "notifications", "[ configure telegram ]", /^telegram config /);
 }
 
 function aliasInput(dialog: Locator): Locator {

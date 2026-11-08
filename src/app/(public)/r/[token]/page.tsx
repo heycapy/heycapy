@@ -32,14 +32,14 @@ export default async function ReminderActionPage({
       <div className="flex w-full max-w-sm flex-col items-center gap-6 text-center">
         <div className="flex flex-col items-center gap-2">
           <Sprite id="capy-idle-blink" size={96} />
-          <h1 className="font-pixel text-sm">heycapy</h1>
+          <h1 className="font-display text-sm">heycapy</h1>
         </div>
         {!claim ? (
-          <p className="text-muted-foreground font-mono text-xs">
+          <p className="text-muted-foreground font-ui text-xs">
             this link has expired — open heycapy instead
           </p>
         ) : !item ? (
-          <p className="text-muted-foreground font-mono text-xs">this item no longer exists</p>
+          <p className="text-muted-foreground font-ui text-xs">this item no longer exists</p>
         ) : (
           <ConfirmReminderAction
             token={token}
@@ -49,7 +49,7 @@ export default async function ReminderActionPage({
         )}
         <a
           href={publicAppUrl() ?? "/"}
-          className="text-muted-foreground hover:text-foreground font-mono text-xs transition-colors"
+          className="text-muted-foreground hover:text-foreground font-ui text-xs transition-colors"
         >
           <span className="opacity-50">[</span>open heycapy<span className="opacity-50">]</span>
         </a>

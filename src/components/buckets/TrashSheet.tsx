@@ -1,7 +1,7 @@
 import { useEffect, useState, useTransition, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { Modal, ModalHeader } from "@/components/ui/Modal";
-import { BracketButton } from "@/components/ui/BracketButton";
+import { SidePanel } from "@/components/ui/SidePanel";
+import { TextButton } from "@/components/ui/TextButton";
 import {
   deleteItemForeverAction,
   emptyTrashAction,
@@ -21,7 +21,7 @@ type TrashSheetProps = {
 
 type ConfirmTarget = `bucket:${number}` | `item:${number}` | "all";
 
-const HINT = "text-muted-foreground font-mono text-xs";
+const HINT = "text-muted-foreground font-ui text-xs";
 
 function deletedOn(date: Date): string {
   return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
@@ -59,24 +59,24 @@ function TrashRow({
       <div className="flex shrink-0 gap-2">
         {confirming ? (
           <>
-            <BracketButton variant="destructive" onClick={onConfirmDelete} disabled={pending}>
+            <TextButton variant="destructive" onClick={onConfirmDelete} disabled={pending}>
               confirm
-            </BracketButton>
-            <BracketButton onClick={onCancel} disabled={pending}>
+            </TextButton>
+            <TextButton onClick={onCancel} disabled={pending}>
               cancel
-            </BracketButton>
+            </TextButton>
           </>
         ) : (
           <>
             {canRestore && (
-              <BracketButton onClick={onRestore} disabled={pending}>
+              <TextButton onClick={onRestore} disabled={pending}>
                 restore
-              </BracketButton>
+              </TextButton>
             )}
             {canDelete && (
-              <BracketButton variant="destructive" onClick={onAskDelete} disabled={pending}>
+              <TextButton variant="destructive" onClick={onAskDelete} disabled={pending}>
                 delete
-              </BracketButton>
+              </TextButton>
             )}
           </>
         )}
@@ -141,15 +141,13 @@ export function TrashSheet({ open, onClose }: TrashSheetProps) {
   const canEmpty = bucketRows.length > 0 || itemRows.some((i) => i.canDelete);
 
   return (
-    <Modal open={open} onClose={onClose} variant="sheet">
-      <ModalHeader title="trash" onClose={onClose} />
-
+    <SidePanel open={open} onClose={onClose} title="trash" narrow="sheet">
       <div className="border-border flex items-center justify-between gap-3 border-b px-4 py-2">
         <p className={HINT}>deleted forever after {TRASH_RETENTION_DAYS} days in the trash</p>
         {canEmpty &&
           (confirming === "all" ? (
             <span className="flex shrink-0 gap-2">
-              <BracketButton
+              <TextButton
                 variant="destructive"
                 onClick={() =>
                   run(emptyTrashAction, () => {
@@ -160,35 +158,31 @@ export function TrashSheet({ open, onClose }: TrashSheetProps) {
                 disabled={pending}
               >
                 confirm
-              </BracketButton>
-              <BracketButton onClick={() => setConfirming(null)} disabled={pending}>
+              </TextButton>
+              <TextButton onClick={() => setConfirming(null)} disabled={pending}>
                 cancel
-              </BracketButton>
+              </TextButton>
             </span>
           ) : (
-            <BracketButton
+            <TextButton
               variant="destructive"
               onClick={() => setConfirming("all")}
               disabled={pending}
               className="shrink-0"
             >
               empty trash
-            </BracketButton>
+            </TextButton>
           ))}
       </div>
       {error && (
-        <p className="text-destructive border-border border-b px-4 py-2 font-mono text-xs">
-          {error}
-        </p>
+        <p className="text-destructive border-border font-ui border-b px-4 py-2 text-xs">{error}</p>
       )}
 
       <div className="flex flex-1 flex-col overflow-y-auto">
         {loading ? (
-          <p className="text-muted-foreground px-4 py-6 text-center font-mono text-xs">
-            loading...
-          </p>
+          <p className="text-muted-foreground font-ui px-4 py-6 text-center text-xs">loading...</p>
         ) : empty ? (
-          <p className="text-muted-foreground px-4 py-6 text-center font-mono text-xs">
+          <p className="text-muted-foreground font-ui px-4 py-6 text-center text-xs">
             trash is empty
           </p>
         ) : (
@@ -199,7 +193,7 @@ export function TrashSheet({ open, onClose }: TrashSheetProps) {
                 {bucketRows.map((bucket) => (
                   <TrashRow
                     key={bucket.id}
-                    title={<p className="font-pixel truncate text-xs">{bucket.name}</p>}
+                    title={<p className="font-display truncate text-xs">{bucket.name}</p>}
                     meta={`${bucket.itemCount} ${bucket.itemCount === 1 ? "item" : "items"} · deleted ${deletedOn(bucket.deletedAt)}`}
                     confirming={confirming === `bucket:${bucket.id}`}
                     pending={pending}
@@ -225,7 +219,7 @@ export function TrashSheet({ open, onClose }: TrashSheetProps) {
                 {itemRows.map((item) => (
                   <TrashRow
                     key={item.id}
-                    title={<p className="truncate font-mono text-xs">{item.title}</p>}
+                    title={<p className="font-ui truncate text-xs">{item.title}</p>}
                     meta={
                       item.bucketInTrash ? (
                         `${item.bucketName} · restore its bucket first`
@@ -272,6 +266,6 @@ export function TrashSheet({ open, onClose }: TrashSheetProps) {
           </>
         )}
       </div>
-    </Modal>
+    </SidePanel>
   );
 }

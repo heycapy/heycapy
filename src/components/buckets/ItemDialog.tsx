@@ -1,13 +1,15 @@
-import { useEffect, useRef, useState } from "react";
-import { BracketButton } from "@/components/ui/BracketButton";
+import { useEffect, useEffectEvent, useRef, useState } from "react";
+import { TextButton } from "@/components/ui/TextButton";
+import { useLookParts } from "@/components/looks/LookProvider";
 import { type Ampm, type TimeValue } from "@/components/ui/TimeField";
 import { ItemFieldsForm } from "./ItemFieldsForm";
-import { ItemBucketField, type BucketChoice } from "./ItemBucketField";
 import { ItemAssigneeField, type AssigneeChoice } from "./ItemAssigneeField";
-import { ItemDialogFrame } from "./ItemDialogFrame";
-import { ItemPageFrame } from "./ItemPageFrame";
+import { memberName } from "@/lib/buckets/member-name";
+import { ItemFrame } from "./ItemFrame";
+import type { ItemPanel } from "./ItemPanelFrame";
 import { ItemTitleField } from "./ItemTitleField";
-import { ItemWhenSection } from "./ItemWhenSection";
+import { InputBarAction } from "@/components/ui/InputBar";
+import { ItemDetails } from "./ItemDetails";
 import { ItemTimeHints } from "./ItemTimeHints";
 import { useItemClock } from "./useItemClock";
 import { useTitleDate } from "./useTitleDate";
@@ -38,6 +40,7 @@ type ItemDialogProps = {
   mode: "add" | "edit";
   title: string;
   deadline: string;
+  deadlinePicked?: boolean;
   status: string;
   statuses: StatusDef[];
   fields?: FieldDef[];
@@ -49,6 +52,7 @@ type ItemDialogProps = {
   pending?: boolean;
   onTitleChange: (v: string) => void;
   onDeadlineChange: (v: string) => void;
+  onDeadlinePicked?: () => void;
   onStatusChange: (v: string) => void;
   onPropertiesChange?: (v: Record<string, unknown>) => void;
   onRecurringChange?: (v: RecurringConfig | null) => void;
@@ -56,8 +60,8 @@ type ItemDialogProps = {
   onConfirm: (title: string | undefined, clock: string | null) => void;
   onCancel: () => void;
   onDelete?: () => void;
-  bucketChoice?: BucketChoice;
   assigneeChoice?: AssigneeChoice;
+  panel?: ItemPanel;
 };
 
 export function ItemDialog({
@@ -76,6 +80,8 @@ export function ItemDialog({
   pending,
   onTitleChange,
   onDeadlineChange,
+  deadlinePicked = false,
+  onDeadlinePicked,
   onStatusChange,
   onPropertiesChange,
   onRecurringChange,
@@ -83,16 +89,19 @@ export function ItemDialog({
   onConfirm,
   onCancel,
   onDelete,
-  bucketChoice,
   assigneeChoice,
+  panel,
 }: ItemDialogProps) {
   const scrollBodyRef = useRef<HTMLDivElement>(null);
   const scrollToFirst = useScrollToFirst(scrollBodyRef);
   const isMobile = useMediaQuery(MOBILE_MEDIA_QUERY);
+  const bracketed = useLookParts().textButton === "bracketed";
   const [timeHour, setTimeHour] = useState("9");
   const [timeMin, setTimeMin] = useState("00");
   const [timeAmpm, setTimeAmpm] = useState<Ampm>("am");
   const wasOpenRef = useRef(false);
+  const [frameMode, setFrameMode] = useState(mode);
+  if (open && mode !== frameMode) setFrameMode(mode);
   const [validationAttempted, setValidationAttempted] = useState(false);
   const clock = useItemClock(assigneeChoice?.members ?? [], assigneeChoice?.value ?? null);
   const zone = clock.zone;
@@ -106,9 +115,15 @@ export function ItemDialog({
       setTime(timeOfDeadline(onZone, zone));
     },
   });
-  const resetTitleDate = titleDate.reset;
   const resetClock = clock.reset;
   const openingZone = clock.zoneFor(assigneeChoice?.value ?? null, null);
+  const startTitleDate = useEffectEvent(() => {
+    const typed = titleDate.start(title, deadlinePicked);
+    if (!typed) return;
+    const onZone = moveClock(typed, browserTimezone(), openingZone);
+    onDeadlineChange(onZone);
+    setTime(timeOfDeadline(onZone, openingZone));
+  });
 
   const hasFields = !!(fields && fields.length > 0);
 
@@ -128,12 +143,12 @@ export function ItemDialog({
     if (!didJustOpen) return;
     const id = setTimeout(() => {
       setValidationAttempted(false);
-      resetTitleDate();
       resetClock();
       setTime(timeOfDeadline(deadline, openingZone));
+      startTitleDate();
     }, 0);
     return () => clearTimeout(id);
-  }, [open, deadline, resetTitleDate, resetClock, openingZone]);
+  }, [open, deadline, resetClock, openingZone]);
 
   function handleTitleChange(next: string) {
     onTitleChange(next);
@@ -142,6 +157,7 @@ export function ItemDialog({
 
   function handleDateChange(newDate: string) {
     titleDate.pickByHand();
+    onDeadlinePicked?.();
     const date = newDate && isLastDayRepeat(recurring) ? lastDayOfMonth(newDate) : newDate;
     const next = deadline ? time : defaultTimeFor(date, new Date(), zone);
     if (!deadline) setTime(next);
@@ -163,6 +179,7 @@ export function ItemDialog({
 
   function handleTimeChange(time: TimeValue) {
     titleDate.pickByHand();
+    onDeadlinePicked?.();
     setTime(time);
     if (datePart) onDeadlineChange(buildDeadline(datePart, time.hour, time.min, time.ampm, zone));
   }
@@ -205,8 +222,27 @@ export function ItemDialog({
       ? { members: assignees.members, onPick: changeAssignee }
       : undefined;
 
-  const whenAndStatus = (
-    <ItemWhenSection
+  const assigned = assignees?.members.find((m) => m.userId === assignees.value);
+  const assignee = assignees &&
+    assignees.members.length > 1 && {
+      label: assigned ? `${memberName(assigned)}${assigned.isYou ? " (you)" : ""}` : "anyone",
+      set: !!assigned,
+      field: <ItemAssigneeField choice={assignees} disabled={pending} />,
+    };
+  const more = onPropertiesChange && fields && hasFields && (
+    <div className="rounded-control border-border border">
+      <ItemFieldsForm
+        fields={fields}
+        values={properties ?? {}}
+        disabled={pending}
+        showErrors={validationAttempted}
+        onChange={onPropertiesChange}
+      />
+    </div>
+  );
+
+  const details = (
+    <ItemDetails
       datePart={datePart}
       allDay={!deadline.includes("T")}
       time={time}
@@ -223,6 +259,7 @@ export function ItemDialog({
           />
         )
       }
+      withStatus={frameMode === "edit"}
       status={status}
       statuses={statuses}
       recurring={recurring}
@@ -234,105 +271,74 @@ export function ItemDialog({
       onStatusChange={onStatusChange}
       onRecurringChange={onRecurringChange && handleRecurringChange}
       onRemindersChange={onRemindersChange}
+      assignee={assignee || undefined}
+      more={more || undefined}
+      showMore={!!fields?.some((f) => f.validation?.required)}
     />
   );
 
-  const confirmButton = (
-    <BracketButton
-      onClick={handleConfirmClick}
-      disabled={pending}
-      className="text-foreground px-2 py-3 text-base"
-    >
-      {mode === "add" ? "add" : "update"}
-    </BracketButton>
-  );
+  const confirmLabel = frameMode === "add" ? "add" : "update";
+  const confirmButton = (boxed: boolean) =>
+    boxed ? (
+      <div className="mb-[calc(1.5rem-var(--add-icon)/2)] self-end">
+        <InputBarAction
+          icon="arrow-up"
+          label={confirmLabel}
+          disabled={pending}
+          onClick={handleConfirmClick}
+        />
+      </div>
+    ) : (
+      <TextButton
+        onClick={handleConfirmClick}
+        disabled={pending}
+        variant="primary"
+        className={bracketed ? "px-2 py-3 text-base" : "my-2 mr-1"}
+      >
+        {confirmLabel}
+      </TextButton>
+    );
   const deleteButton = onDelete && (
-    <BracketButton
+    <TextButton
+      icon="trash"
       onClick={onDelete}
       disabled={pending}
       variant="destructive"
       aria-label="delete item"
     >
       delete
-    </BracketButton>
+    </TextButton>
   );
 
-  const form = (
-    <>
-      <ItemTitleField
-        open={open}
-        value={title}
-        error={error}
-        showRequired={titleHasError}
-        disabled={pending}
-        typedDate={titleDate.match}
-        mention={mention}
-        onChange={handleTitleChange}
-        onEnter={handleConfirmClick}
-        onDismissDate={titleDate.dismiss}
-      />
-
-      {bucketChoice && <ItemBucketField choice={bucketChoice} disabled={pending} />}
-
-      {assignees && assignees.members.length > 1 && (
-        <ItemAssigneeField choice={assignees} disabled={pending} />
-      )}
-
-      {hasFields ? (
-        <div className="flex flex-col gap-5">
-          {onPropertiesChange && fields && (
-            <div className="border-border border">
-              <ItemFieldsForm
-                fields={fields}
-                values={properties ?? {}}
-                disabled={pending}
-                showErrors={validationAttempted}
-                onChange={onPropertiesChange}
-              />
-            </div>
-          )}
-          {whenAndStatus}
-        </div>
-      ) : (
-        <div className="flex flex-col gap-5">{whenAndStatus}</div>
-      )}
-    </>
+  const titleField = (boxed: boolean) => (
+    <ItemTitleField
+      open={open}
+      boxed={boxed}
+      value={title}
+      error={error}
+      showRequired={titleHasError}
+      disabled={pending}
+      typedDate={titleDate.match}
+      mention={mention}
+      onChange={handleTitleChange}
+      onDismissDate={titleDate.dismiss}
+    />
   );
-
-  const heading = mode === "add" ? "new item" : "edit item";
-
-  if (isMobile) {
-    return (
-      <ItemPageFrame
-        open={open}
-        heading={heading}
-        scrollBodyRef={scrollBodyRef}
-        onCancel={onCancel}
-        confirm={confirmButton}
-        secondary={
-          deleteButton && <div className="border-border mt-6 border-t pt-4">{deleteButton}</div>
-        }
-      >
-        {form}
-      </ItemPageFrame>
-    );
-  }
 
   return (
-    <ItemDialogFrame
+    <ItemFrame
       open={open}
-      heading={heading}
+      mode={frameMode}
+      isMobile={isMobile}
+      panel={panel}
       wide={hasFields}
       scrollBodyRef={scrollBodyRef}
+      titleField={titleField}
+      details={details}
+      confirm={confirmButton}
+      deleteButton={deleteButton}
       onCancel={onCancel}
-      footer={
-        <div className="flex w-full items-center justify-between">
-          {deleteButton || <span />}
-          {confirmButton}
-        </div>
-      }
-    >
-      {form}
-    </ItemDialogFrame>
+      onSubmit={handleConfirmClick}
+    />
   );
 }

@@ -1,4 +1,4 @@
-import { ITEM_STATUS } from "@/constants";
+import { CONTROL_SIZE, CONTROL_SIZES, ITEM_STATUS, LOOK, LOOKS } from "@/constants";
 import {
   index,
   integer,
@@ -28,6 +28,8 @@ export const users = sqliteTable("users", {
   guideHidden: integer("guide_hidden", { mode: "boolean" }).notNull().default(false),
   // Accounts made before the guide opened by itself count as seen; signup sets it to false
   guideSeen: integer("guide_seen", { mode: "boolean" }).notNull().default(true),
+  // Every account from before the look picker gets it once too
+  lookPicked: integer("look_picked", { mode: "boolean" }).notNull().default(false),
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
     .default(sql`(unixepoch())`),
@@ -85,6 +87,8 @@ export const userSettings = sqliteTable("user_settings", {
   })
     .notNull()
     .default("capy"),
+  look: text("look", { enum: LOOKS }).notNull().default(LOOK.original),
+  controlSize: text("control_size", { enum: CONTROL_SIZES }).notNull().default(CONTROL_SIZE.medium),
   timezone: text("timezone").notNull().default("UTC"),
   personalityName: text("personality_name").notNull().default("Capy"),
   personalityTone: text("personality_tone", {
@@ -217,6 +221,7 @@ export const bucketMembers = sqliteTable(
       .default("member"),
     // Where this person's reminders for the bucket go, see MemberChannels
     channels: text("channels").notNull().default('{"medium":[],"webhooks":[]}'),
+    sortOrder: integer("sort_order"),
     createdAt: integer("created_at", { mode: "timestamp" })
       .notNull()
       .default(sql`(unixepoch())`),

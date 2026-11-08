@@ -23,7 +23,7 @@ export function AvatarPresets({ disabled, onPick }: AvatarPresetsProps) {
             title={preset.name}
             onClick={() => onPick(presetCells(preset.rows, preset.background))}
             disabled={disabled}
-            className="border-border hover:bg-muted border p-1 transition-colors disabled:opacity-40"
+            className="rounded-control border-border hover:bg-muted border p-1 transition-colors disabled:opacity-40"
           >
             <Avatar cells={presetCells(preset.rows, preset.background)} size={32} />
           </button>

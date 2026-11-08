@@ -13,7 +13,7 @@ export function AIStatusStrip() {
       role="status"
       aria-label="capy's ai"
       className={cn(
-        "border-border h-6 shrink-0 truncate border-b px-2 font-mono text-[11px] leading-6",
+        "border-border font-ui text-2xs h-6 shrink-0 truncate border-b px-2 leading-6",
         problem ? "text-destructive" : "text-muted-foreground"
       )}
     >

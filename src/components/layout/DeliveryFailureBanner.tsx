@@ -1,5 +1,6 @@
 import { useState, useTransition } from "react";
-import { BracketButton } from "@/components/ui/BracketButton";
+import { TextButton } from "@/components/ui/TextButton";
+import { CloseButton } from "@/components/ui/CloseButton";
 import { dismissDeliveryFailuresAction } from "@/app/(app)/actions";
 import type { ChannelFailure } from "@/lib/notifications/failures";
 import { channelKey } from "@/lib/notifications/channel-key";
@@ -39,25 +40,23 @@ export function DeliveryFailureBanner({ failures, onFix }: DeliveryFailureBanner
           <div
             key={channelKey(failure)}
             role="alert"
-            className="border-border text-destructive flex items-center gap-3 border border-dashed px-3 py-2 font-mono text-xs"
+            className="rounded-control border-border text-destructive font-ui border-rule flex items-center gap-3 border px-3 py-2 text-xs"
           >
             <span className="min-w-0 flex-1 truncate">
               ⚠ {failure.label}: {count} {count === 1 ? "notification" : "notifications"} failed
               {latestError && ` · ${latestError}`}
             </span>
-            <BracketButton onClick={onFix} className="shrink-0">
+            <TextButton onClick={onFix} className="shrink-0">
               fix
-            </BracketButton>
-            <BracketButton onClick={() => setDetails(failure)} className="shrink-0">
+            </TextButton>
+            <TextButton onClick={() => setDetails(failure)} className="shrink-0">
               details
-            </BracketButton>
-            <BracketButton
+            </TextButton>
+            <CloseButton
               onClick={() => dismiss(failure)}
               aria-label={`dismiss ${failure.label} failures`}
               className="shrink-0"
-            >
-              x
-            </BracketButton>
+            />
           </div>
         );
       })}

@@ -1,7 +1,12 @@
 import { test, expect, type Page } from "@playwright/test";
 import { authState } from "../helpers/auth";
-import { activeBucketTitle, createAndSelectBucket, itemRow, uniqueName } from "../helpers/buckets";
-import { modal } from "../helpers/settings";
+import {
+  activeBucketTitle,
+  createAndSelectBucket,
+  editForm,
+  itemRow,
+  uniqueName,
+} from "../helpers/buckets";
 import { daysFromNow, enableWebhook, postItem } from "../helpers/webhook";
 
 test.use({ storageState: authState("today") });
@@ -24,13 +29,13 @@ async function bucketWithItems(page: Page, prefix: string, entries: [string, str
 test("a new session opens on today, and choosing a bucket leaves it", async ({ page, browser }) => {
   await page.goto("/");
   const name = await bucketWithItems(page, "Bills", []);
-  await expect(todayButton(page)).toHaveAttribute("aria-pressed", "false");
+  await expect(todayButton(page)).not.toHaveAttribute("aria-current");
   await expect(activeBucketTitle(page)).toHaveText(name);
 
   const fresh = await browser.newContext({ storageState: authState("today") });
   const next = await fresh.newPage();
   await next.goto("/");
-  await expect(todayButton(next)).toHaveAttribute("aria-pressed", "true");
+  await expect(todayButton(next)).toHaveAttribute("aria-current", "page");
   await expect(next.getByRole("heading", { name: "today" })).toBeVisible();
   await fresh.close();
 
@@ -68,7 +73,7 @@ test("search next to add finds items in any bucket, dated or not", async ({ page
   const tag = uniqueName("zebra");
   await bucketWithItems(page, "Notes", [[`${tag} one`], [`${tag} two`, daysFromNow(20)]]);
 
-  await page.getByRole("button", { name: "[ search ]", exact: true }).click();
+  await page.getByRole("button", { name: "search", exact: true }).click();
   const search = page.getByRole("dialog", { name: "search" });
   const box = search.getByRole("textbox", { name: "search all items" });
   await expect(box).toBeFocused();
@@ -80,7 +85,7 @@ test("search next to add finds items in any bucket, dated or not", async ({ page
   await box.fill(`${tag} nothing like this`);
   await expect(search.getByText("no items match")).toBeVisible();
 
-  await search.getByRole("button", { name: "[ x ]", exact: true }).click();
+  await page.keyboard.press("Escape");
   await expect(search).toHaveCount(0);
 });
 
@@ -91,41 +96,32 @@ test("items can be edited from today", async ({ page }) => {
   await todayButton(page).click();
 
   await itemRow(page, title).click();
-  const dialog = modal(page, /^edit item$/);
+  const dialog = editForm(page);
+  await expect(dialog).toHaveAttribute("data-item-panel");
   await dialog.locator("textarea").first().fill(`${title} back`);
-  await dialog.getByRole("button", { name: "[ update ]", exact: true }).click();
+  await dialog.getByRole("button", { name: "update", exact: true }).click();
   await expect(itemRow(page, `${title} back`)).toBeVisible();
 });
 
-test("adding from today goes into the bucket viewed last, due today, a picked bucket sticks", async ({
-  page,
-}) => {
+test("today adds to the bucket picked beside the add box", async ({ page }) => {
   await page.goto("/");
-  const first = await bucketWithItems(page, "Home", []);
-  const second = await bucketWithItems(page, "Work", []);
+  await bucketWithItems(page, "Home", []);
+  const work = await bucketWithItems(page, "Work", []);
   await todayButton(page).click();
+  await expect(page.getByRole("heading", { name: "today", level: 2 })).toBeAttached();
 
-  const addButton = page.getByRole("button", { name: "[ add + ]", exact: true });
-  await addButton.click();
-  const dialog = modal(page, /^new item$/);
-  const bucket = dialog.getByLabel("bucket");
-  await expect(bucket.locator("option:checked")).toHaveText(second);
-  await expect(dialog.getByRole("button", { name: /pick date/ })).toHaveCount(0);
-  await expect(dialog.getByRole("button", { name: "time: all day" })).toBeVisible();
+  await page.getByRole("button", { name: /change bucket$/ }).click();
+  await page
+    .getByRole("group", { name: "add to bucket" })
+    .getByRole("button", { name: work })
+    .click();
+  const box = page.getByRole("textbox", { name: `add to ${work}` });
+  await expect(box).toBeFocused();
+  await box.fill("water the plants today");
+  await box.press("Enter");
+  await expect(itemRow(page, "water the plants")).toBeVisible();
 
-  const inWork = uniqueName("standup notes");
-  await dialog.locator("textarea").first().fill(inWork);
-  await dialog.getByRole("button", { name: "[ add ]", exact: true }).click();
-  await expect(page.getByRole("region", { name: "today" })).toContainText(inWork);
-  await expect(itemRow(page, inWork)).toContainText(second);
-
-  await addButton.click();
-  await bucket.selectOption({ label: first });
-  const inHome = uniqueName("water plants");
-  await dialog.locator("textarea").first().fill(inHome);
-  await dialog.getByRole("button", { name: "[ add ]", exact: true }).click();
-  await expect(itemRow(page, inHome)).toContainText(first);
-
-  await addButton.click();
-  await expect(bucket.locator("option:checked")).toHaveText(first);
+  await page.getByRole("button", { name: work, exact: true }).click();
+  await expect(activeBucketTitle(page)).toHaveText(work);
+  await expect(itemRow(page, "water the plants")).toBeVisible();
 });

@@ -1,6 +1,5 @@
-import { Calendar as CalendarIcon } from "pixelarticons/react/Calendar.js";
-import { Close } from "pixelarticons/react/Close.js";
-import { PixelIcon } from "@/components/ui/PixelIcon";
+import { OptionButton } from "./OptionButton";
+import { Icon } from "@/components/ui/Icon";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -16,7 +15,7 @@ type DatePickerProps = {
 
 const CALENDAR = { width: 252, height: 300 };
 
-function formatDisplay(str: string): string {
+export function formatDisplay(str: string): string {
   const parsed = parseDate(str);
   if (!parsed) return "";
   return `${MONTH_SHORT_NAMES[parsed.month]} ${parsed.day}`;
@@ -44,25 +43,23 @@ export function DatePicker({ value, onChange, disabled }: DatePickerProps) {
           style={{ top: pos.top, left: pos.left, width: CALENDAR.width }}
           className={cn(
             positioning,
-            "border-border bg-card z-[65] border-2 p-3 shadow-[3px_3px_0_var(--border)] select-none"
+            "border-border bg-card rounded-panel border-frame shadow-raised z-[65] p-3 select-none"
           )}
         >
           <Calendar value={value} onSelect={selectDay} />
 
           {value && (
             <div className="border-border mt-3 flex items-center justify-between border-t pt-2.5">
-              <span className="text-muted-foreground font-mono text-xs">
-                {formatDisplay(value)}
-              </span>
+              <span className="text-muted-foreground font-ui text-xs">{formatDisplay(value)}</span>
               <button
                 type="button"
                 onClick={() => {
                   onChange("");
                   setOpen(false);
                 }}
-                className="text-muted-foreground hover:text-destructive flex items-center gap-1 py-1 font-mono text-xs transition-colors"
+                className="text-muted-foreground hover:text-destructive font-ui flex items-center gap-1 py-1 text-xs transition-colors"
               >
-                <PixelIcon icon={Close} /> clear
+                <Icon name="close" /> clear
               </button>
             </div>
           )}
@@ -72,22 +69,19 @@ export function DatePicker({ value, onChange, disabled }: DatePickerProps) {
   );
 
   return (
-    <div className="w-full">
-      <button
+    <div>
+      <OptionButton
         ref={triggerRef}
-        type="button"
+        active={open}
+        aria-pressed={undefined}
+        aria-expanded={open}
         onClick={() => !disabled && toggle()}
         disabled={disabled}
-        className={cn(
-          "flex w-full items-center justify-between gap-2 border-b py-1.5 font-mono text-sm transition-all active:translate-y-[1px] disabled:opacity-50",
-          value
-            ? "border-foreground text-foreground"
-            : "border-border text-muted-foreground hover:border-foreground/50 hover:text-foreground"
-        )}
+        className={cn("inline-flex items-center gap-1.5", value && !open && "text-foreground")}
       >
+        <Icon name="calendar" className="shrink-0" />
         <span>{value ? formatDisplay(value) : "pick date"}</span>
-        <PixelIcon icon={CalendarIcon} className="opacity-60" />
-      </button>
+      </OptionButton>
       {portalTarget && createPortal(panel, portalTarget)}
     </div>
   );

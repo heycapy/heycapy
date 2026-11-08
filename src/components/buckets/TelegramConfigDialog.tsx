@@ -1,7 +1,7 @@
 import { ACCENT_BUTTONS } from "@/components/layout/settings-constants";
 import { cn } from "@/lib/utils";
 import { useState, useTransition } from "react";
-import { BracketButton } from "@/components/ui/BracketButton";
+import { TextButton } from "@/components/ui/TextButton";
 import { Modal, ModalHeader } from "@/components/ui/Modal";
 import { TelegramConfigPanel } from "./TelegramConfigPanel";
 import { updateBucketTelegramConfigAction } from "@/app/(app)/actions";
@@ -59,23 +59,23 @@ function TelegramConfigForm({ bucket, onClose }: Omit<TelegramConfigDialogProps,
   return (
     <div
       className={cn(
-        "border-border bg-background flex max-h-[85vh] flex-col overflow-hidden border-2",
+        "border-border bg-background rounded-panel border-frame flex max-h-[85vh] flex-col overflow-hidden",
         ACCENT_BUTTONS
       )}
     >
-      <ModalHeader title={`telegram config [${bucket.name}]`} onClose={onClose} />
+      <ModalHeader title="telegram config" context={bucket.name} onClose={onClose} />
       <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
         <TelegramConfigPanel config={config} onChange={setConfig} disabled={pending} />
       </div>
       {error && (
         <div className="border-border shrink-0 border-t px-4 py-2">
-          <span className="text-destructive font-mono text-xs">{error}</span>
+          <span className="text-destructive font-ui text-xs">{error}</span>
         </div>
       )}
       <div className="border-border flex shrink-0 justify-end border-t px-3 py-2.5">
-        <BracketButton onClick={handleSave} disabled={pending}>
+        <TextButton onClick={handleSave} disabled={pending}>
           save
-        </BracketButton>
+        </TextButton>
       </div>
     </div>
   );

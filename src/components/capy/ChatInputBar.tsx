@@ -1,9 +1,8 @@
-import { ArrowUp } from "pixelarticons/react/ArrowUp.js";
-import { Mic } from "pixelarticons/react/Mic.js";
-import { PixelIcon } from "@/components/ui/PixelIcon";
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState, createElement } from "react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { InputBar, InputBarAction, InputBarIcon } from "@/components/ui/InputBar";
+import { useLookParts } from "@/components/looks/LookProvider";
 import { Sprite } from "./Sprite";
 import { VOICE_MAX_SECONDS } from "@/constants";
 import { useAssistantName } from "./assistant-name";
@@ -15,7 +14,7 @@ type Props = {
   streaming: boolean;
   onSend: () => void;
   onStop: () => void;
-  boxed?: boolean;
+  centered?: boolean;
 };
 
 export type ChatInputBarHandle = { focus: () => void };
@@ -27,7 +26,7 @@ function formatTime(seconds: number) {
 }
 
 export const ChatInputBar = forwardRef<ChatInputBarHandle, Props>(function ChatInputBar(
-  { input, setInput, streaming, onSend, onStop, boxed }: Props,
+  { input, setInput, streaming, onSend, onStop, centered }: Props,
   ref
 ) {
   const name = useAssistantName();
@@ -160,96 +159,95 @@ export const ChatInputBar = forwardRef<ChatInputBarHandle, Props>(function ChatI
   }
 
   const isRecordingOrTranscribing = recording || transcribing;
+  const floating = useLookParts().footer === "floating";
 
   return (
     <div
       className={cn(
-        "px-3 py-2 transition-colors",
-        boxed ? "border-2" : "border-t-2",
-        recording ? "border-primary" : "border-border"
+        "flex flex-col justify-center transition-colors",
+        floating ? "px-3 pt-1 pb-3" : "border-t-frame",
+        !floating && (recording ? "border-primary" : "border-border")
       )}
     >
-      {isRecordingOrTranscribing ? (
-        // as tall as the mic and send buttons so the bar keeps its height while capy listens
-        <div className="flex min-h-9.5 items-center gap-3 md:min-h-6.5">
-          <div className="flex flex-1 items-center gap-2">
-            {recording ? (
-              <>
-                <span className="text-primary font-pixel animate-[pulse_0.8s_ease-in-out_infinite] text-xs">
-                  ●
+      <div
+        className={cn(
+          centered && "mx-auto w-full max-w-[720px]",
+          floating &&
+            "rounded-panel border-frame shadow-raised bg-background transition-colors focus-within:border-(--ring)",
+          floating && (recording ? "border-primary" : "border-border")
+        )}
+      >
+        {isRecordingOrTranscribing ? (
+          <InputBar>
+            <span className="font-display flex min-w-0 flex-1 items-center gap-2 text-xs">
+              {recording ? (
+                <>
+                  <span className="text-primary animate-[pulse_0.8s_ease-in-out_infinite]">●</span>
+                  <span className="text-foreground truncate">
+                    {name} listening... {formatTime(recSeconds)}
+                  </span>
+                </>
+              ) : (
+                <span className="text-muted-foreground animate-pulse">
+                  {name}&apos;s jotting it down...
                 </span>
-                <span className="text-foreground font-pixel text-xs">
-                  {name} listening... {formatTime(recSeconds)}
-                </span>
-              </>
-            ) : (
-              <span className="text-muted-foreground font-pixel animate-pulse text-xs">
-                {name}&apos;s jotting it down...
-              </span>
-            )}
-          </div>
-
-          {recording && (
-            <button
-              onClick={() => mediaRecorderRef.current?.stop()}
-              className="border-primary text-foreground font-pixel shrink-0 border px-1.5 py-0.5 text-[11px] transition-opacity hover:opacity-70"
-            >
-              ■ stop
-            </button>
-          )}
-        </div>
-      ) : (
-        <div className="flex items-end gap-2">
-          <textarea
-            ref={inputRef}
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder={`ask ${name}...`}
-            rows={1}
-            disabled={streaming}
-            className="placeholder:text-muted-foreground flex-1 resize-none bg-transparent font-mono text-xs outline-none disabled:opacity-50"
-            style={{ maxHeight: 80 }}
-            onInput={(e) => {
-              const el = e.currentTarget;
-              el.style.height = "auto";
-              el.style.height = `${Math.min(el.scrollHeight, 80)}px`;
-            }}
-          />
-          <button
-            onClick={() => void handleMicClick()}
-            disabled={streaming}
-            title="voice input (ctrl+shift+m)"
-            aria-label="Record voice"
-            className="border-border text-muted-foreground hover:border-foreground hover:text-foreground mb-0.5 shrink-0 border p-2.5 transition-colors disabled:cursor-not-allowed disabled:opacity-40 md:p-1"
-          >
-            <PixelIcon icon={Mic} />
-          </button>
-          {streaming ? (
-            <button
-              onClick={onStop}
-              className="text-destructive border-destructive font-pixel mb-0.5 shrink-0 border px-2.5 py-2.5 text-[11px] transition-opacity hover:opacity-70 md:px-1.5 md:py-0.5 md:text-[11px]"
-              aria-label="Stop"
-            >
-              stop
-            </button>
-          ) : (
-            <button
-              onClick={onSend}
-              disabled={!input.trim()}
-              className={cn(
-                "border-border mb-0.5 shrink-0 border p-2.5 transition-colors md:p-1",
-                input.trim()
-                  ? "bg-foreground text-background"
-                  : "text-muted-foreground cursor-not-allowed"
               )}
-              aria-label="Send"
-            >
-              <PixelIcon icon={ArrowUp} />
-            </button>
-          )}
-        </div>
-      )}
+            </span>
+            {recording && (
+              <InputBarAction
+                icon="square"
+                label="stop"
+                name="stop recording"
+                variant="destructive"
+                onClick={() => mediaRecorderRef.current?.stop()}
+              />
+            )}
+          </InputBar>
+        ) : (
+          <InputBar>
+            <textarea
+              ref={inputRef}
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder={`ask ${name}...`}
+              rows={1}
+              disabled={streaming}
+              className="placeholder:text-muted-foreground/50 font-ui min-w-0 flex-1 resize-none bg-transparent py-1 text-base leading-6 outline-none disabled:opacity-50 sm:text-sm"
+              style={{ maxHeight: 80 }}
+              onInput={(e) => {
+                const el = e.currentTarget;
+                el.style.height = "auto";
+                el.style.height = `${Math.min(el.scrollHeight, 80)}px`;
+              }}
+            />
+            <InputBarIcon
+              icon="mic"
+              label="Record voice"
+              tip="voice input (ctrl+shift+m)"
+              disabled={streaming}
+              onClick={() => void handleMicClick()}
+            />
+            {streaming ? (
+              <InputBarAction
+                icon="square"
+                label="stop"
+                name="Stop"
+                variant="destructive"
+                onClick={onStop}
+              />
+            ) : (
+              <InputBarAction
+                icon="arrow-up"
+                label="send"
+                name="Send"
+                disabled={!input.trim()}
+                onClick={onSend}
+              />
+            )}
+          </InputBar>
+        )}
+      </div>
     </div>
   );
 });

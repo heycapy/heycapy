@@ -17,11 +17,11 @@ export function WebhookDialog({ open, bucket, onClose }: WebhookDialogProps) {
     <Modal open={open} onClose={onClose} layer="raised">
       <div
         className={cn(
-          "border-border bg-background flex max-h-[85vh] flex-col overflow-hidden border-2",
+          "border-border bg-background rounded-panel border-frame flex max-h-[85vh] flex-col overflow-hidden",
           ACCENT_BUTTONS
         )}
       >
-        <ModalHeader title={`webhook [${bucket.name}]`} onClose={onClose} />
+        <ModalHeader title="webhook" context={bucket.name} onClose={onClose} />
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4">
           <WebhookPanel bucket={bucket} />
         </div>

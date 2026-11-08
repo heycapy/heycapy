@@ -63,5 +63,16 @@ export function useTitleDate({
     setBefore(null);
   }, []);
 
-  return { match, typed, dismiss, pickByHand, reset };
+  function start(text: string, picked: boolean): string | null {
+    reset();
+    if (picked) {
+      setPickedByHand(true);
+      return null;
+    }
+    const found = active ? findTitleDate(text) : null;
+    if (found) setBefore(deadline);
+    return found?.deadline ?? null;
+  }
+
+  return { match, typed, dismiss, pickByHand, start };
 }

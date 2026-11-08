@@ -1,11 +1,17 @@
 import { test, expect, type Locator, type Page } from "@playwright/test";
 import { authState } from "../helpers/auth";
-import { addItem, createAndSelectBucket, itemRow, uniqueName } from "../helpers/buckets";
+import {
+  addItem,
+  createAndSelectBucket,
+  itemForm,
+  itemRow,
+  uniqueName,
+  openDetail,
+} from "../helpers/buckets";
 import {
   closeDialog,
   expectSelected,
   field,
-  modal,
   openFromSettings,
   openSettings,
   option,
@@ -18,7 +24,7 @@ test.use({ storageState: authState("schema") });
 test.describe.configure({ mode: "default" });
 
 async function openSchema(page: Page) {
-  return openFromSettings(page, "advanced", "[ configure schema ]", /^schema \[/);
+  return openFromSettings(page, "advanced", "[ configure schema ]", /^schema /);
 }
 
 function fieldRows(schema: Locator): Locator {
@@ -38,7 +44,7 @@ async function saveSchema(schema: Locator): Promise<void> {
 }
 
 function itemDialog(page: Page): Locator {
-  return modal(page, /^(new|edit) item$/);
+  return itemForm(page);
 }
 
 test.beforeEach(async ({ page }) => {
@@ -65,11 +71,12 @@ test("a saved field persists and shows up in the item dialog and list", async ({
   await closeDialog(settings);
 
   const title = uniqueName("meeting");
-  await page.getByRole("button", { name: "[ add + ]", exact: true }).click();
+  await page.getByRole("button", { name: "add with details", exact: true }).click();
   const dialog = itemDialog(page);
   await dialog.locator("textarea").first().fill(title);
+  await openDetail(dialog, "more");
   await dialog.getByPlaceholder("Where").fill("office");
-  await dialog.getByRole("button", { name: "[ add ]", exact: true }).click();
+  await dialog.getByRole("button", { name: "add", exact: true }).click();
   await expect(dialog).not.toBeVisible();
 
   await expect(itemRow(page, title)).toBeVisible();
@@ -119,7 +126,9 @@ test("fields can be reordered with up and down", async ({ page }) => {
   await expect(fieldRows(schema).last().getByPlaceholder("field name")).toHaveValue("First");
 });
 
-test("a required field must be filled before adding an item", async ({ page }) => {
+test("a required field must be filled before adding an item, the add box opens the form", async ({
+  page,
+}) => {
   const { dialog: schema, settings } = await openSchema(page);
   const row = await addField(schema, "Amount");
   await option(row, "required").click();
@@ -127,15 +136,19 @@ test("a required field must be filled before adding an item", async ({ page }) =
   await saveSchema(schema);
   await closeDialog(settings);
 
-  await page.getByRole("button", { name: "[ add + ]", exact: true }).click();
+  // the add box can't fill fields, so enter opens the full form with what was typed
+  const title = uniqueName("missing amount");
+  const box = page.getByRole("textbox", { name: /^add to / });
+  await box.fill(title);
+  await box.press("Enter");
   const dialog = itemDialog(page);
-  await dialog.locator("textarea").first().fill(uniqueName("missing amount"));
-  await dialog.getByRole("button", { name: "[ add ]", exact: true }).click();
+  await expect(dialog.locator("textarea").first()).toHaveValue(title);
+  await dialog.getByRole("button", { name: "add", exact: true }).click();
   await expect(dialog.getByText("Amount is required")).toBeVisible();
   await expect(dialog).toBeVisible();
 
   await dialog.getByPlaceholder("Amount").fill("12");
-  await dialog.getByRole("button", { name: "[ add ]", exact: true }).click();
+  await dialog.getByRole("button", { name: "add", exact: true }).click();
   await expect(dialog).not.toBeVisible();
 });
 
@@ -174,5 +187,6 @@ test("new fields can be added to a bucket that already has items", async ({ page
   await closeDialog(settings);
 
   await itemRow(page, title).click();
+  await openDetail(itemDialog(page), "more");
   await expect(itemDialog(page).getByPlaceholder("Priority")).toBeVisible();
 });

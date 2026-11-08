@@ -19,6 +19,7 @@ export function QuietHoursSettings({ value, onChange, pending }: QuietHoursSetti
       <div className="flex items-center justify-between">
         <label className={LABEL}>don&apos;t send anything at night</label>
         <Toggle
+          label="quiet hours"
           value={enabled}
           onChange={(on) => onChange({ ...value, enabled: on })}
           disabled={pending}

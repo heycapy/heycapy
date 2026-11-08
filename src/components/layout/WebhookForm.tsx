@@ -1,6 +1,6 @@
 import { useState, useTransition } from "react";
 import { Toggle } from "@/components/ui/Toggle";
-import { BracketButton } from "@/components/ui/BracketButton";
+import { TextButton } from "@/components/ui/TextButton";
 import {
   deleteWebhookAction,
   saveWebhookAction,
@@ -58,7 +58,7 @@ export function WebhookForm({ webhook, onSaved, onDeleted, onClose }: WebhookFor
   }
 
   return (
-    <div className="border-border flex flex-col gap-3 border p-3">
+    <div className="rounded-control border-border flex flex-col gap-3 border p-3">
       <div className="flex flex-col gap-1.5">
         <label className={LABEL}>name</label>
         <input
@@ -90,7 +90,12 @@ export function WebhookForm({ webhook, onSaved, onDeleted, onClose }: WebhookFor
       </div>
       <div className="flex items-center justify-between">
         <label className={LABEL}>on by default</label>
-        <Toggle value={isDefault} onChange={setIsDefault} disabled={pending} />
+        <Toggle
+          label="on by default"
+          value={isDefault}
+          onChange={setIsDefault}
+          disabled={pending}
+        />
       </div>
 
       {webhook && !chatWebhookApp(webhook.url) && (
@@ -107,17 +112,17 @@ export function WebhookForm({ webhook, onSaved, onDeleted, onClose }: WebhookFor
       <div className="flex flex-wrap items-center gap-2">
         {dirty ? (
           <>
-            <BracketButton type="button" onClick={save} disabled={pending}>
+            <TextButton type="button" onClick={save} disabled={pending}>
               {pending ? "saving..." : "save"}
-            </BracketButton>
-            <BracketButton type="button" onClick={onClose} disabled={pending}>
+            </TextButton>
+            <TextButton type="button" onClick={onClose} disabled={pending}>
               cancel
-            </BracketButton>
+            </TextButton>
           </>
         ) : (
-          <BracketButton type="button" onClick={onClose} disabled={pending}>
+          <TextButton type="button" onClick={onClose} disabled={pending}>
             done
-          </BracketButton>
+          </TextButton>
         )}
         {webhook &&
           (confirmDelete ? (
@@ -128,7 +133,7 @@ export function WebhookForm({ webhook, onSaved, onDeleted, onClose }: WebhookFor
               disabled={pending}
             />
           ) : (
-            <BracketButton
+            <TextButton
               type="button"
               variant="destructive"
               onClick={() => setConfirmDelete(true)}
@@ -136,11 +141,11 @@ export function WebhookForm({ webhook, onSaved, onDeleted, onClose }: WebhookFor
               className="ml-auto"
             >
               delete
-            </BracketButton>
+            </TextButton>
           ))}
       </div>
       {error && (
-        <p role="status" className="text-destructive font-mono text-[11px]">
+        <p role="status" className="text-destructive font-ui text-2xs">
           {error}
         </p>
       )}

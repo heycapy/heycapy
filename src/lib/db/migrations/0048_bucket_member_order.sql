@@ -1,0 +1,1 @@
+ALTER TABLE `bucket_members` ADD `sort_order` integer;

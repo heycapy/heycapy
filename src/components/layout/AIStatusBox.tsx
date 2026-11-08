@@ -1,6 +1,6 @@
 import { useTransition } from "react";
 import { cn } from "@/lib/utils";
-import { BracketButton } from "@/components/ui/BracketButton";
+import { TextButton } from "@/components/ui/TextButton";
 import { checkAIKeyAction } from "@/app/(app)/actions";
 import { useAIStatus } from "@/hooks/useAIStatus";
 import { useUIStore } from "@/store/ui";
@@ -45,11 +45,7 @@ export function AIStatusBox({ ownKeyPicked }: { ownKeyPicked: boolean }) {
     <div className={BOX}>
       <div className="flex items-center justify-between gap-2">
         {heycapyPicked && balance ? (
-          <span
-            role="status"
-            aria-label="capy's ai"
-            className="flex items-baseline gap-2 font-mono"
-          >
+          <span role="status" aria-label="capy's ai" className="font-ui flex items-baseline gap-2">
             <span className="text-foreground text-2xl leading-none">{balance}</span>{" "}
             <span className="text-muted-foreground text-xs">
               capy credits left <span className="whitespace-nowrap">(never expire)</span>
@@ -59,15 +55,15 @@ export function AIStatusBox({ ownKeyPicked }: { ownKeyPicked: boolean }) {
           <span
             role="status"
             aria-label="capy's ai"
-            className={cn("font-mono text-xs", problem ? "text-destructive" : "text-foreground")}
+            className={cn("font-ui text-xs", problem ? "text-destructive" : "text-foreground")}
           >
             {label}
           </span>
         )}
         {!heycapyPicked && ownKeySaved && (
-          <BracketButton onClick={check} disabled={checking}>
+          <TextButton onClick={check} disabled={checking}>
             check
-          </BracketButton>
+          </TextButton>
         )}
       </div>
 
@@ -94,7 +90,7 @@ export function AIStatusBox({ ownKeyPicked }: { ownKeyPicked: boolean }) {
         </p>
       )}
       {!heycapyPicked && status.kind === "own" && status.status === "failed" && status.error && (
-        <p className="text-destructive font-mono text-[11px] break-words">{status.error}</p>
+        <p className="text-destructive font-ui text-2xs break-words">{status.error}</p>
       )}
       {!heycapyPicked && status.kind === "own" && status.checkedAt && (
         <p className={MUTED}>last checked: {formatShort(new Date(status.checkedAt))}</p>

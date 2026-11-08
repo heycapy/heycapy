@@ -1,7 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { authState } from "../helpers/auth";
-import { createAndSelectBucket, itemRow, uniqueName } from "../helpers/buckets";
-import { modal } from "../helpers/settings";
+import { createAndSelectBucket, editForm, itemRow, uniqueName } from "../helpers/buckets";
 import { enableWebhook, postItem } from "../helpers/webhook";
 
 test.use({ storageState: authState("timezone"), timezoneId: "America/New_York" });
@@ -27,8 +26,8 @@ test("updating an item without changes keeps its date and time", async ({ page }
   await expect(row).toContainText("9pm");
   const before = await row.innerText();
   await row.click();
-  const dialog = modal(page, /^edit item$/);
-  await dialog.getByRole("button", { name: "[ update ]", exact: true }).click();
+  const dialog = editForm(page);
+  await dialog.getByRole("button", { name: "update", exact: true }).click();
   await expect(dialog).not.toBeVisible();
 
   await page.reload();
@@ -37,7 +36,7 @@ test("updating an item without changes keeps its date and time", async ({ page }
 
 test("a timezone that doesn't exist is refused and the saved one stays", async ({ page }) => {
   await page.goto("/");
-  await page.getByRole("button", { name: "···" }).click();
+  await page.getByRole("button", { name: "your menu", exact: true }).click();
   await page.getByRole("button", { name: "tweaks" }).click();
   const timezone = page.getByPlaceholder("America/New_York");
   await expect(timezone).not.toHaveValue("");
@@ -50,7 +49,7 @@ test("a timezone that doesn't exist is refused and the saved one stays", async (
     page.getByText('Unknown timezone "America/New_Yrok" — use one like Europe/London')
   ).toBeVisible();
   await page.reload();
-  await page.getByRole("button", { name: "···" }).click();
+  await page.getByRole("button", { name: "your menu", exact: true }).click();
   await page.getByRole("button", { name: "tweaks" }).click();
   await expect(timezone).toHaveValue(saved);
 });

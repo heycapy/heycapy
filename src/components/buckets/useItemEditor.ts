@@ -6,6 +6,8 @@ import { deadlineValue } from "@/lib/time";
 import type { items } from "@/lib/db/schema";
 import type { RecurringConfig } from "@/types/rules";
 import type { ItemStatus } from "./constants";
+import { useDraft, useDraftStore } from "@/store/drafts";
+import { useUIStore } from "@/store/ui";
 
 type Item = typeof items.$inferSelect;
 
@@ -22,14 +24,13 @@ export function useItemEditor({
   defaultDeadline,
   onSaved,
 }: ItemEditorOptions) {
+  const draft = useDraft(bucketId);
+  const updateDraft = useDraftStore((s) => s.updateDraft);
+  const clearDraft = useDraftStore((s) => s.clearDraft);
+  const markAdded = useUIStore((s) => s.markAdded);
   const [addingItem, setAddingItem] = useState(false);
-  const [addTitle, setAddTitle] = useState("");
-  const [addDeadline, setAddDeadline] = useState("");
-  const [addStatus, setAddStatus] = useState<ItemStatus>(defaultStatus);
-  const [addRecurring, setAddRecurring] = useState<RecurringConfig | null>(null);
-  const [addProperties, setAddProperties] = useState<Record<string, unknown>>({});
-  const [addReminders, setAddReminders] = useState<number[] | null>(null);
-  const [addAssignee, setAddAssignee] = useState<number | null>(null);
+  const [typedDeadline, setTypedDeadline] = useState("");
+  const addDeadline = draft.deadline ?? typedDeadline;
   const [addError, setAddError] = useState("");
   const [addPending, startAddTransition] = useTransition();
 
@@ -56,22 +57,21 @@ export function useItemEditor({
     setEditError("");
   }
 
-  function cancelAdding() {
+  function closeAdding() {
     setAddingItem(false);
-    setAddTitle("");
-    setAddDeadline("");
-    setAddStatus(defaultStatus);
-    setAddRecurring(null);
-    setAddProperties({});
-    setAddReminders(null);
-    setAddAssignee(null);
     setAddError("");
   }
 
   function startAdding() {
     cancelEditing();
-    setAddDeadline(defaultDeadline());
+    setTypedDeadline(defaultDeadline());
     setAddingItem(true);
+  }
+
+  function changeAddDeadline(next: string) {
+    const picked = (useDraftStore.getState().drafts[bucketId]?.deadline ?? null) !== null;
+    if (picked) updateDraft(bucketId, { deadline: next });
+    else setTypedDeadline(next);
   }
 
   function startEditing(item: Item) {
@@ -89,7 +89,7 @@ export function useItemEditor({
   }
 
   // The dialog passes the title without a date typed into it
-  function handleAdd(title = addTitle, clock: string | null = null) {
+  function handleAdd(title = draft.title, clock: string | null = null) {
     if (!title.trim() || addPending) return;
     setAddError("");
     startAddTransition(async () => {
@@ -97,15 +97,17 @@ export function useItemEditor({
         bucketId,
         title,
         addDeadline || null,
-        addStatus,
-        addRecurring,
-        Object.keys(addProperties).length > 0 ? addProperties : null,
-        addReminders,
-        addAssignee,
+        draft.status ?? defaultStatus,
+        draft.recurring,
+        Object.keys(draft.properties).length > 0 ? draft.properties : null,
+        draft.reminders,
+        draft.assigneeId,
         clock
       );
       if (result.ok) {
-        cancelAdding();
+        closeAdding();
+        clearDraft(bucketId);
+        markAdded(result.id);
         await onSaved();
       } else {
         setAddError(result.error);
@@ -158,28 +160,44 @@ export function useItemEditor({
     editingItemId,
     startAdding,
     startEditing,
-    assigneeId: addingItem ? addAssignee : editAssignee,
-    setAssigneeId: addingItem ? setAddAssignee : setEditAssignee,
+    assigneeId: addingItem ? draft.assigneeId : editAssignee,
+    setAssigneeId: addingItem
+      ? (assigneeId: number | null) => updateDraft(bucketId, { assigneeId })
+      : setEditAssignee,
     dialogProps: {
       open: addingItem || editingItemId !== null,
       mode: addingItem ? ("add" as const) : ("edit" as const),
-      title: addingItem ? addTitle : editTitle,
+      title: addingItem ? draft.title : editTitle,
       deadline: addingItem ? addDeadline : editDeadline,
-      status: addingItem ? addStatus : editStatus,
-      properties: addingItem ? addProperties : editProperties,
-      recurring: addingItem ? addRecurring : editRecurring,
-      reminders: addingItem ? addReminders : editReminders,
+      deadlinePicked: addingItem && draft.deadline !== null,
+      status: addingItem ? (draft.status ?? defaultStatus) : editStatus,
+      properties: addingItem ? draft.properties : editProperties,
+      recurring: addingItem ? draft.recurring : editRecurring,
+      reminders: addingItem ? draft.reminders : editReminders,
       error: addingItem ? addError : editError,
       pending: addingItem ? addPending : editPending,
-      onTitleChange: addingItem ? setAddTitle : setEditTitle,
-      onDeadlineChange: addingItem ? setAddDeadline : setEditDeadline,
-      onStatusChange: addingItem ? setAddStatus : setEditStatus,
-      onPropertiesChange: addingItem ? setAddProperties : setEditProperties,
-      onRecurringChange: addingItem ? setAddRecurring : setEditRecurring,
-      onRemindersChange: addingItem ? setAddReminders : setEditReminders,
+      onTitleChange: addingItem
+        ? (title: string) => updateDraft(bucketId, { title })
+        : setEditTitle,
+      onDeadlineChange: addingItem ? changeAddDeadline : setEditDeadline,
+      onDeadlinePicked: () => {
+        if (addingItem && draft.deadline === null) updateDraft(bucketId, { deadline: addDeadline });
+      },
+      onStatusChange: addingItem
+        ? (status: ItemStatus) => updateDraft(bucketId, { status })
+        : setEditStatus,
+      onPropertiesChange: addingItem
+        ? (properties: Record<string, unknown>) => updateDraft(bucketId, { properties })
+        : setEditProperties,
+      onRecurringChange: addingItem
+        ? (recurring: RecurringConfig | null) => updateDraft(bucketId, { recurring })
+        : setEditRecurring,
+      onRemindersChange: addingItem
+        ? (reminders: number[] | null) => updateDraft(bucketId, { reminders })
+        : setEditReminders,
       onConfirm: (title: string | undefined, clock: string | null) =>
         addingItem ? handleAdd(title, clock) : handleUpdate(clock),
-      onCancel: addingItem ? cancelAdding : cancelEditing,
+      onCancel: addingItem ? closeAdding : cancelEditing,
       onDelete: editingItemId !== null ? handleDelete : undefined,
     },
   };

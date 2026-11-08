@@ -1,5 +1,5 @@
 import { useEffect, useState, useTransition } from "react";
-import { BracketButton } from "@/components/ui/BracketButton";
+import { TextButton } from "@/components/ui/TextButton";
 import {
   changeUsernameAction,
   checkUsernameAction,
@@ -163,20 +163,20 @@ export function UsernameField({ username, draft, onDraft, onSaved }: UsernameFie
         allowed && (
           <div className="flex flex-wrap gap-3">
             {changed && (
-              <BracketButton
+              <TextButton
                 onClick={requestSave}
                 disabled={busy || availability?.status !== "available"}
               >
                 {pending ? "saving..." : "save username"}
-              </BracketButton>
+              </TextButton>
             )}
-            <BracketButton onClick={generate} disabled={busy}>
+            <TextButton onClick={generate} disabled={busy}>
               generate another
-            </BracketButton>
+            </TextButton>
             {changed && (
-              <BracketButton onClick={cancel} disabled={pending}>
+              <TextButton onClick={cancel} disabled={pending}>
                 cancel
-              </BracketButton>
+              </TextButton>
             )}
           </div>
         )
@@ -187,7 +187,7 @@ export function UsernameField({ username, draft, onDraft, onSaved }: UsernameFie
         </p>
       )}
       {error && (
-        <p role="alert" className="text-destructive font-mono text-xs">
+        <p role="alert" className="text-destructive font-ui text-xs">
           {error}
         </p>
       )}

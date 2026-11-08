@@ -1,70 +1,38 @@
 "use client";
 
-import { ChevronLeft } from "pixelarticons/react/ChevronLeft.js";
-import { ChevronRight } from "pixelarticons/react/ChevronRight.js";
-import { Clock } from "pixelarticons/react/Clock.js";
-import { PixelIcon } from "@/components/ui/PixelIcon";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { BracketButton } from "@/components/ui/BracketButton";
-import { cn } from "@/lib/utils";
-import { BucketContent } from "./BucketContent";
-import { PlacePicker } from "./PlacePicker";
-import { BucketSwitcher } from "./BucketSwitcher";
-import { Sprite } from "@/components/capy/Sprite";
+import { BucketContent, type BucketView } from "./BucketContent";
+import { BucketTabs } from "./BucketTabs";
+import { BucketsFooter } from "./BucketsFooter";
 import { TodayView } from "@/components/today/TodayView";
-import { BUCKET_PALETTE } from "./constants";
+import { Banners } from "@/components/layout/Banners";
+import { VIEW_FADE } from "./constants";
+import { bucketColor } from "./bucket-color";
 import { useUIStore } from "@/store/ui";
 import { useLayoutStore } from "@/store/layout";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
+import { itemLink } from "@/lib/items/item-link";
 import { parseItemsRules } from "@/lib/rules";
 import { BOTTOM_BAR_MEDIA_QUERY } from "@/constants";
 import type { ViewerBucket } from "@/lib/buckets/access";
+
+const writable = (bucket: ViewerBucket) => parseItemsRules(bucket.itemsRules).readonly !== true;
 
 type BucketsShellProps = {
   buckets: ViewerBucket[];
   focusBucketId?: number | null;
 };
 
-function TodayButton({
-  active,
-  onClick,
-  className,
-}: {
-  active: boolean;
-  onClick: () => void;
-  className: string;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      aria-pressed={active}
-      className={cn(
-        "flex shrink-0 items-center gap-1.5 border-t-2 px-3 font-mono text-xs transition-colors",
-        active
-          ? "bg-card text-foreground border-t-foreground"
-          : "text-muted-foreground hover:text-foreground border-t-transparent",
-        className
-      )}
-    >
-      <PixelIcon icon={Clock} />
-      today
-    </button>
-  );
-}
-
 export function BucketsShell({ buckets: rawBuckets, focusBucketId = null }: BucketsShellProps) {
   const buckets = rawBuckets.filter((b, i, arr) => arr.findIndex((x) => x.id === b.id) === i);
-  const openCreateBucket = useUIStore((s) => s.openCreateBucket);
-  const setChatState = useLayoutStore((s) => s.setChatState);
   const setBottomBarShown = useLayoutStore((s) => s.setBottomBarShown);
-  const setSearchOpen = useLayoutStore((s) => s.setSearchOpen);
   const activeBucketId = useUIStore((s) => s.activeBucketId);
   const setActiveBucketId = useUIStore((s) => s.setActiveBucketId);
+  const openItem = useUIStore((s) => s.openItem);
   const newBucketId = useUIStore((s) => s.newBucketId);
   const clearNewBucket = useUIStore((s) => s.clearNewBucket);
   const todayOpen = useUIStore((s) => s.todayOpen);
-  const openToday = useUIStore((s) => s.openToday);
   // The open view is remembered per session, wait for it rather than flash the default
   const hydrated = useSyncExternalStore(
     (onChange) => useUIStore.persist.onFinishHydration(onChange),
@@ -72,8 +40,13 @@ export function BucketsShell({ buckets: rawBuckets, focusBucketId = null }: Buck
     () => false
   );
   const prevBucketsRef = useRef<ViewerBucket[]>(buckets);
-  const [pickerOpen, setPickerOpen] = useState(false);
-  const addItemRef = useRef<(() => void) | null>(null);
+  const viewRef = useRef<BucketView | null>(null);
+  const quickAddRef = useRef<HTMLInputElement>(null);
+  const focusPending = useRef(false);
+  const expandPending = useRef(false);
+  const [todayAddId, setTodayAddId] = useState<number | null>(null);
+  const tickRefresh = useUIStore((s) => s.tickRefresh);
+  const [panelSlot, setPanelSlot] = useState<HTMLDivElement | null>(null);
   const hasBottomBar = useMediaQuery(BOTTOM_BAR_MEDIA_QUERY);
 
   useEffect(() => {
@@ -82,20 +55,33 @@ export function BucketsShell({ buckets: rawBuckets, focusBucketId = null }: Buck
   }, [setBottomBarShown]);
 
   useEffect(() => {
-    if (focusBucketId === null) return;
-    setActiveBucketId(focusBucketId);
-    // Keep the #item anchor, drop ?bucket so a reload doesn't jump back
-    window.history.replaceState(null, "", `/${window.location.hash}`);
+    const linked = itemLink(`/${window.location.search}${window.location.hash}`);
+    if (linked) openItem(focusBucketId, linked.itemId);
+    else if (focusBucketId !== null) setActiveBucketId(focusBucketId);
+    if (linked || focusBucketId !== null) window.history.replaceState(null, "", "/");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // A guide hint asking to add: today has nowhere to add to, so it goes to a bucket that takes items
   const addItemRequest = useUIStore((s) => s.addItemRequest);
   const handledAddRequest = useRef(addItemRequest);
   useEffect(() => {
     if (addItemRequest === handledAddRequest.current) return;
     handledAddRequest.current = addItemRequest;
-    addItemRef.current?.();
-  }, [addItemRequest]);
+    const { todayOpen: onToday, activeBucketId: current, addItemForm } = useUIStore.getState();
+    const shown = buckets.find((b) => b.id === current) ?? buckets[0];
+    const target = shown && writable(shown) ? shown : onToday ? buckets.find(writable) : undefined;
+    if (!target) return;
+    if (onToday) setActiveBucketId(target.id);
+    if (addItemForm) expandPending.current = true;
+    else focusPending.current = true;
+  }, [addItemRequest, buckets, setActiveBucketId]);
+
+  useEffect(() => {
+    if (!focusPending.current || !quickAddRef.current) return;
+    focusPending.current = false;
+    quickAddRef.current.focus();
+  });
 
   useEffect(() => {
     if (newBucketId === null || !buckets.some((b) => b.id === newBucketId)) return;
@@ -119,46 +105,77 @@ export function BucketsShell({ buckets: rawBuckets, focusBucketId = null }: Buck
   }, [buckets, activeBucketId, setActiveBucketId]);
 
   const activeBucket = buckets.find((b) => b.id === activeId) ?? buckets[0];
-  const activeIndex = buckets.findIndex((b) => b.id === activeId);
-  const accentColor = BUCKET_PALETTE[Math.max(activeIndex, 0) % BUCKET_PALETTE.length];
-  const placeColor = todayOpen ? "var(--foreground)" : accentColor;
-  const place = todayOpen ? 0 : activeIndex + 1;
+  const accentColor = bucketColor(activeBucket?.colorIndex ?? 0);
+
+  // A switch first fades the old view out, and until the new one mounts, expand would open the old
+  // view's form (or none, on today); an expand asked for meanwhile waits for the new view
+  const placeKey = todayOpen ? "today" : activeBucket?.id;
+  const [shownKey, setShownKey] = useState<typeof placeKey | null>(null);
+  const switching = shownKey !== placeKey;
+  useEffect(() => {
+    if (switching || !expandPending.current || !viewRef.current) return;
+    viewRef.current.startAdding();
+    expandPending.current = false;
+  });
 
   if (!activeBucket) return null;
 
-  const canAddItem = todayOpen
-    ? buckets.some((b) => parseItemsRules(b.itemsRules).readonly !== true)
-    : parseItemsRules(activeBucket.itemsRules).readonly !== true;
+  const writableBuckets = buckets.filter(writable);
+  const todayTarget =
+    writableBuckets.find((b) => b.id === todayAddId) ??
+    (writable(activeBucket) ? activeBucket : writableBuckets[0]);
+  const footerBucket = todayOpen ? (todayTarget ?? null) : activeBucket;
+  const canAddItem = footerBucket !== null && writable(footerBucket);
+  const itemPanel = panelSlot
+    ? { slot: panelSlot, onCollapsed: () => quickAddRef.current?.focus() }
+    : undefined;
 
-  function addItem() {
-    addItemRef.current?.();
+  function expand() {
+    if (todayOpen && todayTarget) {
+      expandPending.current = true;
+      setActiveBucketId(todayTarget.id);
+      return;
+    }
+    if (switching) expandPending.current = true;
+    else viewRef.current?.startAdding();
   }
 
   return (
     <div className="flex flex-1 flex-col">
+      <BucketTabs buckets={buckets} activeId={activeId} todayOpen={todayOpen} />
+      <Banners />
       <div
-        className="flex-1 overflow-y-auto pb-[420px]"
+        className="max-md:scrollbar-hide flex-1 overflow-y-auto pb-[calc(0.5rem+var(--item-panel-cover,0px))]"
         onClick={(e) => {
-          if (hasBottomBar && canAddItem && e.target === e.currentTarget) addItem();
+          if (hasBottomBar && canAddItem && e.target === e.currentTarget) {
+            quickAddRef.current?.focus();
+          }
         }}
       >
         {hydrated && (
           <AnimatePresence mode="wait">
             <motion.div
-              key={todayOpen ? "today" : activeBucket.id}
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -6 }}
+              key={placeKey}
+              variants={VIEW_FADE}
+              initial="hidden"
+              animate="visible"
+              exit="gone"
               transition={{ duration: 0.15 }}
-              className="mx-auto w-full max-w-6xl"
+              // the view starts coming in as it mounts, with its add form; the leaving view's
+              // animation fires this too, with "gone"
+              onAnimationStart={(started) => {
+                if (started === "visible") setShownKey(placeKey);
+              }}
+              className="max-w-column mx-auto w-full"
             >
               {todayOpen ? (
-                <TodayView buckets={buckets} addItemRef={addItemRef} />
+                <TodayView buckets={buckets} panel={itemPanel} />
               ) : (
                 <BucketContent
                   bucket={activeBucket}
                   accentColor={accentColor}
-                  addItemRef={addItemRef}
+                  viewRef={viewRef}
+                  panel={itemPanel}
                 />
               )}
             </motion.div>
@@ -166,107 +183,25 @@ export function BucketsShell({ buckets: rawBuckets, focusBucketId = null }: Buck
         )}
       </div>
 
-      <div className="border-border bg-background sticky bottom-0 border-t-2 md:border-t-0">
-        <button
-          onClick={() => setChatState("open")}
-          aria-label="chat with capy"
-          className="absolute right-3 bottom-full flex items-end transition-transform active:scale-95 md:hidden"
-        >
-          <Sprite id="capy-idle-blink" size={52} />
-        </button>
-        <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-stretch pb-[max(0.5rem,env(safe-area-inset-bottom))] md:hidden">
-          <BucketSwitcher
-            count={buckets.length + 1}
-            index={place}
-            onGo={(next) => {
-              const bucket = buckets[next - 1];
-              if (bucket) setActiveBucketId(bucket.id);
-              else openToday();
-            }}
-            onOpenPicker={() => setPickerOpen(true)}
-          >
-            <span
-              style={{ backgroundColor: `color-mix(in oklab, ${placeColor} 18%, transparent)` }}
-              className="flex h-10 max-w-32 min-w-0 items-center gap-1 px-1"
-            >
-              <PixelIcon
-                icon={ChevronLeft}
-                className={cn("text-muted-foreground shrink-0", place === 0 && "opacity-25")}
-              />
-              {todayOpen && <PixelIcon icon={Clock} className="shrink-0" />}
-              <span className="text-foreground truncate font-mono text-base">
-                {todayOpen
-                  ? "today"
-                  : activeBucket.icon
-                    ? `${activeBucket.icon} ${activeBucket.name}`
-                    : activeBucket.name}
-              </span>
-              <PixelIcon
-                icon={ChevronRight}
-                className={cn(
-                  "text-muted-foreground shrink-0",
-                  place === buckets.length && "opacity-25"
-                )}
-              />
-            </span>
-          </BucketSwitcher>
-          <div className="flex justify-center">
-            {canAddItem && (
-              <BracketButton
-                onClick={addItem}
-                style={{ color: accentColor }}
-                className="min-h-14 px-3 text-base"
-              >
-                add +
-              </BracketButton>
-            )}
-          </div>
-          <div className="flex min-w-0 items-center justify-end pr-4">
-            <BracketButton onClick={() => setSearchOpen(true)} className="min-h-14 px-2 text-base">
-              search
-            </BracketButton>
-          </div>
-        </div>
-
-        <div className="scrollbar-hide hidden overflow-x-auto shadow-[inset_0_2px_0_var(--border)] md:flex">
-          <BracketButton onClick={openCreateBucket} className="shrink-0 px-3 py-[13.8px]">
-            add bucket
-          </BracketButton>
-          <TodayButton active={todayOpen} onClick={openToday} className="py-[13.8px]" />
-          <span aria-hidden className="bg-border my-2.5 w-0.5 shrink-0" />
-          {buckets.map((bucket, i) => {
-            const isActive = !todayOpen && bucket.id === activeId;
-            const color = BUCKET_PALETTE[i % BUCKET_PALETTE.length];
-
-            return (
-              <button
-                key={bucket.id}
-                onClick={() => setActiveBucketId(bucket.id)}
-                style={isActive ? { borderTopColor: color } : undefined}
-                className={cn(
-                  "max-w-[140px] shrink-0 border-t-2 px-3 py-[13.8px] text-left transition-colors",
-                  isActive
-                    ? "bg-card text-foreground"
-                    : "text-muted-foreground hover:text-foreground border-t-transparent"
-                )}
-              >
-                <span className="font-pixel block truncate text-xs">
-                  {bucket.icon ? `${bucket.icon} ${bucket.name}` : bucket.name}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      <PlacePicker
-        open={pickerOpen}
-        buckets={buckets}
-        todayOpen={todayOpen}
-        activeId={activeId}
-        onSelectToday={openToday}
-        onSelectBucket={setActiveBucketId}
-        onClose={() => setPickerOpen(false)}
+      <BucketsFooter
+        bucket={footerBucket}
+        targets={
+          todayOpen
+            ? {
+                buckets: writableBuckets,
+                onPick: (id) => {
+                  setTodayAddId(id);
+                  requestAnimationFrame(() => quickAddRef.current?.focus());
+                },
+              }
+            : undefined
+        }
+        color={accentColor}
+        canAdd={canAddItem}
+        inputRef={quickAddRef}
+        panelSlotRef={setPanelSlot}
+        onAdded={() => (todayOpen ? tickRefresh() : void viewRef.current?.refetch())}
+        onExpand={expand}
       />
     </div>
   );

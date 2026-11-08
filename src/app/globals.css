@@ -18,11 +18,289 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
+  --radius-sm: max(calc(var(--radius) - 4px), var(--control-radius));
+  --radius-md: max(calc(var(--radius) - 2px), var(--control-radius));
+  --radius-lg: max(var(--radius), var(--control-radius));
+  --radius-xl: max(calc(var(--radius) + 4px), var(--panel-radius));
   --font-pixel: var(--font-pixel), monospace;
+  --font-ui: var(--ui-font);
+  --font-display: var(--display-font);
+  --radius-panel: var(--panel-radius);
+  --radius-control: var(--control-radius);
+  --text-3xs: var(--text-size-3xs);
+  --text-2xs: var(--text-size-2xs);
+  --text-xs: var(--text-size-xs);
+  --text-xs--line-height: var(--text-leading-xs);
+  --text-sm: var(--text-size-sm);
+  --text-sm--line-height: var(--text-leading-sm);
+}
+
+@theme {
+  --container-column: 47.5rem;
+  --spacing-chat: 27.5rem;
+}
+
+/* What a look changes. Pages before login pin data-look="original" so they keep these under any look */
+:root,
+[data-look="original"] {
+  --ui-font: var(--font-mono);
+  --display-font: var(--font-pixel), monospace;
+  --panel-radius: 0px;
+  --control-radius: 0px;
+  --text-size-3xs: 0.625rem;
+  --text-size-2xs: 0.6875rem;
+  --text-size-xs: 0.75rem;
+  --text-leading-xs: calc(1 / 0.75);
+  --text-size-sm: 0.875rem;
+  --text-leading-sm: calc(1.25 / 0.875);
+  --frame-width: 2px;
+  --raised-shadow-sm: 2px 2px 0 var(--border);
+  --raised-shadow: 3px 3px 0 var(--border);
+  --raised-shadow-md: 4px 4px 0 var(--border);
+  --raised-shadow-lg: 5px 5px 0 var(--border);
+  --edge-shadow: -4px 0 0 var(--border);
+  --divider-style: dotted;
+  --rule-style: dashed;
+  --chip-radius: 0px;
+  --chip-padding: 0 0.25rem;
+  --chip-weight: inherit;
+  --button-accent: var(--primary);
+  --selected-bg: var(--foreground);
+  --selected-fg: var(--background);
+  --control-h: auto;
+  --section-case: uppercase;
+  --section-tracking: 0.1em;
+  --box-border: 1px;
+  --box-padding: 0.75rem;
+  --box-space: 0px;
+  --toast-close-text: "[x]";
+  --toast-close-icon: none;
+  --dock-inset: 0px;
+  --dock-border: 0 0 0 var(--frame-width);
+  --dock-radius: 0px;
+  --side-shadow: none;
+  --menu-inset: 0px;
+  --menu-row-divider: 1px;
+  --bar-button-h: 3rem;
+  --bar-button-px: 0.25rem;
+  --tile-bg: var(--card);
+  --icon-frame: 1px;
+  --dot-radius: 0px;
+  --late-dot: 0.25rem;
+  --lift-bg: var(--card);
+  --lift-shadow: var(--raised-shadow-sm);
+  --lift-outline: dashed;
+  --add-focus-line: block;
+  --rail-border: 0 var(--frame-width) 0 0;
+  --add-box-h: 3rem;
+  --add-icon: 2.75rem;
+  --drawer-border: var(--frame-width) 0 0;
+  --drawer-radius: var(--panel-radius) var(--panel-radius) 0 0;
+  --drawer-inset: 0px;
+  --drawer-shadow: none;
+}
+
+[data-look="modern"] {
+  --ui-font: var(--font-geist-sans), system-ui, sans-serif;
+  --display-font: var(--font-geist-sans), system-ui, sans-serif;
+  --panel-radius: 12px;
+  --control-radius: 8px;
+  --text-size-3xs: 0.75rem;
+  --text-size-2xs: 0.75rem;
+  --text-size-xs: 0.875rem;
+  --text-leading-xs: calc(1.25 / 0.875);
+  --text-size-sm: 0.9375rem;
+  --text-leading-sm: calc(1.375 / 0.9375);
+  --frame-width: 1px;
+  --raised-shadow-sm: 0 1px 2px rgb(0 0 0 / 0.06);
+  --raised-shadow: 0 1px 2px rgb(0 0 0 / 0.06), 0 4px 12px rgb(0 0 0 / 0.05);
+  --raised-shadow-md: 0 2px 4px rgb(0 0 0 / 0.06), 0 8px 24px rgb(0 0 0 / 0.07);
+  --raised-shadow-lg: 0 4px 8px rgb(0 0 0 / 0.06), 0 16px 40px rgb(0 0 0 / 0.1);
+  --edge-shadow: var(--raised-shadow-lg);
+  --divider-style: solid;
+  --rule-style: solid;
+  --chip-radius: 9999px;
+  --chip-padding: 1px 0.5rem;
+  --chip-weight: 600;
+  --button-accent: var(--foreground);
+  --selected-bg: var(--muted);
+  --selected-fg: var(--foreground);
+  --control-h: 2.25rem;
+  --section-case: none;
+  --section-tracking: normal;
+  --box-border: 0px;
+  --box-padding: 0px;
+  --box-space: 1rem;
+  --toast-close-text: none;
+  --toast-close-icon: block;
+  --dock-inset: 0.5rem;
+  --dock-border: var(--frame-width);
+  --dock-radius: var(--panel-radius);
+  --side-shadow: var(--raised-shadow-lg);
+  --menu-inset: 0.25rem;
+  --menu-row-divider: 0px;
+  --bar-button-h: var(--control-h);
+  --bar-button-px: 0.75rem;
+  --tile-bg: transparent;
+  --icon-frame: 0px;
+  --dot-radius: 9999px;
+  --late-dot: 0.375rem;
+  --lift-bg: var(--background);
+  --lift-shadow: var(--raised-shadow-md);
+  --lift-outline: none;
+  --add-focus-line: none;
+  --rail-border: var(--frame-width);
+  --add-box-h: calc(var(--control-h) + 0.5rem);
+  --add-icon: var(--control-h);
+  --drawer-border: var(--frame-width);
+  --drawer-radius: var(--panel-radius);
+  --drawer-inset: 0.5rem;
+  --drawer-shadow: var(--raised-shadow-lg);
+}
+
+[data-look="modern"][data-size="small"] {
+  --control-h: 2rem;
+}
+
+[data-look="modern"][data-size="large"] {
+  --control-h: 2.5rem;
+}
+
+@media (width >= 48rem) {
+  [data-look="modern"] {
+    --control-h: 1.75rem;
+  }
+
+  [data-look="modern"][data-size="small"] {
+    --control-h: 1.5rem;
+  }
+
+  [data-look="modern"][data-size="large"] {
+    --control-h: 2rem;
+  }
+}
+
+/* Original keeps the browser's own focus outline; layered so outline-none still wins */
+@layer base {
+  [data-look="modern"] :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+
+  [data-look="modern"] [data-look="original"] :focus-visible {
+    outline: revert;
+    outline-offset: revert;
+  }
+}
+
+@utility divide-divider {
+  :where(& > :not(:last-child)) {
+    --tw-border-style: var(--divider-style);
+    border-style: var(--divider-style);
+  }
+}
+
+@utility divide-rule {
+  :where(& > :not(:last-child)) {
+    --tw-border-style: var(--rule-style);
+    border-style: var(--rule-style);
+  }
+}
+
+@utility border-rule {
+  --tw-border-style: var(--rule-style);
+  border-style: var(--rule-style);
+}
+
+@utility section-case {
+  text-transform: var(--section-case);
+  letter-spacing: var(--section-tracking);
+}
+
+@utility box {
+  border-width: var(--box-border);
+  padding: var(--box-padding);
+}
+
+.box + .box {
+  margin-top: var(--box-space);
+}
+
+@utility dock {
+  top: var(--dock-inset);
+  right: var(--dock-inset);
+  bottom: var(--dock-inset);
+  border-width: var(--dock-border);
+  border-radius: var(--dock-radius);
+  overflow: hidden;
+}
+
+@utility rail {
+  border-width: var(--rail-border);
+  border-radius: var(--dock-radius);
+  margin: var(--dock-inset) 0 var(--dock-inset) var(--dock-inset);
+}
+
+@utility drawer-frame {
+  border-width: var(--drawer-border);
+  border-radius: var(--drawer-radius);
+  box-shadow: var(--drawer-shadow);
+}
+
+@utility bar-button {
+  height: var(--bar-button-h);
+  padding-inline: var(--bar-button-px);
+}
+
+@utility chip {
+  border-radius: var(--chip-radius);
+  padding: var(--chip-padding);
+  font-weight: var(--chip-weight);
+}
+
+@utility shadow-raised-sm {
+  box-shadow: var(--raised-shadow-sm);
+}
+
+@utility shadow-raised {
+  box-shadow: var(--raised-shadow);
+}
+
+@utility shadow-raised-md {
+  box-shadow: var(--raised-shadow-md);
+}
+
+@utility shadow-raised-lg {
+  box-shadow: var(--raised-shadow-lg);
+}
+
+@utility shadow-edge {
+  box-shadow: var(--edge-shadow);
+}
+
+@utility border-frame {
+  border-width: var(--frame-width);
+}
+
+@utility border-t-frame {
+  border-top-width: var(--frame-width);
+}
+
+@utility border-b-frame {
+  border-bottom-width: var(--frame-width);
+}
+
+@utility border-l-frame {
+  border-left-width: var(--frame-width);
+}
+
+@utility border-r-frame {
+  border-right-width: var(--frame-width);
+}
+
+@utility border-x-frame {
+  border-left-width: var(--frame-width);
+  border-right-width: var(--frame-width);
 }
 
 /* Avatar colours are the same on every theme so everyone sees the drawing as it was made */
@@ -91,7 +369,7 @@
   --muted-foreground: #928374;
   --accent: #98971a;
   --accent-foreground: #fbf1c7;
-  --destructive: #cc241d;
+  --destructive: hsl(2 75% 73%);
   --border: #504945;
   --input: #504945;
   --ring: #d79921;
@@ -149,7 +427,7 @@
   --muted-foreground: hsl(0 0% 45.1%);
   --accent: hsl(0 0% 96.1%);
   --accent-foreground: hsl(0 0% 9%);
-  --destructive: hsl(0 84.2% 60.2%);
+  --destructive: hsl(0 84% 42%);
   --border: hsl(0 0% 89.8%);
   --input: hsl(0 0% 89.8%);
   --ring: hsl(0 0% 9%);
@@ -178,7 +456,7 @@
   --muted-foreground: hsl(0 0% 63.9%);
   --accent: hsl(0 0% 14.9%);
   --accent-foreground: hsl(0 0% 98%);
-  --destructive: hsl(0 62.8% 50%);
+  --destructive: hsl(0 63% 61%);
   --border: hsl(0 0% 14.9%);
   --input: hsl(0 0% 14.9%);
   --ring: hsl(0 0% 83.1%);
@@ -207,7 +485,7 @@
   --muted-foreground: hsl(48 20% 68%);
   --accent: hsl(96 29% 62%);
   --accent-foreground: hsl(120 6% 15%);
-  --destructive: hsl(0 65% 65%);
+  --destructive: hsl(0 65% 73%);
   --border: hsl(120 6% 25%);
   --input: hsl(120 6% 22%);
   --ring: hsl(96 29% 62%);
@@ -236,7 +514,7 @@
   --muted-foreground: hsl(50 10% 45%);
   --accent: hsl(50 15% 85%);
   --accent-foreground: hsl(50 10% 20%);
-  --destructive: hsl(0 70% 50%);
+  --destructive: hsl(0 70% 42%);
   --border: hsl(50 15% 75%);
   --input: hsl(50 15% 80%);
   --ring: hsl(50 80% 26%);
@@ -265,7 +543,7 @@
   --muted-foreground: hsl(41 35% 60%);
   --accent: hsl(31 10% 20%);
   --accent-foreground: hsl(41 35% 75%);
-  --destructive: hsl(0 65% 50%);
+  --destructive: hsl(0 65% 67%);
   --border: hsl(31 10% 22%);
   --input: hsl(31 10% 20%);
   --ring: hsl(40 60% 48%);
@@ -294,7 +572,7 @@
   --muted-foreground: hsl(220 13% 65%);
   --accent: hsl(220 20% 25%);
   --accent-foreground: hsl(220 13% 90%);
-  --destructive: hsl(0 70% 60%);
+  --destructive: hsl(0 70% 71%);
   --border: hsl(220 20% 28%);
   --input: hsl(220 20% 25%);
   --ring: hsl(220 100% 70%);
@@ -323,7 +601,7 @@
   --muted-foreground: hsl(246 20% 45%);
   --accent: hsl(246 15% 85%);
   --accent-foreground: hsl(246 20% 20%);
-  --destructive: hsl(0 70% 50%);
+  --destructive: hsl(0 70% 41%);
   --border: hsl(246 15% 78%);
   --input: hsl(246 15% 80%);
   --ring: hsl(346 80% 42%);
@@ -352,7 +630,7 @@
   --muted-foreground: hsl(245 50% 72%);
   --accent: hsl(248 25% 24%);
   --accent-foreground: hsl(245 50% 91%);
-  --destructive: hsl(343 76% 63%);
+  --destructive: hsl(343 76% 67%);
   --border: hsl(248 25% 27%);
   --input: hsl(248 25% 24%);
   --ring: hsl(320 43% 60%);
@@ -381,7 +659,7 @@
   --muted-foreground: hsl(220 16% 60%);
   --accent: hsl(220 16% 30%);
   --accent-foreground: hsl(220 16% 80%);
-  --destructive: hsl(354 42% 56%);
+  --destructive: hsl(354 42% 78%);
   --border: hsl(220 16% 32%);
   --input: hsl(220 16% 30%);
   --ring: hsl(193 43% 67%);
@@ -410,7 +688,7 @@
   --muted-foreground: hsl(60 30% 72%);
   --accent: hsl(135 94% 65%);
   --accent-foreground: hsl(231 15% 18%);
-  --destructive: hsl(0 100% 67%);
+  --destructive: hsl(0 100% 75%);
   --border: hsl(231 15% 30%);
   --input: hsl(231 15% 28%);
   --ring: hsl(326 100% 74%);
@@ -439,7 +717,7 @@
   --muted-foreground: hsl(46 42% 58%);
   --accent: hsl(168 76% 36%);
   --accent-foreground: hsl(192 100% 5%);
-  --destructive: hsl(338 85% 53%);
+  --destructive: hsl(338 85% 61%);
   --border: hsl(192 81% 18%);
   --input: hsl(192 81% 14%);
   --ring: hsl(178 100% 29%);
@@ -497,7 +775,7 @@
   --muted-foreground: hsl(220 14% 55%);
   --accent: hsl(220 13% 28%);
   --accent-foreground: hsl(220 14% 71%);
-  --destructive: hsl(0 84% 60%);
+  --destructive: hsl(0 84% 76%);
   --border: hsl(220 13% 30%);
   --input: hsl(220 13% 28%);
   --ring: hsl(207 82% 66%);
@@ -589,12 +867,12 @@ body {
   color: var(--foreground);
 }
 
-.scrollbar-hide {
+@utility scrollbar-hide {
   -ms-overflow-style: none;
   scrollbar-width: none;
-}
-.scrollbar-hide::-webkit-scrollbar {
-  display: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 @keyframes capy-walk-across {
@@ -624,22 +902,39 @@ body {
   }
 }
 
+/* Toasts are as wide as their text, centred, never the full width of a phone */
+[data-sonner-toaster] [data-sonner-toast] {
+  width: fit-content !important;
+  max-width: 100%;
+}
+
+[data-sonner-toaster][data-x-position="center"] [data-sonner-toast] {
+  margin-inline: auto;
+}
+
+/* sonner makes the phone toaster 100% wide on top of its side offsets, which pushes it off centre */
+@media (max-width: 600px) {
+  [data-sonner-toaster] {
+    width: auto !important;
+  }
+}
+
+/* [x] sits at the end of the row with room to tap, instead of over the text */
 [data-sonner-toast] [data-close-button] {
-  position: absolute !important;
-  top: 2px !important;
-  right: 2px !important;
-  left: auto !important;
+  position: static !important;
+  order: 99;
+  flex-shrink: 0;
   transform: none !important;
   width: auto !important;
   height: auto !important;
-  padding: 4px !important;
+  padding: 8px !important;
   white-space: nowrap;
 }
 [data-sonner-toast] [data-close-button] svg {
-  display: none;
+  display: var(--toast-close-icon);
 }
 [data-sonner-toast] [data-close-button]::before {
-  content: "[x]";
+  content: var(--toast-close-text);
   font-family: var(--font-geist-mono);
   font-size: 12px;
   line-height: 1;

@@ -1,5 +1,5 @@
-import { afterEach, beforeAll, expect, it } from "vitest";
-import { cleanup, render, screen } from "@testing-library/react";
+import { afterEach, beforeAll, expect, it, vi } from "vitest";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { ChatMessageList } from "@/components/capy/ChatMessageList";
 
 const APP_URL = "https://app.heycapy.test";
@@ -7,7 +7,12 @@ const APP_URL = "https://app.heycapy.test";
 beforeAll(() => {
   Element.prototype.scrollTo = () => {};
 });
-afterEach(() => cleanup());
+afterEach(() => {
+  cleanup();
+  onOpenItem.mockClear();
+});
+
+const onOpenItem = vi.fn();
 
 function reply(content: string) {
   render(
@@ -15,6 +20,7 @@ function reply(content: string) {
       messages={[{ id: "1", role: "assistant", content }]}
       streaming={false}
       appUrl={APP_URL}
+      onOpenItem={onOpenItem}
     />
   );
 }
@@ -32,4 +38,17 @@ it("shows a link to another site as text with its address, not clickable", () =>
   expect(screen.getByText(/your account/).textContent).toContain(
     "your account (https://evil.test/login)"
   );
+});
+
+it("opens an item it links to in place, without leaving the page", () => {
+  reply(`here it is: [netflix](${APP_URL}/?bucket=3#item-7)`);
+  const opened = fireEvent.click(screen.getByRole("link", { name: "netflix" }));
+  expect(opened).toBe(false);
+  expect(onOpenItem).toHaveBeenCalledWith(3, 7);
+});
+
+it("leaves a ctrl / cmd click to the browser, for a new tab", () => {
+  reply(`here it is: [netflix](${APP_URL}/?bucket=3#item-7)`);
+  fireEvent.click(screen.getByRole("link", { name: "netflix" }), { ctrlKey: true });
+  expect(onOpenItem).not.toHaveBeenCalled();
 });

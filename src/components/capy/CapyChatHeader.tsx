@@ -1,17 +1,15 @@
-import { Collapse } from "pixelarticons/react/Collapse.js";
-import { Minus } from "pixelarticons/react/Minus.js";
-import { Scale } from "pixelarticons/react/Scale.js";
-import { PixelIcon } from "@/components/ui/PixelIcon";
-import { BracketButton } from "@/components/ui/BracketButton";
-import { Sprite } from "./Sprite";
+import { TextButton } from "@/components/ui/TextButton";
+import { CloseButton } from "@/components/ui/CloseButton";
 import { HEADER_H } from "./chatTypes";
 import { useAssistantName } from "./assistant-name";
 import { cn } from "@/lib/utils";
+import { IconButton } from "@/components/ui/IconButton";
 
 type Props = {
   fullscreen: boolean;
   minimized: boolean;
   onClose: () => void;
+  closeHidden?: boolean;
   onMinimize?: () => void;
   onFullscreen?: () => void;
   sidebarOpen?: boolean;
@@ -24,6 +22,7 @@ export function CapyChatHeader({
   fullscreen,
   minimized,
   onClose,
+  closeHidden,
   onMinimize,
   onFullscreen,
   sidebarOpen,
@@ -35,88 +34,55 @@ export function CapyChatHeader({
   return (
     <div
       style={{ height: HEADER_H }}
-      className={cn(
-        "border-border bg-card flex items-center gap-1 border-b-2 px-2 select-none",
-        onMinimize && "cursor-pointer"
-      )}
-      onClick={onMinimize}
+      className="border-border bg-card border-b-frame flex items-center gap-1 px-2 select-none"
     >
       {fullscreen && onToggleSidebar && (
-        <BracketButton
-          onClick={(e) => {
-            e.stopPropagation();
-            onToggleSidebar();
-          }}
+        <IconButton
+          icon={sidebarOpen ? "sidebar-close" : "sidebar-open"}
+          onClick={() => onToggleSidebar()}
           aria-label={sidebarOpen ? "Hide history" : "Show history"}
           aria-expanded={sidebarOpen}
-          className="px-1"
-        >
-          {sidebarOpen ? "sidebar >" : "sidebar <"}
-        </BracketButton>
+          className="flex h-6 w-6 items-center justify-center"
+        />
       )}
 
-      <div className="flex items-center gap-1 pr-1">
-        <Sprite id="capy-idle-blink" size={24} />
-      </div>
-
-      <span className="font-pixel flex-1 truncate text-[11px]">{name}</span>
+      <span className="font-display flex-1 truncate pl-1 text-xs">{name}</span>
 
       {!fullscreen && (
-        <BracketButton
-          onClick={(e) => {
-            e.stopPropagation();
-            onHistoryOpen();
-          }}
-          className="px-1"
-        >
+        <TextButton icon="clock" variant="ghost" onClick={() => onHistoryOpen()} className="px-1">
           history
-        </BracketButton>
+        </TextButton>
       )}
 
-      <BracketButton
-        onClick={(e) => {
-          e.stopPropagation();
-          onNewChat();
-        }}
+      <TextButton
+        icon="plus"
+        iconLabel="new chat"
+        variant="ghost"
+        onClick={() => onNewChat()}
         className="px-1"
       >
         new
-      </BracketButton>
+      </TextButton>
 
       {onMinimize && !fullscreen && (
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onMinimize();
-          }}
-          className="text-muted-foreground hover:text-foreground flex h-6 w-6 items-center justify-center transition-colors"
+        <IconButton
+          icon="minus"
+          onClick={() => onMinimize()}
+          className="flex h-6 w-6 items-center justify-center"
           aria-label={minimized ? "Expand" : "Collapse"}
-        >
-          <PixelIcon icon={Minus} />
-        </button>
+        />
       )}
       {onFullscreen && (
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onFullscreen();
-          }}
-          className="text-muted-foreground hover:text-foreground flex h-6 w-6 items-center justify-center transition-colors"
+        <IconButton
+          icon={fullscreen ? "collapse" : "expand"}
+          onClick={() => onFullscreen()}
+          className="flex h-6 w-6 items-center justify-center"
           aria-label={fullscreen ? "Exit fullscreen" : "Fullscreen"}
-        >
-          {fullscreen ? <PixelIcon icon={Collapse} /> : <PixelIcon icon={Scale} />}
-        </button>
+        />
       )}
-      <BracketButton
-        onClick={(e) => {
-          e.stopPropagation();
-          onClose();
-        }}
-        aria-label="close chat"
-        className="px-1"
-      >
-        x
-      </BracketButton>
+      <span className={cn(closeHidden && "sr-only")}>
+        <CloseButton onClick={() => onClose()} aria-label="close chat" className="px-1" />
+      </span>
     </div>
   );
 }

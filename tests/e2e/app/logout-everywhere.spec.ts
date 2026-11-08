@@ -7,10 +7,10 @@ test("log out everywhere ends the session in every browser", async ({ page, brow
   const otherDevice = await browser.newContext({ storageState: authState("logout-everywhere") });
   const other = await otherDevice.newPage();
   await other.goto("/");
-  await expect(other.getByRole("button", { name: "···" })).toBeVisible();
+  await expect(other.getByRole("button", { name: "your menu", exact: true })).toBeVisible();
 
   await page.goto("/");
-  await page.getByRole("button", { name: "···" }).click();
+  await page.getByRole("button", { name: "your menu", exact: true }).click();
   await page.getByRole("button", { name: "logout everywhere" }).click();
   await expect(
     page.getByText("ends your sessions on every device, including this one.")

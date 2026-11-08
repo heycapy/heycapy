@@ -1,17 +1,11 @@
-import { Clock } from "pixelarticons/react/Clock.js";
-import { PixelIcon } from "@/components/ui/PixelIcon";
-import { useEffect, type RefObject } from "react";
-import { BracketButton } from "@/components/ui/BracketButton";
 import { ItemDialog } from "@/components/buckets/ItemDialog";
+import type { ItemPanel } from "@/components/buckets/ItemPanelFrame";
 import { useItemEditor } from "@/components/buckets/useItemEditor";
 import { useBucketMembers } from "@/components/buckets/useBucketMembers";
 import { parseFields } from "@/components/buckets/fields";
-import { BUCKET_PALETTE, DEFAULT_BUCKET_STATUSES } from "@/components/buckets/constants";
-import { parseItemsRules, parseNotificationRules } from "@/lib/rules";
-import { localDateString } from "@/lib/reminders/zoned";
+import { DEFAULT_BUCKET_STATUSES } from "@/components/buckets/constants";
+import { parseNotificationRules } from "@/lib/rules";
 import { ITEM_STATUS } from "@/constants";
-import { useUIStore } from "@/store/ui";
-import { useLayoutStore } from "@/store/layout";
 import type { buckets as bucketsTable } from "@/lib/db/schema";
 import { CrossBucketList } from "./CrossBucketList";
 import { groupForToday } from "./group";
@@ -19,75 +13,30 @@ import { useTodayItems } from "./useTodayItems";
 
 type BucketRow = typeof bucketsTable.$inferSelect;
 
+// Today only edits, items are added in their bucket
 type TodayViewProps = {
   buckets: BucketRow[];
-  addItemRef: RefObject<(() => void) | null>;
+  panel?: ItemPanel;
 };
 
-export function TodayView({ buckets, addItemRef }: TodayViewProps) {
+export function TodayView({ buckets, panel }: TodayViewProps) {
   const { data, refetch } = useTodayItems();
-  const todayAddBucketId = useUIStore((s) => s.todayAddBucketId);
-  const activeBucketId = useUIStore((s) => s.activeBucketId);
-  const setTodayAddBucketId = useUIStore((s) => s.setTodayAddBucketId);
-  const setSearchOpen = useLayoutStore((s) => s.setSearchOpen);
-
-  const addable = buckets.flatMap((bucket, i) =>
-    parseItemsRules(bucket.itemsRules).readonly === true
-      ? []
-      : [{ bucket, color: BUCKET_PALETTE[i % BUCKET_PALETTE.length] ?? "" }]
-  );
-  const addTo =
-    addable.find((a) => a.bucket.id === todayAddBucketId) ??
-    addable.find((a) => a.bucket.id === activeBucketId) ??
-    addable[0];
-
   const statuses = DEFAULT_BUCKET_STATUSES;
   const editor = useItemEditor({
-    bucketId: addTo?.bucket.id ?? 0,
+    bucketId: 0,
     defaultStatus: statuses.find((s) => s.isDefault)?.name ?? ITEM_STATUS.active,
-    defaultDeadline: () =>
-      localDateString(new Date(), Intl.DateTimeFormat().resolvedOptions().timeZone),
+    defaultDeadline: () => "",
     onSaved: refetch,
   });
 
-  useEffect(() => {
-    if (!addTo) return;
-    addItemRef.current = editor.startAdding;
-    return () => {
-      addItemRef.current = null;
-    };
-  });
-
-  const adding = editor.dialogProps.open && editor.dialogProps.mode === "add";
   const editingItem = data?.items.find((i) => i.id === editor.editingItemId);
-  const formBucket = adding ? addTo?.bucket : buckets.find((b) => b.id === editingItem?.bucketId);
+  const formBucket = buckets.find((b) => b.id === editingItem?.bucketId);
   const fields = parseFields(formBucket?.fieldSchema);
   const members = useBucketMembers(formBucket?.id ?? null, editor.dialogProps.open);
 
   return (
     <div className="flex flex-col">
-      <div className="flex items-center justify-between px-4 py-3">
-        <h2 className="flex items-center gap-1.5 font-mono text-sm font-normal">
-          <PixelIcon icon={Clock} />
-          today
-        </h2>
-        <div className="flex items-center gap-2">
-          <BracketButton
-            onClick={() => setSearchOpen(true)}
-            className="hidden px-1 py-1.5 md:inline-flex"
-          >
-            search
-          </BracketButton>
-          {addTo && (
-            <BracketButton
-              onClick={editor.startAdding}
-              className="hidden px-1 py-1.5 md:inline-flex"
-            >
-              add +
-            </BracketButton>
-          )}
-        </div>
-      </div>
+      <h2 className="sr-only">today</h2>
 
       <CrossBucketList
         data={data}
@@ -105,6 +54,7 @@ export function TodayView({ buckets, addItemRef }: TodayViewProps) {
         }
         statuses={statuses}
         fields={fields.length > 0 ? fields : undefined}
+        panel={panel && { ...panel, bucketName: formBucket?.name }}
         assigneeChoice={
           formBucket && {
             bucketId: formBucket.id,
@@ -112,23 +62,6 @@ export function TodayView({ buckets, addItemRef }: TodayViewProps) {
             value: editor.assigneeId,
             onChange: editor.setAssigneeId,
           }
-        }
-        bucketChoice={
-          adding && addTo
-            ? {
-                options: addable.map((a) => ({
-                  id: a.bucket.id,
-                  name: a.bucket.icon ? `${a.bucket.icon} ${a.bucket.name}` : a.bucket.name,
-                  color: a.color,
-                })),
-                value: addTo.bucket.id,
-                onChange: (id) => {
-                  setTodayAddBucketId(id);
-                  editor.dialogProps.onPropertiesChange({});
-                  editor.setAssigneeId(null);
-                },
-              }
-            : undefined
         }
       />
     </div>

@@ -1,17 +1,18 @@
 import { useLayoutEffect, useRef, useState } from "react";
-import { motion, useDragControls, type PanInfo } from "framer-motion";
-import { BracketButton } from "@/components/ui/BracketButton";
-import { Modal, ModalTitle } from "@/components/ui/Modal";
+import { CloseButton } from "@/components/ui/CloseButton";
+import { Icon } from "@/components/ui/Icon";
+import { ModalTitle } from "@/components/ui/Modal";
+import { BottomDrawer } from "@/components/ui/Drawer";
 import { ItemDialog } from "@/components/buckets/ItemDialog";
 import { useItemEditor } from "@/components/buckets/useItemEditor";
 import { useBucketMembers } from "@/components/buckets/useBucketMembers";
 import { parseFields } from "@/components/buckets/fields";
 import { DEFAULT_BUCKET_STATUSES } from "@/components/buckets/constants";
 import { CrossBucketList } from "@/components/today/CrossBucketList";
-import { ITEM_STATUS, SHEET_CLOSE_DRAG_PX, SHEET_CLOSE_DRAG_VELOCITY } from "@/constants";
+import { ITEM_STATUS } from "@/constants";
 import { useSearchItems } from "@/components/today/useTodayItems";
-import { useVisualViewport } from "@/hooks/useVisualViewport";
 import { useLayoutStore } from "@/store/layout";
+import { IconButton } from "@/components/ui/IconButton";
 
 export function SearchDrawer() {
   const open = useLayoutStore((s) => s.searchOpen);
@@ -19,17 +20,30 @@ export function SearchDrawer() {
   const close = () => setSearchOpen(false);
 
   return (
-    <Modal open={open} onClose={close} variant="drawer" label="search">
-      <SearchBody onClose={close} />
-    </Modal>
+    <BottomDrawer
+      open={open}
+      onClose={close}
+      label="search"
+      className="md:max-w-column md:border-x-frame h-[85%] md:h-[70%]"
+      header={
+        <div className="flex items-center justify-between px-4">
+          <ModalTitle className="py-3">search every bucket</ModalTitle>
+          <span className="sr-only">
+            <CloseButton onClick={close} aria-label="close search" />
+          </span>
+        </div>
+      }
+    >
+      <SearchBody />
+    </BottomDrawer>
   );
 }
 
-function SearchBody({ onClose }: { onClose: () => void }) {
+function SearchBody() {
   const [query, setQuery] = useState("");
   const { data, refetch } = useSearchItems(query);
   const inputRef = useRef<HTMLInputElement>(null);
-  const visible = useVisualViewport();
+  const [panelSlot, setPanelSlot] = useState<HTMLDivElement | null>(null);
   const term = query.trim();
   const statuses = DEFAULT_BUCKET_STATUSES;
   const editor = useItemEditor({
@@ -42,7 +56,6 @@ function SearchBody({ onClose }: { onClose: () => void }) {
   const editingBucket = data?.buckets.find((b) => b.id === editingItem?.bucketId);
   const fields = parseFields(editingBucket?.fieldSchema);
   const members = useBucketMembers(editingItem?.bucketId ?? null, editor.dialogProps.open);
-  const dragControls = useDragControls();
 
   useLayoutEffect(() => {
     inputRef.current?.focus();
@@ -50,90 +63,55 @@ function SearchBody({ onClose }: { onClose: () => void }) {
 
   return (
     <>
-      <div
-        style={visible ? { top: visible.top, height: visible.height } : undefined}
-        className="pointer-events-none absolute inset-x-0 top-0 bottom-0 flex flex-col justify-end"
-      >
-        <motion.div
-          initial={{ opacity: 0, y: 24 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: 24 }}
-          transition={{ duration: 0.15, ease: "easeOut" }}
-          drag="y"
-          dragListener={false}
-          dragControls={dragControls}
-          dragConstraints={{ top: 0, bottom: 0 }}
-          dragElastic={{ top: 0, bottom: 1 }}
-          onDragEnd={(_, info: PanInfo) => {
-            if (info.offset.y > SHEET_CLOSE_DRAG_PX || info.velocity.y > SHEET_CLOSE_DRAG_VELOCITY)
-              onClose();
-          }}
-          className="border-border bg-background pointer-events-auto mx-auto flex h-[85%] w-full flex-col border-t-2 md:h-[70%] md:max-w-2xl md:border-x-2"
-        >
-          <div
-            onPointerDown={(e) => {
-              if (!(e.target as HTMLElement).closest("button")) dragControls.start(e);
-            }}
-            className="bg-card shrink-0 touch-none select-none"
-          >
-            <div className="flex justify-center pt-2 md:hidden">
-              <div className="bg-border h-1 w-10 rounded-full" />
-            </div>
-            <div className="flex items-center justify-between px-4">
-              <ModalTitle className="py-3">search every bucket</ModalTitle>
-              <BracketButton onClick={onClose} className="px-1 py-3 text-sm">
-                x
-              </BracketButton>
-            </div>
-          </div>
-
-          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
-            <div className="flex min-h-full flex-col justify-end py-3">
-              <CrossBucketList
-                data={data}
-                sections={
-                  term && data && data.items.length > 0
-                    ? [{ label: `${data.items.length} found`, items: data.items }]
-                    : []
-                }
-                emptyText={term ? "no items match" : "type to search every bucket"}
-                editingItemId={editor.editingItemId}
-                onEdit={editor.startEditing}
-                onChanged={refetch}
-                boxed
-              />
-            </div>
-          </div>
-
-          <div className="border-border shrink-0 border-t-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] md:pb-0">
-            <div className="flex h-14 items-center gap-3 px-4 md:h-11">
-              <input
-                ref={inputRef}
-                type="text"
-                inputMode="search"
-                enterKeyHint="search"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="search all items…"
-                aria-label="search all items"
-                maxLength={200}
-                className="placeholder:text-muted-foreground/50 h-full min-w-0 flex-1 bg-transparent font-mono text-base outline-none md:text-sm"
-              />
-              {query && (
-                <BracketButton
-                  onClick={() => {
-                    setQuery("");
-                    inputRef.current?.focus();
-                  }}
-                  className="h-full text-sm"
-                >
-                  clear
-                </BracketButton>
-              )}
-            </div>
-          </div>
-        </motion.div>
+      <div className="max-md:scrollbar-hide min-h-0 flex-1 overflow-y-auto overscroll-contain">
+        <div className="flex min-h-full flex-col justify-end py-3">
+          <CrossBucketList
+            data={data}
+            sections={
+              term && data && data.items.length > 0
+                ? [{ label: `${data.items.length} found`, items: data.items }]
+                : []
+            }
+            emptyText={term ? "no items match" : "type to search every bucket"}
+            editingItemId={editor.editingItemId}
+            onEdit={editor.startEditing}
+            onChanged={refetch}
+            boxed
+          />
+        </div>
       </div>
+
+      <div className="border-border focus-within:border-foreground border-t-frame shrink-0 px-2.5 pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:px-4 sm:pb-[env(safe-area-inset-bottom)]">
+        <div className="flex min-h-12 items-center gap-2 pl-2.5">
+          <Icon name="search" className="text-muted-foreground shrink-0" />
+          <input
+            ref={inputRef}
+            type="text"
+            inputMode="search"
+            enterKeyHint="search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="search all items…"
+            aria-label="search all items"
+            maxLength={200}
+            className="placeholder:text-muted-foreground/50 font-ui min-w-0 flex-1 bg-transparent py-1 text-base outline-none sm:text-sm"
+          />
+          {query ? (
+            <IconButton
+              icon="close"
+              onClick={() => {
+                setQuery("");
+                inputRef.current?.focus();
+              }}
+              aria-label="clear search"
+              className="flex size-11 items-center justify-center"
+            />
+          ) : (
+            <span aria-hidden className="size-11 shrink-0" />
+          )}
+        </div>
+      </div>
+      <div ref={setPanelSlot} className="absolute inset-x-0 bottom-0" />
 
       <ItemDialog
         {...editor.dialogProps}
@@ -148,6 +126,15 @@ function SearchBody({ onClose }: { onClose: () => void }) {
         }
         statuses={statuses}
         fields={fields.length > 0 ? fields : undefined}
+        panel={
+          panelSlot
+            ? {
+                slot: panelSlot,
+                bucketName: editingBucket?.name,
+                onCollapsed: () => inputRef.current?.focus(),
+              }
+            : undefined
+        }
       />
     </>
   );

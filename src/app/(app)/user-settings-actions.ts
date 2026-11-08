@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { and, eq, sql } from "drizzle-orm";
+import { z } from "zod";
 import { getSession, deleteSession } from "@/lib/auth/session";
 import { isAdmin } from "@/lib/auth/admin";
 import { isHosted } from "@/lib/credits";
@@ -43,6 +44,8 @@ import {
   CUSTOM_PROMPT_MAX_LENGTH,
   CUSTOM_PROMPT_REQUIRED_ERROR,
   EMAIL_COLORS,
+  CONTROL_SIZES,
+  LOOKS,
   TELEGRAM_API_BASE,
   TELEGRAM_LINK_BASE,
 } from "@/constants";
@@ -466,6 +469,40 @@ export async function switchTimezoneAction(timezone: string): Promise<ActionResu
   await db.update(userSettings).set({ timezone }).where(eq(userSettings.userId, session.userId));
   await refreshUserReminders(session.userId);
   revalidatePath("/");
+  return { ok: true };
+}
+
+export async function setLookAction(look: string): Promise<ActionResult> {
+  const session = await getSession();
+  if (!session) return { ok: false, error: "Unauthorized" };
+  const parsed = z.enum(LOOKS).safeParse(look);
+  if (!parsed.success) return { ok: false, error: `Unknown look "${look}"` };
+  await db
+    .update(userSettings)
+    .set({ look: parsed.data })
+    .where(eq(userSettings.userId, session.userId));
+  await markGuideTaskDone(session.userId, "theme");
+  revalidatePath("/", "layout");
+  return { ok: true };
+}
+
+export async function lookPickedAction(): Promise<ActionResult> {
+  const session = await getSession();
+  if (!session) return { ok: false, error: "Unauthorized" };
+  await db.update(users).set({ lookPicked: true }).where(eq(users.id, session.userId));
+  return { ok: true };
+}
+
+export async function setControlSizeAction(size: string): Promise<ActionResult> {
+  const session = await getSession();
+  if (!session) return { ok: false, error: "Unauthorized" };
+  const parsed = z.enum(CONTROL_SIZES).safeParse(size);
+  if (!parsed.success) return { ok: false, error: `Unknown size "${size}"` };
+  await db
+    .update(userSettings)
+    .set({ controlSize: parsed.data })
+    .where(eq(userSettings.userId, session.userId));
+  revalidatePath("/", "layout");
   return { ok: true };
 }
 

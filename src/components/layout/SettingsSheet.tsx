@@ -1,4 +1,4 @@
-import { useEffect, useState, useTransition } from "react";
+import { useCallback, useEffect, useState, useTransition } from "react";
 import { useTheme } from "next-themes";
 import {
   checkAIKeyAction,
@@ -8,6 +8,7 @@ import {
   disconnectTelegramAction,
 } from "@/app/(app)/actions";
 import { useUIStore } from "@/store/ui";
+import { useLeaveGuard } from "@/hooks/useLeaveGuard";
 import { useAIStatus } from "@/hooks/useAIStatus";
 import { AppearanceTab, NotificationsTab, AITab, PersonalityTab } from "./SettingsTabs";
 import { AccountTab } from "./AccountTab";
@@ -203,10 +204,15 @@ export function SettingsSheet({ open, initialTab, onClose }: SettingsSheetProps)
   const usernameUnsaved =
     usernameDraft !== null && normalizeUsername(usernameDraft) !== (username ?? "");
 
+  const needsConfirm = unsaved.dirty || !!avatarDraft || usernameUnsaved;
+  const askToConfirm = useCallback(() => setConfirmClose(true), []);
+
   function requestClose() {
-    if (unsaved.dirty || avatarDraft || usernameUnsaved) setConfirmClose(true);
+    if (needsConfirm) setConfirmClose(true);
     else onClose();
   }
+
+  useLeaveGuard(open, needsConfirm, askToConfirm);
 
   function discard() {
     setReloads((n) => n + 1);
@@ -241,7 +247,7 @@ export function SettingsSheet({ open, initialTab, onClose }: SettingsSheetProps)
 
       <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-4 py-4">
         {!loaded ? (
-          <p className="text-muted-foreground font-mono text-xs">loading...</p>
+          <p className="text-muted-foreground font-ui text-xs">loading...</p>
         ) : (
           <>
             {tab === "appearance" && (
@@ -320,7 +326,7 @@ export function SettingsSheet({ open, initialTab, onClose }: SettingsSheetProps)
               />
             )}
             {tab === "system" && adminUser && <SystemTab />}
-            {error && <span className="text-destructive font-mono text-xs">{error}</span>}
+            {error && <span className="text-destructive font-ui text-xs">{error}</span>}
           </>
         )}
       </div>

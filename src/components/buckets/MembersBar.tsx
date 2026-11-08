@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { PersonAvatar } from "@/components/avatar/PersonAvatar";
-import { BracketButton } from "@/components/ui/BracketButton";
+import { TextButton } from "@/components/ui/TextButton";
+import { useLookParts } from "@/components/looks/LookProvider";
 import type { BucketMember } from "@/lib/buckets/members";
 import { memberName } from "@/lib/buckets/member-name";
 import { cn } from "@/lib/utils";
@@ -16,6 +17,7 @@ type MembersBarProps = {
 };
 
 export function MembersBar({ members, filter, onFilter, onOpenMembers }: MembersBarProps) {
+  const bracketed = useLookParts().textButton === "bracketed";
   const options: { value: MemberFilter; name: string; label: ReactNode }[] = [
     { value: "all", name: "all", label: "all" },
     { value: "mine", name: "mine", label: "mine" },
@@ -35,10 +37,10 @@ export function MembersBar({ members, filter, onFilter, onOpenMembers }: Members
   ];
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 px-4 pb-2 font-mono text-xs">
-      <BracketButton onClick={onOpenMembers} className="px-1">
+    <div className="font-ui flex flex-wrap items-center justify-between gap-x-4 gap-y-1 px-4 pb-2 text-xs">
+      <TextButton onClick={onOpenMembers} className="px-1">
         {members.length} people
-      </BracketButton>
+      </TextButton>
       <div role="group" aria-label="show items for" className="flex min-w-0 flex-wrap gap-x-1">
         {options.map((option) => {
           const active = option.value === filter;
@@ -50,13 +52,21 @@ export function MembersBar({ members, filter, onFilter, onOpenMembers }: Members
               aria-label={option.name}
               onClick={() => onFilter(option.value)}
               className={cn(
-                "flex max-w-40 items-center py-1 transition-colors",
+                "flex max-w-40 items-center transition-colors",
+                bracketed ? "py-1" : "rounded-control min-h-(--control-h) px-3",
+                !bracketed && active && "bg-muted",
                 active ? "text-foreground" : "text-muted-foreground hover:text-foreground"
               )}
             >
-              <span className={cn("opacity-50", !active && "opacity-0")}>[</span>
-              {option.label}
-              <span className={cn("opacity-50", !active && "opacity-0")}>]</span>
+              {bracketed ? (
+                <>
+                  <span className={cn("opacity-50", !active && "opacity-0")}>[</span>
+                  {option.label}
+                  <span className={cn("opacity-50", !active && "opacity-0")}>]</span>
+                </>
+              ) : (
+                option.label
+              )}
             </button>
           );
         })}

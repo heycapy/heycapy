@@ -138,6 +138,21 @@ export const VOICE_NO_SPEECH_ERROR = "Nothing was heard. Try again a bit closer 
 export const OLLAMA_DEFAULT_URL = "https://ollama.yourdomain.com";
 export const NTFY_DEFAULT_URL = "https://ntfy.sh";
 
+export const LOOK = {
+  original: "original",
+  modern: "modern",
+} as const;
+
+export const LOOKS = [LOOK.original, LOOK.modern] as const;
+
+export const CONTROL_SIZE = {
+  small: "small",
+  medium: "medium",
+  large: "large",
+} as const;
+
+export const CONTROL_SIZES = [CONTROL_SIZE.small, CONTROL_SIZE.medium, CONTROL_SIZE.large] as const;
+
 export const ITEM_STATUS = {
   active: "active",
   completed: "completed",
@@ -158,10 +173,6 @@ export const CLOSED_ITEM_STATUSES: readonly string[] = [ITEM_STATUS.completed, I
 export function isClosedStatus(status: string): boolean {
   return CLOSED_ITEM_STATUSES.includes(status);
 }
-
-export type BetaFeature = "sharing";
-// Features shown with a [beta] tag, take one out to drop its tags everywhere
-export const BETA_FEATURES: readonly BetaFeature[] = ["sharing"];
 
 // Sent by /api/events when a connection opens, carrying the server's NEXT_DEPLOYMENT_ID
 export const SERVER_VERSION_EVENT = "version";
@@ -190,6 +201,7 @@ export const TELEGRAM_RESERVED_COMMANDS = [
 // Shown in the item dialog: someone else deleted the item, or the owner removed this person
 export const ITEM_GONE_ERROR = "this item was deleted, or you're no longer in its bucket";
 export const ITEM_TITLE_MAX_LENGTH = 500;
+export const BUCKET_ORDER_MAX = 500;
 export const BUCKET_NAME_MAX_LENGTH = 100;
 export const DUPLICATE_BUCKET_NAME_ERROR = "A bucket with this name already exists.";
 export const FIELD_LABEL_MAX_LENGTH = 100;
@@ -261,5 +273,14 @@ export const FEEDBACK_LIMIT_SITE_TOTAL = 30;
 
 export const MOBILE_MEDIA_QUERY = "(max-width: 639px)";
 export const BOTTOM_BAR_MEDIA_QUERY = "(max-width: 767px)";
+export const SIDE_DOCK_MEDIA_QUERY = "(min-width: 1280px)";
 export const SHEET_CLOSE_DRAG_PX = 100;
+export const KEYBOARD_MIN_PX = 80;
 export const SHEET_CLOSE_DRAG_VELOCITY = 500;
+
+export const FOOTER_H = 50;
+
+export const TITLE_LINES_SHOWN = 4;
+// Toasts sit just above the footer so they never cover it
+export const TOAST_BOTTOM_OFFSET = 66;
+export const TOAST_SIDE_OFFSET = 16;

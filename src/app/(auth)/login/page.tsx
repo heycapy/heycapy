@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { OtpInput } from "@/components/ui/otp-input";
 import { safeNextPath } from "@/lib/auth/next-path";
+import { clearSignedInState } from "@/store/signedOut";
 import { sendOtpAction, verifyOtpAction } from "./actions";
 
 type Step = "email" | "otp";
@@ -28,6 +29,10 @@ export default function LoginPage() {
   const [devCode, setDevCode] = useState("");
   const [devCopied, setDevCopied] = useState(false);
   const [resendCountdown, setResendCountdown] = useState(0);
+
+  useEffect(() => {
+    clearSignedInState();
+  }, []);
   const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   function startResendCountdown() {
@@ -55,16 +60,18 @@ export default function LoginPage() {
 
   async function handleSendOtp(e: SubmitEvent<HTMLFormElement>) {
     e.preventDefault();
+    const typed = String(new FormData(e.currentTarget).get("email") ?? "");
+    setEmail(typed);
     setError("");
     setLoading(true);
-    const result = await sendOtpAction(email);
+    const result = await sendOtpAction(typed);
     setLoading(false);
     if (!result.ok) {
       setError(result.error);
       return;
     }
     setDevCode(result.devCode ?? "");
-    setSentTo(email);
+    setSentTo(typed);
     setStep("otp");
     startResendCountdown();
   }
@@ -143,6 +150,7 @@ export default function LoginPage() {
           </div>
           <Input
             type="email"
+            name="email"
             placeholder="you@example.com"
             value={email}
             onChange={(e) => setEmail(e.target.value)}

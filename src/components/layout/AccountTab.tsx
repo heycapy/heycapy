@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils";
 import { useEffect, useState, useTransition } from "react";
-import { BracketButton } from "@/components/ui/BracketButton";
+import { TextButton, TextLink } from "@/components/ui/TextButton";
 import { AvatarEditor, type AvatarDraft } from "@/components/avatar/AvatarEditor";
 import {
   deleteAccountAction,
@@ -104,13 +104,9 @@ export function AccountTab({
           one file with your buckets, items, settings, notification history and chats. secrets like
           api keys and passwords are never included.
         </p>
-        <a
-          href="/api/account/export"
-          download
-          className="text-primary hover:text-foreground self-start font-mono text-xs transition-colors"
-        >
-          <span className="opacity-50">[</span>download my data<span className="opacity-50">]</span>
-        </a>
+        <TextLink href="/api/account/export" download className="text-primary self-start py-0">
+          download my data
+        </TextLink>
       </div>
 
       <div className={BOX}>
@@ -126,31 +122,31 @@ export function AccountTab({
                 your account.
               </p>
             )}
-            <BracketButton
+            <TextButton
               variant="destructive"
               onClick={() => setStep("confirm")}
               disabled={sharedBuckets.length > 0}
               className="self-start"
             >
               delete account
-            </BracketButton>
+            </TextButton>
           </>
         )}
 
         {step === "confirm" && (
           <>
-            <p className="text-destructive font-mono text-[11px] leading-relaxed">
+            <p className="text-destructive font-ui text-2xs leading-relaxed">
               this deletes everything: buckets, items, history, settings and your telegram
               connection. it can&apos;t be undone. copies in the nightly backups are gone within 7
               days. download your data first if you want to keep it.
             </p>
             <div className="flex gap-3">
-              <BracketButton variant="destructive" onClick={sendCode} disabled={pending}>
+              <TextButton variant="destructive" onClick={sendCode} disabled={pending}>
                 {pending ? "sending..." : "email me a code"}
-              </BracketButton>
-              <BracketButton onClick={reset} disabled={pending}>
+              </TextButton>
+              <TextButton onClick={reset} disabled={pending}>
                 cancel
-              </BracketButton>
+              </TextButton>
             </div>
           </>
         )}
@@ -170,22 +166,22 @@ export function AccountTab({
               className={INPUT}
             />
             <div className="flex gap-3">
-              <BracketButton
+              <TextButton
                 variant="destructive"
                 onClick={confirmDelete}
                 disabled={pending || code.length !== 6}
               >
                 {pending ? "deleting..." : "delete forever"}
-              </BracketButton>
-              <BracketButton onClick={reset} disabled={pending}>
+              </TextButton>
+              <TextButton onClick={reset} disabled={pending}>
                 cancel
-              </BracketButton>
+              </TextButton>
             </div>
           </>
         )}
 
         {error && (
-          <p role="alert" className="text-destructive font-mono text-xs">
+          <p role="alert" className="text-destructive font-ui text-xs">
             {error}
           </p>
         )}

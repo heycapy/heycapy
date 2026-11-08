@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray, isNotNull, isNull } from "drizzle-orm";
+import { and, asc, eq, inArray, isNotNull, isNull, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { bucketMembers, buckets, items } from "@/lib/db/schema";
 import { inLiveBucket } from "@/lib/buckets/live";
@@ -7,7 +7,11 @@ type Bucket = typeof buckets.$inferSelect;
 type Item = typeof items.$inferSelect;
 
 // myChannels: the viewer's own channels for the bucket, as stored
-export type ViewerBucket = Bucket & { isOwner: boolean; myChannels: string };
+export type ViewerBucket = Bucket & { isOwner: boolean; myChannels: string; colorIndex: number };
+
+export function byColorOrder(a: Bucket, b: Bucket): number {
+  return a.sortOrder - b.sortOrder || a.createdAt.getTime() - b.createdAt.getTime() || a.id - b.id;
+}
 
 // Every bucket the user can use, owned or joined
 export function memberBucketIds(userId: number) {
@@ -80,10 +84,17 @@ export async function listLiveBuckets(userId: number): Promise<ViewerBucket[]> {
       and(eq(bucketMembers.bucketId, buckets.id), eq(bucketMembers.userId, userId))
     )
     .where(inLiveBucket)
-    .orderBy(asc(buckets.sortOrder), asc(buckets.createdAt));
+    .orderBy(
+      sql`${bucketMembers.sortOrder} is null`,
+      asc(bucketMembers.sortOrder),
+      asc(buckets.sortOrder),
+      asc(buckets.createdAt)
+    );
+  const colorOrder = rows.map((r) => r.bucket).sort(byColorOrder);
   return rows.map(({ bucket, myChannels }) => ({
     ...withoutOwnerSecrets(bucket, userId),
     isOwner: bucket.userId === userId,
     myChannels,
+    colorIndex: colorOrder.indexOf(bucket),
   }));
 }

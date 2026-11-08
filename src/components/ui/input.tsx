@@ -42,7 +42,7 @@ export function Input({
       {maxLength && (
         <p
           className={cn(
-            "mt-0.5 text-right font-mono text-[11px] transition-colors",
+            "font-ui text-2xs mt-0.5 text-right transition-colors",
             charCountColor(current.length, maxLength)
           )}
         >

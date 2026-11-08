@@ -26,7 +26,7 @@ test("a new user sees one way to start and nothing to restore", async ({ page })
   await expect(page.getByRole("button", { name: "[ trash ]" })).toHaveCount(0);
 
   await page.getByRole("button", { name: "[ new bucket ]" }).click();
-  await expect(page.getByText("Pick a template to get started.")).toBeVisible();
+  await expect(page.getByText("pick a template to start from")).toBeVisible();
 });
 
 test("after archiving or deleting every bucket, the way back is offered", async ({ page }) => {

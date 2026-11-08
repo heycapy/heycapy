@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from "react";
-import { BracketButton } from "@/components/ui/BracketButton";
+import { TextButton } from "@/components/ui/TextButton";
 import { OptionButton } from "@/components/ui/OptionButton";
 import { describeReminder } from "@/lib/items/reminder-label";
 import { MAX_REMINDER_OFFSET_MINS, MAX_REMINDERS_PER_ITEM } from "@/lib/reminders/constants";
@@ -86,9 +86,15 @@ export function ReminderPicker({
         })}
         {reminders.length === 0 && <span className={MUTED}>none</span>}
         {!full && !adding && (
-          <BracketButton onClick={() => setAdding(true)} disabled={disabled} className="px-1">
+          <TextButton
+            icon="plus"
+            iconLabel="add reminder"
+            onClick={() => setAdding(true)}
+            disabled={disabled}
+            className="px-1"
+          >
             + add
-          </BracketButton>
+          </TextButton>
         )}
       </div>
       {full && <p className={MUTED}>that&apos;s the max — remove one to add another</p>}
@@ -122,7 +128,7 @@ export function ReminderPicker({
               aria-label="custom reminder amount"
               placeholder="3"
               disabled={disabled}
-              className="border-border focus:border-foreground placeholder:text-muted-foreground/50 w-10 border-b bg-transparent py-0.5 text-center font-mono text-base outline-none disabled:opacity-50 sm:text-xs"
+              className="border-border focus:border-foreground placeholder:text-muted-foreground/50 font-ui w-10 border-b bg-transparent py-0.5 text-center text-base outline-none disabled:opacity-50 sm:text-xs"
             />
             <div role="group" aria-label="custom reminder unit" className="flex gap-1">
               {CUSTOM_REMINDER_UNITS.map((u) => (
@@ -139,19 +145,19 @@ export function ReminderPicker({
             <span className={`${MUTED} pl-0.5`}>before</span>
           </div>
           <div className="flex items-center gap-3">
-            <BracketButton
+            <TextButton
               onClick={addCustom}
               disabled={disabled}
               aria-label="add custom reminder"
               className="px-1"
             >
               add
-            </BracketButton>
-            <BracketButton onClick={closeAdding} disabled={disabled} className="px-1">
+            </TextButton>
+            <TextButton onClick={closeAdding} disabled={disabled} className="px-1">
               cancel
-            </BracketButton>
+            </TextButton>
           </div>
-          {customError && <p className="text-destructive font-mono text-[11px]">{customError}</p>}
+          {customError && <p className="text-destructive font-ui text-2xs">{customError}</p>}
         </div>
       )}
     </div>

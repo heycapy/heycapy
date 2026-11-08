@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { BracketButton } from "@/components/ui/BracketButton";
+import { TextButton } from "@/components/ui/TextButton";
 import { SETTINGS_API_KEY_MAX_LENGTH } from "@/constants";
 import { CharCount } from "./CharCount";
 import { INPUT, LABEL } from "./settings-constants";
@@ -37,9 +37,9 @@ export function KeyField({
           <span className="font-mono text-xs">
             saved · {keyEnding ? `••••${keyEnding}` : "••••••••"}
           </span>
-          <BracketButton type="button" onClick={onEdit} disabled={disabled}>
+          <TextButton type="button" onClick={onEdit} disabled={disabled}>
             edit
-          </BracketButton>
+          </TextButton>
         </div>
       ) : (
         <>
@@ -57,9 +57,9 @@ export function KeyField({
               className={INPUT}
             />
             {saved && (
-              <BracketButton type="button" onClick={onCancel} disabled={disabled}>
+              <TextButton type="button" onClick={onCancel} disabled={disabled}>
                 cancel
-              </BracketButton>
+              </TextButton>
             )}
           </div>
           <CharCount length={value.length} max={SETTINGS_API_KEY_MAX_LENGTH} />

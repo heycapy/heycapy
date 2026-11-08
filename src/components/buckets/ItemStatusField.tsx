@@ -29,12 +29,12 @@ export function ItemStatusField({ status, statuses, onChange, disabled }: ItemSt
         ))}
       </div>
       {status === ITEM_STATUS.missed && (
-        <p className="text-warning font-mono text-xs">
+        <p className="text-warning font-ui text-xs">
           ⏭ this occurrence was missed — pick a status to reopen it
         </p>
       )}
       {status && status !== ITEM_STATUS.missed && !statuses.find((s) => s.name === status) && (
-        <p className="text-destructive font-mono text-xs">
+        <p className="text-destructive font-ui text-xs">
           &quot;{status}&quot; is not a valid status — pick one above to fix it
         </p>
       )}

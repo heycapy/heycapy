@@ -16,6 +16,13 @@ vi.mock("@/lib/whats-new/constants", () => ({
   ],
 }));
 
+vi.stubGlobal("matchMedia", (query: string) => ({
+  matches: false,
+  media: query,
+  addEventListener: () => {},
+  removeEventListener: () => {},
+}));
+
 afterEach(cleanup);
 
 it("show me on a guide note opens the guide", async () => {

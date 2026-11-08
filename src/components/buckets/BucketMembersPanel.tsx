@@ -1,6 +1,6 @@
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { BracketButton } from "@/components/ui/BracketButton";
+import { TextButton } from "@/components/ui/TextButton";
 import {
   leaveBucketAction,
   listMembersAction,
@@ -107,22 +107,20 @@ export function BucketMembersPanel({
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-2">
-        <p className="text-muted-foreground font-mono text-xs">
+        <p className="text-muted-foreground font-ui text-xs">
           people in this bucket{members ? ` (${members.length}/${BUCKET_MEMBERS_MAX})` : ""}
         </p>
-        <ul className="border-border divide-border flex flex-col divide-y border">
+        <ul className="rounded-control border-border divide-border flex flex-col divide-y overflow-hidden border">
           {members?.map((member) => (
             <li key={member.userId} className="flex flex-col gap-1.5 px-3 py-2">
               <div className="flex items-center justify-between gap-3">
                 <div className="flex min-w-0 items-center gap-2.5">
                   <PersonAvatar userId={member.userId} avatar={member.avatar} size={32} />
                   <div className="min-w-0">
-                    <p className="truncate font-mono text-xs">{memberName(member)}</p>
-                    <p className="text-muted-foreground truncate font-mono text-[11px]">
-                      {member.role}
-                    </p>
+                    <p className="font-ui truncate text-xs">{memberName(member)}</p>
+                    <p className="text-muted-foreground font-ui text-2xs truncate">{member.role}</p>
                     {showZones && (
-                      <p className="text-muted-foreground truncate font-mono text-[11px]">
+                      <p className="text-muted-foreground font-ui text-2xs truncate">
                         {whereTheyAre(member, you, now)}
                       </p>
                     )}
@@ -130,19 +128,19 @@ export function BucketMembersPanel({
                 </div>
                 {bucket.isOwner && member.role === "member" && !confirmingFor(member.userId) && (
                   <div className="flex shrink-0 gap-1">
-                    <BracketButton
+                    <TextButton
                       onClick={() => setConfirming({ userId: member.userId, action: "owner" })}
                       disabled={pending}
                     >
                       make owner
-                    </BracketButton>
-                    <BracketButton
+                    </TextButton>
+                    <TextButton
                       variant="destructive"
                       onClick={() => setConfirming({ userId: member.userId, action: "remove" })}
                       disabled={pending}
                     >
                       remove
-                    </BracketButton>
+                    </TextButton>
                   </div>
                 )}
               </div>
@@ -169,10 +167,10 @@ export function BucketMembersPanel({
         </ul>
       </div>
 
-      {error && <span className="text-destructive font-mono text-xs">{error}</span>}
+      {error && <span className="text-destructive font-ui text-xs">{error}</span>}
 
       {bucket.isOwner && members !== null && members.length > 1 && (
-        <p className="text-muted-foreground font-mono text-[11px] leading-tight">
+        <p className="text-muted-foreground font-ui text-2xs leading-tight">
           to leave, make someone else the owner first
         </p>
       )}
@@ -189,14 +187,14 @@ export function BucketMembersPanel({
               onCancel={() => setConfirming(null)}
             />
           ) : (
-            <BracketButton
+            <TextButton
               variant="destructive"
               onClick={() => setConfirming("leave")}
               disabled={pending}
               className="w-fit"
             >
               leave bucket
-            </BracketButton>
+            </TextButton>
           )}
         </div>
       )}

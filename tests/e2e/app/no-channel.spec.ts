@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
+import { openNotificationSection } from "../helpers/settings";
 import { authState } from "../helpers/auth";
 
 test.use({ storageState: authState("no-channel") });
@@ -8,9 +9,10 @@ function banner(page: Page) {
 }
 
 async function openNotifications(page: Page) {
-  await page.getByRole("button", { name: "···" }).click();
+  await page.getByRole("button", { name: "your menu", exact: true }).click();
   await page.getByRole("button", { name: "tweaks" }).click();
   await page.getByRole("button", { name: "notifications", exact: true }).click();
+  await openNotificationSection(page, "email");
   return page
     .locator("div")
     .filter({ has: page.getByText("email", { exact: true }) })
@@ -35,7 +37,11 @@ test("warns app-wide once no channel works, and goes away when one does", async 
   await expect(banner(page)).toBeVisible();
 
   await banner(page).getByRole("button", { name: "[ set up ]" }).click();
-  await expect(page.getByText("ntfy (push)", { exact: true })).toBeVisible();
+  await expect(
+    page
+      .getByRole("navigation", { name: "notification settings" })
+      .getByRole("button", { name: "email", exact: true })
+  ).toHaveAttribute("aria-current", "true");
   await page.getByRole("button", { name: "[ x ]" }).first().click();
 
   await setEmail(page, true);

@@ -1,7 +1,7 @@
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Modal, ModalHeader } from "@/components/ui/Modal";
-import { BracketButton } from "@/components/ui/BracketButton";
+import { SidePanel } from "@/components/ui/SidePanel";
+import { TextButton } from "@/components/ui/TextButton";
 import {
   getArchivedBucketsAction,
   restoreBucketAction,
@@ -54,16 +54,12 @@ export function ArchivedBucketsSheet({ open, onClose }: ArchivedBucketsSheetProp
   }
 
   return (
-    <Modal open={open} onClose={onClose} variant="sheet">
-      <ModalHeader title="archived buckets" onClose={onClose} />
-
+    <SidePanel open={open} onClose={onClose} title="archived buckets" narrow="sheet">
       <div className="flex flex-1 flex-col overflow-y-auto">
         {loading ? (
-          <p className="text-muted-foreground px-4 py-6 text-center font-mono text-xs">
-            loading...
-          </p>
+          <p className="text-muted-foreground font-ui px-4 py-6 text-center text-xs">loading...</p>
         ) : archived.length === 0 ? (
-          <p className="text-muted-foreground px-4 py-6 text-center font-mono text-xs">
+          <p className="text-muted-foreground font-ui px-4 py-6 text-center text-xs">
             no archived buckets
           </p>
         ) : (
@@ -71,9 +67,9 @@ export function ArchivedBucketsSheet({ open, onClose }: ArchivedBucketsSheetProp
             {archived.map((bucket) => (
               <div key={bucket.id} className="flex items-center gap-3 px-4 py-3">
                 <div className="min-w-0 flex-1">
-                  <p className="font-pixel truncate text-xs">{bucket.name}</p>
+                  <p className="font-display truncate text-xs">{bucket.name}</p>
                   {bucket.archivedAt && (
-                    <p className="text-muted-foreground mt-0.5 font-mono text-xs">
+                    <p className="text-muted-foreground font-ui mt-0.5 text-xs">
                       archived{" "}
                       {bucket.archivedAt.toLocaleDateString("en-US", {
                         month: "short",
@@ -85,29 +81,29 @@ export function ArchivedBucketsSheet({ open, onClose }: ArchivedBucketsSheetProp
                 <div className="flex shrink-0 gap-2">
                   {confirmDeleteId === bucket.id ? (
                     <>
-                      <BracketButton
+                      <TextButton
                         variant="destructive"
                         onClick={() => handleDelete(bucket.id)}
                         disabled={pending}
                       >
                         confirm
-                      </BracketButton>
-                      <BracketButton onClick={() => setConfirmDeleteId(null)} disabled={pending}>
+                      </TextButton>
+                      <TextButton onClick={() => setConfirmDeleteId(null)} disabled={pending}>
                         cancel
-                      </BracketButton>
+                      </TextButton>
                     </>
                   ) : (
                     <>
-                      <BracketButton onClick={() => handleRestore(bucket.id)} disabled={pending}>
+                      <TextButton onClick={() => handleRestore(bucket.id)} disabled={pending}>
                         restore
-                      </BracketButton>
-                      <BracketButton
+                      </TextButton>
+                      <TextButton
                         variant="destructive"
                         onClick={() => setConfirmDeleteId(bucket.id)}
                         disabled={pending}
                       >
                         delete
-                      </BracketButton>
+                      </TextButton>
                     </>
                   )}
                 </div>
@@ -116,6 +112,6 @@ export function ArchivedBucketsSheet({ open, onClose }: ArchivedBucketsSheetProp
           </div>
         )}
       </div>
-    </Modal>
+    </SidePanel>
   );
 }

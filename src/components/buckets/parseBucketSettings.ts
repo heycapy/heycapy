@@ -95,3 +95,14 @@ export function parseBucketSettings(bucket: BucketRow): BucketSettingsValues {
     followsTweaks: FOLLOWABLE_SETTINGS.filter((key) => nr.followsTweaks?.includes(key)),
   };
 }
+
+// Changes whenever anything the settings form starts from is saved
+export function savedSettingsKey(bucket: BucketRow & { myChannels: string }): string {
+  return JSON.stringify([
+    bucket.name,
+    bucket.itemsRules,
+    bucket.notificationsRules,
+    bucket.fieldSchema,
+    bucket.myChannels,
+  ]);
+}

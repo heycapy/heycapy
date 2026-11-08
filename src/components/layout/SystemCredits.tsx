@@ -1,6 +1,6 @@
 import { useState, useTransition } from "react";
 import { cn } from "@/lib/utils";
-import { BracketButton } from "@/components/ui/BracketButton";
+import { TextButton } from "@/components/ui/TextButton";
 import {
   adjustUserCreditsAction,
   getUserCreditsAction,
@@ -79,20 +79,20 @@ export function SystemCredits() {
           disabled={pending}
           className={cn(INPUT, "min-w-0 flex-1")}
         />
-        <BracketButton
+        <TextButton
           type="submit"
           disabled={pending || !email.trim()}
           className="shrink-0 whitespace-nowrap"
         >
           look up
-        </BracketButton>
+        </TextButton>
       </form>
 
       {credits && (
         <>
           <div className="flex flex-col gap-0.5">
             <p className={cn(MUTED, "break-all")}>{credits.email}</p>
-            <p className="font-mono text-xs">{credits.balance} credits</p>
+            <p className="font-ui text-xs">{credits.balance} credits</p>
             <p className={MUTED}>
               {credits.totals.grant + credits.totals.reward + credits.totals.purchase} granted ·{" "}
               {-(credits.totals.message + credits.totals.refund)} used · {credits.totals.refund}{" "}
@@ -133,19 +133,19 @@ export function SystemCredits() {
                 className={INPUT}
               />
             </div>
-            <BracketButton type="submit" disabled={pending || !amount} className="self-end">
+            <TextButton type="submit" disabled={pending || !amount} className="self-end">
               {Number(amount) < 0 ? "take" : "give"}
-            </BracketButton>
+            </TextButton>
           </form>
-          <BracketButton
+          <TextButton
             type="button"
             onClick={() => setShowActivity((v) => !v)}
             className="self-start"
           >
             {showActivity ? "hide activity" : "show activity"}
-          </BracketButton>
+          </TextButton>
           {showActivity && (
-            <ul className="divide-border/50 border-border flex max-h-48 flex-col divide-y divide-dotted overflow-y-auto border px-2">
+            <ul className="divide-border/50 border-border divide-divider flex max-h-48 flex-col divide-y overflow-y-auto border px-2">
               {credits.rows.map((row) => (
                 <li key={row.id} className={cn(MUTED, "flex flex-col py-1")}>
                   <span className="flex justify-between gap-2">
@@ -157,7 +157,7 @@ export function SystemCredits() {
                     </span>
                   </span>
                   {(row.note || row.actor) && (
-                    <span className="truncate text-[11px]" title={activityDetail(row)}>
+                    <span className="text-2xs truncate" title={activityDetail(row)}>
                       {activityDetail(row)}
                     </span>
                   )}
@@ -167,7 +167,7 @@ export function SystemCredits() {
           )}
         </>
       )}
-      {error && <p className="text-destructive font-mono text-xs">{error}</p>}
+      {error && <p className="text-destructive font-ui text-xs">{error}</p>}
     </div>
   );
 }

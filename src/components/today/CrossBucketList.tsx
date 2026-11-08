@@ -1,10 +1,12 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { useLookParts } from "@/components/looks/LookProvider";
 import { ItemRow } from "@/components/buckets/ItemRow";
 import { itemAssignee } from "@/components/buckets/assignee";
 import { parseFields } from "@/components/buckets/fields";
-import { BUCKET_PALETTE, DEFAULT_BUCKET_STATUSES } from "@/components/buckets/constants";
+import { DEFAULT_BUCKET_STATUSES } from "@/components/buckets/constants";
+import { bucketColor } from "@/components/buckets/bucket-color";
 import { deleteItemAction, moveItemAction, updateItemAction } from "@/app/(app)/actions";
 import { ItemMenu, type MenuAt } from "@/components/buckets/ItemMenu";
 import { PressableRow } from "@/components/buckets/PressableRow";
@@ -19,7 +21,7 @@ type Item = typeof items.$inferSelect;
 
 export type CrossBucketSection = { label: string; items: Item[] };
 
-const HINT = "text-muted-foreground font-mono text-xs";
+const HINT = "text-muted-foreground font-ui text-xs";
 
 type CrossBucketListProps = {
   data: CrossBucketItems | null;
@@ -41,6 +43,7 @@ export function CrossBucketList({
   boxed = false,
 }: CrossBucketListProps) {
   const [menu, setMenu] = useState<{ item: Item; at: MenuAt } | null>(null);
+  const framed = useLookParts().listFrame === "framed";
   const statuses = DEFAULT_BUCKET_STATUSES;
   const showDue = sections.some((section) => section.items.some((item) => item.deadline));
   const bucketOf = (item: Item) => data?.buckets.find((b) => b.id === item.bucketId);
@@ -72,7 +75,7 @@ export function CrossBucketList({
   function row(item: Item) {
     const bucket = bucketOf(item);
     const readonly = bucket?.readonly === true;
-    const color = bucket && BUCKET_PALETTE[bucket.index % BUCKET_PALETTE.length];
+    const color = bucket && bucketColor(bucket.index);
     const assignee = data?.assignees[item.id];
     return (
       <PressableRow key={item.id} onMenu={(at) => setMenu({ item, at })}>
@@ -103,8 +106,10 @@ export function CrossBucketList({
   return (
     <div
       className={cn(
-        "border-border @container overflow-hidden border-y-2 sm:mx-4 sm:border-x-2 sm:shadow-[2px_2px_0_var(--border)]",
-        boxed && "mx-4 border-x-2 shadow-[2px_2px_0_var(--border)]"
+        "@container overflow-hidden sm:mx-4",
+        (framed || boxed) &&
+          "border-border border-b-frame sm:border-x-frame sm:shadow-raised-sm sm:rounded-b-panel",
+        boxed && "border-x-frame border-t-frame shadow-raised-sm rounded-panel mx-4"
       )}
     >
       {!data ? (
@@ -123,7 +128,7 @@ export function CrossBucketList({
             >
               {section.label}
             </p>
-            <div className="divide-border divide-y divide-dashed">{section.items.map(row)}</div>
+            <div className="divide-border divide-rule divide-y">{section.items.map(row)}</div>
           </section>
         ))
       )}

@@ -42,7 +42,7 @@ type ItemListProps = {
 export function ItemList({
   loading,
   items,
-  emptyText = "no items yet · press + to add one",
+  emptyText,
   orderedItemsRef,
   draggable,
   readonly,
@@ -64,8 +64,10 @@ export function ItemList({
 
   if (loading || items.length === 0) {
     return (
-      <p className="text-muted-foreground px-4 py-6 text-center font-mono text-xs">
-        {loading ? "loading..." : emptyText}
+      <p className="text-muted-foreground font-ui px-4 py-6 text-center text-xs">
+        {loading
+          ? "loading..."
+          : (emptyText ?? (readonly ? "no items yet" : "no items yet · type one below"))}
       </p>
     );
   }
@@ -142,7 +144,7 @@ export function ItemList({
           axis="y"
           values={items}
           onReorder={onReorder}
-          className="divide-border/50 m-0 list-none divide-y divide-dotted p-0"
+          className="divide-border/50 divide-divider m-0 list-none divide-y p-0"
         >
           {items.map((item) => (
             <DraggableItem key={item.id} {...rowProps(item)} orderedItemsRef={orderedItemsRef} />
@@ -154,7 +156,7 @@ export function ItemList({
   }
 
   return (
-    <div className="divide-border/50 divide-y divide-dotted">
+    <div className="divide-border/50 divide-divider divide-y">
       {items.map((item) => (
         <PressableRow key={item.id} onMenu={(at) => setMenu({ item, at })}>
           <ItemRow {...rowProps(item)} />

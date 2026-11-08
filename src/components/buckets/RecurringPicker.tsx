@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { DatePicker } from "@/components/ui/DatePicker";
 import { OptionButton } from "@/components/ui/OptionButton";
 import { Toggle } from "@/components/ui/Toggle";
+import { TextButton } from "@/components/ui/TextButton";
 import { LAST_DAY_OF_MONTH, WEEKDAY_NAMES, WORK_WEEK } from "@/constants";
 import { describeRepeat } from "@/lib/items/repeat-label";
 import { RECURRING_FREQUENCIES } from "./constants";
@@ -33,23 +34,37 @@ export function RecurringPicker({
 }: RecurringPickerProps) {
   const [showEndDate, setShowEndDate] = useState(initialShowEndDate);
   const [intervalStr, setIntervalStr] = useState(String(recurring?.interval ?? 1));
+  const rootRef = useRef<HTMLDivElement>(null);
+  const turnedOn = useRef(false);
+
+  useEffect(() => {
+    if (!turnedOn.current || !recurring?.enabled) return;
+    turnedOn.current = false;
+    rootRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  }, [recurring?.enabled]);
 
   function toggle(on: boolean) {
     if (on === !!recurring?.enabled) return;
+    turnedOn.current = on;
     onChange(on ? { enabled: true, frequency: "monthly", interval: 1, endDate: null } : null);
   }
 
   return (
-    <div className="flex flex-col gap-2">
-      <div className="flex items-center justify-between">
+    <div ref={rootRef} className="flex scroll-mb-4 flex-col gap-2">
+      <div className="flex items-center gap-3">
         <label className={LABEL}>↺ repeats</label>
-        <Toggle value={!!recurring?.enabled} onChange={toggle} disabled={disabled} />
+        <Toggle
+          label="repeats"
+          value={!!recurring?.enabled}
+          onChange={toggle}
+          disabled={disabled}
+        />
       </div>
 
       {recurring?.enabled && (
         <div className="flex flex-col gap-2">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-muted-foreground font-mono text-xs">every</span>
+            <span className="text-muted-foreground font-ui text-xs">every</span>
             <input
               type="text"
               inputMode="numeric"
@@ -69,7 +84,7 @@ export function RecurringPicker({
                 }
               }}
               disabled={disabled}
-              className="border-border w-10 border-b bg-transparent py-0.5 text-center font-mono text-xs outline-none disabled:opacity-50"
+              className="border-border font-ui w-10 border-b bg-transparent py-0.5 text-center text-xs outline-none disabled:opacity-50"
             />
             <div className="flex flex-wrap gap-1">
               {RECURRING_FREQUENCIES.map((f) => (
@@ -137,29 +152,29 @@ export function RecurringPicker({
           </p>
           {showEndDate ? (
             <div className="flex items-center gap-2">
-              <span className="text-muted-foreground font-mono text-xs">ends</span>
+              <span className="text-muted-foreground font-ui text-xs">ends</span>
               <DatePicker
                 value={recurring.endDate ?? ""}
                 onChange={(v) => onChange({ ...recurring, endDate: v || null })}
                 disabled={disabled}
               />
-              <button
+              <TextButton
+                variant="ghost"
+                icon="close"
+                iconLabel="remove end date"
+                aria-label="remove end date"
                 onClick={() => {
                   setShowEndDate(false);
                   onChange({ ...recurring, endDate: null });
                 }}
-                className="text-muted-foreground hover:text-foreground font-mono text-xs transition-colors"
               >
                 ×
-              </button>
+              </TextButton>
             </div>
           ) : (
-            <button
-              onClick={() => setShowEndDate(true)}
-              className="text-muted-foreground hover:text-foreground w-fit font-mono text-xs transition-colors"
-            >
+            <TextButton variant="ghost" onClick={() => setShowEndDate(true)} className="w-fit">
               + set end date
-            </button>
+            </TextButton>
           )}
         </div>
       )}

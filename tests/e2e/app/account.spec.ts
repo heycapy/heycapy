@@ -7,7 +7,7 @@ test.describe.configure({ mode: "serial" });
 
 async function openAccountTab(page: Page) {
   await page.goto("/");
-  await page.getByRole("button", { name: "···" }).click();
+  await page.getByRole("button", { name: "your menu", exact: true }).click();
   await page.getByRole("button", { name: "tweaks" }).click();
   await page.getByRole("button", { name: "account", exact: true }).click();
 }
@@ -17,7 +17,7 @@ test("download my data gives a JSON file with the account in it", async ({ page 
 
   const [download] = await Promise.all([
     page.waitForEvent("download"),
-    page.getByRole("link", { name: "[download my data]" }).click(),
+    page.getByRole("link", { name: "[ download my data ]" }).click(),
   ]);
 
   expect(download.suggestedFilename()).toMatch(/^heycapy-export-\d{4}-\d{2}-\d{2}\.json$/);

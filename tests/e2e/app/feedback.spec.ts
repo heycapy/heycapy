@@ -5,7 +5,7 @@ test.use({ storageState: authState("feedback") });
 
 test("feedback is sent from the menu and the dialog says thanks", async ({ page }) => {
   await page.goto("/");
-  await page.getByRole("button", { name: "···" }).click();
+  await page.getByRole("button", { name: "your menu", exact: true }).click();
   await page.getByRole("button", { name: "feedback", exact: true }).click();
 
   const send = page.getByRole("button", { name: /^\[\s*send\s*\]$/ });
@@ -21,7 +21,7 @@ test("feedback is sent from the menu and the dialog says thanks", async ({ page 
   await page.getByRole("button", { name: /^\[\s*close\s*\]$/ }).click();
   await expect(page.getByText("got it. thanks.")).toHaveCount(0);
 
-  await page.getByRole("button", { name: "···" }).click();
+  await page.getByRole("button", { name: "your menu", exact: true }).click();
   await page.getByRole("button", { name: "feedback", exact: true }).click();
   await expect(page.getByRole("textbox", { name: "feedback" })).toHaveValue("");
 });

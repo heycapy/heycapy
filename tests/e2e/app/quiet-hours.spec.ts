@@ -7,7 +7,7 @@ test.describe.configure({ mode: "serial" });
 
 async function openTweaks(page: Page) {
   await page.goto("/");
-  await page.getByRole("button", { name: "[ ··· ]", exact: true }).click();
+  await page.getByRole("button", { name: "your menu", exact: true }).click();
   await page.getByRole("button", { name: "tweaks" }).click();
   await page.getByRole("button", { name: "notifications", exact: true }).click();
   const box = page

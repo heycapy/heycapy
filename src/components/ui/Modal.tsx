@@ -4,13 +4,17 @@ import { useState, type ReactNode } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { AnimatePresence, motion } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { BracketButton } from "./BracketButton";
+import { CloseButton } from "./CloseButton";
+import { useLookParts } from "@/components/looks/LookProvider";
 import {
+  DRAWER_DIM,
+  DRAWER_DIM_FADE,
   MODAL_LAYERS,
   MODAL_PANELS,
   MODAL_PANEL_SELECTOR,
   POPOVER_SELECTOR,
   HANDLES_ESCAPE_SELECTOR,
+  ITEM_PANEL_SELECTOR,
   type ModalLayer,
   type ModalVariant,
 } from "./constants";
@@ -45,6 +49,7 @@ export function Modal({
   children,
 }: ModalProps) {
   const panel = MODAL_PANELS[variant];
+  const side = variant === "side";
   const z = MODAL_LAYERS[layer];
   // Radix only gives focus back to its own Trigger, and these open from our buttons
   const [returnTo, setReturnTo] = useState(() => (open ? focusedElement() : null));
@@ -55,33 +60,44 @@ export function Modal({
   }
 
   return (
-    <Dialog.Root open={open} onOpenChange={(next) => !next && onClose()}>
+    <Dialog.Root open={open} onOpenChange={(next) => !next && onClose()} modal={!side}>
       <AnimatePresence onExitComplete={onExitComplete}>
         {open && (
           <Dialog.Portal forceMount>
-            <Dialog.Overlay asChild forceMount>
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: variant === "page" ? 0 : 0.45 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.12 }}
-                className={cn("fixed inset-0 bg-black", z.overlay)}
-              />
-            </Dialog.Overlay>
+            {!side && (
+              <Dialog.Overlay asChild forceMount>
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{
+                    opacity: variant === "page" ? 0 : variant === "drawer" ? DRAWER_DIM : 0.45,
+                  }}
+                  exit={{ opacity: 0 }}
+                  transition={variant === "drawer" ? DRAWER_DIM_FADE : { duration: 0.12 }}
+                  className={cn("fixed inset-0 bg-black", z.overlay)}
+                />
+              </Dialog.Overlay>
+            )}
             <Dialog.Content
               asChild
               forceMount
               aria-describedby={undefined}
+              onInteractOutside={side ? (e) => e.preventDefault() : undefined}
               onEscapeKeyDown={(e) => {
                 // Escape closes an open picker or suggestion list first, not the whole modal
                 if (
                   document.querySelector(`${MODAL_PANEL_SELECTOR} ${POPOVER_SELECTOR}`) ||
+                  document.querySelector(`${MODAL_PANEL_SELECTOR} ${ITEM_PANEL_SELECTOR}`) ||
                   document.activeElement?.closest(HANDLES_ESCAPE_SELECTOR)
                 )
+                  e.preventDefault();
+                if (side && !document.activeElement?.closest(MODAL_PANEL_SELECTOR))
                   e.preventDefault();
               }}
               onCloseAutoFocus={(e) => {
                 e.preventDefault();
+                // something focused while this closed (a guide hint pointing at the add box) keeps it
+                const active = document.activeElement;
+                if (active && active !== document.body) return;
                 if (returnTo?.isConnected) returnTo.focus();
               }}
               {...(label ? { "aria-labelledby": undefined, "aria-label": label } : {})}
@@ -114,21 +130,41 @@ type ModalTitleProps = { className?: string; children: ReactNode };
 
 export function ModalTitle({ className, children }: ModalTitleProps) {
   return (
-    <Dialog.Title className={cn("font-pixel min-w-0 truncate text-xs", className)}>
+    <Dialog.Title className={cn("font-display min-w-0 truncate text-xs", className)}>
       {children}
     </Dialog.Title>
   );
 }
 
-type ModalHeaderProps = { title: ReactNode; onClose: () => void };
+type ModalHeaderProps = {
+  title: ReactNode;
+  context?: string;
+  onClose: () => void;
+  plain?: boolean;
+};
 
-export function ModalHeader({ title, onClose }: ModalHeaderProps) {
+export function ModalHeader({ title, context, onClose, plain }: ModalHeaderProps) {
+  const { panelHeader } = useLookParts();
+  const inverted = !plain && panelHeader === "inverted";
   return (
-    <div className="bg-foreground text-background flex shrink-0 items-center justify-between gap-2 px-3 py-1.5">
-      <ModalTitle>{title}</ModalTitle>
-      <BracketButton type="button" variant="inverted" onClick={onClose}>
-        x
-      </BracketButton>
+    <div
+      className={cn(
+        "flex shrink-0 items-center justify-between gap-2",
+        inverted
+          ? "bg-foreground text-background px-3 py-1.5"
+          : "bg-card border-border border-b-frame min-h-10 pr-2 pl-3"
+      )}
+    >
+      <ModalTitle className={cn(plain && "text-2xs")}>
+        {title}
+        {context && <span className="text-muted-foreground"> {context}</span>}
+      </ModalTitle>
+      <CloseButton
+        type="button"
+        variant={inverted ? "inverted" : "default"}
+        className={cn(!inverted && "px-1")}
+        onClick={onClose}
+      />
     </div>
   );
 }

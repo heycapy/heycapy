@@ -48,6 +48,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
         assistantName={settings?.personalityName ?? "capy"}
         feedbackEnabled={feedbackConfigured()}
         unseenRelease={!!user && user.lastSeenRelease !== LATEST_RELEASE}
+        lookPicked={user?.lookPicked ?? true}
         guide={guide}
         appUrl={publicAppUrl()}
         failures={failures}

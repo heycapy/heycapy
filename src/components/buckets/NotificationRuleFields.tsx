@@ -122,7 +122,12 @@ export function OverdueFields({
     <div className="flex flex-col gap-1.5">
       <LabelRow label="notify when overdue" tag={tagFor?.("overdue")} />
       <span className={HINT}>alert when an item passes its deadline and isn&apos;t done</span>
-      <Toggle value={notifyWhenOverdue} onChange={onNotifyWhenOverdueChange} disabled={disabled} />
+      <Toggle
+        label="notify when overdue"
+        value={notifyWhenOverdue}
+        onChange={onNotifyWhenOverdueChange}
+        disabled={disabled}
+      />
       {notifyWhenOverdue && (
         <div className="mt-1.5 flex flex-col gap-3">
           <div role="group" aria-label="first alert" className="flex flex-col gap-1.5">
