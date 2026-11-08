@@ -2,6 +2,21 @@
 
 all notable changes to heycapy. versions follow [semver](https://semver.org): a patch version (0.3.1) only fixes things, a minor version (0.4.0) adds features. the database migrates itself on start and migrations only go forward, so back up before upgrading (see the README).
 
+## 0.11.1
+
+a small fix release: reduce motion now does what it says.
+
+### fixes
+
+- the reduce motion switch takes effect the moment you tap it. before, it waited for the server and the settings around it dimmed and blinked
+- with reduce motion on, switching buckets swaps the list at once. before, the list jumped, faded and went blank for a moment
+- going back to a bucket you've already opened shows its items straight away while they refresh, instead of flashing "loading..." first
+- turning reduce motion on or off no longer makes every done item's tick pop again
+
+### upgrading
+
+- nothing to migrate. `docker compose up -d --build` as usual
+
 ## 0.11.0
 
 ticking an item finally feels like something happened, toasts are smaller and stay out of the way, and heycapy gets its first comfort settings: bigger text and reduced motion.
