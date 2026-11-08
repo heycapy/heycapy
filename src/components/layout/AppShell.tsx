@@ -29,7 +29,7 @@ import { AssistantNameProvider } from "@/components/capy/assistant-name";
 import { useChatDocked } from "@/components/capy/useChatDocked";
 import { cn } from "@/lib/utils";
 import type { ChannelFailure } from "@/lib/notifications/failures";
-import { toast } from "sonner";
+import { notify } from "@/components/ui/notify";
 import { GuidePanel } from "@/components/guide/GuidePanel";
 import { HINT_TARGETS } from "@/components/guide/constants";
 import { useGuide } from "@/components/guide/useGuide";
@@ -105,7 +105,7 @@ export function AppShell({
     if (target.kind === "new-bucket") openCreateBucket();
     if (target.kind === "bucket-members") requestMembers();
     if (target.kind === "chat") setChatState("open");
-    toast(task.hint);
+    notify.info(task.hint, { icon: "map" });
   }
 
   function closeLookPicker() {
@@ -148,6 +148,7 @@ export function AppShell({
     <AssistantNameProvider name={assistantName}>
       <PurchaseReturn onPaid={() => openSettings("credits")} />
       <div
+        data-side-column={sideColumn || undefined}
         className={cn(
           "flex min-h-0 flex-1 flex-col transition-[padding] duration-200 ease-out",
           sideColumn && "pr-[calc(var(--spacing-chat)+var(--dock-inset))]"

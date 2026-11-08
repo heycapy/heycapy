@@ -4,6 +4,13 @@ import { ChatMessageList } from "@/components/capy/ChatMessageList";
 
 const APP_URL = "https://app.heycapy.test";
 
+vi.stubGlobal("matchMedia", (query: string) => ({
+  matches: false,
+  media: query,
+  addEventListener: () => {},
+  removeEventListener: () => {},
+}));
+
 beforeAll(() => {
   Element.prototype.scrollTo = () => {};
 });

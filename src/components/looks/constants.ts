@@ -1,8 +1,10 @@
-import type { CONTROL_SIZES, LOOKS } from "@/constants";
+import type { CONTROL_SIZES, LOOKS, TEXT_SIZES, TICK_SOUNDS } from "@/constants";
 import type { IconSetId } from "@/components/ui/icon-sets";
 
 export type Look = (typeof LOOKS)[number];
 export type ControlSize = (typeof CONTROL_SIZES)[number];
+export type TickSound = (typeof TICK_SOUNDS)[number];
+export type TextSize = (typeof TEXT_SIZES)[number];
 
 // A look is a bundle of parts; components read a part, never the look's name
 export type LookParts = {

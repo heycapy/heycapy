@@ -1,5 +1,5 @@
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState, createElement } from "react";
-import { toast } from "sonner";
+import { notify } from "@/components/ui/notify";
 import { cn } from "@/lib/utils";
 import { InputBar, InputBarAction, InputBarIcon } from "@/components/ui/InputBar";
 import { useLookParts } from "@/components/looks/LookProvider";
@@ -92,8 +92,8 @@ export const ChatInputBar = forwardRef<ChatInputBarHandle, Props>(function ChatI
     try {
       stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     } catch {
-      toast.error("microphone access denied", {
-        icon: createElement(Sprite, { id: "capy-error", size: 28 }),
+      notify.error("microphone access denied", {
+        icon: createElement(Sprite, { id: "capy-error", size: 20 }),
       });
       return;
     }
@@ -116,9 +116,9 @@ export const ChatInputBar = forwardRef<ChatInputBarHandle, Props>(function ChatI
 
       const blob = new Blob(chunksRef.current, { type: mr.mimeType || "audio/webm" });
       if (isTooShort(blob.size, Date.now() - startedAt)) {
-        toast.error("didn't catch that", {
+        notify.error("didn't catch that", {
           description: "Hold the mic a bit longer while you talk.",
-          icon: createElement(Sprite, { id: "capy-error", size: 28 }),
+          icon: createElement(Sprite, { id: "capy-error", size: 20 }),
         });
         return;
       }
@@ -130,9 +130,9 @@ export const ChatInputBar = forwardRef<ChatInputBarHandle, Props>(function ChatI
         const res = await fetch("/api/transcribe", { method: "POST", body: fd });
         const body = (await res.json()) as { text?: string; error?: string };
         if (!res.ok || !body.text) {
-          toast.error(res.status === 422 ? "didn't catch that" : "transcription failed", {
+          notify.error(res.status === 422 ? "didn't catch that" : "transcription failed", {
             description: body.error ?? "Unknown error.",
-            icon: createElement(Sprite, { id: "capy-error", size: 28 }),
+            icon: createElement(Sprite, { id: "capy-error", size: 20 }),
           });
         } else {
           setInput(body.text);
@@ -144,9 +144,9 @@ export const ChatInputBar = forwardRef<ChatInputBarHandle, Props>(function ChatI
           }, 0);
         }
       } catch {
-        toast.error("transcription failed", {
+        notify.error("transcription failed", {
           description: "Could not reach the server.",
-          icon: createElement(Sprite, { id: "capy-error", size: 28 }),
+          icon: createElement(Sprite, { id: "capy-error", size: 20 }),
         });
       } finally {
         setTranscribing(false);

@@ -2,12 +2,16 @@ import { Icon } from "@/components/ui/Icon";
 import { Tooltip } from "@/components/ui/Tooltip";
 import { formatShortTime } from "@/lib/format-date";
 import { ITEM_STATUS, TITLE_LINES_SHOWN } from "@/constants";
-import { ITEM_HIGHLIGHT_MS, JUST_ADDED_MS } from "./constants";
+import { ITEM_HIGHLIGHT_MS, JUST_ADDED_MS, TICK_SAVE_FAILED } from "./constants";
+import { notify } from "@/components/ui/notify";
 import { useUIStore } from "@/store/ui";
+import { useTickSound } from "@/components/looks/LookProvider";
+import { playTickSound } from "@/lib/sounds/tick";
 import { TickBox } from "./TickBox";
 import { completionToggle } from "./completion";
 import { useEffect, useRef, useState } from "react";
 import type { DragControls } from "framer-motion";
+import { smoothScroll } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 import type { StatusDef, FieldDef } from "@/types/rules";
 import type { ListItem, ReminderBadge } from "@/lib/reminders/status";
@@ -34,7 +38,7 @@ type ItemRowProps = {
   isEditing?: boolean;
   menuOpen?: boolean;
   onEditStart?: () => void;
-  onStatusChange?: (status: string) => void;
+  onStatusChange?: (status: string) => Promise<boolean>;
   reminderBadge?: ReminderBadge;
   assignee?: ItemAssignee;
   // The time on another clock that matters for this item, e.g. "9am for Sam"
@@ -119,10 +123,18 @@ export function ItemRow({
   const clearHighlight = useUIStore((s) => s.clearHighlight);
   const justAdded = useUIStore((s) => s.lastAddedItemId === item.id);
   const clearAdded = useUIStore((s) => s.clearAdded);
+  const tickSound = useTickSound();
+  // Shown while saves are in flight and until the list hands over a fresh copy of the item,
+  // so the box answers the tap at once and a quick second tap doesn't flicker
+  const [tick, setTick] = useState<{ checked: boolean; of: ItemRow; saving: number } | null>(null);
+  const latestItem = useRef(item);
+  useEffect(() => {
+    latestItem.current = item;
+  });
 
   useEffect(() => {
     if (!justAdded) return;
-    rowRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    rowRef.current?.scrollIntoView({ block: "nearest", behavior: smoothScroll() });
     const fade = setTimeout(() => clearAdded(item.id), JUST_ADDED_MS);
     return () => clearTimeout(fade);
   }, [justAdded, clearAdded, item.id]);
@@ -134,8 +146,29 @@ export function ItemRow({
     return () => clearTimeout(fade);
   }, [highlighted, clearHighlight, item.id]);
   const due = item.deadline ? itemDeadline(item.deadline, item.deadlineTimezone) : null;
-  const isCompleted = item.status === ITEM_STATUS.completed;
+  const isCompleted =
+    tick && (tick.saving > 0 || tick.of === item)
+      ? tick.checked
+      : item.status === ITEM_STATUS.completed;
   const isMissed = item.status === ITEM_STATUS.missed;
+
+  async function toggle(save: (status: string) => Promise<boolean>) {
+    const shown = isCompleted ? ITEM_STATUS.completed : ITEM_STATUS.active;
+    setTick((t) => ({ checked: !isCompleted, of: item, saving: (t?.saving ?? 0) + 1 }));
+    if (!isCompleted) playTickSound(tickSound);
+    const saved = await save(completionToggle(shown, statuses).next).catch(() => {
+      notify.error(TICK_SAVE_FAILED, {
+        action: { label: "retry", onClick: () => void toggle(save) },
+      });
+      return false;
+    });
+    setTick((t) => {
+      if (!saved || !t) return null;
+      if (t.saving > 1) return { ...t, saving: t.saving - 1 };
+      return latestItem.current === t.of ? { ...t, saving: 0 } : null;
+    });
+  }
+
   const remindAgain = remindAgainLabel(item);
   const recurringFreq = getRecurringFrequency(item.recurring);
   const allLines = item.title.split("\n").filter((line) => line.trim());
@@ -179,11 +212,11 @@ export function ItemRow({
       data-just-added={justAdded || undefined}
       data-editing={isEditing || undefined}
       className={cn(
-        "group/row flex items-stretch gap-0 px-3 transition-colors duration-1000",
+        "group/row flex items-stretch gap-0 px-3 [transition:background-color_1s,opacity_300ms]",
         justAdded && "bg-primary/8",
         highlighted && "bg-primary/15",
         isEditing && "bg-muted/20",
-        menuOpen && "bg-card duration-0",
+        menuOpen && "bg-card [transition:opacity_300ms]",
         (isCompleted || isMissed) && "opacity-45"
       )}
     >
@@ -200,9 +233,7 @@ export function ItemRow({
         title={item.title}
         checked={isCompleted}
         color={color}
-        onToggle={
-          onStatusChange && (() => onStatusChange(completionToggle(item.status, statuses).next))
-        }
+        onToggle={onStatusChange && (() => void toggle(onStatusChange))}
       />
 
       <button
@@ -210,9 +241,7 @@ export function ItemRow({
         className="flex min-w-0 flex-1 items-center gap-3 py-2.5 text-left"
       >
         <span className="min-w-0 flex-1">
-          <span
-            className={cn("block text-sm", isCompleted && "text-muted-foreground line-through")}
-          >
+          <span className="block text-sm">
             {titleLines.map((line, i) => (
               <span key={i} className="block truncate">
                 {line}

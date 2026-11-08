@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { Reorder, motion } from "framer-motion";
-import { toast } from "sonner";
+import { notify } from "@/components/ui/notify";
 import { TextButton } from "@/components/ui/TextButton";
 import { Icon } from "@/components/ui/Icon";
 import { useLayoutStore } from "@/store/layout";
@@ -129,7 +129,7 @@ export function BucketTabs({ buckets, activeId, todayOpen }: BucketTabsProps) {
     const result = await reorderBucketsAction(order);
     if (!result.ok) {
       setOrder(serverOrder);
-      toast.error(result.error);
+      notify.error(result.error);
     }
   }
 
