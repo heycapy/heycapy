@@ -1,7 +1,7 @@
 import { test, expect, type Locator, type Page } from "@playwright/test";
 import { authState } from "../helpers/auth";
-import { addItem, createAndSelectBucket, itemRow, uniqueName } from "../helpers/buckets";
-import { modal, option } from "../helpers/settings";
+import { addItem, createAndSelectBucket, editForm, itemRow, uniqueName } from "../helpers/buckets";
+import { option } from "../helpers/settings";
 
 test.use({ storageState: authState("trash-items") });
 test.describe.configure({ mode: "default" });
@@ -16,14 +16,14 @@ test.beforeEach(async ({ page }) => {
 
 async function deleteItem(page: Page, title: string): Promise<void> {
   await itemRow(page, title).click();
-  const dialog = modal(page, /^edit item$/);
+  const dialog = editForm(page);
   await dialog.getByRole("button", { name: "delete item" }).click();
   await expect(dialog).not.toBeVisible();
   await expect(itemRow(page, title)).toHaveCount(0);
 }
 
 async function openTrash(page: Page): Promise<Locator> {
-  await page.getByRole("button", { name: "[ ··· ]", exact: true }).click();
+  await page.getByRole("button", { name: "your menu", exact: true }).click();
   await page.getByRole("button", { name: "trash", exact: true }).click();
   const sheet = page.getByRole("dialog", { name: "trash" });
   await expect(sheet.getByText("loading...")).not.toBeVisible();

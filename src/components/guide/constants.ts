@@ -2,7 +2,8 @@ import type { GuideTaskKey } from "@/lib/guide/constants";
 import type { SettingsTab } from "@/components/layout/SettingsSheet";
 
 export type HintTarget =
-  | { kind: "add-item" }
+  // the add box, or the full form for what the box can't set
+  | { kind: "add-item"; form: boolean }
   | { kind: "list" }
   | { kind: "new-bucket" }
   | { kind: "bucket-members" }
@@ -10,11 +11,11 @@ export type HintTarget =
   | { kind: "settings"; tab: SettingsTab };
 
 export const HINT_TARGETS: Record<GuideTaskKey, HintTarget> = {
-  add_item: { kind: "add-item" },
-  add_date: { kind: "add-item" },
+  add_item: { kind: "add-item", form: false },
+  add_date: { kind: "add-item", form: false },
   complete_item: { kind: "list" },
-  reminder_time: { kind: "add-item" },
-  repeat_item: { kind: "add-item" },
+  reminder_time: { kind: "add-item", form: true },
+  repeat_item: { kind: "add-item", form: true },
   theme: { kind: "settings", tab: "appearance" },
   quiet_hours: { kind: "settings", tab: "notifications" },
   own_bucket: { kind: "new-bucket" },

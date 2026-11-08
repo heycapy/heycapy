@@ -11,7 +11,12 @@ import {
   WEBHOOK_RATE_LIMIT_WINDOW_MS,
 } from "@/lib/notifications/constants";
 import { errorMessage } from "@/lib/errors";
-import { ITEM_STATUS, ITEM_TITLE_MAX_LENGTH } from "@/constants";
+import {
+  ITEM_STATUS,
+  ITEM_TITLE_MAX_LENGTH,
+  REMOVED_ON_HOLD_STATUS,
+  SETTABLE_ITEM_STATUSES,
+} from "@/constants";
 import {
   channelDecisions,
   getChannelSettings,
@@ -126,20 +131,21 @@ export async function POST(
     }
   }
 
-  // Optional status — must be one of the three built-in statuses
-  const VALID_STATUSES = [ITEM_STATUS.active, ITEM_STATUS.completed, ITEM_STATUS.onHold] as const;
   let status: string | undefined;
   if (raw.status !== undefined) {
     if (typeof raw.status !== "string") {
       return Response.json({ error: "status must be a string" }, { status: 400 });
     }
-    if (!VALID_STATUSES.includes(raw.status as (typeof VALID_STATUSES)[number])) {
+    // "on hold" was removed; older callers may still send it, so it means active
+    status = raw.status === REMOVED_ON_HOLD_STATUS ? ITEM_STATUS.active : raw.status;
+    if (!SETTABLE_ITEM_STATUSES.includes(status)) {
       return Response.json(
-        { error: `invalid status "${raw.status}" — valid values: ${VALID_STATUSES.join(", ")}` },
+        {
+          error: `invalid status "${raw.status}" — valid values: ${SETTABLE_ITEM_STATUSES.join(", ")}`,
+        },
         { status: 400 }
       );
     }
-    status = raw.status;
   }
 
   // Optional deadline — an ISO datetime, or YYYY-MM-DD for an all-day item

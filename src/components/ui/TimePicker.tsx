@@ -55,11 +55,11 @@ export function TimePicker({ value, onChange, disabled }: TimePickerProps) {
         placeholder="e.g. 9 am, 2:30 pm, 14:00"
         disabled={disabled}
         className={cn(
-          "placeholder:text-muted-foreground/50 w-full border-b bg-transparent py-1.5 font-mono text-xs outline-none disabled:opacity-50",
+          "placeholder:text-muted-foreground/50 font-ui w-full border-b bg-transparent py-1.5 text-xs outline-none disabled:opacity-50",
           invalid ? "border-destructive text-destructive" : "border-border focus:border-foreground"
         )}
       />
-      {invalid && <span className="text-destructive font-mono text-xs">unrecognized format</span>}
+      {invalid && <span className="text-destructive font-ui text-xs">unrecognized format</span>}
     </div>
   );
 }

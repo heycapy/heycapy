@@ -38,6 +38,16 @@ function luminance(color: string): number {
   return 0.2126 * r + 0.7152 * g + 0.0722 * b;
 }
 
+function mix(color: string, base: string, amount: number): string {
+  const [c, b] = [toRgb(color), toRgb(base)];
+  const hex = c.map((v, i) =>
+    Math.round((v * amount + b[i] * (1 - amount)) * 255)
+      .toString(16)
+      .padStart(2, "0")
+  );
+  return `#${hex.join("")}`;
+}
+
 function contrast(a: string, b: string): number {
   const [light, dark] = [luminance(a), luminance(b)].sort((x, y) => y - x);
   return (light + 0.05) / (dark + 0.05);
@@ -54,6 +64,23 @@ describe("theme contrast", () => {
       .toBeGreaterThanOrEqual(MIN_CONTRAST);
     expect
       .soft(contrast(colors["primary-foreground"], colors.primary), "a button label")
+      .toBeGreaterThanOrEqual(MIN_CONTRAST);
+  });
+
+  // the late chip (ItemDue: text-destructive on bg-destructive/15) sits on the page, today's overdue header on a card
+  it.each(THEMES.map((theme) => theme.id))("%s keeps late text readable", (id) => {
+    const colors = themeColors(id);
+    expect
+      .soft(contrast(colors.destructive, colors.background), "late text on the page")
+      .toBeGreaterThanOrEqual(MIN_CONTRAST);
+    expect
+      .soft(contrast(colors.destructive, colors.card), "late text on a card")
+      .toBeGreaterThanOrEqual(MIN_CONTRAST);
+    expect
+      .soft(
+        contrast(colors.destructive, mix(colors.destructive, colors.background, 0.15)),
+        "the late chip"
+      )
       .toBeGreaterThanOrEqual(MIN_CONTRAST);
   });
 });

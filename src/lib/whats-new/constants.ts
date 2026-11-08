@@ -4,6 +4,35 @@ export type Release = { version: string; notes: ReleaseNote[] };
 
 export const RELEASES: [Release, ...Release[]] = [
   {
+    version: "0.10.0",
+    notes: [
+      {
+        title: "a whole new heycapy",
+        text: "our biggest update yet: every screen was redrawn. your buckets, items and reminders are all where you left them, but take a minute to look around.",
+      },
+      {
+        title: "buckets are tabs",
+        text: "search, today and your buckets sit in tabs along the top. hold a tab and drag it to put your buckets in your own order.",
+      },
+      {
+        title: "tick it off",
+        text: "every item has a tick box now. long press or right click an item for everything else.",
+      },
+      {
+        title: "add from one bar",
+        text: "type at the bottom of any list and press the arrow. open the full form for dates, repeats and reminders, and each bucket keeps its own draft.",
+      },
+      {
+        title: "pick a look",
+        text: 'tweaks › appearance › look: "original" keeps the pixel style, "modern" is clean and rounded. your pick follows you to every device.',
+      },
+      {
+        title: "on hold is gone",
+        text: 'items that were on hold are active again. to put something off, give it a later date or tap "remind again" on its reminder.',
+      },
+    ],
+  },
+  {
     version: "0.9.0",
     notes: [
       {

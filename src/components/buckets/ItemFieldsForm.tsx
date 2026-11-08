@@ -1,5 +1,3 @@
-import { Close } from "pixelarticons/react/Close.js";
-import { PixelIcon } from "@/components/ui/PixelIcon";
 import { DatePicker } from "@/components/ui/DatePicker";
 import { OptionButton } from "@/components/ui/OptionButton";
 import type { FieldDef } from "@/types/rules";
@@ -11,6 +9,7 @@ import {
   NumberFieldInput,
   UrlFieldInput,
 } from "./ItemFieldInputs";
+import { IconButton } from "@/components/ui/IconButton";
 
 type ItemFieldsFormProps = {
   fields: FieldDef[];
@@ -64,7 +63,7 @@ export function ItemFieldsForm({
               onChange={(v) => set(field.key, v)}
             />
             {hasError && (
-              <p className="text-destructive font-mono text-[11px]">{field.label} is required</p>
+              <p className="text-destructive font-ui text-2xs">{field.label} is required</p>
             )}
           </div>
         );
@@ -145,12 +144,12 @@ function FieldInput({
             <DatePicker value={dateVal} onChange={onChange} disabled={disabled} />
           </div>
           {dateVal && !disabled && (
-            <button
+            <IconButton
+              icon="close"
+              tone="destructive"
               onClick={() => onChange(undefined)}
-              className="text-muted-foreground hover:text-destructive shrink-0 transition-colors"
-            >
-              <PixelIcon icon={Close} />
-            </button>
+              aria-label="clear date"
+            />
           )}
         </div>
       );

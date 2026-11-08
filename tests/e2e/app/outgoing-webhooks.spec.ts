@@ -1,4 +1,5 @@
 import { test, expect, type Locator, type Page } from "@playwright/test";
+import { openNotificationSection } from "../helpers/settings";
 import Database from "better-sqlite3";
 import { authState, specUserEmail } from "../helpers/auth";
 import { E2E_DATABASE_FILE } from "../helpers/env";
@@ -20,9 +21,10 @@ const URL_FIELD = "https://example.com/hooks/heycapy";
 
 async function openWebhooks(page: Page): Promise<Locator> {
   await page.goto("/");
-  await page.getByRole("button", { name: "···" }).click();
+  await page.getByRole("button", { name: "your menu", exact: true }).click();
   await page.getByRole("button", { name: "tweaks" }).click();
   await page.getByRole("button", { name: "notifications", exact: true }).click();
+  await openNotificationSection(page, "other apps");
   return page
     .locator("div")
     .filter({ has: page.getByText("other apps", { exact: true }) })

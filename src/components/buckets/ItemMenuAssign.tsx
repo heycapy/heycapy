@@ -1,11 +1,10 @@
-import { Check } from "pixelarticons/react/Check.js";
-import { ChevronRight } from "pixelarticons/react/ChevronRight.js";
 import { PersonAvatar } from "@/components/avatar/PersonAvatar";
-import { PixelIcon } from "@/components/ui/PixelIcon";
+import { Icon } from "@/components/ui/Icon";
 import type { BucketMember } from "@/lib/buckets/members";
 import { memberName } from "@/lib/buckets/member-name";
 import { cn } from "@/lib/utils";
 import { ASSIGN_CHIPS_MAX } from "./constants";
+import { MenuItem } from "@/components/ui/MenuItem";
 
 type AssignProps = {
   members: BucketMember[];
@@ -27,12 +26,12 @@ export function AssignChips({
   const shown =
     members.length > ASSIGN_CHIPS_MAX ? members.slice(0, ASSIGN_CHIPS_MAX - 1) : members;
   const chip =
-    "border-border flex max-w-32 items-center gap-1 border px-1.5 py-1 transition-colors disabled:opacity-50";
+    "rounded-control border-border flex max-w-32 items-center gap-1 border px-1.5 py-1 transition-colors disabled:opacity-50";
   return (
     <div
       role="group"
       aria-label="assign to"
-      className="flex flex-wrap items-center gap-1.5 px-3 py-2 font-mono text-xs"
+      className="font-ui flex flex-wrap items-center gap-1.5 px-3 py-2 text-xs"
     >
       <span className="text-muted-foreground mr-1">assign</span>
       {shown.map((m) => (
@@ -61,7 +60,7 @@ export function AssignChips({
           className={cn(chip, "text-muted-foreground hover:text-foreground")}
         >
           +{members.length - shown.length} more
-          <PixelIcon icon={ChevronRight} />
+          <Icon name="chevron-right" />
         </button>
       )}
     </div>
@@ -69,27 +68,24 @@ export function AssignChips({
 }
 
 export function AssignList({ members, assigneeId, busy, onAssign }: AssignProps) {
-  const row =
-    "hover:bg-muted flex w-full items-center gap-2 px-3 py-2.5 text-left font-mono text-xs transition-colors disabled:opacity-50 sm:py-2";
   return (
     <div className="py-1">
       {members.map((m) => (
-        <button
+        <MenuItem
           key={m.userId}
-          type="button"
           disabled={busy}
           onClick={() => onAssign(m.userId)}
-          className={row}
+          className="gap-2"
         >
           <PersonAvatar userId={m.userId} avatar={m.avatar} className="shrink-0" />
           <span className="min-w-0 flex-1 truncate">{nameOf(m)}</span>
-          {assigneeId === m.userId && <PixelIcon icon={Check} />}
-        </button>
+          {assigneeId === m.userId && <Icon name="check" />}
+        </MenuItem>
       ))}
-      <button type="button" disabled={busy} onClick={() => onAssign(null)} className={row}>
+      <MenuItem disabled={busy} onClick={() => onAssign(null)} className="gap-2">
         <span className="text-muted-foreground min-w-0 flex-1">anyone</span>
-        {assigneeId === null && <PixelIcon icon={Check} />}
-      </button>
+        {assigneeId === null && <Icon name="check" />}
+      </MenuItem>
     </div>
   );
 }

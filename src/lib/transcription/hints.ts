@@ -37,7 +37,7 @@ export async function voiceContext(userId: number, assistantName: string): Promi
           inArray(items.bucketId, memberBucketIds(userId)),
           isNull(items.deletedAt),
           inLiveBucket,
-          inArray(items.status, [ITEM_STATUS.active, ITEM_STATUS.onHold])
+          eq(items.status, ITEM_STATUS.active)
         )
       )
       .orderBy(sql`${items.deadline} is null`, asc(items.deadline), desc(items.createdAt))

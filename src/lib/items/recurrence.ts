@@ -103,7 +103,7 @@ export async function moveOnMissedOccurrences(now = new Date()): Promise<void> {
       and(
         isNotNull(items.recurring),
         isNull(items.deletedAt),
-        notInArray(items.status, [...CLOSED_ITEM_STATUSES, ITEM_STATUS.onHold]),
+        notInArray(items.status, CLOSED_ITEM_STATUSES as string[]),
         lt(items.deadline, now)
       )
     );

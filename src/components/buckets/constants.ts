@@ -1,10 +1,4 @@
-import { Bell } from "pixelarticons/react/Bell.js";
-import { Briefcase } from "pixelarticons/react/Briefcase.js";
-import { Bulletlist } from "pixelarticons/react/Bulletlist.js";
-import { ChartLine } from "pixelarticons/react/ChartLine.js";
-import { CreditCard } from "pixelarticons/react/CreditCard.js";
-import { Square } from "pixelarticons/react/Square.js";
-import type { PixelIconComponent } from "@/components/ui/PixelIcon";
+import type { IconName } from "@/components/ui/icons";
 import { ITEM_STATUS } from "@/constants";
 import type { QuickRemindChoice } from "@/lib/notifications/constants";
 import type { RecurrenceMode, StatusDef } from "@/types/rules";
@@ -34,13 +28,13 @@ export type NotificationsRulesConfig = {
   quietHours?: { from: string; to: string } | null;
 };
 
-export const TEMPLATE_ICONS: Record<string, PixelIconComponent> = {
-  Blank: Square,
-  Subscriptions: CreditCard,
-  Reminders: Bell,
-  Todo: Bulletlist,
-  Work: Briefcase,
-  "CI/CD Monitor": ChartLine,
+export const TEMPLATE_ICONS: Record<string, IconName> = {
+  Blank: "square",
+  Subscriptions: "credit-card",
+  Reminders: "bell",
+  Todo: "list",
+  Work: "briefcase",
+  "CI/CD Monitor": "chart",
 };
 
 export type ItemStatus = string;
@@ -48,10 +42,16 @@ export type ItemStatus = string;
 export const DEFAULT_BUCKET_STATUSES: StatusDef[] = [
   { name: ITEM_STATUS.active, color: "#22c55e", isDefault: true },
   { name: ITEM_STATUS.completed, color: "#3b82f6" },
-  { name: ITEM_STATUS.onHold, color: "#f59e0b" },
 ];
 
 export const ITEM_HIGHLIGHT_MS = 3000;
+export const JUST_ADDED_MS = 4000;
+export const TAB_HOLD_MS = 350;
+export const TAB_HOLD_SLOP_PX = 6;
+export const TAB_LIFT_SCALE = 1.06;
+export const TAB_LIFT_VIBRATE_MS = 15;
+export const TAB_DROP_SPRING = { bounceStiffness: 1400, bounceDamping: 75 } as const;
+export const TAB_SLIDE = { duration: 0.12, ease: "easeOut" } as const;
 export const MENU_GAP = 6;
 export const SCREEN_MARGIN = 8;
 export const UNDO_DELETE_MS = 6000;
@@ -147,9 +147,9 @@ export const CURRENCY_OPTIONS = [
 
 export type CurrencySymbol = (typeof CURRENCY_OPTIONS)[number]["value"];
 
-export const FIELD_LABEL = "text-muted-foreground font-mono text-xs";
+export const FIELD_LABEL = "text-muted-foreground font-ui text-xs";
 export const FIELD_INPUT =
-  "border-b border-border w-full bg-transparent py-1.5 font-mono text-xs outline-none placeholder:text-muted-foreground/50 focus:border-foreground disabled:opacity-50";
+  "border-b border-border w-full bg-transparent py-1.5 font-ui text-xs outline-none placeholder:text-muted-foreground/50 focus:border-foreground disabled:opacity-50";
 
 export const RECURRENCE_MODE_OPTIONS: { value: RecurrenceMode; label: string; hint: string }[] = [
   {
@@ -188,7 +188,47 @@ export const NO_MEMBERS: BucketMember[] = [];
 // People an item menu offers as one-tap chips; more than this shows one fewer plus "+n more"
 export const ASSIGN_CHIPS_MAX = 4;
 
-// How far a finger moves sideways on the phone's bucket button to switch bucket
-export const SWITCH_SWIPE_PX = 40;
-// Up to this many places show as dots under it, more as "3/12"
-export const SWITCH_DOTS_MAX = 9;
+// A bucket or today fading in and out on a switch; "visible" is how the shell knows one is coming in
+export const VIEW_FADE = {
+  hidden: { opacity: 0, y: 6 },
+  visible: { opacity: 1, y: 0 },
+  gone: { opacity: 0, y: -6 },
+} as const;
+
+export const ITEM_PANEL_RESIZE = { duration: 0.18, ease: "easeOut" } as const;
+export const PHONE_DRAWER_TOP_GAP_PX = 12;
+
+// Shown in the empty add box, one per bucket: notes the cat left for its human. Each carries a date
+// so it also shows that dates can be typed
+export const ADD_BOX_EXAMPLES = [
+  "cat wants the green stuff tomorrow asap",
+  "cat wants more treats today 8pm",
+  "cat needs some space tonight",
+  "cat wants a new tree house sunday",
+  "cat's bowl is empty, fix it by 6pm",
+  "cat wants a bigger box friday",
+];
+
+export const ADD_BOX_EXAMPLES_SHORT = [
+  "cat: greens tomorrow",
+  "cat: treats at 8pm",
+  "cat: space tonight",
+  "cat: new tree sunday",
+  "cat: fill bowl by 6pm",
+  "cat: big box friday",
+];
+
+export const ITEM_DETAIL_PANELS = [
+  "date",
+  "repeat",
+  "reminders",
+  "assignee",
+  "status",
+  "more",
+] as const;
+export type ItemDetailPanel = (typeof ITEM_DETAIL_PANELS)[number];
+export const EDIT_ROW_GAP_PX = 8;
+export const OUTSIDE_TAP_CLICK_MS = 1000;
+export const DETAIL_EDITOR = "rounded-panel border-border border-frame flex flex-col gap-3 p-3";
+export const NEEDS_DATE = "pick a date first";
+export const EXPAND_SWIPE_PX = 24;

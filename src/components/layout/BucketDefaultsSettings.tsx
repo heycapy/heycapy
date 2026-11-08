@@ -38,6 +38,7 @@ export function BucketDefaultsSettings({
         <div className="flex items-center justify-between">
           <label className={LABEL}>every channel you set up</label>
           <Toggle
+            label="every channel you set up"
             value={value.medium === null}
             onChange={(all) => set("medium", all ? null : workingChannels)}
             disabled={pending}

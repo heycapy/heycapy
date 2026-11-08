@@ -1,8 +1,7 @@
 import { useState } from "react";
-import { cn } from "@/lib/utils";
 import { Toggle } from "@/components/ui/Toggle";
 import { OptionGroup } from "@/components/ui/OptionGroup";
-import { BracketButton } from "@/components/ui/BracketButton";
+import { TextButton } from "@/components/ui/TextButton";
 import { AIStatusBox } from "./AIStatusBox";
 import { CharCount } from "./CharCount";
 import { KeyField } from "./KeyField";
@@ -25,6 +24,7 @@ import {
   AI_COMPACT_THRESHOLD_MIN,
   AI_COMPACT_THRESHOLD_MAX,
 } from "@/constants";
+import { Tab } from "@/components/ui/Tab";
 
 type AITabProps = {
   ai: AISettings;
@@ -33,14 +33,6 @@ type AITabProps = {
 
 export function AITab({ ai, pending }: AITabProps) {
   const [aiSubTab, setAiSubTab] = useState<"chat" | "voice">("chat");
-
-  const subTabBtn = (t: "chat" | "voice") =>
-    cn(
-      "font-mono text-xs px-2 py-0.5 transition-colors",
-      aiSubTab === t
-        ? "bg-foreground text-background"
-        : "text-muted-foreground hover:text-foreground"
-    );
 
   const general = (
     <>
@@ -66,7 +58,12 @@ export function AITab({ ai, pending }: AITabProps) {
       </div>
       <div className="flex flex-col gap-1.5">
         <label className={LABEL}>ai notification messages</label>
-        <Toggle value={ai.notifyMessages} onChange={ai.setNotifyMessages} disabled={pending} />
+        <Toggle
+          label="ai notification messages"
+          value={ai.notifyMessages}
+          onChange={ai.setNotifyMessages}
+          disabled={pending}
+        />
         <span className={HINT}>
           generate notification text with AI — may add delay depending on your model and provider
         </span>
@@ -94,12 +91,17 @@ export function AITab({ ai, pending }: AITabProps) {
       {ai.useOwnKey && (
         <>
           <div className="flex gap-0">
-            <button className={subTabBtn("chat")} onClick={() => setAiSubTab("chat")}>
-              chat
-            </button>
-            <button className={subTabBtn("voice")} onClick={() => setAiSubTab("voice")}>
-              voice
-            </button>
+            {(["chat", "voice"] as const).map((t) => (
+              <Tab
+                key={t}
+                active={aiSubTab === t}
+                tone="muted"
+                onClick={() => setAiSubTab(t)}
+                className="py-0.5"
+              >
+                {t}
+              </Tab>
+            ))}
           </div>
 
           {aiSubTab === "chat" && (
@@ -152,14 +154,14 @@ export function AITab({ ai, pending }: AITabProps) {
                 <CharCount length={ai.model.length} max={AI_MODEL_MAX_LENGTH} />
               </div>
               {ai.canClear && (
-                <BracketButton
+                <TextButton
                   type="button"
                   onClick={ai.clearProvider}
                   disabled={pending}
                   className="w-fit"
                 >
                   clear {ai.provider} {ai.provider === "ollama" ? "url" : "key"} and model
-                </BracketButton>
+                </TextButton>
               )}
               {general}
             </>
@@ -201,14 +203,14 @@ export function AITab({ ai, pending }: AITabProps) {
                       disabled={pending}
                     />
                     {ai.canClearTranscriptionKey && (
-                      <BracketButton
+                      <TextButton
                         type="button"
                         onClick={ai.clearTranscriptionKey}
                         disabled={pending}
                         className="w-fit"
                       >
                         clear voice key
-                      </BracketButton>
+                      </TextButton>
                     )}
                   </div>
                   <div className="flex flex-col gap-1.5">

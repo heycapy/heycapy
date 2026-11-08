@@ -7,7 +7,12 @@ import { SEARCH_DEBOUNCE_MS } from "./constants";
 
 function useCrossBucketItems(load: () => Promise<ActionResult<CrossBucketItems>>, delay: number) {
   const refreshTick = useUIStore((s) => s.refreshTick);
+  const markItemsLoaded = useUIStore((s) => s.markItemsLoaded);
   const [data, setData] = useState<CrossBucketItems | null>(null);
+
+  useEffect(() => {
+    markItemsLoaded();
+  }, [data, markItemsLoaded]);
 
   useEffect(() => {
     let cancelled = false;

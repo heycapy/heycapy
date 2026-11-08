@@ -89,7 +89,7 @@ describe("migrations", () => {
         VALUES (1, 1, 'rent', 'snoozed', 1773144000), (1, 1, 'gym', 'active', NULL);
     `);
 
-    migrate(db, { migrationsFolder: MIGRATIONS });
+    migrate(db, { migrationsFolder: migrationsUpTo(onHoldMigration + 1) });
 
     expect(sqlite.prepare("SELECT status, remind_not_before FROM items ORDER BY id").all()).toEqual(
       [
@@ -392,6 +392,32 @@ describe("migrations", () => {
 
     expect(sqlite.prepare("SELECT last_seen_release FROM users").all()).toEqual([
       { last_seen_release: "0.3.0" },
+    ]);
+    sqlite.close();
+  });
+
+  it("make items on hold active again once on hold is gone", () => {
+    const journal = JSON.parse(
+      readFileSync(path.join(MIGRATIONS, "meta/_journal.json"), "utf8")
+    ) as Journal;
+    const dropOnHold = journal.entries.findIndex((e) => e.tag === "0047_drop_on_hold_status");
+    const dbPath = path.join(tempDir("heycapy-drop-on-hold-"), "db.sqlite");
+    const sqlite = new Database(dbPath);
+    const db = drizzle(sqlite);
+    migrate(db, { migrationsFolder: migrationsUpTo(dropOnHold) });
+    sqlite.exec(`
+      INSERT INTO users (id, email) VALUES (1, 'a@heycapy.test');
+      INSERT INTO buckets (id, user_id, name) VALUES (1, 1, 'Bills');
+      INSERT INTO items (bucket_id, user_id, title, status) VALUES
+        (1, 1, 'rent', 'on hold'), (1, 1, 'gym', 'completed'), (1, 1, 'tax', 'missed');
+    `);
+
+    migrate(db, { migrationsFolder: MIGRATIONS });
+
+    expect(sqlite.prepare("SELECT title, status FROM items ORDER BY id").all()).toEqual([
+      { title: "rent", status: "active" },
+      { title: "gym", status: "completed" },
+      { title: "tax", status: "missed" },
     ]);
     sqlite.close();
   });

@@ -1,13 +1,14 @@
 import { useEffect, useState, useTransition } from "react";
 import { QRCodeSVG } from "qrcode.react";
-import { BracketButton } from "@/components/ui/BracketButton";
+import { TextButton } from "@/components/ui/TextButton";
+import { CopyButton } from "@/components/ui/CopyButton";
 import { createInviteAction, listInvitesAction, revokeInviteAction } from "@/app/(app)/actions";
 import { INVITE_TTL_MS } from "@/lib/buckets/constants";
 import { formatInviteCode } from "@/lib/buckets/invite-code";
 import type { PendingInvite } from "@/lib/buckets/invites";
 import { HINT } from "@/components/layout/settings-constants";
 
-const COPY_BUTTON = "shrink-0 text-[11px]";
+const COPY_BUTTON = "shrink-0 text-2xs";
 const INVITE_QR_SIZE = 144;
 const HOUR_MS = 60 * 60 * 1000;
 
@@ -77,31 +78,30 @@ export function InviteSection({ bucketId }: { bucketId: number }) {
 
   return (
     <div className="border-border flex flex-col gap-3 border-t pt-4">
-      <p className="text-muted-foreground font-mono text-xs">invite someone</p>
+      <p className="text-muted-foreground font-ui text-xs">invite someone</p>
       <p className={HINT}>
         send a code or a link, they join with one tap. each works once and lasts{" "}
         {INVITE_TTL_MS / HOUR_MS} hours.
       </p>
-      <BracketButton onClick={create} disabled={pending} className="w-fit">
+      <TextButton onClick={create} disabled={pending} className="w-fit">
         {pending ? "..." : "create invite"}
-      </BracketButton>
+      </TextButton>
 
       {fresh && (
-        <div className="border-border flex flex-col gap-2.5 border p-3">
-          <div className="flex items-center justify-between gap-2">
+        <div className="rounded-control border-border flex flex-col gap-2.5 border p-3">
+          <div className="flex items-center gap-2">
             <span
               data-testid="invite-code"
               className="font-mono text-sm font-bold tracking-widest select-all"
             >
               {formatInviteCode(fresh.code)}
             </span>
-            <BracketButton
-              type="button"
+            <CopyButton
+              copied={copied === "code"}
+              label="copy code"
               onClick={() => copy("code", fresh.code)}
               className={COPY_BUTTON}
-            >
-              {copied === "code" ? "copied" : "copy code"}
-            </BracketButton>
+            />
           </div>
           <div className="flex items-center gap-2">
             <input
@@ -111,13 +111,12 @@ export function InviteSection({ bucketId }: { bucketId: number }) {
               aria-label="invite link"
               className="border-border focus:border-foreground w-full border-b bg-transparent py-1.5 font-mono text-xs outline-none"
             />
-            <BracketButton
-              type="button"
+            <CopyButton
+              copied={copied === "link"}
+              label="copy link"
               onClick={() => copy("link", fresh.link)}
               className={COPY_BUTTON}
-            >
-              {copied === "link" ? "copied" : "copy link"}
-            </BracketButton>
+            />
           </div>
           <QRCodeSVG
             value={fresh.link}
@@ -138,22 +137,22 @@ export function InviteSection({ bucketId }: { bucketId: number }) {
           <p className={HINT}>open invites</p>
           {invites.map((invite) => (
             <div key={invite.id} className="flex items-center justify-between gap-2">
-              <span className="text-muted-foreground font-mono text-xs">
+              <span className="text-muted-foreground font-ui text-xs">
                 expires in {hoursLeft(invite.expiresAt)}h
               </span>
-              <BracketButton
+              <TextButton
                 variant="destructive"
                 onClick={() => cancel(invite.id)}
                 disabled={pending}
               >
                 cancel
-              </BracketButton>
+              </TextButton>
             </div>
           ))}
         </div>
       )}
 
-      {error && <span className="text-destructive font-mono text-xs">{error}</span>}
+      {error && <span className="text-destructive font-ui text-xs">{error}</span>}
     </div>
   );
 }

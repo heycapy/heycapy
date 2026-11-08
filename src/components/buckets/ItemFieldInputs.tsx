@@ -1,11 +1,10 @@
-import { Close } from "pixelarticons/react/Close.js";
-import { PixelIcon } from "@/components/ui/PixelIcon";
 import { useState } from "react";
 import { DatePicker } from "@/components/ui/DatePicker";
 import { TimeField, type Ampm } from "@/components/ui/TimeField";
 import { toH12, toH24 } from "@/lib/time";
 import type { FieldDef } from "@/types/rules";
 import { FIELD_INPUT } from "./constants";
+import { IconButton } from "@/components/ui/IconButton";
 
 export function NumberFieldInput({
   field,
@@ -49,7 +48,7 @@ export function NumberFieldInput({
         disabled={disabled}
         className={FIELD_INPUT}
       />
-      {errorMsg && <p className="text-destructive font-mono text-[11px]">{errorMsg}</p>}
+      {errorMsg && <p className="text-destructive font-ui text-2xs">{errorMsg}</p>}
     </div>
   );
 }
@@ -72,7 +71,7 @@ export function CurrencyFieldInput({
     <div className="flex flex-col gap-1">
       <div className="flex items-center gap-1">
         {field.currency && (
-          <span className="text-muted-foreground font-mono text-xs">{field.currency}</span>
+          <span className="text-muted-foreground font-ui text-xs">{field.currency}</span>
         )}
         <input
           type="text"
@@ -88,7 +87,7 @@ export function CurrencyFieldInput({
           className={`${FIELD_INPUT} flex-1`}
         />
       </div>
-      {isInvalid && <p className="text-destructive font-mono text-[11px]">invalid amount</p>}
+      {isInvalid && <p className="text-destructive font-ui text-2xs">invalid amount</p>}
     </div>
   );
 }
@@ -152,12 +151,7 @@ export function DatetimeFieldInput({
           />
         </div>
         {date && !disabled && (
-          <button
-            onClick={clear}
-            className="text-muted-foreground hover:text-destructive shrink-0 transition-colors"
-          >
-            <PixelIcon icon={Close} />
-          </button>
+          <IconButton icon="close" tone="destructive" onClick={clear} aria-label="clear date" />
         )}
       </div>
       {date && (
@@ -210,7 +204,7 @@ export function UrlFieldInput({
         className={FIELD_INPUT}
       />
       {hasError && (
-        <p className="text-destructive font-mono text-[11px]">must be a valid URL (https://...)</p>
+        <p className="text-destructive font-ui text-2xs">must be a valid URL (https://...)</p>
       )}
     </div>
   );

@@ -54,7 +54,11 @@ export function findTitleDate(title: string, now = new Date()): TitleDate | null
   if (!result) return null;
   const start = withLeadWord(title, result.index);
   const end = result.index + result.text.length;
-  const rest = `${title.slice(0, start)} ${title.slice(end)}`.replace(/\s+/g, " ").trim();
+  const rest = `${title.slice(0, start)} ${title.slice(end)}`
+    .split("\n")
+    .map((line) => line.replace(/\s+/g, " ").trim())
+    .filter(Boolean)
+    .join("\n");
   if (!rest) return null;
   return { start, end, title: rest, deadline: toDeadline(result, now) };
 }

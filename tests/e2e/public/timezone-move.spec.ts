@@ -19,7 +19,7 @@ function savedTimezone(email: string): string {
 test("someone with no buckets yet gets their browser's timezone saved", async ({ page }) => {
   const email = uniqueEmail("e2e-tz-new");
   await login(page, email);
-  await expect(page.getByRole("button", { name: "···" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "your menu", exact: true })).toBeVisible();
 
   await expect.poll(() => savedTimezone(email)).toBe("Europe/London");
 });
@@ -51,7 +51,7 @@ test("someone on another clock can move their reminders to it", async ({ page })
   await expect(notice(page)).toHaveCount(0);
   await expect.poll(() => savedTimezone(email)).toBe("Europe/London");
   await page.reload();
-  await expect(page.getByRole("button", { name: "···" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "your menu", exact: true })).toBeVisible();
   await expect(notice(page)).toHaveCount(0);
 });
 
@@ -62,7 +62,7 @@ test("someone who keeps their clock isn't asked again in that place", async ({ p
 
   await expect(notice(page)).toHaveCount(0);
   await page.reload();
-  await expect(page.getByRole("button", { name: "···" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "your menu", exact: true })).toBeVisible();
   await expect(notice(page)).toHaveCount(0);
   expect(savedTimezone(email)).toBe("Asia/Kolkata");
 });

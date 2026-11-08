@@ -1,20 +1,16 @@
-import { Archive } from "pixelarticons/react/Archive.js";
-import { Logout } from "pixelarticons/react/Logout.js";
-import { Map as MapIcon } from "pixelarticons/react/Map.js";
-import { Message } from "pixelarticons/react/Message.js";
-import { SlidersHorizontal } from "pixelarticons/react/SlidersHorizontal.js";
-import { Megaphone } from "pixelarticons/react/Megaphone.js";
-import { Trash } from "pixelarticons/react/Trash.js";
-import { UserPlus } from "pixelarticons/react/UserPlus.js";
-import { PixelIcon } from "@/components/ui/PixelIcon";
-import { useMemo, useRef, useState, type ReactNode } from "react";
+import { Icon } from "@/components/ui/Icon";
+import { useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { BetaTag } from "@/components/ui/BetaTag";
-import { BracketButton } from "@/components/ui/BracketButton";
+import { TextButton } from "@/components/ui/TextButton";
+import { useAssistantName } from "@/components/capy/assistant-name";
+import { useLayoutStore } from "@/store/layout";
 import { logoutAction, logoutEverywhereAction } from "@/app/(app)/actions";
+import { clearSignedInState } from "@/store/signedOut";
 import { Modal, ModalTitle } from "@/components/ui/Modal";
 import { cn } from "@/lib/utils";
 import { PersonAvatar } from "@/components/avatar/PersonAvatar";
+import { MenuItem, MenuSeparator } from "@/components/ui/MenuItem";
+import { MENU_SURFACE } from "@/components/ui/constants";
 
 type HeaderProps = {
   email: string;
@@ -29,24 +25,8 @@ type HeaderProps = {
   unseenRelease: boolean;
   onGuideOpen: () => void;
   guideProgress: string;
-  guideButton: ReactNode;
+  guideUnfinished: boolean;
 };
-
-function getGreeting() {
-  const h = new Date().getHours();
-  if (h >= 5 && h < 12) return "Good morning";
-  if (h >= 12 && h < 17) return "Good afternoon";
-  if (h >= 17 && h < 22) return "Good evening";
-  return "Good night";
-}
-
-function getDate() {
-  return new Date().toLocaleDateString("en-US", {
-    weekday: "long",
-    month: "long",
-    day: "numeric",
-  });
-}
 
 type LogoutScope = "here" | "everywhere";
 
@@ -73,18 +53,18 @@ function LogoutConfirm({
     <Modal
       open
       onClose={onCancel}
-      className="top-1/2 w-auto max-w-[calc(100%-2rem)] min-w-[220px] -translate-y-1/2 shadow-[3px_3px_0_var(--border)] sm:top-1/2"
+      className="shadow-raised top-1/2 w-auto max-w-[calc(100%-2rem)] min-w-[220px] -translate-y-1/2 sm:top-1/2"
     >
-      <div className="bg-background border-border border-2 p-5">
+      <div className="bg-background border-border rounded-panel border-frame p-5">
         <ModalTitle className="mb-1 text-sm">{copy.title}</ModalTitle>
-        <p className="text-muted-foreground mb-4 font-mono text-xs">{copy.body}</p>
+        <p className="text-muted-foreground font-ui mb-4 text-xs">{copy.body}</p>
         <div className="flex gap-2">
-          <BracketButton onClick={onConfirm} variant="destructive" className="px-2 py-1">
+          <TextButton onClick={onConfirm} variant="destructive" className="px-2 py-1">
             {copy.action}
-          </BracketButton>
-          <BracketButton onClick={onCancel} className="px-2 py-1">
+          </TextButton>
+          <TextButton onClick={onCancel} className="px-2 py-1">
             cancel
-          </BracketButton>
+          </TextButton>
         </div>
       </div>
     </Modal>
@@ -92,11 +72,18 @@ function LogoutConfirm({
 }
 
 function NewDot({ className }: { className?: string }) {
-  return <span aria-hidden className={cn("bg-primary size-1.5 shrink-0", className)} />;
+  return (
+    <span
+      aria-hidden
+      className={cn("bg-primary size-1.5 shrink-0 rounded-(--dot-radius)", className)}
+    />
+  );
 }
 
 function GlobalMenu({
   email,
+  userId,
+  avatar,
   onSettings,
   onArchive,
   onTrash,
@@ -108,6 +95,8 @@ function GlobalMenu({
   guideProgress,
 }: {
   email: string;
+  userId: number;
+  avatar: string | null;
   onSettings: () => void;
   onArchive: () => void;
   onTrash: () => void;
@@ -141,18 +130,28 @@ function GlobalMenu({
   return (
     <>
       <div ref={containerRef} className="relative">
-        <BracketButton ref={triggerRef} onClick={toggle} className="px-1 py-1.5">
-          ···
-        </BracketButton>
-        {unseenRelease && <NewDot className="absolute top-1 right-0" />}
+        <button
+          ref={triggerRef}
+          type="button"
+          onClick={toggle}
+          aria-label="your menu"
+          aria-haspopup="menu"
+          aria-expanded={open}
+          className="flex p-1.5"
+        >
+          <span role="img" aria-label="your avatar" className="flex">
+            <PersonAvatar userId={userId} avatar={avatar} size={32} />
+          </span>
+        </button>
       </div>
 
       {confirmLogout && (
         <LogoutConfirm
           scope={confirmLogout}
-          onConfirm={() =>
-            void (confirmLogout === "everywhere" ? logoutEverywhereAction() : logoutAction())
-          }
+          onConfirm={() => {
+            clearSignedInState();
+            void (confirmLogout === "everywhere" ? logoutEverywhereAction() : logoutAction());
+          }}
           onCancel={() => setConfirmLogout(null)}
         />
       )}
@@ -162,62 +161,44 @@ function GlobalMenu({
           <>
             <div className="fixed inset-0 z-30" onClick={() => setOpen(false)} />
             <div
-              className="bg-background border-border fixed z-40 w-max max-w-[calc(100vw-2rem)] min-w-44 border-2 py-1 whitespace-nowrap"
+              className={cn(
+                MENU_SURFACE,
+                "fixed z-40 w-max max-w-[calc(100vw-2rem)] min-w-44 py-1 whitespace-nowrap"
+              )}
               style={{
                 top: pos.top,
                 left: pos.left,
                 transform: "translateX(-100%)",
-                boxShadow: "2px 2px 0 var(--border)",
               }}
             >
-              <div className="text-muted-foreground border-border mb-1 max-w-64 truncate border-b px-3 pt-0.5 pb-1.5 font-mono text-xs">
+              <div className="text-muted-foreground font-ui max-w-64 truncate px-3 pt-0.5 pb-1.5 text-xs">
                 {email}
               </div>
-              <button
-                onClick={() => pick(onSettings)}
-                className="text-foreground hover:bg-muted flex w-full items-center gap-2.5 px-3 py-2 font-mono text-xs transition-colors"
-              >
-                <PixelIcon icon={SlidersHorizontal} />
+              <MenuSeparator className="mt-0" />
+              <MenuItem onClick={() => pick(onSettings)} className="gap-2.5 py-2">
+                <Icon name="sliders" />
                 tweaks
-              </button>
-              <button
-                onClick={() => pick(onJoin)}
-                className="text-foreground hover:bg-muted flex w-full items-center gap-2.5 px-3 py-2 font-mono text-xs transition-colors"
-              >
-                <PixelIcon icon={UserPlus} />
-                <span>
-                  join a bucket
-                  <BetaTag feature="sharing" />
-                </span>
-              </button>
-              <button
-                onClick={() => pick(onArchive)}
-                className="text-foreground hover:bg-muted flex w-full items-center gap-2.5 px-3 py-2 font-mono text-xs transition-colors"
-              >
-                <PixelIcon icon={Archive} />
+              </MenuItem>
+              <MenuItem onClick={() => pick(onJoin)} className="gap-2.5 py-2">
+                <Icon name="user-plus" />
+                <span>join a bucket</span>
+              </MenuItem>
+              <MenuItem onClick={() => pick(onArchive)} className="gap-2.5 py-2">
+                <Icon name="archive" />
                 archived
-              </button>
-              <button
-                onClick={() => pick(onTrash)}
-                className="text-foreground hover:bg-muted flex w-full items-center gap-2.5 px-3 py-2 font-mono text-xs transition-colors"
-              >
-                <PixelIcon icon={Trash} />
+              </MenuItem>
+              <MenuItem onClick={() => pick(onTrash)} className="gap-2.5 py-2">
+                <Icon name="trash" />
                 trash
-              </button>
+              </MenuItem>
               {onFeedback && (
-                <button
-                  onClick={() => pick(onFeedback)}
-                  className="text-foreground hover:bg-muted flex w-full items-center gap-2.5 px-3 py-2 font-mono text-xs transition-colors"
-                >
-                  <PixelIcon icon={Message} />
+                <MenuItem onClick={() => pick(onFeedback)} className="gap-2.5 py-2">
+                  <Icon name="message" />
                   feedback
-                </button>
+                </MenuItem>
               )}
-              <button
-                onClick={() => pick(onWhatsNew)}
-                className="text-foreground hover:bg-muted flex w-full items-center gap-2.5 px-3 py-2 font-mono text-xs transition-colors"
-              >
-                <PixelIcon icon={Megaphone} />
+              <MenuItem onClick={() => pick(onWhatsNew)} className="gap-2.5 py-2">
+                <Icon name="megaphone" />
                 what&apos;s new
                 {unseenRelease && (
                   <>
@@ -225,35 +206,53 @@ function GlobalMenu({
                     <span className="sr-only">(new)</span>
                   </>
                 )}
-              </button>
-              <button
-                onClick={() => pick(onGuide)}
-                className="text-foreground hover:bg-muted flex w-full items-center gap-2.5 px-3 py-2 font-mono text-xs transition-colors"
-              >
-                <PixelIcon icon={MapIcon} />
+              </MenuItem>
+              <MenuItem onClick={() => pick(onGuide)} className="gap-2.5 py-2">
+                <Icon name="map" />
                 getting started
                 <span className="text-muted-foreground">{guideProgress}</span>
-              </button>
-              <div className="border-border my-1 border-t" />
-              <button
+              </MenuItem>
+              <MenuSeparator />
+              <MenuItem
+                tone="destructive"
                 onClick={() => pick(() => setConfirmLogout("here"))}
-                className="text-destructive hover:bg-muted flex w-full items-center gap-2.5 px-3 py-2 font-mono text-xs transition-colors"
+                className="gap-2.5 py-2"
               >
-                <PixelIcon icon={Logout} />
+                <Icon name="logout" />
                 logout
-              </button>
-              <button
+              </MenuItem>
+              <MenuItem
+                tone="destructive"
                 onClick={() => pick(() => setConfirmLogout("everywhere"))}
-                className="text-destructive hover:bg-muted flex w-full items-center gap-2.5 px-3 py-2 font-mono text-xs transition-colors"
+                className="gap-2.5 py-2"
               >
-                <PixelIcon icon={Logout} />
+                <Icon name="logout" />
                 logout everywhere
-              </button>
+              </MenuItem>
             </div>
           </>,
           document.body
         )}
     </>
+  );
+}
+
+function ChatButton() {
+  const name = useAssistantName();
+  const chatOpen = useLayoutStore((s) => s.chatState !== "closed");
+  const setChatState = useLayoutStore((s) => s.setChatState);
+  return (
+    <TextButton
+      variant="ghost"
+      icon="message"
+      iconLabel={`chat with ${name}`}
+      aria-label="chat with capy"
+      aria-expanded={chatOpen}
+      onClick={() => setChatState(chatOpen ? "closed" : "open")}
+      className={cn("max-w-32", chatOpen && "text-foreground")}
+    >
+      {name}
+    </TextButton>
   );
 }
 
@@ -270,38 +269,42 @@ export function Header({
   unseenRelease,
   onGuideOpen,
   guideProgress,
-  guideButton,
+  guideUnfinished,
 }: HeaderProps) {
-  const greeting = useMemo(() => getGreeting(), []);
-  const date = useMemo(() => getDate(), []);
-
   return (
-    <header className="mx-auto flex w-full max-w-6xl items-center justify-between px-5 pt-6 pb-2">
-      <div className="flex items-center gap-3">
-        <span role="img" aria-label="your avatar" className="flex">
-          <PersonAvatar userId={userId} avatar={avatar} size={32} />
-        </span>
-        <div>
-          <h1 className="font-pixel text-base leading-snug">{greeting}</h1>
-          <p className="text-muted-foreground mt-0.5 text-xs">{date}</p>
-        </div>
-      </div>
-
-      <div className="flex items-center gap-2">
-        {guideButton}
-        <GlobalMenu
-          email={email}
-          onSettings={onSettingsOpen}
-          onArchive={onArchiveOpen}
-          onTrash={onTrashOpen}
-          onJoin={onJoinOpen}
-          onFeedback={onFeedbackOpen}
-          onWhatsNew={onWhatsNewOpen}
-          unseenRelease={unseenRelease}
-          onGuide={onGuideOpen}
-          guideProgress={guideProgress}
-        />
-      </div>
+    <header className="max-w-column mx-auto flex w-full items-center justify-end gap-1 px-3 pt-2">
+      {guideUnfinished && (
+        <TextButton
+          variant="ghost"
+          onClick={onGuideOpen}
+          aria-label={`getting started ${guideProgress}`}
+        >
+          <Icon name="map" className="mr-1.5" />
+          <span className="hidden sm:inline">getting started&nbsp;</span>
+          {guideProgress}
+        </TextButton>
+      )}
+      {unseenRelease && (
+        <TextButton variant="ghost" onClick={onWhatsNewOpen}>
+          <NewDot className="mr-1.5" />
+          what&apos;s new
+        </TextButton>
+      )}
+      <ChatButton />
+      <GlobalMenu
+        email={email}
+        userId={userId}
+        avatar={avatar}
+        onSettings={onSettingsOpen}
+        onArchive={onArchiveOpen}
+        onTrash={onTrashOpen}
+        onJoin={onJoinOpen}
+        onFeedback={onFeedbackOpen}
+        onWhatsNew={onWhatsNewOpen}
+        unseenRelease={unseenRelease}
+        onGuide={onGuideOpen}
+        guideProgress={guideProgress}
+      />
     </header>
   );
 }

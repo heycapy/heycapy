@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { BracketButton } from "@/components/ui/BracketButton";
+import { TextButton } from "@/components/ui/TextButton";
+import { CloseButton } from "@/components/ui/CloseButton";
 import { restoreItemAction } from "@/app/(app)/actions";
 import { UNDO_DELETE_MS } from "./constants";
 
@@ -25,27 +26,26 @@ function UndoToast({
   }, [id]);
 
   return (
-    <div className="bg-background border-border text-foreground relative w-[356px] max-w-[calc(100vw-2rem)] overflow-hidden border-2 font-mono text-xs">
-      <div className="flex items-center gap-3 px-4 py-3">
+    // the toaster draws the frame, this fills it like any other toast
+    <div className="text-foreground font-ui min-w-0 text-xs">
+      <div className="flex items-center gap-3 pr-2">
         <span className="min-w-0 flex-1 truncate">deleted &quot;{title}&quot;</span>
         <span className="text-muted-foreground w-5 text-right text-xs tabular-nums">
           {Math.max(secondsLeft, 0)}s
         </span>
-        <BracketButton
+        <TextButton
           onClick={() => {
             toast.dismiss(id);
             onUndo();
           }}
         >
           undo
-        </BracketButton>
-        <BracketButton onClick={() => toast.dismiss(id)} aria-label="dismiss">
-          x
-        </BracketButton>
+        </TextButton>
+        <CloseButton onClick={() => toast.dismiss(id)} aria-label="dismiss" />
       </div>
       <div
         aria-hidden
-        className="bg-muted-foreground/50 h-0.5 origin-left"
+        className="bg-muted-foreground/50 absolute inset-x-0 bottom-0 h-0.5 origin-left"
         style={{ animation: `countdown ${UNDO_DELETE_MS}ms linear forwards` }}
       />
     </div>

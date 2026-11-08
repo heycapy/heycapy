@@ -1,0 +1,104 @@
+import { test, expect } from "@playwright/test";
+import Database from "better-sqlite3";
+import { authState, specUserEmail } from "../helpers/auth";
+import { createBucket, uniqueName } from "../helpers/buckets";
+import { E2E_DATABASE_FILE } from "../helpers/env";
+import { ICON_SETS } from "@/components/ui/icon-sets";
+
+test.use({ storageState: authState("look") });
+test.describe.configure({ mode: "serial" });
+
+function setLook(look: string) {
+  const db = new Database(E2E_DATABASE_FILE);
+  db.prepare(
+    "update user_settings set look = ? where user_id = (select id from users where email = ?)"
+  ).run(look, specUserEmail("look"));
+  db.close();
+}
+
+test.afterAll(() => setLook("original"));
+
+test("the page carries the look saved on the account, icons included", async ({ page }) => {
+  const searchIcon = page.getByRole("button", { name: "search" }).locator("svg");
+
+  setLook("original");
+  await page.goto("/");
+  await createBucket(page, uniqueName("look"));
+  await expect(page.locator("html")).toHaveAttribute("data-look", "original");
+  await expect(searchIcon).toHaveAttribute("width", String(ICON_SETS.pixel.size));
+
+  setLook("modern");
+  await page.reload();
+  await expect(page.locator("html")).toHaveAttribute("data-look", "modern");
+  await expect(searchIcon).toHaveAttribute("width", String(ICON_SETS.line.size));
+});
+
+test("keyboard focus shows the look's ring", async ({ page }) => {
+  const search = page.getByRole("button", { name: "search" });
+  const outline = () =>
+    search.evaluate((el) => {
+      const style = getComputedStyle(el);
+      return [style.outlineStyle, style.outlineWidth];
+    });
+
+  setLook("original");
+  await page.goto("/");
+  await search.focus();
+  expect(await outline()).toEqual(["auto", "1px"]);
+
+  setLook("modern");
+  await page.reload();
+  await search.focus();
+  expect(await outline()).toEqual(["solid", "2px"]);
+});
+
+test("the look is picked in tweaks and stays picked", async ({ page }) => {
+  const html = page.locator("html");
+  const searchIcon = page.getByRole("button", { name: "search" }).locator("svg");
+
+  setLook("original");
+  await page.goto("/");
+  await page.getByRole("button", { name: "your menu", exact: true }).click();
+  await page.getByRole("button", { name: "tweaks", exact: true }).click();
+  const tweaks = page.getByRole("dialog", { name: "tweaks" });
+
+  await tweaks.getByRole("button", { name: "modern", exact: true }).click();
+  await expect(html).toHaveAttribute("data-look", "modern");
+  await expect(searchIcon).toHaveAttribute("width", String(ICON_SETS.line.size));
+  await expect(tweaks.getByRole("button", { name: "modern", exact: true })).toHaveAttribute(
+    "aria-pressed",
+    "true"
+  );
+
+  await page.reload();
+  await expect(html).toHaveAttribute("data-look", "modern");
+
+  await page.getByRole("button", { name: "your menu", exact: true }).click();
+  await page.getByRole("button", { name: "tweaks", exact: true }).click();
+  await tweaks.getByRole("button", { name: "original", exact: true }).click();
+  await expect(html).toHaveAttribute("data-look", "original");
+  await expect(searchIcon).toHaveAttribute("width", String(ICON_SETS.pixel.size));
+});
+
+test("pages before login keep the original look under any account look", async ({ page }) => {
+  setLook("modern");
+  await page.goto("/join/NOTACODE");
+  await expect(page.locator("html")).toHaveAttribute("data-look", "modern");
+
+  const wrapper = page.locator("[data-look='original']");
+  await expect(wrapper).toBeVisible();
+  const kept = await wrapper.evaluate((el) => {
+    document.documentElement.style.setProperty("--panel-radius", "9px");
+    return getComputedStyle(el).getPropertyValue("--panel-radius");
+  });
+  expect(kept).toBe("0px");
+});
+
+test.describe("signed out", () => {
+  test.use({ storageState: { cookies: [], origins: [] } });
+
+  test("the page has the original look", async ({ page }) => {
+    await page.goto("/login");
+    await expect(page.locator("html")).toHaveAttribute("data-look", "original");
+  });
+});

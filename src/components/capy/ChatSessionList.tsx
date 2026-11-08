@@ -1,5 +1,5 @@
 import { useEffect, useState, useTransition } from "react";
-import { BracketButton } from "@/components/ui/BracketButton";
+import { TextButton } from "@/components/ui/TextButton";
 import {
   getChatSessionsAction,
   getChatMessagesAction,
@@ -93,60 +93,66 @@ export function ChatSessionList({
   return (
     <>
       <div className="border-border border-b px-4 py-2">
-        <BracketButton onClick={handleNewChat} disabled={pending}>
+        <TextButton onClick={handleNewChat} disabled={pending}>
           new chat
-        </BracketButton>
+        </TextButton>
       </div>
 
       <div className="flex flex-1 flex-col overflow-y-auto">
         {loading ? (
-          <p className="text-muted-foreground px-4 py-6 text-center font-mono text-xs">
-            loading...
-          </p>
+          <p className="text-muted-foreground font-ui px-4 py-6 text-center text-xs">loading...</p>
         ) : sessions.length === 0 ? (
-          <p className="text-muted-foreground px-4 py-6 text-center font-mono text-xs">
+          <p className="text-muted-foreground font-ui px-4 py-6 text-center text-xs">
             no history yet
           </p>
         ) : (
-          <div className="divide-border divide-y">
+          <div className="divide-border divide-y-(length:--menu-row-divider) p-(--menu-inset)">
             {sessions.map((s) => (
               <div
                 key={s.id}
                 aria-current={s.id === activeId ? "true" : undefined}
-                className={cn("flex items-center gap-3 px-4 py-3", s.id === activeId && "bg-muted")}
+                className={cn(
+                  "rounded-control flex items-center gap-3 px-4 py-3",
+                  s.id === activeId && "bg-muted"
+                )}
               >
                 <div className="min-w-0 flex-1">
-                  <p className="truncate font-mono text-xs">{s.title}</p>
-                  <p className="text-muted-foreground mt-0.5 font-mono text-xs">
+                  <p className="font-ui truncate text-xs">{s.title}</p>
+                  <p className="text-muted-foreground font-ui mt-0.5 text-xs">
                     {relativeDate(s.updatedAt)}
                   </p>
                 </div>
                 <div className="flex shrink-0 gap-2">
                   {confirmingId === s.id ? (
                     <>
-                      <BracketButton
+                      <TextButton
                         variant="destructive"
                         onClick={() => handleDelete(s.id)}
                         disabled={pending}
                       >
                         confirm
-                      </BracketButton>
-                      <BracketButton onClick={() => setConfirmingId(null)} disabled={pending}>
+                      </TextButton>
+                      <TextButton onClick={() => setConfirmingId(null)} disabled={pending}>
                         cancel
-                      </BracketButton>
+                      </TextButton>
                     </>
                   ) : (
                     <>
-                      <BracketButton onClick={() => handleLoad(s.id)} disabled={pending}>
+                      <TextButton
+                        variant="ghost"
+                        onClick={() => handleLoad(s.id)}
+                        disabled={pending}
+                      >
                         load
-                      </BracketButton>
-                      <BracketButton
+                      </TextButton>
+                      <TextButton
+                        icon="trash"
                         variant="destructive"
                         onClick={() => setConfirmingId(s.id)}
                         disabled={pending}
                       >
                         delete
-                      </BracketButton>
+                      </TextButton>
                     </>
                   )}
                 </div>

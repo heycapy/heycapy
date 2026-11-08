@@ -12,19 +12,19 @@ export const GUIDE_TASKS = [
     key: "add_item",
     title: "add a reminder",
     credits: 2,
-    hint: "type what to remember and press add",
+    hint: "type what to remember in the add box and press enter",
   },
   {
     key: "add_date",
     title: "give a reminder a date",
     credits: 2,
-    hint: 'type a date in the title like "friday 9am", or pick one under the title',
+    hint: 'type a date after the title, like "call mum friday 9am"',
   },
   {
     key: "complete_item",
     title: "tick a reminder done",
     credits: 2,
-    hint: "tap the dot next to a reminder and pick completed",
+    hint: "tap the box next to a reminder to tick it done",
   },
   {
     key: "reminder_time",
@@ -50,7 +50,12 @@ export const GUIDE_TASKS = [
     credits: 4,
     hint: "make an invite code and send it to them",
   },
-  { key: "theme", title: "pick a theme", credits: 2, hint: "pick any theme you like" },
+  {
+    key: "theme",
+    title: "pick a theme and look",
+    credits: 2,
+    hint: "pick any theme or look you like",
+  },
   {
     key: "username",
     title: "change your username",

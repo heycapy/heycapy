@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Modal } from "@/components/ui/Modal";
+import { SidePanel } from "@/components/ui/SidePanel";
+import { ACCENT_BUTTONS } from "@/components/layout/settings-constants";
 import { BucketSettingsForm, type SettingsTab } from "./BucketSettingsForm";
 import { SchemaEditorDialog } from "./SchemaEditorDialog";
 import { TelegramConfigDialog } from "./TelegramConfigDialog";
@@ -27,7 +28,14 @@ export function BucketSettings({
 
   return (
     <>
-      <Modal open={open} onClose={onClose}>
+      <SidePanel
+        open={open}
+        onClose={onClose}
+        title="bucket settings"
+        context={bucket.name}
+        narrow="sheet"
+        className={ACCENT_BUTTONS}
+      >
         <BucketSettingsForm
           bucket={bucket}
           clocksDiffer={clocksDiffer}
@@ -37,7 +45,7 @@ export function BucketSettings({
           onOpenTelegram={() => setTelegramOpen(true)}
           onOpenWebhook={() => setWebhookOpen(true)}
         />
-      </Modal>
+      </SidePanel>
       <SchemaEditorDialog open={schemaOpen} bucket={bucket} onClose={() => setSchemaOpen(false)} />
       <TelegramConfigDialog
         open={telegramOpen}

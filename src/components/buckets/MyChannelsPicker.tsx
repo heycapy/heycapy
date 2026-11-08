@@ -11,7 +11,7 @@ export type NotifAvailability = {
   webhooks: { id: number; name: string }[];
 };
 
-const WARNING = "text-warning font-mono text-[11px]";
+const WARNING = "text-warning font-ui text-2xs";
 
 type MyChannelsPickerProps = {
   mediums: NotificationMedium[];

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { BracketButton } from "@/components/ui/BracketButton";
+import { TextButton } from "@/components/ui/TextButton";
 import { getWebhooksAction, type OutgoingWebhook } from "@/app/(app)/actions";
 import { chatWebhookApp } from "@/lib/notifications/webhook-app";
 import { MAX_OUTGOING_WEBHOOKS } from "@/constants";
@@ -65,15 +65,15 @@ export function WebhookSettings() {
             className="border-border flex items-center justify-between gap-3 border-b pb-2"
           >
             <div className="flex min-w-0 flex-col">
-              <span className="truncate font-mono text-xs">{webhook.name}</span>
+              <span className="font-ui truncate text-xs">{webhook.name}</span>
               <span className={`${HINT} truncate`}>
                 {destination(webhook.url)}
                 {webhook.isDefault && " · on by default"}
               </span>
             </div>
-            <BracketButton type="button" onClick={() => setOpen(webhook.id)}>
+            <TextButton type="button" onClick={() => setOpen(webhook.id)}>
               edit
-            </BracketButton>
+            </TextButton>
           </div>
         )
       )}
@@ -81,9 +81,9 @@ export function WebhookSettings() {
         <WebhookForm webhook={null} onSaved={saved} onClose={() => setOpen(null)} />
       )}
       {webhooks && open !== "new" && webhooks.length < MAX_OUTGOING_WEBHOOKS && (
-        <BracketButton type="button" onClick={() => setOpen("new")} className="self-start">
+        <TextButton type="button" onClick={() => setOpen("new")} className="self-start">
           add app +
-        </BracketButton>
+        </TextButton>
       )}
     </div>
   );

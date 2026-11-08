@@ -80,12 +80,12 @@ export function ItemTimeHints({
         />
       )}
       {preview && (
-        <p className="text-muted-foreground font-mono text-[11px]" data-testid="time-preview">
+        <p className="text-muted-foreground font-ui text-2xs" data-testid="time-preview">
           {preview}
         </p>
       )}
       {warnings.map((hint) => (
-        <p key={hint.name} role="status" className="text-warning font-mono text-[11px]">
+        <p key={hint.name} role="status" className="text-warning font-ui text-2xs">
           ⚠ {hintText(hint)}
         </p>
       ))}

@@ -1,11 +1,11 @@
-import { MoreHorizontal } from "pixelarticons/react/MoreHorizontal.js";
-import { MoreVertical } from "pixelarticons/react/MoreVertical.js";
-import { WarningDiamond } from "pixelarticons/react/WarningDiamond.js";
-import { PixelIcon } from "@/components/ui/PixelIcon";
+import { Icon } from "@/components/ui/Icon";
+import { Tooltip } from "@/components/ui/Tooltip";
 import { formatShortTime } from "@/lib/format-date";
-import { ITEM_STATUS } from "@/constants";
-import { ITEM_HIGHLIGHT_MS } from "./constants";
-import { StatusPicker, type StatusAnchor } from "./StatusPicker";
+import { ITEM_STATUS, TITLE_LINES_SHOWN } from "@/constants";
+import { ITEM_HIGHLIGHT_MS, JUST_ADDED_MS } from "./constants";
+import { useUIStore } from "@/store/ui";
+import { TickBox } from "./TickBox";
+import { completionToggle } from "./completion";
 import { useEffect, useRef, useState } from "react";
 import type { DragControls } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -19,6 +19,8 @@ import { parseRecurring } from "@/lib/items/occurrence";
 import { repeatLabel } from "@/lib/items/repeat-label";
 import { PersonAvatar } from "@/components/avatar/PersonAvatar";
 import { ItemDue } from "./ItemDue";
+import { MODAL_PANEL_SELECTOR } from "@/components/ui/constants";
+import { IconButton } from "@/components/ui/IconButton";
 
 export type ItemAssignee = { userId: number; name: string; avatar: string | null; isYou: boolean };
 
@@ -38,6 +40,7 @@ type ItemRowProps = {
   // The time on another clock that matters for this item, e.g. "9am for Sam"
   otherClock?: string;
   bucket?: { name: string; color: string };
+  color?: string;
   // Off when no item in the list has a date, so a list of notes has no empty column
   showDue?: boolean;
   // A bucket with more than one member says "anyone" on items nobody is assigned to
@@ -103,32 +106,41 @@ export function ItemRow({
   assignee,
   otherClock,
   bucket,
+  color = "var(--muted-foreground)",
   showDue = true,
   shared = false,
   tickedBy,
   onMenu,
 }: ItemRowProps) {
-  const [pickerAnchor, setPickerAnchor] = useState<StatusAnchor | null>(null);
   const [reminderOpen, setReminderOpen] = useState(false);
-  // The dot itself, not its button: the button is as tall as the row
-  const dotRef = useRef<HTMLSpanElement>(null);
   const rowRef = useRef<HTMLDivElement>(null);
   const anchor = `item-${item.id}`;
-  const [highlighted, setHighlighted] = useState(() => window.location.hash === `#${anchor}`);
+  const highlighted = useUIStore((s) => s.highlightedItemId === item.id);
+  const clearHighlight = useUIStore((s) => s.clearHighlight);
+  const justAdded = useUIStore((s) => s.lastAddedItemId === item.id);
+  const clearAdded = useUIStore((s) => s.clearAdded);
+
+  useEffect(() => {
+    if (!justAdded) return;
+    rowRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    const fade = setTimeout(() => clearAdded(item.id), JUST_ADDED_MS);
+    return () => clearTimeout(fade);
+  }, [justAdded, clearAdded, item.id]);
 
   useEffect(() => {
     if (!highlighted) return;
     rowRef.current?.scrollIntoView({ block: "center" });
-    window.history.replaceState(null, "", window.location.pathname + window.location.search);
-    const fade = setTimeout(() => setHighlighted(false), ITEM_HIGHLIGHT_MS);
+    const fade = setTimeout(() => clearHighlight(item.id), ITEM_HIGHLIGHT_MS);
     return () => clearTimeout(fade);
-  }, [highlighted]);
+  }, [highlighted, clearHighlight, item.id]);
   const due = item.deadline ? itemDeadline(item.deadline, item.deadlineTimezone) : null;
   const isCompleted = item.status === ITEM_STATUS.completed;
   const isMissed = item.status === ITEM_STATUS.missed;
   const remindAgain = remindAgainLabel(item);
   const recurringFreq = getRecurringFrequency(item.recurring);
-  const dotColor = statuses.find((s) => s.name === item.status)?.color ?? "var(--muted-foreground)";
+  const allLines = item.title.split("\n").filter((line) => line.trim());
+  const titleLines = allLines.slice(0, TITLE_LINES_SHOWN);
+  const moreLines = allLines.length > TITLE_LINES_SHOWN;
   const badges = fields ? getShowInRowBadges(fields, item.properties) : [];
   const meta = [
     otherClock && <span key="clock">({otherClock})</span>,
@@ -160,64 +172,38 @@ export function ItemRow({
     item.notifiedAt && <span key="notified">notified</span>,
   ].filter((part) => !!part);
 
-  function openPicker() {
-    if (!dotRef.current) return;
-    const rect = dotRef.current.getBoundingClientRect();
-    setPickerAnchor({ top: rect.top, bottom: rect.bottom, left: rect.left });
-  }
-
   return (
     <div
       ref={rowRef}
       id={anchor}
+      data-just-added={justAdded || undefined}
+      data-editing={isEditing || undefined}
       className={cn(
         "group/row flex items-stretch gap-0 px-3 transition-colors duration-1000",
+        justAdded && "bg-primary/8",
         highlighted && "bg-primary/15",
         isEditing && "bg-muted/20",
         menuOpen && "bg-card duration-0",
-        (isCompleted || isMissed) && "opacity-60"
+        (isCompleted || isMissed) && "opacity-45"
       )}
     >
       {dragControls && (
-        <button
-          className="text-muted-foreground/40 hover:text-muted-foreground flex shrink-0 cursor-grab touch-none items-center justify-center pr-2.5 transition-colors active:cursor-grabbing"
+        <IconButton
+          icon="grip"
+          className="text-muted-foreground/60 flex cursor-grab touch-none items-center justify-center pr-2.5 active:cursor-grabbing"
           onPointerDown={(e) => dragControls.start(e)}
           aria-label="drag to reorder"
-        >
-          <PixelIcon icon={MoreVertical} />
-        </button>
-      )}
-
-      <button
-        onClick={onStatusChange ? openPicker : undefined}
-        aria-label={`status: ${item.status}`}
-        className={cn(
-          "-ml-1.5 flex shrink-0 items-center justify-center pr-3 pl-1.5",
-          onStatusChange ? "cursor-pointer" : "cursor-default"
-        )}
-      >
-        <span
-          ref={dotRef}
-          className={cn(
-            "h-2 w-2 rounded-full transition-opacity",
-            onStatusChange && "hover:opacity-60"
-          )}
-          style={{ backgroundColor: dotColor }}
-        />
-      </button>
-
-      {pickerAnchor && onStatusChange && (
-        <StatusPicker
-          current={item.status}
-          statuses={statuses}
-          anchor={pickerAnchor}
-          onSelect={(s) => {
-            onStatusChange(s);
-            setPickerAnchor(null);
-          }}
-          onClose={() => setPickerAnchor(null)}
         />
       )}
+
+      <TickBox
+        title={item.title}
+        checked={isCompleted}
+        color={color}
+        onToggle={
+          onStatusChange && (() => onStatusChange(completionToggle(item.status, statuses).next))
+        }
+      />
 
       <button
         onClick={() => onEditStart?.()}
@@ -225,19 +211,21 @@ export function ItemRow({
       >
         <span className="min-w-0 flex-1">
           <span
-            className={cn(
-              "block truncate text-sm",
-              isCompleted && "text-muted-foreground line-through"
-            )}
+            className={cn("block text-sm", isCompleted && "text-muted-foreground line-through")}
           >
-            {item.title}
+            {titleLines.map((line, i) => (
+              <span key={i} className="block truncate">
+                {line}
+                {i === titleLines.length - 1 && moreLines && " …"}
+              </span>
+            ))}
           </span>
           {badges.length > 0 && (
             <span className="mt-0.5 flex flex-wrap gap-1">
               {badges.map((b) => (
                 <span
                   key={b.label}
-                  className="border-border text-muted-foreground border px-1 py-1 font-mono text-[11px] [text-box:trim-both_cap_alphabetic]"
+                  className="rounded-control border-border text-muted-foreground font-ui text-2xs border px-1 py-1 [text-box:trim-both_cap_alphabetic]"
                 >
                   {b.label}: {b.value}
                 </span>
@@ -245,7 +233,7 @@ export function ItemRow({
             </span>
           )}
           {meta.length > 0 && (
-            <span className="text-muted-foreground mt-0.5 flex flex-wrap items-center gap-x-1 gap-y-0.5 font-mono text-xs *:whitespace-nowrap">
+            <span className="text-muted-foreground font-ui mt-0.5 flex flex-wrap items-center gap-x-1 gap-y-0.5 text-xs *:whitespace-nowrap">
               {meta.map((part, i) => (
                 <span key={part.key} className="flex items-center gap-1">
                   {i > 0 && <span aria-hidden>·</span>}
@@ -255,7 +243,7 @@ export function ItemRow({
             </span>
           )}
           {remindAgain && (
-            <span className="text-foreground/80 mt-0.5 block font-mono text-xs">{remindAgain}</span>
+            <span className="text-foreground/80 font-ui mt-0.5 block text-xs">{remindAgain}</span>
           )}
         </span>
         {showDue && <ItemDue due={due} status={item.status} />}
@@ -263,33 +251,37 @@ export function ItemRow({
 
       {/* Only a failed send shows in the row; everything else about reminders is in the menu */}
       {reminderBadge === "failed" && (
-        <button
-          type="button"
-          onClick={() => setReminderOpen(true)}
-          aria-label="reminder failed"
-          title="reminder failed"
-          className="text-destructive flex shrink-0 items-center pl-2 transition-opacity hover:opacity-70"
-        >
-          <PixelIcon icon={WarningDiamond} />
-        </button>
+        <Tooltip text="reminder failed" className="shrink-0">
+          <button
+            type="button"
+            onClick={() => setReminderOpen(true)}
+            aria-label="reminder failed"
+            className="text-destructive flex items-center pl-2 transition-opacity hover:opacity-70"
+          >
+            <Icon name="warning" />
+          </button>
+        </Tooltip>
       )}
       {onMenu && (
-        <button
-          type="button"
+        <IconButton
+          icon="more"
           onClick={(e) => {
             const rect = e.currentTarget.getBoundingClientRect();
-            onMenu({ x: rect.left, top: rect.top, bottom: rect.bottom });
+            onMenu({
+              x: rect.left,
+              top: rect.top,
+              bottom: rect.bottom,
+              within: e.currentTarget.closest<HTMLElement>(MODAL_PANEL_SELECTOR),
+            });
           }}
           aria-label="item menu"
           className={cn(
-            "text-muted-foreground hover:text-foreground -mr-3 flex shrink-0 items-center px-3 transition-[color,opacity]",
+            "-mr-3 flex items-center px-3 transition-[color,opacity]",
             // Mouse users see it on hover, touch screens always; right-click and long-press open it too
             !menuOpen &&
               "[@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover/row:opacity-100 [@media(hover:hover)]:focus-visible:opacity-100"
           )}
-        >
-          <PixelIcon icon={MoreHorizontal} />
-        </button>
+        />
       )}
       {reminderOpen && (
         <ReminderInfoDialog

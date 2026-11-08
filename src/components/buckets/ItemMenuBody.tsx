@@ -1,10 +1,10 @@
-import { useState, type ReactNode } from "react";
+import { useState, type ComponentProps, type ReactNode } from "react";
 import { toast } from "sonner";
-import { ChevronRight } from "pixelarticons/react/ChevronRight.js";
 import { cn } from "@/lib/utils";
 import { Calendar } from "@/components/ui/Calendar";
-import { BracketButton } from "@/components/ui/BracketButton";
-import { PixelIcon } from "@/components/ui/PixelIcon";
+import { TextButton } from "@/components/ui/TextButton";
+import { CloseButton } from "@/components/ui/CloseButton";
+import { Icon } from "@/components/ui/Icon";
 import { clockTime, formatShort, formatWeekdayDate } from "@/lib/format-date";
 import { deadlineDate, itemDeadline } from "@/lib/time";
 import { deadlineOn, quickDates } from "@/lib/items/quick-dates";
@@ -14,6 +14,7 @@ import type { ReminderBadge } from "@/lib/reminders/status";
 import { ItemReminderInfo } from "./ItemReminderInfo";
 import { AssignChips, AssignList } from "./ItemMenuAssign";
 import type { ItemMenuProps } from "./ItemMenu";
+import { MenuItem, MenuSection } from "@/components/ui/MenuItem";
 
 type View = "main" | "date" | "people" | "reminders";
 
@@ -26,30 +27,9 @@ const VIEW_LABEL: Record<Exclude<View, "main">, string> = {
 function MenuButton({
   label,
   className,
-  onClick,
-  disabled,
-  children,
-}: {
-  label?: string;
-  className?: string;
-  onClick: () => void;
-  disabled?: boolean;
-  children: ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      aria-label={label}
-      onClick={onClick}
-      disabled={disabled}
-      className={cn(
-        "hover:bg-muted flex w-full items-center gap-4 px-3 py-2.5 text-left font-mono text-xs transition-colors disabled:opacity-50 sm:py-2",
-        className
-      )}
-    >
-      {children}
-    </button>
-  );
+  ...props
+}: ComponentProps<typeof MenuItem> & { label?: string }) {
+  return <MenuItem aria-label={label} className={cn("gap-4", className)} {...props} />;
 }
 
 // Swiping is touch only, so only touch screens are told about it
@@ -88,7 +68,6 @@ export function MenuBody({
   const recurring = parseRecurring(item.recurring);
   const repeat = recurring?.enabled && item.deadline ? repeatLabel(recurring) : null;
   const current = item.deadline ? itemDeadline(item.deadline, item.deadlineTimezone).at : null;
-  const section = "border-border border-t border-dashed py-1";
 
   function run(action: () => void) {
     onClose();
@@ -136,64 +115,62 @@ export function MenuBody({
         <div className="min-w-0 flex-1">
           <p className="text-foreground truncate text-sm">{item.title}</p>
           {repeat && (
-            <p className="text-muted-foreground mt-0.5 font-mono text-[11px]">
+            <p className="text-muted-foreground font-ui text-2xs mt-0.5">
               ↺ {repeat} · moves only this time
             </p>
           )}
         </div>
-        <BracketButton onClick={onClose} aria-label="close menu" className="-my-1 px-3 py-1.5">
-          x
-        </BracketButton>
+        <CloseButton onClick={onClose} aria-label="close menu" className="-my-1 px-3 py-1.5" />
       </div>
 
       {view !== "main" && (
-        <div className={cn(section, "flex items-center gap-2 px-3")}>
-          <BracketButton onClick={() => setView("main")} className="py-1.5">
+        <MenuSection className="flex items-center gap-2 px-3">
+          <TextButton icon="arrow-left" onClick={() => setView("main")} className="py-1.5">
             back
-          </BracketButton>
-          <span className="text-muted-foreground font-mono text-xs">{VIEW_LABEL[view]}</span>
-        </div>
+          </TextButton>
+          <span className="text-muted-foreground font-ui text-xs">{VIEW_LABEL[view]}</span>
+        </MenuSection>
       )}
 
       {view === "date" && (
-        <div className={cn(section, "px-3 pt-1 pb-3")}>
+        <MenuSection className="px-3 pt-1 pb-3">
           <Calendar
             value={current ? deadlineDate(current.toISOString()) : ""}
             onSelect={(date) => void move(deadlineOn(date, current))}
           />
-        </div>
+        </MenuSection>
       )}
 
       {view === "people" && assign && (
-        <div className={section}>
+        <MenuSection>
           <AssignList
             members={assign.members}
             assigneeId={assigneeId}
             busy={assigning}
             onAssign={(userId) => void assignTo(userId)}
           />
-        </div>
+        </MenuSection>
       )}
 
       {view === "reminders" && (
-        <div className={cn(section, "max-h-[50dvh] overflow-y-auto overscroll-contain px-3 py-2")}>
+        <MenuSection className="max-h-[50dvh] overflow-y-auto overscroll-contain px-3 py-2">
           <ItemReminderInfo itemId={item.id} />
-        </div>
+        </MenuSection>
       )}
 
       {view === "main" && (
         <>
           {!readonly && (
-            <div className={section}>
+            <MenuSection>
               <MenuButton onClick={() => run(onComplete)}>
                 <span className="text-foreground">{completeLabel}</span>
                 <SwipeHint>swipe →</SwipeHint>
               </MenuButton>
-            </div>
+            </MenuSection>
           )}
 
           {!readonly && (
-            <div className={section}>
+            <MenuSection>
               {quickDates(current).map((option) => {
                 const day = formatWeekdayDate(option.at);
                 const time = option.allDay ? "all day" : clockTime(option.at);
@@ -212,13 +189,13 @@ export function MenuBody({
               })}
               <MenuButton onClick={() => setView("date")}>
                 <span className="text-foreground flex-1">pick a date…</span>
-                <PixelIcon icon={ChevronRight} className="text-muted-foreground" />
+                <Icon name="chevron-right" className="text-muted-foreground" />
               </MenuButton>
-            </div>
+            </MenuSection>
           )}
 
           {!readonly && assign && (
-            <div className={section}>
+            <MenuSection>
               <AssignChips
                 members={assign.members}
                 assigneeId={assigneeId}
@@ -226,34 +203,34 @@ export function MenuBody({
                 onAssign={(userId) => void assignTo(userId)}
                 onMore={() => setView("people")}
               />
-            </div>
+            </MenuSection>
           )}
 
           {!readonly && (
-            <div className={section}>
+            <MenuSection>
               <MenuButton onClick={() => setView("reminders")}>
                 <span className="text-foreground flex-1">reminders</span>
                 <span className="text-muted-foreground">
                   {reminderState(reminderBadge, nextReminderAt)}
                 </span>
-                <PixelIcon icon={ChevronRight} className="text-muted-foreground" />
+                <Icon name="chevron-right" className="text-muted-foreground" />
               </MenuButton>
-            </div>
+            </MenuSection>
           )}
 
-          <div className={section}>
+          <MenuSection>
             <MenuButton onClick={() => void copyTitle()}>
               <span className="text-foreground">copy title</span>
             </MenuButton>
-          </div>
+          </MenuSection>
 
           {!readonly && (
-            <div className={section}>
-              <MenuButton onClick={() => run(onDelete)} className="text-destructive">
+            <MenuSection>
+              <MenuButton onClick={() => run(onDelete)} tone="destructive">
                 delete
                 <SwipeHint>← swipe</SwipeHint>
               </MenuButton>
-            </div>
+            </MenuSection>
           )}
         </>
       )}

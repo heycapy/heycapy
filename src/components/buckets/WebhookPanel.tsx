@@ -1,14 +1,13 @@
-import { Eye } from "pixelarticons/react/Eye.js";
-import { EyeOff } from "pixelarticons/react/EyeOff.js";
-import { Reload } from "pixelarticons/react/Reload.js";
-import { PixelIcon } from "@/components/ui/PixelIcon";
+import { Icon } from "@/components/ui/Icon";
 import { useEffect, useState, useTransition } from "react";
-import { BracketButton } from "@/components/ui/BracketButton";
+import { TextButton } from "@/components/ui/TextButton";
+import { CopyButton } from "@/components/ui/CopyButton";
 import { getWebhookKeyAction, rotateWebhookKeyAction } from "@/app/(app)/actions";
 import type { buckets } from "@/lib/db/schema";
 import { BucketSchema } from "@/types/rules";
 import { ITEM_STATUS, WEBHOOK_KEY_MASK } from "@/constants";
 import { HINT, LABEL } from "@/components/layout/settings-constants";
+import { IconButton } from "@/components/ui/IconButton";
 
 type BucketRow = typeof buckets.$inferSelect;
 
@@ -129,13 +128,11 @@ export function WebhookPanel({ bucket }: WebhookPanelProps) {
       <div className="flex flex-col gap-1.5">
         <label className={LABEL}>endpoint url</label>
         <span className={HINT}>POST to this URL to create an item in this bucket</span>
-        <div className="border-border flex items-center border">
-          <code className="text-muted-foreground flex-1 overflow-hidden bg-transparent px-2 py-1 font-mono text-[11px] text-ellipsis">
+        <div className="rounded-control border-border flex w-fit max-w-full items-center gap-1 border p-1">
+          <code className="text-muted-foreground text-2xs min-w-0 overflow-hidden bg-transparent px-1 py-1 font-mono text-ellipsis whitespace-nowrap">
             {webhookUrl}
           </code>
-          <BracketButton onClick={copyUrl} className="shrink-0 px-2 text-[11px]">
-            {urlCopied ? "copied" : "copy"}
-          </BracketButton>
+          <CopyButton copied={urlCopied} onClick={copyUrl} className="text-2xs" />
         </div>
       </div>
 
@@ -144,8 +141,8 @@ export function WebhookPanel({ bucket }: WebhookPanelProps) {
         <span className={HINT}>
           send as Authorization: Bearer {"<key>"} — rotate to invalidate the old key
         </span>
-        <div className="border-border flex items-center border">
-          <code className="text-muted-foreground flex-1 overflow-hidden bg-transparent px-2 py-1 font-mono text-[11px] text-ellipsis">
+        <div className="rounded-control border-border flex w-fit max-w-full items-center gap-1 border p-1">
+          <code className="text-muted-foreground text-2xs min-w-0 overflow-hidden bg-transparent px-1 py-1 font-mono text-ellipsis whitespace-nowrap">
             {key
               ? revealed
                 ? key
@@ -154,39 +151,31 @@ export function WebhookPanel({ bucket }: WebhookPanelProps) {
                 ? "no key yet — rotate to generate one"
                 : "loading..."}
           </code>
-          <button
+          <IconButton
+            icon={revealed ? "eye-off" : "eye"}
             onClick={() => setRevealed((v) => !v)}
             disabled={!key}
             aria-label={revealed ? "hide key" : "show key"}
-            className="text-muted-foreground hover:text-foreground shrink-0 px-2 transition-colors disabled:opacity-30"
-          >
-            {revealed ? <PixelIcon icon={EyeOff} /> : <PixelIcon icon={Eye} />}
-          </button>
-          <BracketButton onClick={copyKey} disabled={!key} className="shrink-0 px-2 text-[11px]">
-            {copied ? "copied" : "copy"}
-          </BracketButton>
+            className="px-2 disabled:opacity-30"
+          />
+          <CopyButton copied={copied} onClick={copyKey} disabled={!key} className="text-2xs" />
         </div>
-        <BracketButton
+        <TextButton
           onClick={handleRotate}
           disabled={pending}
           className="mt-1 flex w-fit items-center gap-1.5"
         >
-          <PixelIcon icon={Reload} />
+          <Icon name="reload" />
           rotate key
-        </BracketButton>
+        </TextButton>
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <label className={LABEL}>test with curl</label>
-        <span className={HINT}>paste this in your terminal to create a test item</span>
-        <div className="border-border relative border">
-          <pre className="text-muted-foreground overflow-x-auto bg-transparent p-2 font-mono text-[11px]">
-            {key
-              ? buildCurlCommand(webhookUrl, revealed ? key : WEBHOOK_KEY_MASK, schema)
-              : buildExamplePayload(schema)}
-          </pre>
+        <div className="flex items-center gap-1">
+          <label className={LABEL}>test with curl</label>
           {key && (
-            <BracketButton
+            <CopyButton
+              copied={curlCopied}
               onClick={() => {
                 void navigator.clipboard
                   .writeText(buildCurlCommand(webhookUrl, key, schema))
@@ -195,11 +184,17 @@ export function WebhookPanel({ bucket }: WebhookPanelProps) {
                     setTimeout(() => setCurlCopied(false), 2000);
                   });
               }}
-              className="absolute right-1.5 bottom-1.5 text-[11px]"
-            >
-              {curlCopied ? "copied" : "copy"}
-            </BracketButton>
+              className="text-2xs"
+            />
           )}
+        </div>
+        <span className={HINT}>paste this in your terminal to create a test item</span>
+        <div className="rounded-control border-border relative border">
+          <pre className="text-muted-foreground text-2xs overflow-x-auto bg-transparent p-2 font-mono">
+            {key
+              ? buildCurlCommand(webhookUrl, revealed ? key : WEBHOOK_KEY_MASK, schema)
+              : buildExamplePayload(schema)}
+          </pre>
         </div>
       </div>
     </div>

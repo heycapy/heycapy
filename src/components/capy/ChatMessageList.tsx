@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
 import { Sprite } from "./Sprite";
-import { ChatMarkdown } from "./ChatMarkdown";
+import { ChatMarkdown, type OpenItem } from "./ChatMarkdown";
 import type { ChatMessage } from "./chatTypes";
 
 type Props = {
@@ -10,6 +10,7 @@ type Props = {
   status?: string | null;
   fullscreen?: boolean;
   appUrl: string | null;
+  onOpenItem: OpenItem;
 };
 
 function BouncingDots() {
@@ -31,7 +32,14 @@ function BouncingDots() {
   );
 }
 
-export function ChatMessageList({ messages, streaming, status, fullscreen, appUrl }: Props) {
+export function ChatMessageList({
+  messages,
+  streaming,
+  status,
+  fullscreen,
+  appUrl,
+  onOpenItem,
+}: Props) {
   const listRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -69,7 +77,7 @@ export function ChatMessageList({ messages, streaming, status, fullscreen, appUr
             >
               <div
                 className={cn(
-                  "w-fit px-3 py-2 font-mono text-xs leading-relaxed break-words",
+                  "rounded-control font-ui w-fit px-3 py-2 text-xs leading-relaxed break-words",
                   fullscreen ? "max-w-[65ch]" : "max-w-[85%]",
                   msg.role === "user"
                     ? "bg-foreground text-background"
@@ -83,20 +91,20 @@ export function ChatMessageList({ messages, streaming, status, fullscreen, appUr
                       <span
                         role="status"
                         aria-label="capy is working"
-                        className="text-muted-foreground text-[11px]"
+                        className="text-muted-foreground text-2xs"
                       >
                         {status}…
                       </span>
                     )}
                   </span>
                 ) : msg.role === "assistant" ? (
-                  <ChatMarkdown content={msg.content} appUrl={appUrl} />
+                  <ChatMarkdown content={msg.content} appUrl={appUrl} onOpenItem={onOpenItem} />
                 ) : (
                   msg.content
                 )}
               </div>
               {msg.stopped && (
-                <span className="text-muted-foreground font-mono text-[11px]">— stopped</span>
+                <span className="text-muted-foreground font-ui text-2xs">— stopped</span>
               )}
             </div>
           </div>

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState, useTransition } from "react";
 import { cn } from "@/lib/utils";
-import { BracketButton } from "@/components/ui/BracketButton";
+import { TextButton } from "@/components/ui/TextButton";
 import { cancelRemindAgainAction, getItemReminderInfoAction } from "@/app/(app)/actions";
 import type {
   ActionEvent,
@@ -13,14 +13,11 @@ import { formatShort } from "@/lib/format-date";
 import { otherClock } from "@/lib/timezones/gap";
 import { channelKey } from "@/lib/notifications/channel-key";
 import { PersonAvatar } from "@/components/avatar/PersonAvatar";
-import { Check } from "pixelarticons/react/Check.js";
-import { Close } from "pixelarticons/react/Close.js";
-import { Reload } from "pixelarticons/react/Reload.js";
-import { PixelIcon, type PixelIconComponent } from "@/components/ui/PixelIcon";
+import { Icon } from "@/components/ui/Icon";
+import type { IconName } from "@/components/ui/icons";
 
 const REASONS: Record<NonNullable<Info["reason"]>, string> = {
   completed: "completed",
-  onHold: "no reminders — item is on hold",
   missed: "missed — the next occurrence took its place",
   notRecipient: "no reminders for you — it's assigned to someone else",
   noChannel: "no reminder — this bucket has no working channel",
@@ -35,12 +32,12 @@ const KINDS: Record<NonNullable<NotificationEvent["kind"]>, string> = {
 
 const OUTCOMES: Record<
   ChannelOutcome["outcome"],
-  { text: string; className: string; icon?: PixelIconComponent }
+  { text: string; className: string; icon?: IconName }
 > = {
-  sent: { text: "sent", className: "", icon: Check },
+  sent: { text: "sent", className: "", icon: "check" },
   sending: { text: "… sending", className: "text-muted-foreground" },
-  retrying: { text: "retrying", className: "text-warning", icon: Reload },
-  failed: { text: "failed", className: "text-destructive", icon: Close },
+  retrying: { text: "retrying", className: "text-warning", icon: "reload" },
+  failed: { text: "failed", className: "text-destructive", icon: "close" },
   closed: { text: "– not sent, item was closed first", className: "text-muted-foreground" },
   handedOver: { text: "– not sent, it went to someone else", className: "text-muted-foreground" },
   notSelected: { text: "– not selected for this bucket", className: "text-muted-foreground" },
@@ -121,7 +118,7 @@ export function ItemReminderInfo({ itemId }: { itemId: number }) {
   const route = goesTo(info);
 
   return (
-    <section aria-label="reminders" className="flex flex-col gap-3 font-mono text-xs">
+    <section aria-label="reminders" className="font-ui flex flex-col gap-3 text-xs">
       <div>
         <p className="text-muted-foreground">status</p>
         {!info.remindAgain && <p>{statusLine(info)}</p>}
@@ -131,9 +128,9 @@ export function ItemReminderInfo({ itemId }: { itemId: number }) {
               ⏰ reminding again {formatShort(info.remindAgain.at)} · asked from{" "}
               {info.remindAgain.source}
             </span>
-            <BracketButton onClick={cancelRemindAgain} disabled={cancelling} className="text-xs">
+            <TextButton onClick={cancelRemindAgain} disabled={cancelling} className="text-xs">
               cancel
-            </BracketButton>
+            </TextButton>
           </p>
         )}
         {cancelError && <p className="text-destructive">{cancelError}</p>}
@@ -192,7 +189,7 @@ export function ItemReminderInfo({ itemId }: { itemId: number }) {
                       >
                         {c.label}{" "}
                         {icon && (
-                          <PixelIcon icon={icon} className="mr-1 inline-block align-text-bottom" />
+                          <Icon name={icon} className="mr-1 inline-block align-text-bottom" />
                         )}
                         {outcomeText(c)}
                       </p>

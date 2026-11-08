@@ -26,7 +26,23 @@ const eslintConfig = defineConfig([
       "@typescript-eslint/no-explicit-any": "error",
       "@typescript-eslint/no-non-null-assertion": "error",
       "@typescript-eslint/consistent-type-imports": ["error", { prefer: "type-imports" }],
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: ["pixelarticons", "pixelarticons/*", "lucide-react", "lucide-react/*"],
+              message:
+                "Use <Icon name> from @/components/ui/Icon; icon sets live in ui/icon-sets/.",
+            },
+          ],
+        },
+      ],
     },
+  },
+  {
+    files: ["src/components/ui/icon-sets/*.ts"],
+    rules: { "no-restricted-imports": "off" },
   },
 ]);
 

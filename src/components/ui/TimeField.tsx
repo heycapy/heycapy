@@ -1,11 +1,11 @@
-import { Clock } from "pixelarticons/react/Clock.js";
-import { PixelIcon } from "@/components/ui/PixelIcon";
+import { Icon } from "@/components/ui/Icon";
 import { useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { formatTypedTime, parseTimeInput } from "@/lib/time-input";
-import { BracketButton } from "./BracketButton";
+import { TextButton } from "./TextButton";
+import { OptionButton } from "./OptionButton";
 import { usePopover } from "./usePopover";
 
 export type Ampm = "am" | "pm";
@@ -13,9 +13,14 @@ export type Ampm = "am" | "pm";
 const HOURS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"];
 const QUARTERS = ["00", "15", "30", "45"];
 const PANEL = { width: 252, height: 272 };
-const LABEL = "text-muted-foreground font-mono text-[11px]";
+const LABEL = "text-muted-foreground font-ui text-2xs";
 
 export type TimeValue = { hour: string; min: string; ampm: Ampm };
+
+export function timeLabel({ hour, min, ampm }: TimeValue): string {
+  if (!hour) return "all day";
+  return min === "00" ? `${hour} ${ampm}` : `${hour}:${min} ${ampm}`;
+}
 
 type TimeFieldProps = {
   value: TimeValue;
@@ -42,7 +47,7 @@ function Cell({
       aria-pressed={selected}
       aria-label={label}
       className={cn(
-        "flex h-8 items-center justify-center font-mono text-xs transition-colors",
+        "rounded-control font-ui flex h-8 items-center justify-center text-xs transition-colors",
         selected ? "bg-primary text-primary-foreground" : "text-foreground hover:bg-muted"
       )}
     >
@@ -59,7 +64,7 @@ export function TimeField({ value, onChange, disabled, allowAllDay = false }: Ti
   const [typedInvalid, setTypedInvalid] = useState(false);
   const minutes = QUARTERS.includes(min) ? QUARTERS : [...QUARTERS, min].sort();
   const allDay = !hour;
-  const display = allDay ? "all day" : min === "00" ? `${hour} ${ampm}` : `${hour}:${min} ${ampm}`;
+  const display = timeLabel(value);
 
   function applyTyped() {
     const parsed = parseTimeInput(typed);
@@ -96,7 +101,7 @@ export function TimeField({ value, onChange, disabled, allowAllDay = false }: Ti
           style={{ top: pos.top, left: pos.left, width: PANEL.width }}
           className={cn(
             positioning,
-            "border-border bg-card z-[65] flex flex-col gap-2.5 border-2 p-3 shadow-[3px_3px_0_var(--border)] select-none"
+            "border-border bg-card rounded-panel border-frame shadow-raised z-[65] flex flex-col gap-2.5 p-3 select-none"
           )}
         >
           <div role="group" aria-label="hour" className="flex flex-col gap-1">
@@ -167,18 +172,18 @@ export function TimeField({ value, onChange, disabled, allowAllDay = false }: Ti
               placeholder="or type: 937p"
               aria-label="type a time"
               className={cn(
-                "placeholder:text-muted-foreground/70 min-w-0 flex-1 border-b bg-transparent py-1 font-mono text-xs outline-none",
+                "placeholder:text-muted-foreground/70 font-ui min-w-0 flex-1 border-b bg-transparent py-1 text-xs outline-none",
                 typedInvalid
                   ? "border-destructive text-destructive"
                   : "border-border focus:border-foreground"
               )}
             />
-            <BracketButton
+            <TextButton
               onClick={() => (typed.trim() ? applyTyped() : setOpen(false))}
               className="shrink-0 py-1"
             >
               done
-            </BracketButton>
+            </TextButton>
           </div>
         </motion.div>
       )}
@@ -187,20 +192,19 @@ export function TimeField({ value, onChange, disabled, allowAllDay = false }: Ti
 
   return (
     <div className="shrink-0">
-      <button
+      <OptionButton
         ref={triggerRef}
-        type="button"
+        active={open}
+        aria-pressed={undefined}
+        aria-expanded={open}
         onClick={() => !disabled && toggle()}
         disabled={disabled}
         aria-label={`time: ${display}`}
-        className={cn(
-          "flex items-center gap-2 border-b py-1.5 font-mono text-sm transition-all active:translate-y-[1px] disabled:opacity-50",
-          allDay ? "border-border text-muted-foreground" : "border-foreground text-foreground"
-        )}
+        className={cn("inline-flex items-center gap-1.5", !allDay && !open && "text-foreground")}
       >
+        <Icon name="clock" className="shrink-0" />
         <span>{display}</span>
-        <PixelIcon icon={Clock} className="opacity-60" />
-      </button>
+      </OptionButton>
       {portalTarget && createPortal(panel, portalTarget)}
     </div>
   );

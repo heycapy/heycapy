@@ -1,13 +1,15 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { useLookParts } from "@/components/looks/LookProvider";
 import { ItemRow } from "@/components/buckets/ItemRow";
 import { itemAssignee } from "@/components/buckets/assignee";
 import { parseFields } from "@/components/buckets/fields";
-import { BUCKET_PALETTE, DEFAULT_BUCKET_STATUSES } from "@/components/buckets/constants";
+import { DEFAULT_BUCKET_STATUSES } from "@/components/buckets/constants";
+import { bucketColor } from "@/components/buckets/bucket-color";
 import { deleteItemAction, moveItemAction, updateItemAction } from "@/app/(app)/actions";
 import { ItemMenu, type MenuAt } from "@/components/buckets/ItemMenu";
-import { SwipeableRow } from "@/components/buckets/SwipeableRow";
+import { PressableRow } from "@/components/buckets/PressableRow";
 import { completionToggle } from "@/components/buckets/completion";
 import { offerUndoDelete } from "@/components/buckets/undoDelete";
 import { deadlineValue } from "@/lib/time";
@@ -19,7 +21,7 @@ type Item = typeof items.$inferSelect;
 
 export type CrossBucketSection = { label: string; items: Item[] };
 
-const HINT = "text-muted-foreground font-mono text-xs";
+const HINT = "text-muted-foreground font-ui text-xs";
 
 type CrossBucketListProps = {
   data: CrossBucketItems | null;
@@ -41,6 +43,7 @@ export function CrossBucketList({
   boxed = false,
 }: CrossBucketListProps) {
   const [menu, setMenu] = useState<{ item: Item; at: MenuAt } | null>(null);
+  const framed = useLookParts().listFrame === "framed";
   const statuses = DEFAULT_BUCKET_STATUSES;
   const showDue = sections.some((section) => section.items.some((item) => item.deadline));
   const bucketOf = (item: Item) => data?.buckets.find((b) => b.id === item.bucketId);
@@ -72,17 +75,10 @@ export function CrossBucketList({
   function row(item: Item) {
     const bucket = bucketOf(item);
     const readonly = bucket?.readonly === true;
-    const toggle = completionToggle(item.status, statuses);
+    const color = bucket && bucketColor(bucket.index);
     const assignee = data?.assignees[item.id];
     return (
-      <SwipeableRow
-        key={item.id}
-        onDelete={() => void deleteItem(item)}
-        onComplete={() => void changeStatus(item, toggle.next)}
-        completeLabel={toggle.label}
-        disabled={readonly}
-        onMenu={(at) => setMenu({ item, at })}
-      >
+      <PressableRow key={item.id} onMenu={(at) => setMenu({ item, at })}>
         <ItemRow
           item={item}
           statuses={statuses}
@@ -95,22 +91,25 @@ export function CrossBucketList({
           assignee={assignee && itemAssignee(assignee)}
           onMenu={(at) => setMenu({ item, at })}
           showDue={showDue}
+          color={color}
           bucket={
             bucket && {
               name: bucket.icon ? `${bucket.icon} ${bucket.name}` : bucket.name,
-              color: BUCKET_PALETTE[bucket.index % BUCKET_PALETTE.length] ?? "",
+              color: color ?? "",
             }
           }
         />
-      </SwipeableRow>
+      </PressableRow>
     );
   }
 
   return (
     <div
       className={cn(
-        "border-border @container overflow-hidden border-y-2 sm:mx-4 sm:border-x-2 sm:shadow-[2px_2px_0_var(--border)]",
-        boxed && "mx-4 border-x-2 shadow-[2px_2px_0_var(--border)]"
+        "@container overflow-hidden sm:mx-4",
+        (framed || boxed) &&
+          "border-border border-b-frame sm:border-x-frame sm:shadow-raised-sm sm:rounded-b-panel",
+        boxed && "border-x-frame border-t-frame shadow-raised-sm rounded-panel mx-4"
       )}
     >
       {!data ? (
@@ -129,7 +128,7 @@ export function CrossBucketList({
             >
               {section.label}
             </p>
-            <div className="divide-border divide-y divide-dashed">{section.items.map(row)}</div>
+            <div className="divide-border divide-rule divide-y">{section.items.map(row)}</div>
           </section>
         ))
       )}

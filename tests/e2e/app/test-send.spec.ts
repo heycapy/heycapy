@@ -1,4 +1,5 @@
 import { test, expect, type Locator, type Page } from "@playwright/test";
+import { openNotificationSection } from "../helpers/settings";
 import { authState } from "../helpers/auth";
 import { EMAIL_GUIDE_URL, NTFY_DEFAULT_URL } from "@/constants";
 
@@ -10,9 +11,10 @@ function ntfyInputs(ntfy: Locator): [Locator, Locator] {
 
 async function openNtfySettings(page: Page): Promise<Locator> {
   await page.goto("/");
-  await page.getByRole("button", { name: "···" }).click();
+  await page.getByRole("button", { name: "your menu", exact: true }).click();
   await page.getByRole("button", { name: "tweaks" }).click();
   await page.getByRole("button", { name: "notifications", exact: true }).click();
+  await openNotificationSection(page, "ntfy");
   return page
     .locator("div")
     .filter({ has: page.getByText("ntfy (push)", { exact: true }) })
@@ -57,9 +59,10 @@ test("ntfy send test reports an invalid server url", async ({ page }) => {
 
 test("the email section links to the guide for setting up your own email", async ({ page }) => {
   await page.goto("/");
-  await page.getByRole("button", { name: "···" }).click();
+  await page.getByRole("button", { name: "your menu", exact: true }).click();
   await page.getByRole("button", { name: "tweaks" }).click();
   await page.getByRole("button", { name: "notifications", exact: true }).click();
+  await openNotificationSection(page, "email");
   const guide = page.getByRole("link", { name: "how to set it up" });
   await expect(guide).toHaveAttribute("href", EMAIL_GUIDE_URL);
   await expect(guide).toHaveAttribute("target", "_blank");

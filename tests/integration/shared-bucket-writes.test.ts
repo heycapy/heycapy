@@ -59,7 +59,10 @@ describe("a member adding items", () => {
     const { friend, bucketId } = await sharedBucket();
     session.userId = friend;
 
-    expect(await addItemAction(bucketId, "buy milk", null)).toEqual({ ok: true });
+    expect(await addItemAction(bucketId, "buy milk", null)).toEqual({
+      ok: true,
+      id: expect.any(Number),
+    });
 
     const added = await db.select().from(items).where(eq(items.title, "buy milk"));
     expect(added).toHaveLength(1);
@@ -80,7 +83,10 @@ describe("a member adding items", () => {
   it("stops working the moment the member is removed", async () => {
     const { friend, bucketId } = await sharedBucket();
     session.userId = friend;
-    expect(await addItemAction(bucketId, "first", null)).toEqual({ ok: true });
+    expect(await addItemAction(bucketId, "first", null)).toEqual({
+      ok: true,
+      id: expect.any(Number),
+    });
 
     await db.delete(bucketMembers).where(eq(bucketMembers.userId, friend));
 

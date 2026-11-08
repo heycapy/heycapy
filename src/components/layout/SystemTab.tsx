@@ -1,5 +1,5 @@
 import { useEffect, useState, useTransition } from "react";
-import { BracketButton } from "@/components/ui/BracketButton";
+import { TextButton } from "@/components/ui/TextButton";
 import { getSystemStatusAction, type SystemStatus } from "@/app/(app)/actions";
 import { formatShort } from "@/lib/format-date";
 import { BOX, SECTION, MUTED } from "./settings-constants";
@@ -43,8 +43,8 @@ export function SystemTab() {
 
   useEffect(load, []);
 
-  if (error) return <p className="text-destructive font-mono text-xs">{error}</p>;
-  if (!status) return <p className="text-muted-foreground font-mono text-xs">loading...</p>;
+  if (error) return <p className="text-destructive font-ui text-xs">{error}</p>;
+  if (!status) return <p className="text-muted-foreground font-ui text-xs">loading...</p>;
 
   const { scheduler } = status;
   return (
@@ -52,13 +52,13 @@ export function SystemTab() {
       <div className={BOX}>
         <div className="flex items-center justify-between">
           <span className={SECTION}>scheduler</span>
-          <BracketButton onClick={load} disabled={pending}>
+          <TextButton onClick={load} disabled={pending}>
             {pending ? "refreshing..." : "refresh"}
-          </BracketButton>
+          </TextButton>
         </div>
         <p
           role="status"
-          className={`font-mono text-xs ${scheduler.stale ? "text-destructive" : "text-foreground"}`}
+          className={`font-ui text-xs ${scheduler.stale ? "text-destructive" : "text-foreground"}`}
         >
           {scheduler.stale ? "⚠ stuck — no finished run recently" : "✓ running"}
         </p>
@@ -76,9 +76,9 @@ export function SystemTab() {
         {status.errors.length === 0 ? (
           <p className={MUTED}>none in the last 14 days</p>
         ) : (
-          <ul className="divide-border/50 flex flex-col divide-y divide-dotted">
+          <ul className="divide-border/50 divide-divider flex flex-col divide-y">
             {status.errors.map((e) => (
-              <li key={e.id} className="flex flex-col gap-0.5 py-1.5 font-mono text-xs">
+              <li key={e.id} className="font-ui flex flex-col gap-0.5 py-1.5 text-xs">
                 <span className="text-muted-foreground">
                   {formatShort(new Date(e.createdAt))} · {e.level} · {e.source}
                   {e.userId !== null && ` · user ${e.userId}`}
@@ -89,7 +89,7 @@ export function SystemTab() {
                     <summary className="text-muted-foreground hover:text-foreground cursor-pointer">
                       details
                     </summary>
-                    <pre className="text-muted-foreground mt-1 max-h-60 overflow-auto text-[11px] whitespace-pre-wrap">
+                    <pre className="text-muted-foreground text-2xs mt-1 max-h-60 overflow-auto whitespace-pre-wrap">
                       {formatDetails(e.details)}
                     </pre>
                   </details>

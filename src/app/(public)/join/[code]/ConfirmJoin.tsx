@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { BracketButton } from "@/components/ui/BracketButton";
+import { TextButton } from "@/components/ui/TextButton";
 import { joinBucketAction } from "@/app/(app)/member-actions";
 
 export function ConfirmJoin({ code }: { code: string }) {
@@ -24,11 +24,11 @@ export function ConfirmJoin({ code }: { code: string }) {
 
   return (
     <>
-      <BracketButton disabled={pending} onClick={join} className="text-foreground text-sm">
+      <TextButton disabled={pending} onClick={join} className="text-foreground text-sm">
         {pending ? "..." : "join"}
-      </BracketButton>
+      </TextButton>
       {error && (
-        <p role="alert" className="text-destructive font-mono text-xs">
+        <p role="alert" className="text-destructive font-ui text-xs">
           {error}
         </p>
       )}

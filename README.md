@@ -35,7 +35,7 @@
 </p>
 
 <p align="center">
-  <img src=".github/assets/screenshots/shared-home.png" width="900" alt="a home bucket shared with family, chores assigned to maya and sam (tokyo night theme), next to a birthdays bucket with a gift idea for each on a phone (everforest theme)">
+  <img src=".github/assets/screenshots/shared-home.png" width="900" alt="a home bucket shared with family, chores assigned to kavita and sam, done items saying who ticked them (tokyo night theme), next to a birthdays bucket with a gift idea for each on a phone (everforest theme)">
 </p>
 
 <p align="center">

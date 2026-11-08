@@ -1,24 +1,25 @@
-import { GEMINI_DEFAULT_MODEL, type TranscriptionProvider } from "@/constants";
+import { CONTROL_SIZE, GEMINI_DEFAULT_MODEL, LOOK, type TranscriptionProvider } from "@/constants";
+import type { ControlSize, Look } from "@/components/looks/constants";
 
-export const LABEL = "text-foreground font-mono text-xs font-medium";
-export const HINT = "text-muted-foreground font-mono text-[11px] leading-tight";
+export const LABEL = "text-foreground font-ui text-xs font-medium";
+export const HINT = "text-muted-foreground font-ui text-2xs leading-tight";
 
-export const MUTED = "text-muted-foreground font-mono text-xs";
+export const MUTED = "text-muted-foreground font-ui text-xs";
 export const INPUT =
-  "border-b border-border w-full bg-transparent py-1.5 font-mono text-xs outline-none placeholder:text-muted-foreground/50 focus:border-foreground disabled:opacity-50";
+  "border-b border-border w-full bg-transparent py-1.5 font-ui text-xs outline-none placeholder:text-muted-foreground/50 focus:border-foreground disabled:opacity-50";
 
-export const SECTION = "text-foreground font-mono text-xs font-semibold tracking-widest uppercase";
-export const BOX = "border-border flex flex-col gap-4 border p-3";
+export const SECTION = "text-foreground font-ui text-xs font-semibold section-case";
+export const BOX = "rounded-control border-border box flex flex-col gap-4";
 export const USERNAME_CHECK_DEBOUNCE_MS = 400;
 // every button in tweaks in the theme's accent so they read as buttons, without touching a picked option or tab
 export const ACCENT_BUTTONS = [
-  "[&_[data-variant=default]]:text-primary",
+  "[&_[data-variant=default]]:text-(--button-accent)",
   "[&_[data-variant=default]:hover]:text-foreground",
-  "[&_[data-variant=destructive]]:text-primary",
+  "[&_[data-variant=destructive]]:text-(--button-accent)",
   "[&_[data-variant=destructive]:hover]:text-destructive",
-  "[&_[data-variant=warning]]:text-primary",
+  "[&_[data-variant=warning]]:text-(--button-accent)",
   "[&_[data-variant=warning]:hover]:text-warning",
-  "[&_button[aria-pressed=false]]:text-primary",
+  "[&_button[aria-pressed=false]]:text-(--button-accent)",
   "[&_button[aria-pressed=false]:hover]:text-foreground",
 ].join(" ");
 
@@ -50,6 +51,27 @@ export type AISource = "heycapy" | "own";
 export const AI_SOURCE_OPTIONS: { value: AISource; label: string }[] = [
   { value: "heycapy", label: "heycapy ai" },
   { value: "own", label: "your own key" },
+];
+
+export const NOTIFICATION_SECTIONS = [
+  "reminders",
+  "email",
+  "push",
+  "ntfy",
+  "telegram",
+  "other apps",
+] as const;
+export type NotificationSection = (typeof NOTIFICATION_SECTIONS)[number];
+
+export const CONTROL_SIZE_OPTIONS: { value: ControlSize; label: string }[] = [
+  { value: CONTROL_SIZE.small, label: "small" },
+  { value: CONTROL_SIZE.medium, label: "medium" },
+  { value: CONTROL_SIZE.large, label: "large" },
+];
+
+export const LOOK_OPTIONS: { value: Look; label: string }[] = [
+  { value: LOOK.original, label: "original" },
+  { value: LOOK.modern, label: "modern" },
 ];
 
 export const TONE_OPTIONS: { value: UserTone; label: string }[] = [

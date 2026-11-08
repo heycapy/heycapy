@@ -4,10 +4,16 @@ import type { ActionResult } from "@/types/result";
 import { z } from "zod";
 import { requireSession } from "./action-helpers";
 import { listToday, searchItems, type CrossBucketItems } from "@/lib/items/today";
+import { listOpenItems, type OpenItem } from "@/lib/items/open-items";
 
 export async function getTodayAction(): Promise<ActionResult<CrossBucketItems>> {
   const session = await requireSession();
   return { ok: true, ...(await listToday(session.userId)) };
+}
+
+export async function getOpenItemsAction(): Promise<ActionResult<{ items: OpenItem[] }>> {
+  const session = await requireSession();
+  return { ok: true, items: await listOpenItems(session.userId) };
 }
 
 const Query = z.string().max(200);

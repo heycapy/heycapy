@@ -2,7 +2,7 @@ import { useState, type RefObject } from "react";
 import { Reorder } from "framer-motion";
 import { ItemRow, type ItemAssignee } from "./ItemRow";
 import { itemAssignee } from "./assignee";
-import { SwipeableRow } from "./SwipeableRow";
+import { PressableRow } from "./PressableRow";
 import { completionToggle } from "./completion";
 import { DraggableItem } from "./DraggableItem";
 import { ItemMenu, type MenuAt } from "./ItemMenu";
@@ -26,6 +26,7 @@ type ItemListProps = {
   readonly: boolean;
   statuses: StatusDef[];
   fields: FieldDef[];
+  color: string;
   editingItemId: number | null;
   reminderBadges: Record<number, ReminderBadge>;
   members: BucketMember[];
@@ -41,12 +42,13 @@ type ItemListProps = {
 export function ItemList({
   loading,
   items,
-  emptyText = "no items yet · press + to add one",
+  emptyText,
   orderedItemsRef,
   draggable,
   readonly,
   statuses,
   fields,
+  color,
   editingItemId,
   reminderBadges,
   members,
@@ -62,8 +64,10 @@ export function ItemList({
 
   if (loading || items.length === 0) {
     return (
-      <p className="text-muted-foreground px-4 py-6 text-center font-mono text-xs">
-        {loading ? "loading..." : emptyText}
+      <p className="text-muted-foreground font-ui px-4 py-6 text-center text-xs">
+        {loading
+          ? "loading..."
+          : (emptyText ?? (readonly ? "no items yet" : "no items yet · type one below"))}
       </p>
     );
   }
@@ -107,6 +111,7 @@ export function ItemList({
     reminderBadge: reminderBadges[item.id],
     assignee: assigneeOf(item),
     otherClock: clockHint(item),
+    color,
     showDue,
     shared,
     tickedBy: tickedBy(item),
@@ -139,15 +144,10 @@ export function ItemList({
           axis="y"
           values={items}
           onReorder={onReorder}
-          className="divide-border/50 m-0 list-none divide-y divide-dotted p-0"
+          className="divide-border/50 divide-divider m-0 list-none divide-y p-0"
         >
           {items.map((item) => (
-            <DraggableItem
-              key={item.id}
-              {...rowProps(item)}
-              orderedItemsRef={orderedItemsRef}
-              onDelete={readonly ? undefined : () => onDelete(item.id)}
-            />
+            <DraggableItem key={item.id} {...rowProps(item)} orderedItemsRef={orderedItemsRef} />
           ))}
         </Reorder.Group>
         {menuElement}
@@ -156,18 +156,11 @@ export function ItemList({
   }
 
   return (
-    <div className="divide-border/50 divide-y divide-dotted">
+    <div className="divide-border/50 divide-divider divide-y">
       {items.map((item) => (
-        <SwipeableRow
-          key={item.id}
-          onDelete={() => onDelete(item.id)}
-          onComplete={() => onStatusChange(item, completionToggle(item.status, statuses).next)}
-          completeLabel={completionToggle(item.status, statuses).label}
-          disabled={readonly}
-          onMenu={(at) => setMenu({ item, at })}
-        >
+        <PressableRow key={item.id} onMenu={(at) => setMenu({ item, at })}>
           <ItemRow {...rowProps(item)} />
-        </SwipeableRow>
+        </PressableRow>
       ))}
       {menuElement}
     </div>

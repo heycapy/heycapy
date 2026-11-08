@@ -2,7 +2,8 @@ import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { charCountColor } from "@/components/ui/input";
 import { Toggle } from "@/components/ui/Toggle";
-import { BracketButton } from "@/components/ui/BracketButton";
+import { TextButton } from "@/components/ui/TextButton";
+import { CopyButton } from "@/components/ui/CopyButton";
 import { NTFY_DEFAULT_URL, SETTINGS_URL_MAX_LENGTH, NTFY_TOPIC_MAX_LENGTH } from "@/constants";
 import { sendTestNotificationAction } from "@/app/(app)/actions";
 import { BOX, INPUT, LABEL, SECTION } from "./settings-constants";
@@ -42,7 +43,12 @@ export function NtfySettings({
       <span className={SECTION}>ntfy (push)</span>
       <div className="flex items-center justify-between">
         <label className={LABEL}>enabled</label>
-        <Toggle value={notificationsPush} onChange={setNotificationsPush} disabled={pending} />
+        <Toggle
+          label="ntfy notifications"
+          value={notificationsPush}
+          onChange={setNotificationsPush}
+          disabled={pending}
+        />
       </div>
       <div className="flex flex-col gap-1.5">
         <label className={LABEL}>server url</label>
@@ -58,7 +64,7 @@ export function NtfySettings({
         {ntfyUrl.length > 0 && (
           <p
             className={cn(
-              "mt-0.5 text-right font-mono text-[11px] transition-colors",
+              "font-ui text-2xs mt-0.5 text-right transition-colors",
               charCountColor(ntfyUrl.length, SETTINGS_URL_MAX_LENGTH)
             )}
           >
@@ -70,12 +76,7 @@ export function NtfySettings({
         <div className="flex items-center justify-between">
           <label className={LABEL}>topic</label>
           <div className="flex items-center gap-2">
-            {ntfyTopic && (
-              <BracketButton type="button" onClick={handleCopyNtfy}>
-                {ntfyCopied ? "copied" : "copy"}
-              </BracketButton>
-            )}
-            <BracketButton
+            <TextButton
               type="button"
               disabled={pending}
               onClick={() =>
@@ -85,22 +86,25 @@ export function NtfySettings({
               }
             >
               generate
-            </BracketButton>
+            </TextButton>
           </div>
         </div>
-        <input
-          type="text"
-          value={ntfyTopic}
-          onChange={(e) => setNtfyTopic(e.target.value)}
-          placeholder="heycapy-k3m9xp2qlr7a"
-          maxLength={NTFY_TOPIC_MAX_LENGTH}
-          disabled={pending}
-          className={INPUT}
-        />
+        <div className="flex items-center gap-1">
+          <input
+            type="text"
+            value={ntfyTopic}
+            onChange={(e) => setNtfyTopic(e.target.value)}
+            placeholder="heycapy-k3m9xp2qlr7a"
+            maxLength={NTFY_TOPIC_MAX_LENGTH}
+            disabled={pending}
+            className={INPUT}
+          />
+          {ntfyTopic && <CopyButton copied={ntfyCopied} onClick={handleCopyNtfy} />}
+        </div>
         {ntfyTopic.length > 0 && (
           <p
             className={cn(
-              "mt-0.5 text-right font-mono text-[11px] transition-colors",
+              "font-ui text-2xs mt-0.5 text-right transition-colors",
               charCountColor(ntfyTopic.length, NTFY_TOPIC_MAX_LENGTH)
             )}
           >

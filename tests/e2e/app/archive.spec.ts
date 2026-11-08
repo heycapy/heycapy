@@ -30,7 +30,7 @@ async function deleteActiveBucket(page: Page): Promise<void> {
 }
 
 async function openSheet(page: Page, menuItem: "archived" | "trash"): Promise<Locator> {
-  await page.getByRole("button", { name: "[ ··· ]", exact: true }).click();
+  await page.getByRole("button", { name: "your menu", exact: true }).click();
   await page.getByRole("button", { name: menuItem, exact: true }).click();
   const header = menuItem === "archived" ? "archived buckets" : "trash";
   const sheet = page.getByRole("dialog", { name: header });
@@ -101,7 +101,7 @@ test.describe("archived buckets", () => {
       .click();
     await page.getByRole("button", { name: /^Blank/ }).click();
     await page.getByPlaceholder(/bucket name/i).fill(name);
-    await page.getByRole("button", { name: "Create bucket", exact: true }).click();
+    await page.getByRole("button", { name: "[ create bucket ]", exact: true }).click();
     await expect(page.getByText("A bucket with this name already exists.")).toBeVisible();
   });
 });

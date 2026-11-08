@@ -1,21 +1,19 @@
 "use client";
 
-import { ArrowLeft } from "pixelarticons/react/ArrowLeft.js";
-import { Close } from "pixelarticons/react/Close.js";
-import { Package } from "pixelarticons/react/Package.js";
-import { PixelIcon } from "@/components/ui/PixelIcon";
+import { Icon } from "@/components/ui/Icon";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { motion, AnimatePresence, type Transition } from "framer-motion";
 import { useUIStore } from "@/store/ui";
 import { Modal, ModalTitle } from "@/components/ui/Modal";
-import { Button } from "@/components/ui/button";
-import { BracketButton } from "@/components/ui/BracketButton";
+import { CloseButton } from "@/components/ui/CloseButton";
+import { TextButton } from "@/components/ui/TextButton";
 import { createBucketAction } from "@/app/(app)/actions";
 import { TEMPLATE_ICONS } from "./constants";
 import { BUCKET_NAME_MAX_LENGTH } from "@/constants";
 import { cn } from "@/lib/utils";
 import { charCountColor } from "@/components/ui/input";
 import type { templates } from "@/lib/db/schema";
+import { IconButton } from "@/components/ui/IconButton";
 
 type TemplateRow = typeof templates.$inferSelect;
 
@@ -75,7 +73,7 @@ export function CreateBucketModal({ templates }: CreateBucketModalProps) {
       open={createBucketOpen}
       onClose={closeCreateBucket}
       onExitComplete={handleExitComplete}
-      className="bg-background border-border top-[18%] overflow-hidden rounded-md border shadow-2xl sm:top-[18%]"
+      className="bg-background border-border rounded-panel border-frame shadow-raised-lg top-[18%] overflow-hidden sm:top-[18%]"
     >
       <AnimatePresence mode="wait" initial={false}>
         {step === "pick" ? (
@@ -88,33 +86,31 @@ export function CreateBucketModal({ templates }: CreateBucketModalProps) {
           >
             <div className="flex items-start justify-between border-b px-4 py-3">
               <div>
-                <ModalTitle className="text-sm">New bucket</ModalTitle>
+                <ModalTitle className="text-sm">new bucket</ModalTitle>
                 <p className="text-muted-foreground mt-0.5 text-xs">
-                  Pick a template to get started.
+                  pick a template to start from
                 </p>
               </div>
-              <BracketButton onClick={closeCreateBucket} aria-label="close">
-                <PixelIcon icon={Close} />
-              </BracketButton>
+              <CloseButton onClick={closeCreateBucket} />
             </div>
 
             <div className="max-h-[55vh] overflow-y-auto">
-              {error && <p className="text-destructive px-4 pt-3 font-mono text-xs">{error}</p>}
+              {error && <p className="text-destructive font-ui px-4 pt-3 text-xs">{error}</p>}
 
               <div className="grid grid-cols-2 gap-1.5 p-2 sm:gap-2 sm:p-3">
                 {templates.map((t) => (
                   <button
                     key={t.id}
                     onClick={() => handlePickTemplate(t)}
-                    className="border-border bg-card hover:bg-muted flex flex-col gap-1 rounded border p-2 text-left transition-colors sm:gap-1.5 sm:p-3"
+                    className="border-border hover:bg-muted rounded-control flex flex-col gap-1 border bg-(--tile-bg) p-2 text-left transition-colors sm:gap-1.5 sm:p-3"
                   >
-                    <PixelIcon
-                      icon={TEMPLATE_ICONS[t.name] ?? Package}
+                    <Icon
+                      name={TEMPLATE_ICONS[t.name] ?? "package"}
                       className="text-muted-foreground"
                     />
-                    <span className="font-pixel truncate text-xs sm:text-xs">{t.name}</span>
+                    <span className="font-display truncate text-xs sm:text-xs">{t.name}</span>
                     {t.description && (
-                      <span className="text-muted-foreground line-clamp-2 text-[11px] leading-snug sm:text-xs">
+                      <span className="text-muted-foreground text-2xs line-clamp-2 leading-snug sm:text-xs">
                         {t.description}
                       </span>
                     )}
@@ -133,20 +129,17 @@ export function CreateBucketModal({ templates }: CreateBucketModalProps) {
           >
             <div className="flex items-center justify-between border-b px-4 py-3">
               <div className="flex items-center gap-2">
-                <button
+                <IconButton
+                  icon="arrow-left"
+                  aria-label="back"
                   onClick={() => {
                     setStep("pick");
                     setError("");
                   }}
-                  className="text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  <PixelIcon icon={ArrowLeft} />
-                </button>
-                <ModalTitle className="text-sm">Name it</ModalTitle>
+                />
+                <ModalTitle className="text-sm">name it</ModalTitle>
               </div>
-              <BracketButton onClick={closeCreateBucket} aria-label="close">
-                <PixelIcon icon={Close} />
-              </BracketButton>
+              <CloseButton onClick={closeCreateBucket} />
             </div>
             <div className="flex flex-col gap-3 p-4">
               <input
@@ -156,15 +149,15 @@ export function CreateBucketModal({ templates }: CreateBucketModalProps) {
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && name.trim()) handleCreate();
                 }}
-                placeholder="Bucket name…"
+                placeholder="bucket name…"
                 maxLength={BUCKET_NAME_MAX_LENGTH}
                 disabled={pending}
-                className="border-border bg-input placeholder:text-muted-foreground focus:ring-ring rounded border px-3 py-2 text-sm outline-none focus:ring-1 disabled:opacity-50"
+                className="border-border bg-input placeholder:text-muted-foreground focus:ring-ring rounded-control border px-3 py-2 text-sm outline-none focus:ring-1 disabled:opacity-50"
               />
               {name.length > 0 && (
                 <p
                   className={cn(
-                    "mt-0.5 text-right font-mono text-[11px] transition-colors",
+                    "font-ui text-2xs mt-0.5 text-right transition-colors",
                     charCountColor(name.length, BUCKET_NAME_MAX_LENGTH)
                   )}
                 >
@@ -172,9 +165,14 @@ export function CreateBucketModal({ templates }: CreateBucketModalProps) {
                 </p>
               )}
               {error && <p className="text-destructive text-xs">{error}</p>}
-              <Button onClick={handleCreate} loading={pending} disabled={!name.trim()}>
-                Create bucket
-              </Button>
+              <TextButton
+                variant="primary"
+                onClick={handleCreate}
+                disabled={pending || !name.trim()}
+                className="self-end"
+              >
+                {pending ? "creating…" : "create bucket"}
+              </TextButton>
             </div>
           </motion.div>
         )}

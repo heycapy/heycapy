@@ -14,14 +14,14 @@ export function ItemClockField({
 }) {
   return (
     <div role="group" aria-label="time on" className="flex flex-wrap items-center gap-1.5">
-      <span className="text-muted-foreground font-mono text-[11px]">time on</span>
+      <span className="text-muted-foreground font-ui text-2xs">time on</span>
       {options.map((option) => (
         <OptionButton
           key={option.place}
           active={option.place === place}
           onClick={() => onPick(option.timezone)}
           disabled={disabled}
-          className="px-2 py-1 text-[11px]"
+          className="text-2xs px-2 py-1"
         >
           {option.place}
         </OptionButton>

@@ -13,21 +13,23 @@ import { JoinBucketDialog } from "@/components/buckets/JoinBucketDialog";
 import { SearchDrawer } from "@/components/search/SearchDrawer";
 import { useUIStore } from "@/store/ui";
 import { useChatStore } from "@/store/chat";
+import { useDraftStore } from "@/store/drafts";
 import { useTimezoneStore } from "@/store/timezone";
 import { TimezoneMoveBanner } from "./TimezoneMoveBanner";
+import { BannersProvider } from "./Banners";
 import { NewVersionBanner } from "./NewVersionBanner";
 import { FeedbackDialog } from "./FeedbackDialog";
 import { WhatsNewDialog } from "./WhatsNewDialog";
+import { LookPickerDialog } from "./LookPickerDialog";
 import { markReleasesSeenAction } from "@/app/(app)/account-actions";
 import { markGuideSeenAction } from "@/app/(app)/guide-actions";
-import { saveTimezoneIfDefaultAction } from "@/app/(app)/user-settings-actions";
+import { lookPickedAction, saveTimezoneIfDefaultAction } from "@/app/(app)/user-settings-actions";
 import { useServerEvents } from "@/hooks/useServerEvents";
 import { AssistantNameProvider } from "@/components/capy/assistant-name";
+import { useChatDocked } from "@/components/capy/useChatDocked";
+import { cn } from "@/lib/utils";
 import type { ChannelFailure } from "@/lib/notifications/failures";
 import { toast } from "sonner";
-import { BracketButton } from "@/components/ui/BracketButton";
-import { PixelIcon } from "@/components/ui/PixelIcon";
-import { Map as MapIcon } from "pixelarticons/react/Map.js";
 import { GuidePanel } from "@/components/guide/GuidePanel";
 import { HINT_TARGETS } from "@/components/guide/constants";
 import { useGuide } from "@/components/guide/useGuide";
@@ -48,6 +50,7 @@ type AppShellProps = {
   assistantName: string;
   feedbackEnabled: boolean;
   unseenRelease: boolean;
+  lookPicked: boolean;
   guide: GuideState;
   appUrl: string | null;
 };
@@ -62,122 +65,140 @@ export function AppShell({
   assistantName,
   feedbackEnabled,
   unseenRelease,
+  lookPicked,
   guide: guideFromServer,
   appUrl,
 }: AppShellProps) {
-  const [settingsTab, setSettingsTab] = useState<SettingsTab | null>(null);
-  const [archivedOpen, setArchivedOpen] = useState(false);
-  const [trashOpen, setTrashOpen] = useState(false);
-  const [joinOpen, setJoinOpen] = useState(false);
+  const [settingsTab, setSettingsTab] = useState<SettingsTab>("appearance");
+  const joinOpen = useUIStore((s) => s.joinOpen);
+  const setJoinOpen = useUIStore((s) => s.setJoinOpen);
+  const sidePanel = useLayoutStore((s) => s.sidePanel);
+  const openSidePanel = useLayoutStore((s) => s.openSidePanel);
+  const closeSidePanel = useLayoutStore((s) => s.closeSidePanel);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
-  const [whatsNewOpen, setWhatsNewOpen] = useState(false);
   const [releaseUnseen, setReleaseUnseen] = useState(unseenRelease);
-  const [guideOpen, setGuideOpen] = useState(!guideFromServer.seen);
+  const [pickingLook, setPickingLook] = useState(!lookPicked);
   const { guide, refresh: refreshGuide, setHidden: setGuideHidden } = useGuide(guideFromServer);
   const guideDone = guide.tasks.filter((task) => task.done).length;
   const requestAddItem = useUIStore((s) => s.requestAddItem);
   const openCreateBucket = useUIStore((s) => s.openCreateBucket);
   const requestMembers = useUIStore((s) => s.requestMembers);
   const setChatState = useLayoutStore((s) => s.setChatState);
+  const { canDock, docked: chatDocked } = useChatDocked();
+  const sideColumn = chatDocked || (canDock && sidePanel !== null);
+
+  function openSettings(tab: SettingsTab) {
+    setSettingsTab(tab);
+    openSidePanel("tweaks");
+  }
 
   function openGuide() {
-    setGuideOpen(true);
+    openSidePanel("guide");
     void refreshGuide();
   }
 
   function showHint(task: GuideTask) {
-    setGuideOpen(false);
+    closeSidePanel("guide");
     const target = HINT_TARGETS[task.key];
-    if (target.kind === "settings") setSettingsTab(target.tab);
-    if (target.kind === "add-item") requestAddItem();
+    if (target.kind === "settings") openSettings(target.tab);
+    if (target.kind === "add-item") requestAddItem(target.form);
     if (target.kind === "new-bucket") openCreateBucket();
     if (target.kind === "bucket-members") requestMembers();
     if (target.kind === "chat") setChatState("open");
     toast(task.hint);
   }
 
+  function closeLookPicker() {
+    setPickingLook(false);
+    void lookPickedAction();
+  }
+
   function openWhatsNew() {
-    setWhatsNewOpen(true);
+    openSidePanel("whats-new");
     if (!releaseUnseen) return;
     setReleaseUnseen(false);
     void markReleasesSeenAction();
   }
 
   const newVersion = useServerEvents();
+  const banners = (
+    <div className="max-w-column mx-auto w-full">
+      {newVersion && <NewVersionBanner />}
+      {!hasWorkingChannel && <NoChannelBanner onSetUp={() => openSettings("notifications")} />}
+      <DeliveryFailureBanner failures={failures} onFix={() => openSettings("notifications")} />
+      <TimezoneMoveBanner />
+    </div>
+  );
 
   useEffect(() => {
-    if (!guideFromServer.seen) void markGuideSeenAction();
-  }, [guideFromServer.seen]);
+    if (guideFromServer.seen || pickingLook) return;
+    openSidePanel("guide");
+    void markGuideSeenAction();
+  }, [guideFromServer.seen, pickingLook, openSidePanel]);
 
   useEffect(() => {
     void useUIStore.persist.rehydrate();
     void useChatStore.persist.rehydrate();
+    void useDraftStore.persist.rehydrate();
     void useTimezoneStore.persist.rehydrate();
     void saveTimezoneIfDefaultAction(Intl.DateTimeFormat().resolvedOptions().timeZone);
   }, []);
 
   return (
-    <>
-      <PurchaseReturn onPaid={() => setSettingsTab("credits")} />
-      <Header
-        email={email}
-        userId={userId}
-        avatar={avatar}
-        onSettingsOpen={() => setSettingsTab("appearance")}
-        onArchiveOpen={() => setArchivedOpen(true)}
-        onTrashOpen={() => setTrashOpen(true)}
-        onJoinOpen={() => setJoinOpen(true)}
-        onFeedbackOpen={feedbackEnabled ? () => setFeedbackOpen(true) : null}
-        onWhatsNewOpen={openWhatsNew}
-        unseenRelease={releaseUnseen}
-        onGuideOpen={openGuide}
-        guideProgress={`${guideDone}/${guide.tasks.length}`}
-        guideButton={
-          guideDone < guide.tasks.length &&
-          !guide.hidden && (
-            <BracketButton onClick={openGuide} className="px-1 py-1.5 whitespace-nowrap">
-              <PixelIcon icon={MapIcon} className="mr-1 sm:hidden" />
-              <span className="sr-only sm:not-sr-only sm:mr-1">{"guide "}</span>
-              {guideDone}/{guide.tasks.length}
-            </BracketButton>
-          )
-        }
-      />
-      <div className="mx-auto w-full max-w-6xl">
-        {newVersion && <NewVersionBanner />}
-        {!hasWorkingChannel && <NoChannelBanner onSetUp={() => setSettingsTab("notifications")} />}
-        <DeliveryFailureBanner failures={failures} onFix={() => setSettingsTab("notifications")} />
-        <TimezoneMoveBanner />
+    <AssistantNameProvider name={assistantName}>
+      <PurchaseReturn onPaid={() => openSettings("credits")} />
+      <div
+        className={cn(
+          "flex min-h-0 flex-1 flex-col transition-[padding] duration-200 ease-out",
+          sideColumn && "pr-[calc(var(--spacing-chat)+var(--dock-inset))]"
+        )}
+      >
+        <Header
+          email={email}
+          userId={userId}
+          avatar={avatar}
+          onSettingsOpen={() => openSettings("appearance")}
+          onArchiveOpen={() => openSidePanel("archive")}
+          onTrashOpen={() => openSidePanel("trash")}
+          onJoinOpen={() => setJoinOpen(true)}
+          onFeedbackOpen={feedbackEnabled ? () => setFeedbackOpen(true) : null}
+          onWhatsNewOpen={openWhatsNew}
+          unseenRelease={releaseUnseen}
+          onGuideOpen={openGuide}
+          guideProgress={`${guideDone}/${guide.tasks.length}`}
+          guideUnfinished={guideDone < guide.tasks.length && !guide.hidden}
+        />
+        <main className="max-md:scrollbar-hide relative flex flex-1 flex-col overflow-y-auto">
+          <BannersProvider banners={banners}>{children}</BannersProvider>
+        </main>
       </div>
-      <main className="flex flex-1 flex-col overflow-y-auto">{children}</main>
       <SettingsSheet
-        open={settingsTab !== null}
-        initialTab={settingsTab ?? "appearance"}
-        onClose={() => setSettingsTab(null)}
+        open={sidePanel === "tweaks"}
+        initialTab={settingsTab}
+        onClose={() => closeSidePanel("tweaks")}
       />
-      <ArchivedBucketsSheet open={archivedOpen} onClose={() => setArchivedOpen(false)} />
-      <TrashSheet open={trashOpen} onClose={() => setTrashOpen(false)} />
+      <ArchivedBucketsSheet
+        open={sidePanel === "archive"}
+        onClose={() => closeSidePanel("archive")}
+      />
+      <TrashSheet open={sidePanel === "trash"} onClose={() => closeSidePanel("trash")} />
       <JoinBucketDialog open={joinOpen} onClose={() => setJoinOpen(false)} />
       <FeedbackDialog open={feedbackOpen} onClose={() => setFeedbackOpen(false)} />
       <WhatsNewDialog
-        open={whatsNewOpen}
-        onClose={() => setWhatsNewOpen(false)}
-        onShowGuide={() => {
-          setWhatsNewOpen(false);
-          openGuide();
-        }}
+        open={sidePanel === "whats-new"}
+        onClose={() => closeSidePanel("whats-new")}
+        onShowGuide={openGuide}
       />
+      <LookPickerDialog open={pickingLook} onClose={closeLookPicker} />
       <GuidePanel
-        open={guideOpen}
+        open={sidePanel === "guide"}
         guide={guide}
-        onClose={() => setGuideOpen(false)}
+        onClose={() => closeSidePanel("guide")}
         onHint={showHint}
         onHiddenChange={setGuideHidden}
       />
       <SearchDrawer />
-      <AssistantNameProvider name={assistantName}>
-        <CapyChat appUrl={appUrl} />
-      </AssistantNameProvider>
-    </>
+      <CapyChat appUrl={appUrl} />
+    </AssistantNameProvider>
   );
 }

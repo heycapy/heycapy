@@ -1,0 +1,1 @@
+ALTER TABLE `user_settings` ADD `control_size` text DEFAULT 'medium' NOT NULL;

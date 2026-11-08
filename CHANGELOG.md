@@ -2,6 +2,81 @@
 
 all notable changes to heycapy. versions follow [semver](https://semver.org): a patch version (0.3.1) only fixes things, a minor version (0.4.0) adds features. the database migrates itself on start and migrations only go forward, so back up before upgrading (see the README).
 
+## 0.10.0
+
+the biggest release heycapy has had. every screen was redrawn: buckets are tabs along the top, items have a tick box, adding and editing happen in one bar at the bottom, capy sits in the header, and there's a second look to pick from. "original" keeps the pixel style heycapy started with. "modern" is clean, rounded and quiet. nothing about your buckets, items or reminders changes, but almost everything about how you move around them does, so take a minute to look around. one status is gone too: "on hold" (see "removed" below).
+
+### a new layout
+
+- buckets are tabs along the top instead of a drawer on the left: search is pinned first, then today, then your buckets, then "+ new". the tabs stay at the top while the list scrolls
+- hold a tab and drag it to put your buckets in your own order. the order is yours alone, so people you share a bucket with keep theirs, and every bucket keeps its colour wherever it moves
+- bucket settings (⚙) sit on the open tab, and a small mark at the corner of a tab's name tells you something in it is late
+- the top row has capy, getting started and what's new, with your avatar on the right. your avatar opens a menu with tweaks, join a bucket, archived, trash, feedback and the rest. the greeting and date that used to sit there are gone
+- tweaks, bucket settings, trash, archived, getting started and what's new open in one side panel, one at a time, instead of a different window each. leaving tweaks with unsaved changes asks first
+- bucket settings › notifications is split into tabs, so each part fits on one screen
+- on desktop the list sits in a column in the middle of the screen. on screens 1280px wide or more, capy's chat opens beside the list instead of over it
+- messages ("saved", "deleted" and so on) show at the bottom left on desktop and at the top centre on phones, sized to their text, out of the way of the add bar
+
+### items
+
+- every item has a tick box: tap it to finish the item, tap again to reopen it. it stays grey until it's done, then takes the bucket's colour. it replaces the small status dot and its picker
+- long press an item (or right click with a mouse) to open its menu. swiping rows to finish or delete them is gone, the tick box and the menu do both
+- titles can run over several lines: enter starts a new line and ctrl/⌘ + enter saves. the list shows up to four lines of each title
+- an item you just added is marked for a few seconds so you can spot where it landed
+- done items are dimmer, so what's left to do stands out
+- items you sort by hand have a six-dot grip to drag them by
+
+### adding and editing
+
+- one bar at the bottom of every list adds items: type a title and press the arrow. capy's chat starts from the same kind of bar, so everything you type into looks and works the same
+- each bucket keeps its own unsent draft, even when you switch tabs or close the form. escape clears it, and logging out clears every draft
+- the bar grows into the full form when you need more than a title: the expand button inside it on desktop, or the handle above it on phones (tap it or swipe up)
+- date, time, repeat, reminders and the rest are chips in the form. tap one to set it, and what you picked shows on a line above the title, with a × to clear it all without losing the title
+- editing an item opens in the same place as adding, from a bucket, from today or from search
+- you can add from today too: pick which bucket the item goes into right in the bar
+- on phones, adding and editing open in a drawer from the bottom: drag it down or tap outside to close it
+- the send arrow only shows while you're typing, so an empty bar stays clean
+
+### two looks
+
+- tweaks › appearance › look switches between "original" and "modern". it changes how everything looks, never where anything is, so switching back and forth is safe
+- original is heycapy as you know it: pixel icons, a square pixel tick box, [bracketed] buttons, framed lists and a bar along the bottom
+- modern has line icons, a round tick box, plain buttons, switches instead of on / off buttons, pill shaped tabs, rounded corners, lists without a frame and an add bar that floats above the list
+- in modern, "button size" (small, medium or large) sets how big buttons, tabs and inputs are. medium is a comfortable tap on phones and tighter on desktop
+- your look is saved to your account, so it follows you to every device and browser you sign in on
+- the first time you open the app after upgrading, a small window asks which look you want, with a live preview of each. you can change your mind any time in tweaks
+- every theme works with both looks, and tooltips follow your theme too
+
+### capy
+
+- capy has a button in the header. on wide screens the chat docks beside your list, on phones it opens as a drawer from the bottom, and in between it floats above the list
+- a link capy gives you to an item opens that item right where you are
+- clicking the chat's header no longer folds it away by accident, only the − button does
+- capy can't put items on hold any more. ask it to pause something and it offers a later date, or tells you about "remind again" on the reminder
+
+### removed
+
+- the "on hold" status. a later date or "remind again" on a reminder does the same job. every item that was on hold becomes active when you upgrade, and its reminders start again. one whose date has already passed gets its overdue alert soon after
+- webhooks that still send `"status": "on hold"` keep working: it's treated as active. any other unknown status is still refused
+- sharing leaves beta: its "beta" tags are gone
+
+### fixes
+
+- red text (late items, errors, delete buttons) is readable in every theme. it was too faint in 13 of them, and now passes the contrast guideline (4.5:1) on the page, on cards and inside the late chip, with each theme's own shade kept
+- the login page sends the email that's in the box, even if you typed it before the page finished loading
+- an item can't be saved with a status that doesn't exist
+
+### upgrading
+
+- five migrations (0047 to 0051) run on start:
+  - 0047 turns every "on hold" item into an active one. reminders for them are scheduled when the server starts, so an item whose date has passed sends its overdue alert then
+  - 0048 adds your own order of bucket tabs (`bucket_members.sort_order`)
+  - 0049 adds your look (`user_settings.look`, "original" for everyone)
+  - 0050 adds the button size used by the modern look (`user_settings.control_size`, "medium")
+  - 0051 marks whether you've picked a look (`users.look_picked`). every existing account sees the look picker once
+- if a script or service you point at the webhook relies on "on hold", switch it to a date or a status that exists
+- back up first, then `docker compose up -d --build` as usual
+
 ## 0.9.0
 
 items show when they're due at a glance, shared buckets show who does what, and the item menu does more in one click.

@@ -24,7 +24,7 @@ export function ItemAssigneeField({
   const someoneReminded = choice.members.some((m) => m.remindable);
   const leftOut = (member: BucketMember) => someoneReminded && !member.remindable;
   return (
-    <div className="flex flex-col gap-1.5 pb-5">
+    <div className="flex flex-col gap-1.5">
       <label className={LABEL}>assigned to</label>
       <div className="flex flex-wrap items-start gap-1.5">
         <OptionButton
@@ -48,7 +48,7 @@ export function ItemAssigneeField({
               {member.isYou ? " (you)" : ""}
             </span>
             {(showPlaces || leftOut(member)) && (
-              <span className="block text-[11px] opacity-70">
+              <span className="text-2xs block opacity-70">
                 {[
                   showPlaces && (member.place ?? "timezone not set"),
                   leftOut(member) && "no reminders set up",

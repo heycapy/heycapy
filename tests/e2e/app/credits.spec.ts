@@ -50,7 +50,7 @@ test("capy's chat shows the credits only when they run low, and says so when the
   await expect(page.getByText(/You're out of capy credits/).first()).toBeVisible();
 
   await page.getByRole("button", { name: "close chat" }).click();
-  await page.getByRole("button", { name: "···" }).click();
+  await page.getByRole("button", { name: "your menu", exact: true }).click();
   await page.getByRole("button", { name: "tweaks" }).click();
   await page.getByRole("button", { name: "ai", exact: true }).click();
   await expect(page.getByRole("status", { name: "capy's ai" })).toHaveText("out of capy credits");
@@ -65,7 +65,7 @@ test("heycapy ai or your own key, and a saved key stays for switching back", asy
   setBalance(50);
   const openAITab = async () => {
     await page.goto("/");
-    await page.getByRole("button", { name: "···" }).click();
+    await page.getByRole("button", { name: "your menu", exact: true }).click();
     await page.getByRole("button", { name: "tweaks" }).click();
     await page.getByRole("button", { name: "ai", exact: true }).click();
   };
@@ -108,7 +108,7 @@ test("each provider keeps its own key and model, and saved keys never come back"
   setBalance(50);
   const openAITab = async () => {
     await page.goto("/");
-    await page.getByRole("button", { name: "···" }).click();
+    await page.getByRole("button", { name: "your menu", exact: true }).click();
     await page.getByRole("button", { name: "tweaks" }).click();
     await page.getByRole("button", { name: "ai", exact: true }).click();
   };
@@ -173,7 +173,7 @@ test("picking heycapy ai describes it at once, not the saved key", async ({ page
   db.close();
 
   await page.goto("/");
-  await page.getByRole("button", { name: "···" }).click();
+  await page.getByRole("button", { name: "your menu", exact: true }).click();
   await page.getByRole("button", { name: "tweaks" }).click();
   await page.getByRole("button", { name: "ai", exact: true }).click();
   const status = page.getByRole("status", { name: "capy's ai" });
@@ -193,7 +193,7 @@ test("tweaks has ai second and a credits tab with the balance and what buying lo
 }) => {
   setBalance(42);
   await page.goto("/");
-  await page.getByRole("button", { name: "···" }).click();
+  await page.getByRole("button", { name: "your menu", exact: true }).click();
   await page.getByRole("button", { name: "tweaks" }).click();
 
   const tabs = page
