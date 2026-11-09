@@ -55,12 +55,7 @@ function PreviewList() {
   const framed = useLookParts().listFrame === "framed";
   const [today] = useState(() => Date.now());
   return (
-    <div
-      className={cn(
-        "divide-border/50 divide-divider divide-y",
-        framed && "border-border border-b-frame"
-      )}
-    >
+    <div className={cn(framed && "border-border border-b-frame")}>
       {LOOK_PREVIEW_ITEMS.map((item) => (
         <div key={item.title} className={cn("flex items-stretch px-3", item.done && "opacity-45")}>
           <TickBox title={item.title} checked={item.done} color={PREVIEW_COLOR} />

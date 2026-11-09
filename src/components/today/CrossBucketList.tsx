@@ -130,7 +130,7 @@ export function CrossBucketList({
             >
               {section.label}
             </p>
-            <div className="divide-border divide-rule divide-y">{section.items.map(row)}</div>
+            <div>{section.items.map(row)}</div>
           </section>
         ))
       )}

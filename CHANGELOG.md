@@ -14,6 +14,10 @@ a small fix release: reduce motion now does what it says.
 - with reduce motion on, drawers and dialogs (bucket settings, capy, the add form, tweaks, new bucket) open and close at once. before, they still faded and flickered
 - turning reduce motion on or off no longer makes every done item's tick pop again
 
+### changes
+
+- no more lines between items, in buckets, today and search. the list reads as one clean column
+
 ### upgrading
 
 - nothing to migrate. `docker compose up -d --build` as usual
