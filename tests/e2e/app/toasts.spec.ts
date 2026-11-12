@@ -1,5 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 import { authState } from "../helpers/auth";
+import { touchSwipe } from "../helpers/touch";
 import {
   addBox,
   addItem,
@@ -47,6 +48,32 @@ test.describe("on a phone", () => {
     expect(box?.width ?? Infinity).toBeLessThan(screenWidth - 32);
     expect(Math.abs(centreX(box) - screenWidth / 2)).toBeLessThanOrEqual(4);
   });
+
+  test("a toast can be swiped away", async ({ page }) => {
+    await openBucketOnPhone(page, uniqueName("Toast swipe"));
+    const title = uniqueName("bins");
+    await addBox(page).fill(title);
+    await addBox(page).press("Enter");
+    await deleteFromMenu(page, title, true);
+
+    const toast = page.locator("[data-sonner-toast]", { hasText: title });
+    await expect(toast).toBeVisible();
+    await touchSwipe(page, toast, 250);
+    await expect(toast).toHaveCount(0);
+  });
+});
+
+test("every toast has a cross that closes it", async ({ page }) => {
+  await page.goto("/");
+  await createAndSelectBucket(page, uniqueName("Toast cross"));
+  const title = uniqueName("bins");
+  await addItem(page, title);
+  await deleteFromMenu(page, title, false);
+
+  const toast = page.locator("[data-sonner-toast]", { hasText: title });
+  await expect(toast.getByRole("button", { name: "dismiss" })).toBeVisible();
+  await toast.getByRole("button", { name: "dismiss" }).click();
+  await expect(toast).toHaveCount(0);
 });
 
 test("on a wide screen a toast sits centred over the list and stays in view over an open form", async ({

@@ -47,8 +47,7 @@ function Toast({ id, tone, message, description, icon, action, countdown, durati
         "rounded-(--toast-radius) border-(length:--toast-border) shadow-(--toast-shadow)",
         error
           ? "border-(--toast-error-border) bg-(--toast-error-bg) text-(--toast-error-fg)"
-          : "border-(--toast-border-color) bg-(--toast-bg) text-(--toast-fg)",
-        !action && !error && "pr-3"
+          : "border-(--toast-border-color) bg-(--toast-bg) text-(--toast-fg)"
       )}
     >
       <span
@@ -76,16 +75,14 @@ function Toast({ id, tone, message, description, icon, action, countdown, durati
           {label(action.label)}
         </button>
       )}
-      {error && (
-        <button
-          type="button"
-          aria-label="dismiss"
-          onClick={dismiss}
-          className="flex shrink-0 items-center self-stretch px-2 opacity-75 hover:opacity-100"
-        >
-          {bracketed ? label("x") : <Icon name="close" />}
-        </button>
-      )}
+      <button
+        type="button"
+        aria-label="dismiss"
+        onClick={dismiss}
+        className="flex shrink-0 items-center self-stretch px-2 opacity-75 hover:opacity-100"
+      >
+        {bracketed ? label("x") : <Icon name="close" />}
+      </button>
       {countdown && (
         <span
           aria-hidden
