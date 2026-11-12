@@ -196,7 +196,8 @@ test("picking a theme ticks its task, the theme saves itself", async ({ page }) 
   await openGuide(page);
   await task(page, "pick a theme and look").getByRole("button", { name: "[ hint ]" }).click();
   const tweaks = page.getByRole("dialog", { name: "tweaks" });
-  await tweaks.getByRole("button", { name: /nord/i }).first().click();
+  await tweaks.getByRole("button", { name: /^theme, / }).click();
+  await tweaks.getByRole("button", { name: "nord", exact: true }).click();
 
   await expect(page.getByText(/^pick a theme and look · \+\d+ capy credits$/)).toBeVisible();
   await tweaks.getByRole("button", { name: "[ x ]" }).click();
@@ -278,12 +279,10 @@ test("the look picker also picks a theme, and it stays after a reload", async ({
   await newAccount(page);
   const picker = lookPicker(page);
 
+  await picker.getByRole("button", { name: /^theme, / }).click();
   await picker.getByRole("button", { name: "nord", exact: true }).click();
   await expect(page.locator("html")).toHaveAttribute("data-theme", "nord");
-  await expect(picker.getByRole("button", { name: "nord", exact: true })).toHaveAttribute(
-    "aria-pressed",
-    "true"
-  );
+  await expect(picker.getByRole("button", { name: "theme, nord", exact: true })).toBeVisible();
   await picker.getByRole("button", { name: /done/ }).click();
   await expect(picker).toBeHidden();
 

@@ -6,6 +6,12 @@ import type { Place } from "@/lib/keybinds/navigate";
 import { useUIStore } from "@/store/ui";
 import { useLayoutStore } from "@/store/layout";
 
+const HIDDEN_IN_FOCUS: KeybindActionId[] = [
+  KEYBIND_ACTION.today,
+  KEYBIND_ACTION.search,
+  KEYBIND_ACTION.capy,
+  KEYBIND_ACTION.mic,
+];
 const BUCKET_NUMBER_ACTION = /^bucket-([1-9])$/;
 const CHAT_SELECTOR = "[data-capy-chat]";
 const DIALOG_SELECTOR = '[role="dialog"]';
@@ -41,6 +47,7 @@ export function keybindActions({ canDock, openTweaks }: KeybindActionsOptions) {
       return goTo(bucketAt(here().bucketOrder, Number(bucketNumber[1])));
     }
     const { ui, bucketOrder, place } = here();
+    if (ui.focusMode && HIDDEN_IN_FOCUS.includes(id)) return;
     switch (id) {
       case KEYBIND_ACTION.quickAdd:
         return ui.requestAddItem(false);
@@ -64,6 +71,8 @@ export function keybindActions({ canDock, openTweaks }: KeybindActionsOptions) {
       case KEYBIND_ACTION.bucketSettings:
         if (place !== "today") ui.requestBucketSettings(place);
         return;
+      case KEYBIND_ACTION.focus:
+        return ui.setFocusMode(!ui.focusMode);
       case KEYBIND_ACTION.tweaks:
         return openTweaks();
       case KEYBIND_ACTION.cheatSheet: {

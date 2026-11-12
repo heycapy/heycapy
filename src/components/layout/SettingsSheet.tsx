@@ -262,9 +262,6 @@ export function SettingsSheet({ open, initialTab, onClose }: SettingsSheetProps)
                   setTheme(picked);
                   void pickedThemeAction();
                 }}
-                timezone={timezone}
-                setTimezone={setTimezone}
-                pending={pending}
               />
             )}
             {tab === "keybindings" && <KeyboardSettings />}
@@ -327,6 +324,9 @@ export function SettingsSheet({ open, initialTab, onClose }: SettingsSheetProps)
                 onUsernameSaved={setUsername}
                 avatarDraft={avatarDraft}
                 onAvatarDraft={setAvatarDraft}
+                timezone={timezone}
+                onTimezone={setTimezone}
+                saving={pending}
               />
             )}
             {tab === "system" && adminUser && <SystemTab />}

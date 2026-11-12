@@ -4,6 +4,19 @@ export type Release = { version: string; notes: ReleaseNote[] };
 
 export const RELEASES: [Release, ...Release[]] = [
   {
+    version: "0.13.0",
+    notes: [
+      {
+        title: "focus mode",
+        text: "just the bucket's name, its items and the add box. turn it on in tweaks › appearance or with ctrl+; then f, and switch bucket from the name.",
+      },
+      {
+        title: "three new themes",
+        text: "kanagawa, kanagawa light and melange, in a theme picker that shows each theme's colours. the timezone moved to tweaks › account.",
+      },
+    ],
+  },
+  {
     version: "0.12.0",
     notes: [
       {

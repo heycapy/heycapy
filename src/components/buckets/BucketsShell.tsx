@@ -5,6 +5,7 @@ import { AnimatePresence, motion, useReducedMotionConfig } from "framer-motion";
 import { BucketContent, type BucketView } from "./BucketContent";
 import { BucketTabs } from "./BucketTabs";
 import { BucketsFooter } from "./BucketsFooter";
+import { BucketTargetPicker } from "./BucketTargetPicker";
 import { TodayView } from "@/components/today/TodayView";
 import { Banners } from "@/components/layout/Banners";
 import { VIEW_FADE } from "./constants";
@@ -32,7 +33,8 @@ export function BucketsShell({ buckets: rawBuckets, focusBucketId = null }: Buck
   const openItem = useUIStore((s) => s.openItem);
   const newBucketId = useUIStore((s) => s.newBucketId);
   const clearNewBucket = useUIStore((s) => s.clearNewBucket);
-  const todayOpen = useUIStore((s) => s.todayOpen);
+  const focusMode = useUIStore((s) => s.focusMode);
+  const todayOpen = useUIStore((s) => s.todayOpen && !s.focusMode);
   // The open view is remembered per session, wait for it rather than flash the default
   const hydrated = useSyncExternalStore(
     (onChange) => useUIStore.persist.onFinishHydration(onChange),
@@ -154,8 +156,21 @@ export function BucketsShell({ buckets: rawBuckets, focusBucketId = null }: Buck
 
   return (
     <div className="flex flex-1 flex-col">
-      <BucketTabs buckets={buckets} activeId={activeId} todayOpen={todayOpen} />
-      <Banners />
+      {focusMode ? (
+        <div className="max-w-column mx-auto w-full px-2 pt-3 pb-2">
+          <BucketTargetPicker
+            variant="heading"
+            bucket={activeBucket}
+            buckets={buckets}
+            onPick={setActiveBucketId}
+          />
+        </div>
+      ) : (
+        <>
+          <BucketTabs buckets={buckets} activeId={activeId} todayOpen={todayOpen} />
+          <Banners />
+        </>
+      )}
       <div
         className="max-md:scrollbar-hide flex-1 overflow-y-auto pb-[calc(0.5rem+var(--item-panel-cover,0px))]"
         onClick={(e) => {

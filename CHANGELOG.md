@@ -2,6 +2,31 @@
 
 all notable changes to heycapy. versions follow [semver](https://semver.org): a patch version (0.3.1) only fixes things, a minor version (0.4.0) adds features. the database migrates itself on start and migrations only go forward, so back up before upgrading (see the README).
 
+## 0.13.0
+
+focus mode, three new themes and a tidier tweaks.
+
+### new
+
+- focus mode: just the open bucket's name, its items and the add box. the name is a dropdown, so you can still switch bucket. turn it on in tweaks › appearance or with prefix `f`, and leave with the small icon in the corner. it stays on after a reload, and today, search, capy and the mic keys are off while it's on
+- themes: kanagawa (wave), kanagawa light (lotus) and melange
+- the theme picker is a dropdown that shows each theme's name with its background and main colour, also in the first-run look picker
+
+### changes
+
+- tweaks › appearance is four boxes: focus mode, look, theme and comfort. the timezone moved to tweaks › account
+- toasts on a wide screen are dismissed by dragging them down, as on a phone, and their text can no longer be selected, so a drag never starts a selection
+- gruvbox light, everforest, tokyo night, rosé pine, nord, dracula, solarized, catppuccin, one dark and night owl use their official colours again. some reds and accents stay a little lighter or darker than the palette so text stays readable
+
+### fixes
+
+- a bucket with one member no longer shows an avatar and "you" on every item
+- the item menu no longer mentions swiping
+
+### upgrading
+
+- no migrations. `docker compose up -d --build`
+
 ## 0.12.0
 
 keyboard shortcuts you can rebind, and items you can assign to more than one person.

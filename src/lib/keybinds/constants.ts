@@ -23,6 +23,7 @@ export const KEYBIND_ACTION = {
   capy: "capy",
   mic: "mic",
   bucketSettings: "bucket-settings",
+  focus: "focus",
   tweaks: "tweaks",
   cheatSheet: "cheat-sheet",
 } as const;
@@ -58,6 +59,7 @@ export const KEYBIND_ACTIONS: KeybindAction[] = [
   { id: KEYBIND_ACTION.capy, key: "c", label: "toggle capy", rebindable: true },
   { id: KEYBIND_ACTION.mic, key: "m", label: "mic (chat open)", rebindable: true },
   { id: KEYBIND_ACTION.bucketSettings, key: "s", label: "bucket settings", rebindable: true },
+  { id: KEYBIND_ACTION.focus, key: "f", label: "focus mode", rebindable: true },
   { id: KEYBIND_ACTION.tweaks, key: ",", label: "tweaks", rebindable: true },
   { id: KEYBIND_ACTION.cheatSheet, key: "?", label: "cheat sheet", rebindable: true },
 ];

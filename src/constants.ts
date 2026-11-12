@@ -304,3 +304,7 @@ export const TOAST_PHONE_BOTTOM_OFFSET = 88;
 export const TOAST_PHONE_TOP_ROOM = 96;
 export const TOAST_SIDE_OFFSET = 16;
 export const TOAST_GAP = 8;
+// sonner's own phone breakpoint, where it switches to the phone offsets
+export const TOAST_PHONE_MEDIA_QUERY = "(max-width: 600px)";
+export const TOAST_SWIPE_PHONE: ("left" | "right" | "bottom")[] = ["left", "right", "bottom"];
+export const TOAST_SWIPE_DESKTOP: "bottom"[] = ["bottom"];

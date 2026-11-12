@@ -38,6 +38,7 @@ test("a timezone that doesn't exist is refused and the saved one stays", async (
   await page.goto("/");
   await page.getByRole("button", { name: "your menu", exact: true }).click();
   await page.getByRole("button", { name: "tweaks" }).click();
+  await page.getByRole("button", { name: "account", exact: true }).click();
   const timezone = page.getByPlaceholder("America/New_York");
   await expect(timezone).not.toHaveValue("");
   const saved = await timezone.inputValue();
@@ -51,5 +52,6 @@ test("a timezone that doesn't exist is refused and the saved one stays", async (
   await page.reload();
   await page.getByRole("button", { name: "your menu", exact: true }).click();
   await page.getByRole("button", { name: "tweaks" }).click();
+  await page.getByRole("button", { name: "account", exact: true }).click();
   await expect(timezone).toHaveValue(saved);
 });

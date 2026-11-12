@@ -14,15 +14,12 @@ export function LookPicker() {
 
   return (
     <>
-      <div className="flex flex-col gap-1.5">
-        <label className={LABEL}>look</label>
-        <OptionGroup
-          options={LOOK_OPTIONS}
-          value={look}
-          onChange={(value) => save(setLookAction, value)}
-          disabled={pending}
-        />
-      </div>
+      <OptionGroup
+        options={LOOK_OPTIONS}
+        value={look}
+        onChange={(value) => save(setLookAction, value)}
+        disabled={pending}
+      />
       {look === LOOK.modern && (
         <div className="flex flex-col gap-1.5">
           <label className={LABEL}>button size</label>

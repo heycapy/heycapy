@@ -62,9 +62,11 @@ export function BucketContent({ bucket, accentColor, viewRef, panel }: BucketCon
   const clearSettingsRequest = useUIStore((s) => s.clearSettingsRequest);
   const [filter, setFilter] = useState<MemberFilter>("all");
   const shared = members.length > 1;
+  const focusMode = useUIStore((s) => s.focusMode);
+  const showMembers = shared && !focusMode;
   const filtered =
     typeof filter === "number" ? members.find((m) => m.userId === filter) : undefined;
-  const activeFilter = shared && (typeof filter !== "number" || filtered) ? filter : "all";
+  const activeFilter = showMembers && (typeof filter !== "number" || filtered) ? filter : "all";
   const assigneeShown =
     activeFilter === "mine" ? members.find((m) => m.isYou)?.userId : activeFilter;
   const shownItems =
@@ -119,7 +121,7 @@ export function BucketContent({ bucket, accentColor, viewRef, panel }: BucketCon
     <div className="flex flex-col">
       <h2 className="sr-only">{bucketName}</h2>
 
-      {shared && (
+      {showMembers && (
         <MembersBar
           members={members}
           filter={activeFilter}
@@ -128,13 +130,17 @@ export function BucketContent({ bucket, accentColor, viewRef, panel }: BucketCon
         />
       )}
 
-      <TimezonesNotice members={members} />
+      {!focusMode && (
+        <>
+          <TimezonesNotice members={members} />
 
-      <RemindersOffNotice
-        myChannels={bucket.myChannels}
-        hasDatedItems={list.items.some((i) => i.deadline && !isClosedStatus(i.status))}
-        onSetUp={() => openSettings("notifications")}
-      />
+          <RemindersOffNotice
+            myChannels={bucket.myChannels}
+            hasDatedItems={list.items.some((i) => i.deadline && !isClosedStatus(i.status))}
+            onSetUp={() => openSettings("notifications")}
+          />
+        </>
+      )}
 
       <div
         className={cn(
