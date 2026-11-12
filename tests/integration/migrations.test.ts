@@ -109,6 +109,42 @@ describe("migrations", () => {
     sqlite.close();
   });
 
+  it("move an item's assignee into the assignees table, and leave unassigned items unassigned", () => {
+    const journal = JSON.parse(
+      readFileSync(path.join(MIGRATIONS, "meta/_journal.json"), "utf8")
+    ) as Journal;
+    const assigneesMigration = journal.entries.findIndex((e) => e.tag === "0055_item_assignees");
+    const dbPath = path.join(tempDir("heycapy-assignees-"), "db.sqlite");
+    const sqlite = new Database(dbPath);
+    const db = drizzle(sqlite);
+    migrate(db, { migrationsFolder: migrationsUpTo(assigneesMigration) });
+
+    sqlite.exec(`
+      INSERT INTO users (id, email) VALUES (1, 'a@heycapy.test'), (2, 'b@heycapy.test'), (3, 'c@heycapy.test');
+      INSERT INTO buckets (id, user_id, name) VALUES (1, 1, 'Home');
+      INSERT INTO bucket_members (bucket_id, user_id) VALUES (1, 2);
+      INSERT INTO items (id, bucket_id, user_id, title, assignee_id)
+        VALUES (1, 1, 1, 'bins', 2), (2, 1, 1, 'plants', NULL), (3, 1, 1, 'left', 3);
+      INSERT INTO item_reminders (item_id, user_id) VALUES (1, 2), (2, 1), (2, 2);
+    `);
+
+    migrate(db, { migrationsFolder: MIGRATIONS });
+
+    expect(sqlite.prepare("SELECT item_id, user_id FROM item_assignees").all()).toEqual([
+      { item_id: 1, user_id: 2 },
+    ]);
+    expect(sqlite.prepare("SELECT count(*) AS n FROM items").get()).toEqual({ n: 3 });
+    expect(sqlite.prepare("SELECT count(*) AS n FROM item_reminders").get()).toEqual({ n: 3 });
+    expect(
+      sqlite
+        .prepare(
+          "SELECT name FROM sqlite_master WHERE type = 'trigger' AND name LIKE 'items_%_for_everyone'"
+        )
+        .all()
+    ).toHaveLength(2);
+    sqlite.close();
+  });
+
   it("keep an item's own reminder offset as a one-item list", () => {
     const journal = JSON.parse(
       readFileSync(path.join(MIGRATIONS, "meta/_journal.json"), "utf8")

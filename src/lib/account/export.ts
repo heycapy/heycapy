@@ -2,6 +2,7 @@ import { and, asc, eq, inArray, or } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { memberBucketIds, withoutOwnerSecrets } from "@/lib/buckets/access";
 import { inLiveBucket } from "@/lib/buckets/live";
+import { assigneeIdsByItem } from "@/lib/items/assignees";
 import { memberName } from "@/lib/buckets/member-name";
 import { memberChannels } from "@/lib/rules";
 import {
@@ -146,10 +147,11 @@ export async function buildAccountExport(userId: number, now = new Date()) {
     };
   };
 
+  const assignees = await assigneeIdsByItem(itemRows.map((i) => i.id));
   const names = await namesOf(userId, [
     ...new Set([
       ...bucketRows.map((b) => b.userId),
-      ...itemRows.flatMap((i) => (i.assigneeId === null ? [i.userId] : [i.userId, i.assigneeId])),
+      ...itemRows.flatMap((i) => [i.userId, ...(assignees.get(i.id) ?? [])]),
     ]),
   ]);
   const nameOf = (id: number) => names.get(id) ?? "someone";
@@ -226,7 +228,7 @@ export async function buildAccountExport(userId: number, now = new Date()) {
       title: i.title,
       description: i.description,
       addedBy: nameOf(i.userId),
-      assignedTo: i.assigneeId === null ? null : nameOf(i.assigneeId),
+      assignedTo: (assignees.get(i.id) ?? []).map(nameOf),
       status: i.status,
       deadline: i.deadline,
       deadlineTimezone: i.deadlineTimezone,

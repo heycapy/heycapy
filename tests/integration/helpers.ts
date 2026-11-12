@@ -11,6 +11,7 @@ import {
   users,
 } from "@/lib/db/schema";
 import { runNotifications } from "@/lib/scheduler";
+import { assignEveryone, setItemAssignees } from "@/lib/items/assignees";
 import { refreshItemReminders } from "@/lib/reminders/refresh";
 
 export const MINUTE = 60 * 1000;
@@ -98,6 +99,7 @@ export async function seedItem(
     overdueNotifiedAt?: Date;
     title?: string;
     reminderOffsets?: number[];
+    assigneeIds?: number[];
   }
 ): Promise<number> {
   const [item] = await db
@@ -112,6 +114,8 @@ export async function seedItem(
       reminderOffsets: fields.reminderOffsets ?? null,
     })
     .returning();
+  if (fields.assigneeIds) await setItemAssignees(item.id, fields.assigneeIds);
+  else await assignEveryone(item.id, bucketId);
   await refreshItemReminders([item.id]);
   return item.id;
 }

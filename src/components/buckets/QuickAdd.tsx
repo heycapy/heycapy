@@ -1,5 +1,6 @@
 import { useState, type RefObject } from "react";
 import { notify } from "@/components/ui/notify";
+import { mentionAssignees } from "./assignee";
 import { addItemAction } from "@/app/(app)/actions";
 import { IconButton } from "@/components/ui/IconButton";
 import { InputBar, InputBarAction, InputBarIcon } from "@/components/ui/InputBar";
@@ -52,7 +53,7 @@ export function QuickAdd({ bucket, inputRef, onAdded, onExpand, targets }: Quick
   const [closedOn, setClosedOn] = useState<string | null>(null);
   const members = useBucketMembers(bucket.id, null);
   const isPhone = useMediaQuery(MOBILE_MEDIA_QUERY);
-  const clock = useItemClock(members, draft.assigneeId);
+  const clock = useItemClock(members, draft.assigneeIds);
 
   const text = draft.title;
   const bucketName = bucket.icon ? `${bucket.icon} ${bucket.name}` : bucket.name;
@@ -62,7 +63,7 @@ export function QuickAdd({ bucket, inputRef, onAdded, onExpand, targets }: Quick
   const datePicked = draft.deadline !== null;
   const hasDetails = !isEmptyDraft({ ...draft, title: "" });
   const typedDate = datePicked ? null : findTitleDate(text);
-  const assignee = members.find((m) => m.userId === draft.assigneeId);
+  const named = members.filter((m) => draft.assigneeIds?.includes(m.userId));
   const found = members.length > 1 ? findMention(text, caret) : null;
   const options = found ? mentionOptions(members, found.query) : [];
   const listOpen = options.length > 0 && closedOn !== text;
@@ -71,7 +72,7 @@ export function QuickAdd({ bucket, inputRef, onAdded, onExpand, targets }: Quick
       ? draft.deadline && describeDeadline(draft.deadline)
       : typedDate && describeDeadline(typedDate.deadline),
     draft.recurring?.enabled && repeatLabel(draft.recurring),
-    assignee && `@${memberName(assignee)}`,
+    ...named.map((m) => `@${memberName(m)}`),
     Object.keys(draft.properties).length > 0 && "+ fields",
     draft.reminders !== null && "+ reminders",
   ].filter(Boolean);
@@ -105,7 +106,7 @@ export function QuickAdd({ bucket, inputRef, onAdded, onExpand, targets }: Quick
         sent.recurring,
         Object.keys(sent.properties).length > 0 ? sent.properties : null,
         sent.reminders,
-        sent.assigneeId,
+        sent.assigneeIds ?? undefined,
         clock.clock
       );
       if (result.ok) {
@@ -122,7 +123,11 @@ export function QuickAdd({ bucket, inputRef, onAdded, onExpand, targets }: Quick
   function pick(option: MentionOption) {
     if (!found) return;
     const next = removeMention(text, found);
-    updateDraft(bucket.id, { title: next.text, assigneeId: option.userId });
+    updateDraft(bucket.id, {
+      title: next.text,
+      assigneeIds:
+        option.userId === null ? null : mentionAssignees(members, draft.assigneeIds, option.userId),
+    });
     setCaret(next.caret);
     requestAnimationFrame(() => inputRef.current?.setSelectionRange(next.caret, next.caret));
   }

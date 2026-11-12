@@ -126,3 +126,19 @@ export async function openDetail(form: Locator, name: string): Promise<void> {
   if ((await chip.getAttribute("aria-expanded")) !== "true") await chip.click();
   await expect(chip).toHaveAttribute("aria-expanded", "true");
 }
+
+// The assignee field is a multi-select: switches people on or off until only `only` is on, or everyone
+// is when it's null
+export async function assignOnly(form: Locator, only: string | RegExp | null): Promise<void> {
+  await openDetail(form, "assignee");
+  const field = form.getByText("assigned to", { exact: true }).locator("..");
+  const buttons = field.getByRole("button");
+  const wanted = only === null ? null : field.getByRole("button", { name: only });
+  const count = await buttons.count();
+  for (let i = 0; i < count; i++) {
+    const button = buttons.nth(i);
+    const shouldBeOn = wanted === null || (await button.and(wanted).count()) > 0;
+    const isOn = (await button.getAttribute("aria-pressed")) === "true";
+    if (isOn !== shouldBeOn) await button.click();
+  }
+}

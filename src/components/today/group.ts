@@ -1,9 +1,9 @@
+import type { ListItem } from "@/lib/reminders/status";
 import { relativeTime } from "@/lib/items/relative-day";
 import { itemDeadline } from "@/lib/time";
-import type { items } from "@/lib/db/schema";
 import type { CrossBucketSection } from "./CrossBucketList";
 
-type Item = typeof items.$inferSelect;
+type Item = ListItem;
 
 export function groupForToday(list: Item[], now = new Date()): CrossBucketSection[] {
   const overdue: Item[] = [];

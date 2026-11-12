@@ -6,6 +6,7 @@ import { clocksLine } from "@/lib/timezones/gap";
 import { HINTS_DEBOUNCE_MS } from "./constants";
 import { ItemClockField } from "./ItemClockField";
 import type { AssigneeChoice } from "./ItemAssigneeField";
+import { resolveAssignees } from "./assignee";
 import type { useItemClock } from "./useItemClock";
 
 function hintText(hint: DeadlineHint): string {
@@ -38,11 +39,13 @@ export function ItemTimeHints({
   onPickClock,
   disabled,
 }: ItemTimeHintsProps) {
-  const { bucketId, members, value: assigneeId } = choice;
+  const { bucketId, members } = choice;
+  const assigneeIds = resolveAssignees(members, choice.value);
+  const assigneesKey = assigneeIds.join(",");
   const { clock, zone } = editClock;
   const [hints, setHints] = useState<{ key: string; list: DeadlineHint[] }>({ key: "", list: [] });
   const offsets = reminders ? reminders.join(",") : null;
-  const key = JSON.stringify([bucketId, deadline, clock, assigneeId, offsets]);
+  const key = JSON.stringify([bucketId, deadline, clock, assigneesKey, offsets]);
 
   useEffect(() => {
     let cancelled = false;
@@ -50,7 +53,7 @@ export function ItemTimeHints({
       void deadlineHintsAction(bucketId, {
         deadline: deadline || null,
         clock,
-        assigneeId,
+        assigneeIds: assigneesKey.split(",").filter(Boolean).map(Number),
         reminderOffsets: offsets === null ? null : offsets.split(",").filter(Boolean).map(Number),
       }).then((result) => {
         if (!cancelled && result.ok) setHints({ key, list: result.hints });
@@ -60,12 +63,11 @@ export function ItemTimeHints({
       cancelled = true;
       clearTimeout(id);
     };
-  }, [key, bucketId, deadline, clock, assigneeId, offsets]);
+  }, [key, bucketId, deadline, clock, assigneesKey, offsets]);
 
-  const assignee = members.find((m) => m.userId === assigneeId);
-  const people = (
-    assignee ? [...new Set([assignee, ...members.filter((m) => m.isYou)])] : members
-  ).map((m) => ({ name: memberName(m), timezone: m.timezone, isYou: m.isYou }));
+  const people = members
+    .filter((m) => m.isYou || assigneeIds.includes(m.userId))
+    .map((m) => ({ name: memberName(m), timezone: m.timezone, isYou: m.isYou }));
   const preview = deadline.includes("T") ? clocksLine(new Date(deadline), zone, people) : null;
   const warnings = hints.key === key ? hints.list : [];
 

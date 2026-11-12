@@ -28,6 +28,8 @@ const ONE_PM_INDIA = "2026-10-26T07:30:00.000Z";
 beforeEach(() => useSchedulerEnvironment(new Date("2026-10-20T12:00:00Z")));
 afterEach(() => resetSchedulerEnvironment());
 
+let everyone: number[] = [];
+
 async function sharedBucket() {
   const owner = await seedUser(INDIA);
   const sam = await seedUser(LONDON);
@@ -42,13 +44,14 @@ async function sharedBucket() {
   const bucketId = await seedBucket(owner, { medium: ["telegram"], repeat: "once" });
   await seedMember(bucketId, sam);
   session.userId = owner;
+  everyone = [owner, sam];
   return { owner, sam, bucketId };
 }
 
-const draft = (deadline: string, assigneeId: number | null = null) => ({
+const draft = (deadline: string, assigneeIds: number[] = everyone) => ({
   deadline,
   clock: null,
-  assigneeId,
+  assigneeIds,
   reminderOffsets: [0],
 });
 
@@ -93,18 +96,20 @@ describe("hints for a deadline being edited", () => {
     });
   });
 
-  it("only looks at the person it's assigned to", async () => {
+  it("only looks at the people it's assigned to", async () => {
     const { owner, sam, bucketId } = await sharedBucket();
-    expect(await deadlineHintsAction(bucketId, draft(NINE_INDIA, owner))).toEqual({
+    expect(await deadlineHintsAction(bucketId, draft(NINE_INDIA, [owner]))).toEqual({
       ok: true,
       hints: [],
     });
-    expect((await deadlineHintsAction(bucketId, draft(NINE_INDIA, sam))).ok).toBe(true);
+    expect((await deadlineHintsAction(bucketId, draft(NINE_INDIA, [sam]))).ok).toBe(true);
     // 11:30pm in India is night, but you picked it
-    expect(await deadlineHintsAction(bucketId, draft("2026-10-26T18:00:00.000Z", owner))).toEqual({
-      ok: true,
-      hints: [],
-    });
+    expect(await deadlineHintsAction(bucketId, draft("2026-10-26T18:00:00.000Z", [owner]))).toEqual(
+      {
+        ok: true,
+        hints: [],
+      }
+    );
   });
 
   it("names your own quiet hours, never your own night", async () => {
@@ -113,7 +118,7 @@ describe("hints for a deadline being edited", () => {
       .update(userSettings)
       .set({ quietHoursFrom: "08:00", quietHoursTo: "10:00" })
       .where(eq(userSettings.userId, owner));
-    const { hints } = (await deadlineHintsAction(bucketId, draft(NINE_INDIA, owner))) as {
+    const { hints } = (await deadlineHintsAction(bucketId, draft(NINE_INDIA, [owner]))) as {
       hints: unknown[];
     };
     expect(hints).toEqual([

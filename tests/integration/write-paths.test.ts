@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { and, eq, ne } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { items } from "@/lib/db/schema";
+import { assignEveryone } from "@/lib/items/assignees";
 import { executeToolCall } from "@/lib/ai/capyTools";
 import { createItem, softDeleteItemById } from "@/app/api/telegram/telegram-utils";
 import { reconcile } from "@/lib/reminders/refresh";
@@ -122,6 +123,7 @@ describe("safety net", () => {
       .insert(items)
       .values({ bucketId, userId, title: "written directly", deadline: T0 })
       .returning();
+    await assignEveryone(raw.id, bucketId);
     await expect(reminderOf(raw.id)).rejects.toThrow("found 0");
 
     await reconcile();

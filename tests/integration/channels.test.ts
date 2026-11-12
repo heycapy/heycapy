@@ -13,6 +13,7 @@ import {
 import { createBucketAction } from "@/app/(app)/bucket-actions";
 import { executeToolCall } from "@/lib/ai/capyTools";
 import { enqueue, processPending } from "@/lib/notifications/queue";
+import { assignEveryone } from "@/lib/items/assignees";
 import { refreshItemReminders } from "@/lib/reminders/refresh";
 import {
   getChannelSettings,
@@ -97,6 +98,7 @@ describe("a bucket with no channel list", () => {
       .insert(items)
       .values({ bucketId: bucket.id, userId, title: "x", deadline: new Date("2026-03-11") })
       .returning();
+    await assignEveryone(item.id, bucket.id);
     await refreshItemReminders([item.id]);
 
     expect((await reminderOf(item.id)).nextReminderAt).toBeNull();

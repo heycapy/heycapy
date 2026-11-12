@@ -4,11 +4,10 @@ import { ItemRow, type ItemAssignee } from "./ItemRow";
 import { PressableRow } from "./PressableRow";
 import type { MenuAt } from "./ItemMenu";
 import { reorderItemsAction } from "@/app/(app)/actions";
-import type { ReminderBadge } from "@/lib/reminders/status";
-import type { items } from "@/lib/db/schema";
+import type { ListItem, ReminderBadge } from "@/lib/reminders/status";
 import type { StatusDef, FieldDef } from "@/types/rules";
 
-type Item = typeof items.$inferSelect;
+type Item = ListItem;
 
 type DraggableItemProps = {
   item: Item;
@@ -21,7 +20,7 @@ type DraggableItemProps = {
   onStatusChange?: (status: string) => Promise<boolean>;
   onMenu: (at: MenuAt) => void;
   reminderBadge?: ReminderBadge;
-  assignee?: ItemAssignee;
+  assignees?: ItemAssignee[];
   otherClock?: string;
   color: string;
   showDue: boolean;
@@ -40,7 +39,7 @@ export function DraggableItem({
   onStatusChange,
   onMenu,
   reminderBadge,
-  assignee,
+  assignees,
   otherClock,
   color,
   showDue,
@@ -73,7 +72,7 @@ export function DraggableItem({
           onEditStart={onEditStart}
           onStatusChange={onStatusChange}
           reminderBadge={reminderBadge}
-          assignee={assignee}
+          assignees={assignees}
           otherClock={otherClock}
           color={color}
           showDue={showDue}

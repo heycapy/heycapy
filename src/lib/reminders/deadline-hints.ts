@@ -22,7 +22,7 @@ export type DeadlineHint = {
 export type DeadlineDraft = {
   deadline: string | null;
   clock: string | null;
-  assigneeId: number | null;
+  assigneeIds: number[];
   reminderOffsets: number[] | null;
 };
 
@@ -58,9 +58,8 @@ export async function deadlineHints(
   const deadlineTimezone = due.deadlineTimezone;
   const timed = !isAllDay(deadline, deadlineTimezone);
   const rules = NotificationRules.parse(JSON.parse(viewer.rules));
-  const assignee = rows.find((r) => r.userId === draft.assigneeId);
-  const recipients = (assignee ? [assignee] : rows).filter(
-    (r) => r.timezone && r.timezone !== UNSET_TIMEZONE
+  const recipients = rows.filter(
+    (r) => draft.assigneeIds.includes(r.userId) && r.timezone && r.timezone !== UNSET_TIMEZONE
   );
 
   return recipients.flatMap((r) => {

@@ -3,6 +3,7 @@ import type * as SessionModule from "@/lib/auth/session";
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { bucketMembers, buckets, items, users } from "@/lib/db/schema";
+import { setItemAssignees } from "@/lib/items/assignees";
 import {
   deleteAccountAction,
   getDeletionBlockersAction,
@@ -144,10 +145,10 @@ describe("a member deleting their account", () => {
     expect(members).toEqual([{ userId: owner }]);
   });
 
-  it("passes what was assigned to them back to everyone left, to be reminded about", async () => {
+  it("leaves the others on what was assigned to them and others, still reminded", async () => {
     const { owner, member, bucketId } = await sharedBucket();
     const itemId = await seedItem(owner, bucketId, { deadline: new Date(T0.getTime() + DAY) });
-    await db.update(items).set({ assigneeId: member }).where(eq(items.id, itemId));
+    await setItemAssignees(itemId, [owner, member]);
     await refreshItemReminders([itemId]);
     await signInAs(member);
 

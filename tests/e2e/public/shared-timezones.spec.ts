@@ -2,6 +2,7 @@ import { test, expect } from "@playwright/test";
 import Database from "better-sqlite3";
 import { E2E_DATABASE_FILE } from "../helpers/env";
 import {
+  assignOnly,
   addItemButton,
   createAndSelectBucket,
   editForm,
@@ -45,9 +46,17 @@ function seedSharedBucket(ownerEmail: string, memberEmail: string, title?: strin
   if (title) {
     // Set in India for 09:00 UTC in three days, and assigned to the member, who has no email
     const day = new Date(Date.now() + 3 * 86_400_000).toISOString().slice(0, 10);
-    db.prepare(
-      "insert into items (bucket_id, user_id, assignee_id, title, deadline, deadline_timezone) values (?, ?, ?, ?, ?, 'Asia/Kolkata')"
-    ).run(bucketId, id(ownerEmail), id(memberEmail), title, Date.parse(`${day}T09:00:00Z`) / 1000);
+    const { id: itemId } = db
+      .prepare(
+        "insert into items (bucket_id, user_id, title, deadline, deadline_timezone) values (?, ?, ?, ?, 'Asia/Kolkata') returning id"
+      )
+      .get(bucketId, id(ownerEmail), title, Date.parse(`${day}T09:00:00Z`) / 1000) as {
+      id: number;
+    };
+    db.prepare("insert into item_assignees (item_id, user_id) values (?, ?)").run(
+      itemId,
+      id(memberEmail)
+    );
     db.prepare("update user_settings set notifications_email = 0 where user_id = ?").run(
       id(memberEmail)
     );
@@ -157,10 +166,7 @@ test("a time for someone on another clock is set on theirs, unless picked by han
 
   const dialog = newItemForm(page);
   const clocks = dialog.getByRole("group", { name: "time on" });
-  const assignTo = async (name: RegExp) => {
-    await openDetail(dialog, "assignee");
-    await dialog.getByRole("button", { name }).click();
-  };
+  const assignTo = (name: RegExp | null) => assignOnly(dialog, name);
 
   const forSam = `call the bank ${Date.now()}`;
   await addItemButton(page).click();
@@ -183,7 +189,7 @@ test("a time for someone on another clock is set on theirs, unless picked by han
   await dialog.locator("textarea").fill(`${onIndia} tomorrow 9am`);
   await assignTo(/\sUK( · no reminders set up)?$/);
   await clocks.getByRole("button", { name: "India" }).click();
-  await assignTo(/^anyone$/);
+  await assignTo(null);
   await expect(clocks.getByRole("button", { name: "India" })).toHaveAttribute(
     "aria-pressed",
     "true"
@@ -230,8 +236,7 @@ test("the time field shows everyone's time and warns softly about their nights",
     /^⚠ at night for (\S+) · \1's quiet hours hold the reminder until after it's due$/
   );
 
-  await openDetail(dialog, "assignee");
-  await dialog.getByRole("button", { name: /\sUK( · no reminders set up)?$/ }).click();
+  await assignOnly(dialog, /\sUK( · no reminders set up)?$/);
   await expect(preview).toHaveText(/^9am for \S+ · \d{1,2}:30pm for you$/);
   await expect(dialog.getByRole("status")).toHaveCount(0);
 

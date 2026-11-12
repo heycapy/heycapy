@@ -7,7 +7,7 @@ import { and, asc, eq, isNull, sql } from "drizzle-orm";
 import { requireSession } from "./action-helpers";
 import { db } from "@/lib/db";
 import { items } from "@/lib/db/schema";
-import { findAccessibleBucket, findAccessibleItem, isBucketMember } from "@/lib/buckets/access";
+import { findAccessibleBucket, findAccessibleItem } from "@/lib/buckets/access";
 import {
   ITEM_GONE_ERROR,
   ITEM_STATUS,
@@ -27,6 +27,7 @@ import { isKnownTimezone } from "@/lib/timezones/valid";
 import { createNextOccurrence, moveOccurrence, skipOccurrence } from "@/lib/items/recurrence";
 import { onLastDayIfAnchored, parseRecurring } from "@/lib/items/occurrence";
 import { cancelRemindAgain } from "@/lib/reminders/quick-actions";
+import { allAreMembers, assignEveryone, setItemAssignees } from "@/lib/items/assignees";
 import { toggleItemCompleted } from "@/lib/items/complete";
 import { bucketsChanged, dataEvents } from "@/lib/events";
 import {
@@ -109,7 +110,7 @@ export async function addItemAction(
   recurring?: RecurringConfig | null,
   properties?: Record<string, unknown> | null,
   reminders?: number[] | null,
-  assigneeId?: number | null,
+  assigneeIds?: number[],
   clock?: string | null
 ): Promise<ActionResult<{ id: number }>> {
   const session = await requireSession();
@@ -131,7 +132,7 @@ export async function addItemAction(
 
   const bucket = await findAccessibleBucket(session.userId, bucketId);
   if (!bucket) return { ok: false, error: "Bucket not found" };
-  if (assigneeId && !(await isBucketMember(assigneeId, bucketId))) {
+  if (assigneeIds && !(await allAreMembers(bucketId, assigneeIds))) {
     return { ok: false, error: NOT_A_MEMBER_ERROR };
   }
 
@@ -163,9 +164,10 @@ export async function addItemAction(
       recurring: recurring?.enabled ? JSON.stringify(recurring) : null,
       properties: properties ? JSON.stringify(properties) : null,
       reminderOffsets: parsedReminders?.data ?? null,
-      assigneeId: assigneeId ?? null,
     })
     .returning({ id: items.id });
+  if (assigneeIds) await setItemAssignees(created.id, assigneeIds);
+  else await assignEveryone(created.id, bucketId);
   await refreshItemReminders([created.id]);
 
   revalidatePath("/");
@@ -189,7 +191,7 @@ export async function updateItemAction(
   recurring?: RecurringConfig | null,
   properties?: Record<string, unknown> | null,
   reminders?: number[] | null,
-  assigneeId?: number | null,
+  assigneeIds?: number[],
   clock?: string | null
 ): Promise<ActionResult> {
   const session = await requireSession();
@@ -212,7 +214,7 @@ export async function updateItemAction(
   if (status !== undefined && status !== item.status && !SETTABLE_ITEM_STATUSES.includes(status)) {
     return { ok: false, error: INVALID_STATUS_ERROR };
   }
-  if (assigneeId && !(await isBucketMember(assigneeId, item.bucketId))) {
+  if (assigneeIds && !(await allAreMembers(item.bucketId, assigneeIds))) {
     return { ok: false, error: NOT_A_MEMBER_ERROR };
   }
 
@@ -264,10 +266,10 @@ export async function updateItemAction(
         properties: properties ? JSON.stringify(properties) : null,
       }),
       ...(reminders !== undefined && { reminderOffsets: parsedReminders?.data ?? null }),
-      ...(assigneeId !== undefined && { assigneeId }),
       updatedAt: new Date(),
     })
     .where(eq(items.id, itemId));
+  if (assigneeIds) await setItemAssignees(itemId, assigneeIds);
   await refreshItemReminders([itemId]);
   if (nowCompleted) await createNextOccurrence(itemId);
 
@@ -305,17 +307,18 @@ export async function moveItemAction(itemId: number, deadline: string): Promise<
 
 export async function assignItemAction(
   itemId: number,
-  assigneeId: number | null
+  assigneeIds: number[]
 ): Promise<ActionResult> {
   const session = await requireSession();
 
   const item = await findAccessibleItem(session.userId, itemId);
   if (!item) return { ok: false, error: ITEM_GONE_ERROR };
-  if (assigneeId !== null && !(await isBucketMember(assigneeId, item.bucketId))) {
+  if (!(await allAreMembers(item.bucketId, assigneeIds))) {
     return { ok: false, error: NOT_A_MEMBER_ERROR };
   }
 
-  await db.update(items).set({ assigneeId, updatedAt: new Date() }).where(eq(items.id, itemId));
+  await setItemAssignees(itemId, assigneeIds);
+  await db.update(items).set({ updatedAt: new Date() }).where(eq(items.id, itemId));
   await refreshItemReminders([itemId]);
 
   revalidatePath("/");

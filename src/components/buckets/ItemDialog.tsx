@@ -5,7 +5,7 @@ import { useLookParts } from "@/components/looks/LookProvider";
 import { type Ampm, type TimeValue } from "@/components/ui/TimeField";
 import { ItemFieldsForm } from "./ItemFieldsForm";
 import { ItemAssigneeField, type AssigneeChoice } from "./ItemAssigneeField";
-import { memberName } from "@/lib/buckets/member-name";
+import { assigneeLabel, mentionAssignees } from "./assignee";
 import { ItemFrame } from "./ItemFrame";
 import type { ItemPanel } from "./ItemPanelFrame";
 import { ItemTitleField } from "./ItemTitleField";
@@ -190,9 +190,9 @@ export function ItemDialog({
     onDeadlineChange(moveClock(deadline, zone, next));
   }
 
-  function changeAssignee(id: number | null) {
-    changeClock(clock.zoneFor(id));
-    assigneeChoice?.onChange(id);
+  function changeAssignees(ids: number[]) {
+    changeClock(clock.zoneFor(ids));
+    assigneeChoice?.onChange(ids);
   }
 
   function pickClock(timezone: string) {
@@ -217,17 +217,20 @@ export function ItemDialog({
   }
 
   const titleHasError = validationAttempted && !title.trim();
-  const assignees = assigneeChoice && { ...assigneeChoice, onChange: changeAssignee };
+  const assignees = assigneeChoice && { ...assigneeChoice, onChange: changeAssignees };
   const mention =
     assignees && assignees.members.length > 1
-      ? { members: assignees.members, onPick: changeAssignee }
+      ? {
+          members: assignees.members,
+          onPick: (userId: number | null) =>
+            changeAssignees(mentionAssignees(assignees.members, assignees.value, userId)),
+        }
       : undefined;
 
-  const assigned = assignees?.members.find((m) => m.userId === assignees.value);
   const assignee = assignees &&
     assignees.members.length > 1 && {
-      label: assigned ? `${memberName(assigned)}${assigned.isYou ? " (you)" : ""}` : "anyone",
-      set: !!assigned,
+      label: assigneeLabel(assignees.members, assignees.value),
+      set: assigneeLabel(assignees.members, assignees.value) !== "everyone",
       field: <ItemAssigneeField choice={assignees} disabled={pending} />,
     };
   const more = onPropertiesChange && fields && hasFields && (

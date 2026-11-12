@@ -1,14 +1,13 @@
 import { useEffect, useLayoutEffect, useRef, useState, type MouseEvent } from "react";
 import { createPortal } from "react-dom";
-import type { items } from "@/lib/db/schema";
-import type { ReminderBadge } from "@/lib/reminders/status";
+import type { ListItem, ReminderBadge } from "@/lib/reminders/status";
 import type { BucketMember } from "@/lib/buckets/members";
 import { MENU_GAP, SCREEN_MARGIN } from "./constants";
 import { MenuBody } from "./ItemMenuBody";
 import { cn } from "@/lib/utils";
 import { MENU_SURFACE } from "@/components/ui/constants";
 
-type Item = typeof items.$inferSelect;
+type Item = ListItem;
 
 // within: the open dialog the menu was asked for from, if any; it renders in there, or the
 // dialog would sit on top of it and swallow its clicks
@@ -22,7 +21,7 @@ export type ItemMenuProps = {
   reminderBadge?: ReminderBadge;
   nextReminderAt?: Date | null;
   // Only in a bucket shared with others
-  assign?: { members: BucketMember[]; onAssign: (userId: number | null) => Promise<boolean> };
+  assign?: { members: BucketMember[]; onAssign: (userIds: number[]) => Promise<boolean> };
   onComplete: () => void;
   onMove: (deadline: string) => Promise<void>;
   onDelete: () => void;

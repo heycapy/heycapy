@@ -4,7 +4,7 @@ import type { RecurringConfig } from "@/types/rules";
 
 export type ItemDraft = {
   title: string;
-  assigneeId: number | null;
+  assigneeIds: number[] | null;
   deadline: string | null;
   status: string | null;
   recurring: RecurringConfig | null;
@@ -14,7 +14,7 @@ export type ItemDraft = {
 
 export const EMPTY_DRAFT: ItemDraft = {
   title: "",
-  assigneeId: null,
+  assigneeIds: null,
   deadline: null,
   status: null,
   recurring: null,
@@ -60,7 +60,7 @@ export function useDraft(bucketId: number): ItemDraft {
 export function isEmptyDraft(draft: ItemDraft): boolean {
   return (
     !draft.title.trim() &&
-    draft.assigneeId === null &&
+    draft.assigneeIds === null &&
     draft.deadline === null &&
     draft.status === null &&
     draft.recurring === null &&

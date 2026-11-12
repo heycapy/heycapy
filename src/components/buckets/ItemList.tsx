@@ -7,7 +7,6 @@ import { completionToggle } from "./completion";
 import { DraggableItem } from "./DraggableItem";
 import { ItemMenu, type MenuAt } from "./ItemMenu";
 import type { ListItem, ReminderBadge } from "@/lib/reminders/status";
-import type { items } from "@/lib/db/schema";
 import type { StatusDef, FieldDef } from "@/types/rules";
 import type { BucketMember } from "@/lib/buckets/members";
 import { memberName } from "@/lib/buckets/member-name";
@@ -15,7 +14,7 @@ import { ITEM_STATUS } from "@/constants";
 import { otherClock } from "@/lib/timezones/gap";
 import { itemDeadline } from "@/lib/time";
 
-type Item = typeof items.$inferSelect;
+type Item = ListItem;
 
 type ItemListProps = {
   loading: boolean;
@@ -31,7 +30,7 @@ type ItemListProps = {
   reminderBadges: Record<number, ReminderBadge>;
   members: BucketMember[];
   shared: boolean;
-  onAssign: (item: Item, assigneeId: number | null) => Promise<boolean>;
+  onAssign: (item: Item, assigneeIds: number[]) => Promise<boolean>;
   onReorder: (items: Item[]) => void;
   onEdit: (item: Item) => void;
   onStatusChange: (item: Item, status: string) => Promise<boolean>;
@@ -76,7 +75,8 @@ export function ItemList({
   const clockHint = (item: Item) => {
     const due = item.deadline && itemDeadline(item.deadline, item.deadlineTimezone);
     if (!due || due.allDay) return undefined;
-    const assignee = members.find((m) => m.userId === item.assigneeId);
+    const [only] = item.assigneeIds.length === 1 ? item.assigneeIds : [];
+    const assignee = members.find((m) => m.userId === only);
     const setter = members.find((m) => m.timezone === item.deadlineTimezone && m.place);
     return (
       otherClock(
@@ -88,10 +88,8 @@ export function ItemList({
     );
   };
 
-  const assigneeOf = (item: Item): ItemAssignee | undefined => {
-    const member = members.find((m) => m.userId === item.assigneeId);
-    return member && itemAssignee(member);
-  };
+  const assigneesOf = (item: ListItem): ItemAssignee[] =>
+    members.filter((m) => item.assigneeIds.includes(m.userId)).map(itemAssignee);
 
   const showDue = items.some((item) => item.deadline);
   const tickedBy = (item: Item) => {
@@ -109,7 +107,7 @@ export function ItemList({
     onEditStart: readonly ? undefined : () => onEdit(item),
     onStatusChange: readonly ? undefined : (s: string) => onStatusChange(item, s),
     reminderBadge: reminderBadges[item.id],
-    assignee: assigneeOf(item),
+    assignees: assigneesOf(item),
     otherClock: clockHint(item),
     color,
     showDue,
@@ -126,7 +124,7 @@ export function ItemList({
       readonly={readonly}
       reminderBadge={reminderBadges[menu.item.id]}
       nextReminderAt={menuItem?.nextReminderAt}
-      assign={shared ? { members, onAssign: (userId) => onAssign(menu.item, userId) } : undefined}
+      assign={shared ? { members, onAssign: (userIds) => onAssign(menu.item, userIds) } : undefined}
       completeLabel={completionToggle(menu.item.status, statuses).label}
       onComplete={() =>
         void onStatusChange(menu.item, completionToggle(menu.item.status, statuses).next)

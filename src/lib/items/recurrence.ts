@@ -14,6 +14,7 @@ import {
   type ReminderContext,
 } from "@/lib/reminders/refresh";
 import { reminderResetForDeadline } from "./reminders";
+import { copyAssignees } from "./assignees";
 import { onClock } from "./deadline";
 import {
   followingOccurrence,
@@ -51,7 +52,6 @@ async function insertOccurrence(
     .values({
       bucketId: from.bucketId,
       userId: from.userId,
-      assigneeId: from.assigneeId,
       title: from.title,
       description: from.description,
       properties: from.properties,
@@ -62,7 +62,9 @@ async function insertOccurrence(
       source: from.source,
     })
     .returning({ id: items.id });
-  if (next) await refreshItemReminders([next.id]);
+  if (!next) return;
+  await copyAssignees(from.id, next.id);
+  await refreshItemReminders([next.id]);
 }
 
 export async function createNextOccurrence(itemId: number, now = new Date()): Promise<void> {

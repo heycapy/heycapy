@@ -3,13 +3,13 @@ import { offerUndoDelete } from "./undoDelete";
 import { addItemAction, deleteItemAction, updateItemAction } from "@/app/(app)/actions";
 import { parseRecurring } from "@/lib/items/occurrence";
 import { deadlineValue } from "@/lib/time";
-import type { items } from "@/lib/db/schema";
+import type { ListItem } from "@/lib/reminders/status";
 import type { RecurringConfig } from "@/types/rules";
 import type { ItemStatus } from "./constants";
 import { useDraft, useDraftStore } from "@/store/drafts";
 import { useUIStore } from "@/store/ui";
 
-type Item = typeof items.$inferSelect;
+type Item = ListItem;
 
 type ItemEditorOptions = {
   bucketId: number;
@@ -41,7 +41,7 @@ export function useItemEditor({
   const [editRecurring, setEditRecurring] = useState<RecurringConfig | null>(null);
   const [editProperties, setEditProperties] = useState<Record<string, unknown>>({});
   const [editReminders, setEditReminders] = useState<number[] | null>(null);
-  const [editAssignee, setEditAssignee] = useState<number | null>(null);
+  const [editAssignees, setEditAssignees] = useState<number[]>([]);
   const [editError, setEditError] = useState("");
   const [editPending, startEditTransition] = useTransition();
 
@@ -53,7 +53,7 @@ export function useItemEditor({
     setEditRecurring(null);
     setEditProperties({});
     setEditReminders(null);
-    setEditAssignee(null);
+    setEditAssignees([]);
     setEditError("");
   }
 
@@ -82,7 +82,7 @@ export function useItemEditor({
     setEditStatus((item.status as ItemStatus) || defaultStatus);
     setEditRecurring(parseRecurring(item.recurring));
     setEditReminders(item.reminderOffsets);
-    setEditAssignee(item.assigneeId);
+    setEditAssignees(item.assigneeIds);
     setEditProperties(
       item.properties ? (JSON.parse(item.properties) as Record<string, unknown>) : {}
     );
@@ -101,7 +101,7 @@ export function useItemEditor({
         draft.recurring,
         Object.keys(draft.properties).length > 0 ? draft.properties : null,
         draft.reminders,
-        draft.assigneeId,
+        draft.assigneeIds ?? undefined,
         clock
       );
       if (result.ok) {
@@ -127,7 +127,7 @@ export function useItemEditor({
         editRecurring,
         Object.keys(editProperties).length > 0 ? editProperties : null,
         editReminders,
-        editAssignee,
+        editAssignees,
         clock
       );
       if (result.ok) {
@@ -160,10 +160,10 @@ export function useItemEditor({
     editingItemId,
     startAdding,
     startEditing,
-    assigneeId: addingItem ? draft.assigneeId : editAssignee,
-    setAssigneeId: addingItem
-      ? (assigneeId: number | null) => updateDraft(bucketId, { assigneeId })
-      : setEditAssignee,
+    assigneeIds: addingItem ? draft.assigneeIds : editAssignees,
+    setAssigneeIds: addingItem
+      ? (assigneeIds: number[]) => updateDraft(bucketId, { assigneeIds })
+      : setEditAssignees,
     dialogProps: {
       open: addingItem || editingItemId !== null,
       mode: addingItem ? ("add" as const) : ("edit" as const),

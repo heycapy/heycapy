@@ -13,6 +13,7 @@ import {
   users,
 } from "@/lib/db/schema";
 import { buildAccountExport } from "@/lib/account/export";
+import { setItemAssignees } from "@/lib/items/assignees";
 import { deleteAccountAction, sendAccountDeletionCodeAction } from "@/app/(app)/account-actions";
 import {
   resetSchedulerEnvironment,
@@ -111,7 +112,7 @@ describe("data export", () => {
         .set({ webhookKey: "SECRET-WEBHOOK-KEY", telegramConfig: '{"chat":"SECRET-TELEGRAM"}' })
         .where(eq(buckets.id, bucketId));
       const ownerItem = await seedItem(owner, bucketId, { deadline: T0, title: "book flights" });
-      await db.update(items).set({ assigneeId: member }).where(eq(items.id, ownerItem));
+      await setItemAssignees(ownerItem, [member]);
       await seedItem(member, bucketId, { deadline: T0, title: "buy milk" });
       return { owner, member, bucketId };
     }
@@ -134,13 +135,13 @@ describe("data export", () => {
           bucketId,
           title: "book flights",
           addedBy: `ana_${owner}`,
-          assignedTo: "you",
+          assignedTo: ["you"],
         }),
         expect.objectContaining({
           bucketId,
           title: "buy milk",
           addedBy: "you",
-          assignedTo: null,
+          assignedTo: [`ana_${owner}`, "you"],
         }),
       ]);
       expect(JSON.stringify(data)).not.toMatch(/SECRET-/);
@@ -155,8 +156,8 @@ describe("data export", () => {
         expect.objectContaining({ id: bucketId, owner: "you", webhookEnabled: true }),
       ]);
       expect(data.items.map((i) => [i.title, i.addedBy, i.assignedTo])).toEqual([
-        ["book flights", "you", `sam_${member}`],
-        ["buy milk", `sam_${member}`, null],
+        ["book flights", "you", [`sam_${member}`]],
+        ["buy milk", `sam_${member}`, ["you", `sam_${member}`]],
       ]);
     });
 

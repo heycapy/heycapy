@@ -386,6 +386,13 @@
       "when": 1794472880284,
       "tag": "0054_user_keybinds",
       "breakpoints": true
+    },
+    {
+      "idx": 55,
+      "version": "6",
+      "when": 1794484426485,
+      "tag": "0055_item_assignees",
+      "breakpoints": true
     }
   ]
 }

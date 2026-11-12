@@ -24,7 +24,7 @@ export function findMention(text: string, caret: number): Mention | null {
   return { start, end, query: match[1] };
 }
 
-const ANYONE = "anyone";
+const EVERYONE = "everyone";
 
 export function mentionOptions(members: MentionMember[], query: string): MentionOption[] {
   const q = query.toLowerCase();
@@ -35,8 +35,8 @@ export function mentionOptions(members: MentionMember[], query: string): Mention
       avatar: member.avatar,
       label: `${memberName(member)}${member.isYou ? " (you)" : ""}`,
     }));
-  const anyone = ANYONE.startsWith(q) ? [{ userId: null, avatar: null, label: ANYONE }] : [];
-  return [...people, ...anyone];
+  const everyone = EVERYONE.startsWith(q) ? [{ userId: null, avatar: null, label: EVERYONE }] : [];
+  return [...people, ...everyone];
 }
 
 // The title keeps its words and loses only the @ and what was typed after it

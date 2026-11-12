@@ -7,14 +7,13 @@ import {
   moveItemAction,
   updateItemAction,
 } from "@/app/(app)/actions";
-import type { ReminderBadge } from "@/lib/reminders/status";
-import type { items } from "@/lib/db/schema";
+import type { ListItem, ReminderBadge } from "@/lib/reminders/status";
 import { useUIStore } from "@/store/ui";
 import { deadlineValue } from "@/lib/time";
 import { offerUndoDelete } from "./undoDelete";
 import { isTick, offerUndoTick } from "./undoTick";
 
-type Item = typeof items.$inferSelect;
+type Item = ListItem;
 type Loaded = { items: Item[]; reminderBadges: Record<number, ReminderBadge> };
 
 const lastLoaded = new Map<number, Loaded>();

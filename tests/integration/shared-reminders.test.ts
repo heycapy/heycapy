@@ -80,7 +80,7 @@ async function sharedBucket(webhooks: number[] = []) {
   return { owner, member, bucketId };
 }
 
-async function add(bucketId: number, date: string, assigneeId?: number): Promise<number> {
+async function add(bucketId: number, date: string, ...assigneeIds: number[]): Promise<number> {
   const result = await addItemAction(
     bucketId,
     "pay rent",
@@ -89,7 +89,7 @@ async function add(bucketId: number, date: string, assigneeId?: number): Promise
     undefined,
     undefined,
     undefined,
-    assigneeId
+    assigneeIds.length > 0 ? assigneeIds : undefined
   );
   if (!result.ok) throw new Error(result.error);
   const [row] = await db
@@ -114,7 +114,7 @@ const recipients = async (itemId: number) =>
     .map((r) => r.userId)
     .sort((a, b) => a - b);
 
-describe("an item nobody is assigned to", () => {
+describe("an item assigned to everyone", () => {
   it("reminds every member at 09:00 on their own clock, across the UK clock change", async () => {
     const { owner, member, bucketId } = await sharedBucket();
     session.userId = owner;
@@ -201,7 +201,7 @@ describe("an assigned item", () => {
       undefined,
       undefined,
       undefined,
-      owner
+      [owner]
     );
 
     expect(await recipients(itemId)).toEqual([owner]);
@@ -210,10 +210,20 @@ describe("an assigned item", () => {
     expect(await sentTo(itemId)).toEqual([{ userId: member, medium: "telegram" }]);
   });
 
-  it("goes back to everyone when its person leaves, without a late reminder", async () => {
+  it("reminds several people, each on their own clock", async () => {
+    const { owner, member, bucketId } = await sharedBucket();
+    const third = await seedUser("UTC");
+    await seedMember(bucketId, third);
+    session.userId = owner;
+    const itemId = await add(bucketId, "2026-10-26", member, third);
+
+    expect(await recipients(itemId)).toEqual([member, third]);
+  });
+
+  it("leaving drops that person and leaves the others reminded, without a late reminder", async () => {
     const { owner, member, bucketId } = await sharedBucket();
     session.userId = owner;
-    const itemId = await add(bucketId, "2026-10-26", member);
+    const itemId = await add(bucketId, "2026-10-26", owner, member);
     await runSchedulerAt(justAfter(OCT_26.london));
 
     session.userId = member;
@@ -222,44 +232,71 @@ describe("an assigned item", () => {
     expect(await recipients(itemId)).toEqual([owner]);
     expect((await reminderOf(itemId, owner)).nextReminderAt).toBeNull();
   });
+
+  it("is a plain reminder nobody is pinged about once its only assignee leaves", async () => {
+    const { owner, member, bucketId } = await sharedBucket();
+    session.userId = owner;
+    const itemId = await add(bucketId, "2026-10-26", member);
+
+    session.userId = member;
+    expect(await leaveBucketAction(bucketId)).toEqual({ ok: true });
+    await runSchedulerAt(justAfter(OCT_26.london));
+
+    expect(await recipients(itemId)).toEqual([]);
+    expect(await sentTo(itemId)).toEqual([]);
+  });
+
+  it("with no one assigned reminds nobody", async () => {
+    const { owner, bucketId } = await sharedBucket();
+    session.userId = owner;
+    const result = await addItemAction(
+      bucketId,
+      "water plants",
+      "2026-10-26",
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      []
+    );
+    if (!result.ok) throw new Error(result.error);
+    const [row] = await db
+      .select({ id: items.id })
+      .from(items)
+      .where(eq(items.title, "water plants"));
+
+    await runSchedulerAt(justAfter(OCT_26.london));
+
+    expect(await recipients(row.id)).toEqual([]);
+    expect(await sentTo(row.id)).toEqual([]);
+  });
 });
 
-describe("someone who joins", () => {
-  it("is reminded on their own clock, but not about anything whose time has passed", async () => {
+describe("someone who joins later", () => {
+  it("isn't added to items that were already there", async () => {
     const owner = await seedUser(INDIA);
     const bucketId = await seedBucket(owner, { medium: ["telegram"], repeat: "once" });
     session.userId = owner;
-    const passed = await add(bucketId, "2026-10-22");
-    const upcoming = await add(bucketId, "2026-10-26");
-    await runSchedulerAt(new Date("2026-10-22T03:31:00Z"));
+    const before = await add(bucketId, "2026-10-26");
 
-    vi.setSystemTime(new Date("2026-10-23T12:00:00Z"));
     const friend = await seedUser(LONDON);
     const invite = await createInviteAction(bucketId);
     if (!invite.ok) throw new Error(invite.error);
     session.userId = friend;
     expect(await joinBucketAction(invite.code)).toMatchObject({ ok: true });
 
-    expect((await reminderOf(passed, friend)).nextReminderAt).toBeNull();
-    expect((await reminderOf(upcoming, friend)).nextReminderAt).toEqual(OCT_26.london);
-    await runSchedulerAt(new Date("2026-10-23T12:01:00Z"));
-    expect(await sentTo(passed)).toEqual([{ userId: owner, medium: "telegram" }]);
+    expect(await recipients(before)).toEqual([owner]);
   });
 
-  it("still gets a reminder whose time on their clock is ahead", async () => {
+  it("is reminded about items added after, on their own clock", async () => {
     const owner = await seedUser(INDIA);
     const bucketId = await seedBucket(owner, { medium: ["telegram"], repeat: "once" });
-    session.userId = owner;
-    const itemId = await add(bucketId, "2026-10-24");
-    await runSchedulerAt(justAfter(OCT_24.india));
-
     const friend = await seedUser(LONDON);
-    const invite = await createInviteAction(bucketId);
-    if (!invite.ok) throw new Error(invite.error);
-    session.userId = friend;
-    await joinBucketAction(invite.code);
+    await seedMember(bucketId, friend);
+    session.userId = owner;
+    const itemId = await add(bucketId, "2026-10-26");
 
-    expect((await reminderOf(itemId, friend)).nextReminderAt).toEqual(OCT_24.london);
+    expect((await reminderOf(itemId, friend)).nextReminderAt).toEqual(OCT_26.london);
   });
 });
 
@@ -554,7 +591,7 @@ describe("a reminder still queued for someone the item was taken from", () => {
       undefined,
       undefined,
       undefined,
-      owner
+      [owner]
     );
     await runSchedulerAt(justAfter(OCT_26.london));
 

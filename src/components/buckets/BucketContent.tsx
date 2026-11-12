@@ -70,7 +70,9 @@ export function BucketContent({ bucket, accentColor, viewRef, panel }: BucketCon
   const shownItems =
     activeFilter === "all"
       ? list.orderedItems
-      : list.orderedItems.filter((i) => i.assigneeId === assigneeShown);
+      : list.orderedItems.filter(
+          (i) => typeof assigneeShown === "number" && i.assigneeIds.includes(assigneeShown)
+        );
   const settingsTab = useLayoutStore((s) =>
     s.sidePanel === "bucket-settings" && s.bucketSettings?.bucketId === bucket.id
       ? s.bucketSettings.tab
@@ -153,8 +155,8 @@ export function BucketContent({ bucket, accentColor, viewRef, panel }: BucketCon
           // A filtered list is only part of the order, so dragging in it would scramble the rest
           draggable={rules.drag === true && rules.sortBy === "manual" && activeFilter === "all"}
           shared={shared}
-          onAssign={async (item, assigneeId) => {
-            const result = await assignItemAction(item.id, assigneeId);
+          onAssign={async (item, assigneeIds) => {
+            const result = await assignItemAction(item.id, assigneeIds);
             if (!result.ok) notify.error(result.error);
             await list.refetch();
             return result.ok;
@@ -179,8 +181,8 @@ export function BucketContent({ bucket, accentColor, viewRef, panel }: BucketCon
         assigneeChoice={{
           bucketId: bucket.id,
           members,
-          value: editor.assigneeId,
-          onChange: editor.setAssigneeId,
+          value: editor.assigneeIds,
+          onChange: editor.setAssigneeIds,
         }}
         bucketReminders={parseNotificationRules(bucket.notificationsRules).defaultReminders}
         statuses={statuses}

@@ -110,7 +110,7 @@ export async function listMembersAction(
 const DeadlineDraftSchema = z.object({
   deadline: z.string().nullable(),
   clock: z.string().nullable(),
-  assigneeId: z.number().int().nullable(),
+  assigneeIds: z.array(z.number().int()),
   reminderOffsets: z.array(z.number().int()).nullable(),
 });
 

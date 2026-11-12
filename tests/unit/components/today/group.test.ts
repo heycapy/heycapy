@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { groupForToday } from "@/components/today/group";
-import type { items } from "@/lib/db/schema";
+import type { ListItem } from "@/lib/reminders/status";
 
-type Item = typeof items.$inferSelect;
+type Item = ListItem;
 
 // Local times, like the browser sees them
 const NOW = new Date(2026, 8, 29, 15, 0);

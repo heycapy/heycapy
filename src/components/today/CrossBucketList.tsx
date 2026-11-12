@@ -15,10 +15,9 @@ import { offerUndoDelete } from "@/components/buckets/undoDelete";
 import { isTick, offerUndoTick } from "@/components/buckets/undoTick";
 import { deadlineValue } from "@/lib/time";
 import type { CrossBucketItems } from "@/lib/items/today";
-import type { items } from "@/lib/db/schema";
 import type { ListItem } from "@/lib/reminders/status";
 
-type Item = typeof items.$inferSelect;
+type Item = ListItem;
 
 export type CrossBucketSection = { label: string; items: Item[] };
 
@@ -82,7 +81,7 @@ export function CrossBucketList({
     const bucket = bucketOf(item);
     const readonly = bucket?.readonly === true;
     const color = bucket && bucketColor(bucket.index);
-    const assignee = data?.assignees[item.id];
+    const assignees = data?.assignees[item.id];
     return (
       <PressableRow key={item.id} onMenu={(at) => setMenu({ item, at })}>
         <ItemRow
@@ -94,7 +93,7 @@ export function CrossBucketList({
           onEditStart={readonly ? undefined : () => onEdit(item)}
           onStatusChange={readonly ? undefined : (status) => changeStatus(item, status)}
           reminderBadge={data?.reminderBadges[item.id]}
-          assignee={assignee && itemAssignee(assignee)}
+          assignees={assignees?.map(itemAssignee)}
           onMenu={(at) => setMenu({ item, at })}
           showDue={showDue}
           color={color}

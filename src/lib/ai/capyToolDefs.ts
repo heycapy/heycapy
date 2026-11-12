@@ -7,23 +7,25 @@ const ITEM_RESULT =
   "Each item comes with everything the item form shows: its custom field values (properties, " +
   "keyed by the bucket's field keys), repeat (recurring), reminders (reminderOffsets, minutes before " +
   "the deadline; null = the bucket's default reminders), status and createdAt (when it was added). " +
-  "assignedTo is who it's for in a shared bucket (null = anyone in it). deadlineOtherClock is the " +
+  "assignedTo lists who it's for (an empty list = no one, a plain reminder). deadlineOtherClock is the " +
   "same deadline on the clock of whoever it's assigned to, or the one it was set on, when that " +
   "isn't the user's clock. link opens the item in the app (missing when the app has no address). ";
 
 const ASSIGNEE_PROPERTIES = {
-  assignee: {
-    type: ["string", "null"],
+  assignees: {
+    type: "array",
+    items: { type: "string" },
     description:
-      `Shared buckets only: who the item is for, by a name from the bucket's members, '${CAPY_ASSIGNEE.me}' ` +
-      `for the user, or '${CAPY_ASSIGNEE.anyone}' (or null) for everyone in it. Only that person is ` +
-      "reminded; for anyone, every member is. A deadline for someone else is read on their clock: " +
-      "'remind Sam at 9am' is 9am for Sam.",
+      "Shared buckets only: who the item is for, names from the bucket's members, " +
+      `'${CAPY_ASSIGNEE.me}' for the user, or '${CAPY_ASSIGNEE.everyone}' for every member. Only they ` +
+      "are reminded. Leave it out on a new item to assign everyone; an empty list assigns no one " +
+      "(a plain reminder nobody is pinged about). A deadline for one other person is read on their " +
+      "clock: 'remind Sam at 9am' is 9am for Sam.",
   },
   deadline_on_my_clock: {
     type: "boolean",
     description:
-      "Only with a deadline for an item assigned to someone else: true when the time is on the " +
+      "Only with a deadline for an item assigned to one other person: true when the time is on the " +
       "user's clock (they say 'my time', or you worked it out from the item's deadline field, " +
       "which is in the user's time), so it isn't read on the other person's.",
   },

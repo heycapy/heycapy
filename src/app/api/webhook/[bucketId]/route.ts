@@ -24,6 +24,7 @@ import {
 } from "@/lib/notifications/channels";
 import { initialReminderState } from "@/lib/items/reminders";
 import { dataEvents } from "@/lib/events";
+import { assignEveryone } from "@/lib/items/assignees";
 import { refreshItemReminders, reminderContext } from "@/lib/reminders/refresh";
 import { parseLocalDateTime } from "@/lib/reminders/zoned";
 import { dueOn } from "@/lib/items/deadline";
@@ -177,6 +178,7 @@ export async function POST(
       }),
     })
     .returning();
+  await assignEveryone(item.id, bucketId);
   await refreshItemReminders([item.id]);
 
   const hasArrivalTrigger = parsedSchema?.success && parsedSchema.data.notifyOnArrival === true;

@@ -21,7 +21,7 @@ import { pendingRemindAgainAt } from "@/lib/reminders/remind-again";
 import { itemDeadline } from "@/lib/time";
 import { parseRecurring } from "@/lib/items/occurrence";
 import { repeatLabel } from "@/lib/items/repeat-label";
-import { PersonAvatar } from "@/components/avatar/PersonAvatar";
+import { AssigneeStack } from "./AssigneeStack";
 import { ItemDue } from "./ItemDue";
 import { MODAL_PANEL_SELECTOR } from "@/components/ui/constants";
 import { IconButton } from "@/components/ui/IconButton";
@@ -40,14 +40,14 @@ type ItemRowProps = {
   onEditStart?: () => void;
   onStatusChange?: (status: string) => Promise<boolean>;
   reminderBadge?: ReminderBadge;
-  assignee?: ItemAssignee;
+  assignees?: ItemAssignee[];
   // The time on another clock that matters for this item, e.g. "9am for Sam"
   otherClock?: string;
   bucket?: { name: string; color: string };
   color?: string;
   // Off when no item in the list has a date, so a list of notes has no empty column
   showDue?: boolean;
-  // A bucket with more than one member says "anyone" on items nobody is assigned to
+  // A bucket with more than one member says "no one" on items nobody is assigned to
   shared?: boolean;
   // Who completed it, named in shared buckets
   tickedBy?: string;
@@ -107,7 +107,7 @@ export function ItemRow({
   onEditStart,
   onStatusChange,
   reminderBadge,
-  assignee,
+  assignees,
   otherClock,
   bucket,
   color = "var(--muted-foreground)",
@@ -177,21 +177,15 @@ export function ItemRow({
   const badges = fields ? getShowInRowBadges(fields, item.properties) : [];
   const meta = [
     otherClock && <span key="clock">({otherClock})</span>,
-    assignee && (
-      <span key="assignee" className={cn(assignee.isYou && "text-foreground")}>
-        <PersonAvatar
-          userId={assignee.userId}
-          avatar={assignee.avatar}
-          className={cn("mr-1 inline-block align-text-bottom", !assignee.isYou && "@max-lg:mr-0")}
-        />
-        {/* Narrow lists show other people by their face only; "you" keeps its word */}
-        <span className={cn(!assignee.isYou && "@max-lg:sr-only")}>{assignee.name}</span>
+    assignees && assignees.length > 0 && (
+      <span key="assignees">
+        <AssigneeStack people={assignees} />
       </span>
     ),
     tickedBy && <span key="ticked">ticked by {tickedBy}</span>,
-    shared && !assignee && !tickedBy && (
-      <span key="anyone" className="text-muted-foreground/60">
-        anyone
+    shared && !assignees?.length && !tickedBy && (
+      <span key="no-one" className="text-muted-foreground/60">
+        no one
       </span>
     ),
     bucket && (

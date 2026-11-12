@@ -5,6 +5,7 @@ import { items, userSettings } from "@/lib/db/schema";
 import { listLiveBuckets, memberBucketIds } from "@/lib/buckets/access";
 import { bucketsChanged } from "@/lib/events";
 import { initialReminderState } from "@/lib/items/reminders";
+import { assignEveryone } from "@/lib/items/assignees";
 import { refreshItemReminders, userTimezone } from "@/lib/reminders/refresh";
 import { dueOn } from "@/lib/items/deadline";
 import {
@@ -283,6 +284,9 @@ export async function createItem(
       recurring,
     })
     .returning({ id: items.id });
-  if (created) await refreshItemReminders([created.id]);
+  if (created) {
+    await assignEveryone(created.id, bucketId);
+    await refreshItemReminders([created.id]);
+  }
   return true;
 }

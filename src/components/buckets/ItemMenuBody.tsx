@@ -63,7 +63,7 @@ export function MenuBody({
 }: Omit<ItemMenuProps, "at">) {
   const [view, setView] = useState<View>("main");
   const [moving, setMoving] = useState(false);
-  const [assigneeId, setAssigneeId] = useState(item.assigneeId);
+  const [assigneeIds, setAssigneeIds] = useState(item.assigneeIds);
   const [assigning, setAssigning] = useState(false);
   const recurring = parseRecurring(item.recurring);
   const repeat = recurring?.enabled && item.deadline ? repeatLabel(recurring) : null;
@@ -86,14 +86,11 @@ export function MenuBody({
   }
 
   // The menu stays open so the change shows, and a wrong tap is one more tap to undo
-  async function assignTo(userId: number | null) {
+  async function assignTo(userIds: number[]) {
     if (!assign || assigning) return;
     setAssigning(true);
     try {
-      if (await assign.onAssign(userId)) {
-        setAssigneeId(userId);
-        setView("main");
-      }
+      if (await assign.onAssign(userIds)) setAssigneeIds(userIds);
     } finally {
       setAssigning(false);
     }
@@ -145,9 +142,9 @@ export function MenuBody({
         <MenuSection>
           <AssignList
             members={assign.members}
-            assigneeId={assigneeId}
+            assigneeIds={assigneeIds}
             busy={assigning}
-            onAssign={(userId) => void assignTo(userId)}
+            onAssign={(userIds) => void assignTo(userIds)}
           />
         </MenuSection>
       )}
@@ -198,9 +195,9 @@ export function MenuBody({
             <MenuSection>
               <AssignChips
                 members={assign.members}
-                assigneeId={assigneeId}
+                assigneeIds={assigneeIds}
                 busy={assigning}
-                onAssign={(userId) => void assignTo(userId)}
+                onAssign={(userIds) => void assignTo(userIds)}
                 onMore={() => setView("people")}
               />
             </MenuSection>

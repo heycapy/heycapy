@@ -21,6 +21,7 @@ import { NOT_RECIPIENT_ERROR } from "@/lib/notifications/constants";
 import { memberBucketIds } from "@/lib/buckets/access";
 import type { NotificationMedium } from "@/lib/notifications/queue";
 import { pendingRemindAgainAt } from "./remind-again";
+import { assigneeIdsByItem } from "@/lib/items/assignees";
 import { selectReminderRows, toReminderInputs } from "./refresh";
 import { heldByQuietHours } from "./schedule";
 import { memberName } from "@/lib/buckets/member-name";
@@ -93,7 +94,8 @@ export type ItemReminderInfo = {
 };
 
 // An item as one person sees it: their own reminder times, none when they aren't reminded about it
-export type ListItem = Item & Partial<Pick<Reminder, "nextReminderAt" | "nextOverdueAt">>;
+export type ListItem = Item &
+  Partial<Pick<Reminder, "nextReminderAt" | "nextOverdueAt">> & { assigneeIds: number[] };
 
 const HISTORY_LIMIT = 10;
 
@@ -105,7 +107,7 @@ function viewerRows(userId: number, itemIds: number[]): Promise<Reminder[]> {
     .where(and(eq(itemReminders.userId, userId), inArray(itemReminders.itemId, itemIds)));
 }
 
-function asViewer(item: Item, mine: Reminder | undefined): ListItem {
+function asViewer(item: Item, mine: Reminder | undefined) {
   return {
     ...item,
     nextReminderAt: mine?.nextReminderAt ?? null,
@@ -123,7 +125,11 @@ export async function withViewerReminders(userId: number, rows: Item[]): Promise
       )
     ).map((r) => [r.itemId, r])
   );
-  return rows.map((item) => asViewer(item, mine.get(item.id)));
+  const assignees = await assigneeIdsByItem(rows.map((i) => i.id));
+  return rows.map((item) => ({
+    ...asViewer(item, mine.get(item.id)),
+    assigneeIds: assignees.get(item.id) ?? [],
+  }));
 }
 
 async function currentDecisions(userId: number, bucketId: number) {

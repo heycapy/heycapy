@@ -320,8 +320,6 @@ export const items = sqliteTable("items", {
   deletedAt: integer("deleted_at", { mode: "timestamp" }),
   // Who moved it to the trash, so a shared trash can say, null when it isn't known
   deletedBy: integer("deleted_by").references(() => users.id, { onDelete: "set null" }),
-  // A member of the bucket who should do it, null means anyone can
-  assigneeId: integer("assignee_id").references(() => users.id, { onDelete: "set null" }),
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
     .default(sql`(unixepoch())`),
@@ -330,8 +328,27 @@ export const items = sqliteTable("items", {
     .default(sql`(unixepoch())`),
 });
 
-// item_reminders — one reminder schedule per item and person reminded: the assignee, or every member
-// when nobody is
+// item_assignees — the members who should do an item and are reminded about it, none means a plain
+// reminder nobody is pinged about
+
+export const itemAssignees = sqliteTable(
+  "item_assignees",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    itemId: integer("item_id")
+      .notNull()
+      .references(() => items.id, { onDelete: "cascade" }),
+    userId: integer("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+  },
+  (t) => [
+    uniqueIndex("idx_item_assignees_item_user").on(t.itemId, t.userId),
+    index("idx_item_assignees_user_id").on(t.userId),
+  ]
+);
+
+// item_reminders — one reminder schedule per item and person reminded: its assignees
 
 export const itemReminders = sqliteTable(
   "item_reminders",

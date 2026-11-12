@@ -32,9 +32,10 @@ function seedAssignedItem(ownerEmail: string, memberEmail: string, title: string
   const deadline = Math.floor(Date.now() / 1000) + 3 * DAY_S;
   const { id: itemId } = db
     .prepare(
-      "insert into items (bucket_id, user_id, assignee_id, title, deadline, deadline_timezone) values (?, ?, ?, ?, ?, 'UTC') returning id"
+      "insert into items (bucket_id, user_id, title, deadline, deadline_timezone) values (?, ?, ?, ?, 'UTC') returning id"
     )
-    .get(bucketId, owner, member, title, deadline) as { id: number };
+    .get(bucketId, owner, title, deadline) as { id: number };
+  db.prepare("insert into item_assignees (item_id, user_id) values (?, ?)").run(itemId, member);
   db.prepare(
     "insert into item_reminders (item_id, user_id, next_reminder_at) values (?, ?, ?)"
   ).run(itemId, member, deadline - 3600);

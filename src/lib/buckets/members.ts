@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import {
   bucketMembers,
   buckets,
+  itemAssignees,
   items,
   notificationQueue,
   users,
@@ -80,15 +81,21 @@ export async function listMembers(
 }
 
 // Reminders already queued for them would still arrive for a bucket they can no longer see.
-// Their reminder schedules go when the caller refreshes the bucket, so whoever takes over an item
-// assigned to them starts from what they were already sent.
+// Their reminder schedules go when the caller refreshes the bucket.
 function dropMember(tx: Tx, bucketId: number, userId: number): void {
   tx.delete(bucketMembers)
     .where(and(eq(bucketMembers.bucketId, bucketId), eq(bucketMembers.userId, userId)))
     .run();
-  tx.update(items)
-    .set({ assigneeId: null })
-    .where(and(eq(items.bucketId, bucketId), eq(items.assigneeId, userId)))
+  tx.delete(itemAssignees)
+    .where(
+      and(
+        eq(itemAssignees.userId, userId),
+        inArray(
+          itemAssignees.itemId,
+          tx.select({ id: items.id }).from(items).where(eq(items.bucketId, bucketId))
+        )
+      )
+    )
     .run();
   tx.update(notificationQueue)
     .set({ status: "cancelled", lastError: "no longer a member of the bucket" })

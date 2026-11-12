@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { bucketMembers, buckets, items, users, userSettings } from "@/lib/db/schema";
+import { bucketMembers, buckets, itemAssignees, items, users, userSettings } from "@/lib/db/schema";
 import { listLiveBuckets } from "@/lib/buckets/access";
 import { getMemberChannels } from "@/lib/notifications/channels";
 import { parseItemsRules } from "@/lib/rules";
@@ -251,23 +251,32 @@ async function addAs(userId: number, args: Record<string, unknown>) {
   return (await tool(userId, "add_item", { title: "call mum", ...args }, INDIA)) as SavedItem;
 }
 
+async function assigneesOf(itemId: number) {
+  const rows = await db
+    .select({ userId: itemAssignees.userId })
+    .from(itemAssignees)
+    .where(eq(itemAssignees.itemId, itemId))
+    .orderBy(itemAssignees.id);
+  return rows.map((r) => r.userId);
+}
+
 describe("capy assigning items", () => {
   it("assigns by username and reads the time on that person's clock", async () => {
     const { owner, sam, bucketId, samUsername } = await acrossClocks();
 
     const added = await addAs(owner, {
       bucket_id: bucketId,
-      assignee: samUsername,
+      assignees: [samUsername],
       deadline: "2026-03-11T09:00:00",
     });
 
     expect(await itemOf(added.itemId)).toMatchObject({
-      assigneeId: sam,
       deadline: new Date("2026-03-11T09:00:00Z"),
       deadlineTimezone: LONDON,
     });
+    expect(await assigneesOf(added.itemId)).toEqual([sam]);
     expect(added.item).toMatchObject({
-      assignedTo: samUsername,
+      assignedTo: [samUsername],
       deadline: "Wed 2026-03-11 14:30",
       deadlineOtherClock: `Wed 2026-03-11 09:00 for ${samUsername}`,
     });
@@ -278,57 +287,75 @@ describe("capy assigning items", () => {
 
     const added = await addAs(owner, {
       bucket_id: bucketId,
-      assignee: samUsername.toUpperCase(),
+      assignees: [samUsername.toUpperCase()],
       deadline: "2026-03-11T09:00:00",
       deadline_on_my_clock: true,
     });
 
     expect(await itemOf(added.itemId)).toMatchObject({
-      assigneeId: sam,
       deadline: new Date("2026-03-11T03:30:00Z"),
       deadlineTimezone: INDIA,
     });
+    expect(await assigneesOf(added.itemId)).toEqual([sam]);
     expect(added.item).toMatchObject({
       deadlineOtherClock: `Wed 2026-03-11 03:30 for ${samUsername}`,
     });
   });
 
-  it("takes me and anyone, on the user's own clock", async () => {
+  it("takes me and an empty list, on the user's own clock", async () => {
     const { owner, bucketId } = await acrossClocks();
 
     const mine = await addAs(owner, {
       bucket_id: bucketId,
-      assignee: "me",
+      assignees: ["me"],
       deadline: "2026-03-11T09:00:00",
     });
+    expect(await assigneesOf(mine.itemId)).toEqual([owner]);
     expect(await itemOf(mine.itemId)).toMatchObject({
-      assigneeId: owner,
       deadline: new Date("2026-03-11T03:30:00Z"),
       deadlineTimezone: INDIA,
     });
-    expect(mine.item).toMatchObject({ assignedTo: "the user", deadlineOtherClock: null });
+    expect(mine.item).toMatchObject({ assignedTo: ["the user"], deadlineOtherClock: null });
 
     const cleared = (await tool(
       owner,
       "update_item",
-      { item_id: mine.itemId, assignee: "anyone" },
+      { item_id: mine.itemId, assignees: [] },
       INDIA
     )) as SavedItem;
-    expect(cleared.item).toMatchObject({ assignedTo: null });
-    expect((await itemOf(mine.itemId))?.assigneeId).toBeNull();
+    expect(cleared.item).toMatchObject({ assignedTo: [] });
+    expect(await assigneesOf(mine.itemId)).toEqual([]);
+  });
+
+  it("assigns everyone when no one is named, and reads a deadline for two people on the user's clock", async () => {
+    const { owner, sam, bucketId } = await acrossClocks();
+
+    const everyone = await addAs(owner, {
+      bucket_id: bucketId,
+      deadline: "2026-03-11T09:00:00",
+    });
+    expect((await assigneesOf(everyone.itemId)).sort()).toEqual([owner, sam].sort());
+    expect(await itemOf(everyone.itemId)).toMatchObject({ deadlineTimezone: INDIA });
+
+    const both = await addAs(owner, {
+      bucket_id: bucketId,
+      assignees: ["me", "everyone"],
+      deadline: "2026-03-11T09:00:00",
+    });
+    expect((await assigneesOf(both.itemId)).sort()).toEqual([owner, sam].sort());
   });
 
   it("refuses a name that isn't in the bucket, and any name in a bucket nobody shares", async () => {
     const { owner, bucketId, samUsername } = await acrossClocks();
 
-    expect(await addAs(owner, { bucket_id: bucketId, assignee: "Bob" })).toEqual({
+    expect(await addAs(owner, { bucket_id: bucketId, assignees: ["Bob"] })).toEqual({
       ok: false,
       error: `No one called "Bob" in "Home". Its members: the user, ${samUsername}. Ask the user who they mean.`,
     });
 
     const solo = await seedBucket(owner);
     await db.update(buckets).set({ name: "Mine" }).where(eq(buckets.id, solo));
-    expect(await addAs(owner, { bucket_id: solo, assignee: "me" })).toEqual({
+    expect(await addAs(owner, { bucket_id: solo, assignees: ["me"] })).toEqual({
       ok: false,
       error: `"Mine" isn't shared with anyone, so its items can't be assigned.`,
     });
@@ -343,8 +370,9 @@ describe("capy assigning items", () => {
     const onIndia = { deadline: new Date("2026-03-11T03:30:00Z"), deadlineTimezone: INDIA };
     expect(await itemOf(added.itemId)).toMatchObject(onIndia);
 
-    await tool(owner, "update_item", { item_id: added.itemId, assignee: samUsername }, INDIA);
-    expect(await itemOf(added.itemId)).toMatchObject({ ...onIndia, assigneeId: sam });
+    await tool(owner, "update_item", { item_id: added.itemId, assignees: [samUsername] }, INDIA);
+    expect(await itemOf(added.itemId)).toMatchObject(onIndia);
+    expect(await assigneesOf(added.itemId)).toEqual([sam]);
 
     await tool(
       owner,
@@ -364,7 +392,7 @@ describe("capy assigning items", () => {
 
     const added = await addAs(owner, {
       bucket_id: bucketId,
-      assignee: samUsername,
+      assignees: [samUsername],
       deadline: "2026-03-11T09:00:00",
     });
     expect(await itemOf(added.itemId)).toMatchObject({

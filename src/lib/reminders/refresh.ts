@@ -1,9 +1,16 @@
 import { recordSystemError } from "@/lib/system-errors";
 import { memberChannels, parseNotificationRules } from "@/lib/rules";
-import { and, asc, eq, gt, inArray, max, type SQL } from "drizzle-orm";
+import { and, asc, eq, gt, inArray, max, sql, type SQL } from "drizzle-orm";
 import { alias } from "drizzle-orm/sqlite-core";
 import { db } from "@/lib/db";
-import { bucketMembers, buckets, itemReminders, items, userSettings } from "@/lib/db/schema";
+import {
+  bucketMembers,
+  buckets,
+  itemAssignees,
+  itemReminders,
+  items,
+  userSettings,
+} from "@/lib/db/schema";
 import { memberBucketIds } from "@/lib/buckets/access";
 import { NotificationRules } from "@/types/rules";
 import { errorMessage } from "@/lib/errors";
@@ -20,6 +27,8 @@ export const reminderRowFields = {
   notificationsRules: buckets.notificationsRules,
   channels: bucketMembers.channels,
   ownerChannels: ownerMember.channels,
+  firstRecipientId: sql<number>`(select min(r.user_id) from item_reminders r where r.item_id = ${items.id})`,
+  ownerIsRecipient: sql<number>`exists(select 1 from item_reminders r where r.item_id = ${items.id} and r.user_id = ${buckets.userId})`,
   fieldSchema: buckets.fieldSchema,
   bucketDeletedAt: buckets.deletedAt,
   bucketArchivedAt: buckets.archivedAt,
@@ -35,6 +44,8 @@ export type ReminderRow = {
   notificationsRules: string;
   channels: string | null;
   ownerChannels: string | null;
+  firstRecipientId: number;
+  ownerIsRecipient: number;
   fieldSchema: unknown;
   bucketDeletedAt: Date | null;
   bucketArchivedAt: Date | null;
@@ -112,11 +123,10 @@ export async function userTimezone(userId: number): Promise<string> {
   return row?.timezone ?? "UTC";
 }
 
-// The owner's webhooks post the bucket's reminders, so they also go out with the assignee's when the
-// owner isn't reminded about the item
+// The owner's webhooks post the bucket's reminders, so when the owner isn't reminded about the item
+// they go out once, with the first assignee's
 function sharedWebhooks(row: ReminderRow): number[] {
-  const assignee = row.item.assigneeId;
-  return assignee === row.reminder.userId && assignee !== row.bucketOwnerId
+  return !row.ownerIsRecipient && row.firstRecipientId === row.reminder.userId
     ? memberChannels(row.ownerChannels).webhooks
     : [];
 }
@@ -186,7 +196,6 @@ async function storeSchedules(rows: ReminderRow[]): Promise<void> {
 const recipientFields = {
   id: items.id,
   bucketId: items.bucketId,
-  assigneeId: items.assigneeId,
   notifiedAt: items.notifiedAt,
   overdueNotifiedAt: items.overdueNotifiedAt,
 };
@@ -196,16 +205,29 @@ type RecipientItem = Pick<typeof items.$inferSelect, keyof typeof recipientField
 const latest = (dates: (Date | null)[]): Date | null =>
   dates.reduce<Date | null>((a, b) => (b && (!a || b > a) ? b : a), null);
 
-// The assignee, or every member when nobody is assigned (or the assignee has left). Someone added
-// to an item others already had skips reminders whose time has passed, so joining a bucket doesn't
-// send a burst of late ones, and continues its overdue alerts where the others are.
+// The assignees still in the bucket, nobody when there are none. Someone added to an item others
+// already had skips reminders whose time has passed, so assigning them late doesn't send a burst of
+// late ones, and continues its overdue alerts where the others are.
 async function syncRecipients(list: RecipientItem[]): Promise<void> {
   if (list.length === 0) return;
   const now = new Date();
-  const members = await db
-    .select({ bucketId: bucketMembers.bucketId, userId: bucketMembers.userId })
-    .from(bucketMembers)
-    .where(inArray(bucketMembers.bucketId, [...new Set(list.map((i) => i.bucketId))]));
+  const assigned = await db
+    .select({ itemId: itemAssignees.itemId, userId: itemAssignees.userId })
+    .from(itemAssignees)
+    .innerJoin(items, eq(items.id, itemAssignees.itemId))
+    .innerJoin(
+      bucketMembers,
+      and(
+        eq(bucketMembers.bucketId, items.bucketId),
+        eq(bucketMembers.userId, itemAssignees.userId)
+      )
+    )
+    .where(
+      inArray(
+        itemAssignees.itemId,
+        list.map((i) => i.id)
+      )
+    );
   const existing = await db
     .select({
       id: itemReminders.id,
@@ -225,9 +247,7 @@ async function syncRecipients(list: RecipientItem[]): Promise<void> {
   const drop: number[] = [];
   const add: (typeof itemReminders.$inferInsert)[] = [];
   for (const item of list) {
-    const inBucket = members.filter((m) => m.bucketId === item.bucketId).map((m) => m.userId);
-    const wanted =
-      item.assigneeId !== null && inBucket.includes(item.assigneeId) ? [item.assigneeId] : inBucket;
+    const wanted = assigned.filter((a) => a.itemId === item.id).map((a) => a.userId);
     const have = existing.filter((r) => r.itemId === item.id);
     for (const row of have) if (!wanted.includes(row.userId)) drop.push(row.id);
     for (const userId of wanted) {

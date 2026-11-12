@@ -14,7 +14,7 @@ function HintBadge({ text, className }: HintBadgeProps) {
   return (
     <Kbd
       aria-hidden
-      className={cn("ml-1.5 min-w-4 shrink-0 px-1 font-normal no-fine-pointer:hidden", className)}
+      className={cn("no-fine-pointer:hidden ml-1.5 min-w-4 shrink-0 px-1 font-normal", className)}
     >
       {text}
     </Kbd>

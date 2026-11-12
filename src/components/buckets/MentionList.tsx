@@ -18,7 +18,7 @@ export function MentionList({ options, highlighted, onPick, onHover }: MentionLi
     >
       {options.map((option, index) => (
         <li
-          key={option.userId ?? "anyone"}
+          key={option.userId ?? "everyone"}
           role="option"
           aria-selected={index === highlighted}
           // Keeps the cursor in the title instead of moving focus to the list

@@ -9,6 +9,7 @@ import {
   skipOccurrenceAction,
   updateItemAction,
 } from "@/app/(app)/item-actions";
+import { assignEveryone } from "@/lib/items/assignees";
 import { refreshItemReminders } from "@/lib/reminders/refresh";
 import {
   HOUR,
@@ -64,6 +65,7 @@ async function seedRecurring(opts: {
       reminderOffsets: [60, 0],
     })
     .returning();
+  await assignEveryone(item.id, bucketId);
   await refreshItemReminders([item.id]);
   return { userId, bucketId, itemId: item.id };
 }

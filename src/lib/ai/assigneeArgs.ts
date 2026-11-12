@@ -14,7 +14,7 @@ type Person = {
 };
 
 export type AssigneeChange =
-  { kind: "none" } | { kind: "set"; assigneeId: number | null } | { kind: "error"; error: string };
+  { kind: "none" } | { kind: "set"; assigneeIds: number[] } | { kind: "error"; error: string };
 
 async function peopleIn(bucketIds: number[]): Promise<Person[]> {
   if (bucketIds.length === 0) return [];
@@ -45,17 +45,19 @@ function findPeople(people: Person[], viewerId: number, name: string): Person[] 
   return people.filter((p) => p.username?.toLowerCase() === wanted);
 }
 
-// The deadline is read on the clock of whoever it's assigned to, like the app's item form
+// The deadline is read on the clock of whoever it's assigned to when that's one other person, like
+// the app's item form
 export async function assigneeFromArgs(
   args: Record<string, unknown>,
   viewerId: number,
   viewerTimezone: string,
   bucket: { id: number; name: string },
-  savedAssigneeId: number | null
+  savedAssigneeIds: number[]
 ): Promise<{ change: AssigneeChange; clock: string }> {
   const people = await peopleIn([bucket.id]);
-  const clockFor = (assigneeId: number | null) => {
-    const assignee = people.find((p) => p.userId === assigneeId);
+  const clockFor = (assigneeIds: number[]) => {
+    const assignee =
+      assigneeIds.length === 1 ? people.find((p) => p.userId === assigneeIds[0]) : undefined;
     const theirs =
       args.deadline_on_my_clock !== true &&
       assignee &&
@@ -63,31 +65,41 @@ export async function assigneeFromArgs(
       assignee.timezone !== UNSET_TIMEZONE;
     return theirs ? assignee.timezone : viewerTimezone;
   };
-  const savedClock = clockFor(savedAssigneeId);
+  const savedClock = clockFor(savedAssigneeIds);
 
-  if (args.assignee === undefined) return { change: { kind: "none" }, clock: savedClock };
-  const wanted = args.assignee === null ? CAPY_ASSIGNEE.anyone : String(args.assignee);
-  if (wanted.trim().toLowerCase() === CAPY_ASSIGNEE.anyone) {
-    return { change: { kind: "set", assigneeId: null }, clock: clockFor(null) };
-  }
-
+  if (args.assignees === undefined) return { change: { kind: "none" }, clock: savedClock };
   const error = (text: string) => ({
     change: { kind: "error" as const, error: text },
     clock: savedClock,
   });
+  if (!Array.isArray(args.assignees)) {
+    return error("assignees must be a list of names, or an empty list for nobody.");
+  }
+  const wanted = args.assignees.map((name) => String(name).trim());
+  if (wanted.length === 0) return { change: { kind: "set", assigneeIds: [] }, clock: clockFor([]) };
   if (people.length < 2) {
     return error(`"${bucket.name}" isn't shared with anyone, so its items can't be assigned.`);
   }
-  const found = findPeople(people, viewerId, wanted);
-  const [person] = found;
-  if (!person || found.length > 1) {
-    const names = people.map((p) => (p.userId === viewerId ? "the user" : p.name));
-    return error(
-      `${person ? "More than one person" : "No one"} called "${wanted}" in "${bucket.name}". ` +
-        `Its members: ${names.join(", ")}. Ask the user who they mean.`
-    );
+
+  const ids = new Set<number>();
+  for (const name of wanted) {
+    if (name.toLowerCase() === CAPY_ASSIGNEE.everyone) {
+      for (const person of people) ids.add(person.userId);
+      continue;
+    }
+    const found = findPeople(people, viewerId, name);
+    const [person] = found;
+    if (!person || found.length > 1) {
+      const names = people.map((p) => (p.userId === viewerId ? "the user" : p.name));
+      return error(
+        `${person ? "More than one person" : "No one"} called "${name}" in "${bucket.name}". ` +
+          `Its members: ${names.join(", ")}. Ask the user who they mean.`
+      );
+    }
+    ids.add(person.userId);
   }
-  return { change: { kind: "set", assigneeId: person.userId }, clock: clockFor(person.userId) };
+  const assigneeIds = [...ids];
+  return { change: { kind: "set", assigneeIds }, clock: clockFor(assigneeIds) };
 }
 
 // For the prompt: the names to assign by, only on buckets shared with someone

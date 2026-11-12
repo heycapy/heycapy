@@ -37,7 +37,7 @@ describe("findMention", () => {
 });
 
 describe("mentionOptions", () => {
-  it("lists everyone and anyone for a bare @", () => {
+  it("lists the members, then everyone, for a bare @", () => {
     expect(mentionOptions(members, "").map((o) => o.userId)).toEqual([1, 2, 3, null]);
   });
 
@@ -49,12 +49,12 @@ describe("mentionOptions", () => {
     ]);
   });
 
-  it("shows the avatar next to a username, and anyone only while it can still match", () => {
+  it("shows the avatar next to a username, and everyone only while it can still match", () => {
     expect(mentionOptions(members, "sam")).toEqual([
       { userId: 2, avatar: SAM_AVATAR, label: "sam" },
     ]);
-    expect(mentionOptions(members, "any")).toEqual([
-      { userId: null, avatar: null, label: "anyone" },
+    expect(mentionOptions(members, "every")).toEqual([
+      { userId: null, avatar: null, label: "everyone" },
     ]);
   });
 

@@ -40,6 +40,7 @@ import { memberName } from "@/lib/buckets/member-name";
 import { otherClock } from "@/lib/timezones/gap";
 import { placeName } from "@/lib/timezones/place";
 import { UNSET_TIMEZONE } from "@/lib/timezones/constants";
+import { assignEveryone, assigneeIdsByItem, setItemAssignees } from "@/lib/items/assignees";
 import { assigneeFromArgs, withMemberNames } from "./assigneeArgs";
 import {
   findAccessibleBucket,
@@ -251,15 +252,31 @@ const ITEM_DETAIL_COLUMNS = {
   properties: items.properties,
   completedAt: items.completedAt,
   createdAt: items.createdAt,
-  assigneeId: items.assigneeId,
-  assigneeUsername: users.username,
-  assigneeTimezone: userSettings.timezone,
 };
 
-const withAssignee = {
-  users: eq(users.id, items.assigneeId),
-  settings: eq(userSettings.userId, items.assigneeId),
-};
+type Assignee = { userId: number; username: string | null; timezone: string };
+
+async function assigneesByItem(itemIds: number[]): Promise<Map<number, Assignee[]>> {
+  const ids = await assigneeIdsByItem(itemIds);
+  const userIds = [...new Set([...ids.values()].flat())];
+  const result = new Map<number, Assignee[]>();
+  if (userIds.length === 0) return result;
+  const people = await db
+    .select({ userId: users.id, username: users.username, timezone: userSettings.timezone })
+    .from(users)
+    .leftJoin(userSettings, eq(userSettings.userId, users.id))
+    .where(inArray(users.id, userIds));
+  for (const [itemId, list] of ids) {
+    result.set(
+      itemId,
+      list.flatMap((id) => {
+        const person = people.find((p) => p.userId === id);
+        return person ? [{ ...person, timezone: person.timezone ?? UNSET_TIMEZONE }] : [];
+      })
+    );
+  }
+  return result;
+}
 
 type ItemDetailRow = {
   id: number;
@@ -273,24 +290,25 @@ type ItemDetailRow = {
   properties: string | null;
   completedAt: Date | null;
   createdAt: Date;
-  assigneeId: number | null;
-  assigneeUsername: string | null;
-  assigneeTimezone: string | null;
 };
 
-// The deadline on the clock of whoever it's assigned to, else the one it was set on, like the app's rows
-function deadlineOtherClock(row: ItemDetailRow, userId: number, timezone: string): string | null {
+// The deadline on the clock of whoever it's assigned to (when it's one person), else the one it was
+// set on, like the app's rows
+function deadlineOtherClock(
+  row: ItemDetailRow,
+  assignees: Assignee[],
+  userId: number,
+  timezone: string
+): string | null {
   if (!row.deadline || !row.deadlineTimezone || isAllDay(row.deadline, row.deadlineTimezone)) {
     return null;
   }
-  const assignee =
-    row.assigneeId === null
-      ? undefined
-      : {
-          name: memberName({ username: row.assigneeUsername }),
-          timezone: row.assigneeTimezone ?? UNSET_TIMEZONE,
-          isYou: row.assigneeId === userId,
-        };
+  const [only] = assignees.length === 1 ? assignees : [];
+  const assignee = only && {
+    name: memberName({ username: only.username }),
+    timezone: only.timezone,
+    isYou: only.userId === userId,
+  };
   const setOn = {
     timezone: row.deadlineTimezone,
     place: placeName(row.deadlineTimezone) ?? UNSET_TIMEZONE,
@@ -306,7 +324,7 @@ function itemLink(row: ItemDetailRow): { link?: string } {
 }
 
 // Everything the item form shows, so each tool that returns items answers the same questions
-function itemDetails(row: ItemDetailRow, userId: number, timezone: string) {
+function itemDetails(row: ItemDetailRow, assignees: Assignee[], userId: number, timezone: string) {
   return {
     id: row.id,
     title: row.title,
@@ -316,13 +334,10 @@ function itemDetails(row: ItemDetailRow, userId: number, timezone: string) {
     deadlineRelative: row.deadline
       ? deadlineRelative(row.deadline, row.deadlineTimezone, timezone)
       : null,
-    deadlineOtherClock: deadlineOtherClock(row, userId, timezone),
-    assignedTo:
-      row.assigneeId === null
-        ? null
-        : row.assigneeId === userId
-          ? "the user"
-          : memberName({ username: row.assigneeUsername }),
+    deadlineOtherClock: deadlineOtherClock(row, assignees, userId, timezone),
+    assignedTo: assignees.map((a) =>
+      a.userId === userId ? "the user" : memberName({ username: a.username })
+    ),
     reminderOffsets: row.reminderOffsets,
     recurring: parseRecurring(row.recurring),
     properties: row.properties ? (JSON.parse(row.properties) as unknown) : null,
@@ -350,16 +365,13 @@ function pastDayError(
 }
 
 function selectItemDetails() {
-  return db
-    .select(ITEM_DETAIL_COLUMNS)
-    .from(items)
-    .leftJoin(users, withAssignee.users)
-    .leftJoin(userSettings, withAssignee.settings);
+  return db.select(ITEM_DETAIL_COLUMNS).from(items);
 }
 
 async function savedItem(itemId: number, userId: number, timezone: string) {
   const [row] = await selectItemDetails().where(eq(items.id, itemId));
-  return row ? itemDetails(row, userId, timezone) : null;
+  if (!row) return null;
+  return itemDetails(row, (await assigneesByItem([row.id])).get(row.id) ?? [], userId, timezone);
 }
 
 const activeOnly = or(eq(items.status, ITEM_STATUS.active), isNull(items.status));
@@ -524,7 +536,7 @@ async function executeToolCallInner(
       const bucket = await findAccessibleBucket(userId, bucketId);
       if (!bucket) return JSON.stringify({ ok: false, error: "Bucket not found" });
 
-      const assigned = await assigneeFromArgs(args, userId, timezone, bucket, null);
+      const assigned = await assigneeFromArgs(args, userId, timezone, bucket, []);
       if (assigned.change.kind === "error") {
         return JSON.stringify({ ok: false, error: assigned.change.error });
       }
@@ -585,12 +597,18 @@ async function executeToolCallInner(
           reminderOffsets: reminders.value,
           recurring: recurring ? JSON.stringify(recurring) : null,
           properties: propertiesJson,
-          assigneeId: assigned.change.kind === "set" ? assigned.change.assigneeId : null,
           source: "ai",
           sortOrder: (maxRow?.max ?? -1) + 1,
         })
         .returning({ id: items.id });
-      if (inserted) await refreshItemReminders([inserted.id]);
+      if (inserted) {
+        if (assigned.change.kind === "set") {
+          await setItemAssignees(inserted.id, assigned.change.assigneeIds);
+        } else {
+          await assignEveryone(inserted.id, bucketId);
+        }
+        await refreshItemReminders([inserted.id]);
+      }
 
       revalidatePath("/");
       return JSON.stringify({
@@ -610,7 +628,13 @@ async function executeToolCallInner(
       });
       if (!bucket) return JSON.stringify({ ok: false, error: "Item not found" });
 
-      const assigned = await assigneeFromArgs(args, userId, timezone, bucket, item.assigneeId);
+      const assigned = await assigneeFromArgs(
+        args,
+        userId,
+        timezone,
+        bucket,
+        (await assigneeIdsByItem([itemId])).get(itemId) ?? []
+      );
       if (assigned.change.kind === "error") {
         return JSON.stringify({ ok: false, error: assigned.change.error });
       }
@@ -631,9 +655,7 @@ async function executeToolCallInner(
         completedAt?: Date | null;
         completedBy?: number | null;
         properties?: string | null;
-        assigneeId?: number | null;
       } = { updatedAt: new Date() };
-      if (assigned.change.kind === "set") updates.assigneeId = assigned.change.assigneeId;
 
       if (args.title !== undefined) {
         const title = String(args.title).trim();
@@ -735,6 +757,9 @@ async function executeToolCallInner(
       }
 
       await db.update(items).set(updates).where(eq(items.id, itemId));
+      if (assigned.change.kind === "set") {
+        await setItemAssignees(itemId, assigned.change.assigneeIds);
+      }
       await refreshItemReminders([itemId]);
       if (updates.status === ITEM_STATUS.completed) await createNextOccurrence(itemId);
 
@@ -796,11 +821,11 @@ async function executeToolCallInner(
         .update(items)
         .set({
           bucketId: destBucketId,
-          assigneeId: null,
           sortOrder: (maxRow?.max ?? -1) + 1,
           updatedAt: new Date(),
         })
         .where(eq(items.id, itemId));
+      await assignEveryone(itemId, destBucketId);
       await refreshItemReminders([itemId]);
 
       revalidatePath("/");
@@ -825,7 +850,10 @@ async function executeToolCallInner(
           : and(eq(items.bucketId, bucketId), isNull(items.deletedAt), notCompleted)
       );
 
-      return JSON.stringify(rows.map((row) => itemDetails(row, userId, timezone)));
+      const assignees = await assigneesByItem(rows.map((r) => r.id));
+      return JSON.stringify(
+        rows.map((row) => itemDetails(row, assignees.get(row.id) ?? [], userId, timezone))
+      );
     }
 
     case "search_items": {
@@ -858,8 +886,6 @@ async function executeToolCallInner(
         .select({ ...ITEM_DETAIL_COLUMNS, bucketName: buckets.name })
         .from(items)
         .innerJoin(buckets, eq(buckets.id, items.bucketId))
-        .leftJoin(users, withAssignee.users)
-        .leftJoin(userSettings, withAssignee.settings)
         .where(and(...conditions, inLiveBucket))
         .orderBy(
           ...(args.sort === "oldest"
@@ -869,6 +895,7 @@ async function executeToolCallInner(
               : [])
         );
 
+      const assignees = await assigneesByItem(rows.map((r) => r.id));
       const keywordWords = keyword ? keyword.toLowerCase().split(/\s+/).filter(Boolean) : null;
 
       const enriched = rows
@@ -878,7 +905,7 @@ async function executeToolCallInner(
           return keywordWords.every((w) => lower.includes(w));
         })
         .map((row) => ({
-          ...itemDetails(row, userId, timezone),
+          ...itemDetails(row, assignees.get(row.id) ?? [], userId, timezone),
           bucket: row.bucketName,
         }))
         .filter((row) => {

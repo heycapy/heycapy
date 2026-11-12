@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type * as SessionModule from "@/lib/auth/session";
 import { asc, eq } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { bucketMembers, items } from "@/lib/db/schema";
+import { bucketMembers, itemAssignees, items } from "@/lib/db/schema";
 import { ITEM_GONE_ERROR, ITEM_STATUS } from "@/constants";
 import {
   addItemAction,
@@ -35,6 +35,15 @@ const WEEKLY = JSON.stringify({ enabled: true, frequency: "weekly", interval: 1,
 
 beforeEach(() => useSchedulerEnvironment(NOW));
 afterEach(() => resetSchedulerEnvironment());
+
+async function assigneesOf(itemId: number) {
+  const rows = await db
+    .select({ userId: itemAssignees.userId })
+    .from(itemAssignees)
+    .where(eq(itemAssignees.itemId, itemId))
+    .orderBy(itemAssignees.id);
+  return rows.map((r) => r.userId);
+}
 
 async function sharedBucket() {
   const owner = await seedUser();
@@ -146,21 +155,22 @@ describe("assigning from the item menu", () => {
   it("lets a member assign and unassign, but not to someone outside the bucket", async () => {
     const { owner, friend, stranger, itemId } = await sharedBucket();
     session.userId = friend;
-    expect(await assignItemAction(itemId, owner)).toEqual({ ok: true });
-    expect((await itemOf(itemId)).assigneeId).toBe(owner);
+    expect(await assignItemAction(itemId, [owner, friend])).toEqual({ ok: true });
+    expect(await assigneesOf(itemId)).toEqual([owner, friend]);
 
-    expect((await assignItemAction(itemId, stranger)).ok).toBe(false);
-    expect((await itemOf(itemId)).assigneeId).toBe(owner);
+    expect((await assignItemAction(itemId, [stranger])).ok).toBe(false);
+    expect(await assigneesOf(itemId)).toEqual([owner, friend]);
 
-    expect(await assignItemAction(itemId, null)).toEqual({ ok: true });
-    expect((await itemOf(itemId)).assigneeId).toBeNull();
+    expect(await assignItemAction(itemId, [])).toEqual({ ok: true });
+    expect(await assigneesOf(itemId)).toEqual([]);
   });
 
   it("is refused for someone outside the bucket", async () => {
     const { owner, stranger, itemId } = await sharedBucket();
+    const before = await assigneesOf(itemId);
     session.userId = stranger;
-    expect((await assignItemAction(itemId, owner)).ok).toBe(false);
-    expect((await itemOf(itemId)).assigneeId).toBeNull();
+    expect((await assignItemAction(itemId, [owner])).ok).toBe(false);
+    expect(await assigneesOf(itemId)).toEqual(before);
   });
 });
 

@@ -59,8 +59,8 @@ export function TodayView({ buckets, panel }: TodayViewProps) {
           formBucket && {
             bucketId: formBucket.id,
             members,
-            value: editor.assigneeId,
-            onChange: editor.setAssigneeId,
+            value: editor.assigneeIds,
+            onChange: editor.setAssigneeIds,
           }
         }
       />

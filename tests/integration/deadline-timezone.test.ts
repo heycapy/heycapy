@@ -157,7 +157,7 @@ describe("a time set on someone else's clock", () => {
       null,
       null,
       null,
-      member,
+      [member],
       LONDON
     );
     expect(await latest(bucketId)).toMatchObject({
@@ -175,7 +175,7 @@ describe("a time set on someone else's clock", () => {
       undefined,
       null,
       null,
-      null,
+      undefined,
       LONDON
     );
     expect(await latest(bucketId)).toMatchObject({
@@ -192,7 +192,7 @@ describe("a time set on someone else's clock", () => {
         null,
         null,
         null,
-        null,
+        undefined,
         "Mars/Olympus"
       )
     ).toEqual({ ok: false, error: "That timezone doesn't exist" });

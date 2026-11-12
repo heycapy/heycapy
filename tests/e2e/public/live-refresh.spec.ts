@@ -102,9 +102,14 @@ test("a member's new username and avatar show up on the others' open screens", a
   const title = `water plants ${Date.now()}`;
   const db = new Database(E2E_DATABASE_FILE);
   db.prepare("update users set username = ? where email = ?").run(before, memberEmail);
+  const { id: itemId } = db
+    .prepare(
+      "insert into items (bucket_id, user_id, title) values (?, (select id from users where email = ?), ?) returning id"
+    )
+    .get(bucketId, ownerEmail, title) as { id: number };
   db.prepare(
-    "insert into items (bucket_id, user_id, assignee_id, title) values (?, (select id from users where email = ?), (select id from users where email = ?), ?)"
-  ).run(bucketId, ownerEmail, memberEmail, title);
+    "insert into item_assignees (item_id, user_id) values (?, (select id from users where email = ?))"
+  ).run(itemId, memberEmail);
   db.close();
   await page.goto(`/?bucket=${bucketId}`);
   await expect(itemRow(page, title)).toContainText(before);

@@ -120,8 +120,8 @@ function SearchBody() {
           editingItem && {
             bucketId: editingItem.bucketId,
             members,
-            value: editor.assigneeId,
-            onChange: editor.setAssigneeId,
+            value: editor.assigneeIds,
+            onChange: editor.setAssigneeIds,
           }
         }
         statuses={statuses}

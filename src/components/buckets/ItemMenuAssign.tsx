@@ -4,21 +4,22 @@ import type { BucketMember } from "@/lib/buckets/members";
 import { memberName } from "@/lib/buckets/member-name";
 import { cn } from "@/lib/utils";
 import { ASSIGN_CHIPS_MAX } from "./constants";
+import { toggleAssignee } from "./assignee";
 import { MenuItem } from "@/components/ui/MenuItem";
 
 type AssignProps = {
   members: BucketMember[];
-  assigneeId: number | null;
+  assigneeIds: number[];
   busy: boolean;
-  onAssign: (userId: number | null) => void;
+  onAssign: (userIds: number[]) => void;
 };
 
 const nameOf = (m: BucketMember) => (m.isYou ? "you" : memberName(m));
 
-// One tap assigns; with more people than fit, the rest are a tap further
+// One tap adds or removes a person; with more people than fit, the rest are a tap further
 export function AssignChips({
   members,
-  assigneeId,
+  assigneeIds,
   busy,
   onAssign,
   onMore,
@@ -38,13 +39,13 @@ export function AssignChips({
         <button
           key={m.userId}
           type="button"
-          aria-pressed={assigneeId === m.userId}
+          aria-pressed={assigneeIds.includes(m.userId)}
           aria-label={nameOf(m)}
           disabled={busy}
-          onClick={() => onAssign(assigneeId === m.userId ? null : m.userId)}
+          onClick={() => onAssign(toggleAssignee(members, assigneeIds, m.userId))}
           className={cn(
             chip,
-            assigneeId === m.userId
+            assigneeIds.includes(m.userId)
               ? "border-foreground text-foreground"
               : "text-muted-foreground hover:text-foreground"
           )}
@@ -67,25 +68,21 @@ export function AssignChips({
   );
 }
 
-export function AssignList({ members, assigneeId, busy, onAssign }: AssignProps) {
+export function AssignList({ members, assigneeIds, busy, onAssign }: AssignProps) {
   return (
     <div className="py-1">
       {members.map((m) => (
         <MenuItem
           key={m.userId}
           disabled={busy}
-          onClick={() => onAssign(m.userId)}
+          onClick={() => onAssign(toggleAssignee(members, assigneeIds, m.userId))}
           className="gap-2"
         >
           <PersonAvatar userId={m.userId} avatar={m.avatar} className="shrink-0" />
           <span className="min-w-0 flex-1 truncate">{nameOf(m)}</span>
-          {assigneeId === m.userId && <Icon name="check" />}
+          {assigneeIds.includes(m.userId) && <Icon name="check" />}
         </MenuItem>
       ))}
-      <MenuItem disabled={busy} onClick={() => onAssign(null)} className="gap-2">
-        <span className="text-muted-foreground min-w-0 flex-1">anyone</span>
-        {assigneeId === null && <Icon name="check" />}
-      </MenuItem>
     </div>
   );
 }
