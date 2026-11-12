@@ -89,7 +89,7 @@ export function ItemList({
   };
 
   const assigneesOf = (item: ListItem): ItemAssignee[] =>
-    members.filter((m) => item.assigneeIds.includes(m.userId)).map(itemAssignee);
+    !shared ? [] : members.filter((m) => item.assigneeIds.includes(m.userId)).map(itemAssignee);
 
   const showDue = items.some((item) => item.deadline);
   const tickedBy = (item: Item) => {
