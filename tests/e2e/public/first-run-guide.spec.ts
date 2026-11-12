@@ -205,12 +205,15 @@ test("picking a theme ticks its task, the theme saves itself", async ({ page }) 
 
 test("opening tweaks and the shortcuts list tick their tasks and pay nothing", async ({ page }) => {
   await signUp(page);
-  await page.keyboard.press("Control+;");
+  // The app's default prefix follows the browser's user agent, and Playwright's Safari device claims to be a Mac
+  const isMac = await page.evaluate(() => /Mac|iPhone|iPad/.test(navigator.userAgent));
+  const prefix = isMac ? "Meta+;" : "Control+;";
+  await page.keyboard.press(prefix);
   await page.keyboard.press(",");
   await expect(page.getByText("done: open tweaks")).toBeVisible();
   await page.keyboard.press("Escape");
 
-  await page.keyboard.press("Control+;");
+  await page.keyboard.press(prefix);
   await page.keyboard.press("?");
   await expect(page.getByText("done: see the keyboard shortcuts")).toBeVisible();
   await page.keyboard.press("Escape");
