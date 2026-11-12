@@ -271,6 +271,7 @@ export async function handleRescheduleCallback(
         ctx.botToken,
         ctx.chatId,
         item,
+        ctx.userId,
         ctx.timezone,
         messageId
       );

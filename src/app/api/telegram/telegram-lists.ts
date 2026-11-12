@@ -12,6 +12,7 @@ import {
   sendTelegramWithQuickActions,
   type InlineButton,
 } from "@/lib/notifications/telegram";
+import { assigneeLabels } from "./telegram-assign";
 import { escapeHtml } from "@/lib/notifications/telegram-message";
 import { addLocalDays, localDateString, onViewerClock, overdueFrom } from "@/lib/reminders/zoned";
 
@@ -26,6 +27,7 @@ type ListRow = {
   deadline: Date | null;
   deadlineTimezone: string | null;
   bucketName: string;
+  bucketId: number;
 };
 
 function zoneOf(row: ListRow, ctx: Ctx): string {
@@ -45,6 +47,7 @@ async function loadList(
         deadline: items.deadline,
         deadlineTimezone: items.deadlineTimezone,
         bucketName: buckets.name,
+        bucketId: items.bucketId,
       })
       .from(items)
       .innerJoin(buckets, eq(items.bucketId, buckets.id))
@@ -115,11 +118,19 @@ async function loadList(
   return { heading: name, empty: `No open items in ${name}.`, rows, perBucket: true };
 }
 
-function entry(row: ListRow, n: number, perBucket: boolean, now: Date, timezone: string): string {
+function entry(
+  row: ListRow,
+  n: number,
+  perBucket: boolean,
+  now: Date,
+  timezone: string,
+  assignedTo: string | undefined
+): string {
   const when = row.deadline
     ? formatDeadline(row.deadline, row.deadlineTimezone, now, timezone)
     : "no date";
-  const detail = perBucket ? when : `${when} · ${escapeHtml(row.bucketName)}`;
+  const place = perBucket ? when : `${when} · ${escapeHtml(row.bucketName)}`;
+  const detail = assignedTo ? `${place} · for ${escapeHtml(assignedTo)}` : place;
   return `${n}. ${escapeHtml(row.title)}\n     <i>${detail}</i>`;
 }
 
@@ -146,10 +157,13 @@ export async function showItemListPage(
   const first = current * TELEGRAM_LIST_PAGE_SIZE;
   const shown = list.rows.slice(first, first + TELEGRAM_LIST_PAGE_SIZE);
 
+  const labels = await assigneeLabels(shown, ctx.userId);
   const heading = `<b>${escapeHtml(list.heading)}</b>${pages > 1 ? ` · page ${current + 1}/${pages}` : ""}`;
   const html = [
     heading,
-    ...shown.map((r, i) => entry(r, first + i + 1, list.perBucket, now, ctx.timezone)),
+    ...shown.map((r, i) =>
+      entry(r, first + i + 1, list.perBucket, now, ctx.timezone, labels.get(r.id))
+    ),
     "<i>tap a number to open it</i>",
   ].join("\n\n");
 

@@ -76,6 +76,7 @@ import {
   handleRepeatCallback,
 } from "./telegram-flow";
 import { showListBucketPicker, showItemActionMenu, showDeleteConfirm } from "./telegram-manage";
+import { handleAssignCallback } from "./telegram-assign";
 import { cmdBuckets, cmdAddDirect, buildHelpText } from "./telegram-commands";
 
 export async function POST(req: Request) {
@@ -413,11 +414,14 @@ async function handleUpdate(botToken: string, body: TelegramUpdate): Promise<Res
         botToken,
         chatIdStr,
         {
+          id: itemId,
+          bucketId,
           title: itemRow.title,
           deadline: itemRow.deadline,
           deadlineTimezone: itemRow.deadlineTimezone,
           bucketName,
         },
+        userId,
         timezone,
         menuMsgId
       );
@@ -432,6 +436,16 @@ async function handleUpdate(botToken: string, body: TelegramUpdate): Promise<Res
         },
         newMsgId
       );
+      return new Response("OK");
+    }
+
+    if (callbackData.startsWith("ag:")) {
+      await handleAssignCallback(callbackData, {
+        botToken,
+        chatId: chatIdStr,
+        userId,
+        messageId: tappedMsgId,
+      });
       return new Response("OK");
     }
 

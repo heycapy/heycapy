@@ -4,13 +4,14 @@ import {
   sendOrEditButtons,
   sendTelegramWithQuickActions,
 } from "@/lib/notifications/telegram";
+import { assigneeLabels } from "./telegram-assign";
 import { escapeHtml } from "@/lib/notifications/telegram-message";
 import type { InlineButton } from "@/lib/notifications/telegram";
 
 export async function showListBucketPicker(
   botToken: string,
   chatId: string,
-  buckets: { id: number; name: string; icon: string | null }[],
+  buckets: { id: number; name: string; icon: string | null; shared: boolean }[],
   messageId?: number | null
 ): Promise<number> {
   if (buckets.length === 0) {
@@ -23,7 +24,7 @@ export async function showListBucketPicker(
   }
   const buttonRows: InlineButton[][] = buckets.map((b) => [
     {
-      text: `${b.icon ? b.icon + " " : ""}${b.name}`,
+      text: `${b.icon ? b.icon + " " : ""}${b.name}${b.shared ? " 👥" : ""}`,
       callback_data: `lb:${b.id}`,
     },
   ]);
@@ -32,19 +33,23 @@ export async function showListBucketPicker(
 }
 
 export type MenuItem = {
+  id: number;
   title: string;
   deadline: Date | null;
   deadlineTimezone: string | null;
   bucketName: string;
+  bucketId: number;
 };
 
 export async function showItemActionMenu(
   botToken: string,
   chatId: string,
   item: MenuItem,
+  userId: number,
   timezone: string,
   messageId: number
 ): Promise<number> {
+  const assignedTo = (await assigneeLabels([item], userId)).get(item.id) ?? null;
   const when = item.deadline
     ? `due ${formatDeadline(item.deadline, item.deadlineTimezone, new Date(), timezone)}`
     : "no date";
@@ -52,7 +57,7 @@ export async function showItemActionMenu(
     botToken,
     chatId,
     messageId,
-    `<b>${escapeHtml(item.title)}</b>\n<i>${when} · ${escapeHtml(item.bucketName)}</i>`,
+    `<b>${escapeHtml(item.title)}</b>\n<i>${when} · ${escapeHtml(item.bucketName)}${assignedTo ? ` · for ${escapeHtml(assignedTo)}` : ""}</i>`,
     [
       [
         { text: "✓ Complete", callback_data: "la:complete" },
@@ -62,6 +67,9 @@ export async function showItemActionMenu(
         { text: "🕐 Reschedule", callback_data: "me:deadline" },
         { text: "🗑 Delete", callback_data: "la:delete" },
       ],
+      ...(assignedTo !== null
+        ? [[{ text: "👥 Assign", callback_data: `ag:${item.id}:open` }]]
+        : []),
       [{ text: "✖ Cancel", callback_data: "cancel" }],
     ]
   );

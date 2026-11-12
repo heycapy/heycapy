@@ -13,6 +13,7 @@ import type {
 } from "@/components/buckets/constants";
 import { dataEvents } from "@/lib/events";
 import { TELEGRAM_BUCKET_GONE } from "@/lib/notifications/constants";
+import { sendAdded } from "./telegram-assign";
 import { getBucketTelegramConfig, setFlowState, createItem } from "./telegram-utils";
 import type { FlowState } from "./telegram-utils";
 
@@ -28,7 +29,7 @@ const PRESET_LABELS: Record<TelegramDeadlinePreset, string> = {
 export async function showBucketPicker(
   botToken: string,
   chatId: string,
-  buckets: { id: number; name: string; icon: string | null }[],
+  buckets: { id: number; name: string; icon: string | null; shared: boolean }[],
   messageId?: number | null
 ): Promise<number> {
   if (buckets.length === 0) {
@@ -37,7 +38,7 @@ export async function showBucketPicker(
   }
   const buttonRows: InlineButton[][] = buckets.map((b) => [
     {
-      text: `${b.icon ? b.icon + " " : ""}${b.name}`,
+      text: `${b.icon ? b.icon + " " : ""}${b.name}${b.shared ? " 👥" : ""}`,
       callback_data: `ab:${b.id}`,
     },
   ]);
@@ -243,17 +244,19 @@ export async function handleAfterTime(
     );
   } else {
     if (messageId) await removeMessageButtons(botToken, chatId, messageId);
-    const added = await createItem(userId, state.bucketId, state.title, deadline);
+    const addedId = await createItem(userId, state.bucketId, state.title, deadline);
     await setFlowState(userId, null);
-    if (!added) {
+    if (!addedId) {
       await sendTelegramWithQuickActions(botToken, chatId, TELEGRAM_BUCKET_GONE);
       return;
     }
     dataEvents.emit("refresh", userId);
-    await sendTelegramWithQuickActions(
+    await sendAdded(
       botToken,
       chatId,
-      `Added "${state.title}" to ${state.bucketName} (${formatWhen(deadline, new Date(), timezone)}) ✓`
+      `Added "${state.title}" to ${state.bucketName} (${formatWhen(deadline, new Date(), timezone)}) ✓`,
+      state.bucketId,
+      addedId
     );
   }
 }
@@ -289,18 +292,20 @@ export async function handleAfterDeadline(
     );
   } else {
     if (messageId) await removeMessageButtons(botToken, chatId, messageId);
-    const added = await createItem(userId, state.bucketId, state.title, deadline);
+    const addedId = await createItem(userId, state.bucketId, state.title, deadline);
     await setFlowState(userId, null);
-    if (!added) {
+    if (!addedId) {
       await sendTelegramWithQuickActions(botToken, chatId, TELEGRAM_BUCKET_GONE);
       return;
     }
     const note = deadline ? ` (due ${formatWhen(deadline, new Date(), timezone)})` : "";
     dataEvents.emit("refresh", userId);
-    await sendTelegramWithQuickActions(
+    await sendAdded(
       botToken,
       chatId,
-      `Added "${state.title}" to ${state.bucketName}${note} ✓`
+      `Added "${state.title}" to ${state.bucketName}${note} ✓`,
+      state.bucketId,
+      addedId
     );
   }
 }
@@ -320,18 +325,20 @@ export async function handleRepeatCallback(
       ? null
       : JSON.stringify({ enabled: true, frequency: freq, interval: 1, endDate: null });
   if (messageId) await removeMessageButtons(botToken, chatId, messageId);
-  const added = await createItem(userId, state.bucketId, state.title, deadline, recurring);
+  const addedId = await createItem(userId, state.bucketId, state.title, deadline, recurring);
   await setFlowState(userId, null);
-  if (!added) {
+  if (!addedId) {
     await sendTelegramWithQuickActions(botToken, chatId, TELEGRAM_BUCKET_GONE);
     return;
   }
   dataEvents.emit("refresh", userId);
   const dateNote = deadline ? ` (due ${formatWhen(deadline, new Date(), timezone)})` : "";
   const recurNote = freq === "none" ? "" : `, repeats ${freq}`;
-  await sendTelegramWithQuickActions(
+  await sendAdded(
     botToken,
     chatId,
-    `Added "${state.title}" to ${state.bucketName}${dateNote}${recurNote} ✓`
+    `Added "${state.title}" to ${state.bucketName}${dateNote}${recurNote} ✓`,
+    state.bucketId,
+    addedId
   );
 }

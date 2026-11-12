@@ -43,7 +43,7 @@ export async function cmdBuckets(
     const n = countMap.get(b.id) ?? 0;
     return [
       {
-        text: `${b.icon ? b.icon + " " : ""}${b.name}  ·  ${n} item${n === 1 ? "" : "s"}`,
+        text: `${b.icon ? b.icon + " " : ""}${b.name}${b.shared ? " 👥" : ""}  ·  ${n} item${n === 1 ? "" : "s"}`,
         callback_data: `lb:${b.id}`,
       },
     ];

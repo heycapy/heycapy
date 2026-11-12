@@ -15,6 +15,7 @@ import {
   parseLocalDateTime,
   toLocal,
 } from "@/lib/reminders/zoned";
+import { bucketPeople, sharedBucketIds } from "./telegram-assign";
 import type { TelegramBotConfig } from "@/components/buckets/constants";
 import { DEFAULT_TELEGRAM_BOT_CONFIG } from "@/components/buckets/constants";
 
@@ -225,11 +226,14 @@ export function parseNaturalDeadline(input: string, timezone: string): Date | nu
 }
 
 export async function getUserBuckets(userId: number) {
-  return (await listLiveBuckets(userId)).map(({ id, name, icon, isOwner }) => ({
+  const buckets = await listLiveBuckets(userId);
+  const shared = sharedBucketIds(await bucketPeople(buckets.map((b) => b.id)));
+  return buckets.map(({ id, name, icon, isOwner }) => ({
     id,
     name,
     icon,
     isOwner,
+    shared: shared.has(id),
   }));
 }
 
@@ -261,9 +265,9 @@ export async function createItem(
   title: string,
   deadline: Date | null,
   recurring: string | null = null
-): Promise<boolean> {
+): Promise<number | null> {
   // The bucket was picked a few messages ago, the person may have left it since
-  if (!(await getUserBuckets(userId)).some((b) => b.id === bucketId)) return false;
+  if (!(await getUserBuckets(userId)).some((b) => b.id === bucketId)) return null;
   const timezone = await userTimezone(userId);
   const [maxRow] = await db
     .select({ max: sql<number>`COALESCE(MAX(${items.sortOrder}), -1)` })
@@ -288,5 +292,5 @@ export async function createItem(
     await assignEveryone(created.id, bucketId);
     await refreshItemReminders([created.id]);
   }
-  return true;
+  return created?.id ?? null;
 }

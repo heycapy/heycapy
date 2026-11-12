@@ -1,8 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { bucketMembers, buckets, items, userSettings } from "@/lib/db/schema";
+import { bucketMembers, buckets, itemAssignees, items, userSettings, users } from "@/lib/db/schema";
 import { dataEvents } from "@/lib/events";
+import { assigneeIdsByItem, setItemAssignees } from "@/lib/items/assignees";
 import { getFlowState, setFlowState } from "@/app/api/telegram/telegram-utils";
 import { TELEGRAM_BUCKET_GONE } from "@/lib/notifications/constants";
 import {
@@ -84,7 +85,7 @@ describe("a shared bucket on Telegram", () => {
     await say("/buckets", memberChat);
 
     expect(lastMessage(api).reply_markup?.inline_keyboard).toEqual([
-      [{ text: "Home  ·  2 items", callback_data: `lb:${bucketId}` }],
+      [{ text: "Home 👥  ·  2 items", callback_data: `lb:${bucketId}` }],
     ]);
   });
 
@@ -195,5 +196,86 @@ describe("a shared bucket on Telegram", () => {
 
     await say("/home water plants", memberChat);
     expect(await flowOf(member)).toBeNull();
+  });
+
+  it("lists and the item menu say who an item is for, and a solo bucket says nothing", async () => {
+    const { api, owner, member, bucketId, itemId, ownerChat } = await sharedBucket();
+    await db.update(users).set({ username: "kavita" }).where(eq(users.id, member));
+    await setItemAssignees(itemId, [member]);
+
+    await tap(`lb:${bucketId}`, ownerChat);
+    expect(lastMessage(api).text).toContain("for kavita");
+    expect(lastMessage(api).text).toContain("for everyone");
+
+    await setItemAssignees(itemId, [owner]);
+    await tap(`mi:${itemId}`, ownerChat);
+    expect(lastMessage(api).text).toContain("for you");
+
+    await setItemAssignees(itemId, []);
+    await tap(`lb:${bucketId}`, ownerChat);
+    expect(lastMessage(api).text).toContain("for no one");
+
+    const soloBucket = await seedBucket(owner);
+    await seedItem(owner, soloBucket, { deadline: new Date(T0.getTime() + HOUR) });
+    await tap(`lb:${soloBucket}`, ownerChat);
+    expect(lastMessage(api).text).not.toContain("for ");
+  });
+
+  it("a member picks who an item is for with the buttons, and each tap is saved", async () => {
+    const { api, owner, member, itemId, memberChat } = await sharedBucket();
+
+    await tap(`mi:${itemId}`, memberChat);
+    expect(
+      lastMessage(api)
+        .reply_markup?.inline_keyboard.flat()
+        .map((b) => b.text)
+    ).toContain("👥 Assign");
+    await tap(`ag:${itemId}:open`, memberChat);
+    await tap(`ag:${itemId}:none`, memberChat);
+    expect((await assigneeIdsByItem([itemId])).get(itemId) ?? []).toEqual([]);
+
+    await tap(`ag:${itemId}:${member}`, memberChat);
+    expect((await assigneeIdsByItem([itemId])).get(itemId)).toEqual([member]);
+    expect(lastMessage(api).reply_markup?.inline_keyboard[1]?.[0]?.text).toMatch(/^✓ you$/);
+
+    await tap(`ag:${itemId}:${owner}`, memberChat);
+    await tap(`ag:${itemId}:${member}`, memberChat);
+    expect((await assigneeIdsByItem([itemId])).get(itemId)).toEqual([owner]);
+
+    await tap(`ag:${itemId}:all`, memberChat);
+    expect(((await assigneeIdsByItem([itemId])).get(itemId) ?? []).sort()).toEqual(
+      [owner, member].sort()
+    );
+    await tap(`ag:${itemId}:done`, memberChat);
+    expect(lastMessage(api).text).toContain("for everyone");
+  });
+
+  it("the assign buttons refuse a stranger and a person outside the bucket", async () => {
+    const { stranger, itemId, memberChat, strangerChat } = await sharedBucket();
+    const before = (await assigneeIdsByItem([itemId])).get(itemId);
+
+    await tap(`ag:${itemId}:none`, strangerChat);
+    await tap(`ag:${itemId}:${stranger}`, memberChat);
+
+    expect(await assigneeIdsByItem([itemId])).toEqual(new Map([[itemId, before]]));
+    const rows = await db.select().from(itemAssignees);
+    expect(rows.some((r) => r.userId === stranger)).toBe(false);
+  });
+
+  it("adding with the buttons to a shared bucket offers assign, everyone by default", async () => {
+    const { api, bucketId, memberChat } = await sharedBucket();
+
+    await tap(`ab:${bucketId}`, memberChat);
+    await say("water plants", memberChat);
+    await tap("ad:no_deadline", memberChat);
+
+    const [added] = await db
+      .select()
+      .from(items)
+      .where(and(eq(items.bucketId, bucketId), eq(items.title, "water plants")));
+    expect(lastMessage(api).reply_markup?.inline_keyboard).toEqual([
+      [{ text: "👥 Assign", callback_data: `ag:${added?.id}:open` }],
+    ]);
+    expect(((await assigneeIdsByItem([added?.id ?? 0])).get(added?.id ?? 0) ?? []).length).toBe(2);
   });
 });
