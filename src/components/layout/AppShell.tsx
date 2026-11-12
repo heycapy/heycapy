@@ -27,6 +27,8 @@ import { lookPickedAction, saveTimezoneIfDefaultAction } from "@/app/(app)/user-
 import { useServerEvents } from "@/hooks/useServerEvents";
 import { useKeybinds } from "@/hooks/useKeybinds";
 import { keybindActions } from "./keybind-actions";
+import { PrefixIndicator } from "./PrefixIndicator";
+import { CheatSheet } from "./CheatSheet";
 import type { StoredKeybinds } from "@/lib/keybinds/schema";
 import { useChatDocked } from "@/components/capy/useChatDocked";
 import { cn } from "@/lib/utils";
@@ -207,6 +209,8 @@ export function AppShell({
         onHiddenChange={setGuideHidden}
       />
       <SearchDrawer />
+      <CheatSheet keybinds={keybinds} />
+      <PrefixIndicator keybinds={keybinds} />
       <CapyChat appUrl={appUrl} />
     </>
   );

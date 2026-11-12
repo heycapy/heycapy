@@ -30,6 +30,9 @@ type LayoutStore = {
 
   prefixActive: boolean;
   setPrefixActive: (active: boolean) => void;
+
+  cheatSheetOpen: boolean;
+  setCheatSheetOpen: (open: boolean) => void;
 };
 
 export const useLayoutStore = create<LayoutStore>()((set, get) => {
@@ -71,5 +74,8 @@ export const useLayoutStore = create<LayoutStore>()((set, get) => {
 
     prefixActive: false,
     setPrefixActive: (active) => set({ prefixActive: active }),
+
+    cheatSheetOpen: false,
+    setCheatSheetOpen: (open) => set({ cheatSheetOpen: open }),
   };
 });

@@ -126,3 +126,48 @@ test("the prefix then c opens capy, and Escape closes it", async ({ page }) => {
   await page.keyboard.press("Escape");
   await expect(input).toBeHidden();
 });
+
+test("a chip shows while the prefix waits, and goes with a key, Escape or the timeout", async ({
+  page,
+}) => {
+  await twoBuckets(page);
+  const chip = page.getByText("waiting for a key");
+
+  await expect(chip).toBeHidden();
+  await page.keyboard.press(PREFIX);
+  await expect(chip).toBeVisible();
+  await page.keyboard.press("z");
+  await expect(chip).toBeHidden();
+
+  await page.keyboard.press(PREFIX);
+  await expect(chip).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(chip).toBeHidden();
+
+  await page.keyboard.press(PREFIX);
+  await expect(chip).toBeVisible();
+  await expect(chip).toBeHidden({ timeout: 3000 });
+});
+
+test("the prefix then ? lists every shortcut, and the same keys close it", async ({ page }) => {
+  await twoBuckets(page);
+  const sheet = page.getByRole("dialog", { name: "keyboard shortcuts" });
+
+  await prefixThen(page, "?");
+  await expect(sheet).toBeVisible();
+  await expect(sheet).toContainText("press Ctrl+; then a key");
+  for (const label of [
+    "quick add",
+    "bucket by tab order",
+    "toggle capy",
+    "close whatever is open",
+  ]) {
+    await expect(sheet).toContainText(label);
+  }
+  await prefixThen(page, "?");
+  await expect(sheet).toBeHidden();
+
+  await prefixThen(page, "?");
+  await page.keyboard.press("Escape");
+  await expect(sheet).toBeHidden();
+});

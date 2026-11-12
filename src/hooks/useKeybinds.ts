@@ -1,17 +1,10 @@
 import { useEffect, useEffectEvent, useMemo } from "react";
+import { useKeybindPrefix } from "./useKeybindPrefix";
 import { ESCAPE_KEY, PREFIX_TIMEOUT_MS } from "@/lib/keybinds/constants";
 import type { KeybindActionId } from "@/lib/keybinds/constants";
-import {
-  defaultPrefix,
-  isModifierKey,
-  matchesPrefix,
-  mergeBindings,
-  resolveAction,
-} from "@/lib/keybinds/match";
+import { isModifierKey, matchesPrefix, mergeBindings, resolveAction } from "@/lib/keybinds/match";
 import type { StoredKeybinds } from "@/lib/keybinds/schema";
 import { useLayoutStore } from "@/store/layout";
-
-const MAC_PLATFORM = /Mac|iPhone|iPad/;
 
 export function useKeybinds(
   stored: StoredKeybinds,
@@ -21,11 +14,10 @@ export function useKeybinds(
   const setPrefixActive = useLayoutStore((s) => s.setPrefixActive);
   const act = useEffectEvent(onAction);
   const escape = useEffectEvent(onEscape);
-  const storedPrefix = stored.prefix ?? null;
+  const { prefix } = useKeybindPrefix(stored);
   const bindings = useMemo(() => mergeBindings(stored.bindings ?? {}), [stored.bindings]);
 
   useEffect(() => {
-    const prefix = storedPrefix ?? defaultPrefix(MAC_PLATFORM.test(navigator.userAgent));
     let armed = false;
     let timer: ReturnType<typeof setTimeout> | undefined;
 
@@ -72,5 +64,5 @@ export function useKeybinds(
       window.removeEventListener("blur", disarm);
       disarm();
     };
-  }, [storedPrefix, bindings, setPrefixActive]);
+  }, [prefix, bindings, setPrefixActive]);
 }

@@ -61,6 +61,10 @@ export function keybindActions({ canDock, openTweaks }: KeybindActionsOptions) {
         return;
       case KEYBIND_ACTION.tweaks:
         return openTweaks();
+      case KEYBIND_ACTION.cheatSheet: {
+        const { cheatSheetOpen, setCheatSheetOpen } = useLayoutStore.getState();
+        return setCheatSheetOpen(!cheatSheetOpen);
+      }
     }
   }
 
