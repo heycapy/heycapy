@@ -12,6 +12,7 @@ import { SOUND_IDS, SOUNDS } from "@/lib/sounds";
 export const LABEL = "text-foreground font-ui text-xs font-medium";
 export const HINT = "text-muted-foreground font-ui text-2xs leading-tight";
 
+export const SUBHEAD = "text-muted-foreground font-ui text-2xs";
 export const MUTED = "text-muted-foreground font-ui text-xs";
 export const INPUT =
   "border-b border-border w-full bg-transparent py-1.5 font-ui text-xs outline-none placeholder:text-muted-foreground/50 focus:border-foreground disabled:opacity-50";

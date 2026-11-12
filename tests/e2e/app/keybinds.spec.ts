@@ -155,7 +155,7 @@ test("the prefix then ? lists every shortcut, and the same keys close it", async
 
   await prefixThen(page, "?");
   await expect(sheet).toBeVisible();
-  await expect(sheet).toContainText("press Ctrl+; then a key");
+  await expect(sheet).toContainText("Press Ctrl+; then a key");
   for (const label of [
     "quick add",
     "bucket by tab order",

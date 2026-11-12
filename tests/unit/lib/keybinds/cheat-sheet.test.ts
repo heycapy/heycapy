@@ -20,6 +20,15 @@ describe("cheatSheetRows", () => {
     expect(rows.find((r) => r.label === "quick add")?.key).toBe("q");
   });
 
+  it("lists the key that adds or saves an item, for the platform", () => {
+    expect(
+      cheatSheetRows(defaultBindings()).find((r) => r.label === "add or save an item")?.key
+    ).toBe("Ctrl+Enter");
+    expect(
+      cheatSheetRows(defaultBindings(), true).find((r) => r.label === "add or save an item")?.key
+    ).toBe("Cmd+Enter");
+  });
+
   it("ends with Escape", () => {
     expect(cheatSheetRows(defaultBindings()).at(-1)).toEqual({
       label: "close whatever is open",

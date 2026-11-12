@@ -1,5 +1,6 @@
 import { BUCKET_NUMBERS, KEYBIND_ACTIONS } from "./constants";
 import { formatKey } from "./match";
+import { submitKeys } from "./submit";
 import type { KeyBindings } from "./match";
 
 export type CheatSheetRow = {
@@ -9,7 +10,7 @@ export type CheatSheetRow = {
 
 const BUCKET_ACTION_ID = /^bucket-\d$/;
 
-export function cheatSheetRows(bindings: KeyBindings): CheatSheetRow[] {
+export function cheatSheetRows(bindings: KeyBindings, isMac = false): CheatSheetRow[] {
   const rows: CheatSheetRow[] = [];
   for (const action of KEYBIND_ACTIONS) {
     if (!BUCKET_ACTION_ID.test(action.id)) {
@@ -22,6 +23,7 @@ export function cheatSheetRows(bindings: KeyBindings): CheatSheetRow[] {
       rows.push({ label: "bucket by tab order", key: `${first}-${last}` });
     }
   }
+  rows.push({ label: "add or save an item", key: submitKeys(isMac, true) });
   rows.push({ label: "close whatever is open", key: "Esc" });
   return rows;
 }

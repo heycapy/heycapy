@@ -1,3 +1,4 @@
+import { SubmitKeyHint } from "@/components/ui/KeyHint";
 import { useEffect, useEffectEvent, useRef, useState } from "react";
 import { TextButton } from "@/components/ui/TextButton";
 import { useLookParts } from "@/components/looks/LookProvider";
@@ -280,7 +281,8 @@ export function ItemDialog({
   const confirmLabel = frameMode === "add" ? "add" : "update";
   const confirmButton = (boxed: boolean) =>
     boxed ? (
-      <div className="mb-[calc(1.5rem-var(--add-icon)/2)] self-end">
+      <div className="mb-[calc(1.5rem-var(--add-icon)/2)] flex items-center self-end">
+        <SubmitKeyHint form className="ml-0" />
         <InputBarAction
           icon="arrow-up"
           label={confirmLabel}
@@ -296,6 +298,7 @@ export function ItemDialog({
         className={bracketed ? "px-2 py-3 text-base" : "my-2 mr-1"}
       >
         {confirmLabel}
+        <SubmitKeyHint form />
       </TextButton>
     );
   const deleteButton = onDelete && (

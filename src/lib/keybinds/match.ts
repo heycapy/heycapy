@@ -1,13 +1,7 @@
 import { DEFAULT_PREFIX_KEY, KEYBIND_ACTIONS } from "./constants";
-import type { KeybindActionId } from "./constants";
+import type { KeybindActionId, Prefix } from "./constants";
 
-export type Prefix = {
-  key: string;
-  ctrl: boolean;
-  meta: boolean;
-  alt: boolean;
-  shift: boolean;
-};
+export type { Prefix };
 
 export type KeyEventLike = {
   key: string;
@@ -51,6 +45,16 @@ export function normalizeKey(e: KeyEventLike): string | null {
   if (digit) return digit[1];
   if (e.key.length !== 1) return null;
   return e.key.toLowerCase();
+}
+
+export function samePrefix(a: Prefix, b: Prefix): boolean {
+  return (
+    a.key === b.key &&
+    a.ctrl === b.ctrl &&
+    a.meta === b.meta &&
+    a.alt === b.alt &&
+    a.shift === b.shift
+  );
 }
 
 export function matchesPrefix(e: KeyEventLike, prefix: Prefix): boolean {
@@ -103,6 +107,19 @@ export function formatPrefix(prefix: Prefix, isMac: boolean): string {
       : formatKey(prefix.key),
   ];
   return parts.filter(Boolean).join("+");
+}
+
+export function formatHeld(
+  e: Pick<KeyEventLike, "ctrlKey" | "metaKey" | "altKey" | "shiftKey">,
+  isMac: boolean
+): string {
+  const parts = [
+    e.ctrlKey && "Ctrl",
+    e.altKey && (isMac ? "Option" : "Alt"),
+    e.shiftKey && "Shift",
+    e.metaKey && (isMac ? "Cmd" : "Win"),
+  ].filter(Boolean);
+  return parts.length > 0 ? `${parts.join("+")}+...` : "";
 }
 
 export function isTypingTarget(target: EventTarget | null): boolean {

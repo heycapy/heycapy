@@ -189,7 +189,8 @@ test("on a wide screen the chat stands beside the list, which moves over for it"
   await page.keyboard.press("Escape");
   await expect(editForm(page)).toBeHidden();
 
-  await page.keyboard.press("ControlOrMeta+\\");
+  await page.keyboard.press("Control+;");
+  await page.keyboard.press("c");
   await expect(input).toBeHidden();
   await expect(capy).toHaveAttribute("aria-expanded", "false");
   await expect.poll(listCentre).toBeCloseTo(centredAlone, 0);

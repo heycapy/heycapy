@@ -3,7 +3,7 @@ import { notify } from "@/components/ui/notify";
 import { addItemAction } from "@/app/(app)/actions";
 import { IconButton } from "@/components/ui/IconButton";
 import { InputBar, InputBarAction, InputBarIcon } from "@/components/ui/InputBar";
-import { KeyHint } from "@/components/ui/KeyHint";
+import { KeyHint, SubmitKeyHint } from "@/components/ui/KeyHint";
 import { ITEM_TITLE_MAX_LENGTH, MOBILE_MEDIA_QUERY } from "@/constants";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { memberName } from "@/lib/buckets/member-name";
@@ -222,7 +222,10 @@ export function QuickAdd({ bucket, inputRef, onAdded, onExpand, targets }: Quick
           />
         )}
         {text.trim() && (
-          <InputBarAction icon="arrow-up" label="add" name="add item" onClick={submit} />
+          <>
+            <SubmitKeyHint className="ml-0" />
+            <InputBarAction icon="arrow-up" label="add" name="add item" onClick={submit} />
+          </>
         )}
       </InputBar>
     </div>

@@ -3,6 +3,7 @@ import {
   defaultBindings,
   defaultPrefix,
   findConflict,
+  formatHeld,
   formatKey,
   formatPrefix,
   isTypingTarget,
@@ -10,6 +11,7 @@ import {
   mergeBindings,
   normalizeKey,
   prefixFromEvent,
+  samePrefix,
   resolveAction,
 } from "@/lib/keybinds/match";
 import type { KeyEventLike } from "@/lib/keybinds/match";
@@ -156,6 +158,23 @@ describe("formatPrefix with Space", () => {
     expect(
       formatPrefix({ key: " ", ctrl: true, meta: false, alt: false, shift: false }, false)
     ).toBe("Ctrl+Space");
+  });
+});
+
+describe("formatHeld and samePrefix", () => {
+  it("shows the modifiers held so far, with dots for the key to come", () => {
+    expect(formatHeld(press("Control", { ctrlKey: true }), false)).toBe("Ctrl+...");
+    expect(formatHeld(press("Shift", { ctrlKey: true, shiftKey: true, altKey: true }), true)).toBe(
+      "Ctrl+Option+Shift+..."
+    );
+    expect(formatHeld(press("Control"), false)).toBe("");
+  });
+
+  it("compares every part of a prefix", () => {
+    const a = defaultPrefix(false);
+    expect(samePrefix(a, { ...a })).toBe(true);
+    expect(samePrefix(a, { ...a, key: "k" })).toBe(false);
+    expect(samePrefix(a, { ...a, alt: true })).toBe(false);
   });
 });
 

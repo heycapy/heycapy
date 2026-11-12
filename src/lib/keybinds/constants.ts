@@ -1,3 +1,14 @@
+export type Prefix = {
+  key: string;
+  ctrl: boolean;
+  meta: boolean;
+  alt: boolean;
+  shift: boolean;
+};
+
+export const PREFIX_EDITING = "prefix";
+export const PREFIX_CHECK = "prefix-check";
+
 export const PREFIX_TIMEOUT_MS = 1500;
 export const PREFIX_TEST_MS = 5000;
 export const ESCAPE_KEY = "Escape";
@@ -17,6 +28,7 @@ export const KEYBIND_ACTION = {
 } as const;
 
 export type KeybindActionId = (typeof KEYBIND_ACTION)[keyof typeof KEYBIND_ACTION] | BucketActionId;
+export type KeybindEditing = KeybindActionId | typeof PREFIX_EDITING | typeof PREFIX_CHECK | null;
 export type BucketActionId = `bucket-${1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9}`;
 
 export type KeybindAction = {
@@ -84,59 +96,69 @@ function clashes(
 }
 
 // From the vendors' own shortcut pages (Chrome help, Firefox support, Apple support: macOS and
-// Safari), checked 2026-11-12. A warning, not a rule: "test your prefix" shows what really arrives
+// Safari), checked 2026-11-12. A warning, not a rule: checking the prefix shows what really arrives
 export const KEYBIND_CLASHES: KeybindClash[] = [
   ...clashes("pc", "ctrl", "Chrome", [
-    ["n", "opens a new window"],
-    ["t", "opens a new tab"],
-    ["w", "closes the tab"],
-    ["h", "opens history"],
-    ["j", "opens downloads"],
-    ["k", "searches from the address bar"],
-    ["l", "jumps to the address bar"],
-    ["o", "opens a file"],
-    ["p", "prints"],
-    ["s", "saves the page"],
-    ["u", "shows the page source"],
-    ["d", "bookmarks the page"],
-    ["f", "finds on the page"],
-    ["g", "jumps to the next find match"],
-    ["e", "searches from the address bar"],
+    ["n", "open a new window"],
+    ["t", "open a new tab"],
+    ["w", "close the tab"],
+    ["h", "open history"],
+    ["j", "open downloads"],
+    ["k", "search from the address bar"],
+    ["l", "jump to the address bar"],
+    ["o", "open a file"],
+    ["p", "print "],
+    ["s", "save the page"],
+    ["u", "show the page source"],
+    ["d", "bookmark the page"],
+    ["f", "find on the page"],
+    ["g", "jump to the next find match"],
+    ["e", "search from the address bar"],
   ]),
   ...clashes("pc", "alt", "Chrome", [
-    ["d", "jumps to the address bar"],
-    ["f", "opens the menu"],
-    ["e", "opens the menu"],
+    ["d", "jump to the address bar"],
+    ["f", "open the menu"],
+    ["e", "open the menu"],
   ]),
   ...clashes("pc", "ctrl", "Firefox", [
-    ["k", "focuses the search bar"],
-    ["e", "focuses the search bar"],
+    ["k", "focus the search bar"],
+    ["e", "focus the search bar"],
   ]),
   ...clashes("mac", "meta", "Chrome and Safari", [
-    ["n", "opens a new window"],
-    ["t", "opens a new tab"],
-    ["w", "closes the tab"],
-    ["y", "opens history"],
-    ["f", "finds on the page"],
-    ["g", "jumps to the next find match"],
-    ["e", "searches for the selected text"],
-    ["l", "jumps to the address bar"],
-    ["o", "opens a file"],
-    ["p", "prints"],
-    ["s", "saves the page"],
-    ["d", "bookmarks the page"],
-    [",", "opens settings"],
-    ["h", "hides the browser"],
-    ["q", "quits the browser"],
-    ["m", "minimizes the window"],
-    ["[", "goes back"],
-    ["]", "goes forward"],
-    ["`", "switches window"],
-    ...BUCKET_NUMBERS.map((n): ClashRow => [String(n), "switches to a tab"]),
+    ["n", "open a new window"],
+    ["t", "open a new tab"],
+    ["w", "close the tab"],
+    ["y", "open history"],
+    ["f", "find on the page"],
+    ["g", "jump to the next find match"],
+    ["e", "search for the selected text"],
+    ["l", "jump to the address bar"],
+    ["o", "open a file"],
+    ["p", "print "],
+    ["s", "save the page"],
+    ["d", "bookmark the page"],
+    [",", "open settings"],
+    ["h", "hide the browser"],
+    ["q", "quit the browser"],
+    ["m", "minimize the window"],
+    ["[", "go back"],
+    ["]", "go forward"],
+    ["`", "switch window"],
+    ...BUCKET_NUMBERS.map((n): ClashRow => [String(n), "switch to a tab"]),
   ]),
   ...clashes("mac", "meta", "macOS", [
-    [";", "finds misspelled words in text"],
-    [" ", "opens Spotlight"],
+    [";", "find misspelled words in text"],
+    [" ", "open Spotlight"],
   ]),
-  ...clashes("mac", "ctrl", "macOS", [[" ", "switches the input source"]]),
+  ...clashes("mac", "ctrl", "macOS", [[" ", "switch the input source"]]),
 ];
+
+const ctrl = (key: string): Prefix => ({ key, ctrl: true, meta: false, alt: false, shift: false });
+const alt = (key: string): Prefix => ({ key, ctrl: false, meta: false, alt: true, shift: false });
+const cmd = (key: string): Prefix => ({ key, ctrl: false, meta: true, alt: false, shift: false });
+
+// Option+key types another character on a Mac (Option+; is "…"), so a prefix on it never matches
+export const SUGGESTED_PREFIXES: Record<KeybindPlatform, Prefix[]> = {
+  pc: [ctrl(";"), ctrl("'"), ctrl("."), alt(";"), alt("'")],
+  mac: [ctrl(";"), ctrl("'"), ctrl("."), cmd("'")],
+};

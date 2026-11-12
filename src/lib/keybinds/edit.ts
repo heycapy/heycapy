@@ -26,18 +26,22 @@ export function withBinding(
   e: KeyEventLike
 ): EditResult {
   const action = KEYBIND_ACTIONS.find((a) => a.id === actionId);
-  if (!action?.rebindable) return { ok: false, error: "That key is fixed" };
+  if (!action?.rebindable) return { ok: false, error: "That key is fixed." };
   if (e.ctrlKey || e.metaKey || e.altKey) {
-    return { ok: false, error: "Use a plain key, the prefix is the one with Ctrl, Cmd or Alt" };
+    return { ok: false, error: "Use a plain key. The prefix is the one with Ctrl, Cmd or Alt." };
   }
   const key = normalizeKey(e);
-  if (!key) return { ok: false, error: "Pick a letter, number or symbol key" };
+  if (!key) return { ok: false, error: "Use a letter, number or symbol key." };
 
   const bindings = mergeBindings(stored.bindings ?? {});
   const conflict = findConflict(bindings, actionId, key);
   if (conflict) {
     const other = KEYBIND_ACTIONS.find((a) => a.id === conflict);
-    return { ok: false, error: `"${formatKey(key)}" is already ${other?.label ?? "used"}` };
+    const shown = formatKey(key);
+    if (!other?.rebindable) {
+      return { ok: false, error: `"${shown}" is reserved for jumping to bucket ${key}.` };
+    }
+    return { ok: false, error: `"${shown}" is already used for ${other.label}. Pick another key.` };
   }
 
   const overrides = without(stored.bindings ?? {}, actionId);

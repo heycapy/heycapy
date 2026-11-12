@@ -245,8 +245,6 @@ function ChatButton() {
   return (
     <TextButton
       variant="ghost"
-      icon="message"
-      iconLabel={`chat with ${CAPY_NAME}`}
       aria-label="chat with capy"
       aria-expanded={chatOpen}
       onClick={() => setChatState(chatOpen ? "closed" : "open")}
