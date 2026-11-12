@@ -16,6 +16,7 @@ import { KeyHint } from "@/components/ui/KeyHint";
 import { BUCKET_ACTIONS } from "@/lib/keybinds/constants";
 import type { KeybindActionId } from "@/lib/keybinds/constants";
 import { IconButton } from "@/components/ui/IconButton";
+import { useWheelScrollX } from "@/hooks/useWheelScrollX";
 
 type BucketTabsProps = {
   buckets: ViewerBucket[];
@@ -110,6 +111,7 @@ export function BucketTabs({ buckets, activeId, todayOpen }: BucketTabsProps) {
   const late = useLateBuckets();
   const lateHint = useId();
   const stripRef = useRef<HTMLDivElement>(null);
+  useWheelScrollX(stripRef);
   const setSearchOpen = useLayoutStore((s) => s.setSearchOpen);
   const openToday = useUIStore((s) => s.openToday);
   const setActiveBucketId = useUIStore((s) => s.setActiveBucketId);

@@ -97,6 +97,27 @@ test("the tabs stay at the top while a long list scrolls", async ({ page }) => {
   expect((await tabs(page).boundingBox())?.y).toBeLessThanOrEqual(60);
 });
 
+test("a mouse wheel over the tabs scrolls them sideways", async ({ page }) => {
+  await page.setViewportSize({ width: 600, height: 800 });
+  await page.goto("/");
+  for (let n = 1; n <= 6; n++) await createAndSelectBucket(page, uniqueName(`Wheel ${n}`));
+  const strip = tabs(page).locator(".scrollbar-hide");
+  const scrollLeft = () => strip.evaluate((el) => el.scrollLeft);
+  await expect.poll(scrollLeft).toBeGreaterThan(0);
+
+  const before = await scrollLeft();
+  const box = await strip.boundingBox();
+  await page.mouse.move(
+    (box?.x ?? 0) + (box?.width ?? 0) / 2,
+    (box?.y ?? 0) + (box?.height ?? 0) / 2
+  );
+  await page.mouse.wheel(0, -120);
+  await expect.poll(scrollLeft).toBeLessThan(before);
+  const left = await scrollLeft();
+  await page.mouse.wheel(0, 120);
+  await expect.poll(scrollLeft).toBeGreaterThan(left);
+});
+
 test.describe("on a phone", () => {
   test.use({ hasTouch: true });
 
