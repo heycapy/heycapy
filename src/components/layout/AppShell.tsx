@@ -25,6 +25,9 @@ import { markReleasesSeenAction } from "@/app/(app)/account-actions";
 import { markGuideSeenAction } from "@/app/(app)/guide-actions";
 import { lookPickedAction, saveTimezoneIfDefaultAction } from "@/app/(app)/user-settings-actions";
 import { useServerEvents } from "@/hooks/useServerEvents";
+import { useKeybinds } from "@/hooks/useKeybinds";
+import { keybindActions } from "./keybind-actions";
+import type { StoredKeybinds } from "@/lib/keybinds/schema";
 import { useChatDocked } from "@/components/capy/useChatDocked";
 import { cn } from "@/lib/utils";
 import type { ChannelFailure } from "@/lib/notifications/failures";
@@ -51,6 +54,7 @@ type AppShellProps = {
   lookPicked: boolean;
   guide: GuideState;
   appUrl: string | null;
+  keybinds: StoredKeybinds;
 };
 
 export function AppShell({
@@ -65,6 +69,7 @@ export function AppShell({
   lookPicked,
   guide: guideFromServer,
   appUrl,
+  keybinds,
 }: AppShellProps) {
   const [settingsTab, setSettingsTab] = useState<SettingsTab>("appearance");
   const joinOpen = useUIStore((s) => s.joinOpen);
@@ -88,6 +93,12 @@ export function AppShell({
     setSettingsTab(tab);
     openSidePanel("tweaks");
   }
+
+  const keybindHandlers = keybindActions({
+    canDock,
+    openTweaks: () => openSettings("appearance"),
+  });
+  useKeybinds(keybinds, keybindHandlers.onAction, keybindHandlers.onEscape);
 
   function openGuide() {
     openSidePanel("guide");

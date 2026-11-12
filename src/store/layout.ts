@@ -22,6 +22,14 @@ type LayoutStore = {
 
   searchOpen: boolean;
   setSearchOpen: (open: boolean) => void;
+
+  // the buckets in tab order, as the tab strip shows them; not in the ui store, whose persist
+  // middleware would write its defaults over the saved view when this is set before rehydrating
+  bucketOrder: number[];
+  setBucketOrder: (order: number[]) => void;
+
+  prefixActive: boolean;
+  setPrefixActive: (active: boolean) => void;
 };
 
 export const useLayoutStore = create<LayoutStore>()((set, get) => {
@@ -57,5 +65,11 @@ export const useLayoutStore = create<LayoutStore>()((set, get) => {
 
     searchOpen: false,
     setSearchOpen: (open) => set({ searchOpen: open }),
+
+    bucketOrder: [],
+    setBucketOrder: (order) => set({ bucketOrder: order }),
+
+    prefixActive: false,
+    setPrefixActive: (active) => set({ prefixActive: active }),
   };
 });

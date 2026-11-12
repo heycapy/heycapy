@@ -10,6 +10,7 @@ import { CreateBucketModal } from "@/components/buckets/CreateBucketModal";
 import { feedbackConfigured } from "@/lib/feedback";
 import { LATEST_RELEASE } from "@/lib/whats-new/constants";
 import { syncGuide } from "@/lib/guide/guide";
+import { keybindsFor } from "@/lib/keybinds/load";
 import { publicAppUrl } from "@/lib/app-url";
 import type { ReactNode } from "react";
 
@@ -18,7 +19,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   if (!session) redirect("/login");
 
   const guide = await syncGuide(session.userId);
-  const [rawTemplates, user, failures, channelSettings] = await Promise.all([
+  const [rawTemplates, user, failures, channelSettings, keybinds] = await Promise.all([
     db
       .select()
       .from(templates)
@@ -26,6 +27,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
     db.query.users.findFirst({ where: eq(users.id, session.userId) }),
     getChannelFailures(session.userId),
     getChannelSettings(session.userId),
+    keybindsFor(session.userId),
   ]);
 
   const seen = new Set<string>();
@@ -46,6 +48,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
         lookPicked={user?.lookPicked ?? true}
         guide={guide}
         appUrl={publicAppUrl()}
+        keybinds={keybinds}
         failures={failures}
         hasWorkingChannel={
           !!channelSettings &&

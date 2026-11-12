@@ -103,6 +103,7 @@ export function BucketTabs({ buckets, activeId, todayOpen }: BucketTabsProps) {
   const openToday = useUIStore((s) => s.openToday);
   const setActiveBucketId = useUIStore((s) => s.setActiveBucketId);
   const requestBucketSettings = useUIStore((s) => s.requestBucketSettings);
+  const setBucketOrder = useLayoutStore((s) => s.setBucketOrder);
   const openCreateBucket = useUIStore((s) => s.openCreateBucket);
   const activeKey = todayOpen ? "today" : activeId;
   const serverOrder = buckets.map((b) => b.id);
@@ -114,6 +115,10 @@ export function BucketTabs({ buckets, activeId, todayOpen }: BucketTabsProps) {
   }
   const byId = new Map(buckets.map((b) => [b.id, b]));
   const dragging = useRef(false);
+
+  useEffect(() => {
+    setBucketOrder(order);
+  }, [order, setBucketOrder]);
 
   useEffect(() => {
     const strip = stripRef.current;

@@ -72,7 +72,7 @@ export function resolveAction(e: KeyEventLike, bindings: KeyBindings): KeybindAc
 }
 
 export function prefixFromEvent(e: KeyEventLike): Prefix | null {
-  if (MODIFIER_KEYS.has(e.key)) return null;
+  if (isModifierKey(e)) return null;
   if (!e.ctrlKey && !e.metaKey && !e.altKey) return null;
   const key = normalizeKey(e);
   if (!key) return null;
@@ -108,4 +108,8 @@ export function isTypingTarget(target: EventTarget | null): boolean {
     el.tagName === "SELECT" ||
     el.isContentEditable === true
   );
+}
+
+export function isModifierKey(e: Pick<KeyEventLike, "key">): boolean {
+  return MODIFIER_KEYS.has(e.key);
 }

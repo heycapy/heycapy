@@ -196,6 +196,7 @@ export function CapyChat({ appUrl }: { appUrl: string | null }) {
         {chatState !== "closed" && (
           <motion.div
             key="chat"
+            data-capy-chat
             {...panelMotion}
             transition={{ duration: 0.18, ease: "easeOut" }}
             style={{ ["--footer-h" as string]: `${FOOTER_H}px` }}
