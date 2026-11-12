@@ -55,15 +55,43 @@ describe("capy in a shared bucket", () => {
     const { owner, member, bucketId } = await sharedBucket();
 
     expect(await tool(member, "list_buckets", {})).toEqual([
-      { id: bucketId, name: "Home", icon: null, owned: false },
+      expect.objectContaining({ id: bucketId, name: "Home", icon: null, owned: false }),
     ]);
     expect(await tool(owner, "list_buckets", {})).toEqual([
-      { id: bucketId, name: "Home", icon: null, owned: true },
+      expect.objectContaining({ id: bucketId, name: "Home", icon: null, owned: true }),
     ]);
     const prompt = buildSystemPrompt(null, await listLiveBuckets(member), "", NOW);
     expect(prompt).toContain(
       `- "Home" (id: ${bucketId}) [joined: only its owner can change or delete it`
     );
+  });
+
+  it("says which buckets are shared and who is in them, and nothing for one nobody shares", async () => {
+    const { owner, member, bucketId } = await sharedBucket();
+    const solo = await seedBucket(owner);
+    await db.update(buckets).set({ name: "Mine" }).where(eq(buckets.id, solo));
+
+    const listed = (await tool(owner, "list_buckets", {})) as unknown as Record<string, unknown>[];
+    expect(listed.find((b) => b.id === bucketId)).toMatchObject({
+      shared: true,
+      members: ["me (the user)", expect.any(String)],
+    });
+    expect(listed.find((b) => b.id === solo)).not.toHaveProperty("shared");
+    expect(listed.find((b) => b.id === solo)).not.toHaveProperty("members");
+
+    const asMember = (await tool(member, "list_buckets", {})) as unknown as Record<
+      string,
+      unknown
+    >[];
+    expect(asMember[0].members).toContain("me (the user)");
+
+    expect(await tool(owner, "get_bucket_settings", { bucket_id: bucketId })).toMatchObject({
+      ok: true,
+      settings: { shared: true, members: ["me (the user)", expect.any(String)] },
+    });
+    expect(await tool(owner, "get_bucket_settings", { bucket_id: solo })).not.toMatchObject({
+      settings: { shared: true },
+    });
   });
 
   it("shows a member everyone's items, and a stranger none", async () => {
