@@ -7,12 +7,17 @@ import {
   TOAST_BOTTOM_OFFSET,
   TOAST_GAP,
   TOAST_PHONE_BOTTOM_OFFSET,
+  TOAST_PHONE_MEDIA_QUERY,
   TOAST_PHONE_TOP_ROOM,
   TOAST_SIDE_OFFSET,
+  TOAST_SWIPE_DESKTOP,
+  TOAST_SWIPE_PHONE,
 } from "@/constants";
 import { NOTIFY_LIMIT } from "@/components/ui/constants";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
+  const phone = useMediaQuery(TOAST_PHONE_MEDIA_QUERY);
   return (
     <NextThemesProvider
       attribute="data-theme"
@@ -36,6 +41,9 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
         "one-dark",
         "nightowl",
         "midnight",
+        "kanagawa",
+        "kanagawa-light",
+        "melange",
       ]}
       disableTransitionOnChange
     >
@@ -52,7 +60,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
           left: TOAST_SIDE_OFFSET,
           right: TOAST_SIDE_OFFSET,
         }}
-        swipeDirections={["left", "right", "bottom"]}
+        swipeDirections={phone ? TOAST_SWIPE_PHONE : TOAST_SWIPE_DESKTOP}
         visibleToasts={NOTIFY_LIMIT}
         gap={TOAST_GAP}
       />

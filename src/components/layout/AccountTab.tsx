@@ -9,6 +9,8 @@ import {
 } from "@/app/(app)/actions";
 import type { SharedBucket } from "@/lib/account/delete";
 import { UsernameField } from "./UsernameField";
+import { charCountColor } from "@/components/ui/input";
+import { TIMEZONE_MAX_LENGTH } from "@/constants";
 import { BOX, INPUT, SECTION, MUTED, HINT } from "./settings-constants";
 
 type Step = "idle" | "confirm" | "code";
@@ -21,6 +23,9 @@ type AccountTabProps = {
   onUsernameSaved: (username: string) => void;
   avatarDraft: AvatarDraft;
   onAvatarDraft: (draft: AvatarDraft) => void;
+  timezone: string;
+  onTimezone: (timezone: string) => void;
+  saving: boolean;
 };
 
 export function AccountTab({
@@ -31,6 +36,9 @@ export function AccountTab({
   onUsernameSaved,
   avatarDraft,
   onAvatarDraft,
+  timezone,
+  onTimezone,
+  saving,
 }: AccountTabProps) {
   const [step, setStep] = useState<Step>("idle");
   const [code, setCode] = useState("");
@@ -96,6 +104,30 @@ export function AccountTab({
       <div className={BOX}>
         <span className={SECTION}>avatar</span>
         <AvatarEditor draft={avatarDraft} onDraft={onAvatarDraft} />
+      </div>
+
+      <div className={BOX}>
+        <span className={SECTION}>timezone</span>
+        <input
+          type="text"
+          aria-label="timezone"
+          value={timezone}
+          onChange={(e) => onTimezone(e.target.value)}
+          placeholder="America/New_York"
+          maxLength={TIMEZONE_MAX_LENGTH}
+          disabled={saving}
+          className={INPUT}
+        />
+        {timezone.length > 0 && (
+          <p
+            className={cn(
+              "font-ui text-2xs -mt-2 text-right transition-colors",
+              charCountColor(timezone.length, TIMEZONE_MAX_LENGTH)
+            )}
+          >
+            {timezone.length}/{TIMEZONE_MAX_LENGTH}
+          </p>
+        )}
       </div>
 
       <div className={BOX}>

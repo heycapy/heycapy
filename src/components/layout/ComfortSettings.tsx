@@ -42,7 +42,7 @@ export function ComfortSettings() {
             }
           />
         </div>
-        <span className={HINT}>no sliding, fading or popping anywhere in the app</span>
+        <span className={HINT}>no sliding, fading or popping</span>
       </div>
       <div className="flex flex-col gap-1.5">
         <label className={LABEL}>tick sound</label>

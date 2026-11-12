@@ -13,7 +13,7 @@ import { setLookAction } from "@/app/(app)/actions";
 import { pickedThemeAction } from "@/app/(app)/guide-actions";
 import { cn } from "@/lib/utils";
 import { ACCENT_BUTTONS, LABEL, LOOK_OPTIONS } from "./settings-constants";
-import { ThemeSwatches } from "./ThemeSwatches";
+import { ThemePicker } from "./ThemePicker";
 
 type LookPickerDialogProps = {
   open: boolean;
@@ -56,7 +56,7 @@ export function LookPickerDialog({ open, onClose }: LookPickerDialogProps) {
           <OptionGroup options={LOOK_OPTIONS} value={shown} onChange={pick} />
           <div className="flex flex-col gap-1.5">
             <label className={LABEL}>theme</label>
-            <ThemeSwatches theme={theme} onPick={pickTheme} />
+            <ThemePicker theme={theme} onPick={pickTheme} />
           </div>
           <LookPreview look={shown} />
         </div>
