@@ -11,6 +11,7 @@ type BucketTargetPickerProps = {
   bucket: ViewerBucket;
   buckets: ViewerBucket[];
   onPick: (bucketId: number) => void;
+  variant?: "target" | "heading";
 };
 
 function nameOf(bucket: ViewerBucket) {
@@ -27,7 +28,13 @@ function Dot({ bucket }: { bucket: ViewerBucket }) {
   );
 }
 
-export function BucketTargetPicker({ bucket, buckets, onPick }: BucketTargetPickerProps) {
+export function BucketTargetPicker({
+  bucket,
+  buckets,
+  onPick,
+  variant = "target",
+}: BucketTargetPickerProps) {
+  const heading = variant === "heading";
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLSpanElement>(null);
 
@@ -53,9 +60,14 @@ export function BucketTargetPicker({ bucket, buckets, onPick }: BucketTargetPick
         type="button"
         aria-haspopup="true"
         aria-expanded={open}
-        aria-label={`add to ${nameOf(bucket)}, change bucket`}
+        aria-label={
+          heading ? `${nameOf(bucket)}, change bucket` : `add to ${nameOf(bucket)}, change bucket`
+        }
         onClick={() => setOpen((v) => !v)}
-        className="rounded-control font-ui text-foreground hover:bg-muted flex max-w-28 items-center gap-1.5 px-1.5 py-1 text-xs transition-colors"
+        className={cn(
+          "rounded-control font-ui text-foreground hover:bg-muted flex items-center gap-1.5 px-1.5 py-1 transition-colors",
+          heading ? "max-w-full text-base font-medium" : "max-w-28 text-xs"
+        )}
       >
         <Dot bucket={bucket} />
         <span className="truncate">{nameOf(bucket)}</span>
@@ -63,10 +75,11 @@ export function BucketTargetPicker({ bucket, buckets, onPick }: BucketTargetPick
       {open && (
         <div
           role="group"
-          aria-label="add to bucket"
+          aria-label={heading ? "change bucket" : "add to bucket"}
           className={cn(
             MENU_SURFACE,
-            "absolute bottom-full left-0 z-30 mb-2 max-h-72 min-w-44 overflow-y-auto"
+            "absolute left-0 z-30 max-h-72 min-w-44 overflow-y-auto",
+            heading ? "top-full mt-2" : "bottom-full mb-2"
           )}
         >
           {buckets.map((b) => (

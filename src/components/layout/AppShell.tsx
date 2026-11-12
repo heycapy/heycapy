@@ -28,6 +28,7 @@ import { useServerEvents } from "@/hooks/useServerEvents";
 import { useKeybinds } from "@/hooks/useKeybinds";
 import { keybindActions } from "./keybind-actions";
 import { PrefixIndicator } from "./PrefixIndicator";
+import { FocusExit } from "./FocusExit";
 import { CheatSheet } from "./CheatSheet";
 import { KeybindsProvider } from "@/components/providers/KeybindsProvider";
 import type { StoredKeybinds } from "@/lib/keybinds/schema";
@@ -95,7 +96,12 @@ export function AppShell({
   const requestMembers = useUIStore((s) => s.requestMembers);
   const setChatState = useLayoutStore((s) => s.setChatState);
   const { canDock, docked: chatDocked } = useChatDocked();
-  const sideColumn = chatDocked || (canDock && sidePanel !== null);
+  const focusMode = useUIStore((s) => s.focusMode);
+  const sideColumn = !focusMode && (chatDocked || (canDock && sidePanel !== null));
+
+  useEffect(() => {
+    if (focusMode) setChatState("closed");
+  }, [focusMode, setChatState]);
 
   function openSettings(tab: SettingsTab) {
     setSettingsTab(tab);
@@ -173,21 +179,23 @@ export function AppShell({
           sideColumn && "pr-[calc(var(--spacing-chat)+var(--dock-inset))]"
         )}
       >
-        <Header
-          email={email}
-          userId={userId}
-          avatar={avatar}
-          onSettingsOpen={() => openSettings("appearance")}
-          onArchiveOpen={() => openSidePanel("archive")}
-          onTrashOpen={() => openSidePanel("trash")}
-          onJoinOpen={() => setJoinOpen(true)}
-          onFeedbackOpen={feedbackEnabled ? () => setFeedbackOpen(true) : null}
-          onWhatsNewOpen={openWhatsNew}
-          unseenRelease={releaseUnseen}
-          onGuideOpen={openGuide}
-          guideProgress={`${guideDone}/${guide.tasks.length}`}
-          guideUnfinished={guideDone < guide.tasks.length && !guide.hidden}
-        />
+        {!focusMode && (
+          <Header
+            email={email}
+            userId={userId}
+            avatar={avatar}
+            onSettingsOpen={() => openSettings("appearance")}
+            onArchiveOpen={() => openSidePanel("archive")}
+            onTrashOpen={() => openSidePanel("trash")}
+            onJoinOpen={() => setJoinOpen(true)}
+            onFeedbackOpen={feedbackEnabled ? () => setFeedbackOpen(true) : null}
+            onWhatsNewOpen={openWhatsNew}
+            unseenRelease={releaseUnseen}
+            onGuideOpen={openGuide}
+            guideProgress={`${guideDone}/${guide.tasks.length}`}
+            guideUnfinished={guideDone < guide.tasks.length && !guide.hidden}
+          />
+        )}
         <main className="max-md:scrollbar-hide relative flex flex-1 flex-col overflow-y-auto">
           <BannersProvider banners={banners}>{children}</BannersProvider>
         </main>
@@ -220,7 +228,7 @@ export function AppShell({
       <SearchDrawer />
       <CheatSheet />
       <PrefixIndicator />
-      <CapyChat appUrl={appUrl} />
+      {focusMode ? <FocusExit /> : <CapyChat appUrl={appUrl} />}
     </KeybindsProvider>
   );
 }
