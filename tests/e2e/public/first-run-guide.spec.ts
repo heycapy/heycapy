@@ -218,6 +218,33 @@ test("a new account picks a look before the guide opens, and the pick pays its t
   await expect(picker).toBeHidden();
 });
 
+test("the look picker also picks a theme, and it stays after a reload", async ({ page }) => {
+  await newAccount(page);
+  const picker = lookPicker(page);
+
+  await picker.getByRole("button", { name: "nord", exact: true }).click();
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "nord");
+  await expect(picker.getByRole("button", { name: "nord", exact: true })).toHaveAttribute(
+    "aria-pressed",
+    "true"
+  );
+  await picker.getByRole("button", { name: /done/ }).click();
+  await expect(picker).toBeHidden();
+
+  await page.reload();
+  await expect(activeBucketTitle(page)).toHaveText("reminders");
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "nord");
+});
+
+test("on a short phone screen the look picker scrolls and keeps done in view", async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 560 });
+  await newAccount(page);
+  const picker = lookPicker(page);
+  await expect(picker.getByRole("button", { name: /done/ })).toBeInViewport();
+  const box = await picker.boundingBox();
+  expect(box && box.y + box.height).toBeLessThanOrEqual(560);
+});
+
 test("an account from before the picker sees it once, closing it keeps the look", async ({
   page,
 }) => {
