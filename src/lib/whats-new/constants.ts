@@ -4,6 +4,23 @@ export type Release = { version: string; notes: ReleaseNote[] };
 
 export const RELEASES: [Release, ...Release[]] = [
   {
+    version: "0.11.2",
+    notes: [
+      {
+        title: "undo a tick",
+        text: "ticking an item shows a done toast with an undo button, in case your thumb was faster than you.",
+      },
+      {
+        title: "pick a theme first",
+        text: "the first-run picker now sets your theme along with your look.",
+      },
+      {
+        title: "capy knows shared buckets",
+        text: "capy and the telegram bot can tell which buckets are shared and who is in them.",
+      },
+    ],
+  },
+  {
     version: "0.11.1",
     notes: [
       {
