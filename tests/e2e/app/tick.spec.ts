@@ -21,6 +21,22 @@ test("the tick box finishes an item, and again reopens it", async ({ page }) => 
   await expect(tick).not.toBeChecked();
 });
 
+test("ticking says so in a toast, and undo reopens the item", async ({ page }) => {
+  await page.goto("/");
+  await createAndSelectBucket(page, uniqueName("Undo tick"));
+  const title = uniqueName("water plants");
+  await addItem(page, title);
+
+  const tick = itemTick(page, title);
+  await tick.click();
+  await expect(tick).toBeChecked();
+  const toast = page.getByRole("status").filter({ hasText: `done "${title}"` });
+  await expect(toast).toBeVisible();
+  await toast.getByRole("button", { name: /undo/ }).dispatchEvent("click");
+  await expect(tick).not.toBeChecked();
+  await expect(toast).toBeHidden();
+});
+
 test("the tick box answers before the save comes back, and a done title isn't crossed out", async ({
   page,
 }) => {

@@ -12,6 +12,7 @@ import type { items } from "@/lib/db/schema";
 import { useUIStore } from "@/store/ui";
 import { deadlineValue } from "@/lib/time";
 import { offerUndoDelete } from "./undoDelete";
+import { isTick, offerUndoTick } from "./undoTick";
 
 type Item = typeof items.$inferSelect;
 type Loaded = { items: Item[]; reminderBadges: Record<number, ReminderBadge> };
@@ -81,6 +82,9 @@ export function useBucketItems(bucketId: number, itemsRules: string, showComplet
     );
     if (!result.ok) notify.error(result.error);
     await refetch();
+    if (result.ok && isTick(item, status)) {
+      offerUndoTick(item, () => changeStatus(item, item.status));
+    }
     return result.ok;
   }
 
