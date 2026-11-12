@@ -1,4 +1,4 @@
-import { useState, type ComponentProps, type ReactNode } from "react";
+import { useState, type ComponentProps } from "react";
 import { notify } from "@/components/ui/notify";
 import { cn } from "@/lib/utils";
 import { Calendar } from "@/components/ui/Calendar";
@@ -30,15 +30,6 @@ function MenuButton({
   ...props
 }: ComponentProps<typeof MenuItem> & { label?: string }) {
   return <MenuItem aria-label={label} className={cn("gap-4", className)} {...props} />;
-}
-
-// Swiping is touch only, so only touch screens are told about it
-function SwipeHint({ children }: { children: ReactNode }) {
-  return (
-    <span className="text-muted-foreground/60 ml-auto [@media(hover:hover)]:hidden">
-      {children}
-    </span>
-  );
 }
 
 function reminderState(badge: ReminderBadge | undefined, next: Date | null | undefined) {
@@ -161,7 +152,6 @@ export function MenuBody({
             <MenuSection>
               <MenuButton onClick={() => run(onComplete)}>
                 <span className="text-foreground">{completeLabel}</span>
-                <SwipeHint>swipe →</SwipeHint>
               </MenuButton>
             </MenuSection>
           )}
@@ -225,7 +215,6 @@ export function MenuBody({
             <MenuSection>
               <MenuButton onClick={() => run(onDelete)} tone="destructive">
                 delete
-                <SwipeHint>← swipe</SwipeHint>
               </MenuButton>
             </MenuSection>
           )}
