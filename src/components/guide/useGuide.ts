@@ -4,15 +4,17 @@ import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { notify } from "@/components/ui/notify";
 import { getGuideAction, hideGuideAction } from "@/app/(app)/actions";
 import type { GuideState } from "@/lib/guide/guide";
-import { HTTPS_ONLY_TASKS } from "./constants";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
+import { HTTPS_ONLY_TASKS, KEYBOARD_ONLY_TASKS } from "./constants";
 
 function doneKeys(guide: GuideState): Set<string> {
   return new Set(guide.tasks.filter((task) => task.done).map((task) => task.key));
 }
 
-export function doableTasks(guide: GuideState, secure: boolean): GuideState {
-  if (secure) return guide;
-  return { ...guide, tasks: guide.tasks.filter((task) => !HTTPS_ONLY_TASKS.includes(task.key)) };
+export function doableTasks(guide: GuideState, secure: boolean, keyboard: boolean): GuideState {
+  const skipped = [...(secure ? [] : HTTPS_ONLY_TASKS), ...(keyboard ? [] : KEYBOARD_ONLY_TASKS)];
+  if (skipped.length === 0) return guide;
+  return { ...guide, tasks: guide.tasks.filter((task) => !skipped.includes(task.key)) };
 }
 
 const subscribeNever = () => () => {};
@@ -31,6 +33,8 @@ export function useGuide(fromServer: GuideState) {
     () => window.isSecureContext,
     () => true
   );
+
+  const keyboard = useMediaQuery("(any-pointer: fine)");
 
   const announced = useRef(doneKeys(fromServer));
   useEffect(() => {
@@ -56,5 +60,5 @@ export function useGuide(fromServer: GuideState) {
     });
   }
 
-  return { guide: doableTasks(guide, secure), refresh, setHidden };
+  return { guide: doableTasks(guide, secure, keyboard), refresh, setHidden };
 }

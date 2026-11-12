@@ -105,6 +105,20 @@ export const GUIDE_TASKS = [
     credits: 5,
     hint: 'under email, fill in your account and press "send test email"',
   },
+  {
+    key: "open_tweaks",
+    title: "open tweaks",
+    credits: 0,
+    hint: "tap your avatar, then tweaks",
+  },
+  {
+    key: "keyboard_shortcuts",
+    title: "see the keyboard shortcuts",
+    credits: 0,
+    hint: "press ctrl+; (cmd+; on a mac), then ?",
+  },
 ] as const;
+
+export const OPENED_GUIDE_TASKS = ["open_tweaks", "keyboard_shortcuts"] as const;
 
 export type GuideTaskKey = (typeof GUIDE_TASKS)[number]["key"];

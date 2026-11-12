@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { requireSession } from "./action-helpers";
 import { z } from "zod";
+import { OPENED_GUIDE_TASKS } from "@/lib/guide/constants";
 import {
   markGuideSeen,
   markGuideTaskDone,
@@ -20,6 +21,14 @@ export async function getGuideAction(): Promise<GuideState> {
 export async function pickedThemeAction(): Promise<void> {
   const session = await requireSession();
   await markGuideTaskDone(session.userId, "theme");
+  revalidatePath("/");
+}
+
+export async function openedGuideTaskAction(
+  task: (typeof OPENED_GUIDE_TASKS)[number]
+): Promise<void> {
+  const session = await requireSession();
+  await markGuideTaskDone(session.userId, z.enum(OPENED_GUIDE_TASKS).parse(task));
   revalidatePath("/");
 }
 

@@ -38,6 +38,7 @@ import { notify } from "@/components/ui/notify";
 import { GuidePanel } from "@/components/guide/GuidePanel";
 import { HINT_TARGETS } from "@/components/guide/constants";
 import { useGuide } from "@/components/guide/useGuide";
+import { useTickWhenOpen } from "@/components/guide/useTickWhenOpen";
 import { useLayoutStore } from "@/store/layout";
 import type { GuideState, GuideTask } from "@/lib/guide/guide";
 
@@ -85,6 +86,9 @@ export function AppShell({
   const [pickingLook, setPickingLook] = useState(!lookPicked);
   const { guide, refresh: refreshGuide, setHidden: setGuideHidden } = useGuide(guideFromServer);
   const guideDone = guide.tasks.filter((task) => task.done).length;
+  const cheatSheetOpen = useLayoutStore((s) => s.cheatSheetOpen);
+  useTickWhenOpen(guide, "open_tweaks", sidePanel === "tweaks");
+  useTickWhenOpen(guide, "keyboard_shortcuts", cheatSheetOpen);
   const requestAddItem = useUIStore((s) => s.requestAddItem);
   const openCreateBucket = useUIStore((s) => s.openCreateBucket);
   const requestMembers = useUIStore((s) => s.requestMembers);

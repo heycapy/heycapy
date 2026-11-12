@@ -56,7 +56,8 @@ function settingSet(userId: number, ...conditions: Parameters<typeof and>) {
 
 // Looks at what exists, so a task done anywhere (web, telegram, capy) counts. "marked" tasks have no
 // check and are marked where they happen: smtp (a saved server proves nothing, only a test email
-// that went out does) and theme (it's kept in the browser, the server never sees it)
+// that went out does), theme (it's kept in the browser, the server never sees it) and the two
+// that only ask for opening a panel
 const TASK_DONE: Record<GuideTaskKey, ((userId: number) => Promise<boolean>) | "marked"> = {
   add_item: (userId) => ownItem(userId),
   add_date: (userId) => ownItem(userId, isNotNull(items.deadline)),
@@ -117,6 +118,8 @@ const TASK_DONE: Record<GuideTaskKey, ((userId: number) => Promise<boolean>) | "
   telegram: (userId) => settingSet(userId, isNotNull(userSettings.telegramChatId)),
   theme: "marked",
   smtp: "marked",
+  open_tweaks: "marked",
+  keyboard_shortcuts: "marked",
 };
 
 function availableTasks() {
@@ -132,8 +135,8 @@ export async function markGuideTaskDone(userId: number, task: GuideTaskKey): Pro
       .onConflictDoNothing()
       .returning({ id: guideTasks.id })
       .get();
-    if (!row || !isHosted()) return 0;
     const credits = GUIDE_TASKS.find((t) => t.key === task)?.credits ?? 0;
+    if (!row || !isHosted() || credits === 0) return 0;
     return rewardGuideTask(tx, userId, task, credits);
   });
 }

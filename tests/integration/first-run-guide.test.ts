@@ -13,10 +13,15 @@ import {
 } from "@/lib/db/schema";
 import { createOtp } from "@/lib/auth/otp";
 import { verifyOtpAction } from "@/app/(auth)/login/actions";
-import { hideGuideAction, markGuideSeenAction, pickedThemeAction } from "@/app/(app)/guide-actions";
+import {
+  hideGuideAction,
+  markGuideSeenAction,
+  openedGuideTaskAction,
+  pickedThemeAction,
+} from "@/app/(app)/guide-actions";
 import { seed } from "@/lib/db/seed";
 import { markGuideTaskDone, syncGuide } from "@/lib/guide/guide";
-import { GUIDE_TASKS } from "@/lib/guide/constants";
+import { GUIDE_TASKS, OPENED_GUIDE_TASKS } from "@/lib/guide/constants";
 import { creditBalance, rewardGuideTask } from "@/lib/credits";
 import { CREDITS_FREE_GRANT } from "@/constants";
 import { createInvite } from "@/lib/buckets/invites";
@@ -112,12 +117,34 @@ describe("getting started", () => {
     expect((await syncGuide(older.id)).seen).toBe(true);
   });
 
-  it("every task pays 2 to 5 credits, 48 in all", () => {
+  it("every paid task pays 2 to 5 credits, 48 in all, and the two that only ask to open a panel pay nothing", () => {
+    const free = OPENED_GUIDE_TASKS as readonly string[];
     for (const task of GUIDE_TASKS) {
+      if (free.includes(task.key)) {
+        expect(task.credits).toBe(0);
+        continue;
+      }
       expect(task.credits).toBeGreaterThanOrEqual(2);
       expect(task.credits).toBeLessThanOrEqual(5);
     }
     expect(GUIDE_TASKS.reduce((sum, task) => sum + task.credits, 0)).toBe(48);
+  });
+
+  it("opening tweaks ticks its task once and pays no credits", async () => {
+    const { userId } = await signUp();
+    session.userId = userId;
+    const balance = creditBalance(userId);
+    await openedGuideTaskAction("open_tweaks");
+    await openedGuideTaskAction("open_tweaks");
+    expect(await doneTasks(userId)).toContain("open_tweaks");
+    expect(creditBalance(userId)).toBe(balance);
+  });
+
+  it("only the two open-a-panel tasks can be ticked this way", async () => {
+    const { userId } = await signUp();
+    session.userId = userId;
+    // @ts-expect-error a paid task isn't allowed
+    await expect(openedGuideTaskAction("avatar")).rejects.toThrow();
   });
 
   it("picking a theme ticks its task, the server can't see the theme itself", async () => {

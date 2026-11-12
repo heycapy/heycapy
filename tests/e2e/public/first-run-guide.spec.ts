@@ -5,21 +5,21 @@ import { login, uniqueEmail } from "../helpers/login";
 import { activeBucketTitle, addItem } from "../helpers/buckets";
 import { E2E_STARTER_EMAIL_PREFIX, GUIDE_TASKS } from "@/lib/guide/constants";
 
-const TOTAL = GUIDE_TASKS.length;
+const TOTAL: number = GUIDE_TASKS.length;
 
 function yourMenu(page: Page) {
   return page.getByRole("button", { name: "your menu", exact: true });
 }
 
-function guideItem(page: Page, done = /\d+/) {
+function guideItem(page: Page, done = /\d+/, total = TOTAL) {
   return page
-    .getByRole("button", { name: new RegExp(`^getting started ${done.source}/${TOTAL}$`) })
+    .getByRole("button", { name: new RegExp(`^getting started ${done.source}/${total}$`) })
     .and(page.locator("button:not(header button)"));
 }
 
-async function openGuide(page: Page) {
+async function openGuide(page: Page, total = TOTAL) {
   await yourMenu(page).click();
-  await guideItem(page).click();
+  await guideItem(page, /\d+/, total).click();
 }
 
 async function expectGuideDone(page: Page, done: number) {
@@ -177,7 +177,37 @@ test("picking a theme ticks its task, the theme saves itself", async ({ page }) 
 
   await expect(page.getByText(/^pick a theme and look · \+\d+ capy credits$/)).toBeVisible();
   await tweaks.getByRole("button", { name: "[ x ]" }).click();
-  await expectGuideDone(page, 1);
+  await expectGuideDone(page, 2);
+});
+
+test("opening tweaks and the shortcuts list tick their tasks and pay nothing", async ({ page }) => {
+  await signUp(page);
+  await page.keyboard.press("Control+;");
+  await page.keyboard.press(",");
+  await expect(page.getByText("done: open tweaks")).toBeVisible();
+  await page.keyboard.press("Escape");
+
+  await page.keyboard.press("Control+;");
+  await page.keyboard.press("?");
+  await expect(page.getByText("done: see the keyboard shortcuts")).toBeVisible();
+  await page.keyboard.press("Escape");
+
+  await openGuide(page);
+  await expect(task(page, "open tweaks")).toHaveAttribute("data-done", "true");
+  await expect(task(page, "see the keyboard shortcuts")).toHaveAttribute("data-done", "true");
+  await expect(task(page, "open tweaks")).not.toContainText("+");
+  await expect(guidePanel(page).getByLabel("credits earned")).toHaveText(/^0 \/ 48 credits$/);
+});
+
+test.describe("on a touchscreen without a keyboard", () => {
+  test.use({ isMobile: true, hasTouch: true, viewport: { width: 393, height: 851 } });
+
+  test("the shortcuts task isn't listed", async ({ page }) => {
+    await signUp(page);
+    await openGuide(page, TOTAL - 1);
+    await expect(task(page, "open tweaks")).toBeVisible();
+    await expect(task(page, "see the keyboard shortcuts")).toHaveCount(0);
+  });
 });
 
 test("a new account picks a look before the guide opens, and the pick pays its task", async ({
