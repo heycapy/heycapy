@@ -63,6 +63,34 @@ test.describe("on a phone", () => {
   });
 });
 
+test("on desktop a toast is dragged away downward only", async ({ page }) => {
+  await page.goto("/");
+  await createAndSelectBucket(page, uniqueName("Toast drag"));
+  const title = uniqueName("bins");
+  await addItem(page, title);
+  await deleteFromMenu(page, title, false);
+
+  const toast = page.locator("[data-sonner-toast]", { hasText: title });
+  await expect(toast).toBeVisible();
+  await expect(toast).toHaveCSS("user-select", "none");
+  const box = await toast.boundingBox();
+  if (!box) throw new Error("no toast");
+  const x = box.x + box.width / 2;
+  const y = box.y + box.height / 2;
+
+  await page.mouse.move(x, y);
+  await page.mouse.down();
+  await page.mouse.move(x + 150, y, { steps: 10 });
+  await page.mouse.up();
+  await expect(toast).toBeVisible();
+
+  await page.mouse.move(x, y);
+  await page.mouse.down();
+  await page.mouse.move(x, y + 120, { steps: 10 });
+  await page.mouse.up();
+  await expect(toast).toHaveCount(0);
+});
+
 test("every toast has a cross that closes it", async ({ page }) => {
   await page.goto("/");
   await createAndSelectBucket(page, uniqueName("Toast cross"));
