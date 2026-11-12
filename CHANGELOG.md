@@ -19,7 +19,7 @@ ticking tells you it's done and lets you undo, the first-run picker also picks y
 
 ### fixes
 
-- capy and the telegram bot understand shared buckets. they know which buckets are shared and who is in them,
+- capy and the telegram bot understand shared buckets. they know which buckets are shared and who is in them
 - items assigned to someone no longer show an arrow before their avatar
 - the members bar has some space under the bucket tabs
 
