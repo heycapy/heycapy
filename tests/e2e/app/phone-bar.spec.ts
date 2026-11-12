@@ -300,7 +300,8 @@ test("tweaks with unsaved changes asks before the chat takes its place", async (
   await page.getByRole("button", { name: "tweaks", exact: true }).click();
   const tweaks = page.getByRole("dialog", { name: "tweaks" });
   await tweaks.getByRole("button", { name: "personality", exact: true }).click();
-  await tweaks.getByRole("textbox").first().fill("jarvis");
+  await tweaks.getByRole("button", { name: "custom", exact: true }).click();
+  await tweaks.getByPlaceholder("Describe the tone and style...").fill("talk like a pirate");
 
   const capy = page.getByRole("button", { name: "chat with capy" });
   await capy.click();
