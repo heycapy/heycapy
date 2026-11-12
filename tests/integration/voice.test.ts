@@ -179,10 +179,6 @@ it.each([
 
 it("asks Gemini for a set shape, as a note to capy, with the names the user may say", async () => {
   const userId = await seedUser();
-  await db
-    .update(userSettings)
-    .set({ personalityName: "Bubbles" })
-    .where(eq(userSettings.userId, userId));
   const [bucket] = await db
     .insert(buckets)
     .values({ userId, name: "Subscriptions" })
@@ -203,9 +199,9 @@ it("asks Gemini for a set shape, as a note to capy, with the names the user may 
     generationConfig: Record<string, unknown>;
   };
   const prompt = body.contents[0].parts[0].text ?? "";
-  expect(prompt).toContain('a voice note to Bubbles (also "hey Bubbles")');
+  expect(prompt).toContain('a voice note to capy (also "hey capy")');
   expect(prompt).toContain(
-    "spelled like this: capy, hey capy, heycapy, Bubbles, hey Bubbles, Subscriptions, Netflix, hotstar, someday list."
+    "spelled like this: capy, hey capy, heycapy, Subscriptions, Netflix, hotstar, someday list."
   );
   expect(body.generationConfig).toMatchObject({
     responseMimeType: "application/json",

@@ -179,7 +179,6 @@ export function ItemRow({
     otherClock && <span key="clock">({otherClock})</span>,
     assignee && (
       <span key="assignee" className={cn(assignee.isYou && "text-foreground")}>
-        →{" "}
         <PersonAvatar
           userId={assignee.userId}
           avatar={assignee.avatar}

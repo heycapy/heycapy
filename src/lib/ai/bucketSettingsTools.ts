@@ -20,6 +20,7 @@ import { MEDIUM_OPTIONS, RECURRENCE_MODE_OPTIONS } from "@/components/buckets/co
 import type { buckets } from "@/lib/db/schema";
 import { FOLLOWABLE_SETTINGS, type FollowableSetting, type MemberChannels } from "@/types/rules";
 import type { Tool } from "./types";
+import { withMemberNames } from "./assigneeArgs";
 
 type BucketRow = typeof buckets.$inferSelect;
 
@@ -279,9 +280,13 @@ export async function executeBucketSettingsTool(
   if (!joined || joined.deletedAt) return JSON.stringify({ ok: false, error: "Bucket not found" });
 
   if (name === "get_bucket_settings") {
+    const [{ members }] = await withMemberNames(userId, [{ id: bucketId }]);
     return JSON.stringify({
       ok: true,
-      settings: describeSettings(joined, await userChannels(userId, bucketId)),
+      settings: {
+        ...describeSettings(joined, await userChannels(userId, bucketId)),
+        ...(members && { shared: true, members }),
+      },
     });
   }
 

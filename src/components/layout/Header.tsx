@@ -1,8 +1,8 @@
+import { CAPY_NAME } from "@/constants";
 import { Icon } from "@/components/ui/Icon";
 import { useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { TextButton } from "@/components/ui/TextButton";
-import { useAssistantName } from "@/components/capy/assistant-name";
 import { useLayoutStore } from "@/store/layout";
 import { logoutAction, logoutEverywhereAction } from "@/app/(app)/actions";
 import { clearSignedInState } from "@/store/signedOut";
@@ -238,20 +238,19 @@ function GlobalMenu({
 }
 
 function ChatButton() {
-  const name = useAssistantName();
   const chatOpen = useLayoutStore((s) => s.chatState !== "closed");
   const setChatState = useLayoutStore((s) => s.setChatState);
   return (
     <TextButton
       variant="ghost"
       icon="message"
-      iconLabel={`chat with ${name}`}
+      iconLabel={`chat with ${CAPY_NAME}`}
       aria-label="chat with capy"
       aria-expanded={chatOpen}
       onClick={() => setChatState(chatOpen ? "closed" : "open")}
       className={cn("max-w-32", chatOpen && "text-foreground")}
     >
-      {name}
+      {CAPY_NAME}
     </TextButton>
   );
 }

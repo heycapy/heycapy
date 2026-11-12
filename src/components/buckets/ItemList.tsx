@@ -140,12 +140,7 @@ export function ItemList({
   if (draggable) {
     return (
       <>
-        <Reorder.Group
-          axis="y"
-          values={items}
-          onReorder={onReorder}
-          className="divide-border/50 divide-divider m-0 list-none divide-y p-0"
-        >
+        <Reorder.Group axis="y" values={items} onReorder={onReorder} className="m-0 list-none p-0">
           {items.map((item) => (
             <DraggableItem key={item.id} {...rowProps(item)} orderedItemsRef={orderedItemsRef} />
           ))}
@@ -156,7 +151,7 @@ export function ItemList({
   }
 
   return (
-    <div className="divide-border/50 divide-divider divide-y">
+    <div>
       {items.map((item) => (
         <PressableRow key={item.id} onMenu={(at) => setMenu({ item, at })}>
           <ItemRow {...rowProps(item)} />

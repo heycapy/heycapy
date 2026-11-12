@@ -104,7 +104,7 @@ export function CapyChat({ appUrl }: { appUrl: string | null }) {
     docked
       ? "dock w-chat shadow-(--side-shadow)"
       : cn(
-          "rounded-panel border-frame shadow-raised-lg",
+          "rounded-panel border-frame shadow-raised-lg overflow-hidden",
           chatState === "fullscreen"
             ? "inset-2"
             : bottomBarShown

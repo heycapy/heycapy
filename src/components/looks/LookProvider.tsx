@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, use, useEffect, useOptimistic, type ReactNode } from "react";
-import { MotionConfig } from "framer-motion";
+import { MotionConfig, useReducedMotion } from "framer-motion";
 import { DEFAULT_APPEARANCE } from "@/lib/account/constants";
 import {
   LOOK_PARTS,
@@ -31,6 +31,9 @@ export function LookProvider({
     (current, change: Partial<Appearance>) => ({ ...current, ...change })
   );
 
+  const deviceStill = useReducedMotion() === true;
+  const still = value.reduceMotion || deviceStill;
+
   useEffect(() => {
     if (value.reduceMotion) document.documentElement.dataset.motion = "reduce";
     else delete document.documentElement.dataset.motion;
@@ -39,7 +42,7 @@ export function LookProvider({
   return (
     <LookContext value={value}>
       <PreviewContext value={preview}>
-        <MotionConfig reducedMotion={value.reduceMotion ? "always" : "user"}>
+        <MotionConfig reducedMotion={still ? "always" : "user"} skipAnimations={still}>
           {children}
         </MotionConfig>
       </PreviewContext>

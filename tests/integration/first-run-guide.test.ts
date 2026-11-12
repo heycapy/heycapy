@@ -112,12 +112,12 @@ describe("getting started", () => {
     expect((await syncGuide(older.id)).seen).toBe(true);
   });
 
-  it("every task pays 2 to 5 credits, 50 in all", () => {
+  it("every task pays 2 to 5 credits, 48 in all", () => {
     for (const task of GUIDE_TASKS) {
       expect(task.credits).toBeGreaterThanOrEqual(2);
       expect(task.credits).toBeLessThanOrEqual(5);
     }
-    expect(GUIDE_TASKS.reduce((sum, task) => sum + task.credits, 0)).toBe(50);
+    expect(GUIDE_TASKS.reduce((sum, task) => sum + task.credits, 0)).toBe(48);
   });
 
   it("picking a theme ticks its task, the server can't see the theme itself", async () => {
@@ -189,20 +189,15 @@ describe("getting started", () => {
     expect(await doneTasks(userId)).toContain("share_bucket");
   });
 
-  it("capy's name and tone count once changed, the same name in other case doesn't", async () => {
+  it("capy's tone counts once changed", async () => {
     const { userId } = await signUp();
-    await db
-      .update(userSettings)
-      .set({ personalityName: "CAPY" })
-      .where(eq(userSettings.userId, userId));
-    expect(await doneTasks(userId)).not.toContain("rename_capy");
     expect(await doneTasks(userId)).not.toContain("capy_tone");
 
     await db
       .update(userSettings)
-      .set({ personalityName: "kapi", personalityTone: "rude_funny" })
+      .set({ personalityTone: "rude_funny" })
       .where(eq(userSettings.userId, userId));
-    expect(await doneTasks(userId)).toEqual(expect.arrayContaining(["rename_capy", "capy_tone"]));
+    expect(await doneTasks(userId)).toContain("capy_tone");
   });
 
   it("a saved ntfy topic counts", async () => {
@@ -246,8 +241,8 @@ describe("getting started", () => {
     let paid = 0;
     for (const task of GUIDE_TASKS) paid += await markGuideTaskDone(userId, task.key);
 
-    expect(paid).toBe(50);
-    expect(creditBalance(userId)).toBe(100);
+    expect(paid).toBe(48);
+    expect(creditBalance(userId)).toBe(98);
   });
 
   it("a reward is paid once even if asked twice", async () => {

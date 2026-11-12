@@ -62,6 +62,7 @@ export const TAB_SLIDE = { duration: 0.12, ease: "easeOut" } as const;
 export const MENU_GAP = 6;
 export const SCREEN_MARGIN = 8;
 export const UNDO_DELETE_MS = 6000;
+export const UNDO_TICK_MS = 5000;
 export const LONG_PRESS_MS = 500;
 export const LONG_PRESS_SLOP = 8;
 

@@ -1,14 +1,10 @@
-import { cn } from "@/lib/utils";
-import { charCountColor } from "@/components/ui/input";
 import { Toggle } from "@/components/ui/Toggle";
 import { OptionGroup } from "@/components/ui/OptionGroup";
-import { LABEL, INPUT, TONE_OPTIONS, FAVORITE_TONE_OPTIONS, HINT } from "./settings-constants";
+import { LABEL, TONE_OPTIONS, FAVORITE_TONE_OPTIONS, HINT } from "./settings-constants";
 import type { UserTone } from "./settings-constants";
-import { PERSONALITY_NAME_MAX_LENGTH, CUSTOM_PROMPT_MAX_LENGTH } from "@/constants";
+import { CUSTOM_PROMPT_MAX_LENGTH } from "@/constants";
 
 type PersonalityTabProps = {
-  personalityName: string;
-  setPersonalityName: (v: string) => void;
   personalityTone: UserTone;
   setPersonalityTone: (v: UserTone) => void;
   personalityCustomPrompt: string;
@@ -19,8 +15,6 @@ type PersonalityTabProps = {
 };
 
 export function PersonalityTab({
-  personalityName,
-  setPersonalityName,
   personalityTone,
   setPersonalityTone,
   personalityCustomPrompt,
@@ -31,28 +25,6 @@ export function PersonalityTab({
 }: PersonalityTabProps) {
   return (
     <>
-      <div className="flex flex-col gap-1.5">
-        <label className={LABEL}>name</label>
-        <input
-          type="text"
-          value={personalityName}
-          onChange={(e) => setPersonalityName(e.target.value)}
-          placeholder="Capy"
-          maxLength={PERSONALITY_NAME_MAX_LENGTH}
-          disabled={pending}
-          className={INPUT}
-        />
-        {personalityName.length > 0 && (
-          <p
-            className={cn(
-              "font-ui text-2xs text-right transition-colors",
-              charCountColor(personalityName.length, PERSONALITY_NAME_MAX_LENGTH)
-            )}
-          >
-            {personalityName.length}/{PERSONALITY_NAME_MAX_LENGTH}
-          </p>
-        )}
-      </div>
       <div className="flex flex-col gap-1.5">
         <label className={LABEL}>tone</label>
         <OptionGroup

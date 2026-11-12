@@ -40,7 +40,7 @@ import { memberName } from "@/lib/buckets/member-name";
 import { otherClock } from "@/lib/timezones/gap";
 import { placeName } from "@/lib/timezones/place";
 import { UNSET_TIMEZONE } from "@/lib/timezones/constants";
-import { assigneeFromArgs } from "./assigneeArgs";
+import { assigneeFromArgs, withMemberNames } from "./assigneeArgs";
 import {
   findAccessibleBucket,
   findAccessibleItem,
@@ -398,9 +398,15 @@ async function executeToolCallInner(
 
   switch (call.name) {
     case "list_buckets": {
-      const result = await listLiveBuckets(userId);
+      const result = await withMemberNames(userId, await listLiveBuckets(userId));
       return JSON.stringify(
-        result.map(({ id, name, icon, isOwner }) => ({ id, name, icon, owned: isOwner }))
+        result.map(({ id, name, icon, isOwner, members }) => ({
+          id,
+          name,
+          icon,
+          owned: isOwner,
+          ...(members && { shared: true, members }),
+        }))
       );
     }
 

@@ -4,7 +4,6 @@ import { buildSystemPrompt } from "@/lib/ai/systemPrompt";
 it("tells the assistant the current time with the right UTC offset", () => {
   const prompt = buildSystemPrompt(
     {
-      personalityName: "Capy",
       personalityTone: "chill",
       personalityEmoji: false,
       personalityCustomPrompt: null,
@@ -86,7 +85,6 @@ it("lists each bucket's custom fields with the keys to save them under", () => {
 });
 
 const personality: NonNullable<Parameters<typeof buildSystemPrompt>[0]> = {
-  personalityName: "Zippy",
   personalityTone: "chill",
   personalityEmoji: true,
   personalityCustomPrompt: null,
@@ -102,9 +100,9 @@ function promptFor(overrides: Partial<typeof personality>) {
   );
 }
 
-it("uses the chosen name and never names the app", () => {
+it("is named capy and never names the app", () => {
   const prompt = promptFor({});
-  expect(prompt).toContain("You are Zippy,");
+  expect(prompt).toContain("You are capy,");
   expect(prompt.replace("a@heycapy.test", "")).not.toMatch(/heycapy/i);
   expect(prompt).toContain("give your name");
 });

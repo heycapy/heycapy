@@ -43,13 +43,13 @@ describe("voice hints", () => {
   it("gives a member the bucket they joined, everyone's items in it and the others' names", async () => {
     const { owner, member } = await sharedBucket();
 
-    const forMember = (await voiceContext(member, "capy")).names;
+    const forMember = (await voiceContext(member)).names;
     expect(forMember).toEqual(
       expect.arrayContaining(["Home", "book flights", `quiet-otter-${owner}`])
     );
     expect(forMember).not.toContain(`sam_${member}`);
 
-    const forOwner = (await voiceContext(owner, "capy")).names;
+    const forOwner = (await voiceContext(owner)).names;
     expect(forOwner).toEqual(expect.arrayContaining(["Home", "book flights", `sam_${member}`]));
     expect(forOwner).not.toContain(`quiet-otter-${owner}`);
   });
@@ -57,7 +57,7 @@ describe("voice hints", () => {
   it("gives someone outside the bucket none of it", async () => {
     const { stranger, owner, member } = await sharedBucket();
 
-    const names = (await voiceContext(stranger, "capy")).names;
+    const names = (await voiceContext(stranger)).names;
     expect(names).not.toContain("Home");
     expect(names).not.toContain("book flights");
     expect(names).not.toContain(`sam_${member}`);

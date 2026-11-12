@@ -1,4 +1,4 @@
-import { and, eq, gt, isNotNull, ne, sql } from "drizzle-orm";
+import { and, eq, gt, isNotNull, ne } from "drizzle-orm";
 import { db } from "@/lib/db";
 import {
   bucketInvites,
@@ -12,7 +12,7 @@ import {
   users,
 } from "@/lib/db/schema";
 import { guideRewards, isHosted, rewardGuideTask } from "@/lib/credits";
-import { CAPY_DEFAULT_NAME, CAPY_DEFAULT_TONE, GUIDE_TASKS, type GuideTaskKey } from "./constants";
+import { CAPY_DEFAULT_TONE, GUIDE_TASKS, type GuideTaskKey } from "./constants";
 
 export type GuideTask = {
   key: GuideTaskKey;
@@ -96,8 +96,6 @@ const TASK_DONE: Record<GuideTaskKey, ((userId: number) => Promise<boolean>) | "
         .from(users)
         .where(and(eq(users.id, userId), isNotNull(users.avatar)))
     ),
-  rename_capy: (userId) =>
-    settingSet(userId, ne(sql`lower(${userSettings.personalityName})`, CAPY_DEFAULT_NAME)),
   capy_tone: (userId) => settingSet(userId, ne(userSettings.personalityTone, CAPY_DEFAULT_TONE)),
   ask_capy: (userId) =>
     exists(

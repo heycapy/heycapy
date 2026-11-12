@@ -1,7 +1,7 @@
+import { CAPY_NAME } from "@/constants";
 import { TextButton } from "@/components/ui/TextButton";
 import { CloseButton } from "@/components/ui/CloseButton";
 import { HEADER_H } from "./chatTypes";
-import { useAssistantName } from "./assistant-name";
 import { cn } from "@/lib/utils";
 import { IconButton } from "@/components/ui/IconButton";
 
@@ -30,7 +30,6 @@ export function CapyChatHeader({
   onHistoryOpen,
   onNewChat,
 }: Props) {
-  const name = useAssistantName();
   return (
     <div
       style={{ height: HEADER_H }}
@@ -46,7 +45,7 @@ export function CapyChatHeader({
         />
       )}
 
-      <span className="font-display flex-1 truncate pl-1 text-xs">{name}</span>
+      <span className="font-display flex-1 truncate pl-1 text-xs">{CAPY_NAME}</span>
 
       {!fullscreen && (
         <TextButton icon="clock" variant="ghost" onClick={() => onHistoryOpen()} className="px-1">

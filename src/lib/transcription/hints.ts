@@ -4,12 +4,12 @@ import { bucketMembers, buckets, items, users } from "@/lib/db/schema";
 import { inLiveBucket } from "@/lib/buckets/live";
 import { memberBucketIds } from "@/lib/buckets/access";
 import { memberName } from "@/lib/buckets/member-name";
-import { ITEM_STATUS, VOICE_HINT_ITEMS, VOICE_HINT_MAX_LENGTH } from "@/constants";
+import { CAPY_NAME, ITEM_STATUS, VOICE_HINT_ITEMS, VOICE_HINT_MAX_LENGTH } from "@/constants";
 
 export type VoiceContext = { assistant: string; names: string[] };
 
 // kept short on purpose since a long list makes the model hear names that were not said
-export async function voiceContext(userId: number, assistantName: string): Promise<VoiceContext> {
+export async function voiceContext(userId: number): Promise<VoiceContext> {
   const [bucketRows, memberRows, itemRows] = await Promise.all([
     db
       .select({ name: buckets.name })
@@ -44,14 +44,11 @@ export async function voiceContext(userId: number, assistantName: string): Promi
       .limit(VOICE_HINT_ITEMS),
   ]);
 
-  const assistant = assistantName.trim() || "capy";
   const seen = new Set<string>();
   const names = [
     "capy",
     "hey capy",
     "heycapy",
-    assistant,
-    `hey ${assistant}`,
     ...bucketRows.map((b) => b.name),
     ...memberRows.map(memberName),
     ...itemRows.map((i) => i.title),
@@ -63,5 +60,5 @@ export async function voiceContext(userId: number, assistantName: string): Promi
       seen.add(key);
       return true;
     });
-  return { assistant, names };
+  return { assistant: CAPY_NAME, names };
 }

@@ -12,6 +12,7 @@ import { ItemMenu, type MenuAt } from "@/components/buckets/ItemMenu";
 import { PressableRow } from "@/components/buckets/PressableRow";
 import { completionToggle } from "@/components/buckets/completion";
 import { offerUndoDelete } from "@/components/buckets/undoDelete";
+import { isTick, offerUndoTick } from "@/components/buckets/undoTick";
 import { deadlineValue } from "@/lib/time";
 import type { CrossBucketItems } from "@/lib/items/today";
 import type { items } from "@/lib/db/schema";
@@ -57,6 +58,9 @@ export function CrossBucketList({
     );
     if (!result.ok) notify.error(result.error);
     await onChanged();
+    if (result.ok && isTick(item, status)) {
+      offerUndoTick(item, () => changeStatus(item, item.status));
+    }
     return result.ok;
   }
 
@@ -130,7 +134,7 @@ export function CrossBucketList({
             >
               {section.label}
             </p>
-            <div className="divide-border divide-rule divide-y">{section.items.map(row)}</div>
+            <div>{section.items.map(row)}</div>
           </section>
         ))
       )}

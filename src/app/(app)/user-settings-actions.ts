@@ -69,7 +69,6 @@ import {
 } from "@/lib/ai/saved-keys";
 
 type UserSettingsUpdate = {
-  personalityName: string;
   personalityTone: PersonalityTone;
   personalityEmoji: boolean;
   personalityCustomPrompt: string | null;
@@ -178,9 +177,6 @@ export async function updateUserSettingsAction(
   if (data.timezone && !isKnownTimezone(data.timezone)) {
     return { ok: false, error: `Unknown timezone "${data.timezone}" — use one like Europe/London` };
   }
-  const trimmedName = data.personalityName.trim();
-  if (!trimmedName) return { ok: false, error: "Name is required" };
-  if (trimmedName.length > 50) return { ok: false, error: "Name too long" };
   const customPrompt = data.personalityCustomPrompt?.trim() || null;
   if (data.personalityTone === "custom" && !customPrompt) {
     return { ok: false, error: CUSTOM_PROMPT_REQUIRED_ERROR };
@@ -247,7 +243,6 @@ export async function updateUserSettingsAction(
     .update(userSettings)
     .set({
       ...(aiChanged ? { aiKeyStatus: null, aiKeyError: null, aiKeyCheckedAt: null } : {}),
-      personalityName: trimmedName,
       personalityTone: data.personalityTone,
       personalityEmoji: data.personalityEmoji,
       personalityCustomPrompt: customPrompt,

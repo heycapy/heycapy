@@ -103,7 +103,6 @@ export const userSettings = sqliteTable("user_settings", {
   reduceMotion: integer("reduce_motion", { mode: "boolean" }).notNull().default(false),
   textSize: text("text_size", { enum: TEXT_SIZES }).notNull().default(TEXT_SIZE.default),
   timezone: text("timezone").notNull().default("UTC"),
-  personalityName: text("personality_name").notNull().default("Capy"),
   personalityTone: text("personality_tone", {
     enum: ["chill", "professional", "motivational", "rude_funny", "custom"],
   })

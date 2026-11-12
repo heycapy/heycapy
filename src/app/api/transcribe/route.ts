@@ -74,7 +74,7 @@ export async function POST(req: Request) {
         voice.provider,
         voice.apiKey,
         voice.model,
-        await voiceContext(userId, settings?.personalityName ?? "")
+        await voiceContext(userId)
       );
       recordUsage({
         userId,
@@ -123,7 +123,7 @@ export async function POST(req: Request) {
       provider,
       apiKey,
       model,
-      await voiceContext(userId, settings?.personalityName ?? "")
+      await voiceContext(userId)
     );
     if (usage) {
       recordUsage({

@@ -107,11 +107,11 @@ test("a member's new username and avatar show up on the others' open screens", a
   ).run(bucketId, ownerEmail, memberEmail, title);
   db.close();
   await page.goto(`/?bucket=${bucketId}`);
-  await expect(itemRow(page, title)).toContainText(`→ ${before}`);
+  await expect(itemRow(page, title)).toContainText(before);
 
   await renameIn(member, after);
 
-  await expect(itemRow(page, title)).toContainText(`→ ${after}`);
+  await expect(itemRow(page, title)).toContainText(after);
 
   const canvas = member.getByTestId("avatar-canvas");
   await member.getByRole("button", { name: "[ clear ]", exact: true }).click();

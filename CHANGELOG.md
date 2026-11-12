@@ -2,6 +2,31 @@
 
 all notable changes to heycapy. versions follow [semver](https://semver.org): a patch version (0.3.1) only fixes things, a minor version (0.4.0) adds features. the database migrates itself on start and migrations only go forward, so back up before upgrading (see the README).
 
+## 0.11.2
+
+ticking tells you it's done and lets you undo, the first-run picker also picks your theme, and capy knows which of your buckets are shared.
+
+### new
+
+- ticking an item shows a "done" toast with an undo button. repeating items have no undo, because ticking one moves it to its next date
+- the first-run look picker also asks for a theme, with a swatch for each one, so a new account starts the way it wants to look
+
+### changes
+
+- capy's name is fixed. it's always capy now, so the "name" field is gone from tweaks › personality and the "rename capy" task is gone from the getting started guide. the guide has 17 tasks and pays 48 credits in all
+- no more lines between items, in buckets, today and search. the list reads as one clean column
+- in capy's chat history, delete and load show when you hover a chat. the expanded chat no longer pokes out of its rounded corners
+
+### fixes
+
+- capy and the telegram bot understand shared buckets. they know which buckets are shared and who is in them
+- items assigned to someone no longer show an arrow before their avatar
+- the members bar has some space under the bucket tabs
+
+### upgrading
+
+- one migration (`0053`) drops the old capy name setting. back up first, as always, then `docker compose up -d --build`
+
 ## 0.11.1
 
 a small fix release: reduce motion now does what it says.
@@ -11,6 +36,7 @@ a small fix release: reduce motion now does what it says.
 - the reduce motion switch takes effect the moment you tap it. before, it waited for the server and the settings around it dimmed and blinked
 - with reduce motion on, switching buckets swaps the list at once. before, the list jumped, faded and went blank for a moment
 - going back to a bucket you've already opened shows its items straight away while they refresh, instead of flashing "loading..." first
+- with reduce motion on, drawers and dialogs (bucket settings, capy, the add form, tweaks, new bucket) open and close at once. before, they still faded and flickered
 - turning reduce motion on or off no longer makes every done item's tick pop again
 
 ### upgrading
