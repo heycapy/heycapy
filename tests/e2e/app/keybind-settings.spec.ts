@@ -2,7 +2,13 @@ import { test, expect, type Page } from "@playwright/test";
 import Database from "better-sqlite3";
 import { authState, specUserEmail } from "../helpers/auth";
 import { E2E_DATABASE_FILE } from "../helpers/env";
-import { addBox, createAndSelectBucket, newItemForm, uniqueName } from "../helpers/buckets";
+import {
+  addBox,
+  createAndSelectBucket,
+  newItemForm,
+  openBucketOnPhone,
+  uniqueName,
+} from "../helpers/buckets";
 
 test.use({ storageState: authState("keybind-settings") });
 test.describe.configure({ mode: "default" });
@@ -241,6 +247,30 @@ test("key hints on buttons shows the keys on buttons, and hides them again", asy
     .getByRole("button", { name: "off" })
     .click();
   await expect(page.locator("main kbd")).toHaveCount(0);
+});
+
+test.describe("on a touchscreen without a mouse or trackpad", () => {
+  test.use({ isMobile: true, hasTouch: true, viewport: { width: 393, height: 851 } });
+
+  test("no key hints, and no keybindings tab", async ({ page }) => {
+    await page.goto("/");
+    await openBucketOnPhone(page, uniqueName("Touch"));
+    setAccount("original", '{"hints":true}');
+    try {
+      await page.reload();
+      const tabs = page.getByRole("navigation", { name: "buckets" });
+      await expect(tabs.locator("kbd")).not.toHaveCount(0);
+      for (const hint of await tabs.locator("kbd").all()) await expect(hint).toBeHidden();
+
+      await page.getByRole("button", { name: "your menu", exact: true }).tap();
+      await page.getByRole("button", { name: "tweaks", exact: true }).tap();
+      const tweaks = tweaksDialog(page);
+      await expect(tweaks.getByRole("button", { name: "appearance", exact: true })).toBeVisible();
+      await expect(tweaks.getByRole("button", { name: "keybindings", exact: true })).toBeHidden();
+    } finally {
+      setAccount("original", "{}");
+    }
+  });
 });
 
 test("capy is a plain button with its key in the modern look too", async ({ page }) => {

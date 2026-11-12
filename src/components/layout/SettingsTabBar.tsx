@@ -27,7 +27,7 @@ export function SettingsTabBar({ tab, hasCredits, adminUser, onTab }: SettingsTa
           key={t}
           active={tab === t}
           onClick={() => onTab(t)}
-          className={cn("px-1.5 py-1.5", t === "keybindings" && "pointer-coarse:hidden")}
+          className={cn("px-1.5 py-1.5", t === "keybindings" && "no-fine-pointer:hidden")}
         >
           {t}
         </Tab>

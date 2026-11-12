@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@custom-variant no-fine-pointer (@media not (any-pointer: fine));
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);

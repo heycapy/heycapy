@@ -9,7 +9,7 @@ export function PrefixIndicator() {
   const { label } = useKeybindPrefix(keybinds);
 
   return (
-    <div role="status" className="pointer-coarse:hidden">
+    <div role="status" className="no-fine-pointer:hidden">
       {active && (
         <div className="bg-card border-border text-foreground font-ui text-2xs shadow-raised fixed bottom-4 left-1/2 z-[80] flex -translate-x-1/2 items-center gap-2 rounded-(--toast-radius) border px-3 py-1.5">
           <Kbd>{label}</Kbd>
