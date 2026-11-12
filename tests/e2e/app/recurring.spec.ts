@@ -90,7 +90,9 @@ test("repeating on the last day moves the date to the month's last day", async (
   );
 
   await dialog.getByRole("button", { name: "add", exact: true }).click();
-  await expect(itemRow(page, title)).toContainText(lastLabel);
+  const two = (n: number) => String(n).padStart(2, "0");
+  const rowLabel = `${two(last.getDate())}/${two(last.getMonth() + 1)}/${two(last.getFullYear() % 100)}`;
+  await expect(itemRow(page, title)).toContainText(rowLabel);
   await expect(itemRow(page, title)).toContainText("↺ monthly, last day");
   await expect(itemRow(page, title)).not.toContainText("next");
 });

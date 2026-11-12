@@ -32,7 +32,7 @@ test("a time can be picked from the grid or typed, and is saved", async ({ page 
   await picker.getByRole("button", { name: "[ done ]", exact: true }).click();
   await expect(dialog.getByRole("button", { name: "time: 4:30 pm" })).toBeVisible();
   await dialog.getByRole("button", { name: "add", exact: true }).click();
-  await expect(itemRow(page, title)).toContainText("4:30pm");
+  await expect(itemRow(page, title)).toContainText("4:30 pm");
 
   await itemRow(page, title).click();
   await openDetail(dialog, "date");
@@ -46,7 +46,7 @@ test("a time can be picked from the grid or typed, and is saved", async ({ page 
   await expect(picker).toHaveCount(0);
   await expect(dialog.getByRole("button", { name: "time: 9:37 pm" })).toBeVisible();
   await dialog.getByRole("button", { name: "update", exact: true }).click();
-  await expect(itemRow(page, title)).toContainText("9:37pm");
+  await expect(itemRow(page, title)).toContainText("9:37 pm");
 
   await itemRow(page, title).click();
   await openDetail(dialog, "date");
@@ -79,7 +79,7 @@ test("a date without a time shows as all day, and a time can be taken off again"
   await expect(picker).toHaveCount(0);
   await expect(dialog.getByRole("button", { name: "time: all day" })).toBeVisible();
   await dialog.getByRole("button", { name: "add", exact: true }).click();
-  await expect(itemRow(page, title)).not.toContainText("9am");
+  await expect(itemRow(page, title)).not.toContainText("9:00 am");
 
   await itemRow(page, title).click();
   await openDetail(dialog, "date");
@@ -91,7 +91,7 @@ test("a date without a time shows as all day, and a time can be taken off again"
     .click();
   await picker.getByRole("button", { name: "[ done ]", exact: true }).click();
   await dialog.getByRole("button", { name: "update", exact: true }).click();
-  await expect(itemRow(page, title)).toContainText("6am");
+  await expect(itemRow(page, title)).toContainText("6:00 am");
 });
 
 test("a date picked for today after 9am starts at the next half hour", async ({ page }) => {

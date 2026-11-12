@@ -91,7 +91,6 @@ export function ItemList({
   const assigneesOf = (item: ListItem): ItemAssignee[] =>
     !shared ? [] : members.filter((m) => item.assigneeIds.includes(m.userId)).map(itemAssignee);
 
-  const showDue = items.some((item) => item.deadline);
   const tickedBy = (item: Item) => {
     if (!shared || item.status !== ITEM_STATUS.completed) return undefined;
     const member = members.find((m) => m.userId === item.completedBy);
@@ -110,7 +109,6 @@ export function ItemList({
     assignees: assigneesOf(item),
     otherClock: clockHint(item),
     color,
-    showDue,
     shared,
     tickedBy: tickedBy(item),
     onMenu: (at: MenuAt) => setMenu({ item, at }),

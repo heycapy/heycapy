@@ -31,6 +31,7 @@ type CrossBucketListProps = {
   onEdit: (item: Item) => void;
   onChanged: () => Promise<void>;
   boxed?: boolean;
+  dueTimeOnly?: boolean;
 };
 
 export function CrossBucketList({
@@ -41,11 +42,11 @@ export function CrossBucketList({
   onEdit,
   onChanged,
   boxed = false,
+  dueTimeOnly = false,
 }: CrossBucketListProps) {
   const [menu, setMenu] = useState<{ item: Item; at: MenuAt } | null>(null);
   const framed = useLookParts().listFrame === "framed";
   const statuses = DEFAULT_BUCKET_STATUSES;
-  const showDue = sections.some((section) => section.items.some((item) => item.deadline));
   const bucketOf = (item: Item) => data?.buckets.find((b) => b.id === item.bucketId);
 
   async function changeStatus(item: Item, status: string) {
@@ -95,7 +96,7 @@ export function CrossBucketList({
           reminderBadge={data?.reminderBadges[item.id]}
           assignees={assignees?.map(itemAssignee)}
           onMenu={(at) => setMenu({ item, at })}
-          showDue={showDue}
+          dueTimeOnly={dueTimeOnly}
           color={color}
           bucket={
             bucket && {

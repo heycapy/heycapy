@@ -21,15 +21,14 @@ test.use({
 });
 test.describe.configure({ mode: "default" });
 
-const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-
 function daysFromToday(days: number): Date {
   const now = new Date();
   return new Date(now.getFullYear(), now.getMonth(), now.getDate() + days);
 }
 
 function shortDate(d: Date): string {
-  return `${MONTHS[d.getMonth()]} ${d.getDate()}`;
+  const two = (n: number) => String(n).padStart(2, "0");
+  return `${two(d.getDate())}/${two(d.getMonth() + 1)}/${two(d.getFullYear() % 100)}`;
 }
 
 test.beforeEach(async ({ page }) => {
@@ -48,7 +47,7 @@ test("quick dates move an item, and a picked date too, back returns from the cal
   await expect(menu.getByRole("button", { name: /^due next week / })).toBeVisible();
   await menu.getByRole("button", { name: /^due tomorrow / }).click();
   await expect(menu).not.toBeVisible();
-  await expect(itemRow(page, title)).toContainText(`${shortDate(daysFromToday(1))} 9am`);
+  await expect(itemRow(page, title)).toContainText(`${shortDate(daysFromToday(1))} 9:00 am`);
 
   await itemRow(page, title).click({ button: "right" });
   menu = itemMenu(page, title);
@@ -65,7 +64,7 @@ test("quick dates move an item, and a picked date too, back returns from the cal
   await expect(menu).not.toBeVisible();
   const tomorrow = daysFromToday(1);
   const fifth = new Date(tomorrow.getFullYear(), tomorrow.getMonth() + 1, 5);
-  await expect(itemRow(page, title)).toContainText(`${shortDate(fifth)} 9am`);
+  await expect(itemRow(page, title)).toContainText(`${shortDate(fifth)} 9:00 am`);
 });
 
 test("escape, a click outside and [x] close the menu", async ({ page }) => {
@@ -117,12 +116,12 @@ test("a repeating item moves only this time: the next one stays on schedule", as
   const menu = await openItemMenu(page, title);
   await expect(menu.getByText("↺ weekly · moves only this time")).toBeVisible();
   await menu.getByRole("button", { name: /^due tomorrow / }).click();
-  await expect(itemRow(page, title)).toContainText(`${shortDate(daysFromToday(1))} 9am`);
+  await expect(itemRow(page, title)).toContainText(`${shortDate(daysFromToday(1))} 9:00 am`);
 
   await itemTick(page, title).click();
   await expect(
     page.getByRole("button", {
-      name: new RegExp(`${title}.*${shortDate(daysFromToday(14))} 9am`),
+      name: new RegExp(`${title}.*${shortDate(daysFromToday(14))} 9:00 am`),
     })
   ).toBeVisible();
 });
@@ -244,6 +243,6 @@ test.describe("on a phone", () => {
 
     await menu.getByRole("button", { name: /^due tomorrow / }).tap();
     await expect(menu).not.toBeVisible();
-    await expect(itemRow(page, title)).toContainText(`${shortDate(daysFromToday(1))} 9am`);
+    await expect(itemRow(page, title)).toContainText(`${shortDate(daysFromToday(1))} 9:00 am`);
   });
 });

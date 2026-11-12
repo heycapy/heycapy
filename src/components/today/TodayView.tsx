@@ -45,6 +45,7 @@ export function TodayView({ buckets, panel }: TodayViewProps) {
         editingItemId={editor.editingItemId}
         onEdit={editor.startEditing}
         onChanged={refetch}
+        dueTimeOnly
       />
 
       <ItemDialog

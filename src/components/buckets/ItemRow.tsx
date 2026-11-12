@@ -45,8 +45,7 @@ type ItemRowProps = {
   otherClock?: string;
   bucket?: { name: string; color: string };
   color?: string;
-  // Off when no item in the list has a date, so a list of notes has no empty column
-  showDue?: boolean;
+  dueTimeOnly?: boolean;
   // A bucket with more than one member says "no one" on items nobody is assigned to
   shared?: boolean;
   // Who completed it, named in shared buckets
@@ -111,7 +110,7 @@ export function ItemRow({
   otherClock,
   bucket,
   color = "var(--muted-foreground)",
-  showDue = true,
+  dueTimeOnly = false,
   shared = false,
   tickedBy,
   onMenu,
@@ -175,6 +174,7 @@ export function ItemRow({
   const titleLines = allLines.slice(0, TITLE_LINES_SHOWN);
   const moreLines = allLines.length > TITLE_LINES_SHOWN;
   const badges = fields ? getShowInRowBadges(fields, item.properties) : [];
+  const dueChip = due && <ItemDue due={due} status={item.status} timeOnly={dueTimeOnly} />;
   const meta = [
     otherClock && <span key="clock">({otherClock})</span>,
     assignees && assignees.length > 0 && (
@@ -254,21 +254,25 @@ export function ItemRow({
               ))}
             </span>
           )}
-          {meta.length > 0 && (
-            <span className="text-muted-foreground font-ui mt-0.5 flex flex-wrap items-center gap-x-1 gap-y-0.5 text-xs *:whitespace-nowrap">
-              {meta.map((part, i) => (
-                <span key={part.key} className="flex items-center gap-1">
-                  {i > 0 && <span aria-hidden>·</span>}
-                  {part}
+          {(dueChip || meta.length > 0) && (
+            <span className="text-muted-foreground font-ui mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs *:whitespace-nowrap">
+              {dueChip}
+              {meta.length > 0 && (
+                <span className="flex flex-wrap items-center gap-x-1 gap-y-0.5">
+                  {meta.map((part, i) => (
+                    <span key={part.key} className="flex items-center gap-1">
+                      {i > 0 && <span aria-hidden>·</span>}
+                      {part}
+                    </span>
+                  ))}
                 </span>
-              ))}
+              )}
             </span>
           )}
           {remindAgain && (
             <span className="text-foreground/80 font-ui mt-0.5 block text-xs">{remindAgain}</span>
           )}
         </span>
-        {showDue && <ItemDue due={due} status={item.status} />}
       </button>
 
       {/* Only a failed send shows in the row; everything else about reminders is in the menu */}

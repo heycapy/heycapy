@@ -71,7 +71,7 @@ test("a long list sorted by deadline never makes the page itself taller", async 
   const settings = await openSettings(page);
   await option(field(settings, "sort by"), "deadline").click();
   await saveSettings(settings);
-  await expect(page.getByText("no date").first()).toBeAttached();
+  await expect(page.getByText("tomorrow").first()).toBeAttached();
 
   const page_ = await page.evaluate(() => {
     const main = document.querySelector("main") as HTMLElement;

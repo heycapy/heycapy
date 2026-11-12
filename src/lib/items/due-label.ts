@@ -1,5 +1,5 @@
 import { DUE_NEAR_DAYS, DUE_WEEKDAY_DAYS, ITEM_STATUS, WEEKDAY_SHORT_NAMES } from "@/constants";
-import { clockTime, formatShort } from "@/lib/format-date";
+import { dueClock, dueDate } from "@/lib/format-date";
 import { daysFromToday } from "./relative-day";
 
 export type DueTone = "late" | "today" | "near" | "later" | "closed";
@@ -13,9 +13,9 @@ export function dueLabel(
   now = new Date()
 ): DueLabel {
   const days = daysFromToday(due.at, now);
-  const time = due.allDay ? "all day" : clockTime(due.at);
-  const day = formatShort(due.at, true);
-  const dayAndTime = formatShort(due.at, due.allDay);
+  const time = due.allDay ? "all day" : dueClock(due.at);
+  const day = dueDate(due.at);
+  const dayAndTime = due.allDay ? day : `${day} ${time}`;
   const weekday = WEEKDAY_SHORT_NAMES[due.at.getDay()] ?? day;
 
   if (status === ITEM_STATUS.completed) {

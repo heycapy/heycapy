@@ -38,7 +38,7 @@ test("the add box reads a typed date, adds on enter and stays ready for the next
   await expect(page.getByTestId("quick-add-hint")).toHaveText("Fri Oct 9 · 5pm");
 
   await addBox(page).press("Enter");
-  await expect(itemRow(page, title)).toContainText("Oct 9 5pm");
+  await expect(itemRow(page, title)).toContainText("09/10/26 5:00 pm");
   await expect(itemRow(page, title)).not.toContainText("friday");
   await expect(addBox(page)).toHaveValue("");
   await expect(addBox(page)).toBeFocused();
@@ -78,7 +78,7 @@ test("a date typed into the title is highlighted, fills 'when' and leaves the ti
 
   await dialog.getByRole("button", { name: "add", exact: true }).click();
   await expect(dialog).not.toBeVisible();
-  await expect(itemRow(page, title)).toContainText("Oct 9 5pm");
+  await expect(itemRow(page, title)).toContainText("09/10/26 5:00 pm");
   await expect(itemRow(page, title)).not.toContainText("friday");
 });
 

@@ -23,7 +23,7 @@ test("updating an item without changes keeps its date and time", async ({ page }
   await page.reload();
 
   const row = itemRow(page, title);
-  await expect(row).toContainText("9pm");
+  await expect(row).toContainText("9:00 pm");
   const before = await row.innerText();
   await row.click();
   const dialog = editForm(page);

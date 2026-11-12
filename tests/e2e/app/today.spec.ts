@@ -79,8 +79,7 @@ test("search next to add finds items in any bucket, dated or not", async ({ page
   await expect(box).toBeFocused();
   await box.fill(tag);
   await expect(search.getByRole("region", { name: "2 found" })).toBeVisible();
-  await expect(search.getByRole("button", { name: `${tag} one` })).toContainText("no date");
-  await expect(search.getByRole("button", { name: `${tag} two` })).not.toContainText("no date");
+  await expect(search.getByRole("button", { name: `${tag} two` })).toContainText("in 20d");
 
   await box.fill(`${tag} nothing like this`);
   await expect(search.getByText("no items match")).toBeVisible();

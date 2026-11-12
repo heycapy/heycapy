@@ -23,7 +23,6 @@ type DraggableItemProps = {
   assignees?: ItemAssignee[];
   otherClock?: string;
   color: string;
-  showDue: boolean;
   shared: boolean;
   tickedBy?: string;
 };
@@ -42,7 +41,6 @@ export function DraggableItem({
   assignees,
   otherClock,
   color,
-  showDue,
   shared,
   tickedBy,
 }: DraggableItemProps) {
@@ -75,7 +73,6 @@ export function DraggableItem({
           assignees={assignees}
           otherClock={otherClock}
           color={color}
-          showDue={showDue}
           shared={shared}
           tickedBy={tickedBy}
           onMenu={onMenu}

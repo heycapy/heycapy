@@ -95,7 +95,7 @@ test("a date picked in the form stays with the draft and wins over typed words",
   await page.keyboard.press("Escape");
 
   await addBox(page).press("Enter");
-  await expect(itemRow(page, `${title} tomorrow`)).toContainText("Oct 20");
+  await expect(itemRow(page, `${title} tomorrow`)).toContainText("20/10/26");
   await expect(addBox(page)).toHaveValue("");
   await expect(hint).toHaveCount(0);
 });
