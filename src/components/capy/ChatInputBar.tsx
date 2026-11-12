@@ -4,8 +4,7 @@ import { cn } from "@/lib/utils";
 import { InputBar, InputBarAction, InputBarIcon } from "@/components/ui/InputBar";
 import { useLookParts } from "@/components/looks/LookProvider";
 import { Sprite } from "./Sprite";
-import { VOICE_MAX_SECONDS } from "@/constants";
-import { useAssistantName } from "./assistant-name";
+import { CAPY_NAME, VOICE_MAX_SECONDS } from "@/constants";
 import { isTooShort, recordingFileName } from "./recording";
 
 type Props = {
@@ -29,7 +28,6 @@ export const ChatInputBar = forwardRef<ChatInputBarHandle, Props>(function ChatI
   { input, setInput, streaming, onSend, onStop, centered }: Props,
   ref
 ) {
-  const name = useAssistantName();
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
@@ -184,12 +182,12 @@ export const ChatInputBar = forwardRef<ChatInputBarHandle, Props>(function ChatI
                 <>
                   <span className="text-primary animate-[pulse_0.8s_ease-in-out_infinite]">●</span>
                   <span className="text-foreground truncate">
-                    {name} listening... {formatTime(recSeconds)}
+                    {CAPY_NAME} listening... {formatTime(recSeconds)}
                   </span>
                 </>
               ) : (
                 <span className="text-muted-foreground animate-pulse">
-                  {name}&apos;s jotting it down...
+                  {CAPY_NAME}&apos;s jotting it down...
                 </span>
               )}
             </span>
@@ -210,7 +208,7 @@ export const ChatInputBar = forwardRef<ChatInputBarHandle, Props>(function ChatI
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder={`ask ${name}...`}
+              placeholder={`ask ${CAPY_NAME}...`}
               rows={1}
               disabled={streaming}
               className="placeholder:text-muted-foreground/50 font-ui min-w-0 flex-1 resize-none bg-transparent py-1 text-base leading-6 outline-none disabled:opacity-50 sm:text-sm"

@@ -44,7 +44,6 @@ export function SettingsSheet({ open, initialTab, onClose }: SettingsSheetProps)
   const [error, setError] = useState("");
   const [loaded, setLoaded] = useState(false);
 
-  const [personalityName, setPersonalityName] = useState("Capy");
   const [personalityTone, setPersonalityTone] = useState<UserTone>("chill");
   const [personalityEmoji, setPersonalityEmoji] = useState(true);
   const [personalityCustomPrompt, setPersonalityCustomPrompt] = useState("");
@@ -93,7 +92,6 @@ export function SettingsSheet({ open, initialTab, onClose }: SettingsSheetProps)
   const resetUnsaved = unsaved.reset;
 
   function populate(s: Settings) {
-    setPersonalityName(s.personalityName);
     setPersonalityTone(s.personalityTone as UserTone);
     setPersonalityEmoji(s.personalityEmoji);
     setPersonalityCustomPrompt(s.personalityCustomPrompt ?? "");
@@ -177,7 +175,6 @@ export function SettingsSheet({ open, initialTab, onClose }: SettingsSheetProps)
   function formValues() {
     const parsedPort = smtpPort ? parseInt(smtpPort, 10) : null;
     return {
-      personalityName,
       personalityTone,
       personalityEmoji,
       personalityCustomPrompt: personalityCustomPrompt || null,
@@ -303,8 +300,6 @@ export function SettingsSheet({ open, initialTab, onClose }: SettingsSheetProps)
             {tab === "credits" && hasCredits && <CreditsTab />}
             {tab === "personality" && (
               <PersonalityTab
-                personalityName={personalityName}
-                setPersonalityName={setPersonalityName}
                 personalityTone={personalityTone}
                 setPersonalityTone={setPersonalityTone}
                 personalityCustomPrompt={personalityCustomPrompt}

@@ -187,7 +187,6 @@ export async function buildAccountExport(userId: number, now = new Date()) {
         webhooks,
       },
       personality: {
-        name: settings.personalityName,
         tone: settings.personalityTone,
         emoji: settings.personalityEmoji,
         customPrompt: settings.personalityCustomPrompt,

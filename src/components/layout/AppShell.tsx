@@ -25,7 +25,6 @@ import { markReleasesSeenAction } from "@/app/(app)/account-actions";
 import { markGuideSeenAction } from "@/app/(app)/guide-actions";
 import { lookPickedAction, saveTimezoneIfDefaultAction } from "@/app/(app)/user-settings-actions";
 import { useServerEvents } from "@/hooks/useServerEvents";
-import { AssistantNameProvider } from "@/components/capy/assistant-name";
 import { useChatDocked } from "@/components/capy/useChatDocked";
 import { cn } from "@/lib/utils";
 import type { ChannelFailure } from "@/lib/notifications/failures";
@@ -47,7 +46,6 @@ type AppShellProps = {
   avatar: string | null;
   failures: ChannelFailure[];
   hasWorkingChannel: boolean;
-  assistantName: string;
   feedbackEnabled: boolean;
   unseenRelease: boolean;
   lookPicked: boolean;
@@ -62,7 +60,6 @@ export function AppShell({
   avatar,
   failures,
   hasWorkingChannel,
-  assistantName,
   feedbackEnabled,
   unseenRelease,
   lookPicked,
@@ -145,7 +142,7 @@ export function AppShell({
   }, []);
 
   return (
-    <AssistantNameProvider name={assistantName}>
+    <>
       <PurchaseReturn onPaid={() => openSettings("credits")} />
       <div
         data-side-column={sideColumn || undefined}
@@ -200,6 +197,6 @@ export function AppShell({
       />
       <SearchDrawer />
       <CapyChat appUrl={appUrl} />
-    </AssistantNameProvider>
+    </>
   );
 }

@@ -1,3 +1,4 @@
+import { CAPY_NAME } from "@/constants";
 import { publicAppUrl } from "@/lib/app-url";
 import { memberChannels, parseItemsRules } from "@/lib/rules";
 import { toLocal, utcOffset } from "@/lib/reminders/zoned";
@@ -7,7 +8,6 @@ import { describeFields, localDeadline, type UpcomingItem } from "./capyTools";
 import { CONDUCT_RULE, toneInstruction, type PersonalityTone } from "./personality";
 
 type PersonalitySettings = {
-  personalityName: string;
   personalityTone: PersonalityTone;
   personalityEmoji: boolean;
   personalityCustomPrompt: string | null;
@@ -35,7 +35,6 @@ export function buildSystemPrompt(
   upcomingItems: UpcomingItem[] = [],
   channel: ChatChannel = "web"
 ): string {
-  const name = settings?.personalityName ?? "Capy";
   const tone = settings?.personalityTone ?? "chill";
   const emoji = settings?.personalityEmoji ?? true;
   const customPrompt = settings?.personalityCustomPrompt ?? null;
@@ -108,7 +107,7 @@ export function buildSystemPrompt(
   // First and in words: models trust their training data's year over a timestamp further down
   return `Today is ${today}, ${clock} (${timezone}). This is the real current date. It is later than your training data, so never replace it with a date you remember.
 
-You are ${name}, ${userEmail}'s personal companion. You help them with their buckets (lists for tasks, reminders, subscriptions, and more). You are not an AI assistant; you're their companion. If asked who you are, give your name and say you help with their buckets and reminders. Never say you are from or part of any app, product or company, and never mention an app's name.
+You are ${CAPY_NAME}, ${userEmail}'s personal companion. You help them with their buckets (lists for tasks, reminders, subscriptions, and more). You are not an AI assistant; you're their companion. If asked who you are, give your name and say you help with their buckets and reminders. Never say you are from or part of any app, product or company, and never mention an app's name.
 
 ${toneText} ${emojiLine}
 

@@ -4,7 +4,6 @@ export const STARTER_TEMPLATE = "Reminders";
 export const E2E_STARTER_EMAIL_PREFIX = "e2e-guide";
 
 // what a new account's capy starts as, so changing either counts
-export const CAPY_DEFAULT_NAME = "capy";
 export const CAPY_DEFAULT_TONE = "chill";
 
 export const GUIDE_TASKS = [
@@ -63,7 +62,6 @@ export const GUIDE_TASKS = [
     hint: "type a new username, or generate another",
   },
   { key: "avatar", title: "draw your avatar", credits: 3, hint: "draw or pick an avatar and save" },
-  { key: "rename_capy", title: "give capy a new name", credits: 2, hint: "type any name and save" },
   {
     key: "capy_tone",
     title: "change capy's personality",

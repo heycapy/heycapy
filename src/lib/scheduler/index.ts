@@ -7,7 +7,7 @@ import { asc, eq, lte } from "drizzle-orm";
 import { backupDatabase, databaseFilePath, db } from "@/lib/db";
 import { alertAdminsNow, sendErrorDigest } from "@/lib/admin-alerts";
 import { bucketMembers, itemReminders, items, buckets, users, userSettings } from "@/lib/db/schema";
-import { APP_NAME } from "@/constants";
+import { APP_NAME, CAPY_NAME } from "@/constants";
 import { errorMessage } from "@/lib/errors";
 import { dataEvents } from "@/lib/events";
 import { decryptValue } from "@/lib/crypto";
@@ -48,7 +48,6 @@ type PersonalityRow = {
   aiModel: string | null;
   aiOllamaUrl: string | null;
   aiUseOwnKey: boolean;
-  personalityName: string;
   personalityTone: string;
   personalityEmoji: boolean;
   personalityCustomPrompt: string | null;
@@ -84,7 +83,7 @@ async function generateNotificationText(
     const messages: AgentMessage[] = [
       {
         role: "system",
-        content: `You are ${row.personalityName}, a helpful assistant. Write a single short push notification sentence reminding the user about an upcoming deadline. ${toneGuide} ${emojiNote} ${CONDUCT_RULE} Output only the notification text — no quotes, no labels, nothing else.`,
+        content: `You are ${CAPY_NAME}, a helpful assistant. Write a single short push notification sentence reminding the user about an upcoming deadline. ${toneGuide} ${emojiNote} ${CONDUCT_RULE} Output only the notification text — no quotes, no labels, nothing else.`,
       },
       {
         role: "user",
@@ -125,7 +124,6 @@ const dueRowFields = {
   aiOllamaUrl: userSettings.aiOllamaUrl,
   aiUseOwnKey: userSettings.aiUseOwnKey,
   aiNotifyMessages: userSettings.aiNotifyMessages,
-  personalityName: userSettings.personalityName,
   personalityTone: userSettings.personalityTone,
   personalityEmoji: userSettings.personalityEmoji,
   personalityCustomPrompt: userSettings.personalityCustomPrompt,

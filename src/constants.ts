@@ -224,7 +224,7 @@ export const FIELD_LABEL_MAX_LENGTH = 100;
 export const STATUS_NAME_MAX_LENGTH = 50;
 
 // Settings field limits
-export const PERSONALITY_NAME_MAX_LENGTH = 50;
+export const CAPY_NAME = "capy";
 export const CUSTOM_PROMPT_MAX_LENGTH = 1000;
 export const CUSTOM_PROMPT_REQUIRED_ERROR = "Write a custom prompt, or pick another tone";
 export const CUSTOM_PROMPT_REJECTED_ERROR =

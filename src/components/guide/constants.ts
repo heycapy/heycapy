@@ -22,7 +22,6 @@ export const HINT_TARGETS: Record<GuideTaskKey, HintTarget> = {
   share_bucket: { kind: "bucket-members" },
   username: { kind: "settings", tab: "account" },
   avatar: { kind: "settings", tab: "account" },
-  rename_capy: { kind: "settings", tab: "personality" },
   capy_tone: { kind: "settings", tab: "personality" },
   ask_capy: { kind: "chat" },
   push: { kind: "settings", tab: "notifications" },

@@ -112,7 +112,7 @@ export function ChatSessionList({
                 key={s.id}
                 aria-current={s.id === activeId ? "true" : undefined}
                 className={cn(
-                  "rounded-control flex items-center gap-3 px-4 py-3",
+                  "group/session rounded-control flex items-center gap-3 px-4 py-3",
                   s.id === activeId && "bg-muted"
                 )}
               >
@@ -122,7 +122,13 @@ export function ChatSessionList({
                     {relativeDate(s.updatedAt)}
                   </p>
                 </div>
-                <div className="flex shrink-0 gap-2">
+                <div
+                  className={cn(
+                    "flex shrink-0 gap-2",
+                    confirmingId !== s.id &&
+                      "[@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-focus-within/session:opacity-100 [@media(hover:hover)]:group-hover/session:opacity-100"
+                  )}
+                >
                   {confirmingId === s.id ? (
                     <>
                       <TextButton

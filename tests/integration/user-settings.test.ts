@@ -57,7 +57,6 @@ beforeEach(() => useSchedulerEnvironment(new Date("2026-03-10T12:00:00Z")));
 afterEach(() => resetSchedulerEnvironment());
 
 const saved = {
-  personalityName: "capy",
   personalityTone: "chill" as const,
   personalityEmoji: false,
   personalityCustomPrompt: null,
@@ -262,28 +261,22 @@ it("refuses the custom tone without a prompt and keeps what was saved", async ()
   for (const personalityCustomPrompt of [null, "", "   "]) {
     const result = await updateUserSettingsAction({
       ...saved,
-      personalityName: "Zippy",
       personalityTone: "custom",
       personalityCustomPrompt,
     });
     expect(result).toEqual({ ok: false, error: CUSTOM_PROMPT_REQUIRED_ERROR });
   }
-  expect((await row(userId)).personalityName).not.toBe("Zippy");
+  expect((await row(userId)).personalityTone).not.toBe("custom");
 });
 
-it("saves the name and a trimmed custom prompt without a review on a self-hosted server", async () => {
+it("saves a trimmed custom prompt without a review on a self-hosted server", async () => {
   const userId = await seedUser();
   session = { userId };
 
-  const result = await updateUserSettingsAction({
-    ...saved,
-    personalityName: " Zippy ",
-    ...pirate,
-  });
+  const result = await updateUserSettingsAction({ ...saved, ...pirate });
 
   expect(result.ok).toBe(true);
   const settings = await row(userId);
-  expect(settings.personalityName).toBe("Zippy");
   expect(settings.personalityCustomPrompt).toBe("Talk like a pirate.");
   expect(review.calls).toBe(0);
 });
@@ -307,12 +300,11 @@ it("on a hosted server a custom prompt the review rejects is refused and not sav
   session = { userId };
   review.answer = "REJECT";
 
-  const result = await updateUserSettingsAction({ ...saved, personalityName: "Zippy", ...pirate });
+  const result = await updateUserSettingsAction({ ...saved, ...pirate });
 
   expect(result).toEqual({ ok: false, error: CUSTOM_PROMPT_REJECTED_ERROR });
   const settings = await row(userId);
   expect(settings.personalityCustomPrompt).toBeNull();
-  expect(settings.personalityName).not.toBe("Zippy");
   vi.unstubAllEnvs();
 });
 
