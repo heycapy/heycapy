@@ -2,6 +2,33 @@
 
 all notable changes to heycapy. versions follow [semver](https://semver.org): a patch version (0.3.1) only fixes things, a minor version (0.4.0) adds features. the database migrates itself on start and migrations only go forward, so back up before upgrading (see the README).
 
+## 0.12.0
+
+keyboard shortcuts you can rebind, and items you can assign to more than one person.
+
+### new
+
+- keyboard shortcuts. press a prefix (`ctrl+;`, `cmd+;` on a mac) and then one key: `a` quick add, `d` add with details, `h` / `l` previous / next bucket, `1`-`9` a bucket by its tab, `t` today, `/` search, `c` capy, `m` the mic, `s` bucket settings, `,` tweaks, `?` the shortcut list. a chip shows while heycapy waits for the key. `esc` closes whatever is open
+- tweaks › keybindings: change the prefix and every shortcut. it suggests prefixes your browser doesn't use, warns about known clashes and can test that your prefix reaches the page. "show key hints" puts the keys on the buttons. the tab only shows where there is a mouse or trackpad
+- assign an item to several people. in a shared bucket the item form has a person picker, rows show a stack of avatars, and a new item is for everyone in the bucket until you narrow it. one tick completes the item for everyone
+- the telegram bot shows who an item is for and has a "👥 assign" button on the item menu and after adding to a shared bucket. shared buckets carry a 👥 in the bucket lists
+- capy takes a list of people when it adds or edits an item (names, `me` or `everyone`), and adds for everyone unless you say otherwise
+- two free tasks in the getting started guide: open tweaks and open the shortcut list (the shortcut one only where there is a mouse or trackpad). the guide has 19 tasks, 17 of them pay, still 48 credits in all
+- every toast has a cross to dismiss it
+- the bucket tabs scroll sideways with a mouse wheel
+
+### changes
+
+- **reminders go to the people an item is assigned to, and only them.** an item nobody is assigned to stays in the list but pings no one. items that had no assignee before 0.12.0 stop reminding, and items that had one keep just that person. assign them to someone to bring reminders back
+- the "anyone" button is gone, "everyone" replaces it. someone who joins a bucket later is not added to its old items. a member who leaves is dropped from the items they were on
+- **moved shortcuts:** capy's `ctrl+\` is now prefix `c`, and the mic's `ctrl+shift+m` is prefix `m`. `esc` closes capy
+- the export lists `assignedTo` as a list of names instead of one name
+- capy is a plain "capy" button in both looks
+
+### upgrading
+
+- two migrations (`0054` keybindings, `0055` item assignees). back up first, as always, then `docker compose up -d --build`
+
 ## 0.11.2
 
 ticking tells you it's done and lets you undo, the first-run picker also picks your theme, and capy knows which of your buckets are shared.

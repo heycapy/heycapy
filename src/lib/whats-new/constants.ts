@@ -4,6 +4,19 @@ export type Release = { version: string; notes: ReleaseNote[] };
 
 export const RELEASES: [Release, ...Release[]] = [
   {
+    version: "0.12.0",
+    notes: [
+      {
+        title: "keyboard shortcuts",
+        text: "press ctrl+; (cmd+; on a mac), then a key: a to add, t for today, c for capy, ? for the full list. change any of them in tweaks › keybindings. capy and the mic moved under this prefix.",
+      },
+      {
+        title: "assign to several people",
+        text: "in a shared bucket an item can be for more than one person. reminders go only to the people it's assigned to, so items nobody is assigned to no longer remind anyone.",
+      },
+    ],
+  },
+  {
     version: "0.11.2",
     notes: [
       {
