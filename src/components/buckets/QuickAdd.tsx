@@ -3,6 +3,7 @@ import { notify } from "@/components/ui/notify";
 import { addItemAction } from "@/app/(app)/actions";
 import { IconButton } from "@/components/ui/IconButton";
 import { InputBar, InputBarAction, InputBarIcon } from "@/components/ui/InputBar";
+import { KeyHint } from "@/components/ui/KeyHint";
 import { ITEM_TITLE_MAX_LENGTH, MOBILE_MEDIA_QUERY } from "@/constants";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { memberName } from "@/lib/buckets/member-name";
@@ -211,7 +212,15 @@ export function QuickAdd({ bucket, inputRef, onAdded, onExpand, targets }: Quick
           autoComplete="off"
           className="placeholder:text-muted-foreground/50 font-ui min-w-0 flex-1 bg-transparent py-1 text-base outline-none sm:text-sm"
         />
-        {!isPhone && <InputBarIcon icon="expand" label="add with details" onClick={onExpand} />}
+        <KeyHint action="quick-add" className="ml-0" />
+        {!isPhone && (
+          <InputBarIcon
+            icon="expand"
+            label="add with details"
+            hint="add-with-details"
+            onClick={onExpand}
+          />
+        )}
         {text.trim() && (
           <InputBarAction icon="arrow-up" label="add" name="add item" onClick={submit} />
         )}

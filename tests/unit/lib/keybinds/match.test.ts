@@ -3,6 +3,7 @@ import {
   defaultBindings,
   defaultPrefix,
   findConflict,
+  formatKey,
   formatPrefix,
   isTypingTarget,
   matchesPrefix,
@@ -139,6 +140,22 @@ describe("formatPrefix", () => {
     expect(formatPrefix({ key: "k", ctrl: true, meta: false, alt: true, shift: true }, false)).toBe(
       "Ctrl+Alt+Shift+K"
     );
+  });
+});
+
+describe("formatKey", () => {
+  it("spells out a key you can't see, and shows the rest as printed", () => {
+    expect(formatKey(" ")).toBe("Space");
+    expect(formatKey("a")).toBe("a");
+    expect(formatKey("?")).toBe("?");
+  });
+});
+
+describe("formatPrefix with Space", () => {
+  it("names the key instead of leaving it blank", () => {
+    expect(
+      formatPrefix({ key: " ", ctrl: true, meta: false, alt: false, shift: false }, false)
+    ).toBe("Ctrl+Space");
   });
 });
 

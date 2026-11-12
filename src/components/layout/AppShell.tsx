@@ -29,6 +29,7 @@ import { useKeybinds } from "@/hooks/useKeybinds";
 import { keybindActions } from "./keybind-actions";
 import { PrefixIndicator } from "./PrefixIndicator";
 import { CheatSheet } from "./CheatSheet";
+import { KeybindsProvider } from "@/components/providers/KeybindsProvider";
 import type { StoredKeybinds } from "@/lib/keybinds/schema";
 import { useChatDocked } from "@/components/capy/useChatDocked";
 import { cn } from "@/lib/utils";
@@ -155,7 +156,7 @@ export function AppShell({
   }, []);
 
   return (
-    <>
+    <KeybindsProvider keybinds={keybinds}>
       <PurchaseReturn onPaid={() => openSettings("credits")} />
       <div
         data-side-column={sideColumn || undefined}
@@ -209,9 +210,9 @@ export function AppShell({
         onHiddenChange={setGuideHidden}
       />
       <SearchDrawer />
-      <CheatSheet keybinds={keybinds} />
-      <PrefixIndicator keybinds={keybinds} />
+      <CheatSheet />
+      <PrefixIndicator />
       <CapyChat appUrl={appUrl} />
-    </>
+    </KeybindsProvider>
   );
 }

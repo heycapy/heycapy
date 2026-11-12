@@ -6,6 +6,8 @@ import { IconButton } from "./IconButton";
 import { Icon } from "./Icon";
 import { Tooltip } from "./Tooltip";
 import type { IconName } from "./icons";
+import { KeyHint } from "./KeyHint";
+import type { KeybindActionId } from "@/lib/keybinds/constants";
 
 export function InputBar({ className, children }: { className?: string; children: ReactNode }) {
   return (
@@ -19,21 +21,25 @@ type InputBarIconProps = {
   icon: IconName;
   label: string;
   tip?: string;
+  hint?: KeybindActionId;
   disabled?: boolean;
   onClick: () => void;
 };
 
-export function InputBarIcon({ icon, label, tip, disabled, onClick }: InputBarIconProps) {
+export function InputBarIcon({ icon, label, tip, hint, disabled, onClick }: InputBarIconProps) {
   return (
-    <Tooltip text={tip ?? label} className="shrink-0">
-      <IconButton
-        icon={icon}
-        aria-label={label}
-        disabled={disabled}
-        onClick={onClick}
-        className="flex size-(--add-icon) items-center justify-center disabled:opacity-40"
-      />
-    </Tooltip>
+    <span className="flex shrink-0 items-center">
+      <Tooltip text={tip ?? label} className="shrink-0">
+        <IconButton
+          icon={icon}
+          aria-label={label}
+          disabled={disabled}
+          onClick={onClick}
+          className="flex size-(--add-icon) items-center justify-center disabled:opacity-40"
+        />
+      </Tooltip>
+      {hint && <KeyHint action={hint} className="ml-0" />}
+    </span>
   );
 }
 

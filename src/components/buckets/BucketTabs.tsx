@@ -12,6 +12,9 @@ import { useLateBuckets } from "./useLateBuckets";
 import { ReorderTab } from "./ReorderTab";
 import { reorderBucketsAction } from "@/app/(app)/bucket-actions";
 import type { ViewerBucket } from "@/lib/buckets/access";
+import { KeyHint } from "@/components/ui/KeyHint";
+import { BUCKET_ACTIONS } from "@/lib/keybinds/constants";
+import type { KeybindActionId } from "@/lib/keybinds/constants";
 import { IconButton } from "@/components/ui/IconButton";
 
 type BucketTabsProps = {
@@ -26,6 +29,7 @@ export function PlaceTab({
   lateHintId,
   onSelect,
   onSettings,
+  hint,
   children,
 }: {
   active: boolean;
@@ -34,6 +38,7 @@ export function PlaceTab({
   lateHintId?: string;
   onSelect: () => void;
   onSettings?: () => void;
+  hint?: KeybindActionId;
   children: ReactNode;
 }) {
   const pill = useLookParts().bucketTab === "pill";
@@ -81,18 +86,24 @@ export function PlaceTab({
             />
           )}
         </span>
+        {hint && <KeyHint action={hint} />}
       </button>
       {onSettings && (
-        <IconButton
-          icon="sliders"
-          onClick={onSettings}
-          aria-label="bucket settings"
-          className={cn("-ml-1 flex items-center pr-3", pill ? "h-(--control-h)" : "h-11")}
-        />
+        <>
+          <IconButton
+            icon="sliders"
+            onClick={onSettings}
+            aria-label="bucket settings"
+            className={cn("-ml-1 flex items-center pr-3", pill ? "h-(--control-h)" : "h-11")}
+          />
+          <KeyHint action="bucket-settings" className="mr-3 -ml-2" />
+        </>
       )}
     </span>
   );
 }
+
+const BUCKET_NUMBER_ACTIONS = BUCKET_ACTIONS.map((a) => a.id);
 
 // Search stays put at the start while the places scroll beside it
 export function BucketTabs({ buckets, activeId, todayOpen }: BucketTabsProps) {
@@ -157,6 +168,7 @@ export function BucketTabs({ buckets, activeId, todayOpen }: BucketTabsProps) {
           className="shrink-0 py-0 pr-3 pl-4 sm:pl-3"
         >
           <Icon name="search" />
+          <KeyHint action="search" className="ml-1" />
         </TextButton>
         <span aria-hidden className="bg-border h-4 w-px shrink-0 self-center" />
         <motion.div
@@ -169,6 +181,7 @@ export function BucketTabs({ buckets, activeId, todayOpen }: BucketTabsProps) {
             color="var(--foreground)"
             lateHintId={late.size > 0 ? lateHint : undefined}
             onSelect={openToday}
+            hint="today"
           >
             <span className="flex items-center gap-1.5">
               <Icon name="clock" />
@@ -182,7 +195,7 @@ export function BucketTabs({ buckets, activeId, todayOpen }: BucketTabsProps) {
             onReorder={setOrder}
             className="flex shrink-0"
           >
-            {order.map((id) => {
+            {order.map((id, index) => {
               const bucket = byId.get(id);
               if (!bucket) return null;
               const active = !todayOpen && bucket.id === activeId;
@@ -200,6 +213,7 @@ export function BucketTabs({ buckets, activeId, todayOpen }: BucketTabsProps) {
                     lateHintId={late.has(bucket.id) ? lateHint : undefined}
                     onSelect={() => setActiveBucketId(bucket.id)}
                     onSettings={active ? () => requestBucketSettings(bucket.id) : undefined}
+                    hint={BUCKET_NUMBER_ACTIONS[index]}
                   >
                     {bucket.icon ? `${bucket.icon} ${bucket.name}` : bucket.name}
                   </PlaceTab>

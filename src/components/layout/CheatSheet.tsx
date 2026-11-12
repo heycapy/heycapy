@@ -3,10 +3,11 @@ import { Modal, ModalHeader } from "@/components/ui/Modal";
 import { useKeybindPrefix } from "@/hooks/useKeybindPrefix";
 import { cheatSheetRows } from "@/lib/keybinds/cheat-sheet";
 import { mergeBindings } from "@/lib/keybinds/match";
-import type { StoredKeybinds } from "@/lib/keybinds/schema";
+import { useStoredKeybinds } from "@/components/providers/KeybindsProvider";
 import { useLayoutStore } from "@/store/layout";
 
-export function CheatSheet({ keybinds }: { keybinds: StoredKeybinds }) {
+export function CheatSheet() {
+  const keybinds = useStoredKeybinds();
   const open = useLayoutStore((s) => s.cheatSheetOpen);
   const setOpen = useLayoutStore((s) => s.setCheatSheetOpen);
   const { label } = useKeybindPrefix(keybinds);

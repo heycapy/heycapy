@@ -1,5 +1,6 @@
 import type { SettingsTab } from "./SettingsSheet";
 import { Tab } from "@/components/ui/Tab";
+import { cn } from "@/lib/utils";
 
 type SettingsTabBarProps = {
   tab: SettingsTab;
@@ -11,6 +12,7 @@ type SettingsTabBarProps = {
 export function SettingsTabBar({ tab, hasCredits, adminUser, onTab }: SettingsTabBarProps) {
   const tabs: SettingsTab[] = [
     "appearance",
+    "keybindings",
     "ai",
     ...(hasCredits ? (["credits"] as const) : []),
     "notifications",
@@ -21,7 +23,12 @@ export function SettingsTabBar({ tab, hasCredits, adminUser, onTab }: SettingsTa
   return (
     <div className="border-border scrollbar-hide flex gap-0.5 overflow-x-auto border-b px-1.5 py-1">
       {tabs.map((t) => (
-        <Tab key={t} active={tab === t} onClick={() => onTab(t)} className="px-1.5 py-1.5">
+        <Tab
+          key={t}
+          active={tab === t}
+          onClick={() => onTab(t)}
+          className={cn("px-1.5 py-1.5", t === "keybindings" && "pointer-coarse:hidden")}
+        >
           {t}
         </Tab>
       ))}

@@ -1,9 +1,10 @@
 import { Kbd } from "@/components/ui/Kbd";
 import { useKeybindPrefix } from "@/hooks/useKeybindPrefix";
 import { useLayoutStore } from "@/store/layout";
-import type { StoredKeybinds } from "@/lib/keybinds/schema";
+import { useStoredKeybinds } from "@/components/providers/KeybindsProvider";
 
-export function PrefixIndicator({ keybinds }: { keybinds: StoredKeybinds }) {
+export function PrefixIndicator() {
+  const keybinds = useStoredKeybinds();
   const active = useLayoutStore((s) => s.prefixActive);
   const { label } = useKeybindPrefix(keybinds);
 

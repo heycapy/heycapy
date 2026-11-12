@@ -220,6 +220,7 @@ export const ChatInputBar = forwardRef<ChatInputBarHandle, Props>(function ChatI
               icon="mic"
               label="Record voice"
               tip="voice input"
+              hint="mic"
               disabled={streaming}
               onClick={() => void handleMicClick()}
             />

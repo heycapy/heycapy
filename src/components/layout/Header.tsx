@@ -3,6 +3,7 @@ import { Icon } from "@/components/ui/Icon";
 import { useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { TextButton } from "@/components/ui/TextButton";
+import { KeyHint } from "@/components/ui/KeyHint";
 import { useLayoutStore } from "@/store/layout";
 import { logoutAction, logoutEverywhereAction } from "@/app/(app)/actions";
 import { clearSignedInState } from "@/store/signedOut";
@@ -178,6 +179,7 @@ function GlobalMenu({
               <MenuItem onClick={() => pick(onSettings)} className="gap-2.5 py-2">
                 <Icon name="sliders" />
                 tweaks
+                <KeyHint action="tweaks" className="ml-auto" />
               </MenuItem>
               <MenuItem onClick={() => pick(onJoin)} className="gap-2.5 py-2">
                 <Icon name="user-plus" />
@@ -251,6 +253,7 @@ function ChatButton() {
       className={cn("max-w-32", chatOpen && "text-foreground")}
     >
       {CAPY_NAME}
+      <KeyHint action="capy" />
     </TextButton>
   );
 }

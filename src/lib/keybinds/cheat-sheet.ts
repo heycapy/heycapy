@@ -1,4 +1,5 @@
 import { BUCKET_NUMBERS, KEYBIND_ACTIONS } from "./constants";
+import { formatKey } from "./match";
 import type { KeyBindings } from "./match";
 
 export type CheatSheetRow = {
@@ -12,7 +13,7 @@ export function cheatSheetRows(bindings: KeyBindings): CheatSheetRow[] {
   const rows: CheatSheetRow[] = [];
   for (const action of KEYBIND_ACTIONS) {
     if (!BUCKET_ACTION_ID.test(action.id)) {
-      rows.push({ label: action.label, key: bindings[action.id] });
+      rows.push({ label: action.label, key: formatKey(bindings[action.id]) });
       continue;
     }
     if (action.id === "bucket-1") {

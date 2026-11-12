@@ -35,6 +35,10 @@ type LayoutStore = {
   micRequest: number;
   requestMic: () => void;
 
+  // tweaks is recording or testing a key: the shortcuts stand down so that key reaches it
+  keyCapture: boolean;
+  setKeyCapture: (capturing: boolean) => void;
+
   cheatSheetOpen: boolean;
   setCheatSheetOpen: (open: boolean) => void;
 };
@@ -81,6 +85,9 @@ export const useLayoutStore = create<LayoutStore>()((set, get) => {
 
     micRequest: 0,
     requestMic: () => set((s) => ({ micRequest: s.micRequest + 1 })),
+
+    keyCapture: false,
+    setKeyCapture: (capturing) => set({ keyCapture: capturing }),
 
     cheatSheetOpen: false,
     setCheatSheetOpen: (open) => set({ cheatSheetOpen: open }),

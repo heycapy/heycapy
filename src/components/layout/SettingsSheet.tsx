@@ -12,6 +12,7 @@ import { useLeaveGuard } from "@/hooks/useLeaveGuard";
 import { useAIStatus } from "@/hooks/useAIStatus";
 import { AppearanceTab, NotificationsTab, AITab, PersonalityTab } from "./SettingsTabs";
 import { AccountTab } from "./AccountTab";
+import { KeyboardSettings } from "./KeyboardSettings";
 import { normalizeUsername } from "@/lib/account/username-rules";
 import { SettingsTabBar } from "./SettingsTabBar";
 import { SettingsFrame } from "./SettingsFrame";
@@ -28,7 +29,14 @@ import { NotificationDefaults } from "@/types/rules";
 
 type Settings = typeof userSettings.$inferSelect;
 export type SettingsTab =
-  "appearance" | "ai" | "credits" | "notifications" | "personality" | "account" | "system";
+  | "appearance"
+  | "keybindings"
+  | "ai"
+  | "credits"
+  | "notifications"
+  | "personality"
+  | "account"
+  | "system";
 
 type SettingsSheetProps = {
   open: boolean;
@@ -259,6 +267,7 @@ export function SettingsSheet({ open, initialTab, onClose }: SettingsSheetProps)
                 pending={pending}
               />
             )}
+            {tab === "keybindings" && <KeyboardSettings />}
             {tab === "notifications" && (
               <NotificationsTab
                 notificationsEmail={notificationsEmail}

@@ -33,7 +33,7 @@ export function useKeybinds(
     }
 
     function onKeyDown(e: KeyboardEvent) {
-      if (e.repeat) return;
+      if (e.repeat || useLayoutStore.getState().keyCapture) return;
       if (armed) {
         if (isModifierKey(e)) return;
         disarm();
@@ -52,7 +52,9 @@ export function useKeybinds(
     }
 
     function onEscapeKey(e: KeyboardEvent) {
-      if (e.key === ESCAPE_KEY && !e.defaultPrevented) escape(e);
+      if (e.key === ESCAPE_KEY && !e.defaultPrevented && !useLayoutStore.getState().keyCapture) {
+        escape(e);
+      }
     }
 
     window.addEventListener("keydown", onKeyDown, true);

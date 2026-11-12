@@ -88,13 +88,19 @@ export function findConflict(
   return other?.id ?? null;
 }
 
+export function formatKey(key: string): string {
+  return key === " " ? "Space" : key;
+}
+
 export function formatPrefix(prefix: Prefix, isMac: boolean): string {
   const parts = [
     prefix.ctrl && "Ctrl",
     prefix.alt && (isMac ? "Option" : "Alt"),
     prefix.shift && "Shift",
     prefix.meta && (isMac ? "Cmd" : "Win"),
-    prefix.key.length === 1 ? prefix.key.toUpperCase() : prefix.key,
+    prefix.key.length === 1 && prefix.key !== " "
+      ? prefix.key.toUpperCase()
+      : formatKey(prefix.key),
   ];
   return parts.filter(Boolean).join("+");
 }
