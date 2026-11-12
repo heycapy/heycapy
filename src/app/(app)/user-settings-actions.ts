@@ -12,6 +12,7 @@ import { isHosted } from "@/lib/credits";
 import { db } from "@/lib/db";
 import { users, userSettings } from "@/lib/db/schema";
 import { encryptValue, decryptValue } from "@/lib/crypto";
+import { storedKeybindsSchema } from "@/lib/keybinds/schema";
 import { refreshUserReminders } from "@/lib/reminders/refresh";
 import {
   applyNotificationDefaults,
@@ -498,6 +499,19 @@ export async function setControlSizeAction(size: string): Promise<ActionResult> 
   await db
     .update(userSettings)
     .set({ controlSize: parsed.data })
+    .where(eq(userSettings.userId, session.userId));
+  revalidatePath("/", "layout");
+  return { ok: true };
+}
+
+export async function saveKeybindsAction(input: unknown): Promise<ActionResult> {
+  const session = await getSession();
+  if (!session) return { ok: false, error: "Unauthorized" };
+  const parsed = storedKeybindsSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "Those keys can't be saved" };
+  await db
+    .update(userSettings)
+    .set({ keybinds: parsed.data })
     .where(eq(userSettings.userId, session.userId));
   revalidatePath("/", "layout");
   return { ok: true };

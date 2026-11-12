@@ -379,6 +379,13 @@
       "when": 1794460501600,
       "tag": "0053_drop_personality_name",
       "breakpoints": true
+    },
+    {
+      "idx": 54,
+      "version": "6",
+      "when": 1794472880284,
+      "tag": "0054_user_keybinds",
+      "breakpoints": true
     }
   ]
 }

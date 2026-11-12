@@ -1,0 +1,1 @@
+ALTER TABLE `user_settings` ADD `keybinds` text DEFAULT '{}' NOT NULL;

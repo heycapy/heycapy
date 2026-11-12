@@ -19,6 +19,7 @@ import {
 } from "drizzle-orm/sqlite-core";
 import { sql } from "drizzle-orm";
 import type { BucketSchema } from "@/types/rules";
+import type { StoredKeybinds } from "@/lib/keybinds/schema";
 
 // users
 
@@ -102,6 +103,7 @@ export const userSettings = sqliteTable("user_settings", {
   tickSound: text("tick_sound", { enum: TICK_SOUNDS }).notNull().default(DEFAULT_TICK_SOUND),
   reduceMotion: integer("reduce_motion", { mode: "boolean" }).notNull().default(false),
   textSize: text("text_size", { enum: TEXT_SIZES }).notNull().default(TEXT_SIZE.default),
+  keybinds: text("keybinds", { mode: "json" }).$type<StoredKeybinds>().notNull().default({}),
   timezone: text("timezone").notNull().default("UTC"),
   personalityTone: text("personality_tone", {
     enum: ["chill", "professional", "motivational", "rude_funny", "custom"],
