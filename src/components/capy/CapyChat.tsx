@@ -1,4 +1,4 @@
-import { useEffect, useEffectEvent, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { useChatStream } from "./useChatStream";
@@ -20,7 +20,7 @@ export function CapyChat({ appUrl }: { appUrl: string | null }) {
   const chatState = useLayoutStore((s) => s.chatState);
   const setChatState = useLayoutStore((s) => s.setChatState);
   const bottomBarShown = useLayoutStore((s) => s.bottomBarShown);
-  const { canDock, docked } = useChatDocked();
+  const { docked } = useChatDocked();
   const openItem = useUIStore((s) => s.openItem);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -62,24 +62,6 @@ export function CapyChat({ appUrl }: { appUrl: string | null }) {
       return () => clearTimeout(timer);
     }
   }, [chatState, isMobile]);
-
-  const toggleFromKeyboard = useEffectEvent(() =>
-    setChatState((s) => {
-      if (s === "closed" || s === "minimized") return "open";
-      return canDock ? "closed" : "minimized";
-    })
-  );
-
-  useEffect(() => {
-    function onKey(e: KeyboardEvent) {
-      if ((e.ctrlKey || e.metaKey) && e.key === "\\") {
-        e.preventDefault();
-        toggleFromKeyboard();
-      }
-    }
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, []);
 
   const trigger = (
     <button

@@ -54,3 +54,34 @@ test("a quick tap on the mic never reaches the server and says to hold it longer
   expect(uploads).toBe(0);
   await expect(page.getByPlaceholder("ask capy...")).toHaveValue("");
 });
+
+test("the prefix then m starts and stops the mic while the chat is open", async ({ page }) => {
+  await page.route("**/api/transcribe", (route) => route.fulfill({ json: { text: "add eggs" } }));
+
+  await page.goto("/");
+  await page.keyboard.press("Control+;");
+  await page.keyboard.press("m");
+  await expect(page.getByText(/^capy listening/)).toBeHidden();
+
+  await page.getByRole("button", { name: "Open chat" }).click();
+  await page.keyboard.press("Control+;");
+  await page.keyboard.press("m");
+  await expect(page.getByText(/^capy listening\.\.\. \d+:\d+$/)).toBeVisible();
+
+  await page.waitForTimeout(1000);
+  await page.keyboard.press("Control+;");
+  await page.keyboard.press("m");
+  await expect(page.getByPlaceholder("ask capy...")).toHaveValue("add eggs");
+});
+
+test("the old Ctrl+Shift+M and Ctrl+\\ shortcuts no longer do anything", async ({ page }) => {
+  await page.goto("/");
+  await page.keyboard.press("Control+\\");
+  await expect(page.getByPlaceholder("ask capy...")).toBeHidden();
+
+  await page.getByRole("button", { name: "Open chat" }).click();
+  await page.keyboard.press("Control+Shift+M");
+  await expect(page.getByText(/^capy listening/)).toBeHidden();
+  await page.keyboard.press("Control+\\");
+  await expect(page.getByPlaceholder("ask capy...")).toBeVisible();
+});

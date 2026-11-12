@@ -31,6 +31,10 @@ type LayoutStore = {
   prefixActive: boolean;
   setPrefixActive: (active: boolean) => void;
 
+  // bumped by the mic key; the open chat's input bar starts or stops recording on each bump
+  micRequest: number;
+  requestMic: () => void;
+
   cheatSheetOpen: boolean;
   setCheatSheetOpen: (open: boolean) => void;
 };
@@ -74,6 +78,9 @@ export const useLayoutStore = create<LayoutStore>()((set, get) => {
 
     prefixActive: false,
     setPrefixActive: (active) => set({ prefixActive: active }),
+
+    micRequest: 0,
+    requestMic: () => set((s) => ({ micRequest: s.micRequest + 1 })),
 
     cheatSheetOpen: false,
     setCheatSheetOpen: (open) => set({ cheatSheetOpen: open }),

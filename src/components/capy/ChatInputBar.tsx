@@ -5,6 +5,7 @@ import { InputBar, InputBarAction, InputBarIcon } from "@/components/ui/InputBar
 import { useLookParts } from "@/components/looks/LookProvider";
 import { Sprite } from "./Sprite";
 import { CAPY_NAME, VOICE_MAX_SECONDS } from "@/constants";
+import { useLayoutStore } from "@/store/layout";
 import { isTooShort, recordingFileName } from "./recording";
 
 type Props = {
@@ -59,16 +60,12 @@ export const ChatInputBar = forwardRef<ChatInputBarHandle, Props>(function ChatI
     return () => clearInterval(id);
   }, [recording]);
 
-  // Ctrl+Shift+M keybinding
+  const micRequest = useLayoutStore((s) => s.micRequest);
+  const handledMicRequest = useRef(micRequest);
   useEffect(() => {
-    function onKey(e: KeyboardEvent) {
-      if (e.ctrlKey && e.shiftKey && e.key === "M") {
-        e.preventDefault();
-        void handleMicClick();
-      }
-    }
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    if (micRequest === handledMicRequest.current) return;
+    handledMicRequest.current = micRequest;
+    void handleMicClick();
   });
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
@@ -222,7 +219,7 @@ export const ChatInputBar = forwardRef<ChatInputBarHandle, Props>(function ChatI
             <InputBarIcon
               icon="mic"
               label="Record voice"
-              tip="voice input (ctrl+shift+m)"
+              tip="voice input"
               disabled={streaming}
               onClick={() => void handleMicClick()}
             />

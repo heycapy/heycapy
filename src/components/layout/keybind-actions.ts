@@ -56,6 +56,11 @@ export function keybindActions({ canDock, openTweaks }: KeybindActionsOptions) {
         return useLayoutStore.getState().setSearchOpen(true);
       case KEYBIND_ACTION.capy:
         return toggleChat();
+      case KEYBIND_ACTION.mic: {
+        const { chatState, requestMic } = useLayoutStore.getState();
+        if (chatState === "open" || chatState === "fullscreen") requestMic();
+        return;
+      }
       case KEYBIND_ACTION.bucketSettings:
         if (place !== "today") ui.requestBucketSettings(place);
         return;
