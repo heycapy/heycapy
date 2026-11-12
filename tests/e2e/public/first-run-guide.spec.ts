@@ -3,6 +3,7 @@ import Database from "better-sqlite3";
 import { E2E_DATABASE_FILE } from "../helpers/env";
 import { login, uniqueEmail } from "../helpers/login";
 import { activeBucketTitle, addItem } from "../helpers/buckets";
+import { NOTIFY_MS } from "@/components/ui/constants";
 import { E2E_STARTER_EMAIL_PREFIX, GUIDE_TASKS } from "@/lib/guide/constants";
 
 const TOTAL: number = GUIDE_TASKS.length;
@@ -165,6 +166,28 @@ test("a hint takes you to the place the task is done", async ({ page }) => {
   await openGuide(page);
   await task(page, "make a reminder repeat").getByRole("button", { name: "[ hint ]" }).click();
   await expect(page.getByText("new item", { exact: true })).toBeVisible();
+});
+
+test("a hint toast stays until closed, and the next hint replaces it", async ({ page }) => {
+  await signUp(page);
+
+  await openGuide(page);
+  await task(page, "pick a theme and look").getByRole("button", { name: "[ hint ]" }).click();
+  const first = page.getByText("pick any theme or look you like");
+  await expect(first).toBeVisible();
+  await page.waitForTimeout(NOTIFY_MS.info + 1500);
+  await expect(first).toBeVisible();
+
+  await page.getByRole("dialog", { name: "tweaks" }).getByRole("button", { name: "[ x ]" }).click();
+  await openGuide(page);
+  await task(page, "add a reminder").getByRole("button", { name: "[ hint ]" }).click();
+  await expect(first).toBeHidden();
+  const second = page
+    .getByRole("status")
+    .filter({ has: page.getByRole("button", { name: "dismiss" }) });
+  await expect(second).toHaveCount(1);
+  await second.getByRole("button", { name: "dismiss" }).click();
+  await expect(second).toBeHidden();
 });
 
 test("picking a theme ticks its task, the theme saves itself", async ({ page }) => {

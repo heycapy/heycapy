@@ -101,6 +101,7 @@ export const TOOLTIP_FLIP_PX = 48;
 // more than this and the oldest closes, so a burst never leaves a pile to clear by hand
 export const NOTIFY_LIMIT = 3;
 export const NOTIFY_MS = { info: 3000, action: 5000, error: 6000 } as const;
+export const NOTIFY_STAY = Infinity;
 
 export const DRAWER_DIM = 0.25;
 export const DRAWER_DIM_FADE = { duration: 0.3, ease: "easeOut" } as const;

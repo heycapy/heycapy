@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Header } from "./Header";
 import { SettingsSheet, type SettingsTab } from "./SettingsSheet";
 import { DeliveryFailureBanner } from "./DeliveryFailureBanner";
@@ -34,6 +34,7 @@ import type { StoredKeybinds } from "@/lib/keybinds/schema";
 import { useChatDocked } from "@/components/capy/useChatDocked";
 import { cn } from "@/lib/utils";
 import type { ChannelFailure } from "@/lib/notifications/failures";
+import { NOTIFY_STAY } from "@/components/ui/constants";
 import { notify } from "@/components/ui/notify";
 import { GuidePanel } from "@/components/guide/GuidePanel";
 import { HINT_TARGETS } from "@/components/guide/constants";
@@ -112,6 +113,8 @@ export function AppShell({
     void refreshGuide();
   }
 
+  const hintToast = useRef<string | number>(undefined);
+
   function showHint(task: GuideTask) {
     closeSidePanel("guide");
     const target = HINT_TARGETS[task.key];
@@ -120,7 +123,8 @@ export function AppShell({
     if (target.kind === "new-bucket") openCreateBucket();
     if (target.kind === "bucket-members") requestMembers();
     if (target.kind === "chat") setChatState("open");
-    notify.info(task.hint, { icon: "map" });
+    if (hintToast.current !== undefined) notify.dismiss(hintToast.current);
+    hintToast.current = notify.info(task.hint, { icon: "map", duration: NOTIFY_STAY });
   }
 
   function closeLookPicker() {
