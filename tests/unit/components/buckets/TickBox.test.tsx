@@ -29,6 +29,6 @@ it("draws a circle with a check when done in the round look", async () => {
     </LookProvider>
   );
   const check = tick.querySelector<SVGPathElement>(".rounded-full svg path");
-  expect(check?.getAttribute("d")).toBe("M20 6 9 17l-5-5");
+  expect(check?.getAttribute("d")).toBe("m4 12 5 5L20 6");
   await expect.poll(() => check?.style.opacity).toBe("1");
 });

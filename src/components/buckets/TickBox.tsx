@@ -56,9 +56,9 @@ function PixelTick({ checked, hover, pop }: TickProps) {
       <motion.path
         d="M4 4h6v6H4z"
         fill="currentColor"
-        style={{ transformOrigin: "center", transformBox: "fill-box" }}
+        style={{ transformOrigin: "bottom", transformBox: "fill-box" }}
         initial={false}
-        animate={checked ? { scale: TICK_POP.fill, opacity: 1 } : { scale: 0, opacity: 0 }}
+        animate={checked ? { scaleY: TICK_POP.fill, opacity: 1 } : { scaleY: 0, opacity: 0 }}
         transition={{ duration: pop ? TICK_POP.duration : 0 }}
       />
     </svg>
@@ -89,7 +89,7 @@ function RoundTick({ checked, hover, pop }: TickProps) {
         strokeLinejoin="round"
       >
         <motion.path
-          d="M20 6 9 17l-5-5"
+          d="m4 12 5 5L20 6"
           initial={false}
           animate={{ pathLength: checked ? 1 : 0, opacity: checked ? 1 : 0 }}
           transition={{ duration: pop ? TICK_POP.duration : 0 }}
