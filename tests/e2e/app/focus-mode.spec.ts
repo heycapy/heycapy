@@ -78,6 +78,27 @@ test("the bucket name switches bucket in focus mode, and focus mode survives a r
   await expect(page.getByRole("button", { name: "your menu", exact: true })).toBeVisible();
 });
 
+test("today is in the focus mode dropdown, and prefix t goes there", async ({ page }) => {
+  const { second } = await twoBuckets(page);
+  await focusFromTweaks(page);
+
+  await page.getByRole("button", { name: `${second}, change bucket` }).click();
+  await page
+    .getByRole("group", { name: "change bucket" })
+    .getByRole("button", { name: "today" })
+    .click();
+  await expect(page.getByRole("button", { name: "today, change bucket" })).toBeVisible();
+  await expect(exitFocus(page)).toBeVisible();
+
+  await page.keyboard.press("Control+;");
+  await page.keyboard.press("1");
+  await expect(page.getByRole("button", { name: "today, change bucket" })).toBeHidden();
+
+  await page.keyboard.press("Control+;");
+  await page.keyboard.press("t");
+  await expect(page.getByRole("button", { name: "today, change bucket" })).toBeVisible();
+});
+
 test("the prefix then f turns focus mode on and off", async ({ page }) => {
   const { second } = await twoBuckets(page);
 
@@ -85,11 +106,6 @@ test("the prefix then f turns focus mode on and off", async ({ page }) => {
   await page.keyboard.press("f");
   await expect(exitFocus(page)).toBeVisible();
   await expect(page.getByRole("button", { name: `${second}, change bucket` })).toBeVisible();
-
-  await page.keyboard.press("Control+;");
-  await page.keyboard.press("t");
-  await expect(exitFocus(page)).toBeVisible();
-  await expect(bucketTab(page, "today")).toBeHidden();
 
   await page.keyboard.press("Control+;");
   await page.keyboard.press("f");

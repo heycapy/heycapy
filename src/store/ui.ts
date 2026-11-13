@@ -94,7 +94,7 @@ export const useUIStore = create<UIStore>()(
       openToday: () => set({ todayOpen: true }),
 
       focusMode: false,
-      setFocusMode: (on) => set(on ? { focusMode: true, todayOpen: false } : { focusMode: false }),
+      setFocusMode: (on) => set({ focusMode: on }),
 
       addItemRequest: 0,
       addItemForm: false,

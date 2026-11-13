@@ -30,11 +30,12 @@ export function BucketsShell({ buckets: rawBuckets, focusBucketId = null }: Buck
   const setBottomBarShown = useLayoutStore((s) => s.setBottomBarShown);
   const activeBucketId = useUIStore((s) => s.activeBucketId);
   const setActiveBucketId = useUIStore((s) => s.setActiveBucketId);
+  const openToday = useUIStore((s) => s.openToday);
   const openItem = useUIStore((s) => s.openItem);
   const newBucketId = useUIStore((s) => s.newBucketId);
   const clearNewBucket = useUIStore((s) => s.clearNewBucket);
   const focusMode = useUIStore((s) => s.focusMode);
-  const todayOpen = useUIStore((s) => s.todayOpen && !s.focusMode);
+  const todayOpen = useUIStore((s) => s.todayOpen);
   // The open view is remembered per session, wait for it rather than flash the default
   const hydrated = useSyncExternalStore(
     (onChange) => useUIStore.persist.onFinishHydration(onChange),
@@ -160,9 +161,10 @@ export function BucketsShell({ buckets: rawBuckets, focusBucketId = null }: Buck
         <div className="max-w-column mx-auto w-full px-2 pt-3 pb-2">
           <BucketTargetPicker
             variant="heading"
-            bucket={activeBucket}
+            bucket={todayOpen ? null : activeBucket}
             buckets={buckets}
             onPick={setActiveBucketId}
+            today={openToday}
           />
         </div>
       ) : (

@@ -7,7 +7,6 @@ import { useUIStore } from "@/store/ui";
 import { useLayoutStore } from "@/store/layout";
 
 const HIDDEN_IN_FOCUS: KeybindActionId[] = [
-  KEYBIND_ACTION.today,
   KEYBIND_ACTION.search,
   KEYBIND_ACTION.capy,
   KEYBIND_ACTION.mic,
