@@ -5,7 +5,7 @@ import { ITEM_STATUS, TITLE_LINES_SHOWN } from "@/constants";
 import { ITEM_HIGHLIGHT_MS, JUST_ADDED_MS, TICK_SAVE_FAILED } from "./constants";
 import { notify } from "@/components/ui/notify";
 import { useUIStore } from "@/store/ui";
-import { useTickSound } from "@/components/looks/LookProvider";
+import { useLookParts, useTickSound } from "@/components/looks/LookProvider";
 import { playTickSound } from "@/lib/sounds/tick";
 import { TickBox } from "./TickBox";
 import { completionToggle } from "./completion";
@@ -123,6 +123,7 @@ export function ItemRow({
   const justAdded = useUIStore((s) => s.lastAddedItemId === item.id);
   const clearAdded = useUIStore((s) => s.clearAdded);
   const tickSound = useTickSound();
+  const roundTick = useLookParts().tickBox === "round";
   // Shown while saves are in flight and until the list hands over a fresh copy of the item,
   // so the box answers the tap at once and a quick second tap doesn't flicker
   const [tick, setTick] = useState<{ checked: boolean; of: ItemRow; saving: number } | null>(null);
@@ -231,7 +232,7 @@ export function ItemRow({
 
       <button
         onClick={() => onEditStart?.()}
-        className="flex min-w-0 flex-1 items-center gap-3 py-2.5 text-left"
+        className={cn("flex min-w-0 flex-1 items-start text-left", roundTick ? "py-3" : "py-2.5")}
       >
         <span className="min-w-0 flex-1">
           <span className="block text-sm">

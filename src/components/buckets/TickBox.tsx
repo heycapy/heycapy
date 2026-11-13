@@ -25,8 +25,8 @@ export function TickBox({ title, checked, color, onToggle }: TickBoxProps) {
       onClick={onToggle}
       style={checked ? { color } : undefined}
       className={cn(
-        "group/tick flex shrink-0 items-center justify-center disabled:cursor-default",
-        round ? "-ml-3 min-h-11 w-11" : "-ml-1.5 pr-2.5 pl-1.5",
+        "group/tick flex shrink-0 items-center justify-center self-start disabled:cursor-default",
+        round ? "-ml-3 h-11 w-11" : "-ml-1.5 h-10 pr-2.5 pl-1.5",
         !checked && "text-muted-foreground"
       )}
     >
