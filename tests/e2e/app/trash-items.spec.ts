@@ -1,6 +1,13 @@
 import { test, expect, type Locator, type Page } from "@playwright/test";
 import { authState } from "../helpers/auth";
-import { addItem, createAndSelectBucket, editForm, itemRow, uniqueName } from "../helpers/buckets";
+import {
+  openEditForm,
+  addItem,
+  createAndSelectBucket,
+  editForm,
+  itemRow,
+  uniqueName,
+} from "../helpers/buckets";
 import { option } from "../helpers/settings";
 
 test.use({ storageState: authState("trash-items") });
@@ -15,7 +22,7 @@ test.beforeEach(async ({ page }) => {
 });
 
 async function deleteItem(page: Page, title: string): Promise<void> {
-  await itemRow(page, title).click();
+  await openEditForm(page, title);
   const dialog = editForm(page);
   await dialog.getByRole("button", { name: "delete item" }).click();
   await expect(dialog).not.toBeVisible();

@@ -2,6 +2,7 @@ import { test, expect, type Locator, type Page } from "@playwright/test";
 import Database from "better-sqlite3";
 import { E2E_DATABASE_FILE } from "../helpers/env";
 import {
+  openEditForm,
   assignOnly,
   addItem,
   detailChip,
@@ -192,7 +193,7 @@ test("an owner can cancel an invite before it is used", async ({ page, browser }
 });
 
 async function deleteItem(page: Page, title: string) {
-  await itemRow(page, title).click();
+  await openEditForm(page, title);
   const dialog = editForm(page);
   await dialog.getByRole("button", { name: "delete item" }).click();
   await expect(itemRow(page, title)).toHaveCount(0);
@@ -357,7 +358,7 @@ test("an item can be assigned to a member, and a bucket nobody shares has no suc
 
   await friend.reload();
   await expect(itemRow(friend, title)).toContainText("you");
-  await itemRow(friend, title).click();
+  await openEditForm(friend, title);
   const edit = editForm(friend);
   await assignOnly(edit, null);
   await expect(detailChip(edit, "assignee")).toHaveAccessibleName("assignee");
@@ -687,7 +688,7 @@ test("people see each other's avatars next to their names, a generated one if ne
   await expect(itemRow(page, fromBox)).toContainText(sam);
   await expect(sams(itemRow(page, title))).toHaveAttribute("width", "16");
 
-  await itemRow(page, title).click();
+  await openEditForm(page, title);
   await editForm(page).getByRole("button", { name: "delete item" }).click();
   await expect(itemRow(page, title)).toHaveCount(0);
   await page.getByRole("button", { name: "your menu", exact: true }).click();

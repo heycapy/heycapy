@@ -239,5 +239,7 @@ export type ItemDetailPanel = (typeof ITEM_DETAIL_PANELS)[number];
 export const EDIT_ROW_GAP_PX = 8;
 export const OUTSIDE_TAP_CLICK_MS = 1000;
 export const DETAIL_EDITOR = "rounded-panel border-border border-frame flex flex-col gap-3 p-3";
+export const ITEM_LIST_SELECTOR = "[data-item-list]";
+export const INLINE_EDIT_SECONDS = 0.15;
 export const NEEDS_DATE = "pick a date first";
 export const EXPAND_SWIPE_PX = 24;

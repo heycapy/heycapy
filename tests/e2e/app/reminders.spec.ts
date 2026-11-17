@@ -1,9 +1,9 @@
 import { test, expect } from "@playwright/test";
 import { authState } from "../helpers/auth";
 import {
+  openEditForm,
   createAndSelectBucket,
   itemForm,
-  itemRow,
   uniqueName,
   openDetail,
   detailChip,
@@ -50,7 +50,7 @@ test("an item can have several reminders, added from presets or typed, and remov
   await dialog.getByRole("button", { name: "add", exact: true }).click();
   await expect(dialog).not.toBeVisible();
 
-  await itemRow(page, title).click();
+  await openEditForm(page, title);
   await openDetail(dialog, "reminders");
   await expect(chips).toHaveText(["3 days before ×", "1 hour before ×", "at time ×"]);
   await dialog.getByRole("button", { name: "remove reminder at time" }).click();
@@ -58,7 +58,7 @@ test("an item can have several reminders, added from presets or typed, and remov
   await dialog.getByRole("button", { name: "update", exact: true }).click();
   await expect(dialog).not.toBeVisible();
 
-  await itemRow(page, title).click();
+  await openEditForm(page, title);
   await openDetail(dialog, "reminders");
   await expect(chips).toHaveText(["3 days before ×", "1 hour before ×"]);
 });

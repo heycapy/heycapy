@@ -1,6 +1,7 @@
 import { test, expect, type Page } from "@playwright/test";
 import { authState } from "../helpers/auth";
 import {
+  openEditForm,
   createAndSelectBucket,
   itemForm,
   itemRow,
@@ -42,7 +43,7 @@ test("repeats on picked weekdays, then on the last day of the month", async ({ p
   const title = uniqueName("gym");
   await addMonthlyItemDueToday(page, title);
 
-  await itemRow(page, title).click();
+  await openEditForm(page, title);
   const dialog = itemDialog(page);
   await openDetail(dialog, "repeat");
   await dialog.getByRole("button", { name: "week", exact: true }).click();
@@ -55,7 +56,7 @@ test("repeats on picked weekdays, then on the last day of the month", async ({ p
   await expect(dialog).not.toBeVisible();
   await expect(itemRow(page, title)).toContainText("↺ mon, wed, fri");
 
-  await itemRow(page, title).click();
+  await openEditForm(page, title);
   await openDetail(dialog, "repeat");
   await expect(dialog.getByRole("button", { name: "wed", exact: true })).toHaveAttribute(
     "aria-pressed",

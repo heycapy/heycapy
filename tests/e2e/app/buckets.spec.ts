@@ -2,6 +2,7 @@ import { test, expect } from "@playwright/test";
 import { ITEM_GONE_ERROR } from "@/constants";
 import { authState } from "../helpers/auth";
 import {
+  openEditForm,
   activeBucketTitle,
   addItem,
   bucketTab,
@@ -70,7 +71,7 @@ test.describe("items", () => {
   test("edit dialog opens on item click", async ({ page }) => {
     const title = uniqueName("buy oat milk");
     await addItem(page, title);
-    await itemRow(page, title).click();
+    await openEditForm(page, title);
     await expect(page.getByText("edit item", { exact: true })).toBeVisible();
     await expect(page.locator("textarea")).toHaveValue(title);
   });
@@ -81,8 +82,8 @@ test.describe("items", () => {
     await addItem(page, title);
     await itemRow(page, title).click();
 
-    await page.locator("textarea").fill(updated);
-    await page.getByRole("button", { name: /update/i }).click();
+    await page.getByRole("textbox", { name: "title" }).fill(updated);
+    await page.keyboard.press("Enter");
     await expect(itemRow(page, updated)).toBeVisible();
     await expect(itemRow(page, title)).not.toBeVisible();
   });
@@ -93,19 +94,18 @@ test.describe("items", () => {
     await createAndSelectBucket(page, bucket);
     await addItem(page, title);
     await itemRow(page, title).click();
-    await page.locator("textarea").fill(uniqueName("buy almond milk"));
+    await page.getByRole("textbox", { name: "title" }).fill(uniqueName("buy almond milk"));
 
     const other = await context.newPage();
     await other.goto("/");
     await selectBucket(other, bucket);
-    await itemRow(other, title).click();
+    await openEditForm(other, title);
     await other.getByRole("button", { name: "delete item" }).click();
     await expect(itemRow(other, title)).not.toBeVisible();
     await other.close();
 
-    await page.getByRole("button", { name: /update/i }).click();
+    await page.keyboard.press("Enter");
     await expect(page.getByText(ITEM_GONE_ERROR)).toBeVisible();
-    await expect(page.getByText("edit item", { exact: true })).toBeVisible();
   });
 
   test("says so when an item is gone before it is deleted", async ({ page, context }) => {
@@ -113,12 +113,12 @@ test.describe("items", () => {
     const title = uniqueName("buy oat milk");
     await createAndSelectBucket(page, bucket);
     await addItem(page, title);
-    await itemRow(page, title).click();
+    await openEditForm(page, title);
 
     const other = await context.newPage();
     await other.goto("/");
     await selectBucket(other, bucket);
-    await itemRow(other, title).click();
+    await openEditForm(other, title);
     await other.getByRole("button", { name: "delete item" }).click();
     await expect(itemRow(other, title)).not.toBeVisible();
     await other.close();

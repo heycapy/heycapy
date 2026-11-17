@@ -1,6 +1,7 @@
 import { test, expect, type Page } from "@playwright/test";
 import { authState } from "../helpers/auth";
 import {
+  openEditForm,
   createAndSelectBucket,
   editForm,
   itemRow,
@@ -90,7 +91,7 @@ test("the edit dialog no longer shows reminder details", async ({ page }) => {
   const title = uniqueName("renew passport");
   await addDatedItem(page, title);
 
-  await itemRow(page, title).click();
+  await openEditForm(page, title);
   const edit = editForm(page);
   await expect(edit).toBeVisible();
   await expect(edit.getByRole("region", { name: "reminders" })).toHaveCount(0);

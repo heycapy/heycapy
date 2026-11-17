@@ -1,3 +1,5 @@
+import { DATE_SHORTCUTS } from "@/constants";
+import { addLocalDays, localDateString } from "@/lib/reminders/zoned";
 import {
   buildDeadline,
   deadlineDate,
@@ -78,4 +80,32 @@ export function firstMissingRequired(
   properties: Record<string, unknown> | undefined
 ): FieldDef | undefined {
   return fields?.find((f) => f.validation?.required && isEmpty(properties?.[f.key]));
+}
+
+export type InlineDraft = { title: string; deadline: string; recurring: RecurringConfig | null };
+
+// What changed since `saved`; an empty title is dropped, so closing on one keeps the old title
+export function inlinePatch(
+  saved: InlineDraft,
+  draft: InlineDraft,
+  clock: string | null
+): ItemPatch {
+  const patch: ItemPatch = {};
+  const title = draft.title.trim();
+  if (title && title !== saved.title) patch.title = title;
+  if (draft.deadline !== saved.deadline) {
+    patch.deadline = draft.deadline || null;
+    patch.clock = clock;
+  }
+  if (JSON.stringify(draft.recurring) !== JSON.stringify(saved.recurring)) {
+    patch.recurring = draft.recurring;
+  }
+  return patch;
+}
+
+export function dateShortcuts(now: Date, zone: string): { label: string; value: string }[] {
+  return DATE_SHORTCUTS.map(({ label, days }) => ({
+    label,
+    value: localDateString(addLocalDays(now, days, zone), zone),
+  }));
 }

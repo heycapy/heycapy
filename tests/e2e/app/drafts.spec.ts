@@ -1,6 +1,8 @@
 import { test, expect } from "@playwright/test";
 import { authState } from "../helpers/auth";
 import {
+  moreChip,
+  openEditForm,
   addBox,
   addItem,
   addItemButton,
@@ -149,7 +151,7 @@ test("on a wide screen the form grows out of the add box and folds back on a cli
   await itemRow(page, kept).click();
   await expect(form).toBeHidden();
   await expect(editForm(page)).toBeHidden();
-  await itemRow(page, kept).click();
+  await openEditForm(page, kept);
   await expect(editForm(page)).toBeVisible();
   await expect(detailChip(editForm(page), "status")).toBeVisible();
   await page.keyboard.press("Escape");
@@ -201,9 +203,7 @@ test("the item added last is marked for a few seconds, from the box or the form"
   await expect(marked).toHaveCount(0, { timeout: 6000 });
 });
 
-test("editing opens the same panel from the footer, and closing gives focus back to the row", async ({
-  page,
-}) => {
+test("editing opens the same panel from the footer", async ({ page }) => {
   await page.goto("/");
   const bucket = uniqueName("Edit");
   await createAndSelectBucket(page, bucket);
@@ -213,6 +213,7 @@ test("editing opens the same panel from the footer, and closing gives focus back
 
   await itemRow(page, title).focus();
   await page.keyboard.press("Enter");
+  await moreChip(page).click();
   const edit = editForm(page);
   await expect(edit).toContainText(`in ${bucket}`);
   await expect(edit.locator("textarea").first()).toHaveValue(title);
@@ -227,7 +228,6 @@ test("editing opens the same panel from the footer, and closing gives focus back
 
   await page.keyboard.press("Escape");
   await expect(edit).toBeHidden();
-  await expect(itemRow(page, title)).toBeFocused();
 });
 
 test("Ctrl/Cmd+Enter adds or saves from any field of the form", async ({ page }) => {
@@ -243,7 +243,7 @@ test("Ctrl/Cmd+Enter adds or saves from any field of the form", async ({ page })
   await expect(itemRow(page, title)).toBeVisible();
   await expect(page.locator("[data-just-added]")).toHaveCount(1);
 
-  await itemRow(page, title).click();
+  await openEditForm(page, title);
   const edit = editForm(page);
   await edit.locator("textarea").first().fill(`${title} today`);
   await detailChip(edit, "status").focus();
@@ -305,19 +305,19 @@ test("a click on the list only folds the open panel away, it doesn't open what's
   await addItem(page, second);
   const edit = editForm(page);
 
-  await itemRow(page, first).click();
+  await openEditForm(page, first);
   await expect(edit.locator("textarea").first()).toHaveValue(first);
   await itemRow(page, first).click();
   await expect(edit).toBeHidden();
   await page.waitForTimeout(300);
   await expect(edit).toBeHidden();
 
-  await itemRow(page, first).click();
+  await openEditForm(page, first);
   await expect(edit).toBeVisible();
   await itemRow(page, second).click();
   await expect(edit).toBeHidden();
 
-  await itemRow(page, second).click();
+  await openEditForm(page, second);
   await expect(edit.locator("textarea").first()).toHaveValue(second);
 });
 

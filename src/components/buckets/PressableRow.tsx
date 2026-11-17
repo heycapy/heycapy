@@ -2,13 +2,15 @@ import { useEffect, useRef, type MouseEvent, type PointerEvent, type ReactNode }
 import { LONG_PRESS_MS, LONG_PRESS_SLOP } from "./constants";
 import type { MenuAt } from "./ItemMenu";
 import { MODAL_PANEL_SELECTOR } from "@/components/ui/constants";
+import { cn } from "@/lib/utils";
 
 type PressableRowProps = {
   children: ReactNode;
+  dimmed?: boolean;
   onMenu: (at: MenuAt) => void;
 };
 
-export function PressableRow({ children, onMenu }: PressableRowProps) {
+export function PressableRow({ children, dimmed, onMenu }: PressableRowProps) {
   const pointerTypeRef = useRef("mouse");
   const pressStartRef = useRef<{ x: number; y: number } | null>(null);
   const pressAnchorRef = useRef<MenuAt | null>(null);
@@ -82,7 +84,10 @@ export function PressableRow({ children, onMenu }: PressableRowProps) {
 
   return (
     <div
-      className="bg-background select-none [-webkit-touch-callout:none]"
+      className={cn(
+        "bg-background transition-opacity duration-150 select-none [-webkit-touch-callout:none]",
+        dimmed && "pointer-events-none opacity-40"
+      )}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerEnd}

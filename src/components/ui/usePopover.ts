@@ -22,14 +22,17 @@ export function usePopover(size: { width: number; height: number }) {
       if (popoverRef.current?.contains(target) || triggerRef.current?.contains(target)) return;
       setOpen(false);
     }
+    // Capturing keeps this Escape from also reaching what the popover sits in, which would close it too
     function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") setOpen(false);
+      if (e.key !== "Escape") return;
+      e.stopPropagation();
+      setOpen(false);
     }
     document.addEventListener("pointerdown", onPointerDown);
-    document.addEventListener("keydown", onKey);
+    document.addEventListener("keydown", onKey, true);
     return () => {
       document.removeEventListener("pointerdown", onPointerDown);
-      document.removeEventListener("keydown", onKey);
+      document.removeEventListener("keydown", onKey, true);
     };
   }, [open]);
 

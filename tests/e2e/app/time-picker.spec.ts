@@ -1,6 +1,7 @@
 import { test, expect } from "@playwright/test";
 import { authState } from "../helpers/auth";
 import {
+  openEditForm,
   createAndSelectBucket,
   itemForm,
   itemRow,
@@ -34,7 +35,7 @@ test("a time can be picked from the grid or typed, and is saved", async ({ page 
   await dialog.getByRole("button", { name: "add", exact: true }).click();
   await expect(itemRow(page, title)).toContainText("4:30 pm");
 
-  await itemRow(page, title).click();
+  await openEditForm(page, title);
   await openDetail(dialog, "date");
   await dialog.getByRole("button", { name: /^time: / }).click();
   const typed = picker.getByRole("textbox", { name: "type a time" });
@@ -48,7 +49,7 @@ test("a time can be picked from the grid or typed, and is saved", async ({ page 
   await dialog.getByRole("button", { name: "update", exact: true }).click();
   await expect(itemRow(page, title)).toContainText("9:37 pm");
 
-  await itemRow(page, title).click();
+  await openEditForm(page, title);
   await openDetail(dialog, "date");
   await dialog.getByRole("button", { name: /^time: / }).click();
   await typed.pressSequentially("5");
@@ -81,7 +82,7 @@ test("a date without a time shows as all day, and a time can be taken off again"
   await dialog.getByRole("button", { name: "add", exact: true }).click();
   await expect(itemRow(page, title)).not.toContainText("9:00 am");
 
-  await itemRow(page, title).click();
+  await openEditForm(page, title);
   await openDetail(dialog, "date");
   await expect(dialog.getByRole("button", { name: "time: all day" })).toBeVisible();
   await dialog.getByRole("button", { name: /^time: / }).click();

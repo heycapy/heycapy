@@ -176,6 +176,7 @@ export function BucketContent({ bucket, accentColor, viewRef, panel }: BucketCon
           members={members}
           onReorder={list.reorder}
           onEdit={editor.startEditing}
+          onPatch={(item, patch) => void list.patchItem(item, patch)}
           onStatusChange={list.changeStatus}
           onMove={(item, deadline) => list.moveItem(item, deadline)}
           onDelete={(itemId) => void list.deleteItem(itemId)}

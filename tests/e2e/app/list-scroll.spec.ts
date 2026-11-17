@@ -2,6 +2,7 @@ import { test, expect, type Page } from "@playwright/test";
 import { login, uniqueEmail } from "../helpers/login";
 import { field, openSettings, option, saveSettings } from "../helpers/settings";
 import {
+  openEditForm,
   addItem,
   addBox,
   addItemButton,
@@ -50,7 +51,7 @@ test("with the add form open, scrolling over it leaves the list where it is", as
 
 test("editing the bottom row brings it above the edit form", async ({ page }) => {
   await bucketWithItems(page);
-  await itemRow(page, "eight").click();
+  await openEditForm(page, "eight");
   const panel = page.locator("[data-item-panel]");
   await expect(panel).toBeVisible();
   await expect

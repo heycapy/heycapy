@@ -1,6 +1,7 @@
 import { test, expect } from "@playwright/test";
 import { authState } from "../helpers/auth";
 import {
+  openEditForm,
   addItem,
   addItemButton,
   createAndSelectBucket,
@@ -184,7 +185,7 @@ test("on a wide screen the chat stands beside the list, which moves over for it"
   );
   await expect(panel.getByRole("button", { name: "Collapse" })).toHaveCount(0);
 
-  await row.click();
+  await openEditForm(page, title);
   await expect(editForm(page)).toBeVisible();
   await page.keyboard.press("Escape");
   await expect(editForm(page)).toBeHidden();
@@ -248,7 +249,7 @@ test("on a wide screen tweaks stands beside the list like the chat, and the list
   await input.fill("half typed");
   await input.press("Escape");
   await expect(input).toHaveValue("");
-  await itemRow(page, title).click();
+  await openEditForm(page, title);
   await expect(editForm(page)).toBeVisible();
   await page.keyboard.press("Escape");
   await expect(editForm(page)).toBeHidden();

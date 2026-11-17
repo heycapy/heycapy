@@ -66,6 +66,17 @@ export function itemRow(page: Page, title: string) {
   return page.getByRole("button", { name: title });
 }
 
+export function moreChip(page: Page) {
+  return page
+    .getByRole("group", { name: "edit item" })
+    .getByRole("button", { name: "more", exact: true });
+}
+
+export async function openEditForm(page: Page, title: string): Promise<void> {
+  await itemRow(page, title).click();
+  await moreChip(page).click();
+}
+
 export async function openBucketOnPhone(page: Page, name: string): Promise<void> {
   await page.goto("/");
   await createAndSelectBucket(page, name);

@@ -1,6 +1,8 @@
 import { describe, it, expect } from "vitest";
 import {
+  dateShortcuts,
   firstMissingRequired,
+  inlinePatch,
   pickDate,
   pickRepeat,
   pickTime,
@@ -156,5 +158,54 @@ describe("firstMissingRequired", () => {
 
   it("returns nothing without fields", () => {
     expect(firstMissingRequired(undefined, undefined)).toBeUndefined();
+  });
+});
+
+describe("inlinePatch", () => {
+  const saved = { title: "rent", deadline: "2026-11-20T09:00:00.000Z", recurring: null };
+
+  it("is empty when nothing changed", () => {
+    expect(inlinePatch(saved, { ...saved }, null)).toEqual({});
+  });
+
+  it("carries a changed title, trimmed", () => {
+    expect(inlinePatch(saved, { ...saved, title: "  pay rent " }, null)).toEqual({
+      title: "pay rent",
+    });
+  });
+
+  it("drops an empty title so the old one stays", () => {
+    expect(inlinePatch(saved, { ...saved, title: "   " }, null)).toEqual({});
+  });
+
+  it("carries a changed date with the clock it was read on", () => {
+    expect(
+      inlinePatch(saved, { ...saved, deadline: "2026-11-21T09:00:00.000Z" }, "Asia/Kolkata")
+    ).toEqual({ deadline: "2026-11-21T09:00:00.000Z", clock: "Asia/Kolkata" });
+  });
+
+  it("sends null for a cleared date", () => {
+    expect(inlinePatch(saved, { ...saved, deadline: "" }, null)).toEqual({
+      deadline: null,
+      clock: null,
+    });
+  });
+
+  it("carries a changed repeat, including one switched off", () => {
+    expect(
+      inlinePatch({ ...saved, recurring: monthly(20) }, { ...saved, recurring: null }, null)
+    ).toEqual({ recurring: null });
+  });
+});
+
+describe("dateShortcuts", () => {
+  it("counts days on the given clock, not the browser's", () => {
+    const late = new Date("2026-11-17T23:30:00Z");
+    expect(dateShortcuts(late, INDIA)).toEqual([
+      { label: "today", value: "2026-11-18" },
+      { label: "tomorrow", value: "2026-11-19" },
+      { label: "next week", value: "2026-11-25" },
+    ]);
+    expect(dateShortcuts(late, LONDON)[0]?.value).toBe("2026-11-17");
   });
 });

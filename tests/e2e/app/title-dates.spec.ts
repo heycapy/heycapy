@@ -1,6 +1,7 @@
 import { test, expect, type Page } from "@playwright/test";
 import { authState } from "../helpers/auth";
 import {
+  openEditForm,
   addBox,
   addItemButton,
   createAndSelectBucket,
@@ -119,7 +120,7 @@ test("editing an item never reads dates from its title", async ({ page }) => {
   await dialog.locator("textarea").first().fill(title);
   await dialog.getByRole("button", { name: "add", exact: true }).click();
 
-  await itemRow(page, title).click();
+  await openEditForm(page, title);
   const edit = editForm(page);
   await edit.locator("textarea").first().fill(`${title} tomorrow`);
   await expect(edit.getByTestId("title-date-highlight")).toHaveCount(0);

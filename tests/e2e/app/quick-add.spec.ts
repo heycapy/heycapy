@@ -1,6 +1,7 @@
 import { test, expect, type Page } from "@playwright/test";
 import { authState } from "../helpers/auth";
 import {
+  moreChip,
   addBox,
   addItemButton,
   itemRow,
@@ -99,6 +100,7 @@ test("the add box's expand opens a drawer: title and add on one row at the botto
   await expect(itemRow(page, name)).toBeVisible();
 
   expect(await tapAndReadFocus(page, () => itemRow(page, name).tap())).toBe("TEXTAREA");
+  await moreChip(page).tap();
   const edit = page.getByRole("dialog", { name: "edit item" });
   const editTitle = edit.locator("textarea");
   await expect(editTitle).toBeFocused();

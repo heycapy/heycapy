@@ -231,6 +231,7 @@ export function ItemRow({
       />
 
       <button
+        data-item-title
         onClick={() => onEditStart?.()}
         className={cn("flex min-w-0 flex-1 items-start text-left", roundTick ? "py-3" : "py-2.5")}
       >

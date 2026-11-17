@@ -4,7 +4,7 @@ import { OptionButton } from "@/components/ui/OptionButton";
 import { Icon } from "@/components/ui/Icon";
 import type { IconName } from "@/components/ui/icons";
 import { cn } from "@/lib/utils";
-import { useId } from "react";
+import { useId, type Ref } from "react";
 import { Tooltip } from "@/components/ui/Tooltip";
 
 type DetailChipProps = {
@@ -15,14 +15,26 @@ type DetailChipProps = {
   icon?: IconName;
   dot?: string;
   hint?: string;
+  ref?: Ref<HTMLButtonElement>;
   onClick: () => void;
 };
 
-export function DetailChip({ name, label, set, open, icon, dot, hint, onClick }: DetailChipProps) {
+export function DetailChip({
+  name,
+  label,
+  set,
+  open,
+  icon,
+  dot,
+  hint,
+  ref,
+  onClick,
+}: DetailChipProps) {
   const hintId = useId();
   return (
     <Tooltip text={hint} className="max-w-full">
       <OptionButton
+        ref={ref}
         active={open}
         aria-pressed={undefined}
         aria-expanded={open}

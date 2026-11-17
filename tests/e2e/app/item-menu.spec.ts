@@ -1,6 +1,7 @@
 import { test, expect } from "@playwright/test";
 import { authState } from "../helpers/auth";
 import {
+  openEditForm,
   addItem,
   createAndSelectBucket,
   editForm,
@@ -105,7 +106,7 @@ test("a repeating item moves only this time: the next one stays on schedule", as
   await addItem(page, title);
   await (await openItemMenu(page, title)).getByRole("button", { name: /^due next week / }).click();
 
-  await itemRow(page, title).click();
+  await openEditForm(page, title);
   const dialog = editForm(page);
   await openDetail(dialog, "repeat");
   await dialog.getByRole("button", { name: "on", exact: true }).click();
