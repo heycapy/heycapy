@@ -50,6 +50,7 @@ export function InlineItemEditor({
   onExit,
 }: InlineItemEditorProps) {
   const roundTick = useLookParts().tickBox === "round";
+  const done = item.status === ITEM_STATUS.completed;
   const clock = useItemClock(members, item.assigneeIds);
   const zone = clock.zone;
   const rootRef = useRef<HTMLDivElement>(null);
@@ -158,7 +159,9 @@ export function InlineItemEditor({
           className="invisible flex items-center justify-center pr-2.5"
         />
       )}
-      <TickBox title={item.title} checked={item.status === ITEM_STATUS.completed} color={color} />
+      <div className={cn("flex items-start", done && "opacity-45")}>
+        <TickBox title={item.title} checked={done} color={color} />
+      </div>
       <div className={cn("min-w-0 flex-1", roundTick ? "pt-3" : "pt-2.5")}>
         <InlineTitle
           value={draft.title}

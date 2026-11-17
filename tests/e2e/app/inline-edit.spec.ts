@@ -7,6 +7,14 @@ test.use({ storageState: authState("inline-edit") });
 const editor = (page: Page) => page.getByRole("group", { name: "edit item" });
 const titleInput = (page: Page) => editor(page).getByRole("textbox", { name: "title" });
 
+async function savedAfter(page: Page, act: () => Promise<void>) {
+  const saved = page.waitForResponse(
+    (r) => r.request().method() === "POST" && !!r.request().headers()["next-action"]
+  );
+  await act();
+  await saved;
+}
+
 async function bucketWith(page: Page, ...titles: string[]) {
   await page.goto("/");
   await createAndSelectBucket(page, uniqueName("Inline"));
@@ -46,7 +54,7 @@ test("Enter saves the title, closes the row and gives the focus back", async ({ 
 
   await itemRow(page, title).click();
   await titleInput(page).fill(renamed);
-  await page.keyboard.press("Enter");
+  await savedAfter(page, () => page.keyboard.press("Enter"));
 
   await expect(editor(page)).toHaveCount(0);
   await expect(itemRow(page, renamed)).toBeFocused();
@@ -135,7 +143,7 @@ test("a date from the shortcuts gets a time chip, and each chip opens without cl
   await expect(editor(page)).toBeVisible();
 
   await titleInput(page).click();
-  await page.keyboard.press("Enter");
+  await savedAfter(page, () => page.keyboard.press("Enter"));
   await expect(editor(page)).toHaveCount(0);
   await expect(itemRow(page, title)).toContainText("4:30 pm");
   await page.reload();
@@ -195,4 +203,32 @@ test("more opens the full form with what was just changed", async ({ page }) => 
   const form = page.getByRole("dialog", { name: "edit item", exact: true });
   await expect(form).toBeVisible();
   await expect(form.locator("textarea").first()).toHaveValue(renamed);
+});
+
+test("opening a done item doesn't replay its tick", async ({ page }) => {
+  const title = uniqueName("water plants");
+  await bucketWith(page, title);
+  await itemTick(page, title).click();
+  await expect(itemTick(page, title)).toBeChecked();
+  await page.waitForTimeout(800);
+
+  await page.evaluate(() => {
+    const seen = new Set<string>();
+    (window as unknown as { tickFrames: Set<string> }).tickFrames = seen;
+    const loop = () => {
+      const paths = document.querySelectorAll('[role="checkbox"] path');
+      const fill = paths[paths.length - 1];
+      if (fill) seen.add(getComputedStyle(fill).transform);
+      requestAnimationFrame(loop);
+    };
+    requestAnimationFrame(loop);
+  });
+  await itemRow(page, title).click();
+  await expect(editor(page)).toBeVisible();
+  await page.waitForTimeout(600);
+
+  const frames = await page.evaluate(() => [
+    ...(window as unknown as { tickFrames: Set<string> }).tickFrames,
+  ]);
+  expect(frames).toEqual(["none"]);
 });

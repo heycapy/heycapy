@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { motion, useReducedMotionConfig } from "framer-motion";
 import { useLookParts } from "@/components/looks/LookProvider";
 import { cn } from "@/lib/utils";
@@ -14,7 +15,13 @@ type TickBoxProps = {
 
 export function TickBox({ title, checked, color, onToggle }: TickBoxProps) {
   const round = useLookParts().tickBox === "round";
-  const pop = !useReducedMotionConfig();
+  const [shown, setShown] = useState(checked);
+  const [changed, setChanged] = useState(false);
+  if (checked !== shown) {
+    setShown(checked);
+    setChanged(true);
+  }
+  const pop = !useReducedMotionConfig() && changed;
   return (
     <button
       type="button"
