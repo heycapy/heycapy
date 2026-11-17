@@ -17,24 +17,15 @@ import { useTitleDate } from "./useTitleDate";
 import type { RecurringConfig, StatusDef, FieldDef } from "@/types/rules";
 import { useScrollToFirst } from "@/hooks/useScrollToFirst";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
+import { browserTimezone, deadlineDate, moveClock, timeOfDeadline } from "@/lib/time";
 import {
-  browserTimezone,
-  buildDeadline,
-  deadlineDate,
-  defaultTimeFor,
-  lastDayOfMonth,
-  moveClock,
-  timeOfDeadline,
-} from "@/lib/time";
-import { isLastDayRepeat } from "@/lib/items/occurrence";
+  firstMissingRequired,
+  pickDate,
+  pickRepeat,
+  pickTime,
+  timeOf,
+} from "@/lib/items/edit-draft";
 import { MOBILE_MEDIA_QUERY } from "@/constants";
-
-function isEmpty(value: unknown): boolean {
-  if (value === undefined || value === null) return true;
-  if (typeof value === "string" && !value.trim()) return true;
-  if (Array.isArray(value) && value.length === 0) return true;
-  return false;
-}
 
 type ItemDialogProps = {
   open: boolean;
@@ -130,13 +121,7 @@ export function ItemDialog({
 
   const datePart = deadlineDate(deadline, zone);
   // A set time is read from the deadline on the current clock, the state keeps it while all day
-  const time: TimeValue = deadline.includes("T")
-    ? timeOfDeadline(deadline, zone)
-    : { hour: timeHour, min: timeMin, ampm: timeAmpm };
-
-  const hasEmptyRequired = !!fields?.some(
-    (f) => f.validation?.required && isEmpty(properties?.[f.key])
-  );
+  const time: TimeValue = timeOf(deadline, zone, { hour: timeHour, min: timeMin, ampm: timeAmpm });
 
   useEffect(() => {
     const didJustOpen = open && !wasOpenRef.current;
@@ -159,10 +144,15 @@ export function ItemDialog({
   function handleDateChange(newDate: string) {
     titleDate.pickByHand();
     onDeadlinePicked?.();
-    const date = newDate && isLastDayRepeat(recurring) ? lastDayOfMonth(newDate) : newDate;
-    const next = deadline ? time : defaultTimeFor(date, new Date(), zone);
-    if (!deadline) setTime(next);
-    onDeadlineChange(buildDeadline(date, next.hour, next.min, next.ampm, zone));
+    const picked = pickDate(
+      { deadline, recurring: recurring ?? null },
+      newDate,
+      time,
+      zone,
+      new Date()
+    );
+    if (!deadline) setTime(picked.time);
+    onDeadlineChange(picked.deadline);
     if (!newDate) onRecurringChange?.(null);
   }
 
@@ -174,15 +164,15 @@ export function ItemDialog({
 
   function handleRecurringChange(next: RecurringConfig | null) {
     onRecurringChange?.(next);
-    if (!datePart || !isLastDayRepeat(next)) return;
-    onDeadlineChange(buildDeadline(lastDayOfMonth(datePart), time.hour, time.min, time.ampm, zone));
+    const picked = pickRepeat({ deadline, recurring: recurring ?? null }, next, time, zone);
+    if (picked.deadline !== deadline) onDeadlineChange(picked.deadline);
   }
 
   function handleTimeChange(time: TimeValue) {
     titleDate.pickByHand();
     onDeadlinePicked?.();
     setTime(time);
-    if (datePart) onDeadlineChange(buildDeadline(datePart, time.hour, time.min, time.ampm, zone));
+    if (datePart) onDeadlineChange(pickTime(deadline, time, zone));
   }
 
   // The time shown stays as it is on the new clock
@@ -206,11 +196,9 @@ export function ItemDialog({
       scrollToFirst("[data-title-section]");
       return;
     }
-    if (hasEmptyRequired) {
-      const firstEmpty = fields?.find(
-        (f) => f.validation?.required && isEmpty(properties?.[f.key])
-      );
-      if (firstEmpty) scrollToFirst(`[data-field-key="${firstEmpty.key}"]`);
+    const firstEmpty = firstMissingRequired(fields, properties);
+    if (firstEmpty) {
+      scrollToFirst(`[data-field-key="${firstEmpty.key}"]`);
       return;
     }
     onConfirm(titleDate.match?.title, clock.clock);
