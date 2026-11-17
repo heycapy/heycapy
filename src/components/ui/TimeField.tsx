@@ -4,7 +4,7 @@ import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { formatTypedTime, parseTimeInput } from "@/lib/time-input";
-import { TextButton } from "./TextButton";
+import { DoneButton } from "./DoneButton";
 import { OptionButton } from "./OptionButton";
 import { usePopover } from "./usePopover";
 
@@ -178,12 +178,7 @@ export function TimeField({ value, onChange, disabled, allowAllDay = false }: Ti
                   : "border-border focus:border-foreground"
               )}
             />
-            <TextButton
-              onClick={() => (typed.trim() ? applyTyped() : setOpen(false))}
-              className="shrink-0 py-1"
-            >
-              done
-            </TextButton>
+            <DoneButton onClick={() => (typed.trim() ? applyTyped() : setOpen(false))} />
           </div>
         </motion.div>
       )}
@@ -195,6 +190,7 @@ export function TimeField({ value, onChange, disabled, allowAllDay = false }: Ti
       <OptionButton
         ref={triggerRef}
         active={open}
+        pill
         aria-pressed={undefined}
         aria-expanded={open}
         onClick={() => !disabled && toggle()}

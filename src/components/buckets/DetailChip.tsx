@@ -10,11 +10,14 @@ import { Tooltip } from "@/components/ui/Tooltip";
 type DetailChipProps = {
   name: string;
   label: string;
+  prefix?: string;
   set: boolean;
   open: boolean;
   icon?: IconName;
   dot?: string;
   hint?: string;
+  invalid?: boolean;
+  fieldKey?: string;
   ref?: Ref<HTMLButtonElement>;
   onClick: () => void;
 };
@@ -22,11 +25,14 @@ type DetailChipProps = {
 export function DetailChip({
   name,
   label,
+  prefix,
   set,
   open,
   icon,
   dot,
   hint,
+  invalid,
+  fieldKey,
   ref,
   onClick,
 }: DetailChipProps) {
@@ -35,7 +41,9 @@ export function DetailChip({
     <Tooltip text={hint} className="max-w-full">
       <OptionButton
         ref={ref}
+        data-field-key={fieldKey}
         active={open}
+        pill
         aria-pressed={undefined}
         aria-expanded={open}
         aria-label={set ? `${name}: ${label}` : name}
@@ -44,6 +52,7 @@ export function DetailChip({
         className={cn(
           "inline-flex max-w-full items-center gap-1.5",
           set && !open && "text-foreground",
+          invalid && "border-destructive text-destructive",
           hint && !open && "opacity-50"
         )}
       >
@@ -56,6 +65,7 @@ export function DetailChip({
         ) : (
           icon && <Icon name={icon} className="shrink-0" />
         )}
+        {prefix && <span className="text-muted-foreground shrink-0">{prefix}</span>}
         <span className="truncate">{label}</span>
         {hint && (
           <span id={hintId} hidden>

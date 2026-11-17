@@ -48,6 +48,7 @@ export function ItemDateChip({ value, zone, onChange }: ItemDateChipProps) {
           <div className="flex flex-wrap gap-1.5">
             {dateShortcuts(new Date(), zone).map((shortcut) => (
               <OptionButton
+                pill
                 key={shortcut.label}
                 active={shortcut.value === value}
                 onClick={() => pick(shortcut.value)}
@@ -55,7 +56,11 @@ export function ItemDateChip({ value, zone, onChange }: ItemDateChipProps) {
                 {shortcut.label}
               </OptionButton>
             ))}
-            {value && <OptionButton onClick={() => pick("")}>no date</OptionButton>}
+            {value && (
+              <OptionButton pill onClick={() => pick("")}>
+                no date
+              </OptionButton>
+            )}
           </div>
           <Calendar value={value} onSelect={pick} />
         </motion.div>

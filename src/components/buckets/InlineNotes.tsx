@@ -36,7 +36,7 @@ export function InlineNotes({ value, autoFocus, onChange }: InlineNotesProps) {
         placeholder="notes"
         aria-label="notes"
         onChange={(e) => onChange(e.target.value)}
-        className="text-muted-foreground font-ui placeholder:text-muted-foreground/50 mt-0.5 block max-h-[6lh] w-full resize-none bg-transparent p-0 text-base leading-4 outline-none sm:text-xs"
+        className="text-muted-foreground font-ui placeholder:text-muted-foreground/50 mt-1.5 block max-h-[6lh] w-full resize-none bg-transparent p-0 text-base leading-5 outline-none sm:text-xs"
       />
       {value.length >= COUNTER_FROM && (
         <span className="text-muted-foreground font-ui text-2xs block text-right">

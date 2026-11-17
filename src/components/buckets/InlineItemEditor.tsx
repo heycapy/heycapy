@@ -1,8 +1,16 @@
 "use client";
 
-import { useEffect, useEffectEvent, useRef, useState, type KeyboardEvent } from "react";
+import {
+  useEffect,
+  useEffectEvent,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type KeyboardEvent,
+} from "react";
 import { motion } from "framer-motion";
 import { useLookParts } from "@/components/looks/LookProvider";
+import { DoneButton } from "@/components/ui/DoneButton";
 import { IconButton } from "@/components/ui/IconButton";
 import { TimeField, type TimeValue } from "@/components/ui/TimeField";
 import { ITEM_STATUS } from "@/constants";
@@ -24,13 +32,13 @@ import { deadlineDate, deadlineValue, moveClock, timeOfDeadline } from "@/lib/ti
 import { smoothScroll } from "@/lib/motion";
 import type { FieldDef, RecurringConfig, StatusDef } from "@/types/rules";
 import { cn } from "@/lib/utils";
-import { assigneeLabel } from "./assignee";
+import { assigneeLabel, mentionAssignees } from "./assignee";
+import { fieldChips } from "./fieldChipText";
 import { InlineNotes } from "./InlineNotes";
 import { InlineTitle } from "./InlineTitle";
 import { ItemAssigneeField, type AssigneeChoice } from "./ItemAssigneeField";
 import { ItemDateChip } from "./ItemDateChip";
 import { ItemDetails } from "./ItemDetails";
-import { ItemFieldsForm } from "./ItemFieldsForm";
 import { ItemTimeHints } from "./ItemTimeHints";
 import { TickBox } from "./TickBox";
 import { INLINE_EDIT_SECONDS, type OpenFocus } from "./constants";
@@ -145,11 +153,16 @@ export function InlineItemEditor({
   }
 
   function changeAssignees(assigneeIds: number[]) {
+    const current = draftRef.current;
     update({
-      ...draft,
+      ...current,
       assigneeIds,
-      deadline: moveClock(draft.deadline, zone, clock.zoneFor(assigneeIds)),
+      deadline: moveClock(current.deadline, zone, clock.zoneFor(assigneeIds)),
     });
+  }
+
+  function setProperty(key: string, value: unknown) {
+    update({ ...draft, properties: { ...draft.properties, [key]: value } });
   }
 
   function pickZone(timezone: string) {
@@ -176,6 +189,15 @@ export function InlineItemEditor({
 
   useOutsideTap(rootRef, () => finish(true, false));
 
+  // A button that goes away when pressed (a reminder's ×) takes the focus with it, and Escape and
+  // Ctrl+Enter only reach the row from inside it
+  function keepFocus() {
+    if (closedRef.current || document.activeElement !== document.body) return;
+    rootRef.current?.focus({ preventScroll: true });
+  }
+
+  useLayoutEffect(keepFocus, [draft]);
+
   function onKeyDown(e: KeyboardEvent) {
     if (e.nativeEvent.isComposing) return;
     if (e.key === "Escape") {
@@ -194,7 +216,16 @@ export function InlineItemEditor({
     value: draft.assigneeIds,
     onChange: changeAssignees,
   };
-  const label = assigneeLabel(members, draft.assigneeIds);
+  const label = members.length > 1 ? assigneeLabel(members, draft.assigneeIds) : "everyone";
+  const mention =
+    members.length > 1
+      ? {
+          members,
+          onPick: (userId: number | null) =>
+            changeAssignees(mentionAssignees(members, draftRef.current.assigneeIds, userId)),
+        }
+      : undefined;
+  const chips = fieldChips(fields, draft.properties, attempted);
   const notes = (
     <InlineNotes
       value={draft.description}
@@ -210,8 +241,10 @@ export function InlineItemEditor({
       data-handles-escape
       role="group"
       aria-label="edit item"
+      tabIndex={-1}
       onKeyDown={onKeyDown}
-      className="bg-muted/20 flex items-stretch gap-0 px-3"
+      onClick={() => requestAnimationFrame(keepFocus)}
+      className="bg-muted/20 flex items-stretch gap-0 px-3 outline-none"
     >
       {draggable && (
         <IconButton
@@ -226,12 +259,20 @@ export function InlineItemEditor({
         <TickBox title={item.title} checked={done} color={color} />
       </div>
       <div className={cn("min-w-0 flex-1", roundTick ? "pt-3" : "pt-2.5")}>
-        <InlineTitle
-          value={draft.title}
-          autoFocus={focus === "title"}
-          onChange={(title) => update({ ...draft, title })}
-          onEnter={() => finish(true, true)}
-        />
+        <div className="flex items-start gap-2">
+          <div className="min-w-0 flex-1">
+            <InlineTitle
+              value={draft.title}
+              autoFocus={focus === "title"}
+              mention={mention}
+              onChange={(title) => update({ ...draft, title })}
+              onEnter={() => finish(true, true)}
+            />
+          </div>
+          <div className="-mt-1 -mr-0.5">
+            <DoneButton label="save" icon="arrow-up" onClick={() => finish(true, true)} />
+          </div>
+        </div>
         {initial.description && notes}
         <motion.div
           initial={{ height: 0, opacity: 0 }}
@@ -281,19 +322,8 @@ export function InlineItemEditor({
                     }
                   : undefined
               }
-              more={
-                fields.length > 0 ? (
-                  <div className="rounded-control border-border border">
-                    <ItemFieldsForm
-                      fields={fields}
-                      values={draft.properties}
-                      showErrors={attempted}
-                      onChange={(properties) => update({ ...draft, properties })}
-                    />
-                  </div>
-                ) : undefined
-              }
-              showMore={fields.some((f) => f.validation?.required)}
+              fieldChips={chips}
+              onFieldChange={setProperty}
               onDateChange={pickDay}
               onTimeChange={pickClock}
               onStatusChange={(status) => update({ ...draft, status })}

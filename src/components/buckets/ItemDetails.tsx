@@ -7,13 +7,31 @@ import { TextButton } from "@/components/ui/TextButton";
 import { TimeField, timeLabel, type TimeValue } from "@/components/ui/TimeField";
 import { describeReminder } from "@/lib/items/reminder-label";
 import { describeRepeat } from "@/lib/items/repeat-label";
-import type { RecurringConfig, StatusDef } from "@/types/rules";
+import type { FieldDef, RecurringConfig, StatusDef } from "@/types/rules";
 import { DetailChip } from "./DetailChip";
+import { ItemFieldChipPanel } from "./ItemFieldChipPanel";
 import { ItemStatusField } from "./ItemStatusField";
 import { RecurringPicker } from "./RecurringPicker";
 import { ReminderPicker } from "./ReminderPicker";
-import { DETAIL_EDITOR as EDITOR, NEEDS_DATE, type ItemDetailPanel } from "./constants";
+import {
+  DETAIL_EDITOR as EDITOR,
+  FIELD_LABEL,
+  NEEDS_DATE,
+  type DetailPanelId,
+  type ItemDetailPanel,
+} from "./constants";
 import { HINT } from "@/components/layout/settings-constants";
+
+export type FieldChip = {
+  key: string;
+  name: string;
+  label: string;
+  prefix?: string;
+  set: boolean;
+  invalid: boolean;
+  field: FieldDef;
+  value: unknown;
+};
 
 type ItemDetailsProps = {
   // Stands in for the date chip and its panel, for an editor that picks dates its own way
@@ -29,8 +47,10 @@ type ItemDetailsProps = {
   reminders?: number[] | null;
   bucketReminders?: number[];
   assignee?: { label: string; set: boolean; field: ReactNode };
+  fieldChips?: FieldChip[];
+  onFieldChange?: (key: string, value: unknown) => void;
   more?: ReactNode;
-  showMore: boolean;
+  showMore?: boolean;
   pending?: boolean;
   onDateChange: (date: string) => void;
   onTimeChange: (time: TimeValue) => void;
@@ -58,6 +78,8 @@ export function ItemDetails({
   reminders,
   bucketReminders,
   assignee,
+  fieldChips,
+  onFieldChange,
   more,
   showMore,
   pending,
@@ -67,7 +89,7 @@ export function ItemDetails({
   onRecurringChange,
   onRemindersChange,
 }: ItemDetailsProps) {
-  const [panel, setPanel] = useState<ItemDetailPanel | null>(null);
+  const [panel, setPanel] = useState<DetailPanelId | null>(null);
   const [afterDate, setAfterDate] = useState<ItemDetailPanel | null>(null);
   const hasDate = datePart.length > 0;
   const reminderList = reminders ?? bucketReminders ?? [];
@@ -80,6 +102,18 @@ export function ItemDetails({
     setPanel((current) => (current === next ? null : next));
   }
 
+  function toggleField(key: string) {
+    const id: DetailPanelId = `field:${key}`;
+    setPanel((current) => (current === id ? null : id));
+  }
+
+  function closeField(key: string) {
+    setPanel(null);
+    requestAnimationFrame(() =>
+      document.querySelector<HTMLElement>(`[data-inline-edit] [data-field-key="${key}"]`)?.focus()
+    );
+  }
+
   function pickDate(date: string) {
     onDateChange(date);
     if (!afterDate) return;
@@ -88,7 +122,7 @@ export function ItemDetails({
   }
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-3">
       <div role="group" aria-label="item details" className="flex flex-wrap gap-1.5">
         {dateSlot ?? (
           <DetailChip
@@ -212,6 +246,41 @@ export function ItemDetails({
             onChange={onStatusChange}
             disabled={pending}
           />
+        </div>
+      )}
+
+      {fieldChips && fieldChips.length > 0 && (
+        <div className="flex flex-col gap-3 pt-1">
+          <p className={FIELD_LABEL}>fields</p>
+          <div role="group" aria-label="item fields" className="flex flex-wrap gap-1.5">
+            {fieldChips.map((chip) => (
+              <DetailChip
+                key={chip.key}
+                fieldKey={chip.key}
+                name={chip.name}
+                label={chip.label}
+                prefix={chip.prefix}
+                set={chip.set}
+                invalid={chip.invalid}
+                open={panel === `field:${chip.key}`}
+                onClick={() => toggleField(chip.key)}
+              />
+            ))}
+          </div>
+          {fieldChips.map(
+            (chip) =>
+              panel === `field:${chip.key}` && (
+                <div key={chip.key} className={EDITOR}>
+                  <ItemFieldChipPanel
+                    field={chip.field}
+                    value={chip.value}
+                    invalid={chip.invalid}
+                    onChange={(next) => onFieldChange?.(chip.key, next)}
+                    onDone={() => closeField(chip.key)}
+                  />
+                </div>
+              )
+          )}
         </div>
       )}
 

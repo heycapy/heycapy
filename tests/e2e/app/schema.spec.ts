@@ -1,6 +1,7 @@
 import { test, expect, type Locator, type Page } from "@playwright/test";
 import { authState } from "../helpers/auth";
 import {
+  editForm,
   openEditForm,
   addItem,
   createAndSelectBucket,
@@ -188,6 +189,6 @@ test("new fields can be added to a bucket that already has items", async ({ page
   await closeDialog(settings);
 
   await openEditForm(page, title);
-  await openDetail(itemDialog(page), "more");
-  await expect(itemDialog(page).getByPlaceholder("Priority")).toBeVisible();
+  await openDetail(editForm(page), "Priority");
+  await expect(editForm(page).getByPlaceholder("Priority")).toBeVisible();
 });

@@ -236,6 +236,8 @@ export const ITEM_DETAIL_PANELS = [
   "more",
 ] as const;
 export type ItemDetailPanel = (typeof ITEM_DETAIL_PANELS)[number];
+export type DetailPanelId = ItemDetailPanel | `field:${string}`;
+export const AUTO_CLOSE_FIELD_TYPES: readonly string[] = ["boolean", "select", "date"];
 export const OUTSIDE_TAP_CLICK_MS = 1000;
 export const DETAIL_EDITOR = "rounded-panel border-border border-frame flex flex-col gap-3 p-3";
 export type OpenFocus = "title" | "notes";

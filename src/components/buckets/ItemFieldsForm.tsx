@@ -72,7 +72,7 @@ export function ItemFieldsForm({
   );
 }
 
-function FieldInput({
+export function FieldInput({
   field,
   value,
   disabled,
@@ -123,10 +123,16 @@ function FieldInput({
     case "boolean":
       return (
         <div className="flex gap-1">
-          <OptionButton active={value === true} onClick={() => onChange(true)} disabled={disabled}>
+          <OptionButton
+            pill
+            active={value === true}
+            onClick={() => onChange(true)}
+            disabled={disabled}
+          >
             Yes
           </OptionButton>
           <OptionButton
+            pill
             active={value === false}
             onClick={() => onChange(false)}
             disabled={disabled}
@@ -167,6 +173,7 @@ function FieldInput({
         <div className="flex flex-wrap gap-1">
           {opts.map((opt) => (
             <OptionButton
+              pill
               key={opt}
               active={value === opt}
               onClick={() => onChange(value === opt ? undefined : opt)}
@@ -188,6 +195,7 @@ function FieldInput({
         <div className="flex flex-wrap gap-1">
           {opts.map((opt) => (
             <OptionButton
+              pill
               key={opt}
               active={selected.includes(opt)}
               onClick={() => {

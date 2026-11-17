@@ -136,7 +136,7 @@ export async function untilStill(page: Page, target: Locator): Promise<void> {
 
 export function detailChip(form: Locator, name: string) {
   return form
-    .getByRole("group", { name: "item details" })
+    .getByRole("group", { name: /^item (details|fields)$/ })
     .getByRole("button", { name: new RegExp(`^${name}(:|$)`) });
 }
 
