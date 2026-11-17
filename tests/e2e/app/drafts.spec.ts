@@ -1,7 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { authState } from "../helpers/auth";
 import {
-  moreChip,
   openEditForm,
   addBox,
   addItem,
@@ -152,7 +151,6 @@ test("on a wide screen the form grows out of the add box and folds back on a cli
   await expect(form).toBeHidden();
   await expect(editForm(page)).toBeHidden();
   await openEditForm(page, kept);
-  await expect(editForm(page)).toBeVisible();
   await expect(detailChip(editForm(page), "status")).toBeVisible();
   await page.keyboard.press("Escape");
 
@@ -203,31 +201,24 @@ test("the item added last is marked for a few seconds, from the box or the form"
   await expect(marked).toHaveCount(0, { timeout: 6000 });
 });
 
-test("editing opens the same panel from the footer", async ({ page }) => {
+test("editing opens in place from the keyboard, and closing gives focus back to the row", async ({
+  page,
+}) => {
   await page.goto("/");
   const bucket = uniqueName("Edit");
   await createAndSelectBucket(page, bucket);
   const title = uniqueName("cat's bowl is empty");
   await addItem(page, title);
-  const box = await page.getByTestId("add-box").boundingBox();
 
   await itemRow(page, title).focus();
   await page.keyboard.press("Enter");
-  await moreChip(page).click();
   const edit = editForm(page);
-  await expect(edit).toContainText(`in ${bucket}`);
   await expect(edit.locator("textarea").first()).toHaveValue(title);
   await expect(detailChip(edit, "status")).toBeVisible();
-  await expect(edit.getByRole("button", { name: "delete item" })).toBeVisible();
-  await expect
-    .poll(async () => {
-      const panel = await edit.boundingBox();
-      return panel ? panel.x + panel.width : null;
-    })
-    .toBe((box?.x ?? 0) + (box?.width ?? 0));
 
   await page.keyboard.press("Escape");
   await expect(edit).toBeHidden();
+  await expect(itemRow(page, title)).toBeFocused();
 });
 
 test("Ctrl/Cmd+Enter adds or saves from any field of the form", async ({ page }) => {
@@ -307,14 +298,9 @@ test("a click on the list only folds the open panel away, it doesn't open what's
 
   await openEditForm(page, first);
   await expect(edit.locator("textarea").first()).toHaveValue(first);
-  await itemRow(page, first).click();
+  await itemRow(page, second).click();
   await expect(edit).toBeHidden();
   await page.waitForTimeout(300);
-  await expect(edit).toBeHidden();
-
-  await openEditForm(page, first);
-  await expect(edit).toBeVisible();
-  await itemRow(page, second).click();
   await expect(edit).toBeHidden();
 
   await openEditForm(page, second);

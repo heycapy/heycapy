@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type RefObject } from "react";
+import { useState, type RefObject } from "react";
 import { Reorder } from "framer-motion";
 import { ItemRow, type ItemAssignee } from "./ItemRow";
 import { itemAssignee } from "./assignee";
@@ -7,6 +7,8 @@ import { completionToggle } from "./completion";
 import { DraggableItem } from "./DraggableItem";
 import { ItemMenu, type MenuAt } from "./ItemMenu";
 import { InlineItemEditor } from "./InlineItemEditor";
+import type { OpenFocus } from "./constants";
+import { useOpenItem } from "./useOpenItem";
 import type { ItemPatch } from "@/lib/items/edit-draft";
 import type { ListItem, ReminderBadge } from "@/lib/reminders/status";
 import type { StatusDef, FieldDef } from "@/types/rules";
@@ -28,13 +30,13 @@ type ItemListProps = {
   statuses: StatusDef[];
   fields: FieldDef[];
   color: string;
-  editingItemId: number | null;
+  bucketId: number;
+  bucketReminders: number[];
   reminderBadges: Record<number, ReminderBadge>;
   members: BucketMember[];
   shared: boolean;
   onAssign: (item: Item, assigneeIds: number[]) => Promise<boolean>;
   onReorder: (items: Item[]) => void;
-  onEdit: (item: Item) => void;
   onPatch: (item: Item, patch: ItemPatch) => void;
   onStatusChange: (item: Item, status: string) => Promise<boolean>;
   onMove: (item: Item, deadline: string) => Promise<void>;
@@ -51,27 +53,20 @@ export function ItemList({
   statuses,
   fields,
   color,
-  editingItemId,
+  bucketId,
+  bucketReminders,
   reminderBadges,
   members,
   shared,
   onAssign,
   onReorder,
-  onEdit,
   onPatch,
   onStatusChange,
   onMove,
   onDelete,
 }: ItemListProps) {
   const [menu, setMenu] = useState<{ item: Item; at: MenuAt } | null>(null);
-  const [openId, setOpenId] = useState<number | null>(null);
-  const refocusId = useRef<number | null>(null);
-
-  useEffect(() => {
-    if (openId !== null || refocusId.current === null) return;
-    document.querySelector<HTMLElement>(`#item-${refocusId.current} [data-item-title]`)?.focus();
-    refocusId.current = null;
-  }, [openId]);
+  const { openId, focus, open, close } = useOpenItem();
 
   if (loading || items.length === 0) {
     return (
@@ -113,9 +108,8 @@ export function ItemList({
     item,
     statuses,
     fields,
-    isEditing: editingItemId === item.id,
     menuOpen: menu?.item.id === item.id,
-    onEditStart: readonly || openId !== null ? undefined : () => setOpenId(item.id),
+    onEditStart: readonly || openId !== null ? undefined : (at: OpenFocus) => open(item.id, at),
     onStatusChange: readonly ? undefined : (s: string) => onStatusChange(item, s),
     reminderBadge: reminderBadges[item.id],
     assignees: assigneesOf(item),
@@ -130,18 +124,16 @@ export function ItemList({
     openId === item.id ? (
       <InlineItemEditor
         item={item}
+        focus={focus}
         color={color}
+        bucketId={bucketId}
         members={members}
+        statuses={statuses}
+        fields={fields}
+        bucketReminders={bucketReminders}
         draggable={draggable}
         onCommit={(patch) => onPatch(item, patch)}
-        onMore={(patched) => {
-          setOpenId(null);
-          onEdit(patched);
-        }}
-        onExit={(focusRow) => {
-          refocusId.current = focusRow ? item.id : null;
-          setOpenId(null);
-        }}
+        onExit={(focusRow) => close(item.id, focusRow)}
       />
     ) : undefined;
 

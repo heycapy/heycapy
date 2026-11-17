@@ -45,6 +45,7 @@ export function BucketContent({ bucket, accentColor, viewRef, panel }: BucketCon
   const defaultStatus =
     statuses.find((s) => s.isDefault)?.name ?? statuses[0]?.name ?? ITEM_STATUS.active;
   const readonly = rules.readonly === true;
+  const bucketReminders = parseNotificationRules(bucket.notificationsRules).defaultReminders;
   const bucketName = bucket.icon ? `${bucket.icon} ${bucket.name}` : bucket.name;
   const framed = useLookParts().listFrame === "framed";
 
@@ -171,11 +172,11 @@ export function BucketContent({ bucket, accentColor, viewRef, panel }: BucketCon
           statuses={statuses}
           fields={fields}
           color={accentColor}
-          editingItemId={editor.editingItemId}
+          bucketId={bucket.id}
+          bucketReminders={bucketReminders}
           reminderBadges={list.reminderBadges}
           members={members}
           onReorder={list.reorder}
-          onEdit={editor.startEditing}
           onPatch={(item, patch) => void list.patchItem(item, patch)}
           onStatusChange={list.changeStatus}
           onMove={(item, deadline) => list.moveItem(item, deadline)}
@@ -191,7 +192,7 @@ export function BucketContent({ bucket, accentColor, viewRef, panel }: BucketCon
           value: editor.assigneeIds,
           onChange: editor.setAssigneeIds,
         }}
-        bucketReminders={parseNotificationRules(bucket.notificationsRules).defaultReminders}
+        bucketReminders={bucketReminders}
         statuses={statuses}
         fields={fields.length > 0 ? fields : undefined}
         panel={panel && { ...panel, bucketName }}

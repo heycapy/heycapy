@@ -222,6 +222,8 @@ export const TELEGRAM_RESERVED_COMMANDS = [
 // Shown in the item dialog: someone else deleted the item, or the owner removed this person
 export const ITEM_GONE_ERROR = "this item was deleted, or you're no longer in its bucket";
 export const ITEM_TITLE_MAX_LENGTH = 500;
+// Shown in the app as notes
+export const ITEM_DESCRIPTION_MAX_LENGTH = 2000;
 export const BUCKET_ORDER_MAX = 500;
 export const BUCKET_NAME_MAX_LENGTH = 100;
 export const DUPLICATE_BUCKET_NAME_ERROR = "A bucket with this name already exists.";
@@ -301,7 +303,6 @@ export const SHEET_CLOSE_DRAG_VELOCITY = 500;
 
 export const FOOTER_H = 50;
 
-export const TITLE_LINES_SHOWN = 4;
 // Toasts sit just above the add bar so they never cover it or the tabs
 export const TOAST_BOTTOM_OFFSET = 66;
 export const TOAST_PHONE_BOTTOM_OFFSET = 88;

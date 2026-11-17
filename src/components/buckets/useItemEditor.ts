@@ -1,15 +1,9 @@
 import { useState, useTransition } from "react";
-import { offerUndoDelete } from "./undoDelete";
-import { addItemAction, deleteItemAction, updateItemAction } from "@/app/(app)/actions";
-import { parseRecurring } from "@/lib/items/occurrence";
-import { deadlineValue } from "@/lib/time";
-import type { ListItem } from "@/lib/reminders/status";
+import { addItemAction } from "@/app/(app)/actions";
 import type { RecurringConfig } from "@/types/rules";
 import type { ItemStatus } from "./constants";
 import { useDraft, useDraftStore } from "@/store/drafts";
 import { useUIStore } from "@/store/ui";
-
-type Item = ListItem;
 
 type ItemEditorOptions = {
   bucketId: number;
@@ -34,36 +28,12 @@ export function useItemEditor({
   const [addError, setAddError] = useState("");
   const [addPending, startAddTransition] = useTransition();
 
-  const [editingItemId, setEditingItemId] = useState<number | null>(null);
-  const [editTitle, setEditTitle] = useState("");
-  const [editDeadline, setEditDeadline] = useState("");
-  const [editStatus, setEditStatus] = useState<ItemStatus>(defaultStatus);
-  const [editRecurring, setEditRecurring] = useState<RecurringConfig | null>(null);
-  const [editProperties, setEditProperties] = useState<Record<string, unknown>>({});
-  const [editReminders, setEditReminders] = useState<number[] | null>(null);
-  const [editAssignees, setEditAssignees] = useState<number[]>([]);
-  const [editError, setEditError] = useState("");
-  const [editPending, startEditTransition] = useTransition();
-
-  function cancelEditing() {
-    setEditingItemId(null);
-    setEditTitle("");
-    setEditDeadline("");
-    setEditStatus(defaultStatus);
-    setEditRecurring(null);
-    setEditProperties({});
-    setEditReminders(null);
-    setEditAssignees([]);
-    setEditError("");
-  }
-
   function closeAdding() {
     setAddingItem(false);
     setAddError("");
   }
 
   function startAdding() {
-    cancelEditing();
     setTypedDeadline(defaultDeadline());
     setAddingItem(true);
   }
@@ -72,20 +42,6 @@ export function useItemEditor({
     const picked = (useDraftStore.getState().drafts[bucketId]?.deadline ?? null) !== null;
     if (picked) updateDraft(bucketId, { deadline: next });
     else setTypedDeadline(next);
-  }
-
-  function startEditing(item: Item) {
-    setAddingItem(false);
-    setEditingItemId(item.id);
-    setEditTitle(item.title);
-    setEditDeadline(item.deadline ? deadlineValue(item.deadline, item.deadlineTimezone) : "");
-    setEditStatus((item.status as ItemStatus) || defaultStatus);
-    setEditRecurring(parseRecurring(item.recurring));
-    setEditReminders(item.reminderOffsets);
-    setEditAssignees(item.assigneeIds);
-    setEditProperties(
-      item.properties ? (JSON.parse(item.properties) as Record<string, unknown>) : {}
-    );
   }
 
   // The dialog passes the title without a date typed into it
@@ -115,90 +71,34 @@ export function useItemEditor({
     });
   }
 
-  function handleUpdate(clock: string | null) {
-    if (!editingItemId || !editTitle.trim() || editPending) return;
-    setEditError("");
-    startEditTransition(async () => {
-      const result = await updateItemAction(
-        editingItemId,
-        editTitle,
-        editDeadline || null,
-        editStatus,
-        editRecurring,
-        Object.keys(editProperties).length > 0 ? editProperties : null,
-        editReminders,
-        editAssignees,
-        clock
-      );
-      if (result.ok) {
-        cancelEditing();
-        await onSaved();
-      } else {
-        setEditError(result.error);
-      }
-    });
-  }
-
-  function handleDelete() {
-    if (!editingItemId || editPending) return;
-    const itemId = editingItemId;
-    const title = editTitle;
-    setEditError("");
-    startEditTransition(async () => {
-      const result = await deleteItemAction(itemId);
-      if (!result.ok) {
-        setEditError(result.error);
-        return;
-      }
-      cancelEditing();
-      await onSaved();
-      offerUndoDelete(itemId, title, onSaved);
-    });
-  }
-
   return {
-    editingItemId,
     startAdding,
-    startEditing,
-    assigneeIds: addingItem ? draft.assigneeIds : editAssignees,
-    setAssigneeIds: addingItem
-      ? (assigneeIds: number[]) => updateDraft(bucketId, { assigneeIds })
-      : setEditAssignees,
+    assigneeIds: draft.assigneeIds,
+    setAssigneeIds: (assigneeIds: number[]) => updateDraft(bucketId, { assigneeIds }),
     dialogProps: {
-      open: addingItem || editingItemId !== null,
-      mode: addingItem ? ("add" as const) : ("edit" as const),
-      title: addingItem ? draft.title : editTitle,
-      deadline: addingItem ? addDeadline : editDeadline,
-      deadlinePicked: addingItem && draft.deadline !== null,
-      status: addingItem ? (draft.status ?? defaultStatus) : editStatus,
-      properties: addingItem ? draft.properties : editProperties,
-      recurring: addingItem ? draft.recurring : editRecurring,
-      reminders: addingItem ? draft.reminders : editReminders,
-      error: addingItem ? addError : editError,
-      pending: addingItem ? addPending : editPending,
-      onTitleChange: addingItem
-        ? (title: string) => updateDraft(bucketId, { title })
-        : setEditTitle,
-      onDeadlineChange: addingItem ? changeAddDeadline : setEditDeadline,
+      open: addingItem,
+      title: draft.title,
+      deadline: addDeadline,
+      deadlinePicked: draft.deadline !== null,
+      status: draft.status ?? defaultStatus,
+      properties: draft.properties,
+      recurring: draft.recurring,
+      reminders: draft.reminders,
+      error: addError,
+      pending: addPending,
+      onTitleChange: (title: string) => updateDraft(bucketId, { title }),
+      onDeadlineChange: changeAddDeadline,
       onDeadlinePicked: () => {
-        if (addingItem && draft.deadline === null) updateDraft(bucketId, { deadline: addDeadline });
+        if (draft.deadline === null) updateDraft(bucketId, { deadline: addDeadline });
       },
-      onStatusChange: addingItem
-        ? (status: ItemStatus) => updateDraft(bucketId, { status })
-        : setEditStatus,
-      onPropertiesChange: addingItem
-        ? (properties: Record<string, unknown>) => updateDraft(bucketId, { properties })
-        : setEditProperties,
-      onRecurringChange: addingItem
-        ? (recurring: RecurringConfig | null) => updateDraft(bucketId, { recurring })
-        : setEditRecurring,
-      onRemindersChange: addingItem
-        ? (reminders: number[] | null) => updateDraft(bucketId, { reminders })
-        : setEditReminders,
-      onConfirm: (title: string | undefined, clock: string | null) =>
-        addingItem ? handleAdd(title, clock) : handleUpdate(clock),
-      onCancel: addingItem ? closeAdding : cancelEditing,
-      onDelete: editingItemId !== null ? handleDelete : undefined,
+      onStatusChange: (status: ItemStatus) => updateDraft(bucketId, { status }),
+      onPropertiesChange: (properties: Record<string, unknown>) =>
+        updateDraft(bucketId, { properties }),
+      onRecurringChange: (recurring: RecurringConfig | null) =>
+        updateDraft(bucketId, { recurring }),
+      onRemindersChange: (reminders: number[] | null) => updateDraft(bucketId, { reminders }),
+      onConfirm: handleAdd,
+      onCancel: closeAdding,
     },
   };
 }

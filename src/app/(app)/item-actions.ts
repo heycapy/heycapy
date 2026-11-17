@@ -9,6 +9,7 @@ import { db } from "@/lib/db";
 import { items } from "@/lib/db/schema";
 import { findAccessibleBucket, findAccessibleItem } from "@/lib/buckets/access";
 import {
+  ITEM_DESCRIPTION_MAX_LENGTH,
   ITEM_GONE_ERROR,
   ITEM_STATUS,
   ITEM_TITLE_MAX_LENGTH,
@@ -186,12 +187,25 @@ function keepAnchor(config: RecurringConfig, saved: string | null): RecurringCon
 
 async function updateItem(itemId: number, patch: ItemPatch): Promise<ActionResult> {
   const session = await requireSession();
-  const { title, deadline, status, recurring, properties, reminders, assigneeIds, clock } = patch;
+  const {
+    title,
+    description,
+    deadline,
+    status,
+    recurring,
+    properties,
+    reminders,
+    assigneeIds,
+    clock,
+  } = patch;
 
   const trimmed = title?.trim();
   if (trimmed !== undefined && !trimmed) return { ok: false, error: "Title is required" };
   if (trimmed && trimmed.length > ITEM_TITLE_MAX_LENGTH) {
     return { ok: false, error: "Title too long" };
+  }
+  if (description && description.length > ITEM_DESCRIPTION_MAX_LENGTH) {
+    return { ok: false, error: "Notes too long" };
   }
   if (recurring && !RecurringConfig.safeParse(recurring).success) {
     return { ok: false, error: "Invalid repeat settings" };
@@ -256,6 +270,7 @@ async function updateItem(itemId: number, patch: ItemPatch): Promise<ActionResul
     .update(items)
     .set({
       ...(trimmed !== undefined && { title: trimmed }),
+      ...(description !== undefined && { description: description?.trim() || null }),
       ...deadlineChange,
       ...(status !== undefined && { status }),
       ...(nowCompleted && { completedAt: new Date(), completedBy: session.userId }),

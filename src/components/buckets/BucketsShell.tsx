@@ -135,7 +135,7 @@ export function BucketsShell({ buckets: rawBuckets, focusBucketId = null }: Buck
     : undefined;
 
   const view = todayOpen ? (
-    <TodayView buckets={buckets} panel={itemPanel} />
+    <TodayView />
   ) : (
     <BucketContent
       bucket={activeBucket}

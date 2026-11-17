@@ -1,7 +1,7 @@
 import { test, expect, type Page } from "@playwright/test";
 import { authState } from "../helpers/auth";
 import {
-  moreChip,
+  inlineEditor,
   addBox,
   addItemButton,
   itemRow,
@@ -100,15 +100,14 @@ test("the add box's expand opens a drawer: title and add on one row at the botto
   await expect(itemRow(page, name)).toBeVisible();
 
   expect(await tapAndReadFocus(page, () => itemRow(page, name).tap())).toBe("TEXTAREA");
-  await moreChip(page).tap();
-  const edit = page.getByRole("dialog", { name: "edit item" });
-  const editTitle = edit.locator("textarea");
+  const edit = inlineEditor(page);
+  const editTitle = edit.getByRole("textbox", { name: "title" });
   await expect(editTitle).toBeFocused();
   expect(await editTitle.evaluate((el: HTMLTextAreaElement) => el.selectionStart)).toBe(
     name.length
   );
   await editTitle.fill(`${name} changed`);
-  await dragDown(page, edit.getByRole("heading", { name: "edit item" }), 200);
+  await page.keyboard.press("Escape");
   await expect(edit).toBeHidden();
   await expect(itemRow(page, name)).toBeVisible();
   await expect(itemRow(page, `${name} changed`)).toHaveCount(0);

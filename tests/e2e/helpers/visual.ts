@@ -12,7 +12,6 @@ import {
   createBucket,
   itemMenu,
   itemTick,
-  moreChip,
   newItemForm,
   selectBucket,
   untilStill,
@@ -125,8 +124,7 @@ export function screenshotTests(spec: string, look: Look) {
   test("edit item panel", async ({ page }) => {
     await openGroceries(page, THEMES[0]);
     await clickInPlace(page, page.getByRole("button", { name: "renew passport" }));
-    await moreChip(page).click();
-    await expect(page.getByRole("dialog", { name: "edit item", exact: true })).toBeVisible();
+    await expect(page.getByRole("group", { name: "edit item", exact: true })).toBeVisible();
     await snap(page, "edit-item");
   });
 

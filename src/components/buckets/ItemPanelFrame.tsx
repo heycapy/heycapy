@@ -22,15 +22,9 @@ import {
   MODAL_PANEL_SELECTOR,
   POPOVER_SELECTOR,
 } from "@/components/ui/constants";
-import {
-  ITEM_PANEL_RESIZE,
-  EDIT_ROW_GAP_PX,
-  OUTSIDE_TAP_CLICK_MS,
-  PHONE_DRAWER_TOP_GAP_PX,
-} from "./constants";
+import { ITEM_PANEL_RESIZE, OUTSIDE_TAP_CLICK_MS, PHONE_DRAWER_TOP_GAP_PX } from "./constants";
 import { useVisualViewport } from "@/hooks/useVisualViewport";
 import { cn } from "@/lib/utils";
-import { smoothScroll } from "@/lib/motion";
 
 export type ItemPanel = {
   slot: HTMLElement;
@@ -45,8 +39,6 @@ type ItemPanelFrameProps = {
   scrollBodyRef: RefObject<HTMLDivElement | null>;
   title: ReactNode;
   confirm: ReactNode;
-  secondary?: ReactNode;
-  returnToOpener: boolean;
   phone: boolean;
   children: ReactNode;
   onCancel: () => void;
@@ -59,8 +51,6 @@ export function ItemPanelFrame({
   scrollBodyRef,
   title,
   confirm,
-  secondary,
-  returnToOpener,
   phone,
   children,
   onCancel,
@@ -105,20 +95,7 @@ export function ItemPanelFrame({
     };
   }, [open, panel.slot]);
 
-  useEffect(() => {
-    const el = panelRef.current;
-    if (!open || !returnToOpener || !el) return;
-    const frame = requestAnimationFrame(() => {
-      const row = document.querySelector<HTMLElement>("[data-editing]");
-      if (!row) return;
-      const panelTop = panel.slot.getBoundingClientRect().bottom - el.offsetHeight;
-      const hidden = row.getBoundingClientRect().bottom - panelTop + EDIT_ROW_GAP_PX;
-      if (hidden > 0) row.closest("main")?.scrollBy({ top: hidden, behavior: smoothScroll() });
-    });
-    return () => cancelAnimationFrame(frame);
-  }, [open, returnToOpener, panel.slot]);
   const wasOpen = useRef(open);
-  const [opener, setOpener] = useState<HTMLElement | null>(null);
   const [shownOpen, setShownOpen] = useState(open);
   const [contentHeight, setContentHeight] = useState<number | null>(null);
   const [opening, setOpening] = useState(0);
@@ -126,8 +103,6 @@ export function ItemPanelFrame({
     setShownOpen(open);
     setContentHeight(null);
     if (open) setOpening((n) => n + 1);
-    if (open)
-      setOpener(document.activeElement instanceof HTMLElement ? document.activeElement : null);
   }
   const measureContent = useCallback((el: HTMLDivElement | null) => {
     if (!el) return;
@@ -181,9 +156,8 @@ export function ItemPanelFrame({
     if (!closing) return;
     const active = document.activeElement;
     if (active && active !== document.body && !panelRef.current?.contains(active)) return;
-    if (returnToOpener && opener?.isConnected) opener.focus();
-    else collapsed();
-  }, [open, returnToOpener, opener]);
+    collapsed();
+  }, [open]);
 
   return createPortal(
     <AnimatePresence>
@@ -244,7 +218,6 @@ export function ItemPanelFrame({
             >
               <div ref={measureContent} className="px-5 py-4">
                 {children}
-                {secondary}
               </div>
             </motion.div>
             <div className="bg-card border-t-frame flex min-h-12 shrink-0 items-start gap-1 border-(--accent) pr-1 pl-2">

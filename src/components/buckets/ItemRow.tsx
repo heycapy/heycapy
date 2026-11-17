@@ -1,8 +1,8 @@
 import { Icon } from "@/components/ui/Icon";
 import { Tooltip } from "@/components/ui/Tooltip";
 import { formatShortTime } from "@/lib/format-date";
-import { ITEM_STATUS, TITLE_LINES_SHOWN } from "@/constants";
-import { ITEM_HIGHLIGHT_MS, JUST_ADDED_MS, TICK_SAVE_FAILED } from "./constants";
+import { ITEM_STATUS } from "@/constants";
+import { ITEM_HIGHLIGHT_MS, JUST_ADDED_MS, TICK_SAVE_FAILED, type OpenFocus } from "./constants";
 import { notify } from "@/components/ui/notify";
 import { useUIStore } from "@/store/ui";
 import { useLookParts, useTickSound } from "@/components/looks/LookProvider";
@@ -35,9 +35,8 @@ type ItemRowProps = {
   statuses: StatusDef[];
   fields?: FieldDef[];
   dragControls?: DragControls;
-  isEditing?: boolean;
   menuOpen?: boolean;
-  onEditStart?: () => void;
+  onEditStart?: (focus: OpenFocus) => void;
   onStatusChange?: (status: string) => Promise<boolean>;
   reminderBadge?: ReminderBadge;
   assignees?: ItemAssignee[];
@@ -101,7 +100,6 @@ export function ItemRow({
   statuses,
   fields,
   dragControls,
-  isEditing,
   menuOpen,
   onEditStart,
   onStatusChange,
@@ -171,9 +169,8 @@ export function ItemRow({
 
   const remindAgain = remindAgainLabel(item);
   const recurringFreq = getRecurringFrequency(item.recurring);
-  const allLines = item.title.split("\n").filter((line) => line.trim());
-  const titleLines = allLines.slice(0, TITLE_LINES_SHOWN);
-  const moreLines = allLines.length > TITLE_LINES_SHOWN;
+  const titleLines = item.title.split("\n").filter((line) => line.trim());
+  const notesLine = item.description?.split("\n").find((line) => line.trim());
   const badges = fields ? getShowInRowBadges(fields, item.properties) : [];
   const dueChip = due && <ItemDue due={due} status={item.status} timeOnly={dueTimeOnly} />;
   const meta = [
@@ -204,12 +201,10 @@ export function ItemRow({
       ref={rowRef}
       id={anchor}
       data-just-added={justAdded || undefined}
-      data-editing={isEditing || undefined}
       className={cn(
         "group/row flex items-stretch gap-0 px-3 [transition:background-color_1s,opacity_300ms]",
         justAdded && "bg-primary/8",
         highlighted && "bg-primary/15",
-        isEditing && "bg-muted/20",
         menuOpen && "bg-card [transition:opacity_300ms]",
         (isCompleted || isMissed) && "opacity-45"
       )}
@@ -232,18 +227,26 @@ export function ItemRow({
 
       <button
         data-item-title
-        onClick={() => onEditStart?.()}
+        onClick={(e) =>
+          onEditStart?.(
+            e.target instanceof Element && e.target.closest("[data-item-notes]") ? "notes" : "title"
+          )
+        }
         className={cn("flex min-w-0 flex-1 items-start text-left", roundTick ? "py-3" : "py-2.5")}
       >
         <span className="min-w-0 flex-1">
-          <span className="block text-sm">
-            {titleLines.map((line, i) => (
-              <span key={i} className="block truncate">
-                {line}
-                {i === titleLines.length - 1 && moreLines && " …"}
-              </span>
-            ))}
+          <span className="block truncate text-sm">
+            {titleLines[0] ?? item.title}
+            {titleLines.length > 1 && " …"}
           </span>
+          {notesLine && (
+            <span
+              data-item-notes
+              className="text-muted-foreground font-ui mt-0.5 block truncate text-xs"
+            >
+              {notesLine}
+            </span>
+          )}
           {badges.length > 0 && (
             <span className="mt-0.5 flex flex-wrap gap-1">
               {badges.map((b) => (

@@ -1,7 +1,7 @@
 import { test, expect, type Page } from "@playwright/test";
 import Database from "better-sqlite3";
 import { E2E_DATABASE_FILE } from "../helpers/env";
-import { openEditForm, editForm, itemRow } from "../helpers/buckets";
+import { openEditForm, editForm, itemRow, saveEdit } from "../helpers/buckets";
 import { login, uniqueEmail } from "../helpers/login";
 
 test.use({ timezoneId: "Asia/Kolkata" });
@@ -74,7 +74,7 @@ test("an all-day item set in India is on the same date in London, and saving it 
   await expect(dialog.getByRole("button", { name: /all day/ })).toBeVisible();
   const renamed = `${title} (paid by Sam)`;
   await dialog.locator("textarea").fill(renamed);
-  await dialog.getByRole("button", { name: "update", exact: true }).click();
+  await saveEdit(dialog);
   await expect(dialog).not.toBeVisible();
 
   await expectAllDayOn(member, renamed, label);

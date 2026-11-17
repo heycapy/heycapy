@@ -34,6 +34,28 @@ describe("withPatch", () => {
     expect(withPatch(item, { recurring: null }).recurring).toBeNull();
   });
 
+  it("applies status, reminders, assignees and fields", () => {
+    const next = withPatch(item, {
+      status: "completed",
+      reminders: [60],
+      assigneeIds: [3],
+      properties: { amount: 4 },
+    });
+    expect(next.status).toBe("completed");
+    expect(next.reminderOffsets).toEqual([60]);
+    expect(next.assigneeIds).toEqual([3]);
+    expect(next.properties).toBe('{"amount":4}');
+  });
+
+  it("applies notes and clears them with null", () => {
+    expect(withPatch(item, { description: "call first" }).description).toBe("call first");
+    expect(withPatch({ ...item, description: "x" }, { description: null }).description).toBeNull();
+  });
+
+  it("clears fields with null", () => {
+    expect(withPatch(item, { properties: null }).properties).toBeNull();
+  });
+
   it("does not touch the item it was given", () => {
     withPatch(item, { title: "other" });
     expect(item.title).toBe("rent");

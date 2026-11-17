@@ -14,6 +14,7 @@ import type { FieldDef, RecurringConfig } from "@/types/rules";
 // What a save changes: a field left out stays as it is, `null` clears it
 export type ItemPatch = {
   title?: string;
+  description?: string | null;
   deadline?: string | null;
   status?: string;
   recurring?: RecurringConfig | null;
@@ -82,7 +83,19 @@ export function firstMissingRequired(
   return fields?.find((f) => f.validation?.required && isEmpty(properties?.[f.key]));
 }
 
-export type InlineDraft = { title: string; deadline: string; recurring: RecurringConfig | null };
+export type InlineDraft = {
+  title: string;
+  description: string;
+  deadline: string;
+  recurring: RecurringConfig | null;
+  status: string;
+  reminders: number[] | null;
+  assigneeIds: number[];
+  properties: Record<string, unknown>;
+};
+
+const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
+const sorted = (ids: number[]) => [...ids].sort((a, b) => a - b);
 
 // What changed since `saved`; an empty title is dropped, so closing on one keeps the old title
 export function inlinePatch(
@@ -93,12 +106,20 @@ export function inlinePatch(
   const patch: ItemPatch = {};
   const title = draft.title.trim();
   if (title && title !== saved.title) patch.title = title;
+  const description = draft.description.trim();
+  if (description !== saved.description.trim()) patch.description = description || null;
   if (draft.deadline !== saved.deadline) {
     patch.deadline = draft.deadline || null;
     patch.clock = clock;
   }
-  if (JSON.stringify(draft.recurring) !== JSON.stringify(saved.recurring)) {
-    patch.recurring = draft.recurring;
+  if (!same(draft.recurring, saved.recurring)) patch.recurring = draft.recurring;
+  if (draft.status !== saved.status) patch.status = draft.status;
+  if (!same(draft.reminders, saved.reminders)) patch.reminders = draft.reminders;
+  if (!same(sorted(draft.assigneeIds), sorted(saved.assigneeIds))) {
+    patch.assigneeIds = draft.assigneeIds;
+  }
+  if (!same(draft.properties, saved.properties)) {
+    patch.properties = Object.keys(draft.properties).length > 0 ? draft.properties : null;
   }
   return patch;
 }

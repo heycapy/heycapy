@@ -1,10 +1,9 @@
 import { test, expect, type Locator, type Page } from "@playwright/test";
 import { authState } from "../helpers/auth";
 import {
-  openEditForm,
+  deleteFromMenu,
   addItem,
   createAndSelectBucket,
-  editForm,
   itemRow,
   uniqueName,
 } from "../helpers/buckets";
@@ -22,10 +21,7 @@ test.beforeEach(async ({ page }) => {
 });
 
 async function deleteItem(page: Page, title: string): Promise<void> {
-  await openEditForm(page, title);
-  const dialog = editForm(page);
-  await dialog.getByRole("button", { name: "delete item" }).click();
-  await expect(dialog).not.toBeVisible();
+  await deleteFromMenu(page, title);
   await expect(itemRow(page, title)).toHaveCount(0);
 }
 

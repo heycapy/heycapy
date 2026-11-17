@@ -1,6 +1,15 @@
 import { test, expect, type Page } from "@playwright/test";
 import { authState } from "../helpers/auth";
-import { addItem, createAndSelectBucket, itemRow, itemTick, uniqueName } from "../helpers/buckets";
+import {
+  addItem,
+  createAndSelectBucket,
+  detailChip,
+  itemRow,
+  itemTick,
+  openDetail,
+  saveEdit,
+  uniqueName,
+} from "../helpers/buckets";
 
 test.use({ storageState: authState("inline-edit") });
 
@@ -191,18 +200,63 @@ test("no date takes the date and its time away", async ({ page }) => {
   await expect(itemRow(page, title)).not.toContainText("today");
 });
 
-test("more opens the full form with what was just changed", async ({ page }) => {
-  const title = uniqueName("water plants");
-  const renamed = uniqueName("water the ferns");
+test("repeat needs a date, then opens inside the row and saves with the rest", async ({ page }) => {
+  const title = uniqueName("gym");
   await bucketWith(page, title);
 
   await itemRow(page, title).click();
-  await titleInput(page).fill(renamed);
-  await editor(page).getByRole("button", { name: "more", exact: true }).click();
+  await detailChip(editor(page), "repeat").click();
+  await expect(detailChip(editor(page), "repeat")).toHaveAttribute("aria-expanded", "false");
 
-  const form = page.getByRole("dialog", { name: "edit item", exact: true });
-  await expect(form).toBeVisible();
-  await expect(form.locator("textarea").first()).toHaveValue(renamed);
+  await editor(page).getByRole("button", { name: "date", exact: true }).click();
+  await page.getByRole("button", { name: "tomorrow", exact: true }).click();
+  await openDetail(editor(page), "repeat");
+  await editor(page).getByRole("button", { name: "on", exact: true }).click();
+  await editor(page).getByRole("button", { name: "week", exact: true }).click();
+  await expect(editor(page)).toBeVisible();
+
+  await saveEdit(editor(page));
+  await expect(editor(page)).toHaveCount(0);
+  await expect(itemRow(page, title)).toContainText("↺ weekly");
+});
+
+test("notes sit under the title as one line, and a click on them puts the cursor there", async ({
+  page,
+}) => {
+  const title = uniqueName("water plants");
+  await bucketWith(page, title);
+
+  await itemRow(page, title).click();
+  const notes = editor(page).getByRole("textbox", { name: "notes" });
+  await notes.fill("the fern first\nthen the cactus");
+  await savedAfter(page, () => page.keyboard.press("Control+Enter"));
+  await expect(editor(page)).toHaveCount(0);
+
+  const preview = itemRow(page, title).getByText("the fern first");
+  await expect(preview).toBeVisible();
+  await expect(itemRow(page, title)).not.toContainText("then the cactus");
+
+  await preview.click();
+  await expect(notes).toBeFocused();
+  await expect(notes).toHaveValue("the fern first\nthen the cactus");
+
+  await notes.fill("");
+  await savedAfter(page, () => page.keyboard.press("Control+Enter"));
+  await expect(itemRow(page, title)).not.toContainText("the fern first");
+});
+
+test("a long title shows on one line in the list and in full in the open row", async ({ page }) => {
+  const title = uniqueName("a title that goes on and on ".repeat(8));
+  await bucketWith(page, title);
+  const row = itemRow(page, title);
+  const oneLine = await row
+    .locator("span.truncate")
+    .first()
+    .evaluate((el) => el.getBoundingClientRect().height);
+  expect(oneLine).toBeLessThan(30);
+
+  await row.click();
+  await expect(titleInput(page)).toHaveValue(title);
 });
 
 test("opening a done item doesn't replay its tick", async ({ page }) => {

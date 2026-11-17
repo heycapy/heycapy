@@ -4,6 +4,7 @@ import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { items } from "@/lib/db/schema";
 import { patchItemAction } from "@/app/(app)/item-actions";
+import { ITEM_DESCRIPTION_MAX_LENGTH } from "@/constants";
 import { assigneeIdsByItem } from "@/lib/items/assignees";
 import {
   reminderOf,
@@ -140,4 +141,29 @@ it("a status alone ticks the item without touching its date", async () => {
   expect(after.status).toBe("completed");
   expect(after.completedBy).toBe(session.userId);
   expect(after.title).toBe("rent");
+});
+
+it("notes are saved trimmed, cleared by null or blank, and kept when left out", async () => {
+  const { itemId } = await setUp();
+
+  await patchItemAction(itemId, { description: "  call first  " });
+  expect((await saved(itemId)).description).toBe("call first");
+
+  await patchItemAction(itemId, { title: "pay rent" });
+  expect((await saved(itemId)).description).toBe("call first");
+
+  await patchItemAction(itemId, { description: "   " });
+  expect((await saved(itemId)).description).toBeNull();
+});
+
+it("notes over the limit are refused and nothing else in the patch is saved", async () => {
+  const { itemId } = await setUp();
+
+  const result = await patchItemAction(itemId, {
+    title: "changed",
+    description: "x".repeat(ITEM_DESCRIPTION_MAX_LENGTH + 1),
+  });
+
+  expect(result).toEqual({ ok: false, error: "Notes too long" });
+  expect((await saved(itemId)).title).toBe("rent");
 });

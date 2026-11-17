@@ -1,13 +1,6 @@
 import { test, expect, type Locator } from "@playwright/test";
 import { login, uniqueEmail } from "../helpers/login";
-import {
-  moreChip,
-  addItem,
-  editForm,
-  itemRow,
-  openBucketOnPhone,
-  uniqueName,
-} from "../helpers/buckets";
+import { addItem, editForm, itemRow, openBucketOnPhone, uniqueName } from "../helpers/buckets";
 
 test.use({
   storageState: { cookies: [], origins: [] },
@@ -26,20 +19,19 @@ async function tapWithLateClick(target: Locator) {
   });
 }
 
-test("a tap outside the drawer only closes it, and the next tap opens a row", async ({ page }) => {
+test("a tap outside the open row only closes it, and the next tap opens a row", async ({
+  page,
+}) => {
   await login(page, uniqueEmail("e2e-outside-tap"));
   await openBucketOnPhone(page, uniqueName("tap"));
   for (const title of ["first", "second", "third"]) await addItem(page, title);
 
   await itemRow(page, "third").tap();
-  await moreChip(page).tap();
   await expect(editForm(page)).toBeVisible();
   await tapWithLateClick(itemRow(page, "first"));
   await expect(editForm(page)).toBeHidden();
-  await expect(page.getByRole("dialog", { name: "edit item" })).toHaveCount(0);
 
   await itemRow(page, "first").tap();
-  await moreChip(page).tap();
   await expect(editForm(page)).toBeVisible();
   await expect(editForm(page).locator("textarea").first()).toHaveValue("first");
 });

@@ -8,6 +8,7 @@ import {
   uniqueName,
   openDetail,
   detailChip,
+  saveEdit,
 } from "../helpers/buckets";
 
 test.use({ storageState: authState("recurring") });
@@ -52,7 +53,7 @@ test("repeats on picked weekdays, then on the last day of the month", async ({ p
     await dialog.getByRole("button", { name: day, exact: true }).click();
   }
   await expect(dialog.getByText("↺ every week on mon, wed, fri")).toBeVisible();
-  await dialog.getByRole("button", { name: "update", exact: true }).click();
+  await saveEdit(dialog);
   await expect(dialog).not.toBeVisible();
   await expect(itemRow(page, title)).toContainText("↺ mon, wed, fri");
 
@@ -67,7 +68,7 @@ test("repeats on picked weekdays, then on the last day of the month", async ({ p
   await dialog.getByRole("button", { name: "month", exact: true }).click();
   await dialog.getByRole("button", { name: "last day", exact: true }).click();
   await expect(dialog.getByText("↺ every month on the last day")).toBeVisible();
-  await dialog.getByRole("button", { name: "update", exact: true }).click();
+  await saveEdit(dialog);
   await expect(itemRow(page, title)).toContainText("↺ monthly, last day");
 });
 

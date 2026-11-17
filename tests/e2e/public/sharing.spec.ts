@@ -2,6 +2,7 @@ import { test, expect, type Locator, type Page } from "@playwright/test";
 import Database from "better-sqlite3";
 import { E2E_DATABASE_FILE } from "../helpers/env";
 import {
+  deleteFromMenu,
   openEditForm,
   assignOnly,
   addItem,
@@ -11,6 +12,7 @@ import {
   newItemForm,
   openDetail,
   openItemMenu,
+  saveEdit,
 } from "../helpers/buckets";
 import { login, uniqueEmail, uniqueUsername } from "../helpers/login";
 import { giveOwnSmtp } from "../helpers/email";
@@ -193,9 +195,7 @@ test("an owner can cancel an invite before it is used", async ({ page, browser }
 });
 
 async function deleteItem(page: Page, title: string) {
-  await openEditForm(page, title);
-  const dialog = editForm(page);
-  await dialog.getByRole("button", { name: "delete item" }).click();
+  await deleteFromMenu(page, title);
   await expect(itemRow(page, title)).toHaveCount(0);
 }
 
@@ -362,7 +362,7 @@ test("an item can be assigned to a member, and a bucket nobody shares has no suc
   const edit = editForm(friend);
   await assignOnly(edit, null);
   await expect(detailChip(edit, "assignee")).toHaveAccessibleName("assignee");
-  await edit.getByRole("button", { name: "update", exact: true }).click();
+  await saveEdit(edit);
   await expect(edit).not.toBeVisible();
 
   await page.reload();
@@ -435,7 +435,7 @@ test("a shared item's assignees can be changed when it's edited from today or se
   await itemRow(page, title).click();
   const fromToday = editForm(page);
   await assignOnly(fromToday, sam);
-  await fromToday.getByRole("button", { name: "update", exact: true }).click();
+  await saveEdit(fromToday);
   await expect(fromToday).not.toBeVisible();
 
   await page.goto(`/?bucket=${bucketId}`);
@@ -448,7 +448,7 @@ test("a shared item's assignees can be changed when it's edited from today or se
   await search.getByRole("button", { name: title }).click();
   const fromSearch = editForm(page);
   await assignOnly(fromSearch, null);
-  await fromSearch.getByRole("button", { name: "update", exact: true }).click();
+  await saveEdit(fromSearch);
   await expect(fromSearch).not.toBeVisible();
 
   await page.goto(`/?bucket=${bucketId}`);
@@ -688,8 +688,7 @@ test("people see each other's avatars next to their names, a generated one if ne
   await expect(itemRow(page, fromBox)).toContainText(sam);
   await expect(sams(itemRow(page, title))).toHaveAttribute("width", "16");
 
-  await openEditForm(page, title);
-  await editForm(page).getByRole("button", { name: "delete item" }).click();
+  await deleteFromMenu(page, title);
   await expect(itemRow(page, title)).toHaveCount(0);
   await page.getByRole("button", { name: "your menu", exact: true }).click();
   await page.getByRole("button", { name: "trash", exact: true }).click();

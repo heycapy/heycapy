@@ -3,6 +3,9 @@ import { notify } from "@/components/ui/notify";
 import { cn } from "@/lib/utils";
 import { useLookParts } from "@/components/looks/LookProvider";
 import { ItemRow } from "@/components/buckets/ItemRow";
+import { CrossBucketEditor } from "./CrossBucketEditor";
+import { useOpenItem } from "@/components/buckets/useOpenItem";
+import type { ItemPatch } from "@/lib/items/edit-draft";
 import { itemAssignee } from "@/components/buckets/assignee";
 import { parseFields } from "@/components/buckets/fields";
 import { DEFAULT_BUCKET_STATUSES } from "@/components/buckets/constants";
@@ -27,8 +30,7 @@ type CrossBucketListProps = {
   data: CrossBucketItems | null;
   sections: CrossBucketSection[];
   emptyText: string;
-  editingItemId: number | null;
-  onEdit: (item: Item) => void;
+  onPatch: (item: Item, patch: ItemPatch) => void;
   onChanged: () => Promise<void>;
   boxed?: boolean;
   dueTimeOnly?: boolean;
@@ -38,13 +40,13 @@ export function CrossBucketList({
   data,
   sections,
   emptyText,
-  editingItemId,
-  onEdit,
+  onPatch,
   onChanged,
   boxed = false,
   dueTimeOnly = false,
 }: CrossBucketListProps) {
   const [menu, setMenu] = useState<{ item: Item; at: MenuAt } | null>(null);
+  const { openId, focus, open, close } = useOpenItem();
   const framed = useLookParts().listFrame === "framed";
   const statuses = DEFAULT_BUCKET_STATUSES;
   const bucketOf = (item: Item) => data?.buckets.find((b) => b.id === item.bucketId);
@@ -83,15 +85,28 @@ export function CrossBucketList({
     const readonly = bucket?.readonly === true;
     const color = bucket && bucketColor(bucket.index);
     const assignees = data?.assignees[item.id];
+    if (bucket && openId === item.id) {
+      return (
+        <div key={item.id}>
+          <CrossBucketEditor
+            item={item}
+            focus={focus}
+            bucket={bucket}
+            color={color ?? ""}
+            onCommit={(patch) => onPatch(item, patch)}
+            onExit={(focusRow) => close(item.id, focusRow)}
+          />
+        </div>
+      );
+    }
     return (
-      <PressableRow key={item.id} onMenu={(at) => setMenu({ item, at })}>
+      <PressableRow key={item.id} dimmed={openId !== null} onMenu={(at) => setMenu({ item, at })}>
         <ItemRow
           item={item}
           statuses={statuses}
           fields={bucket ? parseFields(bucket.fieldSchema) : []}
-          isEditing={editingItemId === item.id}
           menuOpen={menu?.item.id === item.id}
-          onEditStart={readonly ? undefined : () => onEdit(item)}
+          onEditStart={readonly || openId !== null ? undefined : (at) => open(item.id, at)}
           onStatusChange={readonly ? undefined : (status) => changeStatus(item, status)}
           reminderBadge={data?.reminderBadges[item.id]}
           assignees={assignees?.map(itemAssignee)}
@@ -111,6 +126,7 @@ export function CrossBucketList({
 
   return (
     <div
+      data-item-list
       className={cn(
         "@container overflow-hidden sm:mx-4",
         (framed || boxed) &&

@@ -3,19 +3,20 @@ import { ITEM_TITLE_MAX_LENGTH } from "@/constants";
 
 type InlineTitleProps = {
   value: string;
+  autoFocus: boolean;
   onChange: (value: string) => void;
   onEnter: () => void;
 };
 
-export function InlineTitle({ value, onChange, onEnter }: InlineTitleProps) {
+export function InlineTitle({ value, autoFocus, onChange, onEnter }: InlineTitleProps) {
   const ref = useRef<HTMLTextAreaElement>(null);
 
   useLayoutEffect(() => {
     const el = ref.current;
-    if (!el) return;
+    if (!el || !autoFocus) return;
     el.focus({ preventScroll: true });
     el.setSelectionRange(el.value.length, el.value.length);
-  }, []);
+  }, [autoFocus]);
 
   useLayoutEffect(() => {
     const el = ref.current;

@@ -16,6 +16,8 @@ import { DETAIL_EDITOR as EDITOR, NEEDS_DATE, type ItemDetailPanel } from "./con
 import { HINT } from "@/components/layout/settings-constants";
 
 type ItemDetailsProps = {
+  // Stands in for the date chip and its panel, for an editor that picks dates its own way
+  dateSlot?: ReactNode;
   datePart: string;
   allDay: boolean;
   time: TimeValue;
@@ -44,6 +46,7 @@ function remindersLabel(list: number[], allDay: boolean): string {
 }
 
 export function ItemDetails({
+  dateSlot,
   datePart,
   allDay,
   time,
@@ -71,6 +74,7 @@ export function ItemDetails({
   const statusDef = statuses.find((s) => s.name === status);
 
   function toggle(next: ItemDetailPanel, needsDate = false) {
+    if (needsDate && !hasDate && dateSlot) return;
     setAfterDate(needsDate && !hasDate ? next : null);
     if (needsDate && !hasDate) return setPanel("date");
     setPanel((current) => (current === next ? null : next));
@@ -86,14 +90,16 @@ export function ItemDetails({
   return (
     <div className="flex flex-col gap-4">
       <div role="group" aria-label="item details" className="flex flex-wrap gap-1.5">
-        <DetailChip
-          name="date"
-          icon="calendar"
-          label={hasDate ? `${formatDisplay(datePart)} · ${timeLabel(time)}` : "date"}
-          set={hasDate}
-          open={panel === "date"}
-          onClick={() => toggle("date")}
-        />
+        {dateSlot ?? (
+          <DetailChip
+            name="date"
+            icon="calendar"
+            label={hasDate ? `${formatDisplay(datePart)} · ${timeLabel(time)}` : "date"}
+            set={hasDate}
+            open={panel === "date"}
+            onClick={() => toggle("date")}
+          />
+        )}
         {onRecurringChange && (
           <DetailChip
             name="repeat"
@@ -150,7 +156,7 @@ export function ItemDetails({
 
       {hasDate && clock}
 
-      {panel === "date" && (
+      {panel === "date" && !dateSlot && (
         <div className={EDITOR}>
           {afterDate && <p className={HINT}>{NEEDS_DATE}</p>}
           <div className="max-w-xs">

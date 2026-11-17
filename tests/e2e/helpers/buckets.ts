@@ -54,27 +54,35 @@ export function newItemForm(page: Page) {
   return page.getByRole("dialog", { name: "new item", exact: true });
 }
 
+export function inlineEditor(page: Page) {
+  return page.getByRole("group", { name: "edit item", exact: true });
+}
+
+// An item opens in place in its bucket's list, and in the drawer from Today and search
 export function editForm(page: Page) {
-  return page.getByRole("dialog", { name: "edit item", exact: true });
+  return page.getByRole("dialog", { name: "edit item", exact: true }).or(inlineEditor(page));
 }
 
 export function itemForm(page: Page) {
-  return page.getByRole("dialog", { name: /^(new|edit) item$/ });
+  return page.getByRole("dialog", { name: /^(new|edit) item$/ }).or(inlineEditor(page));
+}
+
+export async function saveEdit(form: Locator): Promise<void> {
+  await form.page().keyboard.press("ControlOrMeta+Enter");
 }
 
 export function itemRow(page: Page, title: string) {
   return page.getByRole("button", { name: title });
 }
 
-export function moreChip(page: Page) {
-  return page
-    .getByRole("group", { name: "edit item" })
-    .getByRole("button", { name: "more", exact: true });
-}
-
 export async function openEditForm(page: Page, title: string): Promise<void> {
   await itemRow(page, title).click();
-  await moreChip(page).click();
+  await expect(inlineEditor(page)).toBeVisible();
+}
+
+export async function deleteFromMenu(page: Page, title: string): Promise<void> {
+  const menu = await openItemMenu(page, title);
+  await menu.getByRole("button", { name: "delete" }).click();
 }
 
 export async function openBucketOnPhone(page: Page, name: string): Promise<void> {

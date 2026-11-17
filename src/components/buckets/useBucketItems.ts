@@ -5,7 +5,6 @@ import {
   deleteItemAction,
   getItemsForBucketAction,
   moveItemAction,
-  patchItemAction,
   updateItemAction,
 } from "@/app/(app)/actions";
 import type { ListItem, ReminderBadge } from "@/lib/reminders/status";
@@ -14,6 +13,7 @@ import { deadlineValue } from "@/lib/time";
 import type { ItemPatch } from "@/lib/items/edit-draft";
 import { offerUndoDelete } from "./undoDelete";
 import { withPatch } from "./optimistic";
+import { saveItemPatch } from "./savePatch";
 import { isTick, offerUndoTick } from "./undoTick";
 
 type Item = ListItem;
@@ -92,13 +92,7 @@ export function useBucketItems(bucketId: number, itemsRules: string, showComplet
 
   async function patchItem(item: Item, patch: ItemPatch) {
     setFetchedItems((list) => list.map((i) => (i.id === item.id ? withPatch(i, patch) : i)));
-    const result = await patchItemAction(item.id, patch);
-    if (!result.ok) {
-      notify.error(result.error, {
-        action: { label: "retry", onClick: () => void patchItem(item, patch) },
-      });
-    }
-    await refetch();
+    await saveItemPatch(item, patch, refetch);
   }
 
   async function moveItem(item: Item, deadline: string) {

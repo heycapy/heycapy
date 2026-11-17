@@ -7,7 +7,6 @@ type ItemPageFrameProps = {
   heading: string;
   scrollBodyRef: RefObject<HTMLDivElement | null>;
   confirm: ReactNode;
-  secondary: ReactNode;
   children: ReactNode;
   onCancel: () => void;
 };
@@ -17,7 +16,6 @@ export function ItemPageFrame({
   heading,
   scrollBodyRef,
   confirm,
-  secondary,
   children,
   onCancel,
 }: ItemPageFrameProps) {
@@ -31,7 +29,6 @@ export function ItemPageFrame({
         className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain px-5 py-4"
       >
         {children}
-        {secondary}
       </div>
       <div className="border-border border-t-frame flex shrink-0 items-center justify-between px-4 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
         <TextButton onClick={onCancel} className="px-2 py-3 text-base">

@@ -13,6 +13,7 @@ import {
   selectBucket,
   uniqueName,
   openDetail,
+  saveEdit,
 } from "../helpers/buckets";
 import { field, openSettings, option, saveSettings } from "../helpers/settings";
 
@@ -111,7 +112,7 @@ test("a repeating item moves only this time: the next one stays on schedule", as
   await openDetail(dialog, "repeat");
   await dialog.getByRole("button", { name: "on", exact: true }).click();
   await dialog.getByRole("button", { name: "week", exact: true }).click();
-  await dialog.getByRole("button", { name: "update", exact: true }).click();
+  await saveEdit(dialog);
   await expect(dialog).not.toBeVisible();
 
   const menu = await openItemMenu(page, title);

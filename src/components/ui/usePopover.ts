@@ -15,6 +15,21 @@ export function usePopover(size: { width: number; height: number }) {
     return () => clearTimeout(id);
   }, []);
 
+  const wasOpen = useRef(false);
+  useEffect(() => {
+    if (open) {
+      wasOpen.current = true;
+      return;
+    }
+    if (!wasOpen.current) return;
+    wasOpen.current = false;
+    // Picking inside the popover would otherwise leave focus on the page body, out of reach of Escape
+    const focused = document.activeElement;
+    if (!focused || focused === document.body || popoverRef.current?.contains(focused)) {
+      triggerRef.current?.focus({ preventScroll: true });
+    }
+  }, [open]);
+
   useEffect(() => {
     if (!open) return;
     function onPointerDown(e: PointerEvent) {
@@ -41,6 +56,9 @@ export function usePopover(size: { width: number; height: number }) {
       setOpen(false);
       return;
     }
+    // A phone keeps its keyboard up while a button is tapped, and it would cover the panel
+    const typing = document.activeElement;
+    if (typing instanceof HTMLTextAreaElement || typing instanceof HTMLInputElement) typing.blur();
     const rect = triggerRef.current?.getBoundingClientRect();
     if (!rect) return;
     let left = rect.left;

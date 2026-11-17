@@ -162,7 +162,16 @@ describe("firstMissingRequired", () => {
 });
 
 describe("inlinePatch", () => {
-  const saved = { title: "rent", deadline: "2026-11-20T09:00:00.000Z", recurring: null };
+  const saved = {
+    title: "rent",
+    description: "",
+    deadline: "2026-11-20T09:00:00.000Z",
+    recurring: null,
+    status: "active",
+    reminders: null,
+    assigneeIds: [1, 2],
+    properties: {},
+  };
 
   it("is empty when nothing changed", () => {
     expect(inlinePatch(saved, { ...saved }, null)).toEqual({});
@@ -172,6 +181,25 @@ describe("inlinePatch", () => {
     expect(inlinePatch(saved, { ...saved, title: "  pay rent " }, null)).toEqual({
       title: "pay rent",
     });
+  });
+
+  it("carries changed notes, trimmed, and null once they are emptied", () => {
+    expect(inlinePatch(saved, { ...saved, description: "  call first " }, null)).toEqual({
+      description: "call first",
+    });
+    expect(
+      inlinePatch({ ...saved, description: "call first" }, { ...saved, description: "  " }, null)
+    ).toEqual({ description: null });
+  });
+
+  it("leaves notes alone when only their whitespace changed", () => {
+    expect(
+      inlinePatch(
+        { ...saved, description: "call first" },
+        { ...saved, description: "call first " },
+        null
+      )
+    ).toEqual({});
   });
 
   it("drops an empty title so the old one stays", () => {
@@ -189,6 +217,35 @@ describe("inlinePatch", () => {
       deadline: null,
       clock: null,
     });
+  });
+
+  it("carries a changed status, reminders and fields", () => {
+    expect(
+      inlinePatch(
+        saved,
+        { ...saved, status: "completed", reminders: [0, 60], properties: { a: 1 } },
+        null
+      )
+    ).toEqual({ status: "completed", reminders: [0, 60], properties: { a: 1 } });
+  });
+
+  it("sends null for fields that were all cleared", () => {
+    expect(
+      inlinePatch({ ...saved, properties: { a: 1 } }, { ...saved, properties: {} }, null)
+    ).toEqual({ properties: null });
+  });
+
+  it("sends null when reminders go back to following the bucket", () => {
+    expect(inlinePatch({ ...saved, reminders: [60] }, { ...saved, reminders: null }, null)).toEqual(
+      {
+        reminders: null,
+      }
+    );
+  });
+
+  it("carries assignees only when the people changed, not their order", () => {
+    expect(inlinePatch(saved, { ...saved, assigneeIds: [2, 1] }, null)).toEqual({});
+    expect(inlinePatch(saved, { ...saved, assigneeIds: [2] }, null)).toEqual({ assigneeIds: [2] });
   });
 
   it("carries a changed repeat, including one switched off", () => {

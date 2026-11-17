@@ -2,6 +2,7 @@ import { test, expect, type Page } from "@playwright/test";
 import { login, uniqueEmail } from "../helpers/login";
 import { field, openSettings, option, saveSettings } from "../helpers/settings";
 import {
+  inlineEditor,
   openEditForm,
   addItem,
   addBox,
@@ -52,15 +53,7 @@ test("with the add form open, scrolling over it leaves the list where it is", as
 test("editing the bottom row brings it above the edit form", async ({ page }) => {
   await bucketWithItems(page);
   await openEditForm(page, "eight");
-  const panel = page.locator("[data-item-panel]");
-  await expect(panel).toBeVisible();
-  await expect
-    .poll(async () => {
-      const row = await itemRow(page, "eight").boundingBox();
-      const top = (await panel.boundingBox())?.y ?? 0;
-      return (row?.y ?? Infinity) + (row?.height ?? 0) <= top;
-    })
-    .toBe(true);
+  await expect(inlineEditor(page)).toBeInViewport({ ratio: 1 });
 });
 
 test("a long list sorted by deadline never makes the page itself taller", async ({ page }) => {

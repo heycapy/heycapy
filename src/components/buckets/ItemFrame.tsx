@@ -5,7 +5,6 @@ import { ItemPanelFrame, type ItemPanel } from "./ItemPanelFrame";
 
 type ItemFrameProps = {
   open: boolean;
-  mode: "add" | "edit";
   isMobile: boolean;
   panel?: ItemPanel;
   wide: boolean;
@@ -13,14 +12,12 @@ type ItemFrameProps = {
   titleField: (boxed: boolean) => ReactNode;
   details: ReactNode;
   confirm: (boxed: boolean) => ReactNode;
-  deleteButton: ReactNode;
   onCancel: () => void;
   onSubmit: () => void;
 };
 
 export function ItemFrame({
   open,
-  mode,
   isMobile,
   panel,
   wide,
@@ -28,11 +25,10 @@ export function ItemFrame({
   titleField,
   details,
   confirm,
-  deleteButton,
   onCancel,
   onSubmit,
 }: ItemFrameProps) {
-  const heading = mode === "add" ? "new item" : "edit item";
+  const heading = "new item";
 
   function submitOnShortcut(e: KeyboardEvent) {
     if (e.key !== "Enter" || !(e.metaKey || e.ctrlKey) || e.defaultPrevented) return;
@@ -51,10 +47,6 @@ export function ItemFrame({
           scrollBodyRef={scrollBodyRef}
           title={titleField(true)}
           confirm={confirm(true)}
-          secondary={
-            deleteButton && <div className="border-border mt-6 border-t pt-4">{deleteButton}</div>
-          }
-          returnToOpener={mode === "edit"}
           phone={isMobile}
           onCancel={onCancel}
         >
@@ -71,9 +63,6 @@ export function ItemFrame({
           scrollBodyRef={scrollBodyRef}
           onCancel={onCancel}
           confirm={confirm(false)}
-          secondary={
-            deleteButton && <div className="border-border mt-6 border-t pt-4">{deleteButton}</div>
-          }
         >
           {titleField(false)}
           {details}
@@ -88,12 +77,7 @@ export function ItemFrame({
         wide={wide}
         scrollBodyRef={scrollBodyRef}
         onCancel={onCancel}
-        footer={
-          <div className="flex w-full items-center justify-between">
-            {deleteButton || <span />}
-            {confirm(false)}
-          </div>
-        }
+        footer={<div className="flex w-full justify-end">{confirm(false)}</div>}
       >
         {titleField(false)}
         {details}

@@ -2,6 +2,7 @@ import { test, expect } from "@playwright/test";
 import { ITEM_GONE_ERROR } from "@/constants";
 import { authState } from "../helpers/auth";
 import {
+  deleteFromMenu,
   openEditForm,
   activeBucketTitle,
   addItem,
@@ -68,12 +69,12 @@ test.describe("items", () => {
     await expect(page.getByText("no items yet")).not.toBeVisible();
   });
 
-  test("edit dialog opens on item click", async ({ page }) => {
+  test("an item opens in place on click", async ({ page }) => {
     const title = uniqueName("buy oat milk");
     await addItem(page, title);
     await openEditForm(page, title);
-    await expect(page.getByText("edit item", { exact: true })).toBeVisible();
-    await expect(page.locator("textarea")).toHaveValue(title);
+    await expect(page.getByRole("textbox", { name: "title" })).toHaveValue(title);
+    await expect(page.getByRole("dialog", { name: "edit item" })).toHaveCount(0);
   });
 
   test("edits an existing item title", async ({ page }) => {
@@ -99,8 +100,7 @@ test.describe("items", () => {
     const other = await context.newPage();
     await other.goto("/");
     await selectBucket(other, bucket);
-    await openEditForm(other, title);
-    await other.getByRole("button", { name: "delete item" }).click();
+    await deleteFromMenu(other, title);
     await expect(itemRow(other, title)).not.toBeVisible();
     await other.close();
 
@@ -113,17 +113,15 @@ test.describe("items", () => {
     const title = uniqueName("buy oat milk");
     await createAndSelectBucket(page, bucket);
     await addItem(page, title);
-    await openEditForm(page, title);
 
     const other = await context.newPage();
     await other.goto("/");
     await selectBucket(other, bucket);
-    await openEditForm(other, title);
-    await other.getByRole("button", { name: "delete item" }).click();
+    await deleteFromMenu(other, title);
     await expect(itemRow(other, title)).not.toBeVisible();
     await other.close();
 
-    await page.getByRole("button", { name: "delete item" }).click();
+    await deleteFromMenu(page, title);
     await expect(page.getByText(ITEM_GONE_ERROR)).toBeVisible();
     await expect(page.getByRole("button", { name: /undo/i })).not.toBeVisible();
   });

@@ -29,7 +29,6 @@ import { MOBILE_MEDIA_QUERY } from "@/constants";
 
 type ItemDialogProps = {
   open: boolean;
-  mode: "add" | "edit";
   title: string;
   deadline: string;
   deadlinePicked?: boolean;
@@ -51,14 +50,12 @@ type ItemDialogProps = {
   onRemindersChange?: (v: number[]) => void;
   onConfirm: (title: string | undefined, clock: string | null) => void;
   onCancel: () => void;
-  onDelete?: () => void;
   assigneeChoice?: AssigneeChoice;
   panel?: ItemPanel;
 };
 
 export function ItemDialog({
   open,
-  mode,
   title,
   deadline,
   status,
@@ -80,7 +77,6 @@ export function ItemDialog({
   onRemindersChange,
   onConfirm,
   onCancel,
-  onDelete,
   assigneeChoice,
   panel,
 }: ItemDialogProps) {
@@ -92,13 +88,11 @@ export function ItemDialog({
   const [timeMin, setTimeMin] = useState("00");
   const [timeAmpm, setTimeAmpm] = useState<Ampm>("am");
   const wasOpenRef = useRef(false);
-  const [frameMode, setFrameMode] = useState(mode);
-  if (open && mode !== frameMode) setFrameMode(mode);
   const [validationAttempted, setValidationAttempted] = useState(false);
   const clock = useItemClock(assigneeChoice?.members ?? [], assigneeChoice?.value ?? null);
   const zone = clock.zone;
   const titleDate = useTitleDate({
-    active: mode === "add",
+    active: true,
     title,
     deadline,
     onDeadlineChange: (next) => {
@@ -251,7 +245,7 @@ export function ItemDialog({
           />
         )
       }
-      withStatus={frameMode === "edit"}
+      withStatus={false}
       status={status}
       statuses={statuses}
       recurring={recurring}
@@ -269,7 +263,7 @@ export function ItemDialog({
     />
   );
 
-  const confirmLabel = frameMode === "add" ? "add" : "update";
+  const confirmLabel = "add";
   const confirmButton = (boxed: boolean) =>
     boxed ? (
       <div className="mb-[calc(1.5rem-var(--add-icon)/2)] flex items-center self-end">
@@ -292,18 +286,6 @@ export function ItemDialog({
         <SubmitKeyHint form />
       </TextButton>
     );
-  const deleteButton = onDelete && (
-    <TextButton
-      icon="trash"
-      onClick={onDelete}
-      disabled={pending}
-      variant="destructive"
-      aria-label="delete item"
-    >
-      delete
-    </TextButton>
-  );
-
   const titleField = (boxed: boolean) => (
     <ItemTitleField
       open={open}
@@ -322,7 +304,6 @@ export function ItemDialog({
   return (
     <ItemFrame
       open={open}
-      mode={frameMode}
       isMobile={isMobile}
       panel={panel}
       wide={hasFields}
@@ -330,7 +311,6 @@ export function ItemDialog({
       titleField={titleField}
       details={details}
       confirm={confirmButton}
-      deleteButton={deleteButton}
       onCancel={onCancel}
       onSubmit={handleConfirmClick}
     />

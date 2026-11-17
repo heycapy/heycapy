@@ -6,6 +6,7 @@ import {
   editForm,
   itemRow,
   uniqueName,
+  saveEdit,
 } from "../helpers/buckets";
 import { enableWebhook, postItem } from "../helpers/webhook";
 
@@ -33,7 +34,7 @@ test("updating an item without changes keeps its date and time", async ({ page }
   const before = await row.innerText();
   await openEditForm(page, title);
   const dialog = editForm(page);
-  await dialog.getByRole("button", { name: "update", exact: true }).click();
+  await saveEdit(dialog);
   await expect(dialog).not.toBeVisible();
 
   await page.reload();

@@ -8,8 +8,10 @@ import { TimeField, type TimeValue } from "@/components/ui/TimeField";
 import { ITEM_STATUS } from "@/constants";
 import type { BucketMember } from "@/lib/buckets/members";
 import {
+  firstMissingRequired,
   inlinePatch,
   pickDate,
+  pickRepeat,
   pickTime,
   timeOf,
   type ClockTime,
@@ -18,52 +20,75 @@ import {
 } from "@/lib/items/edit-draft";
 import { parseRecurring } from "@/lib/items/occurrence";
 import type { ListItem } from "@/lib/reminders/status";
-import { deadlineDate, deadlineValue, timeOfDeadline } from "@/lib/time";
+import { deadlineDate, deadlineValue, moveClock, timeOfDeadline } from "@/lib/time";
 import { smoothScroll } from "@/lib/motion";
+import type { FieldDef, RecurringConfig, StatusDef } from "@/types/rules";
 import { cn } from "@/lib/utils";
-import { DetailChip } from "./DetailChip";
+import { assigneeLabel } from "./assignee";
+import { InlineNotes } from "./InlineNotes";
 import { InlineTitle } from "./InlineTitle";
+import { ItemAssigneeField, type AssigneeChoice } from "./ItemAssigneeField";
 import { ItemDateChip } from "./ItemDateChip";
+import { ItemDetails } from "./ItemDetails";
+import { ItemFieldsForm } from "./ItemFieldsForm";
+import { ItemTimeHints } from "./ItemTimeHints";
 import { TickBox } from "./TickBox";
-import { INLINE_EDIT_SECONDS } from "./constants";
+import { INLINE_EDIT_SECONDS, type OpenFocus } from "./constants";
 import { useItemClock } from "./useItemClock";
 import { useOutsideTap } from "./useOutsideTap";
-import { withPatch } from "./optimistic";
 
 type InlineItemEditorProps = {
   item: ListItem;
+  focus: OpenFocus;
   color: string;
+  bucketId: number;
   members: BucketMember[];
+  statuses: StatusDef[];
+  fields: FieldDef[];
+  bucketReminders: number[];
   draggable: boolean;
   onCommit: (patch: ItemPatch) => void;
-  onMore: (item: ListItem) => void;
   onExit: (focusRow: boolean) => void;
 };
 
+function startingDraft(item: ListItem): InlineDraft {
+  return {
+    title: item.title,
+    description: item.description ?? "",
+    deadline: item.deadline ? deadlineValue(item.deadline, item.deadlineTimezone) : "",
+    recurring: parseRecurring(item.recurring),
+    status: item.status,
+    reminders: item.reminderOffsets,
+    assigneeIds: item.assigneeIds,
+    properties: item.properties ? (JSON.parse(item.properties) as Record<string, unknown>) : {},
+  };
+}
+
 export function InlineItemEditor({
   item,
+  focus,
   color,
+  bucketId,
   members,
+  statuses,
+  fields,
+  bucketReminders,
   draggable,
   onCommit,
-  onMore,
   onExit,
 }: InlineItemEditorProps) {
   const roundTick = useLookParts().tickBox === "round";
   const done = item.status === ITEM_STATUS.completed;
-  const clock = useItemClock(members, item.assigneeIds);
-  const zone = clock.zone;
   const rootRef = useRef<HTMLDivElement>(null);
-  const [initial] = useState<InlineDraft>(() => ({
-    title: item.title,
-    deadline: item.deadline ? deadlineValue(item.deadline, item.deadlineTimezone) : "",
-    recurring: parseRecurring(item.recurring),
-  }));
+  const [initial] = useState(() => startingDraft(item));
   const [draft, setDraft] = useState(initial);
+  const clock = useItemClock(members, draft.assigneeIds);
+  const zone = clock.zone;
   const [remembered, setRemembered] = useState<ClockTime>(() =>
     timeOfDeadline(initial.deadline, zone)
   );
   const [closing, setClosing] = useState(false);
+  const [attempted, setAttempted] = useState(false);
   const draftRef = useRef(initial);
   const savedRef = useRef(initial);
   const closedRef = useRef(false);
@@ -77,18 +102,29 @@ export function InlineItemEditor({
     setDraft(next);
   }
 
-  function flush(): ItemPatch {
+  function flush() {
     const patch = inlinePatch(savedRef.current, draftRef.current, clock.clock);
-    if (Object.keys(patch).length === 0) return patch;
+    if (Object.keys(patch).length === 0) return;
     savedRef.current = draftRef.current;
     onCommit(patch);
-    return patch;
   }
 
   function finish(save: boolean, refocus: boolean) {
     if (closedRef.current) return;
+    if (save) {
+      const missing = firstMissingRequired(fields, draftRef.current.properties);
+      if (missing) {
+        setAttempted(true);
+        requestAnimationFrame(() =>
+          rootRef.current
+            ?.querySelector(`[data-field-key="${missing.key}"]`)
+            ?.scrollIntoView({ block: "nearest", behavior: smoothScroll() })
+        );
+        return;
+      }
+      flush();
+    }
     closedRef.current = true;
-    if (save) flush();
     refocusRef.current = refocus;
     setClosing(true);
   }
@@ -104,10 +140,21 @@ export function InlineItemEditor({
     update({ ...draft, deadline: pickTime(draft.deadline, next, zone) });
   }
 
-  function openMore() {
-    if (closedRef.current) return;
-    closedRef.current = true;
-    onMore(withPatch(item, flush()));
+  function changeRepeat(next: RecurringConfig | null) {
+    update({ ...draft, ...pickRepeat(draft, next, time, zone) });
+  }
+
+  function changeAssignees(assigneeIds: number[]) {
+    update({
+      ...draft,
+      assigneeIds,
+      deadline: moveClock(draft.deadline, zone, clock.zoneFor(assigneeIds)),
+    });
+  }
+
+  function pickZone(timezone: string) {
+    clock.pick(timezone);
+    update({ ...draft, deadline: moveClock(draft.deadline, zone, timezone) });
   }
 
   const flushFromEffect = useEffectEvent(() => {
@@ -141,10 +188,26 @@ export function InlineItemEditor({
     }
   }
 
+  const choice: AssigneeChoice = {
+    bucketId,
+    members,
+    value: draft.assigneeIds,
+    onChange: changeAssignees,
+  };
+  const label = assigneeLabel(members, draft.assigneeIds);
+  const notes = (
+    <InlineNotes
+      value={draft.description}
+      autoFocus={focus === "notes"}
+      onChange={(description) => update({ ...draft, description })}
+    />
+  );
+
   return (
     <div
       ref={rootRef}
       data-inline-edit
+      data-handles-escape
       role="group"
       aria-label="edit item"
       onKeyDown={onKeyDown}
@@ -165,9 +228,11 @@ export function InlineItemEditor({
       <div className={cn("min-w-0 flex-1", roundTick ? "pt-3" : "pt-2.5")}>
         <InlineTitle
           value={draft.title}
+          autoFocus={focus === "title"}
           onChange={(title) => update({ ...draft, title })}
           onEnter={() => finish(true, true)}
         />
+        {initial.description && notes}
         <motion.div
           initial={{ height: 0, opacity: 0 }}
           animate={closing ? { height: 0, opacity: 0 } : { height: "auto", opacity: 1 }}
@@ -178,16 +243,62 @@ export function InlineItemEditor({
           }}
           className="-mx-1 overflow-hidden px-1"
         >
-          <div className="flex flex-wrap items-center gap-1.5 pt-2 pb-3">
-            <ItemDateChip value={datePart} zone={zone} onChange={pickDay} />
-            {datePart && <TimeField value={time} onChange={pickClock} allowAllDay />}
-            <DetailChip
-              name="more"
-              icon="more"
-              label="more"
-              set={false}
-              open={false}
-              onClick={openMore}
+          {!initial.description && notes}
+          <div className="pt-2 pb-3">
+            <ItemDetails
+              dateSlot={
+                <>
+                  <ItemDateChip value={datePart} zone={zone} onChange={pickDay} />
+                  {datePart && <TimeField value={time} onChange={pickClock} allowAllDay />}
+                </>
+              }
+              datePart={datePart}
+              allDay={!draft.deadline.includes("T")}
+              time={time}
+              clock={
+                members.length > 1 && (
+                  <ItemTimeHints
+                    choice={choice}
+                    deadline={draft.deadline}
+                    clock={clock}
+                    reminders={draft.reminders ?? bucketReminders}
+                    onPickClock={pickZone}
+                  />
+                )
+              }
+              withStatus
+              status={draft.status}
+              statuses={statuses}
+              recurring={draft.recurring}
+              reminders={draft.reminders}
+              bucketReminders={bucketReminders}
+              assignee={
+                members.length > 1
+                  ? {
+                      label,
+                      set: label !== "everyone",
+                      field: <ItemAssigneeField choice={choice} />,
+                    }
+                  : undefined
+              }
+              more={
+                fields.length > 0 ? (
+                  <div className="rounded-control border-border border">
+                    <ItemFieldsForm
+                      fields={fields}
+                      values={draft.properties}
+                      showErrors={attempted}
+                      onChange={(properties) => update({ ...draft, properties })}
+                    />
+                  </div>
+                ) : undefined
+              }
+              showMore={fields.some((f) => f.validation?.required)}
+              onDateChange={pickDay}
+              onTimeChange={pickClock}
+              onStatusChange={(status) => update({ ...draft, status })}
+              onRecurringChange={changeRepeat}
+              onRemindersChange={(reminders) => update({ ...draft, reminders })}
             />
           </div>
         </motion.div>
