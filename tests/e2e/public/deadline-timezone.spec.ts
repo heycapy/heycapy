@@ -73,7 +73,7 @@ test("an all-day item set in India is on the same date in London, and saving it 
   const dialog = editForm(member);
   await expect(dialog.getByRole("button", { name: /all day/ })).toBeVisible();
   const renamed = `${title} (paid by Sam)`;
-  await dialog.locator("textarea").fill(renamed);
+  await dialog.locator("textarea").first().fill(renamed);
   await saveEdit(dialog);
   await expect(dialog).not.toBeVisible();
 

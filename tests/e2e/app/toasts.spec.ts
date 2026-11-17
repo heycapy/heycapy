@@ -2,7 +2,6 @@ import { test, expect, type Page } from "@playwright/test";
 import { authState } from "../helpers/auth";
 import { touchSwipe } from "../helpers/touch";
 import {
-  addBox,
   addItem,
   addItemButton,
   createAndSelectBucket,
@@ -29,20 +28,19 @@ function centreX(box: { x: number; width: number } | null) {
 test.describe("on a phone", () => {
   test.use({ hasTouch: true });
 
-  test("a toast sits just above the add bar, centred and only as wide as its text", async ({
+  test("a toast sits just above the add button, centred and only as wide as its text", async ({
     page,
   }) => {
     await openBucketOnPhone(page, uniqueName("Toast"));
     const title = uniqueName("bins");
-    await addBox(page).fill(title);
-    await addBox(page).press("Enter");
+    await addItem(page, title);
     await deleteFromMenu(page, title, true);
 
     const toast = page.locator("[data-sonner-toast]", { hasText: title });
     await expect(toast).toBeVisible();
     await expect(toast).toHaveCSS("opacity", "1");
     const box = await toast.boundingBox();
-    const bar = await addBox(page).boundingBox();
+    const bar = await addItemButton(page).boundingBox();
     expect((box?.y ?? Infinity) + (box?.height ?? 0)).toBeLessThanOrEqual(bar?.y ?? 0);
     const screenWidth = page.viewportSize()?.width ?? 0;
     expect(box?.width ?? Infinity).toBeLessThan(screenWidth - 32);
@@ -52,8 +50,7 @@ test.describe("on a phone", () => {
   test("a toast can be swiped away", async ({ page }) => {
     await openBucketOnPhone(page, uniqueName("Toast swipe"));
     const title = uniqueName("bins");
-    await addBox(page).fill(title);
-    await addBox(page).press("Enter");
+    await addItem(page, title);
     await deleteFromMenu(page, title, true);
 
     const toast = page.locator("[data-sonner-toast]", { hasText: title });

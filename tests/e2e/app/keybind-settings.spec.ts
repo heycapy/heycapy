@@ -3,7 +3,6 @@ import Database from "better-sqlite3";
 import { authState, specUserEmail } from "../helpers/auth";
 import { E2E_DATABASE_FILE } from "../helpers/env";
 import {
-  addBox,
   createAndSelectBucket,
   newItemForm,
   openBucketOnPhone,
@@ -178,29 +177,30 @@ test("the shortcuts are always listed, and a key can be recorded or cancelled", 
     "true"
   );
 
-  await tweaks.getByRole("button", { name: "record key for quick add" }).click();
-  await expect(tweaks.getByText("Press the new key for quick add. Esc to cancel.")).toBeVisible();
-  await tweaks.getByRole("button", { name: "cancel key for quick add" }).click();
-  await expect(tweaks.getByText("Press the new key for quick add. Esc to cancel.")).toBeHidden();
+  await tweaks.getByRole("button", { name: "record key for add item" }).click();
+  await expect(tweaks.getByText("Press the new key for add item. Esc to cancel.")).toBeVisible();
+  await tweaks.getByRole("button", { name: "cancel key for add item" }).click();
+  await expect(tweaks.getByText("Press the new key for add item. Esc to cancel.")).toBeHidden();
 
-  await tweaks.getByRole("button", { name: "record key for quick add" }).click();
+  await tweaks.getByRole("button", { name: "record key for add item" }).click();
   await page.keyboard.press("t");
   await expect(tweaks.getByText('"t" is already used for today. Pick another key.')).toBeVisible();
   await page.keyboard.press("3");
   await expect(tweaks.getByText('"3" is reserved for jumping to bucket 3.')).toBeVisible();
   await page.keyboard.press("q");
-  await expect(tweaks.getByText("Quick add is now q.")).toBeVisible();
+  await expect(tweaks.getByText("Add item is now q.")).toBeVisible();
   await expect(tweaks.getByRole("button", { name: "reset all keys" })).toHaveAttribute(
     "aria-disabled",
     "false"
   );
-  await expect(tweaks.getByRole("button", { name: "record key for quick add" })).toBeFocused();
+  await expect(tweaks.getByRole("button", { name: "record key for add item" })).toBeFocused();
 
   await page.keyboard.press("Escape");
   await expect(tweaks).toBeHidden();
   await page.keyboard.press("Control+;");
   await page.keyboard.press("q");
-  await expect(addBox(page)).toBeFocused();
+  await expect(newItemForm(page)).toBeVisible();
+  await page.keyboard.press("Escape");
 
   await page.keyboard.press("Control+;");
   await page.keyboard.press(",");
@@ -215,7 +215,7 @@ test("the shortcuts are always listed, and a key can be recorded or cancelled", 
   await expect(tweaks).toBeHidden();
   await page.keyboard.press("Control+;");
   await page.keyboard.press("a");
-  await expect(addBox(page)).toBeFocused();
+  await expect(newItemForm(page)).toBeVisible();
 });
 
 test("key hints on buttons shows the keys on buttons, and hides them again", async ({ page }) => {
@@ -303,16 +303,11 @@ test("the keys that add or save an item show on the add buttons when hints are o
   setAccount("original", '{"hints":true}');
   try {
     await page.reload();
+    await expect(
+      page.getByRole("button", { name: "add item", exact: true }).locator("kbd")
+    ).toHaveText("a");
     await page.keyboard.press("Control+;");
     await page.keyboard.press("a");
-    await expect(addBox(page)).toBeFocused();
-    await expect(page.getByRole("button", { name: "add item" }).locator("xpath=..")).toHaveCount(0);
-    await addBox(page).fill("buy eggs");
-    await expect(page.getByRole("button", { name: "add item" })).toBeVisible();
-    await expect(page.locator("kbd", { hasText: /^Enter$/ })).toBeVisible();
-
-    await page.keyboard.press("Control+;");
-    await page.keyboard.press("d");
     await expect(newItemForm(page)).toBeVisible();
     await expect(newItemForm(page).locator("kbd", { hasText: /^Ctrl\+Enter$/ })).toBeVisible();
     await page.keyboard.press("Escape");
@@ -320,8 +315,7 @@ test("the keys that add or save an item show on the add buttons when hints are o
 
     setAccount("original", "{}");
     await page.reload();
-    await addBox(page).fill("buy milk");
-    await expect(page.locator("kbd", { hasText: /Enter$/ })).toHaveCount(0);
+    await expect(page.locator("kbd")).toHaveCount(0);
   } finally {
     setAccount("original", "{}");
   }

@@ -1,15 +1,13 @@
 import { parseItemsRules, parseNotificationRules } from "@/lib/rules";
 import { ITEM_STATUS, isClosedStatus } from "@/constants";
 import { useCallback, useEffect, useRef, useState, type RefObject } from "react";
-import { ItemDialog } from "./ItemDialog";
-import type { ItemPanel } from "./ItemPanelFrame";
 import { ItemList } from "./ItemList";
 import { BucketSettings } from "./BucketSettings";
 import type { SettingsTab } from "./BucketSettingsForm";
 import { RemindersOffNotice } from "./RemindersOffNotice";
 import { TimezonesNotice } from "./TimezonesNotice";
 import { useBucketItems } from "./useBucketItems";
-import { useItemEditor } from "./useItemEditor";
+import { NewItemEditor } from "./NewItemEditor";
 import { useBucketMembers } from "./useBucketMembers";
 import { defaultDeadline } from "./defaultDeadline";
 import { DEFAULT_BUCKET_STATUSES } from "./constants";
@@ -35,10 +33,10 @@ type BucketContentProps = {
   bucket: ViewerBucket;
   accentColor: string;
   viewRef: RefObject<BucketView | null>;
-  panel?: Omit<ItemPanel, "bucketName">;
+  onAddClosed: () => void;
 };
 
-export function BucketContent({ bucket, accentColor, viewRef, panel }: BucketContentProps) {
+export function BucketContent({ bucket, accentColor, viewRef, onAddClosed }: BucketContentProps) {
   const rules = parseItemsRules(bucket.itemsRules);
   const statuses = DEFAULT_BUCKET_STATUSES;
   const fields = parseFields(bucket.fieldSchema);
@@ -50,13 +48,8 @@ export function BucketContent({ bucket, accentColor, viewRef, panel }: BucketCon
   const framed = useLookParts().listFrame === "framed";
 
   const list = useBucketItems(bucket.id, bucket.itemsRules, rules.showCompleted !== false);
-  const editor = useItemEditor({
-    bucketId: bucket.id,
-    defaultStatus,
-    defaultDeadline: () => defaultDeadline(rules.defaultDeadlineOffsetDays),
-    onSaved: list.refetch,
-  });
-  const members = useBucketMembers(bucket.id, editor.dialogProps.open);
+  const [adding, setAdding] = useState(false);
+  const members = useBucketMembers(bucket.id, adding);
   const membersRequested = useUIStore((s) => s.membersRequested);
   const clearMembersRequest = useUIStore((s) => s.clearMembersRequest);
   const settingsRequested = useUIStore((s) => s.settingsRequestedId === bucket.id);
@@ -70,6 +63,7 @@ export function BucketContent({ bucket, accentColor, viewRef, panel }: BucketCon
   const activeFilter = showMembers && (typeof filter !== "number" || filtered) ? filter : "all";
   const assigneeShown =
     activeFilter === "mine" ? members.find((m) => m.isYou)?.userId : activeFilter;
+  const dragOn = rules.drag === true && rules.sortBy === "manual" && activeFilter === "all";
   const shownItems =
     activeFilter === "all"
       ? list.orderedItems
@@ -112,7 +106,7 @@ export function BucketContent({ bucket, accentColor, viewRef, panel }: BucketCon
     clearSettingsRequest,
   ]);
   useEffect(() => {
-    viewRef.current = { startAdding: editor.startAdding, refetch: list.refetch };
+    viewRef.current = { startAdding: () => setAdding(true), refetch: list.refetch };
     return () => {
       viewRef.current = null;
     };
@@ -160,7 +154,7 @@ export function BucketContent({ bucket, accentColor, viewRef, panel }: BucketCon
           }
           orderedItemsRef={list.orderedItemsRef}
           // A filtered list is only part of the order, so dragging in it would scramble the rest
-          draggable={rules.drag === true && rules.sortBy === "manual" && activeFilter === "all"}
+          draggable={dragOn}
           shared={shared}
           onAssign={async (item, assigneeIds) => {
             const result = await assignItemAction(item.id, assigneeIds);
@@ -182,21 +176,25 @@ export function BucketContent({ bucket, accentColor, viewRef, panel }: BucketCon
           onMove={(item, deadline) => list.moveItem(item, deadline)}
           onDelete={(itemId) => void list.deleteItem(itemId)}
         />
+        {adding && members.length > 0 && (
+          <NewItemEditor
+            bucketId={bucket.id}
+            color={accentColor}
+            members={members}
+            statuses={statuses}
+            fields={fields}
+            bucketReminders={bucketReminders}
+            draggable={dragOn}
+            defaultDeadline={defaultDeadline(rules.defaultDeadlineOffsetDays)}
+            defaultStatus={defaultStatus}
+            onAdded={list.refetch}
+            onExit={(focusBar) => {
+              setAdding(false);
+              if (focusBar) onAddClosed();
+            }}
+          />
+        )}
       </div>
-
-      <ItemDialog
-        {...editor.dialogProps}
-        assigneeChoice={{
-          bucketId: bucket.id,
-          members,
-          value: editor.assigneeIds,
-          onChange: editor.setAssigneeIds,
-        }}
-        bucketReminders={bucketReminders}
-        statuses={statuses}
-        fields={fields.length > 0 ? fields : undefined}
-        panel={panel && { ...panel, bucketName }}
-      />
 
       <BucketSettings
         open={settingsTab !== null}

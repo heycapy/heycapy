@@ -19,7 +19,7 @@ function itemDialog(page: Page) {
 }
 
 async function addMonthlyItemDueToday(page: Page, title: string): Promise<void> {
-  await page.getByRole("button", { name: "add with details", exact: true }).click();
+  await page.getByRole("button", { name: "add item", exact: true }).click();
   const dialog = itemDialog(page);
   await dialog.locator("textarea").first().fill(title);
   await openDetail(dialog, "date");
@@ -77,7 +77,7 @@ test("repeating on the last day moves the date to the month's last day", async (
   const last = new Date(now.getFullYear(), now.getMonth() + 1, 0);
   const lastLabel = `${last.toLocaleString("en-US", { month: "short" })} ${last.getDate()}`;
 
-  await page.getByRole("button", { name: "add with details", exact: true }).click();
+  await page.getByRole("button", { name: "add item", exact: true }).click();
   const dialog = itemDialog(page);
   const title = uniqueName("pay rent");
   await dialog.locator("textarea").first().fill(title);

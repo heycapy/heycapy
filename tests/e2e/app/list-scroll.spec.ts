@@ -5,11 +5,11 @@ import {
   inlineEditor,
   openEditForm,
   addItem,
-  addBox,
   addItemButton,
   createAndSelectBucket,
   itemRow,
   newItemForm,
+  openDetail,
   uniqueName,
 } from "../helpers/buckets";
 
@@ -59,8 +59,12 @@ test("editing the bottom row brings it above the edit form", async ({ page }) =>
 test("a long list sorted by deadline never makes the page itself taller", async ({ page }) => {
   test.setTimeout(90_000);
   await bucketWithItems(page, 18);
-  await addBox(page).fill("renew passport tomorrow");
-  await addBox(page).press("Enter");
+  await addItemButton(page).click();
+  const form = newItemForm(page);
+  await form.locator("textarea").first().fill("renew passport");
+  await openDetail(form, "date");
+  await page.getByRole("button", { name: "tomorrow", exact: true }).click();
+  await form.getByRole("button", { name: "add", exact: true }).click();
   await expect(itemRow(page, "renew passport")).toBeVisible();
   const settings = await openSettings(page);
   await option(field(settings, "sort by"), "deadline").click();

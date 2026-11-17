@@ -1,29 +1,27 @@
-import type { CSSProperties, Ref, RefObject } from "react";
+import type { CSSProperties, RefObject } from "react";
+import { KeyHint } from "@/components/ui/KeyHint";
+import { TextButton } from "@/components/ui/TextButton";
 import { useKeyboardInset } from "@/hooks/useKeyboardInset";
 import { cn } from "@/lib/utils";
 import { useLookParts } from "@/components/looks/LookProvider";
 import type { ViewerBucket } from "@/lib/buckets/access";
-import { QuickAdd } from "./QuickAdd";
+import { BucketTargetPicker } from "./BucketTargetPicker";
 
 type BucketsFooterProps = {
   bucket: ViewerBucket | null;
   targets?: { buckets: ViewerBucket[]; onPick: (bucketId: number) => void };
   color: string;
   canAdd: boolean;
-  inputRef: RefObject<HTMLInputElement | null>;
-  panelSlotRef: Ref<HTMLDivElement>;
-  onAdded: () => void;
-  onExpand: () => void;
+  buttonRef: RefObject<HTMLButtonElement | null>;
+  onAdd: () => void;
 };
 
 export function BucketsFooter({
   bucket,
   color,
   canAdd,
-  inputRef,
-  panelSlotRef,
-  onAdded,
-  onExpand,
+  buttonRef,
+  onAdd,
   targets,
 }: BucketsFooterProps) {
   const keyboardInset = useKeyboardInset();
@@ -40,38 +38,36 @@ export function BucketsFooter({
       )}
     >
       <div
-        className={cn(
-          "relative mx-auto flex w-full items-center gap-2 px-2.5 sm:px-4",
-          !floating && "max-w-column",
-          floating &&
-            "border-border rounded-panel border-frame shadow-raised bg-background max-w-[calc(var(--container-column)-2rem)] transition-colors focus-within:border-(--accent)"
-        )}
+        data-testid="add-box"
+        className="max-w-column mx-auto flex min-h-(--add-box-h) w-full items-center gap-2 px-2.5 sm:px-4"
       >
         {!bucket ? (
-          <p className="text-muted-foreground font-ui min-w-0 flex-1 pl-1 text-xs">
+          <p className="text-muted-foreground font-ui min-w-0 flex-1 text-xs">
             open a bucket to add to it
           </p>
-        ) : canAdd ? (
-          <QuickAdd
-            key={bucket.id}
-            bucket={bucket}
-            inputRef={inputRef}
-            onAdded={onAdded}
-            onExpand={onExpand}
-            targets={targets}
-          />
         ) : (
-          <span className="flex-1" />
+          canAdd && (
+            <>
+              {targets && (
+                <BucketTargetPicker
+                  bucket={bucket}
+                  buckets={targets.buckets}
+                  onPick={targets.onPick}
+                />
+              )}
+              <TextButton
+                ref={buttonRef}
+                variant="primary"
+                aria-label="add item"
+                onClick={onAdd}
+                className="ml-auto"
+              >
+                + add item
+                <KeyHint action="quick-add" />
+              </TextButton>
+            </>
+          )
         )}
-        <div
-          ref={panelSlotRef}
-          className={cn(
-            "absolute",
-            floating
-              ? "-inset-x-(--frame-width) -bottom-(--frame-width)"
-              : "inset-x-0 bottom-0 sm:inset-x-4"
-          )}
-        />
       </div>
     </div>
   );

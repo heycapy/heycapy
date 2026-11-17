@@ -3,7 +3,7 @@ import type * as SessionModule from "@/lib/auth/session";
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { items } from "@/lib/db/schema";
-import { patchItemAction } from "@/app/(app)/item-actions";
+import { addItemAction, patchItemAction } from "@/app/(app)/item-actions";
 import { ITEM_DESCRIPTION_MAX_LENGTH } from "@/constants";
 import { assigneeIdsByItem } from "@/lib/items/assignees";
 import {
@@ -166,4 +166,37 @@ it("notes over the limit are refused and nothing else in the patch is saved", as
 
   expect(result).toEqual({ ok: false, error: "Notes too long" });
   expect((await saved(itemId)).title).toBe("rent");
+});
+
+it("a new item keeps its notes trimmed, and refuses ones over the limit", async () => {
+  const { bucketId } = await setUp();
+
+  const added = await addItemAction(
+    bucketId,
+    "pay rent",
+    null,
+    undefined,
+    null,
+    null,
+    null,
+    undefined,
+    null,
+    "  call first  "
+  );
+  if (!added.ok) throw new Error(added.error);
+  expect((await saved(added.id)).description).toBe("call first");
+
+  const tooLong = await addItemAction(
+    bucketId,
+    "pay rent",
+    null,
+    undefined,
+    null,
+    null,
+    null,
+    undefined,
+    null,
+    "x".repeat(ITEM_DESCRIPTION_MAX_LENGTH + 1)
+  );
+  expect(tooLong).toEqual({ ok: false, error: "Notes too long" });
 });

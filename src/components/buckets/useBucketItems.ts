@@ -103,8 +103,12 @@ export function useBucketItems(bucketId: number, itemsRules: string, showComplet
 
   async function deleteItem(itemId: number) {
     const title = fetchedItems.find((i) => i.id === itemId)?.title ?? "item";
-    await deleteItemAction(itemId);
+    const result = await deleteItemAction(itemId);
     await refetch();
+    if (!result.ok) {
+      notify.error(result.error);
+      return;
+    }
     offerUndoDelete(itemId, title, refetch);
   }
 

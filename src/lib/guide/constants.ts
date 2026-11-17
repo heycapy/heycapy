@@ -11,13 +11,13 @@ export const GUIDE_TASKS = [
     key: "add_item",
     title: "add a reminder",
     credits: 2,
-    hint: "type what to remember in the add box and press enter",
+    hint: "tap add item, type what to remember and press enter",
   },
   {
     key: "add_date",
     title: "give a reminder a date",
     credits: 2,
-    hint: 'type a date after the title, like "call mum friday 9am"',
+    hint: "tap add item, then pick a date for it",
   },
   {
     key: "complete_item",

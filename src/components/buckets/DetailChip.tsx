@@ -11,6 +11,7 @@ type DetailChipProps = {
   name: string;
   label: string;
   prefix?: string;
+  required?: boolean;
   set: boolean;
   open: boolean;
   icon?: IconName;
@@ -26,6 +27,7 @@ export function DetailChip({
   name,
   label,
   prefix,
+  required,
   set,
   open,
   icon,
@@ -67,6 +69,9 @@ export function DetailChip({
         )}
         {prefix && <span className="text-muted-foreground shrink-0">{prefix}</span>}
         <span className="truncate">{label}</span>
+        {required && (
+          <span aria-hidden className="text-destructive -ml-0.5 shrink-0 after:content-['*']" />
+        )}
         {hint && (
           <span id={hintId} hidden>
             {hint}

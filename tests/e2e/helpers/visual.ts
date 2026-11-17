@@ -41,8 +41,8 @@ async function seed(page: Page) {
   }
   await page.reload();
   await addItem(page, "bread");
-  await page.getByRole("button", { name: "add with details", exact: true }).click();
-  await newItemForm(page).locator("textarea").fill("call mum\nabout the trip");
+  await page.getByRole("button", { name: "add item", exact: true }).click();
+  await newItemForm(page).locator("textarea").first().fill("call mum\nabout the trip");
   await newItemForm(page).getByRole("button", { name: "add", exact: true }).click();
   await expect(page.getByRole("button", { name: /^call mum/ })).toBeVisible();
   await itemTick(page, "bread").click();
@@ -106,9 +106,9 @@ export function screenshotTests(spec: string, look: Look) {
 
       test("new item form", async ({ page }) => {
         await openGroceries(page, theme);
-        await page.getByRole("button", { name: "add with details", exact: true }).click();
+        await page.getByRole("button", { name: "add item", exact: true }).click();
         await expect(newItemForm(page)).toBeVisible();
-        // the form's send arrow opens under the expand button, its tooltip would come and go
+        // the expand button's tooltip would come and go
         await page.mouse.move(0, 0);
         await snap(page, `${theme}-new-item`);
       });
@@ -165,7 +165,7 @@ export function screenshotTests(spec: string, look: Look) {
   test("add drawer on a phone", async ({ page }) => {
     await page.setViewportSize(PHONE);
     await openGroceries(page, THEMES[0]);
-    await page.getByRole("button", { name: "add with details", exact: true }).click();
+    await page.getByRole("button", { name: "add item", exact: true }).click();
     await expect(newItemForm(page)).toBeVisible();
     await snap(page, "phone-new-item");
   });

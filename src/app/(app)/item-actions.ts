@@ -113,13 +113,17 @@ export async function addItemAction(
   properties?: Record<string, unknown> | null,
   reminders?: number[] | null,
   assigneeIds?: number[],
-  clock?: string | null
+  clock?: string | null,
+  description?: string
 ): Promise<ActionResult<{ id: number }>> {
   const session = await requireSession();
 
   const trimmed = title.trim();
   if (!trimmed) return { ok: false, error: "Title is required" };
   if (trimmed.length > ITEM_TITLE_MAX_LENGTH) return { ok: false, error: "Title too long" };
+  if (description && description.length > ITEM_DESCRIPTION_MAX_LENGTH) {
+    return { ok: false, error: "Notes too long" };
+  }
   if (recurring && !RecurringConfig.safeParse(recurring).success) {
     return { ok: false, error: "Invalid repeat settings" };
   }
@@ -154,6 +158,7 @@ export async function addItemAction(
       bucketId,
       userId: session.userId,
       title: trimmed,
+      description: description?.trim() || null,
       deadline: parsedDeadline,
       deadlineTimezone: due.deadlineTimezone,
       ...initialReminderState(parsedDeadline, due.deadlineTimezone ?? "UTC"),

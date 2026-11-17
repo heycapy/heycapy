@@ -12,10 +12,8 @@ import { VIEW_FADE } from "./constants";
 import { bucketColor } from "./bucket-color";
 import { useUIStore } from "@/store/ui";
 import { useLayoutStore } from "@/store/layout";
-import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { itemLink } from "@/lib/items/item-link";
 import { parseItemsRules } from "@/lib/rules";
-import { BOTTOM_BAR_MEDIA_QUERY } from "@/constants";
 import type { ViewerBucket } from "@/lib/buckets/access";
 
 const writable = (bucket: ViewerBucket) => parseItemsRules(bucket.itemsRules).readonly !== true;
@@ -44,13 +42,9 @@ export function BucketsShell({ buckets: rawBuckets, focusBucketId = null }: Buck
   );
   const prevBucketsRef = useRef<ViewerBucket[]>(buckets);
   const viewRef = useRef<BucketView | null>(null);
-  const quickAddRef = useRef<HTMLInputElement>(null);
-  const focusPending = useRef(false);
+  const addButtonRef = useRef<HTMLButtonElement>(null);
   const expandPending = useRef(false);
   const [todayAddId, setTodayAddId] = useState<number | null>(null);
-  const tickRefresh = useUIStore((s) => s.tickRefresh);
-  const [panelSlot, setPanelSlot] = useState<HTMLDivElement | null>(null);
-  const hasBottomBar = useMediaQuery(BOTTOM_BAR_MEDIA_QUERY);
 
   useEffect(() => {
     setBottomBarShown(true);
@@ -71,20 +65,13 @@ export function BucketsShell({ buckets: rawBuckets, focusBucketId = null }: Buck
   useEffect(() => {
     if (addItemRequest === handledAddRequest.current) return;
     handledAddRequest.current = addItemRequest;
-    const { todayOpen: onToday, activeBucketId: current, addItemForm } = useUIStore.getState();
+    const { todayOpen: onToday, activeBucketId: current } = useUIStore.getState();
     const shown = buckets.find((b) => b.id === current) ?? buckets[0];
     const target = shown && writable(shown) ? shown : onToday ? buckets.find(writable) : undefined;
     if (!target) return;
     if (onToday) setActiveBucketId(target.id);
-    if (addItemForm) expandPending.current = true;
-    else focusPending.current = true;
+    expandPending.current = true;
   }, [addItemRequest, buckets, setActiveBucketId]);
-
-  useEffect(() => {
-    if (!focusPending.current || !quickAddRef.current) return;
-    focusPending.current = false;
-    quickAddRef.current.focus();
-  });
 
   useEffect(() => {
     if (newBucketId === null || !buckets.some((b) => b.id === newBucketId)) return;
@@ -130,9 +117,6 @@ export function BucketsShell({ buckets: rawBuckets, focusBucketId = null }: Buck
     (writable(activeBucket) ? activeBucket : writableBuckets[0]);
   const footerBucket = todayOpen ? (todayTarget ?? null) : activeBucket;
   const canAddItem = footerBucket !== null && writable(footerBucket);
-  const itemPanel = panelSlot
-    ? { slot: panelSlot, onCollapsed: () => quickAddRef.current?.focus() }
-    : undefined;
 
   const view = todayOpen ? (
     <TodayView />
@@ -141,11 +125,11 @@ export function BucketsShell({ buckets: rawBuckets, focusBucketId = null }: Buck
       bucket={activeBucket}
       accentColor={accentColor}
       viewRef={viewRef}
-      panel={itemPanel}
+      onAddClosed={() => addButtonRef.current?.focus()}
     />
   );
 
-  function expand() {
+  function startAdding() {
     if (todayOpen && todayTarget) {
       expandPending.current = true;
       setActiveBucketId(todayTarget.id);
@@ -173,14 +157,7 @@ export function BucketsShell({ buckets: rawBuckets, focusBucketId = null }: Buck
           <Banners />
         </>
       )}
-      <div
-        className="max-md:scrollbar-hide flex-1 overflow-y-auto pb-[calc(0.5rem+var(--item-panel-cover,0px))]"
-        onClick={(e) => {
-          if (hasBottomBar && canAddItem && e.target === e.currentTarget) {
-            quickAddRef.current?.focus();
-          }
-        }}
-      >
+      <div className="max-md:scrollbar-hide flex-1 overflow-y-auto pb-2">
         {hydrated &&
           (still ? (
             <div key={placeKey} className="max-w-column mx-auto w-full">
@@ -216,17 +193,14 @@ export function BucketsShell({ buckets: rawBuckets, focusBucketId = null }: Buck
                 buckets: writableBuckets,
                 onPick: (id) => {
                   setTodayAddId(id);
-                  requestAnimationFrame(() => quickAddRef.current?.focus());
                 },
               }
             : undefined
         }
         color={accentColor}
         canAdd={canAddItem}
-        inputRef={quickAddRef}
-        panelSlotRef={setPanelSlot}
-        onAdded={() => (todayOpen ? tickRefresh() : void viewRef.current?.refetch())}
-        onExpand={expand}
+        buttonRef={addButtonRef}
+        onAdd={startAdding}
       />
     </div>
   );

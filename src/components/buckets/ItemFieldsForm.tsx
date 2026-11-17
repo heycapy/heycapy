@@ -1,8 +1,7 @@
 import { DatePicker } from "@/components/ui/DatePicker";
 import { OptionButton } from "@/components/ui/OptionButton";
 import type { FieldDef } from "@/types/rules";
-import { cn } from "@/lib/utils";
-import { FIELD_INPUT, FIELD_LABEL } from "./constants";
+import { FIELD_INPUT } from "./constants";
 import {
   CurrencyFieldInput,
   DatetimeFieldInput,
@@ -10,67 +9,6 @@ import {
   UrlFieldInput,
 } from "./ItemFieldInputs";
 import { IconButton } from "@/components/ui/IconButton";
-
-type ItemFieldsFormProps = {
-  fields: FieldDef[];
-  values: Record<string, unknown>;
-  disabled?: boolean;
-  showErrors?: boolean;
-  onChange: (values: Record<string, unknown>) => void;
-};
-
-function isEmpty(value: unknown): boolean {
-  if (value === undefined || value === null) return true;
-  if (typeof value === "string" && !value.trim()) return true;
-  if (Array.isArray(value) && value.length === 0) return true;
-  return false;
-}
-
-export function ItemFieldsForm({
-  fields,
-  values,
-  disabled,
-  showErrors,
-  onChange,
-}: ItemFieldsFormProps) {
-  if (fields.length === 0) return null;
-
-  function set(key: string, value: unknown) {
-    onChange({ ...values, [key]: value });
-  }
-
-  return (
-    <>
-      {fields.map((field, idx) => {
-        const isRequired = !!field.validation?.required;
-        const hasError = showErrors && isRequired && isEmpty(values[field.key]);
-        return (
-          <div
-            key={field.key}
-            data-field-key={field.key}
-            className="border-border flex flex-col gap-1.5 border-b p-3 last:border-b-0"
-          >
-            <label className={cn(FIELD_LABEL, "block break-words", hasError && "text-destructive")}>
-              <span className="mr-1">{idx + 1}.</span>
-              {field.icon ? `${field.icon} ` : ""}
-              {field.label}
-              {isRequired && <span className="text-destructive ml-0.5">*</span>}
-            </label>
-            <FieldInput
-              field={field}
-              value={values[field.key]}
-              disabled={disabled}
-              onChange={(v) => set(field.key, v)}
-            />
-            {hasError && (
-              <p className="text-destructive font-ui text-2xs">{field.label} is required</p>
-            )}
-          </div>
-        );
-      })}
-    </>
-  );
-}
 
 export function FieldInput({
   field,
@@ -124,7 +62,7 @@ export function FieldInput({
       return (
         <div className="flex gap-1">
           <OptionButton
-            pill
+            soft
             active={value === true}
             onClick={() => onChange(true)}
             disabled={disabled}
@@ -132,7 +70,7 @@ export function FieldInput({
             Yes
           </OptionButton>
           <OptionButton
-            pill
+            soft
             active={value === false}
             onClick={() => onChange(false)}
             disabled={disabled}
@@ -173,7 +111,7 @@ export function FieldInput({
         <div className="flex flex-wrap gap-1">
           {opts.map((opt) => (
             <OptionButton
-              pill
+              soft
               key={opt}
               active={value === opt}
               onClick={() => onChange(value === opt ? undefined : opt)}
@@ -195,7 +133,7 @@ export function FieldInput({
         <div className="flex flex-wrap gap-1">
           {opts.map((opt) => (
             <OptionButton
-              pill
+              soft
               key={opt}
               active={selected.includes(opt)}
               onClick={() => {

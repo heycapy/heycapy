@@ -41,17 +41,17 @@ export function activeBucketTitle(page: Page) {
 }
 
 export async function addItem(page: Page, title: string): Promise<void> {
-  await page.getByRole("button", { name: "add with details", exact: true }).click();
-  const dialog = newItemForm(page);
-  await expect(dialog).toBeVisible();
-  await dialog.locator("textarea").fill(title);
-  await dialog.getByRole("button", { name: "add", exact: true }).click();
-  await expect(dialog).not.toBeVisible();
+  await page.getByRole("button", { name: "add item", exact: true }).click();
+  const form = newItemForm(page);
+  await expect(form).toBeVisible();
+  await form.locator("textarea").first().fill(title);
+  await form.getByRole("button", { name: "add", exact: true }).click();
+  await expect(form).not.toBeVisible();
   await expect(itemRow(page, title)).toBeVisible();
 }
 
 export function newItemForm(page: Page) {
-  return page.getByRole("dialog", { name: "new item", exact: true });
+  return page.getByRole("group", { name: "new item", exact: true });
 }
 
 export function inlineEditor(page: Page) {
@@ -63,8 +63,9 @@ export function editForm(page: Page) {
   return page.getByRole("dialog", { name: "edit item", exact: true }).or(inlineEditor(page));
 }
 
+// A new item is a row at the end of the list, the same editor as an open item
 export function itemForm(page: Page) {
-  return page.getByRole("dialog", { name: /^(new|edit) item$/ }).or(inlineEditor(page));
+  return editForm(page).or(newItemForm(page));
 }
 
 export async function saveEdit(form: Locator): Promise<void> {
@@ -92,11 +93,7 @@ export async function openBucketOnPhone(page: Page, name: string): Promise<void>
 }
 
 export function addItemButton(page: Page) {
-  return page.getByRole("button", { name: "add with details", exact: true });
-}
-
-export function addBox(page: Page) {
-  return page.getByRole("textbox", { name: /^add to / });
+  return page.getByRole("button", { name: "add item", exact: true });
 }
 
 export function itemMenu(page: Page, title: string) {

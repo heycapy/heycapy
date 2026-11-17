@@ -23,7 +23,7 @@ export function FocusSetting() {
           }}
         />
       </div>
-      <span className={HINT}>just the open bucket, its items and the add box</span>
+      <span className={HINT}>just the open bucket, its items and the add button</span>
     </div>
   );
 }

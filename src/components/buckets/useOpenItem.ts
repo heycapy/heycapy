@@ -9,8 +9,11 @@ export function useOpenItem() {
 
   useEffect(() => {
     if (opened !== null || refocusId.current === null) return;
-    document.querySelector<HTMLElement>(`#item-${refocusId.current} [data-item-title]`)?.focus();
+    const id = refocusId.current;
     refocusId.current = null;
+    // Focus that moved on to something else while the row folded away stays there
+    if (document.activeElement && document.activeElement !== document.body) return;
+    document.querySelector<HTMLElement>(`#item-${id} [data-item-title]`)?.focus();
   }, [opened]);
 
   return {

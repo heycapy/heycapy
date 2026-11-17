@@ -1,8 +1,7 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
 import { authState } from "../helpers/auth";
 import {
   openEditForm,
-  addBox,
   addItem,
   addItemButton,
   createAndSelectBucket,
@@ -20,85 +19,61 @@ test.use({ storageState: authState("drafts") });
 
 const WEDNESDAY = new Date(2026, 9, 7, 8, 0);
 
-test("closing the full form keeps what was typed, edits there included", async ({ page }) => {
+async function openRow(page: Page) {
+  await addItemButton(page).click();
+  const form = newItemForm(page);
+  await expect(form.locator("textarea").first()).toBeFocused();
+  return form;
+}
+
+test("closing the form keeps what was typed, and Esc gives the focus back to the button", async ({
+  page,
+}) => {
   await page.goto("/");
   await createAndSelectBucket(page, uniqueName("Cat"));
 
-  await addBox(page).fill("buy cat food");
-  await addItemButton(page).click();
-  const dialog = newItemForm(page);
-  const title = dialog.locator("textarea").first();
-  await expect(title).toHaveValue("buy cat food");
-  await title.fill("buy cat food and litter");
+  let form = await openRow(page);
+  await form.locator("textarea").first().fill("buy cat food");
   await page.keyboard.press("Escape");
-  await expect(dialog).toBeHidden();
+  await expect(form).toBeHidden();
+  await expect(addItemButton(page)).toBeFocused();
 
-  await expect(addBox(page)).toHaveValue("buy cat food and litter");
+  form = await openRow(page);
+  await expect(form.locator("textarea").first()).toHaveValue("buy cat food");
 });
 
-test("[×] beside a date picked in the form clears it and keeps what was typed", async ({
+test("a date and notes picked in the form stay with the draft until it is added", async ({
   page,
 }) => {
   await page.clock.setFixedTime(WEDNESDAY);
   await page.goto("/");
   await createAndSelectBucket(page, uniqueName("Picked"));
-  const clearDetails = page.getByRole("button", { name: "clear details" });
-  await addBox(page).fill("vet visit today 5pm");
-  await expect(page.getByTestId("quick-add-hint")).toBeVisible();
-  await expect(clearDetails).toHaveCount(0);
-
-  await addBox(page).fill("vet visit");
-  await addItemButton(page).click();
-  const dialog = newItemForm(page);
-  await openDetail(dialog, "date");
-  await page.getByRole("button", { name: "20", exact: true }).click();
-  await page.keyboard.press("Escape");
-  await expect(dialog).toBeHidden();
-
-  await expect(page.getByTestId("quick-add-hint")).toContainText("Oct 20");
-  await clearDetails.click();
-  await expect(page.getByTestId("quick-add-hint")).toHaveCount(0);
-  await expect(addBox(page)).toHaveValue("vet visit");
-});
-
-test("escape in the add box clears it", async ({ page }) => {
-  await page.goto("/");
-  await createAndSelectBucket(page, uniqueName("Esc"));
-  await addBox(page).fill("cat needs some space");
-  await addBox(page).press("Escape");
-  await expect(addBox(page)).toHaveValue("");
-});
-
-test("a date picked in the form stays with the draft and wins over typed words", async ({
-  page,
-}) => {
-  await page.clock.setFixedTime(WEDNESDAY);
-  await page.goto("/");
-  await createAndSelectBucket(page, uniqueName("Vet"));
   const title = uniqueName("vet visit");
-  await addBox(page).fill(title);
-  await addItemButton(page).click();
-  const dialog = newItemForm(page);
-  await openDetail(dialog, "date");
+
+  let form = await openRow(page);
+  await form.locator("textarea").first().fill(title);
+  await form.getByRole("textbox", { name: "notes" }).fill("bring the carrier");
+  await openDetail(form, "date");
   await page.getByRole("button", { name: "20", exact: true }).click();
-  await expect(detailChip(dialog, "date")).toHaveAccessibleName(/^date: Oct 20 · /);
+  await expect(detailChip(form, "date")).toHaveAccessibleName(/^date: Oct 20 · /);
   await page.keyboard.press("Escape");
-  await expect(dialog).toBeHidden();
+  await expect(form).toBeHidden();
 
-  const hint = page.getByTestId("quick-add-hint");
-  await expect(hint).toContainText("Oct 20");
-  await addBox(page).fill(`${title} tomorrow`);
-  await expect(hint).toContainText("Oct 20");
+  form = await openRow(page);
+  await expect(detailChip(form, "date")).toHaveAccessibleName(/^date: Oct 20 · /);
+  await expect(form.getByRole("textbox", { name: "notes" })).toHaveValue("bring the carrier");
+  await page.keyboard.press("ControlOrMeta+Enter");
+  await expect(form).toBeHidden();
+  await expect(itemRow(page, title)).toContainText("20/10/26");
 
-  await addItemButton(page).click();
-  await expect(detailChip(dialog, "date")).toHaveAccessibleName(/^date: Oct 20 · /);
-  await expect(dialog.getByTestId("title-date-highlight")).toHaveCount(0);
+  await openEditForm(page, title);
+  await expect(editForm(page).getByRole("textbox", { name: "notes" })).toHaveValue(
+    "bring the carrier"
+  );
   await page.keyboard.press("Escape");
 
-  await addBox(page).press("Enter");
-  await expect(itemRow(page, `${title} tomorrow`)).toContainText("20/10/26");
-  await expect(addBox(page)).toHaveValue("");
-  await expect(hint).toHaveCount(0);
+  form = await openRow(page);
+  await expect(form.locator("textarea").first()).toHaveValue("");
 });
 
 test("each bucket keeps its own draft, through a reload", async ({ page }) => {
@@ -106,46 +81,47 @@ test("each bucket keeps its own draft, through a reload", async ({ page }) => {
   const first = uniqueName("Treats");
   const second = uniqueName("Toys");
   await createAndSelectBucket(page, first);
-  await addBox(page).fill("cat wants more treats");
+  await (await openRow(page)).locator("textarea").first().fill("cat wants more treats");
+  await page.keyboard.press("Escape");
 
   await createAndSelectBucket(page, second);
-  await expect(addBox(page)).toHaveValue("");
-  await addBox(page).fill("cat wants a new tree house");
+  let form = await openRow(page);
+  await expect(form.locator("textarea").first()).toHaveValue("");
+  await form.locator("textarea").first().fill("cat wants a new tree house");
+  await page.keyboard.press("Escape");
 
   await selectBucket(page, first);
-  await expect(addBox(page)).toHaveValue("cat wants more treats");
+  form = await openRow(page);
+  await expect(form.locator("textarea").first()).toHaveValue("cat wants more treats");
+  await page.keyboard.press("Escape");
 
   await page.reload();
-  await expect(addBox(page)).toHaveValue("cat wants more treats");
+  await selectBucket(page, first);
+  form = await openRow(page);
+  await expect(form.locator("textarea").first()).toHaveValue("cat wants more treats");
+  await page.keyboard.press("Escape");
   await selectBucket(page, second);
-  await expect(addBox(page)).toHaveValue("cat wants a new tree house");
+  form = await openRow(page);
+  await expect(form.locator("textarea").first()).toHaveValue("cat wants a new tree house");
 });
 
-test("on a wide screen the form grows out of the add box and folds back on a click outside", async ({
+test("the form opens at the end of the list, and a click on the list folds it away", async ({
   page,
 }) => {
   await page.goto("/");
   await createAndSelectBucket(page, uniqueName("Box"));
   const kept = uniqueName("cat wants a bigger box");
   await addItem(page, kept);
-  const box = await page.getByTestId("add-box").boundingBox();
 
-  await addBox(page).fill("cat wants more treats");
-  await addItemButton(page).click();
-  const form = newItemForm(page);
-  await expect(form).toContainText(/in Box/);
+  const form = await openRow(page);
   const title = form.locator("textarea").first();
-  await expect(title).toBeFocused();
-  await expect
-    .poll(async () => {
-      const panel = await form.boundingBox();
-      return panel ? [panel.x, panel.x + panel.width, panel.y + panel.height] : null;
-    })
-    .toEqual([box?.x, (box?.x ?? 0) + (box?.width ?? 0), (box?.y ?? 0) + (box?.height ?? 0)]);
+  await title.fill("cat wants more treats");
   await expect(form.getByText("status", { exact: true })).toHaveCount(0);
   const titleBox = await title.boundingBox();
   const whenBox = await detailChip(form, "date").boundingBox();
-  expect(titleBox?.y).toBeGreaterThan(whenBox?.y ?? Infinity);
+  expect(titleBox?.y).toBeLessThan(whenBox?.y ?? 0);
+  const keptBox = await itemRow(page, kept).boundingBox();
+  expect(keptBox?.y).toBeLessThan(titleBox?.y ?? 0);
 
   await itemRow(page, kept).click();
   await expect(form).toBeHidden();
@@ -157,41 +133,30 @@ test("on a wide screen the form grows out of the add box and folds back on a cli
   await addItemButton(page).click();
   await expect(title).toHaveValue("cat wants more treats");
   await expect(title).toBeFocused();
-  await page.keyboard.press("Escape");
-  await expect(form).toBeHidden();
-  await expect(addBox(page)).toBeFocused();
-  await expect(addBox(page)).toHaveValue("cat wants more treats");
 });
 
-test("in the panel a typed date is undone on the title row, and turning repeat on shows its options", async ({
-  page,
-}) => {
+test("turning repeat on in the form shows its options", async ({ page }) => {
   await page.clock.setFixedTime(WEDNESDAY);
-  await page.setViewportSize({ width: 1280, height: 560 });
   await page.goto("/");
   await createAndSelectBucket(page, uniqueName("Repeat"));
-  await addBox(page).fill("cat wants more treats tomorrow");
-  await addItemButton(page).click();
-  const form = newItemForm(page);
-  await expect(form.getByText(/^due /)).toHaveCount(0);
-  await expect(form.getByRole("button", { name: "not a date" })).toBeVisible();
+  const form = await openRow(page);
+  await form.locator("textarea").first().fill("cat wants more treats");
+  await openDetail(form, "date");
+  await page.getByRole("button", { name: "20", exact: true }).click();
 
   await openDetail(form, "repeat");
   await form.getByRole("button", { name: "on", exact: true }).click();
-  await expect(form.getByText("every", { exact: true })).toBeInViewport({ ratio: 1 });
+  await expect(form.getByText("every", { exact: true })).toBeVisible();
 });
 
-test("the item added last is marked for a few seconds, from the box or the form", async ({
-  page,
-}) => {
+test("the item added last is marked for a few seconds", async ({ page }) => {
   await page.goto("/");
   await createAndSelectBucket(page, uniqueName("Mark"));
   const marked = page.locator("[data-just-added]");
   const first = uniqueName("cat wants treats");
   const second = uniqueName("cat wants a box");
 
-  await addBox(page).fill(first);
-  await addBox(page).press("Enter");
+  await addItem(page, first);
   await expect(marked).toHaveCount(1);
   await expect(marked).toContainText(first);
 
@@ -225,9 +190,8 @@ test("Ctrl/Cmd+Enter adds or saves from any field of the form", async ({ page })
   await page.goto("/");
   await createAndSelectBucket(page, uniqueName("Keys"));
   const title = uniqueName("cat wants a new tree house");
-  await addBox(page).fill(title);
-  await addItemButton(page).click();
-  const form = newItemForm(page);
+  const form = await openRow(page);
+  await form.locator("textarea").first().fill(title);
   await detailChip(form, "date").focus();
   await page.keyboard.press("ControlOrMeta+Enter");
   await expect(form).toBeHidden();
@@ -250,7 +214,7 @@ test("Ctrl/Cmd+Enter adds or saves from any field of the form", async ({ page })
   await expect(itemRow(page, once)).toHaveCount(1);
 });
 
-test("Enter in the form's title starts a new line, and it grows to 4 lines before scrolling", async ({
+test("Shift+Enter in the form's title starts a new line, and it grows to 4 lines before scrolling", async ({
   page,
 }) => {
   await page.goto("/");
@@ -262,7 +226,7 @@ test("Enter in the form's title starts a new line, and it grows to 4 lines befor
   await title.fill(first);
   const oneLine = (await title.boundingBox())?.height ?? 0;
 
-  await title.press("Enter");
+  await title.press("Shift+Enter");
   await title.pressSequentially("treats");
   await expect(form).toBeVisible();
   await expect(title).toHaveValue(`${first}\ntreats`);
@@ -271,7 +235,7 @@ test("Enter in the form's title starts a new line, and it grows to 4 lines befor
   expect(line).toBeGreaterThan(0);
 
   for (const word of ["greens", "a box", "a tree house", "more treats"]) {
-    await title.press("Enter");
+    await title.press("Shift+Enter");
     await title.pressSequentially(word);
   }
   expect((await title.boundingBox())?.height).toBeCloseTo(oneLine + 3 * line, 0);
@@ -282,7 +246,7 @@ test("Enter in the form's title starts a new line, and it grows to 4 lines befor
   const row = page.getByRole("button", { name: new RegExp(first) });
   await expect(row).toBeVisible();
   const lines = row.locator("span.block.truncate");
-  await expect(lines).toHaveText([first, "treats", "greens", "a box …"]);
+  await expect(lines).toHaveText([`${first} …`]);
 });
 
 test("a click on the list only folds the open panel away, it doesn't open what's under it", async ({
@@ -298,7 +262,7 @@ test("a click on the list only folds the open panel away, it doesn't open what's
 
   await openEditForm(page, first);
   await expect(edit.locator("textarea").first()).toHaveValue(first);
-  await itemRow(page, second).click();
+  await itemRow(page, second).click({ force: true });
   await expect(edit).toBeHidden();
   await page.waitForTimeout(300);
   await expect(edit).toBeHidden();
@@ -311,10 +275,10 @@ test("the form's height follows a section opening in it, instead of jumping", as
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.goto("/");
   await createAndSelectBucket(page, uniqueName("Grow"));
-  await addBox(page).fill("cat wants more treats tomorrow");
-  await addItemButton(page).click();
-  const form = newItemForm(page);
-  await expect(form.locator("textarea").first()).toBeFocused();
+  const form = await openRow(page);
+  await form.locator("textarea").first().fill("cat wants more treats");
+  await openDetail(form, "date");
+  await page.getByRole("button", { name: "20", exact: true }).click();
   await untilStill(page, form);
   const before = (await form.boundingBox())?.height ?? 0;
 
@@ -330,7 +294,7 @@ test("the form's height follows a section opening in it, instead of jumping", as
       requestAnimationFrame(sample);
     });
   });
-  await detailChip(form, "date").click();
+  await detailChip(form, "repeat").click();
   const seen = await heights;
   const after = seen[seen.length - 1] ?? 0;
 

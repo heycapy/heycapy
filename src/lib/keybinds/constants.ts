@@ -15,7 +15,6 @@ export const ESCAPE_KEY = "Escape";
 
 export const KEYBIND_ACTION = {
   quickAdd: "quick-add",
-  addWithDetails: "add-with-details",
   previousBucket: "previous-bucket",
   nextBucket: "next-bucket",
   today: "today",
@@ -49,8 +48,7 @@ export const BUCKET_ACTIONS: KeybindAction[] = BUCKET_NUMBERS.map((n) => ({
 }));
 
 export const KEYBIND_ACTIONS: KeybindAction[] = [
-  { id: KEYBIND_ACTION.quickAdd, key: "a", label: "quick add", rebindable: true },
-  { id: KEYBIND_ACTION.addWithDetails, key: "d", label: "add with details", rebindable: true },
+  { id: KEYBIND_ACTION.quickAdd, key: "a", label: "add item", rebindable: true },
   { id: KEYBIND_ACTION.previousBucket, key: "h", label: "previous bucket", rebindable: true },
   { id: KEYBIND_ACTION.nextBucket, key: "l", label: "next bucket", rebindable: true },
   ...BUCKET_ACTIONS,

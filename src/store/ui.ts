@@ -23,15 +23,13 @@ type UIStore = {
   todayOpen: boolean;
   openToday: () => void;
 
-  // only the open bucket's name, items and add box; today isn't a bucket, so it leaves today
+  // only the open bucket's name, items and add button; today isn't a bucket, so it leaves today
   focusMode: boolean;
   setFocusMode: (on: boolean) => void;
 
-  // bumped to open the add form from outside the buckets, e.g. a guide hint
+  // bumped to open the new item row from outside the buckets, e.g. a guide hint
   addItemRequest: number;
-  // the full add form rather than the add box
-  addItemForm: boolean;
-  requestAddItem: (form: boolean) => void;
+  requestAddItem: () => void;
 
   // a guide hint asking for the open bucket's members, kept until a bucket view picks it up
   membersRequested: boolean;
@@ -97,9 +95,7 @@ export const useUIStore = create<UIStore>()(
       setFocusMode: (on) => set({ focusMode: on }),
 
       addItemRequest: 0,
-      addItemForm: false,
-      requestAddItem: (form) =>
-        set((s) => ({ addItemRequest: s.addItemRequest + 1, addItemForm: form })),
+      requestAddItem: () => set((s) => ({ addItemRequest: s.addItemRequest + 1 })),
 
       membersRequested: false,
       requestMembers: () => set({ membersRequested: true, todayOpen: false }),

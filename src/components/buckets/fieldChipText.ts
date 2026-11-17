@@ -25,11 +25,14 @@ function valueText(field: FieldDef, value: unknown): string {
 }
 
 // A set field reads "name value" with the name muted, an empty one is just its name
-export function fieldChipText(field: FieldDef, value: unknown): { prefix?: string; label: string } {
+export function fieldChipText(
+  field: FieldDef,
+  value: unknown
+): { prefix?: string; label: string; required: boolean } {
   const name = field.icon ? `${field.icon} ${field.label}` : field.label;
   const text = isFieldSet(value) ? valueText(field, value) : "";
-  if (text) return { prefix: name, label: text };
-  return { label: field.validation?.required ? `${name} *` : name };
+  if (text) return { prefix: name, label: text, required: false };
+  return { label: name, required: !!field.validation?.required };
 }
 
 export function fieldChips(

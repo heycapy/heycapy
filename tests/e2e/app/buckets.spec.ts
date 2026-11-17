@@ -111,6 +111,8 @@ test.describe("items", () => {
   test("says so when an item is gone before it is deleted", async ({ page, context }) => {
     const bucket = uniqueName("Gone");
     const title = uniqueName("buy oat milk");
+    await page.route("**/api/events", (route) => route.abort());
+    await page.reload();
     await createAndSelectBucket(page, bucket);
     await addItem(page, title);
 
@@ -126,22 +128,24 @@ test.describe("items", () => {
     await expect(page.getByRole("button", { name: /undo/i })).not.toBeVisible();
   });
 
-  test("item add dialog closes on cancel without adding", async ({ page }) => {
-    await page.getByRole("button", { name: "add with details", exact: true }).click();
-    await expect(page.getByText("new item", { exact: true })).toBeVisible();
-    await page.locator("textarea").fill("should not be saved");
+  test("item add form closes on cancel without adding", async ({ page }) => {
+    await page.getByRole("button", { name: "add item", exact: true }).click();
+    await expect(newItemForm(page)).toBeVisible();
+    await newItemForm(page).locator("textarea").first().fill("should not be saved");
     await page.keyboard.press("Escape");
-    await expect(page.getByText("new item", { exact: true })).not.toBeVisible();
+    await expect(newItemForm(page)).not.toBeVisible();
     await expect(page.getByText("no items yet")).toBeVisible();
   });
 
-  test("shows validation error when submitting empty title", async ({ page }) => {
-    await page.getByRole("button", { name: "add with details", exact: true }).click();
-    await page.getByRole("button", { name: "add", exact: true }).click();
-    await expect(newItemForm(page).locator("textarea")).toHaveAttribute(
-      "placeholder",
-      "title is required"
-    );
-    await expect(page.getByText("new item", { exact: true })).toBeVisible();
+  test("the add arrow stays off until there is a title", async ({ page }) => {
+    await page.getByRole("button", { name: "add item", exact: true }).click();
+    const form = newItemForm(page);
+    const add = form.getByRole("button", { name: "add", exact: true });
+    await expect(add).toBeDisabled();
+    await page.keyboard.press("ControlOrMeta+Enter");
+    await expect(form).toBeVisible();
+
+    await form.locator("textarea").first().fill("a title");
+    await expect(add).toBeEnabled();
   });
 });

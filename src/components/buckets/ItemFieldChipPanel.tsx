@@ -1,5 +1,7 @@
 import type { FieldDef } from "@/types/rules";
 import { DoneButton } from "@/components/ui/DoneButton";
+import { LABEL } from "@/components/layout/settings-constants";
+import { cn } from "@/lib/utils";
 import { AUTO_CLOSE_FIELD_TYPES } from "./constants";
 import { FieldInput } from "./ItemFieldsForm";
 
@@ -30,7 +32,13 @@ export function ItemFieldChipPanel({
         onDone();
       }}
     >
-      {invalid && <p className="text-destructive font-ui text-2xs">{field.label} is required</p>}
+      <label className={cn(LABEL, invalid && "text-destructive")}>
+        {field.label}
+        {field.validation?.required && (
+          <span aria-hidden className="text-destructive ml-0.5 after:content-['*']" />
+        )}
+        {invalid && " is required"}
+      </label>
       <div className="flex items-end gap-3">
         <div className="min-w-0 flex-1">
           <FieldInput

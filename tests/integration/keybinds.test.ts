@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { saveKeybindsAction } from "@/app/(app)/user-settings-actions";
 import { keybindsFor } from "@/lib/keybinds/load";
+import type { StoredKeybinds } from "@/lib/keybinds/schema";
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { userSettings } from "@/lib/db/schema";
@@ -31,6 +32,14 @@ describe("saving keybinds", () => {
     };
     expect(await saveKeybindsAction(stored)).toEqual({ ok: true });
     expect(await keybindsFor(userId)).toEqual(stored);
+  });
+
+  it("drops a key bound to a retired action and keeps the rest", async () => {
+    const stale = JSON.parse(
+      '{"bindings":{"add-with-details":"x","today":"y"},"hints":true}'
+    ) as StoredKeybinds;
+    await db.update(userSettings).set({ keybinds: stale }).where(eq(userSettings.userId, userId));
+    expect(await keybindsFor(userId)).toEqual({ bindings: { today: "y" }, hints: true });
   });
 
   it("refuses a prefix with no Ctrl, Cmd or Alt", async () => {

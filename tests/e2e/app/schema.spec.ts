@@ -9,6 +9,7 @@ import {
   itemRow,
   uniqueName,
   openDetail,
+  detailChip,
 } from "../helpers/buckets";
 import {
   closeDialog,
@@ -73,10 +74,10 @@ test("a saved field persists and shows up in the item dialog and list", async ({
   await closeDialog(settings);
 
   const title = uniqueName("meeting");
-  await page.getByRole("button", { name: "add with details", exact: true }).click();
+  await page.getByRole("button", { name: "add item", exact: true }).click();
   const dialog = itemDialog(page);
   await dialog.locator("textarea").first().fill(title);
-  await openDetail(dialog, "more");
+  await openDetail(dialog, "Where");
   await dialog.getByPlaceholder("Where").fill("office");
   await dialog.getByRole("button", { name: "add", exact: true }).click();
   await expect(dialog).not.toBeVisible();
@@ -128,9 +129,7 @@ test("fields can be reordered with up and down", async ({ page }) => {
   await expect(fieldRows(schema).last().getByPlaceholder("field name")).toHaveValue("First");
 });
 
-test("a required field must be filled before adding an item, the add box opens the form", async ({
-  page,
-}) => {
+test("a required field must be filled before adding an item", async ({ page }) => {
   const { dialog: schema, settings } = await openSchema(page);
   const row = await addField(schema, "Amount");
   await option(row, "required").click();
@@ -138,17 +137,16 @@ test("a required field must be filled before adding an item, the add box opens t
   await saveSchema(schema);
   await closeDialog(settings);
 
-  // the add box can't fill fields, so enter opens the full form with what was typed
   const title = uniqueName("missing amount");
-  const box = page.getByRole("textbox", { name: /^add to / });
-  await box.fill(title);
-  await box.press("Enter");
+  await page.getByRole("button", { name: "add item", exact: true }).click();
   const dialog = itemDialog(page);
-  await expect(dialog.locator("textarea").first()).toHaveValue(title);
+  await dialog.locator("textarea").first().fill(title);
   await dialog.getByRole("button", { name: "add", exact: true }).click();
-  await expect(dialog.getByText("Amount is required")).toBeVisible();
+  await expect(detailChip(dialog, "Amount")).toHaveClass(/text-destructive/);
   await expect(dialog).toBeVisible();
 
+  await openDetail(dialog, "Amount");
+  await expect(dialog.getByText("Amount is required")).toBeVisible();
   await dialog.getByPlaceholder("Amount").fill("12");
   await dialog.getByRole("button", { name: "add", exact: true }).click();
   await expect(dialog).not.toBeVisible();

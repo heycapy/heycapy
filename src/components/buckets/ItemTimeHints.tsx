@@ -27,7 +27,6 @@ type ItemTimeHintsProps = {
   clock: ReturnType<typeof useItemClock>;
   reminders: number[] | null;
   onPickClock: (timezone: string) => void;
-  disabled?: boolean;
 };
 
 // What the time means for the others: their time, and soft warnings that never block saving
@@ -37,7 +36,6 @@ export function ItemTimeHints({
   clock: editClock,
   reminders,
   onPickClock,
-  disabled,
 }: ItemTimeHintsProps) {
   const { bucketId, members } = choice;
   const assigneeIds = resolveAssignees(members, choice.value);
@@ -74,12 +72,7 @@ export function ItemTimeHints({
   return (
     <div className="flex flex-col gap-1.5">
       {editClock.options.length > 0 && (
-        <ItemClockField
-          options={editClock.options}
-          place={editClock.place}
-          onPick={onPickClock}
-          disabled={disabled}
-        />
+        <ItemClockField options={editClock.options} place={editClock.place} onPick={onPickClock} />
       )}
       {preview && (
         <p className="text-muted-foreground font-ui text-2xs" data-testid="time-preview">

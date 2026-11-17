@@ -204,44 +204,13 @@ export const VIEW_FADE = {
   gone: { opacity: 0, y: -6 },
 } as const;
 
-export const ITEM_PANEL_RESIZE = { duration: 0.18, ease: "easeOut" } as const;
-export const PHONE_DRAWER_TOP_GAP_PX = 12;
-
-// Shown in the empty add box, one per bucket: notes the cat left for its human. Each carries a date
-// so it also shows that dates can be typed
-export const ADD_BOX_EXAMPLES = [
-  "cat wants the green stuff tomorrow asap",
-  "cat wants more treats today 8pm",
-  "cat needs some space tonight",
-  "cat wants a new tree house sunday",
-  "cat's bowl is empty, fix it by 6pm",
-  "cat wants a bigger box friday",
-];
-
-export const ADD_BOX_EXAMPLES_SHORT = [
-  "cat: greens tomorrow",
-  "cat: treats at 8pm",
-  "cat: space tonight",
-  "cat: new tree sunday",
-  "cat: fill bowl by 6pm",
-  "cat: big box friday",
-];
-
-export const ITEM_DETAIL_PANELS = [
-  "date",
-  "repeat",
-  "reminders",
-  "assignee",
-  "status",
-  "more",
-] as const;
+export const ITEM_DETAIL_PANELS = ["repeat", "reminders", "assignee", "status"] as const;
 export type ItemDetailPanel = (typeof ITEM_DETAIL_PANELS)[number];
 export type DetailPanelId = ItemDetailPanel | `field:${string}`;
 export const AUTO_CLOSE_FIELD_TYPES: readonly string[] = ["boolean", "select", "date"];
 export const OUTSIDE_TAP_CLICK_MS = 1000;
-export const DETAIL_EDITOR = "rounded-panel border-border border-frame flex flex-col gap-3 p-3";
+export const DETAIL_EDITOR = "flex flex-col gap-3";
 export type OpenFocus = "title" | "notes";
 export const ITEM_LIST_SELECTOR = "[data-item-list]";
 export const INLINE_EDIT_SECONDS = 0.15;
 export const NEEDS_DATE = "pick a date first";
-export const EXPAND_SWIPE_PX = 24;

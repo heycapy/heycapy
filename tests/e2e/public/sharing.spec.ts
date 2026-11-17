@@ -323,7 +323,7 @@ test("an item can be assigned to a member, and a bucket nobody shares has no suc
   const bucketId = addBucket(email, `assign ${Date.now()}`);
   await page.goto(`/?bucket=${bucketId}`);
 
-  await page.getByRole("button", { name: "add with details", exact: true }).click();
+  await page.getByRole("button", { name: "add item", exact: true }).click();
   await expect(newItemForm(page)).toBeVisible();
   await expect(newItemForm(page).getByText("assigned to")).toHaveCount(0);
   await page.keyboard.press("Escape");
@@ -338,23 +338,14 @@ test("an item can be assigned to a member, and a bucket nobody shares has no suc
 
   const title = `take out the bins ${Date.now()}`;
   await page.goto(`/?bucket=${bucketId}`);
-  await page.getByRole("button", { name: "add with details", exact: true }).click();
+  await page.getByRole("button", { name: "add item", exact: true }).click();
   const dialog = newItemForm(page);
-  await dialog.locator("textarea").fill(title);
+  await dialog.locator("textarea").first().fill(title);
   await expect(detailChip(dialog, "assignee")).toHaveAccessibleName("assignee");
   await assignOnly(dialog, sam);
   await expect(detailChip(dialog, "assignee")).toHaveAccessibleName(`assignee: ${sam}`);
   await dialog.getByRole("button", { name: "add", exact: true }).click();
   await expect(itemRow(page, title)).toContainText(sam);
-
-  const fromBox = `water the plants ${Date.now()}`;
-  const box = page.getByRole("textbox", { name: /^add to / });
-  await box.fill(`${fromBox} @${sam}`);
-  await page.getByRole("listbox", { name: "assign to" }).getByRole("option", { name: sam }).click();
-  await expect(box).toHaveValue(fromBox);
-  await expect(page.getByTestId("quick-add-hint")).toHaveText(`@${sam}`);
-  await box.press("Enter");
-  await expect(itemRow(page, fromBox)).toContainText(sam);
 
   await friend.reload();
   await expect(itemRow(friend, title)).toContainText("you");
@@ -389,9 +380,9 @@ test("a new item is for everyone unless narrowed, and can be for no one", async 
   await expect(itemRow(page, forAll)).toContainText(`you, ${sam}`);
 
   const forNobody = `think about holidays ${stamp}`;
-  await page.getByRole("button", { name: "add with details", exact: true }).click();
+  await page.getByRole("button", { name: "add item", exact: true }).click();
   const dialog = newItemForm(page);
-  await dialog.locator("textarea").fill(forNobody);
+  await dialog.locator("textarea").first().fill(forNobody);
   await openDetail(dialog, "assignee");
   const people = dialog.getByText("assigned to", { exact: true }).locator("..");
   await people.getByRole("button", { name: sam, exact: true }).click();
@@ -582,11 +573,11 @@ test("typing @ in the title picks a member in a shared bucket, and does nothing 
   const bucketId = addBucket(email, `mention ${Date.now()}`);
   await page.goto(`/?bucket=${bucketId}`);
 
-  await page.getByRole("button", { name: "add with details", exact: true }).click();
+  await page.getByRole("button", { name: "add item", exact: true }).click();
   const solo = newItemForm(page);
-  await solo.locator("textarea").fill("@");
+  await solo.locator("textarea").first().fill("@");
   await expect(solo.getByRole("listbox")).toHaveCount(0);
-  await solo.locator("textarea").fill("remind @sa about it");
+  await solo.locator("textarea").first().fill("remind @sa about it");
   await expect(solo.getByRole("listbox")).toHaveCount(0);
   await page.keyboard.press("Escape");
 
@@ -600,9 +591,9 @@ test("typing @ in the title picks a member in a shared bucket, and does nothing 
   await friend.close();
 
   await page.goto(`/?bucket=${bucketId}`);
-  await page.getByRole("button", { name: "add with details", exact: true }).click();
+  await page.getByRole("button", { name: "add item", exact: true }).click();
   const dialog = newItemForm(page);
-  const title = dialog.locator("textarea");
+  const title = dialog.locator("textarea").first();
 
   await title.fill("mail bob@example.com");
   await expect(dialog.getByRole("listbox")).toHaveCount(0);
@@ -612,7 +603,7 @@ test("typing @ in the title picks a member in a shared bucket, and does nothing 
   await title.press("Escape");
   await expect(dialog.getByRole("listbox")).toHaveCount(0);
   await expect(title).toHaveValue("buy oat milk @sa");
-  await expect(page.getByText("new item", { exact: true })).toBeVisible();
+  await expect(newItemForm(page)).toBeVisible();
 
   await title.press("m");
   await expect(dialog.getByRole("option", { name: new RegExp(`^${sam}`) })).toBeVisible();
@@ -622,7 +613,7 @@ test("typing @ in the title picks a member in a shared bucket, and does nothing 
   await dialog.getByRole("button", { name: "add", exact: true }).click();
   await expect(itemRow(page, "buy oat milk")).toContainText(sam);
 
-  await page.getByRole("button", { name: "add with details", exact: true }).click();
+  await page.getByRole("button", { name: "add item", exact: true }).click();
   await title.fill("water the plants @");
   await expect(dialog.getByRole("option")).toHaveCount(3);
   await title.press("ArrowDown");
@@ -662,30 +653,22 @@ test("people see each other's avatars next to their names, a generated one if ne
   await expect(sams(rows.nth(1))).toHaveAttribute("width", "32");
   await closeDialog(settingsDialog(page));
 
-  await page.getByRole("button", { name: "add with details", exact: true }).click();
+  await page.getByRole("button", { name: "add item", exact: true }).click();
   const dialog = newItemForm(page);
   await openDetail(dialog, "assignee");
   await expect(sams(dialog.getByRole("button", { name: sam, exact: true }))).toHaveAttribute(
     "width",
     "16"
   );
-  await dialog.locator("textarea").fill("call @sa");
+  await dialog.locator("textarea").first().fill("call @sa");
   await expect(sams(page.getByRole("listbox", { name: "assign to" }))).toHaveCount(1);
   await page.keyboard.press("Enter");
   const title = `call ${Date.now()}`;
-  await dialog.locator("textarea").fill(title);
+  await dialog.locator("textarea").first().fill(title);
   await assignOnly(dialog, sam);
   await dialog.getByRole("button", { name: "add", exact: true }).click();
   await expect(itemRow(page, title)).toContainText(sam);
 
-  const fromBox = `water the plants ${Date.now()}`;
-  const box = page.getByRole("textbox", { name: /^add to / });
-  await box.fill(`${fromBox} @${sam}`);
-  await page.getByRole("listbox", { name: "assign to" }).getByRole("option", { name: sam }).click();
-  await expect(box).toHaveValue(fromBox);
-  await expect(page.getByTestId("quick-add-hint")).toHaveText(`@${sam}`);
-  await box.press("Enter");
-  await expect(itemRow(page, fromBox)).toContainText(sam);
   await expect(sams(itemRow(page, title))).toHaveAttribute("width", "16");
 
   await deleteFromMenu(page, title);

@@ -1,7 +1,7 @@
 import { test, expect, type Page } from "@playwright/test";
 import { authState } from "../helpers/auth";
 import {
-  addBox,
+  addItemButton,
   addItem,
   bucketTab,
   createAndSelectBucket,
@@ -51,7 +51,7 @@ test("focus mode from tweaks keeps only the bucket name, the items and the add b
   await expect(page.getByRole("dialog", { name: "tweaks" })).toBeHidden();
   await expect(page.getByRole("button", { name: `${second}, change bucket` })).toBeVisible();
   await expect(itemRow(page, secondItem)).toBeVisible();
-  await expect(addBox(page)).toBeVisible();
+  await expect(addItemButton(page)).toBeVisible();
 });
 
 test("the bucket name switches bucket in focus mode, and focus mode survives a reload", async ({

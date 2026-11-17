@@ -49,9 +49,7 @@ export function keybindActions({ canDock, openTweaks }: KeybindActionsOptions) {
     if (ui.focusMode && HIDDEN_IN_FOCUS.includes(id)) return;
     switch (id) {
       case KEYBIND_ACTION.quickAdd:
-        return ui.requestAddItem(false);
-      case KEYBIND_ACTION.addWithDetails:
-        return ui.requestAddItem(true);
+        return ui.requestAddItem();
       case KEYBIND_ACTION.previousBucket:
         return goTo(stepPlace(bucketOrder, place, -1));
       case KEYBIND_ACTION.nextBucket:

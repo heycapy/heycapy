@@ -73,8 +73,12 @@ export function CrossBucketList({
   }
 
   async function deleteItem(item: Item) {
-    await deleteItemAction(item.id);
+    const result = await deleteItemAction(item.id);
     await onChanged();
+    if (!result.ok) {
+      notify.error(result.error);
+      return;
+    }
     offerUndoDelete(item.id, item.title, onChanged);
   }
 

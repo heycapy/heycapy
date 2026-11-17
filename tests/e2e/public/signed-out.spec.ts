@@ -1,10 +1,11 @@
 import { test, expect, type Page } from "@playwright/test";
-import { addBox, createAndSelectBucket, uniqueName } from "../helpers/buckets";
+import { addItemButton, createAndSelectBucket, newItemForm, uniqueName } from "../helpers/buckets";
 import { login, uniqueEmail } from "../helpers/login";
 
 async function leaveTraces(page: Page, secret: string) {
   await createAndSelectBucket(page, uniqueName("Private"));
-  await addBox(page).fill(`${secret} draft`);
+  await addItemButton(page).click();
+  await newItemForm(page).locator("textarea").first().fill(`${secret} draft`);
   await page.evaluate((text) => {
     sessionStorage.setItem(
       "heycapy-chat",

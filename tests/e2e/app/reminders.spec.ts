@@ -23,7 +23,7 @@ test("an item can have several reminders, added from presets or typed, and remov
   await createAndSelectBucket(page, uniqueName("Reminders"));
   const title = uniqueName("flight");
 
-  await page.getByRole("button", { name: "add with details", exact: true }).click();
+  await page.getByRole("button", { name: "add item", exact: true }).click();
   const dialog = itemForm(page);
   await dialog.locator("textarea").first().fill(title);
   await expect(detailChip(dialog, "reminders")).toHaveAccessibleName("reminders");
@@ -68,7 +68,7 @@ test("a typed reminder over 90 days is refused, and four is the limit", async ({
   await page.goto("/");
   await createAndSelectBucket(page, uniqueName("Limits"));
 
-  await page.getByRole("button", { name: "add with details", exact: true }).click();
+  await page.getByRole("button", { name: "add item", exact: true }).click();
   const dialog = itemForm(page);
   await dialog.locator("textarea").first().fill(uniqueName("renew passport"));
   await openDetail(dialog, "date");
@@ -106,7 +106,7 @@ test("new items start with the bucket's default reminders", async ({ page }) => 
   await settings.getByRole("button", { name: "2 days before", exact: true }).click();
   await saveSettings(settings);
 
-  await page.getByRole("button", { name: "add with details", exact: true }).click();
+  await page.getByRole("button", { name: "add item", exact: true }).click();
   const dialog = itemForm(page);
   await dialog.locator("textarea").first().fill(uniqueName("electricity"));
   await openDetail(dialog, "date");

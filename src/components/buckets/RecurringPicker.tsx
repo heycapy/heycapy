@@ -90,7 +90,7 @@ export function RecurringPicker({
             <div className="flex flex-wrap gap-1">
               {RECURRING_FREQUENCIES.map((f) => (
                 <OptionButton
-                  pill
+                  soft
                   key={f.value}
                   active={recurring.frequency === f.value}
                   onClick={() =>
@@ -113,7 +113,7 @@ export function RecurringPicker({
               <span className={`${MUTED} pr-1`}>on</span>
               {MONDAY_FIRST.map((day) => (
                 <OptionButton
-                  pill
+                  soft
                   key={day}
                   active={recurring.weekdays?.includes(day) ?? false}
                   onClick={() => onChange(toggleDay(recurring, day))}
@@ -123,7 +123,7 @@ export function RecurringPicker({
                 </OptionButton>
               ))}
               <OptionButton
-                pill
+                soft
                 onClick={() => onChange({ ...recurring, weekdays: WORK_WEEK })}
                 disabled={disabled}
               >
@@ -135,7 +135,7 @@ export function RecurringPicker({
             <div className="flex flex-wrap items-center gap-1">
               <span className={`${MUTED} pr-1`}>on</span>
               <OptionButton
-                pill
+                soft
                 active={recurring.anchorDay !== LAST_DAY_OF_MONTH}
                 onClick={() => onChange({ ...recurring, anchorDay: deadlineDay || undefined })}
                 disabled={disabled}
@@ -143,7 +143,7 @@ export function RecurringPicker({
                 same day
               </OptionButton>
               <OptionButton
-                pill
+                soft
                 active={recurring.anchorDay === LAST_DAY_OF_MONTH}
                 onClick={() => onChange({ ...recurring, anchorDay: LAST_DAY_OF_MONTH })}
                 disabled={disabled}
