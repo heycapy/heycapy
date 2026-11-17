@@ -9,6 +9,18 @@ import {
 import { isLastDayRepeat } from "@/lib/items/occurrence";
 import type { FieldDef, RecurringConfig } from "@/types/rules";
 
+// What a save changes: a field left out stays as it is, `null` clears it
+export type ItemPatch = {
+  title?: string;
+  deadline?: string | null;
+  status?: string;
+  recurring?: RecurringConfig | null;
+  properties?: Record<string, unknown> | null;
+  reminders?: number[] | null;
+  assigneeIds?: number[];
+  clock?: string | null;
+};
+
 export type ClockTime = { hour: string; min: string; ampm: Ampm };
 
 type Dated = { deadline: string; recurring: RecurringConfig | null };
