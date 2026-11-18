@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode, RefObject } from "react";
+import { useEffect, type ReactNode, type RefObject } from "react";
 import { motion } from "framer-motion";
 import { useLookParts } from "@/components/looks/LookProvider";
 import { DoneButton } from "@/components/ui/DoneButton";
@@ -8,7 +8,7 @@ import { SubmitKeyHint } from "@/components/ui/KeyHint";
 import { IconButton } from "@/components/ui/IconButton";
 import { TimeField } from "@/components/ui/TimeField";
 import type { BucketMember } from "@/lib/buckets/members";
-import { smoothScroll } from "@/lib/motion";
+import { useLayoutStore } from "@/store/layout";
 import type { FieldDef, StatusDef } from "@/types/rules";
 import { cn } from "@/lib/utils";
 import { assigneeLabel, mentionAssignees } from "./assignee";
@@ -64,6 +64,13 @@ export function InlineEditorLayout({
 }: InlineEditorLayoutProps) {
   const roundTick = useLookParts().tickBox === "round";
   const { draft, draftRef, update, clock, time, datePart } = state;
+  const editorOpened = useLayoutStore((s) => s.editorOpened);
+  const editorClosed = useLayoutStore((s) => s.editorClosed);
+
+  useEffect(() => {
+    editorOpened();
+    return editorClosed;
+  }, [editorOpened, editorClosed]);
 
   const choice: AssigneeChoice = {
     bucketId,
@@ -136,9 +143,11 @@ export function InlineEditorLayout({
           initial={{ height: 0, opacity: 0 }}
           animate={exit.closing ? { height: 0, opacity: 0 } : { height: "auto", opacity: 1 }}
           transition={{ duration: INLINE_EDIT_SECONDS }}
+          onUpdate={() => {
+            if (!exit.closing) rootRef.current?.scrollIntoView({ block: "nearest" });
+          }}
           onAnimationComplete={() => {
             if (exit.closing) exit.folded();
-            else rootRef.current?.scrollIntoView({ block: "nearest", behavior: smoothScroll() });
           }}
           className="-mx-1 overflow-hidden px-1"
         >

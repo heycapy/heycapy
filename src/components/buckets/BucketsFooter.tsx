@@ -1,6 +1,7 @@
 import type { CSSProperties, RefObject } from "react";
 import { KeyHint } from "@/components/ui/KeyHint";
-import { TextButton } from "@/components/ui/TextButton";
+import { Icon } from "@/components/ui/Icon";
+import { Tooltip } from "@/components/ui/Tooltip";
 import { useKeyboardInset } from "@/hooks/useKeyboardInset";
 import { cn } from "@/lib/utils";
 import { useLookParts } from "@/components/looks/LookProvider";
@@ -12,6 +13,7 @@ type BucketsFooterProps = {
   targets?: { buckets: ViewerBucket[]; onPick: (bucketId: number) => void };
   color: string;
   canAdd: boolean;
+  hidden: boolean;
   buttonRef: RefObject<HTMLButtonElement | null>;
   onAdd: () => void;
 };
@@ -20,12 +22,15 @@ export function BucketsFooter({
   bucket,
   color,
   canAdd,
+  hidden,
   buttonRef,
   onAdd,
   targets,
 }: BucketsFooterProps) {
   const keyboardInset = useKeyboardInset();
   const floating = useLookParts().footer === "floating";
+
+  if (hidden) return null;
 
   return (
     <div
@@ -55,16 +60,18 @@ export function BucketsFooter({
                   onPick={targets.onPick}
                 />
               )}
-              <TextButton
-                ref={buttonRef}
-                variant="primary"
-                aria-label="add item"
-                onClick={onAdd}
-                className="ml-auto"
-              >
-                + add item
-                <KeyHint action="quick-add" />
-              </TextButton>
+              <KeyHint action="quick-add" className="ml-auto" />
+              <Tooltip text="add item">
+                <button
+                  ref={buttonRef}
+                  type="button"
+                  aria-label="add item"
+                  onClick={onAdd}
+                  className="bg-primary text-primary-foreground flex size-10 shrink-0 items-center justify-center rounded-(--chip-radius) transition-opacity hover:opacity-85"
+                >
+                  <Icon name="plus" />
+                </button>
+              </Tooltip>
             </>
           )
         )}

@@ -303,9 +303,7 @@ test("the keys that add or save an item show on the add buttons when hints are o
   setAccount("original", '{"hints":true}');
   try {
     await page.reload();
-    await expect(
-      page.getByRole("button", { name: "add item", exact: true }).locator("kbd")
-    ).toHaveText("a");
+    await expect(page.getByTestId("add-box").locator("kbd")).toHaveText("a");
     await page.keyboard.press("Control+;");
     await page.keyboard.press("a");
     await expect(newItemForm(page)).toBeVisible();

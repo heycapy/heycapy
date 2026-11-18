@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore, type CSSProperties } from "react";
 import { AnimatePresence, motion, useReducedMotionConfig } from "framer-motion";
 import { BucketContent, type BucketView } from "./BucketContent";
 import { BucketTabs } from "./BucketTabs";
@@ -12,6 +12,7 @@ import { VIEW_FADE } from "./constants";
 import { bucketColor } from "./bucket-color";
 import { useUIStore } from "@/store/ui";
 import { useLayoutStore } from "@/store/layout";
+import { useKeyboardInset } from "@/hooks/useKeyboardInset";
 import { itemLink } from "@/lib/items/item-link";
 import { parseItemsRules } from "@/lib/rules";
 import type { ViewerBucket } from "@/lib/buckets/access";
@@ -43,8 +44,17 @@ export function BucketsShell({ buckets: rawBuckets, focusBucketId = null }: Buck
   const prevBucketsRef = useRef<ViewerBucket[]>(buckets);
   const viewRef = useRef<BucketView | null>(null);
   const addButtonRef = useRef<HTMLButtonElement>(null);
+  const editing = useLayoutStore((s) => s.openEditors > 0);
+  const keyboardInset = useKeyboardInset();
   const expandPending = useRef(false);
   const [todayAddId, setTodayAddId] = useState<number | null>(null);
+
+  // With the keyboard up an open row must stay in view: the footer is gone, so the list itself
+  // makes room for the keyboard and follows it
+  useEffect(() => {
+    if (!editing) return;
+    document.querySelector("[data-inline-edit]")?.scrollIntoView({ block: "nearest" });
+  }, [editing, keyboardInset]);
 
   useEffect(() => {
     setBottomBarShown(true);
@@ -125,7 +135,7 @@ export function BucketsShell({ buckets: rawBuckets, focusBucketId = null }: Buck
       bucket={activeBucket}
       accentColor={accentColor}
       viewRef={viewRef}
-      onAddClosed={() => addButtonRef.current?.focus()}
+      onAddClosed={() => requestAnimationFrame(() => addButtonRef.current?.focus())}
     />
   );
 
@@ -157,7 +167,10 @@ export function BucketsShell({ buckets: rawBuckets, focusBucketId = null }: Buck
           <Banners />
         </>
       )}
-      <div className="max-md:scrollbar-hide flex-1 overflow-y-auto pb-2">
+      <div
+        style={{ "--keyboard-inset": `${editing ? keyboardInset : 0}px` } as CSSProperties}
+        className="max-md:scrollbar-hide flex-1 overflow-y-auto pb-[calc(0.5rem+var(--keyboard-inset))]"
+      >
         {hydrated &&
           (still ? (
             <div key={placeKey} className="max-w-column mx-auto w-full">
@@ -199,6 +212,7 @@ export function BucketsShell({ buckets: rawBuckets, focusBucketId = null }: Buck
         }
         color={accentColor}
         canAdd={canAddItem}
+        hidden={editing}
         buttonRef={addButtonRef}
         onAdd={startAdding}
       />
