@@ -74,6 +74,7 @@ export function ReminderPicker({
           const label = describeReminder(mins, allDay);
           return (
             <OptionButton
+              soft
               key={mins}
               onClick={() => onChange(reminders.filter((m) => m !== mins))}
               disabled={disabled}
@@ -91,7 +92,7 @@ export function ReminderPicker({
             iconLabel="add reminder"
             onClick={() => setAdding(true)}
             disabled={disabled}
-            className="px-1"
+            className="rounded-(--chip-radius)! px-1"
           >
             + add
           </TextButton>
@@ -100,11 +101,11 @@ export function ReminderPicker({
       {full && <p className={MUTED}>that&apos;s the max — remove one to add another</p>}
 
       {adding && (
-        <div className="border-border flex flex-col gap-2 border-l-2 pl-3">
+        <div className="flex flex-col gap-2">
           {presets.length > 0 && (
             <div className="flex flex-wrap gap-1.5">
               {presets.map((mins) => (
-                <OptionButton key={mins} onClick={() => add(mins)} disabled={disabled}>
+                <OptionButton soft key={mins} onClick={() => add(mins)} disabled={disabled}>
                   {describeReminder(mins, allDay)}
                 </OptionButton>
               ))}
@@ -133,6 +134,7 @@ export function ReminderPicker({
             <div role="group" aria-label="custom reminder unit" className="flex gap-1">
               {CUSTOM_REMINDER_UNITS.map((u) => (
                 <OptionButton
+                  soft
                   key={u.mins}
                   active={unitMins === u.mins}
                   onClick={() => setUnitMins(u.mins)}

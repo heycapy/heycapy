@@ -1,8 +1,9 @@
-import type { RefObject } from "react";
+import type { ReactNode, RefObject } from "react";
 import { Reorder, useDragControls } from "framer-motion";
 import { ItemRow, type ItemAssignee } from "./ItemRow";
 import { PressableRow } from "./PressableRow";
 import type { MenuAt } from "./ItemMenu";
+import type { OpenFocus } from "./constants";
 import { reorderItemsAction } from "@/app/(app)/actions";
 import type { ListItem, ReminderBadge } from "@/lib/reminders/status";
 import type { StatusDef, FieldDef } from "@/types/rules";
@@ -14,16 +15,16 @@ type DraggableItemProps = {
   statuses: StatusDef[];
   fields: FieldDef[];
   orderedItemsRef: RefObject<Item[]>;
-  isEditing?: boolean;
+  dimmed?: boolean;
+  editor?: ReactNode;
   menuOpen?: boolean;
-  onEditStart?: () => void;
+  onEditStart?: (focus: OpenFocus) => void;
   onStatusChange?: (status: string) => Promise<boolean>;
   onMenu: (at: MenuAt) => void;
   reminderBadge?: ReminderBadge;
   assignees?: ItemAssignee[];
   otherClock?: string;
   color: string;
-  showDue: boolean;
   shared: boolean;
   tickedBy?: string;
 };
@@ -33,7 +34,8 @@ export function DraggableItem({
   statuses,
   fields,
   orderedItemsRef,
-  isEditing,
+  dimmed,
+  editor,
   menuOpen,
   onEditStart,
   onStatusChange,
@@ -42,7 +44,6 @@ export function DraggableItem({
   assignees,
   otherClock,
   color,
-  showDue,
   shared,
   tickedBy,
 }: DraggableItemProps) {
@@ -61,26 +62,26 @@ export function DraggableItem({
       }}
       className="list-none"
     >
-      <PressableRow onMenu={onMenu}>
-        <ItemRow
-          item={item}
-          statuses={statuses}
-          fields={fields}
-          dragControls={controls}
-          isEditing={isEditing}
-          menuOpen={menuOpen}
-          onEditStart={onEditStart}
-          onStatusChange={onStatusChange}
-          reminderBadge={reminderBadge}
-          assignees={assignees}
-          otherClock={otherClock}
-          color={color}
-          showDue={showDue}
-          shared={shared}
-          tickedBy={tickedBy}
-          onMenu={onMenu}
-        />
-      </PressableRow>
+      {editor ?? (
+        <PressableRow dimmed={dimmed} onMenu={onMenu}>
+          <ItemRow
+            item={item}
+            statuses={statuses}
+            fields={fields}
+            dragControls={controls}
+            menuOpen={menuOpen}
+            onEditStart={onEditStart}
+            onStatusChange={onStatusChange}
+            reminderBadge={reminderBadge}
+            assignees={assignees}
+            otherClock={otherClock}
+            color={color}
+            shared={shared}
+            tickedBy={tickedBy}
+            onMenu={onMenu}
+          />
+        </PressableRow>
+      )}
     </Reorder.Item>
   );
 }

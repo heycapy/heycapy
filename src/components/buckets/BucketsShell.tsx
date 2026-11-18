@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore, type CSSProperties } from "react";
 import { AnimatePresence, motion, useReducedMotionConfig } from "framer-motion";
 import { BucketContent, type BucketView } from "./BucketContent";
 import { BucketTabs } from "./BucketTabs";
@@ -12,10 +12,9 @@ import { VIEW_FADE } from "./constants";
 import { bucketColor } from "./bucket-color";
 import { useUIStore } from "@/store/ui";
 import { useLayoutStore } from "@/store/layout";
-import { useMediaQuery } from "@/hooks/useMediaQuery";
+import { useKeyboardInset } from "@/hooks/useKeyboardInset";
 import { itemLink } from "@/lib/items/item-link";
 import { parseItemsRules } from "@/lib/rules";
-import { BOTTOM_BAR_MEDIA_QUERY } from "@/constants";
 import type { ViewerBucket } from "@/lib/buckets/access";
 
 const writable = (bucket: ViewerBucket) => parseItemsRules(bucket.itemsRules).readonly !== true;
@@ -30,11 +29,12 @@ export function BucketsShell({ buckets: rawBuckets, focusBucketId = null }: Buck
   const setBottomBarShown = useLayoutStore((s) => s.setBottomBarShown);
   const activeBucketId = useUIStore((s) => s.activeBucketId);
   const setActiveBucketId = useUIStore((s) => s.setActiveBucketId);
+  const openToday = useUIStore((s) => s.openToday);
   const openItem = useUIStore((s) => s.openItem);
   const newBucketId = useUIStore((s) => s.newBucketId);
   const clearNewBucket = useUIStore((s) => s.clearNewBucket);
   const focusMode = useUIStore((s) => s.focusMode);
-  const todayOpen = useUIStore((s) => s.todayOpen && !s.focusMode);
+  const todayOpen = useUIStore((s) => s.todayOpen);
   // The open view is remembered per session, wait for it rather than flash the default
   const hydrated = useSyncExternalStore(
     (onChange) => useUIStore.persist.onFinishHydration(onChange),
@@ -43,13 +43,18 @@ export function BucketsShell({ buckets: rawBuckets, focusBucketId = null }: Buck
   );
   const prevBucketsRef = useRef<ViewerBucket[]>(buckets);
   const viewRef = useRef<BucketView | null>(null);
-  const quickAddRef = useRef<HTMLInputElement>(null);
-  const focusPending = useRef(false);
+  const addButtonRef = useRef<HTMLButtonElement>(null);
+  const editing = useLayoutStore((s) => s.openEditors > 0);
+  const keyboardInset = useKeyboardInset();
   const expandPending = useRef(false);
   const [todayAddId, setTodayAddId] = useState<number | null>(null);
-  const tickRefresh = useUIStore((s) => s.tickRefresh);
-  const [panelSlot, setPanelSlot] = useState<HTMLDivElement | null>(null);
-  const hasBottomBar = useMediaQuery(BOTTOM_BAR_MEDIA_QUERY);
+
+  // With the keyboard up an open row must stay in view: the footer is gone, so the list itself
+  // makes room for the keyboard and follows it
+  useEffect(() => {
+    if (!editing) return;
+    document.querySelector("[data-inline-edit]")?.scrollIntoView({ block: "nearest" });
+  }, [editing, keyboardInset]);
 
   useEffect(() => {
     setBottomBarShown(true);
@@ -70,20 +75,13 @@ export function BucketsShell({ buckets: rawBuckets, focusBucketId = null }: Buck
   useEffect(() => {
     if (addItemRequest === handledAddRequest.current) return;
     handledAddRequest.current = addItemRequest;
-    const { todayOpen: onToday, activeBucketId: current, addItemForm } = useUIStore.getState();
+    const { todayOpen: onToday, activeBucketId: current } = useUIStore.getState();
     const shown = buckets.find((b) => b.id === current) ?? buckets[0];
     const target = shown && writable(shown) ? shown : onToday ? buckets.find(writable) : undefined;
     if (!target) return;
     if (onToday) setActiveBucketId(target.id);
-    if (addItemForm) expandPending.current = true;
-    else focusPending.current = true;
+    expandPending.current = true;
   }, [addItemRequest, buckets, setActiveBucketId]);
-
-  useEffect(() => {
-    if (!focusPending.current || !quickAddRef.current) return;
-    focusPending.current = false;
-    quickAddRef.current.focus();
-  });
 
   useEffect(() => {
     if (newBucketId === null || !buckets.some((b) => b.id === newBucketId)) return;
@@ -129,22 +127,19 @@ export function BucketsShell({ buckets: rawBuckets, focusBucketId = null }: Buck
     (writable(activeBucket) ? activeBucket : writableBuckets[0]);
   const footerBucket = todayOpen ? (todayTarget ?? null) : activeBucket;
   const canAddItem = footerBucket !== null && writable(footerBucket);
-  const itemPanel = panelSlot
-    ? { slot: panelSlot, onCollapsed: () => quickAddRef.current?.focus() }
-    : undefined;
 
   const view = todayOpen ? (
-    <TodayView buckets={buckets} panel={itemPanel} />
+    <TodayView />
   ) : (
     <BucketContent
       bucket={activeBucket}
       accentColor={accentColor}
       viewRef={viewRef}
-      panel={itemPanel}
+      onAddClosed={() => requestAnimationFrame(() => addButtonRef.current?.focus())}
     />
   );
 
-  function expand() {
+  function startAdding() {
     if (todayOpen && todayTarget) {
       expandPending.current = true;
       setActiveBucketId(todayTarget.id);
@@ -160,9 +155,10 @@ export function BucketsShell({ buckets: rawBuckets, focusBucketId = null }: Buck
         <div className="max-w-column mx-auto w-full px-2 pt-3 pb-2">
           <BucketTargetPicker
             variant="heading"
-            bucket={activeBucket}
+            bucket={todayOpen ? null : activeBucket}
             buckets={buckets}
             onPick={setActiveBucketId}
+            today={openToday}
           />
         </div>
       ) : (
@@ -172,12 +168,8 @@ export function BucketsShell({ buckets: rawBuckets, focusBucketId = null }: Buck
         </>
       )}
       <div
-        className="max-md:scrollbar-hide flex-1 overflow-y-auto pb-[calc(0.5rem+var(--item-panel-cover,0px))]"
-        onClick={(e) => {
-          if (hasBottomBar && canAddItem && e.target === e.currentTarget) {
-            quickAddRef.current?.focus();
-          }
-        }}
+        style={{ "--keyboard-inset": `${editing ? keyboardInset : 0}px` } as CSSProperties}
+        className="max-md:scrollbar-hide flex-1 overflow-y-auto pb-[calc(0.5rem+var(--keyboard-inset))]"
       >
         {hydrated &&
           (still ? (
@@ -214,17 +206,15 @@ export function BucketsShell({ buckets: rawBuckets, focusBucketId = null }: Buck
                 buckets: writableBuckets,
                 onPick: (id) => {
                   setTodayAddId(id);
-                  requestAnimationFrame(() => quickAddRef.current?.focus());
                 },
               }
             : undefined
         }
         color={accentColor}
         canAdd={canAddItem}
-        inputRef={quickAddRef}
-        panelSlotRef={setPanelSlot}
-        onAdded={() => (todayOpen ? tickRefresh() : void viewRef.current?.refetch())}
-        onExpand={expand}
+        hidden={editing}
+        buttonRef={addButtonRef}
+        onAdd={startAdding}
       />
     </div>
   );

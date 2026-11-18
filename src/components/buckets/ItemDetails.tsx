@@ -1,24 +1,38 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import { Calendar } from "@/components/ui/Calendar";
-import { formatDisplay } from "@/components/ui/DatePicker";
-import { TextButton } from "@/components/ui/TextButton";
-import { TimeField, timeLabel, type TimeValue } from "@/components/ui/TimeField";
 import { describeReminder } from "@/lib/items/reminder-label";
 import { describeRepeat } from "@/lib/items/repeat-label";
-import type { RecurringConfig, StatusDef } from "@/types/rules";
+import type { FieldDef, RecurringConfig, StatusDef } from "@/types/rules";
 import { DetailChip } from "./DetailChip";
+import { ItemFieldChipPanel } from "./ItemFieldChipPanel";
 import { ItemStatusField } from "./ItemStatusField";
 import { RecurringPicker } from "./RecurringPicker";
 import { ReminderPicker } from "./ReminderPicker";
-import { DETAIL_EDITOR as EDITOR, NEEDS_DATE, type ItemDetailPanel } from "./constants";
-import { HINT } from "@/components/layout/settings-constants";
+import {
+  DETAIL_EDITOR as EDITOR,
+  FIELD_LABEL,
+  NEEDS_DATE,
+  type DetailPanelId,
+  type ItemDetailPanel,
+} from "./constants";
+
+export type FieldChip = {
+  key: string;
+  name: string;
+  label: string;
+  prefix?: string;
+  required: boolean;
+  set: boolean;
+  invalid: boolean;
+  field: FieldDef;
+  value: unknown;
+};
 
 type ItemDetailsProps = {
+  dateSlot: ReactNode;
   datePart: string;
   allDay: boolean;
-  time: TimeValue;
   clock?: ReactNode;
   withStatus: boolean;
   status: string;
@@ -27,11 +41,8 @@ type ItemDetailsProps = {
   reminders?: number[] | null;
   bucketReminders?: number[];
   assignee?: { label: string; set: boolean; field: ReactNode };
-  more?: ReactNode;
-  showMore: boolean;
-  pending?: boolean;
-  onDateChange: (date: string) => void;
-  onTimeChange: (time: TimeValue) => void;
+  fieldChips?: FieldChip[];
+  onFieldChange?: (key: string, value: unknown) => void;
   onStatusChange: (v: string) => void;
   onRecurringChange?: (v: RecurringConfig | null) => void;
   onRemindersChange?: (v: number[]) => void;
@@ -44,9 +55,9 @@ function remindersLabel(list: number[], allDay: boolean): string {
 }
 
 export function ItemDetails({
+  dateSlot,
   datePart,
   allDay,
-  time,
   clock,
   withStatus,
   status,
@@ -55,45 +66,38 @@ export function ItemDetails({
   reminders,
   bucketReminders,
   assignee,
-  more,
-  showMore,
-  pending,
-  onDateChange,
-  onTimeChange,
+  fieldChips,
+  onFieldChange,
   onStatusChange,
   onRecurringChange,
   onRemindersChange,
 }: ItemDetailsProps) {
-  const [panel, setPanel] = useState<ItemDetailPanel | null>(null);
-  const [afterDate, setAfterDate] = useState<ItemDetailPanel | null>(null);
+  const [panel, setPanel] = useState<DetailPanelId | null>(null);
   const hasDate = datePart.length > 0;
   const reminderList = reminders ?? bucketReminders ?? [];
   const statusDef = statuses.find((s) => s.name === status);
 
   function toggle(next: ItemDetailPanel, needsDate = false) {
-    setAfterDate(needsDate && !hasDate ? next : null);
-    if (needsDate && !hasDate) return setPanel("date");
+    if (needsDate && !hasDate) return;
     setPanel((current) => (current === next ? null : next));
   }
 
-  function pickDate(date: string) {
-    onDateChange(date);
-    if (!afterDate) return;
-    setPanel(afterDate);
-    setAfterDate(null);
+  function toggleField(key: string) {
+    const id: DetailPanelId = `field:${key}`;
+    setPanel((current) => (current === id ? null : id));
+  }
+
+  function closeField(key: string) {
+    setPanel(null);
+    requestAnimationFrame(() =>
+      document.querySelector<HTMLElement>(`[data-inline-edit] [data-field-key="${key}"]`)?.focus()
+    );
   }
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-3">
       <div role="group" aria-label="item details" className="flex flex-wrap gap-1.5">
-        <DetailChip
-          name="date"
-          icon="calendar"
-          label={hasDate ? `${formatDisplay(datePart)} · ${timeLabel(time)}` : "date"}
-          set={hasDate}
-          open={panel === "date"}
-          onClick={() => toggle("date")}
-        />
+        {dateSlot}
         {onRecurringChange && (
           <DetailChip
             name="repeat"
@@ -136,41 +140,9 @@ export function ItemDetails({
             onClick={() => toggle("status")}
           />
         )}
-        {more && !showMore && (
-          <DetailChip
-            name="more"
-            icon="more"
-            label="more"
-            set={false}
-            open={panel === "more"}
-            onClick={() => toggle("more")}
-          />
-        )}
       </div>
 
       {hasDate && clock}
-
-      {panel === "date" && (
-        <div className={EDITOR}>
-          {afterDate && <p className={HINT}>{NEEDS_DATE}</p>}
-          <div className="max-w-xs">
-            <Calendar value={datePart} onSelect={pickDate} />
-          </div>
-          {hasDate && (
-            <div className="flex items-center gap-2">
-              <TimeField value={time} onChange={onTimeChange} allowAllDay disabled={pending} />
-              <TextButton
-                variant="destructive"
-                onClick={() => onDateChange("")}
-                disabled={pending}
-                className="ml-auto"
-              >
-                remove date
-              </TextButton>
-            </div>
-          )}
-        </div>
-      )}
 
       {panel === "repeat" && hasDate && onRecurringChange && (
         <div className={EDITOR}>
@@ -178,7 +150,6 @@ export function ItemDetails({
             recurring={recurring}
             deadlineDay={Number(datePart.slice(8, 10))}
             initialShowEndDate={!!recurring?.endDate}
-            disabled={pending}
             onChange={onRecurringChange}
           />
         </div>
@@ -190,7 +161,6 @@ export function ItemDetails({
             reminders={reminderList}
             followsBucket={!reminders}
             allDay={allDay}
-            disabled={pending}
             onChange={onRemindersChange}
           />
         </div>
@@ -200,16 +170,45 @@ export function ItemDetails({
 
       {panel === "status" && (
         <div className={EDITOR}>
-          <ItemStatusField
-            status={status}
-            statuses={statuses}
-            onChange={onStatusChange}
-            disabled={pending}
-          />
+          <ItemStatusField status={status} statuses={statuses} onChange={onStatusChange} />
         </div>
       )}
 
-      {(showMore || panel === "more") && more}
+      {fieldChips && fieldChips.length > 0 && (
+        <div className="flex flex-col gap-3 pt-1">
+          <p className={FIELD_LABEL}>fields</p>
+          <div role="group" aria-label="item fields" className="flex flex-wrap gap-1.5">
+            {fieldChips.map((chip) => (
+              <DetailChip
+                key={chip.key}
+                fieldKey={chip.key}
+                name={chip.name}
+                label={chip.label}
+                prefix={chip.prefix}
+                required={chip.required}
+                set={chip.set}
+                invalid={chip.invalid}
+                open={panel === `field:${chip.key}`}
+                onClick={() => toggleField(chip.key)}
+              />
+            ))}
+          </div>
+          {fieldChips.map(
+            (chip) =>
+              panel === `field:${chip.key}` && (
+                <div key={chip.key} className={EDITOR}>
+                  <ItemFieldChipPanel
+                    field={chip.field}
+                    value={chip.value}
+                    invalid={chip.invalid}
+                    onChange={(next) => onFieldChange?.(chip.key, next)}
+                    onDone={() => closeField(chip.key)}
+                  />
+                </div>
+              )
+          )}
+        </div>
+      )}
     </div>
   );
 }

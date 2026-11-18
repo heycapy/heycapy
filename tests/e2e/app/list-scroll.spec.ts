@@ -2,12 +2,14 @@ import { test, expect, type Page } from "@playwright/test";
 import { login, uniqueEmail } from "../helpers/login";
 import { field, openSettings, option, saveSettings } from "../helpers/settings";
 import {
+  inlineEditor,
+  openEditForm,
   addItem,
-  addBox,
   addItemButton,
   createAndSelectBucket,
   itemRow,
   newItemForm,
+  openDetail,
   uniqueName,
 } from "../helpers/buckets";
 
@@ -50,28 +52,24 @@ test("with the add form open, scrolling over it leaves the list where it is", as
 
 test("editing the bottom row brings it above the edit form", async ({ page }) => {
   await bucketWithItems(page);
-  await itemRow(page, "eight").click();
-  const panel = page.locator("[data-item-panel]");
-  await expect(panel).toBeVisible();
-  await expect
-    .poll(async () => {
-      const row = await itemRow(page, "eight").boundingBox();
-      const top = (await panel.boundingBox())?.y ?? 0;
-      return (row?.y ?? Infinity) + (row?.height ?? 0) <= top;
-    })
-    .toBe(true);
+  await openEditForm(page, "eight");
+  await expect(inlineEditor(page)).toBeInViewport({ ratio: 1 });
 });
 
 test("a long list sorted by deadline never makes the page itself taller", async ({ page }) => {
   test.setTimeout(90_000);
   await bucketWithItems(page, 18);
-  await addBox(page).fill("renew passport tomorrow");
-  await addBox(page).press("Enter");
+  await addItemButton(page).click();
+  const form = newItemForm(page);
+  await form.locator("textarea").first().fill("renew passport");
+  await openDetail(form, "date");
+  await page.getByRole("button", { name: "tomorrow", exact: true }).click();
+  await form.getByRole("button", { name: "add", exact: true }).click();
   await expect(itemRow(page, "renew passport")).toBeVisible();
   const settings = await openSettings(page);
   await option(field(settings, "sort by"), "deadline").click();
   await saveSettings(settings);
-  await expect(page.getByText("no date").first()).toBeAttached();
+  await expect(page.getByText("tomorrow").first()).toBeAttached();
 
   const page_ = await page.evaluate(() => {
     const main = document.querySelector("main") as HTMLElement;

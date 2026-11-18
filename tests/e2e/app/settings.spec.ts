@@ -326,7 +326,7 @@ test.describe("items settings", () => {
     await option(field(dialog, "read only"), "on").click();
     await saveSettings(dialog);
 
-    await expect(page.getByRole("textbox", { name: /^add to / })).not.toBeVisible();
+    await expect(page.getByRole("button", { name: "add item", exact: true })).toBeHidden();
     await itemRow(page, title).click();
     await expect(page.getByText("edit item", { exact: true })).not.toBeVisible();
 
@@ -335,7 +335,7 @@ test.describe("items settings", () => {
     await option(field(dialog, "read only"), "off").click();
     await saveSettings(dialog);
 
-    await expect(page.getByRole("textbox", { name: /^add to / })).toBeVisible();
+    await expect(page.getByRole("button", { name: "add item", exact: true })).toBeVisible();
   });
 
   test("default deadline offset previews valid input and flags invalid input", async ({ page }) => {

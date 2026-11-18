@@ -30,6 +30,7 @@ import { encryptValue, generateWebhookKey } from "@/lib/crypto";
 import {
   BUCKET_NAME_MAX_LENGTH,
   CLOSED_ITEM_STATUSES,
+  ITEM_DESCRIPTION_MAX_LENGTH,
   ITEM_STATUS,
   SETTABLE_ITEM_STATUSES,
   WEEKDAY_SHORT_NAMES,
@@ -243,6 +244,7 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
 const ITEM_DETAIL_COLUMNS = {
   id: items.id,
   title: items.title,
+  description: items.description,
   status: items.status,
   bucketId: items.bucketId,
   deadline: items.deadline,
@@ -281,6 +283,7 @@ async function assigneesByItem(itemIds: number[]): Promise<Map<number, Assignee[
 type ItemDetailRow = {
   id: number;
   title: string;
+  description: string | null;
   status: string;
   bucketId: number;
   deadline: Date | null;
@@ -328,6 +331,7 @@ function itemDetails(row: ItemDetailRow, assignees: Assignee[], userId: number, 
   return {
     id: row.id,
     title: row.title,
+    notes: row.description,
     status: row.status,
     bucketId: row.bucketId,
     deadline: row.deadline ? localDeadline(row.deadline, timezone, row.deadlineTimezone) : null,
@@ -532,6 +536,10 @@ async function executeToolCallInner(
       const bucketId = Number(args.bucket_id);
       const title = String(args.title ?? "").trim();
       if (!title) return JSON.stringify({ ok: false, error: "Title is required" });
+      const notes = typeof args.notes === "string" ? args.notes.trim() : "";
+      if (notes.length > ITEM_DESCRIPTION_MAX_LENGTH) {
+        return JSON.stringify({ ok: false, error: "Notes too long" });
+      }
 
       const bucket = await findAccessibleBucket(userId, bucketId);
       if (!bucket) return JSON.stringify({ ok: false, error: "Bucket not found" });
@@ -589,6 +597,7 @@ async function executeToolCallInner(
           bucketId,
           userId,
           title,
+          description: notes || null,
           status: finalStatus,
           completedAt: finalStatus === ITEM_STATUS.completed ? new Date() : null,
           completedBy: finalStatus === ITEM_STATUS.completed ? userId : null,
@@ -643,6 +652,7 @@ async function executeToolCallInner(
       const updates: {
         updatedAt: Date;
         title?: string;
+        description?: string | null;
         deadline?: Date | null;
         deadlineTimezone?: string | null;
         scheduledAt?: null;
@@ -661,6 +671,14 @@ async function executeToolCallInner(
         const title = String(args.title).trim();
         if (!title) return JSON.stringify({ ok: false, error: "Title cannot be empty" });
         updates.title = title;
+      }
+
+      if (args.notes !== undefined) {
+        const notes = args.notes === null ? "" : String(args.notes).trim();
+        if (notes.length > ITEM_DESCRIPTION_MAX_LENGTH) {
+          return JSON.stringify({ ok: false, error: "Notes too long" });
+        }
+        updates.description = notes || null;
       }
 
       const repeat = repeatFromArgs(args, parseRecurring(item.recurring));

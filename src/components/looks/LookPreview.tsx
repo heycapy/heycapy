@@ -59,8 +59,8 @@ function PreviewList() {
       {LOOK_PREVIEW_ITEMS.map((item) => (
         <div key={item.title} className={cn("flex items-stretch px-3", item.done && "opacity-45")}>
           <TickBox title={item.title} checked={item.done} color={PREVIEW_COLOR} />
-          <span className="flex min-w-0 flex-1 items-center gap-3 py-2.5">
-            <span className="truncate text-sm">{item.title}</span>
+          <span className="flex min-w-0 flex-1 flex-col items-start gap-1 py-2.5">
+            <span className="max-w-full truncate text-sm">{item.title}</span>
             <ItemDue
               due={
                 item.dueInDays === null

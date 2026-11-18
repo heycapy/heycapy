@@ -172,7 +172,6 @@ test("with reduce motion drawers and dialogs open and close without animating", 
 
   const drawers = [
     page.getByRole("button", { name: "bucket settings", exact: true }),
-    page.getByRole("button", { name: "add with details", exact: true }),
     page.getByRole("button", { name: /new bucket|add bucket/i }).first(),
   ];
   for (const opener of drawers) {

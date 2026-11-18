@@ -73,6 +73,18 @@ export function formatWeekdayDate(d: Date): string {
   return `${WEEKDAY_SHORT_NAMES[d.getDay()]} ${MONTH_SHORT_NAMES[d.getMonth()]} ${d.getDate()}`;
 }
 
+// "13/11/26"
+export function dueDate(d: Date): string {
+  const two = (n: number) => String(n).padStart(2, "0");
+  return `${two(d.getDate())}/${two(d.getMonth() + 1)}/${two(d.getFullYear() % 100)}`;
+}
+
+// "5:00 pm"
+export function dueClock(d: Date): string {
+  const hour = d.getHours() % 12 === 0 ? 12 : d.getHours() % 12;
+  return `${hour}:${String(d.getMinutes()).padStart(2, "0")} ${d.getHours() >= 12 ? "pm" : "am"}`;
+}
+
 export function clockTime(d: Date): string {
   return clockText(d.getHours(), d.getMinutes());
 }

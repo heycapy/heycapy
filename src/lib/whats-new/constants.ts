@@ -4,6 +4,19 @@ export type Release = { version: string; notes: ReleaseNote[] };
 
 export const RELEASES: [Release, ...Release[]] = [
   {
+    version: "0.14.0",
+    notes: [
+      {
+        title: "edit in place",
+        text: "tap an item and edit its title, notes, date and the rest right in the list. tap outside to save.",
+      },
+      {
+        title: "a new way to add",
+        text: "the add bar is now a round + button that opens a new row at the end of the list. your draft is kept until you add it, and required fields show a red star. typing a date into a title no longer works, pick it in the row.",
+      },
+    ],
+  },
+  {
     version: "0.13.0",
     notes: [
       {

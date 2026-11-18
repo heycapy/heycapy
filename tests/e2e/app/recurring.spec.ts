@@ -1,12 +1,14 @@
 import { test, expect, type Page } from "@playwright/test";
 import { authState } from "../helpers/auth";
 import {
+  openEditForm,
   createAndSelectBucket,
   itemForm,
   itemRow,
   uniqueName,
   openDetail,
   detailChip,
+  saveEdit,
 } from "../helpers/buckets";
 
 test.use({ storageState: authState("recurring") });
@@ -17,7 +19,7 @@ function itemDialog(page: Page) {
 }
 
 async function addMonthlyItemDueToday(page: Page, title: string): Promise<void> {
-  await page.getByRole("button", { name: "add with details", exact: true }).click();
+  await page.getByRole("button", { name: "add item", exact: true }).click();
   const dialog = itemDialog(page);
   await dialog.locator("textarea").first().fill(title);
   await openDetail(dialog, "date");
@@ -42,7 +44,7 @@ test("repeats on picked weekdays, then on the last day of the month", async ({ p
   const title = uniqueName("gym");
   await addMonthlyItemDueToday(page, title);
 
-  await itemRow(page, title).click();
+  await openEditForm(page, title);
   const dialog = itemDialog(page);
   await openDetail(dialog, "repeat");
   await dialog.getByRole("button", { name: "week", exact: true }).click();
@@ -51,11 +53,11 @@ test("repeats on picked weekdays, then on the last day of the month", async ({ p
     await dialog.getByRole("button", { name: day, exact: true }).click();
   }
   await expect(dialog.getByText("↺ every week on mon, wed, fri")).toBeVisible();
-  await dialog.getByRole("button", { name: "update", exact: true }).click();
+  await saveEdit(dialog);
   await expect(dialog).not.toBeVisible();
   await expect(itemRow(page, title)).toContainText("↺ mon, wed, fri");
 
-  await itemRow(page, title).click();
+  await openEditForm(page, title);
   await openDetail(dialog, "repeat");
   await expect(dialog.getByRole("button", { name: "wed", exact: true })).toHaveAttribute(
     "aria-pressed",
@@ -66,7 +68,7 @@ test("repeats on picked weekdays, then on the last day of the month", async ({ p
   await dialog.getByRole("button", { name: "month", exact: true }).click();
   await dialog.getByRole("button", { name: "last day", exact: true }).click();
   await expect(dialog.getByText("↺ every month on the last day")).toBeVisible();
-  await dialog.getByRole("button", { name: "update", exact: true }).click();
+  await saveEdit(dialog);
   await expect(itemRow(page, title)).toContainText("↺ monthly, last day");
 });
 
@@ -75,7 +77,7 @@ test("repeating on the last day moves the date to the month's last day", async (
   const last = new Date(now.getFullYear(), now.getMonth() + 1, 0);
   const lastLabel = `${last.toLocaleString("en-US", { month: "short" })} ${last.getDate()}`;
 
-  await page.getByRole("button", { name: "add with details", exact: true }).click();
+  await page.getByRole("button", { name: "add item", exact: true }).click();
   const dialog = itemDialog(page);
   const title = uniqueName("pay rent");
   await dialog.locator("textarea").first().fill(title);
@@ -90,7 +92,9 @@ test("repeating on the last day moves the date to the month's last day", async (
   );
 
   await dialog.getByRole("button", { name: "add", exact: true }).click();
-  await expect(itemRow(page, title)).toContainText(lastLabel);
+  const two = (n: number) => String(n).padStart(2, "0");
+  const rowLabel = `${two(last.getDate())}/${two(last.getMonth() + 1)}/${two(last.getFullYear() % 100)}`;
+  await expect(itemRow(page, title)).toContainText(rowLabel);
   await expect(itemRow(page, title)).toContainText("↺ monthly, last day");
   await expect(itemRow(page, title)).not.toContainText("next");
 });

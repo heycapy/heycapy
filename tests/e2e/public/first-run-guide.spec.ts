@@ -2,7 +2,7 @@ import { test, expect, type Page } from "@playwright/test";
 import Database from "better-sqlite3";
 import { E2E_DATABASE_FILE } from "../helpers/env";
 import { login, uniqueEmail } from "../helpers/login";
-import { activeBucketTitle, addItem } from "../helpers/buckets";
+import { activeBucketTitle, addItem, newItemForm } from "../helpers/buckets";
 import { NOTIFY_MS } from "@/components/ui/constants";
 import { E2E_STARTER_EMAIL_PREFIX, GUIDE_TASKS } from "@/lib/guide/constants";
 
@@ -161,11 +161,13 @@ test("a hint takes you to the place the task is done", async ({ page }) => {
   await task(page, "add a reminder").getByRole("button", { name: "[ hint ]" }).click();
   await expect(guidePanel(page)).toBeHidden();
   await expect(activeBucketTitle(page)).toHaveText("reminders");
-  await expect(page.getByRole("textbox", { name: "add to reminders" })).toBeFocused();
+  await expect(newItemForm(page)).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(newItemForm(page)).toBeHidden();
 
   await openGuide(page);
   await task(page, "make a reminder repeat").getByRole("button", { name: "[ hint ]" }).click();
-  await expect(page.getByText("new item", { exact: true })).toBeVisible();
+  await expect(newItemForm(page)).toBeVisible();
 });
 
 test("a hint toast stays until closed, and the next hint replaces it", async ({ page }) => {

@@ -9,6 +9,7 @@ import { db } from "@/lib/db";
 import { items } from "@/lib/db/schema";
 import { findAccessibleBucket, findAccessibleItem } from "@/lib/buckets/access";
 import {
+  ITEM_DESCRIPTION_MAX_LENGTH,
   ITEM_GONE_ERROR,
   ITEM_STATUS,
   ITEM_TITLE_MAX_LENGTH,
@@ -23,6 +24,7 @@ import {
   userTimezone,
 } from "@/lib/reminders/refresh";
 import { resolveDeadline } from "@/lib/items/deadline";
+import type { ItemPatch } from "@/lib/items/edit-draft";
 import { isKnownTimezone } from "@/lib/timezones/valid";
 import { createNextOccurrence, moveOccurrence, skipOccurrence } from "@/lib/items/recurrence";
 import { onLastDayIfAnchored, parseRecurring } from "@/lib/items/occurrence";
@@ -111,13 +113,17 @@ export async function addItemAction(
   properties?: Record<string, unknown> | null,
   reminders?: number[] | null,
   assigneeIds?: number[],
-  clock?: string | null
+  clock?: string | null,
+  description?: string
 ): Promise<ActionResult<{ id: number }>> {
   const session = await requireSession();
 
   const trimmed = title.trim();
   if (!trimmed) return { ok: false, error: "Title is required" };
   if (trimmed.length > ITEM_TITLE_MAX_LENGTH) return { ok: false, error: "Title too long" };
+  if (description && description.length > ITEM_DESCRIPTION_MAX_LENGTH) {
+    return { ok: false, error: "Notes too long" };
+  }
   if (recurring && !RecurringConfig.safeParse(recurring).success) {
     return { ok: false, error: "Invalid repeat settings" };
   }
@@ -152,6 +158,7 @@ export async function addItemAction(
       bucketId,
       userId: session.userId,
       title: trimmed,
+      description: description?.trim() || null,
       deadline: parsedDeadline,
       deadlineTimezone: due.deadlineTimezone,
       ...initialReminderState(parsedDeadline, due.deadlineTimezone ?? "UTC"),
@@ -183,22 +190,28 @@ function keepAnchor(config: RecurringConfig, saved: string | null): RecurringCon
     : config;
 }
 
-export async function updateItemAction(
-  itemId: number,
-  title: string,
-  deadline: string | null,
-  status?: string,
-  recurring?: RecurringConfig | null,
-  properties?: Record<string, unknown> | null,
-  reminders?: number[] | null,
-  assigneeIds?: number[],
-  clock?: string | null
-): Promise<ActionResult> {
+async function updateItem(itemId: number, patch: ItemPatch): Promise<ActionResult> {
   const session = await requireSession();
+  const {
+    title,
+    description,
+    deadline,
+    status,
+    recurring,
+    properties,
+    reminders,
+    assigneeIds,
+    clock,
+  } = patch;
 
-  const trimmed = title.trim();
-  if (!trimmed) return { ok: false, error: "Title is required" };
-  if (trimmed.length > ITEM_TITLE_MAX_LENGTH) return { ok: false, error: "Title too long" };
+  const trimmed = title?.trim();
+  if (trimmed !== undefined && !trimmed) return { ok: false, error: "Title is required" };
+  if (trimmed && trimmed.length > ITEM_TITLE_MAX_LENGTH) {
+    return { ok: false, error: "Title too long" };
+  }
+  if (description && description.length > ITEM_DESCRIPTION_MAX_LENGTH) {
+    return { ok: false, error: "Notes too long" };
+  }
   if (recurring && !RecurringConfig.safeParse(recurring).success) {
     return { ok: false, error: "Invalid repeat settings" };
   }
@@ -218,34 +231,27 @@ export async function updateItemAction(
     return { ok: false, error: NOT_A_MEMBER_ERROR };
   }
 
-  const ctx = await reminderContext(item.bucketId);
   const savedRecurring =
     recurring === undefined
       ? parseRecurring(item.recurring)
       : recurring?.enabled
         ? keepAnchor(recurring, item.recurring)
         : null;
-  const due = resolveDeadline(deadline, clock ?? (await userTimezone(session.userId)), item);
-  const parsedDeadline = due.deadline;
-  const keepsMovedDate =
-    !!item.scheduledAt &&
-    !!savedRecurring &&
-    parsedDeadline?.getTime() === item.deadline?.getTime();
-  const newDeadline =
-    parsedDeadline && due.deadlineTimezone && !keepsMovedDate
-      ? onLastDayIfAnchored(parsedDeadline, savedRecurring, due.deadlineTimezone)
-      : parsedDeadline;
-  const statusChanged = status !== undefined && status !== item.status;
 
-  const nowCompleted =
-    statusChanged && status === ITEM_STATUS.completed && item.status !== ITEM_STATUS.completed;
-  const nowUncompleted =
-    statusChanged && status !== ITEM_STATUS.completed && item.status === ITEM_STATUS.completed;
-
-  await db
-    .update(items)
-    .set({
-      title: trimmed,
+  let deadlineChange = {};
+  if (deadline !== undefined) {
+    const ctx = await reminderContext(item.bucketId);
+    const due = resolveDeadline(deadline, clock ?? (await userTimezone(session.userId)), item);
+    const parsedDeadline = due.deadline;
+    const keepsMovedDate =
+      !!item.scheduledAt &&
+      !!savedRecurring &&
+      parsedDeadline?.getTime() === item.deadline?.getTime();
+    const newDeadline =
+      parsedDeadline && due.deadlineTimezone && !keepsMovedDate
+        ? onLastDayIfAnchored(parsedDeadline, savedRecurring, due.deadlineTimezone)
+        : parsedDeadline;
+    deadlineChange = {
       deadline: newDeadline,
       deadlineTimezone: due.deadlineTimezone,
       ...(!keepsMovedDate && { scheduledAt: null }),
@@ -256,6 +262,21 @@ export async function updateItemAction(
         new Date(),
         due.deadlineTimezone ?? undefined
       ),
+    };
+  }
+  const statusChanged = status !== undefined && status !== item.status;
+
+  const nowCompleted =
+    statusChanged && status === ITEM_STATUS.completed && item.status !== ITEM_STATUS.completed;
+  const nowUncompleted =
+    statusChanged && status !== ITEM_STATUS.completed && item.status === ITEM_STATUS.completed;
+
+  await db
+    .update(items)
+    .set({
+      ...(trimmed !== undefined && { title: trimmed }),
+      ...(description !== undefined && { description: description?.trim() || null }),
+      ...deadlineChange,
       ...(status !== undefined && { status }),
       ...(nowCompleted && { completedAt: new Date(), completedBy: session.userId }),
       ...(nowUncompleted && { completedAt: null, completedBy: null }),
@@ -275,6 +296,33 @@ export async function updateItemAction(
 
   revalidatePath("/");
   return { ok: true };
+}
+
+export async function patchItemAction(itemId: number, patch: ItemPatch): Promise<ActionResult> {
+  return updateItem(itemId, patch);
+}
+
+export async function updateItemAction(
+  itemId: number,
+  title: string,
+  deadline: string | null,
+  status?: string,
+  recurring?: RecurringConfig | null,
+  properties?: Record<string, unknown> | null,
+  reminders?: number[] | null,
+  assigneeIds?: number[],
+  clock?: string | null
+): Promise<ActionResult> {
+  return updateItem(itemId, {
+    title,
+    deadline,
+    status,
+    recurring,
+    properties,
+    reminders,
+    assigneeIds,
+    clock,
+  });
 }
 
 export async function skipOccurrenceAction(itemId: number): Promise<ActionResult> {

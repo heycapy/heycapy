@@ -1,6 +1,11 @@
 import type { Tool } from "./types";
 import { FIELDS_PARAMETER } from "./bucketFieldTools";
-import { CAPY_ASSIGNEE, SETTABLE_ITEM_STATUSES, WEEKDAY_NAMES } from "@/constants";
+import {
+  CAPY_ASSIGNEE,
+  ITEM_DESCRIPTION_MAX_LENGTH,
+  SETTABLE_ITEM_STATUSES,
+  WEEKDAY_NAMES,
+} from "@/constants";
 import { MAX_REMINDER_OFFSET_MINS, MAX_REMINDERS_PER_ITEM } from "@/lib/reminders/constants";
 
 const ITEM_RESULT =
@@ -165,6 +170,13 @@ export const ITEM_AND_BUCKET_TOOLS: Tool[] = [
             "The item title. Keep it concise and clear. A value the bucket has a field for " +
             "(an amount, plan, link…) goes in properties, never in the title.",
         },
+        notes: {
+          type: "string",
+          maxLength: ITEM_DESCRIPTION_MAX_LENGTH,
+          description:
+            "Optional free text shown under the title: details that don't fit in the title. " +
+            "Not for a value the bucket has a field for.",
+        },
         deadline: {
           type: "string",
           description:
@@ -207,7 +219,7 @@ export const ITEM_AND_BUCKET_TOOLS: Tool[] = [
   {
     name: "update_item",
     description:
-      "Update an existing item's title, deadline, reminders, repeat, or who it's assigned to. " +
+      "Update an existing item's title, notes, deadline, reminders, repeat, or who it's assigned to. " +
       "Changing only the assignee keeps the deadline where it is; leave deadline out then. " +
       "Only include fields you want to change — omitted fields are left as-is, including each repeat field " +
       "(e.g. only recurring_interval: 2 makes a monthly item every 2 months). " +
@@ -226,6 +238,11 @@ export const ITEM_AND_BUCKET_TOOLS: Tool[] = [
           description:
             "New title for the item. Never add a value the bucket has a field for (an amount, " +
             "plan, link…): set it in properties.",
+        },
+        notes: {
+          type: ["string", "null"],
+          maxLength: ITEM_DESCRIPTION_MAX_LENGTH,
+          description: "New notes shown under the title, or null to remove them.",
         },
         deadline: {
           type: ["string", "null"],

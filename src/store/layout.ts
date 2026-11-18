@@ -20,6 +20,11 @@ type LayoutStore = {
   bottomBarShown: boolean;
   setBottomBarShown: (shown: boolean) => void;
 
+  // rows open for editing or adding, so the footer's add button can step aside
+  openEditors: number;
+  editorOpened: () => void;
+  editorClosed: () => void;
+
   searchOpen: boolean;
   setSearchOpen: (open: boolean) => void;
 
@@ -73,6 +78,10 @@ export const useLayoutStore = create<LayoutStore>()((set, get) => {
 
     bottomBarShown: false,
     setBottomBarShown: (shown) => set({ bottomBarShown: shown }),
+
+    openEditors: 0,
+    editorOpened: () => set((s) => ({ openEditors: s.openEditors + 1 })),
+    editorClosed: () => set((s) => ({ openEditors: Math.max(0, s.openEditors - 1) })),
 
     searchOpen: false,
     setSearchOpen: (open) => set({ searchOpen: open }),

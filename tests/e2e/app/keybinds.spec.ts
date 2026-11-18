@@ -2,7 +2,6 @@ import { test, expect, type Page } from "@playwright/test";
 import { authState } from "../helpers/auth";
 import {
   activeBucketTitle,
-  addBox,
   createAndSelectBucket,
   newItemForm,
   selectBucket,
@@ -77,22 +76,23 @@ test("the prefix opens search, tweaks and the bucket's settings", async ({ page 
   await expect(settingsDialog(page)).toBeHidden();
 });
 
-test("the prefix adds: a focuses the add box, d opens the form", async ({ page }) => {
+test("the prefix then a opens the new item row", async ({ page }) => {
   await twoBuckets(page);
 
   await prefixThen(page, "a");
-  await expect(addBox(page)).toBeFocused();
-  await page.keyboard.press("Escape");
-  await prefixThen(page, "d");
   await expect(newItemForm(page)).toBeVisible();
+  await expect(newItemForm(page).locator("textarea").first()).toBeFocused();
+  await page.keyboard.press("Escape");
+  await expect(newItemForm(page)).toBeHidden();
 });
 
 test("a key typed in a field is text, but the prefix still works from it", async ({ page }) => {
   await twoBuckets(page);
 
-  await addBox(page).focus();
+  await prefixThen(page, "a");
+  const title = newItemForm(page).locator("textarea").first();
   await page.keyboard.type("tah");
-  await expect(addBox(page)).toHaveValue("tah");
+  await expect(title).toHaveValue("tah");
   await expect(todayTab(page)).not.toHaveAttribute("aria-current");
 
   await prefixThen(page, "t");
@@ -157,7 +157,7 @@ test("the prefix then ? lists every shortcut, and the same keys close it", async
   await expect(sheet).toBeVisible();
   await expect(sheet).toContainText("Press Ctrl+; then a key");
   for (const label of [
-    "quick add",
+    "add item",
     "bucket by tab order",
     "toggle capy",
     "close whatever is open",

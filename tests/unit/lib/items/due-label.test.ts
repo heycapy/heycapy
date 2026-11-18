@@ -11,8 +11,8 @@ describe("dueLabel", () => {
     expect(dueLabel(timed(at(1, 22, 39)), "active", now)).toEqual({
       tone: "late",
       state: "2d late",
-      short: "Nov 1",
-      full: "Nov 1 10:39pm",
+      short: "01/11/26",
+      full: "01/11/26 10:39 pm",
     });
   });
 
@@ -20,12 +20,12 @@ describe("dueLabel", () => {
     expect(dueLabel(timed(at(3, 9)), "active", now)).toMatchObject({
       tone: "late",
       state: "late",
-      short: "9am",
+      short: "9:00 am",
     });
     expect(dueLabel(timed(at(3, 17)), "active", now)).toMatchObject({
       tone: "today",
       state: "today",
-      short: "5pm",
+      short: "5:00 pm",
     });
     expect(dueLabel(allDay(at(3)), "active", now)).toMatchObject({
       tone: "today",
@@ -38,12 +38,12 @@ describe("dueLabel", () => {
       tone: "near",
       state: "tomorrow",
       short: "Wed",
-      full: "Wed Nov 4 9am",
+      full: "Wed 04/11/26 9:00 am",
     });
     expect(dueLabel(allDay(at(5)), "active", now)).toMatchObject({
       tone: "near",
       state: "in 2d",
-      full: "Thu Nov 5",
+      full: "Thu 05/11/26",
     });
     expect(dueLabel(timed(at(7, 10)), "active", now)).toMatchObject({
       tone: "later",
@@ -53,8 +53,8 @@ describe("dueLabel", () => {
     expect(dueLabel(timed(at(23, 10)), "active", now)).toEqual({
       tone: "later",
       state: "in 20d",
-      short: "Nov 23",
-      full: "Nov 23 10am",
+      short: "23/11/26",
+      full: "23/11/26 10:00 am",
     });
   });
 

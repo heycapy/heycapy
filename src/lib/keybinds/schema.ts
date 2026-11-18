@@ -27,7 +27,16 @@ export const storedKeybindsSchema = z
 
 export type StoredKeybinds = z.infer<typeof storedKeybindsSchema>;
 
+// A key bound to an action that no longer exists is dropped, not the whole set
+function withoutRetiredActions(raw: unknown): unknown {
+  if (typeof raw !== "object" || raw === null || !("bindings" in raw)) return raw;
+  const { bindings } = raw;
+  if (typeof bindings !== "object" || bindings === null) return raw;
+  const known = Object.entries(bindings).filter(([id]) => rebindableIds.some((k) => k === id));
+  return { ...raw, bindings: Object.fromEntries(known) };
+}
+
 export function parseStoredKeybinds(raw: unknown): StoredKeybinds {
-  const parsed = storedKeybindsSchema.safeParse(raw);
+  const parsed = storedKeybindsSchema.safeParse(withoutRetiredActions(raw));
   return parsed.success ? parsed.data : {};
 }

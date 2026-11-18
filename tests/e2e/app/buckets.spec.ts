@@ -2,6 +2,8 @@ import { test, expect } from "@playwright/test";
 import { ITEM_GONE_ERROR } from "@/constants";
 import { authState } from "../helpers/auth";
 import {
+  deleteFromMenu,
+  openEditForm,
   activeBucketTitle,
   addItem,
   bucketTab,
@@ -67,12 +69,12 @@ test.describe("items", () => {
     await expect(page.getByText("no items yet")).not.toBeVisible();
   });
 
-  test("edit dialog opens on item click", async ({ page }) => {
+  test("an item opens in place on click", async ({ page }) => {
     const title = uniqueName("buy oat milk");
     await addItem(page, title);
-    await itemRow(page, title).click();
-    await expect(page.getByText("edit item", { exact: true })).toBeVisible();
-    await expect(page.locator("textarea")).toHaveValue(title);
+    await openEditForm(page, title);
+    await expect(page.getByRole("textbox", { name: "title" })).toHaveValue(title);
+    await expect(page.getByRole("dialog", { name: "edit item" })).toHaveCount(0);
   });
 
   test("edits an existing item title", async ({ page }) => {
@@ -81,8 +83,8 @@ test.describe("items", () => {
     await addItem(page, title);
     await itemRow(page, title).click();
 
-    await page.locator("textarea").fill(updated);
-    await page.getByRole("button", { name: /update/i }).click();
+    await page.getByRole("textbox", { name: "title" }).fill(updated);
+    await page.keyboard.press("Enter");
     await expect(itemRow(page, updated)).toBeVisible();
     await expect(itemRow(page, title)).not.toBeVisible();
   });
@@ -93,57 +95,57 @@ test.describe("items", () => {
     await createAndSelectBucket(page, bucket);
     await addItem(page, title);
     await itemRow(page, title).click();
-    await page.locator("textarea").fill(uniqueName("buy almond milk"));
+    await page.getByRole("textbox", { name: "title" }).fill(uniqueName("buy almond milk"));
 
     const other = await context.newPage();
     await other.goto("/");
     await selectBucket(other, bucket);
-    await itemRow(other, title).click();
-    await other.getByRole("button", { name: "delete item" }).click();
+    await deleteFromMenu(other, title);
     await expect(itemRow(other, title)).not.toBeVisible();
     await other.close();
 
-    await page.getByRole("button", { name: /update/i }).click();
+    await page.keyboard.press("Enter");
     await expect(page.getByText(ITEM_GONE_ERROR)).toBeVisible();
-    await expect(page.getByText("edit item", { exact: true })).toBeVisible();
   });
 
   test("says so when an item is gone before it is deleted", async ({ page, context }) => {
     const bucket = uniqueName("Gone");
     const title = uniqueName("buy oat milk");
+    await page.route("**/api/events", (route) => route.abort());
+    await page.reload();
     await createAndSelectBucket(page, bucket);
     await addItem(page, title);
-    await itemRow(page, title).click();
 
     const other = await context.newPage();
     await other.goto("/");
     await selectBucket(other, bucket);
-    await itemRow(other, title).click();
-    await other.getByRole("button", { name: "delete item" }).click();
+    await deleteFromMenu(other, title);
     await expect(itemRow(other, title)).not.toBeVisible();
     await other.close();
 
-    await page.getByRole("button", { name: "delete item" }).click();
+    await deleteFromMenu(page, title);
     await expect(page.getByText(ITEM_GONE_ERROR)).toBeVisible();
     await expect(page.getByRole("button", { name: /undo/i })).not.toBeVisible();
   });
 
-  test("item add dialog closes on cancel without adding", async ({ page }) => {
-    await page.getByRole("button", { name: "add with details", exact: true }).click();
-    await expect(page.getByText("new item", { exact: true })).toBeVisible();
-    await page.locator("textarea").fill("should not be saved");
+  test("item add form closes on cancel without adding", async ({ page }) => {
+    await page.getByRole("button", { name: "add item", exact: true }).click();
+    await expect(newItemForm(page)).toBeVisible();
+    await newItemForm(page).locator("textarea").first().fill("should not be saved");
     await page.keyboard.press("Escape");
-    await expect(page.getByText("new item", { exact: true })).not.toBeVisible();
+    await expect(newItemForm(page)).not.toBeVisible();
     await expect(page.getByText("no items yet")).toBeVisible();
   });
 
-  test("shows validation error when submitting empty title", async ({ page }) => {
-    await page.getByRole("button", { name: "add with details", exact: true }).click();
-    await page.getByRole("button", { name: "add", exact: true }).click();
-    await expect(newItemForm(page).locator("textarea")).toHaveAttribute(
-      "placeholder",
-      "title is required"
-    );
-    await expect(page.getByText("new item", { exact: true })).toBeVisible();
+  test("the add arrow stays off until there is a title", async ({ page }) => {
+    await page.getByRole("button", { name: "add item", exact: true }).click();
+    const form = newItemForm(page);
+    const add = form.getByRole("button", { name: "add", exact: true });
+    await expect(add).toBeDisabled();
+    await page.keyboard.press("ControlOrMeta+Enter");
+    await expect(form).toBeVisible();
+
+    await form.locator("textarea").first().fill("a title");
+    await expect(add).toBeEnabled();
   });
 });

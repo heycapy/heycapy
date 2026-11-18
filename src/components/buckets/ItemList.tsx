@@ -6,6 +6,10 @@ import { PressableRow } from "./PressableRow";
 import { completionToggle } from "./completion";
 import { DraggableItem } from "./DraggableItem";
 import { ItemMenu, type MenuAt } from "./ItemMenu";
+import { InlineItemEditor } from "./InlineItemEditor";
+import type { OpenFocus } from "./constants";
+import { useOpenItem } from "./useOpenItem";
+import type { ItemPatch } from "@/lib/items/edit-draft";
 import type { ListItem, ReminderBadge } from "@/lib/reminders/status";
 import type { StatusDef, FieldDef } from "@/types/rules";
 import type { BucketMember } from "@/lib/buckets/members";
@@ -26,13 +30,14 @@ type ItemListProps = {
   statuses: StatusDef[];
   fields: FieldDef[];
   color: string;
-  editingItemId: number | null;
+  bucketId: number;
+  bucketReminders: number[];
   reminderBadges: Record<number, ReminderBadge>;
   members: BucketMember[];
   shared: boolean;
   onAssign: (item: Item, assigneeIds: number[]) => Promise<boolean>;
   onReorder: (items: Item[]) => void;
-  onEdit: (item: Item) => void;
+  onPatch: (item: Item, patch: ItemPatch) => void;
   onStatusChange: (item: Item, status: string) => Promise<boolean>;
   onMove: (item: Item, deadline: string) => Promise<void>;
   onDelete: (itemId: number) => void;
@@ -48,18 +53,20 @@ export function ItemList({
   statuses,
   fields,
   color,
-  editingItemId,
+  bucketId,
+  bucketReminders,
   reminderBadges,
   members,
   shared,
   onAssign,
   onReorder,
-  onEdit,
+  onPatch,
   onStatusChange,
   onMove,
   onDelete,
 }: ItemListProps) {
   const [menu, setMenu] = useState<{ item: Item; at: MenuAt } | null>(null);
+  const { openId, focus, open, close } = useOpenItem();
 
   if (loading || items.length === 0) {
     return (
@@ -91,7 +98,6 @@ export function ItemList({
   const assigneesOf = (item: ListItem): ItemAssignee[] =>
     !shared ? [] : members.filter((m) => item.assigneeIds.includes(m.userId)).map(itemAssignee);
 
-  const showDue = items.some((item) => item.deadline);
   const tickedBy = (item: Item) => {
     if (!shared || item.status !== ITEM_STATUS.completed) return undefined;
     const member = members.find((m) => m.userId === item.completedBy);
@@ -102,19 +108,34 @@ export function ItemList({
     item,
     statuses,
     fields,
-    isEditing: editingItemId === item.id,
     menuOpen: menu?.item.id === item.id,
-    onEditStart: readonly ? undefined : () => onEdit(item),
+    onEditStart: readonly || openId !== null ? undefined : (at: OpenFocus) => open(item.id, at),
     onStatusChange: readonly ? undefined : (s: string) => onStatusChange(item, s),
     reminderBadge: reminderBadges[item.id],
     assignees: assigneesOf(item),
     otherClock: clockHint(item),
     color,
-    showDue,
     shared,
     tickedBy: tickedBy(item),
     onMenu: (at: MenuAt) => setMenu({ item, at }),
   });
+
+  const editorFor = (item: Item) =>
+    openId === item.id ? (
+      <InlineItemEditor
+        item={item}
+        focus={focus}
+        color={color}
+        bucketId={bucketId}
+        members={members}
+        statuses={statuses}
+        fields={fields}
+        bucketReminders={bucketReminders}
+        draggable={draggable}
+        onCommit={(patch) => onPatch(item, patch)}
+        onExit={(focusRow) => close(item.id, focusRow)}
+      />
+    ) : undefined;
 
   const menuItem: ListItem | undefined = menu?.item;
   const menuElement = menu && (
@@ -138,9 +159,21 @@ export function ItemList({
   if (draggable) {
     return (
       <>
-        <Reorder.Group axis="y" values={items} onReorder={onReorder} className="m-0 list-none p-0">
+        <Reorder.Group
+          axis="y"
+          values={items}
+          onReorder={onReorder}
+          data-item-list
+          className="m-0 list-none p-0"
+        >
           {items.map((item) => (
-            <DraggableItem key={item.id} {...rowProps(item)} orderedItemsRef={orderedItemsRef} />
+            <DraggableItem
+              key={item.id}
+              {...rowProps(item)}
+              dimmed={openId !== null}
+              editor={editorFor(item)}
+              orderedItemsRef={orderedItemsRef}
+            />
           ))}
         </Reorder.Group>
         {menuElement}
@@ -149,12 +182,20 @@ export function ItemList({
   }
 
   return (
-    <div>
-      {items.map((item) => (
-        <PressableRow key={item.id} onMenu={(at) => setMenu({ item, at })}>
-          <ItemRow {...rowProps(item)} />
-        </PressableRow>
-      ))}
+    <div data-item-list>
+      {items.map((item) =>
+        openId === item.id ? (
+          <div key={item.id}>{editorFor(item)}</div>
+        ) : (
+          <PressableRow
+            key={item.id}
+            dimmed={openId !== null}
+            onMenu={(at) => setMenu({ item, at })}
+          >
+            <ItemRow {...rowProps(item)} />
+          </PressableRow>
+        )
+      )}
       {menuElement}
     </div>
   );

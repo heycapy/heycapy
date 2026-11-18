@@ -1,11 +1,13 @@
 import { test, expect } from "@playwright/test";
 import { authState } from "../helpers/auth";
 import {
+  openEditForm,
   addItem,
   addItemButton,
   createAndSelectBucket,
   editForm,
   itemRow,
+  newItemForm,
   openBucketOnPhone,
   openItemMenu,
   uniqueName,
@@ -61,7 +63,7 @@ test("search opens as a drawer with the box at the bottom, results above it", as
   await openBucketOnPhone(page, bucket);
   const title = uniqueName("lost keys");
   await addItemButton(page).tap();
-  const form = page.getByRole("dialog", { name: "new item" });
+  const form = newItemForm(page);
   await form.locator("textarea").first().fill(title);
   await form.getByRole("button", { name: "add", exact: true }).tap();
   await expect(form).toBeHidden();
@@ -81,7 +83,7 @@ test("search opens as a drawer with the box at the bottom, results above it", as
   expect((inputBox?.y ?? 0) + (inputBox?.height ?? 0)).toBeGreaterThan(screenHeight - 80);
 
   await row.tap();
-  const edit = page.getByRole("dialog", { name: "edit item" });
+  const edit = page.getByRole("group", { name: "edit item" });
   await expect(edit).toBeVisible();
   await page.keyboard.press("Escape");
   await expect(edit).toBeHidden();
@@ -184,7 +186,7 @@ test("on a wide screen the chat stands beside the list, which moves over for it"
   );
   await expect(panel.getByRole("button", { name: "Collapse" })).toHaveCount(0);
 
-  await row.click();
+  await openEditForm(page, title);
   await expect(editForm(page)).toBeVisible();
   await page.keyboard.press("Escape");
   await expect(editForm(page)).toBeHidden();
@@ -244,11 +246,11 @@ test("on a wide screen tweaks stands beside the list like the chat, and the list
   const box = await addBox.boundingBox();
   expect((box?.x ?? 0) + (box?.width ?? 0)).toBeLessThanOrEqual(tweaksLeft);
 
-  const input = addBox.locator("input");
-  await input.fill("half typed");
-  await input.press("Escape");
-  await expect(input).toHaveValue("");
-  await itemRow(page, title).click();
+  await addItemButton(page).click();
+  await newItemForm(page).locator("textarea").first().fill("half typed");
+  await page.keyboard.press("Escape");
+  await expect(newItemForm(page)).toBeHidden();
+  await openEditForm(page, title);
   await expect(editForm(page)).toBeVisible();
   await page.keyboard.press("Escape");
   await expect(editForm(page)).toBeHidden();

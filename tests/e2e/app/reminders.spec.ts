@@ -1,12 +1,13 @@
 import { test, expect } from "@playwright/test";
 import { authState } from "../helpers/auth";
 import {
+  openEditForm,
   createAndSelectBucket,
   itemForm,
-  itemRow,
   uniqueName,
   openDetail,
   detailChip,
+  saveEdit,
 } from "../helpers/buckets";
 import { openSettings, saveSettings, switchTab } from "../helpers/settings";
 
@@ -22,7 +23,7 @@ test("an item can have several reminders, added from presets or typed, and remov
   await createAndSelectBucket(page, uniqueName("Reminders"));
   const title = uniqueName("flight");
 
-  await page.getByRole("button", { name: "add with details", exact: true }).click();
+  await page.getByRole("button", { name: "add item", exact: true }).click();
   const dialog = itemForm(page);
   await dialog.locator("textarea").first().fill(title);
   await expect(detailChip(dialog, "reminders")).toHaveAccessibleName("reminders");
@@ -50,15 +51,15 @@ test("an item can have several reminders, added from presets or typed, and remov
   await dialog.getByRole("button", { name: "add", exact: true }).click();
   await expect(dialog).not.toBeVisible();
 
-  await itemRow(page, title).click();
+  await openEditForm(page, title);
   await openDetail(dialog, "reminders");
   await expect(chips).toHaveText(["3 days before ×", "1 hour before ×", "at time ×"]);
   await dialog.getByRole("button", { name: "remove reminder at time" }).click();
   await expect(chips).toHaveText(["3 days before ×", "1 hour before ×"]);
-  await dialog.getByRole("button", { name: "update", exact: true }).click();
+  await saveEdit(dialog);
   await expect(dialog).not.toBeVisible();
 
-  await itemRow(page, title).click();
+  await openEditForm(page, title);
   await openDetail(dialog, "reminders");
   await expect(chips).toHaveText(["3 days before ×", "1 hour before ×"]);
 });
@@ -67,7 +68,7 @@ test("a typed reminder over 90 days is refused, and four is the limit", async ({
   await page.goto("/");
   await createAndSelectBucket(page, uniqueName("Limits"));
 
-  await page.getByRole("button", { name: "add with details", exact: true }).click();
+  await page.getByRole("button", { name: "add item", exact: true }).click();
   const dialog = itemForm(page);
   await dialog.locator("textarea").first().fill(uniqueName("renew passport"));
   await openDetail(dialog, "date");
@@ -105,7 +106,7 @@ test("new items start with the bucket's default reminders", async ({ page }) => 
   await settings.getByRole("button", { name: "2 days before", exact: true }).click();
   await saveSettings(settings);
 
-  await page.getByRole("button", { name: "add with details", exact: true }).click();
+  await page.getByRole("button", { name: "add item", exact: true }).click();
   const dialog = itemForm(page);
   await dialog.locator("textarea").first().fill(uniqueName("electricity"));
   await openDetail(dialog, "date");

@@ -6,9 +6,17 @@ import type { ComponentProps } from "react";
 
 interface OptionButtonProps extends ComponentProps<"button"> {
   active?: boolean;
+  pill?: boolean;
+  soft?: boolean;
 }
 
-export function OptionButton({ active = false, className, ...props }: OptionButtonProps) {
+export function OptionButton({
+  active = false,
+  pill = false,
+  soft = false,
+  className,
+  ...props
+}: OptionButtonProps) {
   const raised = useLookParts().optionButton === "raised";
   return (
     <button
@@ -27,9 +35,16 @@ export function OptionButton({ active = false, className, ...props }: OptionButt
                 "active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
               )),
         !raised &&
+          !soft &&
           (active
             ? "border-foreground/25 bg-muted text-foreground"
             : "border-border/60 text-muted-foreground hover:bg-muted/60 hover:text-foreground"),
+        !raised &&
+          soft &&
+          (active
+            ? "bg-primary text-primary-foreground border-transparent"
+            : "bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground border-transparent"),
+        (pill || soft) && "rounded-(--chip-radius)!",
         className
       )}
       {...props}

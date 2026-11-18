@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { motion, useReducedMotionConfig } from "framer-motion";
 import { useLookParts } from "@/components/looks/LookProvider";
 import { cn } from "@/lib/utils";
@@ -14,7 +15,13 @@ type TickBoxProps = {
 
 export function TickBox({ title, checked, color, onToggle }: TickBoxProps) {
   const round = useLookParts().tickBox === "round";
-  const pop = !useReducedMotionConfig();
+  const [shown, setShown] = useState(checked);
+  const [changed, setChanged] = useState(false);
+  if (checked !== shown) {
+    setShown(checked);
+    setChanged(true);
+  }
+  const pop = !useReducedMotionConfig() && changed;
   return (
     <button
       type="button"
@@ -25,8 +32,8 @@ export function TickBox({ title, checked, color, onToggle }: TickBoxProps) {
       onClick={onToggle}
       style={checked ? { color } : undefined}
       className={cn(
-        "group/tick flex shrink-0 items-center justify-center disabled:cursor-default",
-        round ? "-ml-3 min-h-11 w-11" : "-ml-1.5 pr-2.5 pl-1.5",
+        "group/tick flex shrink-0 items-center justify-center self-start disabled:cursor-default",
+        round ? "-ml-3 h-11 w-11" : "-ml-1.5 h-10 pr-2.5 pl-1.5",
         !checked && "text-muted-foreground"
       )}
     >
@@ -56,9 +63,9 @@ function PixelTick({ checked, hover, pop }: TickProps) {
       <motion.path
         d="M4 4h6v6H4z"
         fill="currentColor"
-        style={{ transformOrigin: "center", transformBox: "fill-box" }}
+        style={{ transformOrigin: "bottom", transformBox: "fill-box" }}
         initial={false}
-        animate={checked ? { scale: TICK_POP.fill, opacity: 1 } : { scale: 0, opacity: 0 }}
+        animate={checked ? { scaleY: TICK_POP.fill, opacity: 1 } : { scaleY: 0, opacity: 0 }}
         transition={{ duration: pop ? TICK_POP.duration : 0 }}
       />
     </svg>
@@ -89,7 +96,7 @@ function RoundTick({ checked, hover, pop }: TickProps) {
         strokeLinejoin="round"
       >
         <motion.path
-          d="M20 6 9 17l-5-5"
+          d="m4 12 5 5L20 6"
           initial={false}
           animate={{ pathLength: checked ? 1 : 0, opacity: checked ? 1 : 0 }}
           transition={{ duration: pop ? TICK_POP.duration : 0 }}

@@ -11,13 +11,13 @@ describe("cheatSheetRows", () => {
       key: "1-9",
     });
     expect(buckets.map((r) => r.label)).toEqual(["bucket by tab order", "bucket settings"]);
-    expect(rows.map((r) => r.label)).toContain("quick add");
+    expect(rows.map((r) => r.label)).toContain("add item");
     expect(rows.map((r) => r.label)).toContain("cheat sheet");
   });
 
   it("shows the key an action is bound to now", () => {
     const rows = cheatSheetRows(mergeBindings({ "quick-add": "q" }));
-    expect(rows.find((r) => r.label === "quick add")?.key).toBe("q");
+    expect(rows.find((r) => r.label === "add item")?.key).toBe("q");
   });
 
   it("lists the key that adds or saves an item, for the platform", () => {

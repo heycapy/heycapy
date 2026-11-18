@@ -8,13 +8,15 @@ import type { ViewerBucket } from "@/lib/buckets/access";
 import { bucketColor } from "./bucket-color";
 
 type BucketTargetPickerProps = {
-  bucket: ViewerBucket;
+  bucket: ViewerBucket | null;
   buckets: ViewerBucket[];
   onPick: (bucketId: number) => void;
   variant?: "target" | "heading";
+  today?: () => void;
 };
 
-function nameOf(bucket: ViewerBucket) {
+function nameOf(bucket: ViewerBucket | null) {
+  if (!bucket) return "today";
   return bucket.icon ? `${bucket.icon} ${bucket.name}` : bucket.name;
 }
 
@@ -33,6 +35,7 @@ export function BucketTargetPicker({
   buckets,
   onPick,
   variant = "target",
+  today,
 }: BucketTargetPickerProps) {
   const heading = variant === "heading";
   const [open, setOpen] = useState(false);
@@ -69,7 +72,7 @@ export function BucketTargetPicker({
           heading ? "max-w-full text-base font-medium" : "max-w-28 text-xs"
         )}
       >
-        <Dot bucket={bucket} />
+        {bucket && <Dot bucket={bucket} />}
         <span className="truncate">{nameOf(bucket)}</span>
       </button>
       {open && (
@@ -82,15 +85,27 @@ export function BucketTargetPicker({
             heading ? "top-full mt-2" : "bottom-full mb-2"
           )}
         >
+          {today && (
+            <MenuItem
+              aria-current={bucket === null ? "true" : undefined}
+              onClick={() => {
+                setOpen(false);
+                today();
+              }}
+              className={cn(bucket === null && "text-foreground font-medium")}
+            >
+              today
+            </MenuItem>
+          )}
           {buckets.map((b) => (
             <MenuItem
               key={b.id}
-              aria-current={b.id === bucket.id ? "true" : undefined}
+              aria-current={b.id === bucket?.id ? "true" : undefined}
               onClick={() => {
                 setOpen(false);
                 onPick(b.id);
               }}
-              className={cn("gap-2", b.id === bucket.id && "text-foreground font-medium")}
+              className={cn("gap-2", b.id === bucket?.id && "text-foreground font-medium")}
             >
               <Dot bucket={b} />
               <span className="truncate">{nameOf(b)}</span>

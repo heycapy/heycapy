@@ -1,8 +1,7 @@
 import { test, expect, type Page } from "@playwright/test";
 import Database from "better-sqlite3";
-import { MONTH_SHORT_NAMES } from "@/constants";
 import { E2E_DATABASE_FILE } from "../helpers/env";
-import { editForm, itemRow } from "../helpers/buckets";
+import { openEditForm, editForm, itemRow, saveEdit } from "../helpers/buckets";
 import { login, uniqueEmail } from "../helpers/login";
 
 test.use({ timezoneId: "Asia/Kolkata" });
@@ -45,7 +44,7 @@ function savedDeadline(itemId: number) {
 async function expectAllDayOn(page: Page, title: string, label: string) {
   const row = itemRow(page, title);
   await expect(row).toContainText(label);
-  await expect(row).not.toContainText(/\d(am|pm)/);
+  await expect(row).not.toContainText(/\d (am|pm)/);
 }
 
 test("an all-day item set in India is on the same date in London, and saving it there keeps it", async ({
@@ -60,7 +59,7 @@ test("an all-day item set in India is on the same date in London, and saving it 
   await login(member, memberEmail);
 
   const day = new Date(Date.now() + 3 * DAY_MS).toISOString().slice(0, 10);
-  const label = `${MONTH_SHORT_NAMES[Number(day.slice(5, 7)) - 1]} ${Number(day.slice(8, 10))}`;
+  const label = `${day.slice(8, 10)}/${day.slice(5, 7)}/${day.slice(2, 4)}`;
   const title = `pay rent ${Date.now()}`;
   const { bucketId, itemId, midnightInIndia } = seedSharedItem(ownerEmail, memberEmail, title, day);
 
@@ -70,12 +69,12 @@ test("an all-day item set in India is on the same date in London, and saving it 
   await member.goto(`/?bucket=${bucketId}`);
   await expectAllDayOn(member, title, label);
 
-  await itemRow(member, title).click();
+  await openEditForm(member, title);
   const dialog = editForm(member);
   await expect(dialog.getByRole("button", { name: /all day/ })).toBeVisible();
   const renamed = `${title} (paid by Sam)`;
-  await dialog.locator("textarea").fill(renamed);
-  await dialog.getByRole("button", { name: "update", exact: true }).click();
+  await dialog.locator("textarea").first().fill(renamed);
+  await saveEdit(dialog);
   await expect(dialog).not.toBeVisible();
 
   await expectAllDayOn(member, renamed, label);

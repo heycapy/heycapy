@@ -3,13 +3,7 @@ import { CloseButton } from "@/components/ui/CloseButton";
 import { Icon } from "@/components/ui/Icon";
 import { ModalTitle } from "@/components/ui/Modal";
 import { BottomDrawer } from "@/components/ui/Drawer";
-import { ItemDialog } from "@/components/buckets/ItemDialog";
-import { useItemEditor } from "@/components/buckets/useItemEditor";
-import { useBucketMembers } from "@/components/buckets/useBucketMembers";
-import { parseFields } from "@/components/buckets/fields";
-import { DEFAULT_BUCKET_STATUSES } from "@/components/buckets/constants";
 import { CrossBucketList } from "@/components/today/CrossBucketList";
-import { ITEM_STATUS } from "@/constants";
 import { useSearchItems } from "@/components/today/useTodayItems";
 import { useLayoutStore } from "@/store/layout";
 import { IconButton } from "@/components/ui/IconButton";
@@ -41,21 +35,9 @@ export function SearchDrawer() {
 
 function SearchBody() {
   const [query, setQuery] = useState("");
-  const { data, refetch } = useSearchItems(query);
+  const { data, refetch, patchItem } = useSearchItems(query);
   const inputRef = useRef<HTMLInputElement>(null);
-  const [panelSlot, setPanelSlot] = useState<HTMLDivElement | null>(null);
   const term = query.trim();
-  const statuses = DEFAULT_BUCKET_STATUSES;
-  const editor = useItemEditor({
-    bucketId: 0,
-    defaultStatus: statuses.find((s) => s.isDefault)?.name ?? ITEM_STATUS.active,
-    defaultDeadline: () => "",
-    onSaved: refetch,
-  });
-  const editingItem = data?.items.find((i) => i.id === editor.editingItemId);
-  const editingBucket = data?.buckets.find((b) => b.id === editingItem?.bucketId);
-  const fields = parseFields(editingBucket?.fieldSchema);
-  const members = useBucketMembers(editingItem?.bucketId ?? null, editor.dialogProps.open);
 
   useLayoutEffect(() => {
     inputRef.current?.focus();
@@ -73,8 +55,7 @@ function SearchBody() {
                 : []
             }
             emptyText={term ? "no items match" : "type to search every bucket"}
-            editingItemId={editor.editingItemId}
-            onEdit={editor.startEditing}
+            onPatch={(item, patch) => void patchItem(item, patch)}
             onChanged={refetch}
             boxed
           />
@@ -111,31 +92,6 @@ function SearchBody() {
           )}
         </div>
       </div>
-      <div ref={setPanelSlot} className="absolute inset-x-0 bottom-0" />
-
-      <ItemDialog
-        {...editor.dialogProps}
-        bucketReminders={editingBucket?.defaultReminders}
-        assigneeChoice={
-          editingItem && {
-            bucketId: editingItem.bucketId,
-            members,
-            value: editor.assigneeIds,
-            onChange: editor.setAssigneeIds,
-          }
-        }
-        statuses={statuses}
-        fields={fields.length > 0 ? fields : undefined}
-        panel={
-          panelSlot
-            ? {
-                slot: panelSlot,
-                bucketName: editingBucket?.name,
-                onCollapsed: () => inputRef.current?.focus(),
-              }
-            : undefined
-        }
-      />
     </>
   );
 }

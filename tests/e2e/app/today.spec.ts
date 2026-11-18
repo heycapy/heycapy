@@ -5,7 +5,9 @@ import {
   createAndSelectBucket,
   editForm,
   itemRow,
+  saveEdit,
   uniqueName,
+  newItemForm,
 } from "../helpers/buckets";
 import { daysFromNow, enableWebhook, postItem } from "../helpers/webhook";
 
@@ -79,8 +81,7 @@ test("search next to add finds items in any bucket, dated or not", async ({ page
   await expect(box).toBeFocused();
   await box.fill(tag);
   await expect(search.getByRole("region", { name: "2 found" })).toBeVisible();
-  await expect(search.getByRole("button", { name: `${tag} one` })).toContainText("no date");
-  await expect(search.getByRole("button", { name: `${tag} two` })).not.toContainText("no date");
+  await expect(search.getByRole("button", { name: `${tag} two` })).toContainText("in 20d");
 
   await box.fill(`${tag} nothing like this`);
   await expect(search.getByText("no items match")).toBeVisible();
@@ -97,13 +98,12 @@ test("items can be edited from today", async ({ page }) => {
 
   await itemRow(page, title).click();
   const dialog = editForm(page);
-  await expect(dialog).toHaveAttribute("data-item-panel");
   await dialog.locator("textarea").first().fill(`${title} back`);
-  await dialog.getByRole("button", { name: "update", exact: true }).click();
+  await saveEdit(dialog);
   await expect(itemRow(page, `${title} back`)).toBeVisible();
 });
 
-test("today adds to the bucket picked beside the add box", async ({ page }) => {
+test("today adds to the bucket picked beside the add button", async ({ page }) => {
   await page.goto("/");
   await bucketWithItems(page, "Home", []);
   const work = await bucketWithItems(page, "Work", []);
@@ -115,13 +115,10 @@ test("today adds to the bucket picked beside the add box", async ({ page }) => {
     .getByRole("group", { name: "add to bucket" })
     .getByRole("button", { name: work })
     .click();
-  const box = page.getByRole("textbox", { name: `add to ${work}` });
-  await expect(box).toBeFocused();
-  await box.fill("water the plants today");
-  await box.press("Enter");
-  await expect(itemRow(page, "water the plants")).toBeVisible();
-
-  await page.getByRole("button", { name: work, exact: true }).click();
+  await page.getByRole("button", { name: "add item", exact: true }).click();
   await expect(activeBucketTitle(page)).toHaveText(work);
+  const form = newItemForm(page);
+  await form.locator("textarea").first().fill("water the plants");
+  await form.getByRole("button", { name: "add", exact: true }).click();
   await expect(itemRow(page, "water the plants")).toBeVisible();
 });

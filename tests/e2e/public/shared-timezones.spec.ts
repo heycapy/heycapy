@@ -2,6 +2,7 @@ import { test, expect } from "@playwright/test";
 import Database from "better-sqlite3";
 import { E2E_DATABASE_FILE } from "../helpers/env";
 import {
+  openEditForm,
   assignOnly,
   addItemButton,
   createAndSelectBucket,
@@ -123,7 +124,7 @@ test("a timed item shows the time on the other clock that matters", async ({ pag
   await member.goto(`/?bucket=${bucketId}`);
   await expect(itemRow(member, title)).toContainText(/\(\d{1,2}:30pm India\)/);
 
-  await itemRow(page, title).click();
+  await openEditForm(page, title);
   const picker = editForm(page);
   await openDetail(picker, "assignee");
   await expect(picker.getByRole("button", { name: /\(you\)\s*India$/ })).toBeVisible();

@@ -7,7 +7,6 @@ import { useUIStore } from "@/store/ui";
 import { useLayoutStore } from "@/store/layout";
 
 const HIDDEN_IN_FOCUS: KeybindActionId[] = [
-  KEYBIND_ACTION.today,
   KEYBIND_ACTION.search,
   KEYBIND_ACTION.capy,
   KEYBIND_ACTION.mic,
@@ -50,9 +49,7 @@ export function keybindActions({ canDock, openTweaks }: KeybindActionsOptions) {
     if (ui.focusMode && HIDDEN_IN_FOCUS.includes(id)) return;
     switch (id) {
       case KEYBIND_ACTION.quickAdd:
-        return ui.requestAddItem(false);
-      case KEYBIND_ACTION.addWithDetails:
-        return ui.requestAddItem(true);
+        return ui.requestAddItem();
       case KEYBIND_ACTION.previousBucket:
         return goTo(stepPlace(bucketOrder, place, -1));
       case KEYBIND_ACTION.nextBucket:

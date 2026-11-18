@@ -1,10 +1,11 @@
+import { ITEM_STATUS } from "@/constants";
 import { dueLabel, type DueTone } from "@/lib/items/due-label";
 import { cn } from "@/lib/utils";
 
 const TONE_CLASS: Record<DueTone, string> = {
-  late: "bg-destructive/15 text-destructive chip",
+  late: "text-destructive",
   today: "font-medium text-(--status-on-hold)",
-  near: "text-foreground",
+  near: "text-primary",
   later: "text-muted-foreground",
   closed: "text-muted-foreground",
 };
@@ -12,34 +13,24 @@ const TONE_CLASS: Record<DueTone, string> = {
 type ItemDueProps = {
   due: { at: Date; allDay: boolean } | null;
   status: string;
+  timeOnly?: boolean;
 };
 
-export function ItemDue({ due, status }: ItemDueProps) {
-  const label = due && dueLabel(due, status);
-  // Shown first but read after the title, so a screen reader starts with what the item is
+export function ItemDue({ due, status, timeOnly = false }: ItemDueProps) {
+  if (!due || status === ITEM_STATUS.completed) return null;
+  const label = dueLabel(due, status);
+  const split = label.short !== label.full;
   return (
-    <span className="font-ui order-first -my-2.5 flex w-16 shrink-0 flex-col items-center justify-center self-stretch py-2.5 text-center text-xs whitespace-nowrap @2xl:w-32">
-      {label ? (
+    <span className={cn("font-ui whitespace-nowrap", TONE_CLASS[label.tone])}>
+      {label.tone === "today" ? (
         <>
-          <span className={TONE_CLASS[label.tone]}>{label.state}</span>
-          <span
-            className={cn(
-              "text-muted-foreground mt-0.5",
-              label.short !== label.full && "@2xl:hidden"
-            )}
-          >
-            {label.short}
-          </span>
-          {label.short !== label.full && (
-            <span className="text-muted-foreground mt-0.5 hidden @2xl:inline">{label.full}</span>
-          )}
+          {!timeOnly && `${label.state}, `}
+          {label.full}
         </>
       ) : (
         <>
-          <span aria-hidden className="text-muted-foreground/50">
-            —
-          </span>
-          <span className="sr-only">no date</span>
+          {label.state} · <span className={cn(split && "@2xl:hidden")}>{label.short}</span>
+          {split && <span className="hidden @2xl:inline">{label.full}</span>}
         </>
       )}
     </span>

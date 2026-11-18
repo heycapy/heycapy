@@ -51,12 +51,12 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       <Toaster
         position="bottom-center"
         offset={{
-          bottom: `calc(${TOAST_BOTTOM_OFFSET}px + var(--item-panel-cover, 0px))`,
+          bottom: `${TOAST_BOTTOM_OFFSET}px`,
           left: TOAST_SIDE_OFFSET,
           right: TOAST_SIDE_OFFSET,
         }}
         mobileOffset={{
-          bottom: `min(calc(${TOAST_PHONE_BOTTOM_OFFSET}px + var(--item-panel-cover, 0px) + env(safe-area-inset-bottom)), calc(100dvh - ${TOAST_PHONE_TOP_ROOM}px))`,
+          bottom: `min(calc(${TOAST_PHONE_BOTTOM_OFFSET}px + env(safe-area-inset-bottom)), calc(100dvh - ${TOAST_PHONE_TOP_ROOM}px))`,
           left: TOAST_SIDE_OFFSET,
           right: TOAST_SIDE_OFFSET,
         }}

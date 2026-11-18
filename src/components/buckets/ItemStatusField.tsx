@@ -17,6 +17,7 @@ export function ItemStatusField({ status, statuses, onChange, disabled }: ItemSt
       <div className="flex flex-wrap gap-1.5">
         {statuses.map((s) => (
           <OptionButton
+            soft
             key={s.name}
             active={status === s.name}
             onClick={() => onChange(s.name)}

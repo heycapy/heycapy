@@ -14,13 +14,7 @@ export type AssigneeChoice = {
   onChange: (assigneeIds: number[]) => void;
 };
 
-export function ItemAssigneeField({
-  choice,
-  disabled,
-}: {
-  choice: AssigneeChoice;
-  disabled?: boolean;
-}) {
+export function ItemAssigneeField({ choice }: { choice: AssigneeChoice }) {
   const showPlaces = placesOf(choice.members).differ;
   // When nobody gets reminders the bucket itself says so, here it only marks who is left out
   const someoneReminded = choice.members.some((m) => m.remindable);
@@ -35,7 +29,6 @@ export function ItemAssigneeField({
             key={member.userId}
             active={selected.includes(member.userId)}
             onClick={() => choice.onChange(toggleAssignee(choice.members, selected, member.userId))}
-            disabled={disabled}
             className="text-left"
           >
             <span className="flex items-center gap-1.5">

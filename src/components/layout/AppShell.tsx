@@ -125,7 +125,7 @@ export function AppShell({
     closeSidePanel("guide");
     const target = HINT_TARGETS[task.key];
     if (target.kind === "settings") openSettings(target.tab);
-    if (target.kind === "add-item") requestAddItem(target.form);
+    if (target.kind === "add-item") requestAddItem();
     if (target.kind === "new-bucket") openCreateBucket();
     if (target.kind === "bucket-members") requestMembers();
     if (target.kind === "chat") setChatState("open");

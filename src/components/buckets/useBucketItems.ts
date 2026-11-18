@@ -10,7 +10,10 @@ import {
 import type { ListItem, ReminderBadge } from "@/lib/reminders/status";
 import { useUIStore } from "@/store/ui";
 import { deadlineValue } from "@/lib/time";
+import type { ItemPatch } from "@/lib/items/edit-draft";
 import { offerUndoDelete } from "./undoDelete";
+import { withPatch } from "./optimistic";
+import { saveItemPatch } from "./savePatch";
 import { isTick, offerUndoTick } from "./undoTick";
 
 type Item = ListItem;
@@ -87,6 +90,11 @@ export function useBucketItems(bucketId: number, itemsRules: string, showComplet
     return result.ok;
   }
 
+  async function patchItem(item: Item, patch: ItemPatch) {
+    setFetchedItems((list) => list.map((i) => (i.id === item.id ? withPatch(i, patch) : i)));
+    await saveItemPatch(item, patch, refetch);
+  }
+
   async function moveItem(item: Item, deadline: string) {
     const result = await moveItemAction(item.id, deadline);
     if (!result.ok) notify.error(result.error);
@@ -95,8 +103,12 @@ export function useBucketItems(bucketId: number, itemsRules: string, showComplet
 
   async function deleteItem(itemId: number) {
     const title = fetchedItems.find((i) => i.id === itemId)?.title ?? "item";
-    await deleteItemAction(itemId);
+    const result = await deleteItemAction(itemId);
     await refetch();
+    if (!result.ok) {
+      notify.error(result.error);
+      return;
+    }
     offerUndoDelete(itemId, title, refetch);
   }
 
@@ -113,6 +125,7 @@ export function useBucketItems(bucketId: number, itemsRules: string, showComplet
     loading,
     refetch,
     changeStatus,
+    patchItem,
     moveItem,
     deleteItem,
     reorder,

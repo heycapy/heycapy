@@ -1,33 +1,36 @@
-import type { CSSProperties, Ref, RefObject } from "react";
+import type { CSSProperties, RefObject } from "react";
+import { KeyHint } from "@/components/ui/KeyHint";
+import { Icon } from "@/components/ui/Icon";
+import { Tooltip } from "@/components/ui/Tooltip";
 import { useKeyboardInset } from "@/hooks/useKeyboardInset";
 import { cn } from "@/lib/utils";
 import { useLookParts } from "@/components/looks/LookProvider";
 import type { ViewerBucket } from "@/lib/buckets/access";
-import { QuickAdd } from "./QuickAdd";
+import { BucketTargetPicker } from "./BucketTargetPicker";
 
 type BucketsFooterProps = {
   bucket: ViewerBucket | null;
   targets?: { buckets: ViewerBucket[]; onPick: (bucketId: number) => void };
   color: string;
   canAdd: boolean;
-  inputRef: RefObject<HTMLInputElement | null>;
-  panelSlotRef: Ref<HTMLDivElement>;
-  onAdded: () => void;
-  onExpand: () => void;
+  hidden: boolean;
+  buttonRef: RefObject<HTMLButtonElement | null>;
+  onAdd: () => void;
 };
 
 export function BucketsFooter({
   bucket,
   color,
   canAdd,
-  inputRef,
-  panelSlotRef,
-  onAdded,
-  onExpand,
+  hidden,
+  buttonRef,
+  onAdd,
   targets,
 }: BucketsFooterProps) {
   const keyboardInset = useKeyboardInset();
   const floating = useLookParts().footer === "floating";
+
+  if (hidden) return null;
 
   return (
     <div
@@ -40,38 +43,38 @@ export function BucketsFooter({
       )}
     >
       <div
-        className={cn(
-          "relative mx-auto flex w-full items-center gap-2 px-2.5 sm:px-4",
-          !floating && "max-w-column",
-          floating &&
-            "border-border rounded-panel border-frame shadow-raised bg-background max-w-[calc(var(--container-column)-2rem)] transition-colors focus-within:border-(--accent)"
-        )}
+        data-testid="add-box"
+        className="max-w-column mx-auto flex min-h-(--add-box-h) w-full items-center gap-2 px-2.5 sm:px-4"
       >
         {!bucket ? (
-          <p className="text-muted-foreground font-ui min-w-0 flex-1 pl-1 text-xs">
+          <p className="text-muted-foreground font-ui min-w-0 flex-1 text-xs">
             open a bucket to add to it
           </p>
-        ) : canAdd ? (
-          <QuickAdd
-            key={bucket.id}
-            bucket={bucket}
-            inputRef={inputRef}
-            onAdded={onAdded}
-            onExpand={onExpand}
-            targets={targets}
-          />
         ) : (
-          <span className="flex-1" />
+          canAdd && (
+            <>
+              {targets && (
+                <BucketTargetPicker
+                  bucket={bucket}
+                  buckets={targets.buckets}
+                  onPick={targets.onPick}
+                />
+              )}
+              <KeyHint action="quick-add" className="ml-auto" />
+              <Tooltip text="add item">
+                <button
+                  ref={buttonRef}
+                  type="button"
+                  aria-label="add item"
+                  onClick={onAdd}
+                  className="bg-primary text-primary-foreground flex size-10 shrink-0 items-center justify-center rounded-(--chip-radius) transition-opacity hover:opacity-85"
+                >
+                  <Icon name="plus" />
+                </button>
+              </Tooltip>
+            </>
+          )
         )}
-        <div
-          ref={panelSlotRef}
-          className={cn(
-            "absolute",
-            floating
-              ? "-inset-x-(--frame-width) -bottom-(--frame-width)"
-              : "inset-x-0 bottom-0 sm:inset-x-4"
-          )}
-        />
       </div>
     </div>
   );
