@@ -2,6 +2,32 @@
 
 all notable changes to heycapy. versions follow [semver](https://semver.org): a patch version (0.3.1) only fixes things, a minor version (0.4.0) adds features. the database migrates itself on start and migrations only go forward, so back up before upgrading (see the README).
 
+## 0.14.0
+
+edit items in place, and a cleaner way to add them.
+
+### new
+
+- edit an item right in the list: tap it and its title, notes, date, time, repeat, reminders, people and your own fields open inside the row. nothing is saved until you tap outside, press enter or `ctrl+enter`, and `esc` closes it. it works the same on today and in search
+- notes on items. they show under the title, can be added when you create an item, and capy can read and write them
+- adding an item uses the same row: tap the round `+` button and a new row opens at the end of the list. what you type is kept per bucket until you add it, also after a reload. required fields show a red `*`
+- every field of a bucket's schema is its own chip, and `@` in a title picks a person in a shared bucket
+
+### changes
+
+- the add bar is gone. the `+` button hides while any row is open, so it no longer floats above the keyboard on a phone
+- the date shows as plain text under the title instead of in a column, `dd/mm/yy` and `5:00 pm`; today's list shows only the time
+- the tick stays beside the first line of a long title, and draws upward
+- the shortcut `d` (add with details) is gone, `a` now opens the new row. a saved binding for `d` is dropped, your other keys stay
+
+### removed
+
+- typing a date into a title ("pay rent friday") no longer sets the date; pick it in the row
+
+### upgrading
+
+- no migrations. `docker compose up -d --build`
+
 ## 0.13.0
 
 focus mode, three new themes and a tidier tweaks.
