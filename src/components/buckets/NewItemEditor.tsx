@@ -12,6 +12,7 @@ import { resolveAssignees } from "./assignee";
 import { InlineEditorLayout } from "./InlineEditorLayout";
 import { TickBox } from "./TickBox";
 import { useEditorExit } from "./useEditorExit";
+import { useTitleDate } from "./useTitleDate";
 import { useInlineDraft } from "./useInlineDraft";
 
 type NewItemEditorProps = {
@@ -77,9 +78,10 @@ export function NewItemEditor({
     };
   }
 
-  const state = useInlineDraft(initial, members, (next) =>
+  const drafted = useInlineDraft(initial, members, (next) =>
     updateDraft(bucketId, toStored(next, datePickedAtOpen))
   );
+  const { state, titleToAdd } = useTitleDate(drafted, datePickedAtOpen);
   const { draft, draftRef, clock } = state;
   const blank = !draft.title.trim();
 
@@ -90,7 +92,7 @@ export function NewItemEditor({
     void (async () => {
       const result = await addItemAction(
         bucketId,
-        sent.title.trim(),
+        titleToAdd(sent.title).trim(),
         sent.deadline || null,
         stored.status ?? defaultStatus,
         sent.recurring,

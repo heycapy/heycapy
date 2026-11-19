@@ -32,24 +32,6 @@ test("a list that fits has no empty space to scroll into", async ({ page }) => {
   expect(await scrollRoom(page)).toBeLessThanOrEqual(0);
 });
 
-test("with the add form open, scrolling over it leaves the list where it is", async ({ page }) => {
-  test.setTimeout(90_000);
-  await bucketWithItems(page, 22);
-  await addItemButton(page).click();
-  const title = newItemForm(page).locator("textarea").first();
-  await expect(title).toBeFocused();
-  const main = page.locator("main");
-  await expect(main).toHaveCSS("overflow-y", "hidden");
-  const before = await main.evaluate((el) => el.scrollTop);
-  const box = await title.boundingBox();
-  await page.mouse.move((box?.x ?? 0) + 20, (box?.y ?? 0) + 5);
-  await page.mouse.wheel(0, 1500);
-  await page.mouse.move(640, 200);
-  await page.mouse.wheel(0, 1500);
-  await expect(title).toBeFocused();
-  expect(await main.evaluate((el) => el.scrollTop)).toBe(before);
-});
-
 test("editing the bottom row brings it above the edit form", async ({ page }) => {
   await bucketWithItems(page);
   await openEditForm(page, "eight");

@@ -27,15 +27,15 @@ export function toggleAssignee(members: BucketMember[], selected: number[], user
   return members.filter((m) => next.has(m.userId)).map((m) => m.userId);
 }
 
-// Naming someone narrows "everyone" to them and adds to a list that's already narrowed, "@everyone"
-// goes back to all of them
+// Naming someone narrows "everyone" (no list, or the whole list) to them and adds to a list that's
+// already narrowed, "@everyone" goes back to all of them
 export function mentionAssignees(
   members: BucketMember[],
   ids: number[] | null,
   userId: number | null
 ) {
   if (userId === null) return members.map((m) => m.userId);
-  return ids === null ? [userId] : [...new Set([...ids, userId])];
+  return ids === null || ids.length === members.length ? [userId] : [...new Set([...ids, userId])];
 }
 
 export function assigneeLabel(members: BucketMember[], ids: number[] | null): string {

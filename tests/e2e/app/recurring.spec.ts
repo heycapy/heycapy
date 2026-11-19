@@ -87,9 +87,7 @@ test("repeating on the last day moves the date to the month's last day", async (
   await dialog.getByRole("button", { name: "on", exact: true }).click();
   await dialog.getByRole("button", { name: "month", exact: true }).click();
   await dialog.getByRole("button", { name: "last day", exact: true }).click();
-  await expect(detailChip(dialog, "date")).toHaveAccessibleName(
-    new RegExp(`^date: ${lastLabel} · `)
-  );
+  await expect(detailChip(dialog, "date")).toHaveAccessibleName(new RegExp(`^date: ${lastLabel}$`));
 
   await dialog.getByRole("button", { name: "add", exact: true }).click();
   const two = (n: number) => String(n).padStart(2, "0");

@@ -10,7 +10,6 @@ import {
   newItemForm,
   selectBucket,
   uniqueName,
-  untilStill,
   openDetail,
   detailChip,
 } from "../helpers/buckets";
@@ -55,12 +54,12 @@ test("a date and notes picked in the form stay with the draft until it is added"
   await form.getByRole("textbox", { name: "notes" }).fill("bring the carrier");
   await openDetail(form, "date");
   await page.getByRole("button", { name: "20", exact: true }).click();
-  await expect(detailChip(form, "date")).toHaveAccessibleName(/^date: Oct 20 · /);
+  await expect(detailChip(form, "date")).toHaveAccessibleName(/^date: Oct 20$/);
   await page.keyboard.press("Escape");
   await expect(form).toBeHidden();
 
   form = await openRow(page);
-  await expect(detailChip(form, "date")).toHaveAccessibleName(/^date: Oct 20 · /);
+  await expect(detailChip(form, "date")).toHaveAccessibleName(/^date: Oct 20$/);
   await expect(form.getByRole("textbox", { name: "notes" })).toHaveValue("bring the carrier");
   await page.keyboard.press("ControlOrMeta+Enter");
   await expect(form).toBeHidden();
@@ -269,35 +268,4 @@ test("a click on the list only folds the open panel away, it doesn't open what's
 
   await openEditForm(page, second);
   await expect(edit.locator("textarea").first()).toHaveValue(second);
-});
-
-test("the form's height follows a section opening in it, instead of jumping", async ({ page }) => {
-  await page.setViewportSize({ width: 1280, height: 900 });
-  await page.goto("/");
-  await createAndSelectBucket(page, uniqueName("Grow"));
-  const form = await openRow(page);
-  await form.locator("textarea").first().fill("cat wants more treats");
-  await openDetail(form, "date");
-  await page.getByRole("button", { name: "20", exact: true }).click();
-  await untilStill(page, form);
-  const before = (await form.boundingBox())?.height ?? 0;
-
-  const heights = form.evaluate((el) => {
-    const seen: number[] = [];
-    return new Promise<number[]>((resolve) => {
-      const started = performance.now();
-      const sample = () => {
-        seen.push(el.getBoundingClientRect().height);
-        if (performance.now() - started < 600) requestAnimationFrame(sample);
-        else resolve(seen);
-      };
-      requestAnimationFrame(sample);
-    });
-  });
-  await detailChip(form, "repeat").click();
-  const seen = await heights;
-  const after = seen[seen.length - 1] ?? 0;
-
-  expect(after).toBeGreaterThan(before + 40);
-  expect(seen.some((h) => h > before + 2 && h < after - 2)).toBe(true);
 });

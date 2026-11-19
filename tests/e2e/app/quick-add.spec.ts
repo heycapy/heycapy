@@ -57,7 +57,9 @@ test("on a phone the add button opens the new item in the list, the same row as 
 
   await addItemButton(page).tap();
   await expect(title).toHaveValue("");
+  await expect(title).toBeFocused();
   await page.keyboard.press("Escape");
+  await expect(addForm).toBeHidden();
 
   expect(await tapAndReadFocus(page, () => itemRow(page, name).tap())).toBe("TEXTAREA");
   const edit = inlineEditor(page);

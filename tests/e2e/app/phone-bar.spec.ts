@@ -120,6 +120,7 @@ test("on a laptop the chat opens above the add box, lined up with it, and capy c
 
   const panel = page.locator("div.fixed").filter({ has: chat }).last();
   const addBox = await page.getByTestId("add-box").boundingBox();
+  const addButton = await addItemButton(page).boundingBox();
   const addBoxTop = addBox?.y ?? 0;
   await expect
     .poll(async () => {
@@ -133,7 +134,7 @@ test("on a laptop the chat opens above the add box, lined up with it, and capy c
   const panelBox = await panel.boundingBox();
   expect(
     Math.abs(
-      (panelBox?.x ?? 0) + (panelBox?.width ?? 0) - ((addBox?.x ?? 0) + (addBox?.width ?? 0))
+      (panelBox?.x ?? 0) + (panelBox?.width ?? 0) - ((addButton?.x ?? 0) + (addButton?.width ?? 0))
     )
   ).toBeLessThanOrEqual(2);
 

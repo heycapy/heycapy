@@ -91,6 +91,7 @@ test("a key typed in a field is text, but the prefix still works from it", async
 
   await prefixThen(page, "a");
   const title = newItemForm(page).locator("textarea").first();
+  await expect(title).toBeFocused();
   await page.keyboard.type("tah");
   await expect(title).toHaveValue("tah");
   await expect(todayTab(page)).not.toHaveAttribute("aria-current");
