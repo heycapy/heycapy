@@ -3,7 +3,7 @@ import type { Metadata, Viewport } from "next";
 import { headers } from "next/headers";
 import { Geist, Geist_Mono, Silkscreen } from "next/font/google";
 import "./globals.css";
-import { APP_NAME, APP_TAGLINE } from "@/constants";
+import { APP_DESCRIPTION, APP_NAME } from "@/constants";
 import { DEFAULT_APPEARANCE } from "@/lib/account/constants";
 import { getSession } from "@/lib/auth/session";
 import { appearanceFor } from "@/lib/account/look";
@@ -39,8 +39,13 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     metadataBase: new URL(`${proto}://${host}`),
     title: APP_NAME,
-    description: APP_TAGLINE,
-    openGraph: { title: "heycapy", description: APP_TAGLINE, siteName: "heycapy", type: "website" },
+    description: APP_DESCRIPTION,
+    openGraph: {
+      title: "heycapy",
+      description: APP_DESCRIPTION,
+      siteName: "heycapy",
+      type: "website",
+    },
     twitter: { card: "summary_large_image" },
     // search engines should find the website (heycapy.xyz), not a login screen
     robots: { index: false, follow: false },

@@ -4,6 +4,8 @@ export const APP_NAME = "HeyCapy";
 export const APP_DOMAIN = "heycapy.xyz";
 export const APP_EMAIL_FROM = `${APP_NAME} <noreply@${APP_DOMAIN}>`;
 export const APP_TAGLINE = "a capy to help you with your day.";
+export const APP_DESCRIPTION =
+  "an open source to-do list and reminder app. keep tasks, bills and birthdays in buckets and get reminded by email, push, telegram, ntfy, discord, slack or any url.";
 
 export const JWT_SECRET_MIN_LENGTH = 32;
 export const SECRET_PLACEHOLDER_PREFIX = "change-me";

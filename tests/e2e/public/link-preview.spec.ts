@@ -1,13 +1,11 @@
 import { test, expect } from "@playwright/test";
+import { APP_DESCRIPTION } from "@/constants";
 
 test("shared links get a preview card with an image anyone can load", async ({ page, request }) => {
   await page.goto("/login");
   const meta = (property: string) => page.locator(`meta[property="${property}"]`);
   await expect(meta("og:title")).toHaveAttribute("content", "heycapy");
-  await expect(meta("og:description")).toHaveAttribute(
-    "content",
-    "a capy to help you with your day."
-  );
+  await expect(meta("og:description")).toHaveAttribute("content", APP_DESCRIPTION);
   await expect(page.locator('meta[name="twitter:card"]')).toHaveAttribute(
     "content",
     "summary_large_image"

@@ -5,7 +5,7 @@
 <h1 align="center">heycapy</h1>
 
 <p align="center">
-  a capy to help you with your day. buckets, deadlines, reminders on the channels you already use, and an capy to chat with.
+  a capy to help you with your day: an open source to-do list and reminder app. buckets, deadlines, reminders on the channels you already use, and a capy to chat with.
 </p>
 
 <p align="center">
@@ -26,7 +26,7 @@
 - **capy**: an assistant you can type or talk to. it adds, moves and completes items and changes bucket settings, using your own key (ollama, openai, anthropic, groq or gemini) or the server's
 - **act from the reminder**: a done button and remind me again buttons (15 min, 30 min, 1 hour, tomorrow; you pick which per bucket) on email, push (android and desktop), ntfy and telegram. telegram also has reschedule, and can add items and list what's due
 - **webhooks both ways**: every bucket has an incoming webhook that adds items. outgoing webhooks (up to 3 per user) post to discord, slack or any url with signed json ([standard webhooks](https://www.standardwebhooks.com))
-- **yours**: self-hosted with docker and sqlite, nightly backups, full account export, 18 themes
+- **yours**: self-hosted with docker and sqlite, nightly backups, full account export, 21 themes
 
 ## screenshots
 
