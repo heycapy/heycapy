@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, type Locator, type Page } from "@playwright/test";
 import Database from "better-sqlite3";
 import { E2E_DATABASE_FILE } from "../helpers/env";
 import {
@@ -11,13 +11,27 @@ import {
   newItemForm,
   uniqueName,
   openDetail,
-  detailChip,
 } from "../helpers/buckets";
 import { login, uniqueEmail } from "../helpers/login";
 import { giveOwnSmtp } from "../helpers/email";
 import { closeDialog, field, openSettings, settingsDialog, switchTab } from "../helpers/settings";
 
 test.use({ timezoneId: "Asia/Kolkata" });
+
+async function pickTomorrowAtNine(page: Page, form: Locator) {
+  await openDetail(form, "date");
+  await page.getByRole("button", { name: "tomorrow", exact: true }).click();
+  await form.getByRole("button", { name: /^time: / }).click();
+  const picker = page.getByRole("dialog", { name: "pick a time" });
+  await picker
+    .getByRole("group", { name: "hour" })
+    .getByRole("button", { name: "9", exact: true })
+    .click();
+  await picker.getByRole("button", { name: ":00", exact: true }).click();
+  await picker.getByRole("button", { name: "am", exact: true }).click();
+  await picker.getByRole("button", { name: "done", exact: true }).click();
+  await expect(form.getByRole("button", { name: "time: 9 am" })).toBeVisible();
+}
 
 // A bucket the India owner shares with a member in London
 function seedSharedBucket(ownerEmail: string, memberEmail: string, title?: string): number {
@@ -104,8 +118,8 @@ test("a bucket on one clock doesn't mention clocks in its rules", async ({ page 
 
   await addItemButton(page).click();
   const dialog = newItemForm(page);
-  await dialog.locator("textarea").fill("water the plants tomorrow 9am");
-  await expect(detailChip(dialog, "date")).toHaveAccessibleName(/ · 9 am$/);
+  await dialog.locator("textarea").first().fill("water the plants");
+  await pickTomorrowAtNine(page, dialog);
   await expect(dialog.getByRole("group", { name: "time on" })).toHaveCount(0);
 });
 
@@ -171,14 +185,15 @@ test("a time for someone on another clock is set on theirs, unless picked by han
 
   const forSam = `call the bank ${Date.now()}`;
   await addItemButton(page).click();
-  await dialog.locator("textarea").fill(`${forSam} tomorrow 9am`);
+  await dialog.locator("textarea").first().fill(forSam);
+  await pickTomorrowAtNine(page, dialog);
   await expect(clocks.getByRole("button", { name: "India" })).toHaveAttribute(
     "aria-pressed",
     "true"
   );
   await assignTo(/\sUK( · no reminders set up)?$/);
   await expect(clocks.getByRole("button", { name: "UK" })).toHaveAttribute("aria-pressed", "true");
-  await expect(detailChip(dialog, "date")).toHaveAccessibleName(/ · 9 am$/);
+  await expect(dialog.getByRole("button", { name: "time: 9 am" })).toBeVisible();
   await dialog.getByRole("button", { name: "add", exact: true }).click();
   await expect(itemRow(page, forSam)).toBeVisible();
   const sams = savedDeadline(forSam);
@@ -187,7 +202,8 @@ test("a time for someone on another clock is set on theirs, unless picked by han
 
   const onIndia = `pay the gardener ${Date.now()}`;
   await addItemButton(page).click();
-  await dialog.locator("textarea").fill(`${onIndia} tomorrow 9am`);
+  await dialog.locator("textarea").first().fill(onIndia);
+  await pickTomorrowAtNine(page, dialog);
   await assignTo(/\sUK( · no reminders set up)?$/);
   await clocks.getByRole("button", { name: "India" }).click();
   await assignTo(null);
@@ -200,7 +216,7 @@ test("a time for someone on another clock is set on theirs, unless picked by han
     "aria-pressed",
     "true"
   );
-  await expect(detailChip(dialog, "date")).toHaveAccessibleName(/ · 9 am$/);
+  await expect(dialog.getByRole("button", { name: "time: 9 am" })).toBeVisible();
   await dialog.getByRole("button", { name: "add", exact: true }).click();
   await expect(itemRow(page, onIndia)).toBeVisible();
   const indias = savedDeadline(onIndia);
@@ -231,7 +247,8 @@ test("the time field shows everyone's time and warns softly about their nights",
   const preview = dialog.getByTestId("time-preview");
   const title = `call the bank ${Date.now()}`;
   await addItemButton(page).click();
-  await dialog.locator("textarea").fill(`${title} tomorrow 9am`);
+  await dialog.locator("textarea").first().fill(title);
+  await pickTomorrowAtNine(page, dialog);
   await expect(preview).toHaveText(/^\d{1,2}:30am for \S+ · 9am for you$/);
   await expect(dialog.getByRole("status")).toHaveText(
     /^⚠ at night for (\S+) · \1's quiet hours hold the reminder until after it's due$/

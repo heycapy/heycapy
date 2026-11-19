@@ -5,11 +5,17 @@ import { ITEM_LIST_SELECTOR, LONG_PRESS_SLOP, OUTSIDE_TAP_CLICK_MS } from "./con
 type Press = { x: number; y: number; inside: boolean; popoverOpen: boolean };
 
 // A tap outside the scope and its popovers. Taps on the list are swallowed so they never tick or
-// open another row; a tap that only closes a popover leaves the scope open
-export function useOutsideTap(scope: RefObject<HTMLElement | null>, onTap: () => void) {
+// open another row; a tap that only closes a popover leaves the scope open. Once the scope is folding
+// away it stops listening, so a tap on the list during the fold isn't eaten
+export function useOutsideTap(
+  scope: RefObject<HTMLElement | null>,
+  onTap: () => void,
+  enabled = true
+) {
   const tapped = useEffectEvent(onTap);
 
   useEffect(() => {
+    if (!enabled) return;
     let press: Press | null = null;
 
     function isInside(target: EventTarget | null) {
@@ -63,5 +69,5 @@ export function useOutsideTap(scope: RefObject<HTMLElement | null>, onTap: () =>
       document.removeEventListener("pointerup", onUp, true);
       document.removeEventListener("pointercancel", onCancel, true);
     };
-  }, [scope]);
+  }, [scope, enabled]);
 }

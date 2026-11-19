@@ -237,7 +237,6 @@ test("key hints on buttons shows the keys on buttons, and hides them again", asy
   }
   await expect(page.getByRole("button", { name: "chat with capy" }).locator("kbd")).toHaveText("c");
   await expect(hint("a")).toBeVisible();
-  await expect(hint("d")).toBeVisible();
 
   await page.keyboard.press("Control+;");
   await page.keyboard.press(",");

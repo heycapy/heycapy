@@ -60,18 +60,20 @@ export function BucketsFooter({
                   onPick={targets.onPick}
                 />
               )}
-              <KeyHint action="quick-add" className="ml-auto" />
-              <Tooltip text="add item">
-                <button
-                  ref={buttonRef}
-                  type="button"
-                  aria-label="add item"
-                  onClick={onAdd}
-                  className="bg-primary text-primary-foreground flex size-10 shrink-0 items-center justify-center rounded-(--chip-radius) transition-opacity hover:opacity-85"
-                >
-                  <Icon name="plus" />
-                </button>
-              </Tooltip>
+              <div className="ml-auto flex items-center gap-2">
+                <KeyHint action="quick-add" />
+                <Tooltip text="add item">
+                  <button
+                    ref={buttonRef}
+                    type="button"
+                    aria-label="add item"
+                    onClick={onAdd}
+                    className="bg-primary text-primary-foreground flex size-10 shrink-0 items-center justify-center rounded-(--chip-radius) transition-opacity hover:opacity-85"
+                  >
+                    <Icon name="plus" />
+                  </button>
+                </Tooltip>
+              </div>
             </>
           )
         )}

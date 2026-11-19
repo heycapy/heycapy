@@ -49,7 +49,7 @@ export function useEditorExit({
     setClosing(true);
   }
 
-  useOutsideTap(rootRef, () => finish(saveOnOutsideTap, false));
+  useOutsideTap(rootRef, () => finish(saveOnOutsideTap, false), !closing);
 
   // A button that goes away when pressed (a reminder's ×) takes the focus with it, and Escape and
   // Ctrl+Enter only reach the row from inside it
