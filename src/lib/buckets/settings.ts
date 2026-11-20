@@ -1,4 +1,4 @@
-import { z } from "zod";
+import * as z from "zod/mini";
 import { revalidatePath } from "next/cache";
 import { and, eq } from "drizzle-orm";
 import { db } from "@/lib/db";
@@ -27,49 +27,59 @@ const itemsShape = ItemsRules.shape;
 const notificationsShape = NotificationRules.shape;
 const channelsShape = MemberChannels.shape;
 
+const withoutDefault = <T extends z.ZodMiniType>(schema: z.ZodMiniDefault<T>): T =>
+  schema._zod.def.innerType;
+
 // followsTweaks left out: it keeps following unless the channels changed
 export const MemberChannelsInput = z.object({
-  medium: channelsShape.medium.unwrap(),
-  webhooks: channelsShape.webhooks.unwrap(),
+  medium: withoutDefault(channelsShape.medium),
+  webhooks: withoutDefault(channelsShape.webhooks),
   followsTweaks: channelsShape.followsTweaks,
 });
 
 // The rules' own checks without their defaults, so a rule left out isn't overwritten by one
 export const BucketSettingsInput = z.object({
-  name: z.string().trim().min(1, "Name is required").max(BUCKET_NAME_MAX_LENGTH, "Name too long"),
+  name: z
+    .string()
+    .check(
+      z.trim(),
+      z.minLength(1, "Name is required"),
+      z.maxLength(BUCKET_NAME_MAX_LENGTH, "Name too long")
+    ),
   itemsRules: z.object({
-    sortBy: itemsShape.sortBy.unwrap().optional(),
-    drag: itemsShape.drag.unwrap().optional(),
-    readonly: itemsShape.readonly.unwrap().optional(),
-    showCompleted: itemsShape.showCompleted.unwrap().optional(),
-    defaultDeadlineOffsetDays: itemsShape.defaultDeadlineOffsetDays.unwrap().optional(),
-    recurrenceMode: itemsShape.recurrenceMode.unwrap().optional(),
+    sortBy: z.optional(withoutDefault(itemsShape.sortBy)),
+    drag: z.optional(withoutDefault(itemsShape.drag)),
+    readonly: z.optional(withoutDefault(itemsShape.readonly)),
+    showCompleted: z.optional(withoutDefault(itemsShape.showCompleted)),
+    defaultDeadlineOffsetDays: z.optional(withoutDefault(itemsShape.defaultDeadlineOffsetDays)),
+    recurrenceMode: z.optional(withoutDefault(itemsShape.recurrenceMode)),
   }),
   notificationsRules: z.object({
     // Unknown ones (from older versions) are dropped rather than failing the whole save
-    reminderButtons: z
-      .array(z.string())
-      .transform((picked) => QUICK_REMIND_VALUES.filter((v) => picked.includes(v)))
-      .optional(),
-    notifyAt: z
-      .string()
-      .refine((value) => parseClock(value) !== null)
-      .optional(),
-    defaultReminders: ReminderOffsets.optional(),
-    repeat: notificationsShape.repeat.unwrap().optional(),
+    reminderButtons: z.optional(
+      z.pipe(
+        z.array(z.string()),
+        z.transform((picked) => QUICK_REMIND_VALUES.filter((v) => picked.includes(v)))
+      )
+    ),
+    notifyAt: z.optional(z.string().check(z.refine((value) => parseClock(value) !== null))),
+    defaultReminders: z.optional(ReminderOffsets),
+    repeat: z.optional(withoutDefault(notificationsShape.repeat)),
   }),
-  notificationTriggers: BucketSchema.pick({
-    notifyOnArrival: true,
-    notifyWhenOverdue: true,
-    overdueRepeatHours: true,
-    overdueFirstAlertMins: true,
-  }).optional(),
+  notificationTriggers: z.optional(
+    z.pick(BucketSchema, {
+      notifyOnArrival: true,
+      notifyWhenOverdue: true,
+      overdueRepeatHours: true,
+      overdueFirstAlertMins: true,
+    })
+  ),
   // The saver's own channels for the bucket
-  channels: MemberChannelsInput.optional(),
+  channels: z.optional(MemberChannelsInput),
   // Left out (capy), a setting keeps following tweaks unless this save changes it
-  followsTweaks: z.array(z.enum(FOLLOWABLE_SETTINGS)).optional(),
+  followsTweaks: z.optional(z.array(z.enum(FOLLOWABLE_SETTINGS))),
   // capy's "use tweaks": put back on tweaks on top of what keeps following
-  useTweaks: z.array(z.enum(FOLLOWABLE_SETTINGS)).optional(),
+  useTweaks: z.optional(z.array(z.enum(FOLLOWABLE_SETTINGS))),
 });
 
 export type BucketSettingsInput = z.input<typeof BucketSettingsInput>;
