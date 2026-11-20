@@ -1,9 +1,13 @@
-import { useEffect, useRef } from "react";
+import { lazy, Suspense, useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
 import { Sprite } from "./Sprite";
-import { ChatMarkdown, type OpenItem } from "./ChatMarkdown";
+import type { OpenItem } from "./ChatMarkdown";
 import type { ChatMessage } from "./chatTypes";
 import { smoothScroll } from "@/lib/motion";
+
+const ChatMarkdown = lazy(() =>
+  import("./ChatMarkdown").then((m) => ({ default: m.ChatMarkdown }))
+);
 
 type Props = {
   messages: ChatMessage[];
@@ -99,7 +103,9 @@ export function ChatMessageList({
                     )}
                   </span>
                 ) : msg.role === "assistant" ? (
-                  <ChatMarkdown content={msg.content} appUrl={appUrl} onOpenItem={onOpenItem} />
+                  <Suspense fallback={<span className="whitespace-pre-wrap">{msg.content}</span>}>
+                    <ChatMarkdown content={msg.content} appUrl={appUrl} onOpenItem={onOpenItem} />
+                  </Suspense>
                 ) : (
                   msg.content
                 )}
