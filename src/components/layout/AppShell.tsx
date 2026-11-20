@@ -15,10 +15,12 @@ import { useTimezoneStore } from "@/store/timezone";
 import { TimezoneMoveBanner } from "./TimezoneMoveBanner";
 import { BannersProvider } from "./Banners";
 import { NewVersionBanner } from "./NewVersionBanner";
+import { OfflineBanner } from "./OfflineBanner";
 import { markReleasesSeenAction } from "@/app/(app)/account-actions";
 import { markGuideSeenAction } from "@/app/(app)/guide-actions";
 import { lookPickedAction, saveTimezoneIfDefaultAction } from "@/app/(app)/user-settings-actions";
 import { useServerEvents } from "@/hooks/useServerEvents";
+import { useConnectivity } from "@/hooks/connectivity";
 import { useKeybinds } from "@/hooks/useKeybinds";
 import { keybindActions } from "./keybind-actions";
 import { PrefixIndicator } from "./PrefixIndicator";
@@ -172,8 +174,11 @@ export function AppShell({
   }
 
   const newVersion = useServerEvents();
+  useConnectivity();
+  const offline = useUIStore((s) => s.offline);
   const banners = (
     <div className="max-w-column mx-auto w-full">
+      {offline && <OfflineBanner />}
       {newVersion && <NewVersionBanner />}
       {!hasWorkingChannel && <NoChannelBanner onSetUp={() => openSettings("notifications")} />}
       <DeliveryFailureBanner failures={failures} onFix={() => openSettings("notifications")} />

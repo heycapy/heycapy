@@ -7,6 +7,7 @@ import type { CrossBucketItems } from "@/lib/items/today";
 import type { ListItem } from "@/lib/reminders/status";
 import type { ActionResult } from "@/types/result";
 import { useUIStore } from "@/store/ui";
+import { reach } from "@/hooks/connectivity";
 import { SEARCH_DEBOUNCE_MS } from "./constants";
 
 function useCrossBucketItems(
@@ -30,8 +31,8 @@ function useCrossBucketItems(
     }
     let cancelled = false;
     const id = setTimeout(() => {
-      void load().then((result) => {
-        if (!cancelled && result.ok) setData(result);
+      void reach(load()).then((result) => {
+        if (!cancelled && result?.ok) setData(result);
       });
     }, delay);
     return () => {
@@ -41,8 +42,8 @@ function useCrossBucketItems(
   }, [load, delay, refreshTick]);
 
   const refetch = useCallback(async () => {
-    const result = await load();
-    if (result.ok) setData(result);
+    const result = await reach(load());
+    if (result?.ok) setData(result);
   }, [load]);
 
   async function patchItem(item: ListItem, patch: ItemPatch) {

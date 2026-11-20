@@ -13,6 +13,9 @@ type UIStore = {
   itemsLoaded: number;
   markItemsLoaded: () => void;
 
+  offline: boolean;
+  setOffline: (offline: boolean) => void;
+
   activeBucketId: number | null;
   setActiveBucketId: (id: number) => void;
 
@@ -80,6 +83,9 @@ export const useUIStore = create<UIStore>()(
 
       itemsLoaded: 0,
       markItemsLoaded: () => set((s) => ({ itemsLoaded: s.itemsLoaded + 1 })),
+
+      offline: false,
+      setOffline: (offline) => set({ offline }),
 
       activeBucketId: null,
       setActiveBucketId: (id) => set({ activeBucketId: id, todayOpen: false }),

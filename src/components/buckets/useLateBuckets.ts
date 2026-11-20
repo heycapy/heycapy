@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { getOpenItemsAction } from "@/app/(app)/actions";
 import { useUIStore } from "@/store/ui";
+import { reach } from "@/hooks/connectivity";
 import { lateBucketIds } from "./late-buckets";
 
 export function useLateBuckets(): Set<number> {
@@ -11,8 +12,8 @@ export function useLateBuckets(): Set<number> {
   useEffect(() => {
     if (itemsLoaded === 0) return;
     let current = true;
-    void getOpenItemsAction().then((result) => {
-      if (current && result.ok) setLate(lateBucketIds(result.items));
+    void reach(getOpenItemsAction()).then((result) => {
+      if (current && result?.ok) setLate(lateBucketIds(result.items));
     });
     return () => {
       current = false;

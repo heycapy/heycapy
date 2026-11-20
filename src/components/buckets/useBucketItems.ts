@@ -9,6 +9,7 @@ import {
 } from "@/app/(app)/actions";
 import type { ListItem, ReminderBadge } from "@/lib/reminders/status";
 import { useUIStore } from "@/store/ui";
+import { reach } from "@/hooks/connectivity";
 import { deadlineValue } from "@/lib/time";
 import type { ItemPatch } from "@/lib/items/edit-draft";
 import { offerUndoDelete } from "./undoDelete";
@@ -40,8 +41,8 @@ export function useBucketItems(bucketId: number, itemsRules: string, showComplet
 
   useEffect(() => {
     let cancelled = false;
-    void getItemsForBucketAction(bucketId).then((result) => {
-      if (cancelled) return;
+    void reach(getItemsForBucketAction(bucketId)).then((result) => {
+      if (cancelled || !result) return;
       if (result.ok) {
         lastLoaded.set(bucketId, result);
         setFetchedItems(result.items);
@@ -68,8 +69,8 @@ export function useBucketItems(bucketId: number, itemsRules: string, showComplet
   }, [fetchedItems, showCompleted]);
 
   async function refetch() {
-    const result = await getItemsForBucketAction(bucketId);
-    if (!result.ok) return;
+    const result = await reach(getItemsForBucketAction(bucketId));
+    if (!result?.ok) return;
     lastLoaded.set(bucketId, result);
     setFetchedItems(result.items);
     setReminderBadges(result.reminderBadges);
