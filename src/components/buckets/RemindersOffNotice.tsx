@@ -21,6 +21,7 @@ export function RemindersOffNotice({
   } | null>(null);
 
   useEffect(() => {
+    if (!hasDatedItems) return;
     let cancelled = false;
     void getNotifAvailabilityAction().then((available) => {
       if (cancelled) return;
@@ -32,7 +33,7 @@ export function RemindersOffNotice({
     return () => {
       cancelled = true;
     };
-  }, [myChannels]);
+  }, [myChannels, hasDatedItems]);
 
   if (!hasDatedItems || working === null) return null;
   if (working.channels.length === 0 && working.webhookIds.length === 0) return null;
