@@ -41,7 +41,7 @@ export default defineConfig({
       // One user per spec, see global-setup.ts
       name: "chromium-app",
       testDir: "./tests/e2e/app",
-      use: { ...devices["Desktop Chrome"] },
+      use: { ...devices["Desktop Chrome"], serviceWorkers: "block" },
     },
     ...(process.env.CI
       ? [
