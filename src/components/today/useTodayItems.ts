@@ -15,7 +15,7 @@ function useCrossBucketItems(load: () => Promise<ActionResult<CrossBucketItems>>
   const [data, setData] = useState<CrossBucketItems | null>(null);
 
   useEffect(() => {
-    markItemsLoaded();
+    if (data) markItemsLoaded();
   }, [data, markItemsLoaded]);
 
   useEffect(() => {

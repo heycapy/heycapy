@@ -9,6 +9,7 @@ export function useLateBuckets(): Set<number> {
   const [late, setLate] = useState<Set<number>>(() => new Set());
 
   useEffect(() => {
+    if (itemsLoaded === 0) return;
     let current = true;
     void getOpenItemsAction().then((result) => {
       if (current && result.ok) setLate(lateBucketIds(result.items));

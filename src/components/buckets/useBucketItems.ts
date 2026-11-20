@@ -55,8 +55,8 @@ export function useBucketItems(bucketId: number, itemsRules: string, showComplet
   }, [bucketId, itemsRules, refreshTick]);
 
   useEffect(() => {
-    markItemsLoaded();
-  }, [fetchedItems, markItemsLoaded]);
+    if (!loading) markItemsLoaded();
+  }, [fetchedItems, loading, markItemsLoaded]);
 
   useEffect(() => {
     const next = shown(fetchedItems, showCompleted);
