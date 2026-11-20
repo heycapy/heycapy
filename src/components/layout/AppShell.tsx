@@ -3,13 +3,10 @@
 import dynamic from "next/dynamic";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Header } from "./Header";
-import { SettingsSheet, type SettingsTab } from "./SettingsSheet";
+import type { SettingsTab } from "./SettingsSheet";
 import { DeliveryFailureBanner } from "./DeliveryFailureBanner";
 import { PurchaseReturn } from "./PurchaseReturn";
 import { NoChannelBanner } from "./NoChannelBanner";
-import { ArchivedBucketsSheet } from "@/components/buckets/ArchivedBucketsSheet";
-import { TrashSheet } from "@/components/buckets/TrashSheet";
-import { JoinBucketDialog } from "@/components/buckets/JoinBucketDialog";
 import { SearchDrawer } from "@/components/search/SearchDrawer";
 import { useUIStore } from "@/store/ui";
 import { useChatStore } from "@/store/chat";
@@ -18,9 +15,6 @@ import { useTimezoneStore } from "@/store/timezone";
 import { TimezoneMoveBanner } from "./TimezoneMoveBanner";
 import { BannersProvider } from "./Banners";
 import { NewVersionBanner } from "./NewVersionBanner";
-import { FeedbackDialog } from "./FeedbackDialog";
-import { WhatsNewDialog } from "./WhatsNewDialog";
-import { LookPickerDialog } from "./LookPickerDialog";
 import { markReleasesSeenAction } from "@/app/(app)/account-actions";
 import { markGuideSeenAction } from "@/app/(app)/guide-actions";
 import { lookPickedAction, saveTimezoneIfDefaultAction } from "@/app/(app)/user-settings-actions";
@@ -36,8 +30,8 @@ import { useChatDocked } from "@/components/capy/useChatDocked";
 import { cn } from "@/lib/utils";
 import type { ChannelFailure } from "@/lib/notifications/failures";
 import { NOTIFY_STAY } from "@/components/ui/constants";
+import { OnceOpen } from "@/components/ui/OnceOpen";
 import { notify } from "@/components/ui/notify";
-import { GuidePanel } from "@/components/guide/GuidePanel";
 import { HINT_TARGETS } from "@/components/guide/constants";
 import { useGuide } from "@/components/guide/useGuide";
 import { useTickWhenOpen } from "@/components/guide/useTickWhenOpen";
@@ -47,6 +41,37 @@ import type { GuideState, GuideTask } from "@/lib/guide/guide";
 const CapyChat = dynamic(() => import("@/components/capy/CapyChat").then((m) => m.CapyChat), {
   ssr: false,
 });
+const SettingsSheet = dynamic(() => import("./SettingsSheet").then((m) => m.SettingsSheet), {
+  ssr: false,
+});
+const ArchivedBucketsSheet = dynamic(
+  () => import("@/components/buckets/ArchivedBucketsSheet").then((m) => m.ArchivedBucketsSheet),
+  { ssr: false }
+);
+const TrashSheet = dynamic(
+  () => import("@/components/buckets/TrashSheet").then((m) => m.TrashSheet),
+  { ssr: false }
+);
+const JoinBucketDialog = dynamic(
+  () => import("@/components/buckets/JoinBucketDialog").then((m) => m.JoinBucketDialog),
+  { ssr: false }
+);
+const FeedbackDialog = dynamic(() => import("./FeedbackDialog").then((m) => m.FeedbackDialog), {
+  ssr: false,
+});
+const WhatsNewDialog = dynamic(() => import("./WhatsNewDialog").then((m) => m.WhatsNewDialog), {
+  ssr: false,
+});
+const LookPickerDialog = dynamic(
+  () => import("./LookPickerDialog").then((m) => m.LookPickerDialog),
+  { ssr: false }
+);
+const GuidePanel = dynamic(
+  () => import("@/components/guide/GuidePanel").then((m) => m.GuidePanel),
+  {
+    ssr: false,
+  }
+);
 
 type AppShellProps = {
   children: ReactNode;
@@ -204,31 +229,47 @@ export function AppShell({
           <BannersProvider banners={banners}>{children}</BannersProvider>
         </main>
       </div>
-      <SettingsSheet
-        open={sidePanel === "tweaks"}
-        initialTab={settingsTab}
-        onClose={() => closeSidePanel("tweaks")}
-      />
-      <ArchivedBucketsSheet
-        open={sidePanel === "archive"}
-        onClose={() => closeSidePanel("archive")}
-      />
-      <TrashSheet open={sidePanel === "trash"} onClose={() => closeSidePanel("trash")} />
-      <JoinBucketDialog open={joinOpen} onClose={() => setJoinOpen(false)} />
-      <FeedbackDialog open={feedbackOpen} onClose={() => setFeedbackOpen(false)} />
-      <WhatsNewDialog
-        open={sidePanel === "whats-new"}
-        onClose={() => closeSidePanel("whats-new")}
-        onShowGuide={openGuide}
-      />
-      <LookPickerDialog open={pickingLook} onClose={closeLookPicker} />
-      <GuidePanel
-        open={sidePanel === "guide"}
-        guide={guide}
-        onClose={() => closeSidePanel("guide")}
-        onHint={showHint}
-        onHiddenChange={setGuideHidden}
-      />
+      <OnceOpen open={sidePanel === "tweaks"}>
+        <SettingsSheet
+          open={sidePanel === "tweaks"}
+          initialTab={settingsTab}
+          onClose={() => closeSidePanel("tweaks")}
+        />
+      </OnceOpen>
+      <OnceOpen open={sidePanel === "archive"}>
+        <ArchivedBucketsSheet
+          open={sidePanel === "archive"}
+          onClose={() => closeSidePanel("archive")}
+        />
+      </OnceOpen>
+      <OnceOpen open={sidePanel === "trash"}>
+        <TrashSheet open={sidePanel === "trash"} onClose={() => closeSidePanel("trash")} />
+      </OnceOpen>
+      <OnceOpen open={joinOpen}>
+        <JoinBucketDialog open={joinOpen} onClose={() => setJoinOpen(false)} />
+      </OnceOpen>
+      <OnceOpen open={feedbackOpen}>
+        <FeedbackDialog open={feedbackOpen} onClose={() => setFeedbackOpen(false)} />
+      </OnceOpen>
+      <OnceOpen open={sidePanel === "whats-new"}>
+        <WhatsNewDialog
+          open={sidePanel === "whats-new"}
+          onClose={() => closeSidePanel("whats-new")}
+          onShowGuide={openGuide}
+        />
+      </OnceOpen>
+      <OnceOpen open={pickingLook}>
+        <LookPickerDialog open={pickingLook} onClose={closeLookPicker} />
+      </OnceOpen>
+      <OnceOpen open={sidePanel === "guide"}>
+        <GuidePanel
+          open={sidePanel === "guide"}
+          guide={guide}
+          onClose={() => closeSidePanel("guide")}
+          onHint={showHint}
+          onHiddenChange={setGuideHidden}
+        />
+      </OnceOpen>
       <SearchDrawer />
       <CheatSheet />
       <PrefixIndicator />

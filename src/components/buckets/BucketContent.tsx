@@ -1,13 +1,12 @@
+import dynamic from "next/dynamic";
 import { parseItemsRules, parseNotificationRules } from "@/lib/rules";
 import { ITEM_STATUS, isClosedStatus } from "@/constants";
 import { useCallback, useEffect, useRef, useState, type RefObject } from "react";
 import { ItemList } from "./ItemList";
-import { BucketSettings } from "./BucketSettings";
 import type { SettingsTab } from "./BucketSettingsForm";
 import { RemindersOffNotice } from "./RemindersOffNotice";
 import { TimezonesNotice } from "./TimezonesNotice";
 import { useBucketItems } from "./useBucketItems";
-import { NewItemEditor } from "./NewItemEditor";
 import { useBucketMembers } from "./useBucketMembers";
 import { defaultDeadline } from "./defaultDeadline";
 import { DEFAULT_BUCKET_STATUSES } from "./constants";
@@ -17,11 +16,17 @@ import { useUIStore } from "@/store/ui";
 import { useLayoutStore } from "@/store/layout";
 import { placesOf } from "@/lib/timezones/gap";
 import { notify } from "@/components/ui/notify";
+import { OnceOpen } from "@/components/ui/OnceOpen";
+import { NewItemEditor } from "./NewItemEditor";
 import { useLookParts } from "@/components/looks/LookProvider";
 import { cn } from "@/lib/utils";
 import { assignItemAction } from "@/app/(app)/actions";
 import { memberName } from "@/lib/buckets/member-name";
 import { MembersBar, type MemberFilter } from "./MembersBar";
+
+const BucketSettings = dynamic(() => import("./BucketSettings").then((m) => m.BucketSettings), {
+  ssr: false,
+});
 
 // What the footer's add box reaches into the open bucket for
 export type BucketView = {
@@ -196,15 +201,17 @@ export function BucketContent({ bucket, accentColor, viewRef, onAddClosed }: Buc
         )}
       </div>
 
-      <BucketSettings
-        open={settingsTab !== null}
-        initialTab={settingsTab ?? undefined}
-        bucket={bucket}
-        clocksDiffer={placesOf(members).differ}
-        onClose={() => {
-          closeSidePanel("bucket-settings");
-        }}
-      />
+      <OnceOpen open={settingsTab !== null}>
+        <BucketSettings
+          open={settingsTab !== null}
+          initialTab={settingsTab ?? undefined}
+          bucket={bucket}
+          clocksDiffer={placesOf(members).differ}
+          onClose={() => {
+            closeSidePanel("bucket-settings");
+          }}
+        />
+      </OnceOpen>
     </div>
   );
 }
