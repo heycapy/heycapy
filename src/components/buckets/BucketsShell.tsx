@@ -1,6 +1,13 @@
 "use client";
 
-import { useEffect, useRef, useState, useSyncExternalStore, type CSSProperties } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  type CSSProperties,
+} from "react";
 import { AnimatePresence, motion, useReducedMotionConfig } from "framer-motion";
 import { BucketContent, type BucketView } from "./BucketContent";
 import { BucketTabs } from "./BucketTabs";
@@ -16,15 +23,21 @@ import { useKeyboardInset } from "@/hooks/useKeyboardInset";
 import { itemLink } from "@/lib/items/item-link";
 import { parseItemsRules } from "@/lib/rules";
 import type { ViewerBucket } from "@/lib/buckets/access";
+import type { CrossBucketItems } from "@/lib/items/today";
 
 const writable = (bucket: ViewerBucket) => parseItemsRules(bucket.itemsRules).readonly !== true;
 
 type BucketsShellProps = {
   buckets: ViewerBucket[];
+  todaySeed: CrossBucketItems;
   focusBucketId?: number | null;
 };
 
-export function BucketsShell({ buckets: rawBuckets, focusBucketId = null }: BucketsShellProps) {
+export function BucketsShell({
+  buckets: rawBuckets,
+  todaySeed,
+  focusBucketId = null,
+}: BucketsShellProps) {
   const buckets = rawBuckets.filter((b, i, arr) => arr.findIndex((x) => x.id === b.id) === i);
   const setBottomBarShown = useLayoutStore((s) => s.setBottomBarShown);
   const activeBucketId = useUIStore((s) => s.activeBucketId);
@@ -41,6 +54,11 @@ export function BucketsShell({ buckets: rawBuckets, focusBucketId = null }: Buck
     () => useUIStore.persist.hasHydrated(),
     () => false
   );
+  // Today's list from the page load, used once and only if Today is what opens: a later visit to
+  // Today fetches it again
+  const [seed, setSeed] = useState<CrossBucketItems | null>(todaySeed);
+  const dropSeed = useCallback(() => setSeed(null), []);
+  if (seed && hydrated && !todayOpen) setSeed(null);
   const prevBucketsRef = useRef<ViewerBucket[]>(buckets);
   const viewRef = useRef<BucketView | null>(null);
   const addButtonRef = useRef<HTMLButtonElement>(null);
@@ -129,7 +147,7 @@ export function BucketsShell({ buckets: rawBuckets, focusBucketId = null }: Buck
   const canAddItem = footerBucket !== null && writable(footerBucket);
 
   const view = todayOpen ? (
-    <TodayView />
+    <TodayView seed={seed} onSeedUsed={dropSeed} />
   ) : (
     <BucketContent
       bucket={activeBucket}

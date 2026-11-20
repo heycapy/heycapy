@@ -1,9 +1,20 @@
+import { useEffect } from "react";
 import { CrossBucketList } from "./CrossBucketList";
 import { groupForToday } from "./group";
 import { useTodayItems } from "./useTodayItems";
+import type { CrossBucketItems } from "@/lib/items/today";
 
-export function TodayView() {
-  const { data, refetch, patchItem } = useTodayItems();
+type TodayViewProps = {
+  seed: CrossBucketItems | null;
+  onSeedUsed: () => void;
+};
+
+export function TodayView({ seed, onSeedUsed }: TodayViewProps) {
+  const { data, refetch, patchItem } = useTodayItems(seed);
+
+  useEffect(() => {
+    if (seed) onSeedUsed();
+  }, [seed, onSeedUsed]);
 
   return (
     <div className="flex flex-col">
