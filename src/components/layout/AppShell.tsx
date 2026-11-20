@@ -78,6 +78,7 @@ export function AppShell({
   keybinds,
 }: AppShellProps) {
   const [settingsTab, setSettingsTab] = useState<SettingsTab>("appearance");
+  const listed = useUIStore((s) => s.itemsLoaded > 0);
   const joinOpen = useUIStore((s) => s.joinOpen);
   const setJoinOpen = useUIStore((s) => s.setJoinOpen);
   const sidePanel = useLayoutStore((s) => s.sidePanel);
@@ -166,8 +167,11 @@ export function AppShell({
     void useChatStore.persist.rehydrate();
     void useDraftStore.persist.rehydrate();
     void useTimezoneStore.persist.rehydrate();
-    void saveTimezoneIfDefaultAction(Intl.DateTimeFormat().resolvedOptions().timeZone);
   }, []);
+
+  useEffect(() => {
+    if (listed) void saveTimezoneIfDefaultAction(Intl.DateTimeFormat().resolvedOptions().timeZone);
+  }, [listed]);
 
   return (
     <KeybindsProvider keybinds={keybinds}>

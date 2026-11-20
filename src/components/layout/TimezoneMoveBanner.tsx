@@ -7,6 +7,7 @@ import {
   type TimezoneMove,
 } from "@/app/(app)/user-settings-actions";
 import { useTimezoneStore } from "@/store/timezone";
+import { useUIStore } from "@/store/ui";
 
 const browserTimezone = () => Intl.DateTimeFormat().resolvedOptions().timeZone;
 
@@ -17,6 +18,7 @@ export function TimezoneMoveBanner() {
   const [pending, startTransition] = useTransition();
   const keptIn = useTimezoneStore((s) => s.keptIn);
   const keep = useTimezoneStore((s) => s.keep);
+  const listed = useUIStore((s) => s.itemsLoaded > 0);
   const hydrated = useSyncExternalStore(
     (onChange) => useTimezoneStore.persist.onFinishHydration(onChange),
     () => useTimezoneStore.persist.hasHydrated(),
@@ -24,6 +26,7 @@ export function TimezoneMoveBanner() {
   );
 
   useEffect(() => {
+    if (!listed) return;
     let cancelled = false;
     void timezoneMoveAction(browserTimezone()).then((result) => {
       if (!cancelled) setMove(result);
@@ -31,7 +34,7 @@ export function TimezoneMoveBanner() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [listed]);
 
   if (!hydrated || !move || keptIn === browserTimezone()) return null;
 
