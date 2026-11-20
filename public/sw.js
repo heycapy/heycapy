@@ -4,6 +4,7 @@ const ASSET_CACHE = "heycapy-assets";
 const PAGE_CACHE = "heycapy-page";
 const PAGE_KEY = "/";
 const OFFLINE_PAGE = "/offline.html";
+const SNAPSHOT_DB = "heycapy-snapshot";
 const ASSET_MAX_ENTRIES = 300;
 
 self.addEventListener("install", () => self.skipWaiting());
@@ -21,6 +22,17 @@ async function forgetPage() {
   await (await caches.open(PAGE_CACHE)).delete(PAGE_KEY);
 }
 
+function forgetSnapshot() {
+  return new Promise((resolve) => {
+    const request = indexedDB.deleteDatabase(SNAPSHOT_DB);
+    request.onsuccess = request.onerror = request.onblocked = () => resolve();
+  });
+}
+
+function forgetLists() {
+  return Promise.all([forgetPage(), forgetSnapshot()]);
+}
+
 async function savePage(response) {
   await (await caches.open(PAGE_CACHE)).put(PAGE_KEY, response);
 }
@@ -30,7 +42,7 @@ async function openPage(event, url) {
   try {
     const response = await fetch(event.request);
     if (isApp && response.ok) event.waitUntil(savePage(response.clone()));
-    if (isApp && response.type === "opaqueredirect") event.waitUntil(forgetPage());
+    if (isApp && response.type === "opaqueredirect") event.waitUntil(forgetLists());
     return response;
   } catch {
     const options = { cacheName: PAGE_CACHE, ignoreVary: true };
@@ -75,13 +87,13 @@ async function staleWhileRevalidate(event) {
   return hit;
 }
 
-// The cached page holds one person's lists, so any visit to the login page drops it
+// The cached page and the snapshot hold one person's lists, so any visit to the login page drops them
 self.addEventListener("fetch", (event) => {
   const { request } = event;
   const url = new URL(request.url);
   if (request.method !== "GET" || url.origin !== self.location.origin) return;
 
-  if (url.pathname.startsWith("/login")) event.waitUntil(forgetPage());
+  if (url.pathname.startsWith("/login")) event.waitUntil(forgetLists());
 
   if (request.mode === "navigate") {
     event.respondWith(openPage(event, url));

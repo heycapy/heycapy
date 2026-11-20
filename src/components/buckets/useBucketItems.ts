@@ -11,6 +11,7 @@ import type { ListItem, ReminderBadge } from "@/lib/reminders/status";
 import { useUIStore } from "@/store/ui";
 import { reach } from "@/hooks/connectivity";
 import { deadlineValue } from "@/lib/time";
+import { readBucketSnapshot, saveBucketSnapshot } from "@/lib/offline/snapshot";
 import type { ItemPatch } from "@/lib/items/edit-draft";
 import { offerUndoDelete } from "./undoDelete";
 import { withPatch } from "./optimistic";
@@ -21,6 +22,11 @@ type Item = ListItem;
 type Loaded = { items: Item[]; reminderBadges: Record<number, ReminderBadge> };
 
 const lastLoaded = new Map<number, Loaded>();
+
+function keep(bucketId: number, loaded: Loaded) {
+  lastLoaded.set(bucketId, loaded);
+  void saveBucketSnapshot(bucketId, loaded);
+}
 
 const shown = (list: Item[], showCompleted: boolean) =>
   showCompleted ? list : list.filter((i) => !isClosedStatus(i.status));
@@ -41,10 +47,19 @@ export function useBucketItems(bucketId: number, itemsRules: string, showComplet
 
   useEffect(() => {
     let cancelled = false;
-    void reach(getItemsForBucketAction(bucketId)).then((result) => {
-      if (cancelled || !result) return;
+    void reach(getItemsForBucketAction(bucketId)).then(async (result) => {
+      if (cancelled) return;
+      if (!result) {
+        if (lastLoaded.has(bucketId)) return;
+        const saved = await readBucketSnapshot(bucketId);
+        if (cancelled || !saved) return;
+        setFetchedItems(saved.items);
+        setReminderBadges(saved.reminderBadges);
+        setLoading(false);
+        return;
+      }
       if (result.ok) {
-        lastLoaded.set(bucketId, result);
+        keep(bucketId, result);
         setFetchedItems(result.items);
         setReminderBadges(result.reminderBadges);
       }
@@ -71,7 +86,7 @@ export function useBucketItems(bucketId: number, itemsRules: string, showComplet
   async function refetch() {
     const result = await reach(getItemsForBucketAction(bucketId));
     if (!result?.ok) return;
-    lastLoaded.set(bucketId, result);
+    keep(bucketId, result);
     setFetchedItems(result.items);
     setReminderBadges(result.reminderBadges);
   }
