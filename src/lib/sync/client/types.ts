@@ -29,3 +29,11 @@ export type NewMutation = DistributiveOmit<Mutation, "seq">;
 // `seq` is the key the database hands out; `sent` is set before a batch goes out, because the
 // server may have applied it even when the answer never arrived
 export type QueueEntry = { seq: number; sent: boolean; mutation: NewMutation };
+
+// A change the server refused: kept until a tab has told the person, so it is told once
+export type StoredRejection = {
+  id: number;
+  mutation: NewMutation;
+  reason: string;
+  title: string | null;
+};

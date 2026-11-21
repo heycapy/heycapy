@@ -134,3 +134,32 @@ test("offline an item can be added, ticked and deleted, and the server gets them
       expect.arrayContaining([`${added}:active`, `${kept}:completed`, `${doomed}:active:trashed`])
     );
 });
+
+test("logging out says how many changes have not reached the server", async ({ page }) => {
+  await page.goto("/");
+  await createAndSelectBucket(page, uniqueName("unsent"));
+  await blockServer(page);
+  await addItem(page, uniqueName("only here"));
+
+  await page.getByRole("button", { name: "your menu", exact: true }).click();
+  await page.getByRole("button", { name: "logout", exact: true }).click();
+  const dialog = page.getByRole("dialog", { name: /log out\?/ });
+  await expect(
+    dialog.getByText("1 change hasn't reached the server and will be lost.")
+  ).toBeVisible();
+  await dialog.getByRole("button", { name: "cancel" }).click();
+  await page.unroute("**/*");
+});
+
+test("a server that no longer speaks this version of sync asks for a refresh", async ({ page }) => {
+  await page.route("**/api/v1/sync/**", (route) =>
+    route.fulfill({
+      status: 426,
+      json: { error: "Update the app to keep syncing", minProtocol: 2 },
+    })
+  );
+  await page.goto("/");
+  await expect(
+    page.getByRole("status").filter({ hasText: "a new version of heycapy is out" })
+  ).toBeVisible();
+});

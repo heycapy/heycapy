@@ -4,6 +4,7 @@ import {
   META_STORE,
   META_USER_ID,
   QUEUE_STORE,
+  REJECTIONS_STORE,
   RECORDS_BY_BUCKET,
   RECORDS_STORE,
   SYNC_DB,
@@ -23,8 +24,12 @@ function openDatabase(): Promise<IDBDatabase> {
         records.createIndex(RECORDS_BY_BUCKET, "bucketId");
         db.createObjectStore(META_STORE);
       }
-      if (event.oldVersion < 2)
+      if (event.oldVersion < 2) {
         db.createObjectStore(QUEUE_STORE, { keyPath: "seq", autoIncrement: true });
+      }
+      if (event.oldVersion < 3) {
+        db.createObjectStore(REJECTIONS_STORE, { keyPath: "id", autoIncrement: true });
+      }
     };
     request.onsuccess = () => {
       const db = request.result;

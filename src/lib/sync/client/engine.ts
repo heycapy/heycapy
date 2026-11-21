@@ -15,8 +15,16 @@ import {
   QUEUE_STORE,
   RECORDS_STORE,
 } from "./constants";
-import { markSent, readQueue, removeFromQueue } from "./queue";
-import { applyPullPage, committed, readMeta, resetRecords, withDatabase } from "./store";
+import { markSent, readQueue, settle } from "./queue";
+import { rejectionTitle } from "./rejections";
+import {
+  applyPullPage,
+  committed,
+  readMeta,
+  readRecords,
+  resetRecords,
+  withDatabase,
+} from "./store";
 import type { NewMutation, PullPage, QueueEntry } from "./types";
 
 export type Transport = (path: string, init?: RequestInit) => Promise<Response>;
@@ -122,14 +130,20 @@ async function push(transport: Transport, rejected: Rejection[]) {
 
     const bySeq = new Map(batch.map((e) => [e.seq, e]));
     const done: number[] = [];
+    const refused: Rejection[] = [];
     for (const r of results) {
       const entry = bySeq.get(r.seq);
       if (!entry) continue;
       done.push(r.seq);
-      if (r.result === "rejected") rejected.push({ mutation: entry.mutation, reason: r.reason });
+      if (r.result === "rejected") refused.push({ mutation: entry.mutation, reason: r.reason });
     }
     if (done.length === 0) throw new Stop("retry");
-    await removeFromQueue(done);
+    const records = refused.length > 0 ? await readRecords() : [];
+    await settle(
+      done,
+      refused.map((r) => ({ ...r, title: rejectionTitle(records, r.mutation) }))
+    );
+    rejected.push(...refused);
   }
 }
 

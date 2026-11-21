@@ -1,6 +1,6 @@
-import { QUEUE_STORE } from "./constants";
+import { QUEUE_STORE, REJECTIONS_STORE } from "./constants";
 import { committed, requestResult, withDatabase } from "./store";
-import type { NewMutation, QueueEntry } from "./types";
+import type { NewMutation, QueueEntry, StoredRejection } from "./types";
 
 export type EnqueuePlan = { put: QueueEntry[]; remove: number[]; add: NewMutation | null };
 
@@ -92,10 +92,15 @@ export function markSent(seqs: number[]): Promise<void> {
   });
 }
 
-export function removeFromQueue(seqs: number[]): Promise<void> {
+export type NewRejection = Omit<StoredRejection, "id">;
+
+// What the server answered: the entries leave the queue and the refusals are kept in the same
+// transaction, so a refusal is never lost between the two
+export function settle(seqs: number[], rejections: NewRejection[]): Promise<void> {
   return withDatabase((db) => {
-    const transaction = db.transaction(QUEUE_STORE, "readwrite");
+    const transaction = db.transaction([QUEUE_STORE, REJECTIONS_STORE], "readwrite");
     for (const seq of seqs) transaction.objectStore(QUEUE_STORE).delete(seq);
+    for (const rejection of rejections) transaction.objectStore(REJECTIONS_STORE).add(rejection);
     return committed(transaction);
   });
 }

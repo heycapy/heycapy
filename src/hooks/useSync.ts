@@ -1,8 +1,8 @@
 import { useEffect, useRef } from "react";
 import { useUIStore } from "@/store/ui";
 import { browserTransport } from "@/lib/sync/client/engine";
-import { notify } from "@/components/ui/notify";
 import { cancelUnsentDelete, enqueue } from "@/lib/sync/client/queue";
+import { keepStorage } from "@/lib/sync/client/persist";
 import { createSyncRuntime } from "@/lib/sync/client/runtime";
 import type { NewMutation } from "@/lib/sync/client/types";
 
@@ -24,6 +24,7 @@ export function subscribeToChanges(listener: () => void) {
 export async function queueMutation(mutation: NewMutation) {
   await enqueue(mutation);
   current?.queued();
+  void keepStorage();
 }
 
 export async function undoQueuedDelete(itemId: string) {
@@ -60,11 +61,8 @@ export function useSync(userId: number) {
       locks: navigator.locks,
       createChannel: (name) => new BroadcastChannel(name),
       // The calls that run on their own are what tell whether the server can be reached
-      onOutcome: ({ status, rejected }) => {
-        for (const { mutation, reason } of rejected) {
-          const name = mutation.type === "item.create" ? ` "${mutation.title}"` : "";
-          notify.error(`couldn't save${name}: ${reason}`);
-        }
+      onOutcome: ({ status }) => {
+        if (status === "upgrade") useUIStore.getState().setSyncOutdated(true);
         if (status === "ok" || status === "retry")
           useUIStore.getState().setOffline(status === "retry");
       },

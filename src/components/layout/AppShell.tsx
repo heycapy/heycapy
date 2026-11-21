@@ -22,6 +22,7 @@ import { lookPickedAction, saveTimezoneIfDefaultAction } from "@/app/(app)/user-
 import { useServerEvents } from "@/hooks/useServerEvents";
 import { useConnectivity } from "@/hooks/connectivity";
 import { useServiceWorker } from "@/hooks/useServiceWorker";
+import { useRejections } from "@/hooks/useRejections";
 import { useSync } from "@/hooks/useSync";
 import { useKeybinds } from "@/hooks/useKeybinds";
 import { keybindActions } from "./keybind-actions";
@@ -179,11 +180,13 @@ export function AppShell({
   useConnectivity();
   useServiceWorker();
   useSync(userId);
+  useRejections();
   const offline = useUIStore((s) => s.offline);
+  const syncOutdated = useUIStore((s) => s.syncOutdated);
   const banners = (
     <div className="max-w-column mx-auto w-full">
       {offline && <OfflineBanner />}
-      {newVersion && <NewVersionBanner />}
+      {(newVersion || syncOutdated) && <NewVersionBanner />}
       {!hasWorkingChannel && <NoChannelBanner onSetUp={() => openSettings("notifications")} />}
       <DeliveryFailureBanner failures={failures} onFix={() => openSettings("notifications")} />
       <TimezoneMoveBanner />

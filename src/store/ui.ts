@@ -16,6 +16,9 @@ type UIStore = {
 
   offline: boolean;
   setOffline: (offline: boolean) => void;
+  // The server no longer speaks the version of sync this page was built with
+  syncOutdated: boolean;
+  setSyncOutdated: (outdated: boolean) => void;
 
   activeBucketId: number | null;
   setActiveBucketId: (id: number) => void;
@@ -87,6 +90,8 @@ export const useUIStore = create<UIStore>()(
 
       offline: false,
       setOffline: (offline) => set({ offline }),
+      syncOutdated: false,
+      setSyncOutdated: (syncOutdated) => set({ syncOutdated }),
 
       activeBucketId: null,
       setActiveBucketId: (id) => set({ activeBucketId: id, todayOpen: false }),

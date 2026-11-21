@@ -5,6 +5,7 @@ import { SYNC_PROTOCOL_HEADER } from "@/constants";
 import { META_CURSOR, META_DEVICE_ID, META_SCHEMA } from "@/lib/sync/client/constants";
 import { browserTransport, syncOnce, type Transport } from "@/lib/sync/client/engine";
 import { enqueue, readQueue } from "@/lib/sync/client/queue";
+import { takeRejections } from "@/lib/sync/client/rejections";
 import { applyPullPage, readMeta, readRecords } from "@/lib/sync/client/store";
 import type { NewMutation, PullPage, WireRecord } from "@/lib/sync/client/types";
 
@@ -100,6 +101,7 @@ describe("syncOnce", () => {
       rejected: [{ mutation: create(A), reason: "no longer a member" }],
     });
     expect(await readQueue()).toEqual([]);
+    expect(await takeRejections()).toMatchObject([{ title: A, reason: "no longer a member" }]);
   });
 
   it("keeps a change whose answer never arrived, and sends the same seq again", async () => {
