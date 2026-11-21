@@ -11,6 +11,7 @@ import {
   TICK_SOUNDS,
 } from "@/constants";
 import {
+  check,
   index,
   integer,
   sqliteTable,
@@ -188,35 +189,41 @@ export const otps = sqliteTable("otps", {
 
 // buckets
 
-export const buckets = sqliteTable("buckets", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
-  userId: integer("user_id")
-    .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
-  name: text("name").notNull(),
-  icon: text("icon"),
-  color: text("color"),
-  notificationsRules: text("notifications_rules").notNull().default("{}"),
-  itemsRules: text("items_rules").notNull().default("{}"),
-  mcpRules: text("mcp_rules"),
-  personalityRules: text("personality_rules").notNull().default("{}"),
-  fieldSchema: text("field_schema").$type<BucketSchema>(),
-  telegramConfig: text("telegram_config"),
-  webhookKey: text("webhook_key"),
-  mcpIntegration: text("mcp_integration"),
-  mcpConfig: text("mcp_config"),
-  lastSyncedAt: integer("last_synced_at", { mode: "timestamp" }),
-  isPrivate: integer("is_private", { mode: "boolean" }).notNull().default(false),
-  sortOrder: integer("sort_order").notNull().default(0),
-  archivedAt: integer("archived_at", { mode: "timestamp" }),
-  deletedAt: integer("deleted_at", { mode: "timestamp" }),
-  createdAt: integer("created_at", { mode: "timestamp" })
-    .notNull()
-    .default(sql`(unixepoch())`),
-  updatedAt: integer("updated_at", { mode: "timestamp" })
-    .notNull()
-    .default(sql`(unixepoch())`),
-});
+export const buckets = sqliteTable(
+  "buckets",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    userId: integer("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    icon: text("icon"),
+    color: text("color"),
+    notificationsRules: text("notifications_rules").notNull().default("{}"),
+    itemsRules: text("items_rules").notNull().default("{}"),
+    mcpRules: text("mcp_rules"),
+    personalityRules: text("personality_rules").notNull().default("{}"),
+    fieldSchema: text("field_schema").$type<BucketSchema>(),
+    telegramConfig: text("telegram_config"),
+    webhookKey: text("webhook_key"),
+    mcpIntegration: text("mcp_integration"),
+    mcpConfig: text("mcp_config"),
+    lastSyncedAt: integer("last_synced_at", { mode: "timestamp" }),
+    isPrivate: integer("is_private", { mode: "boolean" }).notNull().default(false),
+    sortOrder: integer("sort_order").notNull().default(0),
+    archivedAt: integer("archived_at", { mode: "timestamp" }),
+    deletedAt: integer("deleted_at", { mode: "timestamp" }),
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .default(sql`(unixepoch())`),
+    updatedAt: integer("updated_at", { mode: "timestamp" })
+      .notNull()
+      .default(sql`(unixepoch())`),
+    // Stamped by triggers (migration 0057) from sync_state, whatever writes the row
+    rev: integer("rev").notNull().default(0),
+  },
+  (t) => [index("idx_buckets_rev").on(t.rev)]
+);
 
 // bucket_members — who can use a bucket. The owner has a row too: a trigger (migration 0029) adds it
 // when a bucket is created, so no insert site can forget it. buckets.user_id stays the owner.
@@ -240,10 +247,13 @@ export const bucketMembers = sqliteTable(
     createdAt: integer("created_at", { mode: "timestamp" })
       .notNull()
       .default(sql`(unixepoch())`),
+    // Stamped by triggers (migration 0057) from sync_state, whatever writes the row
+    rev: integer("rev").notNull().default(0),
   },
   (t) => [
     uniqueIndex("idx_bucket_members_bucket_user").on(t.bucketId, t.userId),
     index("idx_bucket_members_user_id").on(t.userId),
+    index("idx_bucket_members_rev").on(t.rev),
   ]
 );
 
@@ -287,47 +297,53 @@ export const inviteAttempts = sqliteTable("invite_attempts", {
 
 // items
 
-export const items = sqliteTable("items", {
-  id: text("id").primaryKey().$defaultFn(newItemId),
-  bucketId: integer("bucket_id")
-    .notNull()
-    .references(() => buckets.id, { onDelete: "cascade" }),
-  userId: integer("user_id")
-    .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
-  title: text("title").notNull(),
-  description: text("description"),
-  deadline: integer("deadline", { mode: "timestamp" }),
-  // The clock the deadline was set on, an all-day item is midnight here, so its date is the same for everyone
-  deadlineTimezone: text("deadline_timezone"),
-  scheduledAt: integer("scheduled_at", { mode: "timestamp" }),
-  status: text("status").notNull().default(ITEM_STATUS.active),
-  properties: text("properties"),
-  externalId: text("external_id"),
-  externalUrl: text("external_url"),
-  // Minutes before the deadline, largest first, null follows the bucket's default
-  reminderOffsets: text("reminder_offsets", { mode: "json" }).$type<number[]>(),
-  // Set for everyone: a trigger (migration 0034) copies each write to every item_reminders row
-  notifiedAt: integer("notified_at", { mode: "timestamp" }),
-  overdueNotifiedAt: integer("overdue_notified_at", { mode: "timestamp" }),
-  remindNotBefore: integer("remind_not_before", { mode: "timestamp" }),
-  sortOrder: integer("sort_order").notNull().default(0),
-  recurring: text("recurring"),
-  source: text("source", { enum: ["manual", "ai", "mcp", "webhook", "system"] })
-    .notNull()
-    .default("manual"),
-  completedAt: integer("completed_at", { mode: "timestamp" }),
-  completedBy: integer("completed_by").references(() => users.id, { onDelete: "set null" }),
-  deletedAt: integer("deleted_at", { mode: "timestamp" }),
-  // Who moved it to the trash, so a shared trash can say, null when it isn't known
-  deletedBy: integer("deleted_by").references(() => users.id, { onDelete: "set null" }),
-  createdAt: integer("created_at", { mode: "timestamp" })
-    .notNull()
-    .default(sql`(unixepoch())`),
-  updatedAt: integer("updated_at", { mode: "timestamp" })
-    .notNull()
-    .default(sql`(unixepoch())`),
-});
+export const items = sqliteTable(
+  "items",
+  {
+    id: text("id").primaryKey().$defaultFn(newItemId),
+    bucketId: integer("bucket_id")
+      .notNull()
+      .references(() => buckets.id, { onDelete: "cascade" }),
+    userId: integer("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    title: text("title").notNull(),
+    description: text("description"),
+    deadline: integer("deadline", { mode: "timestamp" }),
+    // The clock the deadline was set on, an all-day item is midnight here, so its date is the same for everyone
+    deadlineTimezone: text("deadline_timezone"),
+    scheduledAt: integer("scheduled_at", { mode: "timestamp" }),
+    status: text("status").notNull().default(ITEM_STATUS.active),
+    properties: text("properties"),
+    externalId: text("external_id"),
+    externalUrl: text("external_url"),
+    // Minutes before the deadline, largest first, null follows the bucket's default
+    reminderOffsets: text("reminder_offsets", { mode: "json" }).$type<number[]>(),
+    // Set for everyone: a trigger (migration 0034) copies each write to every item_reminders row
+    notifiedAt: integer("notified_at", { mode: "timestamp" }),
+    overdueNotifiedAt: integer("overdue_notified_at", { mode: "timestamp" }),
+    remindNotBefore: integer("remind_not_before", { mode: "timestamp" }),
+    sortOrder: integer("sort_order").notNull().default(0),
+    recurring: text("recurring"),
+    source: text("source", { enum: ["manual", "ai", "mcp", "webhook", "system"] })
+      .notNull()
+      .default("manual"),
+    completedAt: integer("completed_at", { mode: "timestamp" }),
+    completedBy: integer("completed_by").references(() => users.id, { onDelete: "set null" }),
+    deletedAt: integer("deleted_at", { mode: "timestamp" }),
+    // Who moved it to the trash, so a shared trash can say, null when it isn't known
+    deletedBy: integer("deleted_by").references(() => users.id, { onDelete: "set null" }),
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .default(sql`(unixepoch())`),
+    updatedAt: integer("updated_at", { mode: "timestamp" })
+      .notNull()
+      .default(sql`(unixepoch())`),
+    // Stamped by triggers (migration 0057) from sync_state, whatever writes the row
+    rev: integer("rev").notNull().default(0),
+  },
+  (t) => [index("idx_items_rev").on(t.rev)]
+);
 
 // item_assignees — the members who should do an item and are reminded about it, none means a plain
 // reminder nobody is pinged about
@@ -365,14 +381,44 @@ export const itemReminders = sqliteTable(
     overdueNotifiedAt: integer("overdue_notified_at", { mode: "timestamp" }),
     nextReminderAt: integer("next_reminder_at", { mode: "timestamp" }),
     nextOverdueAt: integer("next_overdue_at", { mode: "timestamp" }),
+    // Stamped by triggers (migration 0057) from sync_state, whatever writes the row
+    rev: integer("rev").notNull().default(0),
   },
   (t) => [
     uniqueIndex("idx_item_reminders_item_user").on(t.itemId, t.userId),
+    index("idx_item_reminders_rev").on(t.rev),
     index("idx_item_reminders_user_id").on(t.userId),
     index("idx_item_reminders_next_reminder_at").on(t.nextReminderAt),
     index("idx_item_reminders_next_overdue_at").on(t.nextOverdueAt),
   ]
 );
+
+// sync_state — the one row holding the revision counter every synced write takes its number from.
+// A device with a cursor below min_rev missed tombstones that were pruned and downloads everything again
+export const syncState = sqliteTable(
+  "sync_state",
+  {
+    id: integer("id").primaryKey(),
+    rev: integer("rev").notNull().default(0),
+    minRev: integer("min_rev").notNull().default(0),
+  },
+  (t) => [check("sync_state_one_row", sql`${t.id} = 1`)]
+);
+
+// sync_tombstones — a delete as a row in the change feed, written by triggers so a cascade or a
+// purge is covered too. entity_id is the key a device holds the row under (a bucket's or a
+// membership's id, an item's id, for a reminder the item it belongs to); bucket_id and user_id say
+// who may be told. Rows with rev <= sync_state.min_rev have been pruned
+export const syncTombstones = sqliteTable("sync_tombstones", {
+  rev: integer("rev").primaryKey(),
+  entity: text("entity", { enum: ["bucket", "bucket_member", "item", "item_reminder"] }).notNull(),
+  entityId: text("entity_id").notNull(),
+  bucketId: integer("bucket_id"),
+  userId: integer("user_id"),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .default(sql`(unixepoch())`),
+});
 
 // notification_queue — reliable delivery with retries
 

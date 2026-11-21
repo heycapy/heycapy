@@ -1,6 +1,7 @@
 import type { ItemId } from "@/types/ids";
 import { pruneSystemErrors, recordSystemError } from "@/lib/system-errors";
 import { purgeOldTrash } from "@/lib/items/trash";
+import { pruneTombstones } from "@/lib/sync/tombstones";
 import { moveOnMissedOccurrences } from "@/lib/items/recurrence";
 import { deadlineOnBothClocks } from "@/lib/timezones/deadline-text";
 import { schedule } from "node-cron";
@@ -352,6 +353,14 @@ async function runTrashCleanup(): Promise<void> {
   });
 }
 
+async function runTombstonePrune(): Promise<void> {
+  try {
+    pruneTombstones();
+  } catch (err) {
+    recordSystemError("sync", `pruning tombstones failed: ${errorMessage(err)}`, { err });
+  }
+}
+
 async function runBackup(): Promise<void> {
   await backupDatabase().catch((err) => {
     recordSystemError("backup", `backup failed: ${errorMessage(err)}`, {
@@ -390,6 +399,7 @@ export function startScheduler(): void {
     schedule("17 * * * *", () => void reconcileReminders(), { noOverlap: true });
     schedule("40 3 * * *", () => void runBackup(), { noOverlap: true });
     schedule("50 3 * * *", () => void runTrashCleanup(), { noOverlap: true });
+    schedule("55 3 * * *", () => void runTombstonePrune(), { noOverlap: true });
     schedule("5 * * * *", () => void sendDigest(), { noOverlap: true });
   });
 }
