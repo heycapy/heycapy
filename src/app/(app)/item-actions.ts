@@ -32,6 +32,7 @@ import { onLastDayIfAnchored, parseRecurring } from "@/lib/items/occurrence";
 import { cancelRemindAgain } from "@/lib/reminders/quick-actions";
 import { allAreMembers, assignEveryone, setItemAssignees } from "@/lib/items/assignees";
 import { toggleItemCompleted } from "@/lib/items/complete";
+import { deleteItem } from "@/lib/items/delete";
 import { bucketsChanged, dataEvents } from "@/lib/events";
 import {
   getItemReminderInfo,
@@ -413,14 +414,7 @@ export async function reorderItemsAction(
 export async function deleteItemAction(itemId: ItemId): Promise<ActionResult> {
   const session = await requireSession();
 
-  const item = findAccessibleItem(db, session.userId, itemId);
-  if (!item) return { ok: false, error: ITEM_GONE_ERROR };
-
-  await db
-    .update(items)
-    .set({ deletedAt: new Date(), deletedBy: session.userId })
-    .where(eq(items.id, itemId));
-  refreshItemReminders(db, [itemId]);
+  if (!deleteItem(db, session.userId, itemId)) return { ok: false, error: ITEM_GONE_ERROR };
 
   revalidatePath("/");
   return { ok: true };
