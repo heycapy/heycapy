@@ -1,8 +1,9 @@
-import { isClosedStatus } from "@/constants";
+import { isClosedStatus, ITEM_STATUS } from "@/constants";
+import { patchedDeadline, patchedRecurring } from "@/lib/items/patch-rules";
 import type { ItemId } from "@/types/ids";
 import type { ItemsRules } from "@/types/rules";
 import type { ListItem, ReminderBadge } from "@/lib/reminders/status";
-import type { StoredRecord, WireRecord } from "./types";
+import type { NewMutation, QueueEntry, StoredRecord, WireRecord } from "./types";
 
 type ItemData = Extract<WireRecord, { entity: "item" }>["data"];
 type ReminderData = Extract<WireRecord, { entity: "item_reminder" }>["data"];
@@ -59,10 +60,125 @@ const ORDERS: Record<NonNullable<ItemsRules["sortBy"]>, (a: ListItem, b: ListIte
   },
 };
 
+// What the person asked for and the server has not confirmed: shown on top of the synced rows, so
+// a pull can never put an older copy over an unsent edit, and a refused one just stops showing
+export type QueuedChanges = { queue: QueueEntry[]; userId: number; zone: string; now: Date };
+
+type Create = Extract<NewMutation, { type: "item.create" }>;
+
+function provisional(
+  m: Create,
+  bucketId: number,
+  sortOrder: number,
+  memberIds: number[],
+  q: QueuedChanges
+): ListItem {
+  const { deadline, deadlineTimezone } = patchedDeadline(
+    { deadline: null, deadlineTimezone: null, scheduledAt: null },
+    m.deadline,
+    m.clock ?? q.zone,
+    m.recurring ?? null
+  );
+  const completed = m.status === ITEM_STATUS.completed;
+  return {
+    id: m.id,
+    bucketId,
+    userId: q.userId,
+    title: m.title.trim(),
+    description: m.description?.trim() || null,
+    deadline,
+    deadlineTimezone,
+    scheduledAt: null,
+    status: m.status ?? ITEM_STATUS.active,
+    properties: m.properties ? JSON.stringify(m.properties) : null,
+    externalId: null,
+    externalUrl: null,
+    reminderOffsets: m.reminders ?? null,
+    notifiedAt: null,
+    overdueNotifiedAt: null,
+    remindNotBefore: null,
+    sortOrder,
+    recurring: m.recurring?.enabled ? JSON.stringify(m.recurring) : null,
+    source: "manual",
+    completedAt: completed ? q.now : null,
+    completedBy: completed ? q.userId : null,
+    deletedAt: null,
+    deletedBy: null,
+    createdAt: q.now,
+    updatedAt: q.now,
+    rev: 0,
+    assigneeIds: m.assigneeIds ?? memberIds,
+    nextReminderAt: null,
+    nextOverdueAt: null,
+  };
+}
+
+function patched(
+  item: ListItem,
+  patch: Extract<NewMutation, { type: "item.patch" }>["patch"],
+  q: QueuedChanges
+): ListItem {
+  const recurring = patchedRecurring(patch.recurring, item.recurring);
+  const due =
+    patch.deadline !== undefined
+      ? patchedDeadline(item, patch.deadline, patch.clock ?? q.zone, recurring)
+      : null;
+  const wasCompleted = item.status === ITEM_STATUS.completed;
+  const nowCompleted = patch.status === ITEM_STATUS.completed;
+  const title = patch.title?.trim();
+  return {
+    ...item,
+    ...(title && { title }),
+    ...(patch.description !== undefined && { description: patch.description?.trim() || null }),
+    ...(due && {
+      deadline: due.deadline,
+      deadlineTimezone: due.deadlineTimezone,
+      ...(!due.keepsMovedDate && { scheduledAt: null }),
+    }),
+    ...(patch.status !== undefined && { status: patch.status }),
+    ...(patch.status !== undefined &&
+      nowCompleted !== wasCompleted && {
+        completedAt: nowCompleted ? q.now : null,
+        completedBy: nowCompleted ? q.userId : null,
+      }),
+    ...(patch.recurring !== undefined && {
+      recurring: recurring ? JSON.stringify(recurring) : null,
+    }),
+    ...(patch.properties !== undefined && {
+      properties: patch.properties ? JSON.stringify(patch.properties) : null,
+    }),
+    ...(patch.reminders !== undefined && { reminderOffsets: patch.reminders }),
+    ...(patch.assigneeIds && { assigneeIds: patch.assigneeIds }),
+    updatedAt: q.now,
+  };
+}
+
+function withQueuedChanges(
+  list: ListItem[],
+  bucketId: number,
+  memberIds: number[],
+  q: QueuedChanges
+): ListItem[] {
+  const byId = new Map(list.map((i) => [i.id, i]));
+  for (const { mutation } of q.queue) {
+    if (mutation.type === "item.create") {
+      // Already here when the server applied it and the answer is still on its way
+      if (mutation.bucketId !== bucketId || byId.has(mutation.id)) continue;
+      const sortOrder = Math.max(-1, ...[...byId.values()].map((i) => i.sortOrder)) + 1;
+      byId.set(mutation.id, provisional(mutation, bucketId, sortOrder, memberIds, q));
+    } else if (mutation.type === "item.patch") {
+      const item = byId.get(mutation.id);
+      if (item) byId.set(mutation.id, patched(item, mutation.patch, q));
+    } else byId.delete(mutation.id);
+  }
+  return [...byId.values()];
+}
+
 export function listBucketItems(
   records: StoredRecord[],
   bucketId: number,
-  sortBy: NonNullable<ItemsRules["sortBy"]>
+  sortBy: NonNullable<ItemsRules["sortBy"]>,
+  queued?: QueuedChanges
 ): ListItem[] {
   const members = new Set<number>();
   const reminders = new Map<string, ReminderData>();
@@ -79,7 +195,8 @@ export function listBucketItems(
       assigneeIds: r.data.assigneeIds.filter((id) => members.has(id)),
     });
   }
-  return listed.sort(ORDERS[sortBy]);
+  const shown = queued ? withQueuedChanges(listed, bucketId, [...members], queued) : listed;
+  return shown.sort(ORDERS[sortBy]);
 }
 
 // What can be known on the device: whether a reminder is coming. A failed delivery and a missing

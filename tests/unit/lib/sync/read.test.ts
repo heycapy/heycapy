@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { recordKey } from "@/lib/sync/client/apply";
-import { listBucketItems, localBadges, withServerBadges } from "@/lib/sync/client/read";
-import type { StoredRecord, WireRecord } from "@/lib/sync/client/types";
+import {
+  listBucketItems,
+  localBadges,
+  withServerBadges,
+  type QueuedChanges,
+} from "@/lib/sync/client/read";
+import type { NewMutation, StoredRecord, WireRecord } from "@/lib/sync/client/types";
 
 type ItemData = Extract<WireRecord, { entity: "item" }>["data"];
 
@@ -203,5 +208,118 @@ describe("badges", () => {
       [id(9)]: "failed",
     });
     expect(merged).toEqual({ [id(1)]: "failed", [id(2)]: "history", [id(3)]: "history" });
+  });
+});
+
+describe("changes not sent yet", () => {
+  const NOW = new Date("2026-03-12T10:00:00.000Z");
+  const queued = (...mutations: NewMutation[]): QueuedChanges => ({
+    queue: mutations.map((mutation, i) => ({ seq: i + 1, sent: false, mutation })),
+    userId: 1,
+    zone: "UTC",
+    now: NOW,
+  });
+  const create = (n: number, over: Record<string, unknown> = {}): NewMutation =>
+    ({
+      type: "item.create",
+      id: id(n),
+      bucketId: 1,
+      title: ` new ${n} `,
+      deadline: null,
+      ...over,
+    }) as NewMutation;
+  const patch = (n: number, p: Record<string, unknown>): NewMutation =>
+    ({ type: "item.patch", id: id(n), patch: p }) as NewMutation;
+  const list = (records: StoredRecord[], q: QueuedChanges) =>
+    listBucketItems(records, 1, "manual", q);
+
+  it("shows a created item at the end of the list, for everyone in the bucket", () => {
+    const rows = list([item(1), member(10, 1), member(11, 2)], queued(create(2)));
+    expect(rows.map((i) => i.id)).toEqual([id(1), id(2)]);
+    expect(rows[1]).toMatchObject({
+      title: "new 2",
+      sortOrder: 2,
+      status: "active",
+      userId: 1,
+      assigneeIds: [1, 2],
+      createdAt: NOW,
+    });
+  });
+
+  it("reads a created item's date on the clock it was set on", () => {
+    const [row] = list([], queued(create(1, { deadline: "2026-04-01", clock: "Asia/Kolkata" })));
+    expect(row.deadlineTimezone).toBe("Asia/Kolkata");
+    expect(row.deadline).toEqual(new Date("2026-03-31T18:30:00.000Z"));
+  });
+
+  it("shows an edit, a tick and a delete over the synced rows", () => {
+    const rows = list(
+      [item(1), item(2), item(3)],
+      queued(
+        patch(1, { title: " renamed ", description: "a note" }),
+        patch(2, { status: "completed" }),
+        { type: "item.delete", id: id(3) }
+      )
+    );
+    expect(rows.map((i) => i.id)).toEqual([id(1), id(2)]);
+    expect(rows[0]).toMatchObject({ title: "renamed", description: "a note", updatedAt: NOW });
+    expect(rows[1]).toMatchObject({ status: "completed", completedAt: NOW, completedBy: 1 });
+  });
+
+  it("an untick clears who completed it", () => {
+    const [row] = list(
+      [item(1, { status: "completed", completedAt: "2026-03-11T00:00:00.000Z", completedBy: 2 })],
+      queued(patch(1, { status: "active" }))
+    );
+    expect(row).toMatchObject({ status: "active", completedAt: null, completedBy: null });
+  });
+
+  it("saving a completed item as completed again keeps who completed it and when", () => {
+    const [row] = list(
+      [item(1, { status: "completed", completedAt: "2026-03-11T00:00:00.000Z", completedBy: 2 })],
+      queued(patch(1, { status: "completed" }))
+    );
+    expect(row).toMatchObject({
+      completedAt: new Date("2026-03-11T00:00:00.000Z"),
+      completedBy: 2,
+    });
+  });
+
+  it("applies several edits in the order they were made", () => {
+    const [row] = list(
+      [item(1)],
+      queued(patch(1, { title: "a" }), patch(1, { title: "b", assigneeIds: [4] }))
+    );
+    expect(row).toMatchObject({ title: "b", assigneeIds: [4] });
+  });
+
+  it("an edit that clears the date and one that sets it", () => {
+    const rows = list(
+      [item(1, { deadline: "2026-04-01T09:00:00.000Z", deadlineTimezone: "UTC" }), item(2)],
+      queued(patch(1, { deadline: null }), patch(2, { deadline: "2026-05-01T08:00:00" }))
+    );
+    expect(rows[0]).toMatchObject({ deadline: null, deadlineTimezone: null });
+    expect(rows[1].deadline).toEqual(new Date("2026-05-01T08:00:00.000Z"));
+  });
+
+  it("does not add a created item the synced rows already have, but still applies its edits", () => {
+    const rows = list(
+      [item(1, { title: "from server" })],
+      queued(create(1), patch(1, { title: "edited" }))
+    );
+    expect(rows).toHaveLength(1);
+    expect(rows[0].title).toBe("edited");
+    expect(rows[0].createdAt).toEqual(new Date("2026-03-10T12:00:00.000Z"));
+  });
+
+  it("ignores a change to an item that is not in this list", () => {
+    const rows = list([item(1)], queued(patch(9, { title: "x" }), create(5, { bucketId: 2 })));
+    expect(rows.map((i) => i.id)).toEqual([id(1)]);
+  });
+
+  it("a change the server refused stops showing once it leaves the queue", () => {
+    const records = [item(1, { title: "kept" })];
+    expect(list(records, queued(patch(1, { title: "refused" })))[0].title).toBe("refused");
+    expect(list(records, queued())[0].title).toBe("kept");
   });
 });
