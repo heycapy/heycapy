@@ -77,13 +77,11 @@ describe("the item helpers join a surrounding transaction", () => {
 
   it("ticking a repeating item and the next occurrence it creates are undone together", async () => {
     const { userId, id } = await recurringItem();
-    const item = db.select().from(items).where(eq(items.id, id)).get();
-    expect(item).toBeDefined();
     const before = snapshot();
 
     expect(() =>
       db.transaction((tx) => {
-        toggleItemCompleted(tx, item as typeof items.$inferSelect, userId, T0);
+        toggleItemCompleted(tx, userId, id, T0);
         expect(tx.select().from(items).all().length).toBe(before.items.length + 1);
         throw boom;
       })
@@ -127,11 +125,10 @@ describe("the item helpers join a surrounding transaction", () => {
 
   it("keeps everything when nothing fails, and the work is numbered as it commits", async () => {
     const { userId, id } = await recurringItem();
-    const item = db.select().from(items).where(eq(items.id, id)).get();
     const before = snapshot();
 
     db.transaction((tx) => {
-      toggleItemCompleted(tx, item as typeof items.$inferSelect, userId, T0);
+      toggleItemCompleted(tx, userId, id, T0);
     });
 
     const after = snapshot();

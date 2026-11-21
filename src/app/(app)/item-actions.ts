@@ -379,10 +379,9 @@ export async function assignItemAction(
 export async function completeItemAction(itemId: ItemId): Promise<ActionResult> {
   const session = await requireSession();
 
-  const item = findAccessibleItem(db, session.userId, itemId);
-  if (!item) return { ok: false, error: ITEM_GONE_ERROR };
-
-  toggleItemCompleted(db, item, session.userId);
+  if (!toggleItemCompleted(db, session.userId, itemId)) {
+    return { ok: false, error: ITEM_GONE_ERROR };
+  }
 
   revalidatePath("/");
   return { ok: true };

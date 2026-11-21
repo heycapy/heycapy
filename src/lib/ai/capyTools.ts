@@ -789,10 +789,8 @@ async function executeToolCallInner(
 
     case "complete_item": {
       const itemId = parseItemId(args.item_id);
-      const item = itemId && findAccessibleItem(db, userId, itemId);
-      if (!itemId || !item) return JSON.stringify({ ok: false, error: "Item not found" });
-
-      const newStatus = toggleItemCompleted(db, item, userId);
+      const newStatus = itemId && toggleItemCompleted(db, userId, itemId);
+      if (!newStatus) return JSON.stringify({ ok: false, error: "Item not found" });
 
       revalidatePath("/");
       return JSON.stringify({ ok: true, newStatus });
