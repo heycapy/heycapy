@@ -47,6 +47,7 @@ export function BucketsShell({
   const newBucketId = useUIStore((s) => s.newBucketId);
   const clearNewBucket = useUIStore((s) => s.clearNewBucket);
   const focusMode = useUIStore((s) => s.focusMode);
+  const offline = useUIStore((s) => s.offline);
   const todayOpen = useUIStore((s) => s.todayOpen);
   // The open view is remembered per session, wait for it rather than flash the default
   const hydrated = useSyncExternalStore(
@@ -93,6 +94,7 @@ export function BucketsShell({
   useEffect(() => {
     if (addItemRequest === handledAddRequest.current) return;
     handledAddRequest.current = addItemRequest;
+    if (useUIStore.getState().offline) return;
     const { todayOpen: onToday, activeBucketId: current } = useUIStore.getState();
     const shown = buckets.find((b) => b.id === current) ?? buckets[0];
     const target = shown && writable(shown) ? shown : onToday ? buckets.find(writable) : undefined;
@@ -144,7 +146,7 @@ export function BucketsShell({
     writableBuckets.find((b) => b.id === todayAddId) ??
     (writable(activeBucket) ? activeBucket : writableBuckets[0]);
   const footerBucket = todayOpen ? (todayTarget ?? null) : activeBucket;
-  const canAddItem = footerBucket !== null && writable(footerBucket);
+  const canAddItem = !offline && footerBucket !== null && writable(footerBucket);
 
   const view = todayOpen ? (
     <TodayView seed={seed} onSeedUsed={dropSeed} />

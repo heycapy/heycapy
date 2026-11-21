@@ -47,7 +47,8 @@ export function BucketContent({ bucket, accentColor, viewRef, onAddClosed }: Buc
   const fields = parseFields(bucket.fieldSchema);
   const defaultStatus =
     statuses.find((s) => s.isDefault)?.name ?? statuses[0]?.name ?? ITEM_STATUS.active;
-  const readonly = rules.readonly === true;
+  const offline = useUIStore((s) => s.offline);
+  const readonly = rules.readonly === true || offline;
   const bucketReminders = parseNotificationRules(bucket.notificationsRules).defaultReminders;
   const bucketName = bucket.icon ? `${bucket.icon} ${bucket.name}` : bucket.name;
   const framed = useLookParts().listFrame === "framed";

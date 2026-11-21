@@ -1,6 +1,14 @@
 import { test, expect, type Page } from "@playwright/test";
 import { authState } from "../helpers/auth";
-import { addItem, createAndSelectBucket, itemRow, uniqueName } from "../helpers/buckets";
+import {
+  addItem,
+  addItemButton,
+  createAndSelectBucket,
+  itemRow,
+  itemTick,
+  openItemMenu,
+  uniqueName,
+} from "../helpers/buckets";
 
 test.use({ storageState: authState("offline") });
 
@@ -70,4 +78,33 @@ test("logging out deletes the saved copy", async ({ page }) => {
   await expect(page).toHaveURL(/\/login$/);
 
   await expect.poll(() => snapshotExists(page)).toBe(false);
+});
+
+test("offline the list can be read but not changed, and comes back when online", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await createAndSelectBucket(page, uniqueName("read only"));
+  const title = uniqueName("kept item");
+  await addItem(page, title);
+
+  await page.route("**/*", (route) =>
+    route.request().headers()["next-action"] ? route.abort() : route.continue()
+  );
+  await page.reload();
+  await expect(banner(page)).toBeVisible();
+  await expect(itemRow(page, title)).toBeVisible();
+
+  await expect(addItemButton(page)).toHaveCount(0);
+  await expect(itemTick(page, title)).toBeDisabled();
+  const menu = await openItemMenu(page, title);
+  await expect(menu.getByRole("button", { name: "delete" })).toHaveCount(0);
+  await expect(menu.getByRole("button", { name: "copy title" })).toBeVisible();
+  await page.keyboard.press("Escape");
+
+  await page.unroute("**/*");
+  await page.reload();
+  await expect(banner(page)).toHaveCount(0);
+  await expect(addItemButton(page)).toBeVisible();
+  await expect(itemTick(page, title)).toBeEnabled();
 });

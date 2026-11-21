@@ -8,6 +8,8 @@ import type { InlineDraft } from "@/lib/items/edit-draft";
 import type { FieldDef, StatusDef } from "@/types/rules";
 import { EMPTY_DRAFT, isEmptyDraft, useDraftStore, type ItemDraft } from "@/store/drafts";
 import { useUIStore } from "@/store/ui";
+import { reach } from "@/hooks/connectivity";
+import { UNSAVED_OFFLINE } from "@/hooks/constants";
 import { resolveAssignees } from "./assignee";
 import { InlineEditorLayout } from "./InlineEditorLayout";
 import { TickBox } from "./TickBox";
@@ -90,24 +92,26 @@ export function NewItemEditor({
     const restore = { ...EMPTY_DRAFT, ...toStored(sent, true) };
     clearDraft(bucketId);
     void (async () => {
-      const result = await addItemAction(
-        bucketId,
-        titleToAdd(sent.title).trim(),
-        sent.deadline || null,
-        stored.status ?? defaultStatus,
-        sent.recurring,
-        Object.keys(sent.properties).length > 0 ? sent.properties : null,
-        sent.reminders,
-        restore.assigneeIds ?? undefined,
-        clock.clock,
-        sent.description.trim() || undefined
+      const result = await reach(
+        addItemAction(
+          bucketId,
+          titleToAdd(sent.title).trim(),
+          sent.deadline || null,
+          stored.status ?? defaultStatus,
+          sent.recurring,
+          Object.keys(sent.properties).length > 0 ? sent.properties : null,
+          sent.reminders,
+          restore.assigneeIds ?? undefined,
+          clock.clock,
+          sent.description.trim() || undefined
+        )
       );
-      if (result.ok) {
+      if (result?.ok) {
         markAdded(result.id);
         onAdded();
         return;
       }
-      notify.error(result.error);
+      notify.error(result ? result.error : UNSAVED_OFFLINE);
       const current = useDraftStore.getState().drafts[bucketId];
       if (!current || isEmptyDraft(current)) updateDraft(bucketId, restore);
     })();

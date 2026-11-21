@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useUIStore } from "@/store/ui";
 import { notify } from "@/components/ui/notify";
 import { cn } from "@/lib/utils";
 import { useLookParts } from "@/components/looks/LookProvider";
@@ -47,6 +48,7 @@ export function CrossBucketList({
 }: CrossBucketListProps) {
   const [menu, setMenu] = useState<{ item: Item; at: MenuAt } | null>(null);
   const { openId, focus, open, close } = useOpenItem();
+  const offline = useUIStore((s) => s.offline);
   const framed = useLookParts().listFrame === "framed";
   const statuses = DEFAULT_BUCKET_STATUSES;
   const bucketOf = (item: Item) => data?.buckets.find((b) => b.id === item.bucketId);
@@ -86,7 +88,7 @@ export function CrossBucketList({
 
   function row(item: Item) {
     const bucket = bucketOf(item);
-    const readonly = bucket?.readonly === true;
+    const readonly = bucket?.readonly === true || offline;
     const color = bucket && bucketColor(bucket.index);
     const assignees = data?.assignees[item.id];
     if (bucket && openId === item.id) {
@@ -162,7 +164,7 @@ export function CrossBucketList({
         <ItemMenu
           item={menu.item}
           at={menu.at}
-          readonly={bucketOf(menu.item)?.readonly === true}
+          readonly={bucketOf(menu.item)?.readonly === true || offline}
           reminderBadge={data?.reminderBadges[menu.item.id]}
           nextReminderAt={menuItem?.nextReminderAt}
           completeLabel={completionToggle(menu.item.status, statuses).label}
