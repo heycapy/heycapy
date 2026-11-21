@@ -3,7 +3,13 @@ import { and, eq } from "drizzle-orm";
 import type * as SessionModule from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { itemAssignees, items, syncDevices, users } from "@/lib/db/schema";
-import { ITEM_GONE_ERROR, ITEM_STATUS, PUSH_MAX_MUTATIONS } from "@/constants";
+import {
+  ITEM_GONE_ERROR,
+  ITEM_STATUS,
+  PUSH_MAX_MUTATIONS,
+  SYNC_PROTOCOL_HEADER,
+  SYNC_PROTOCOL_VERSION,
+} from "@/constants";
 import { newItemId } from "@/lib/items/item-id";
 import { applyPush } from "@/lib/sync/push";
 import { POST } from "@/app/api/v1/sync/push/route";
@@ -300,10 +306,11 @@ describe("sync_devices", () => {
 });
 
 describe("POST /api/v1/sync/push", () => {
-  const post = (body: unknown) =>
+  const post = (body: unknown, version: string | null = String(SYNC_PROTOCOL_VERSION)) =>
     POST(
       new Request("http://localhost/api/v1/sync/push", {
         method: "POST",
+        headers: version === null ? {} : { [SYNC_PROTOCOL_HEADER]: version },
         body: typeof body === "string" ? body : JSON.stringify(body),
       })
     );
@@ -349,6 +356,23 @@ describe("POST /api/v1/sync/push", () => {
     ];
     for (const body of bad) expect((await post(body)).status).toBe(400);
     expect(lastSeqOf(owner, device)).toBeUndefined();
+  });
+
+  it("wants the protocol version, and answers 426 to one that is no longer served", async () => {
+    const { owner, bucketId } = await setup();
+    session.userId = owner;
+    const id = newItemId();
+    const body = {
+      deviceId: crypto.randomUUID(),
+      mutations: [{ seq: 1, type: "item.create", id, bucketId, title: "a", deadline: null }],
+    };
+
+    expect((await post(body, null)).status).toBe(400);
+    expect((await post(body, "soon")).status).toBe(400);
+    const old = await post(body, "0");
+    expect(old.status).toBe(426);
+    expect(await old.json()).toMatchObject({ minProtocol: 1 });
+    expect(itemOf(id)).toBeUndefined();
   });
 
   it("answers 413 to a body that is too large", async () => {

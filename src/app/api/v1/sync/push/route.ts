@@ -3,6 +3,7 @@ import { requireApiSession } from "@/lib/auth/session";
 import { PUSH_MAX_BYTES } from "@/constants";
 import { PushEnvelope } from "@/lib/sync/protocol";
 import { applyPush } from "@/lib/sync/push";
+import { checkProtocol } from "@/lib/sync/version";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -10,6 +11,8 @@ export const dynamic = "force-dynamic";
 export async function POST(request: Request) {
   const [session, authErr] = await requireApiSession();
   if (authErr) return authErr;
+  const gate = checkProtocol(request);
+  if (gate) return gate;
 
   const text = await request.text();
   if (text.length > PUSH_MAX_BYTES) return Response.json({ error: "Too large" }, { status: 413 });

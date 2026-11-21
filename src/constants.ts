@@ -32,6 +32,12 @@ export const TRASH_RETENTION_DAYS = 30;
 export const TOMBSTONE_RETENTION_DAYS = 90;
 export const PUSH_MAX_MUTATIONS = 100;
 export const PUSH_MAX_BYTES = 1_000_000;
+export const PULL_DEFAULT_LIMIT = 500;
+export const PULL_MAX_LIMIT = 1000;
+export const SYNC_PROTOCOL_VERSION = 1;
+export const SYNC_MIN_PROTOCOL_VERSION = 1;
+export const SYNC_SCHEMA_VERSION = 1;
+export const SYNC_PROTOCOL_HEADER = "x-sync-protocol";
 export const TODAY_FETCH_AHEAD_DAYS = 1;
 export const SEARCH_RESULTS_MAX = 50;
 
