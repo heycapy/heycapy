@@ -13,6 +13,7 @@ import { ITEM_GONE_ERROR } from "@/constants";
 import type { RecurringConfig } from "@/types/rules";
 import type { ItemPatch } from "@/lib/items/edit-draft";
 import { skipOccurrence } from "@/lib/items/recurrence";
+import { reorderItems } from "@/lib/items/reorder";
 import { addItem } from "@/lib/items/add";
 import { updateItem } from "@/lib/items/update";
 import { assignItem } from "@/lib/items/assign";
@@ -20,7 +21,7 @@ import { moveItem } from "@/lib/items/move";
 import { cancelRemindAgain } from "@/lib/reminders/quick-actions";
 import { toggleItemCompleted } from "@/lib/items/complete";
 import { deleteItem } from "@/lib/items/delete";
-import { bucketsChanged, dataEvents } from "@/lib/events";
+import { dataEvents } from "@/lib/events";
 import {
   getItemReminderInfo,
   getReminderBadges,
@@ -196,21 +197,9 @@ export async function reorderItemsAction(
 ): Promise<ActionResult> {
   const session = await requireSession();
 
-  const bucket = findAccessibleBucket(db, session.userId, bucketId);
-  if (!bucket) return { ok: false, error: "Bucket not found" };
-
-  await Promise.all(
-    orderedIds.map((id, i) =>
-      db
-        .update(items)
-        .set({ sortOrder: i })
-        .where(and(eq(items.id, id), eq(items.bucketId, bucketId)))
-    )
-  );
-  bucketsChanged([bucketId]);
-
-  revalidatePath("/");
-  return { ok: true };
+  const result = reorderItems(db, session.userId, bucketId, orderedIds);
+  if (result.ok) revalidatePath("/");
+  return result;
 }
 
 export async function deleteItemAction(itemId: ItemId): Promise<ActionResult> {
