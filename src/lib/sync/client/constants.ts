@@ -17,3 +17,4 @@ export const SYNC_CHANNEL = "heycapy-sync";
 
 export const RETRY_BASE_MS = 2_000;
 export const RETRY_MAX_MS = 5 * 60_000;
+export const SYNC_NOW_TIMEOUT_MS = 20_000;

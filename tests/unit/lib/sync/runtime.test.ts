@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { RETRY_BASE_MS, RETRY_MAX_MS } from "@/lib/sync/client/constants";
+import { RETRY_BASE_MS, RETRY_MAX_MS, SYNC_NOW_TIMEOUT_MS } from "@/lib/sync/client/constants";
 import type { SyncOutcome } from "@/lib/sync/client/engine";
 import { createSyncRuntime, retryDelay } from "@/lib/sync/client/runtime";
 
@@ -219,5 +219,131 @@ describe("the sync runtime", () => {
     await vi.advanceTimersByTimeAsync(0);
     a.stop();
     expect(() => a.trigger()).not.toThrow();
+  });
+});
+
+describe("syncNow", () => {
+  // A round that waits until the test lets it finish
+  function gated(statuses: SyncOutcome["status"][]) {
+    const locks = fakeLocks();
+    const createChannel = fakeChannels();
+    const gates: (() => void)[] = [];
+    const started: number[] = [];
+    const make = () => {
+      let n = 0;
+      return createSyncRuntime({
+        userId: 1,
+        transport: vi.fn(),
+        locks,
+        createChannel,
+        round: async () => {
+          const index = n++;
+          started.push(index);
+          await new Promise<void>((resolve) => gates.push(resolve));
+          return { status: statuses[Math.min(index, statuses.length - 1)], rejected: [] };
+        },
+      });
+    };
+    const finish = async () => {
+      gates.shift()?.();
+      await vi.advanceTimersByTimeAsync(0);
+    };
+    return { make, finish, started };
+  }
+
+  it("resolves with the status of a round that started after the call", async () => {
+    const { make, finish, started } = gated(["ok", "retry"]);
+    const a = make();
+    void a.start();
+    await vi.advanceTimersByTimeAsync(0);
+    // The first round is already running: it may have read before what was just written
+    const answered = vi.fn();
+    void a.syncNow().then(answered);
+    await finish();
+    expect(answered).not.toHaveBeenCalled();
+    await finish();
+    expect(started).toEqual([0, 1]);
+    expect(answered).toHaveBeenCalledWith("retry");
+    a.stop();
+  });
+
+  it("a tab that does not sync gets the answer from the one that does", async () => {
+    const { make, finish } = gated(["ok", "ok"]);
+    const a = make();
+    const b = make();
+    void a.start();
+    void b.start();
+    await vi.advanceTimersByTimeAsync(0);
+    await finish();
+    const answered = vi.fn();
+    void b.syncNow().then(answered);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(answered).not.toHaveBeenCalled();
+    await finish();
+    expect(answered).toHaveBeenCalledWith("ok");
+    a.stop();
+    b.stop();
+  });
+
+  it("a tab that is asked mid-round is answered by the following round", async () => {
+    const { make, finish } = gated(["ok", "ok", "ok"]);
+    const a = make();
+    const b = make();
+    void a.start();
+    void b.start();
+    await vi.advanceTimersByTimeAsync(0);
+    const answered = vi.fn();
+    void b.syncNow().then(answered);
+    await finish();
+    expect(answered).not.toHaveBeenCalled();
+    await finish();
+    expect(answered).toHaveBeenCalledTimes(1);
+    a.stop();
+    b.stop();
+  });
+
+  it("gives up when nobody answers", async () => {
+    const lonely = createSyncRuntime({
+      userId: 1,
+      transport: vi.fn(),
+      locks: {
+        request: () => new Promise<void>(() => {}),
+      } as unknown as Pick<LockManager, "request">,
+      createChannel: fakeChannels(),
+      round: async () => ok,
+    });
+    const answered = vi.fn();
+    void lonely.syncNow().then(answered);
+    await vi.advanceTimersByTimeAsync(SYNC_NOW_TIMEOUT_MS);
+    expect(answered).toHaveBeenCalledWith("retry");
+    lonely.stop();
+  });
+
+  it("a request made before this tab became the leader is answered by its first round", async () => {
+    const { make, finish } = gated(["ok"]);
+    const a = make();
+    const answered = vi.fn();
+    void a.syncNow().then(answered);
+    void a.start();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(answered).not.toHaveBeenCalled();
+    await finish();
+    expect(answered).toHaveBeenCalledWith("ok");
+    a.stop();
+  });
+
+  it("resolves a waiting call when the runtime is stopped", async () => {
+    const { make } = gated(["ok"]);
+    const a = make();
+    const b = make();
+    void a.start();
+    void b.start();
+    await vi.advanceTimersByTimeAsync(0);
+    const answered = vi.fn();
+    void b.syncNow().then(answered);
+    b.stop();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(answered).toHaveBeenCalledWith("retry");
+    a.stop();
   });
 });
