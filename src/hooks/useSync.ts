@@ -6,6 +6,21 @@ import { createSyncRuntime } from "@/lib/sync/client/runtime";
 type Runtime = ReturnType<typeof createSyncRuntime>;
 
 let current: Runtime | null = null;
+const changeListeners = new Set<() => void>();
+
+// Whenever the local data may have changed, from a round here or in another tab. A reader can
+// subscribe before the runtime exists, effects run children first
+export function subscribeToChanges(listener: () => void) {
+  changeListeners.add(listener);
+  return () => {
+    changeListeners.delete(listener);
+  };
+}
+
+// Ask for a round and wait until one that started after this call has finished
+export async function syncNow() {
+  return (await current?.syncNow()) ?? "retry";
+}
 
 // For whatever changes the local data: ask for a round now
 export function requestSync() {
@@ -29,8 +44,14 @@ export function useSync(userId: number) {
       transport: browserTransport,
       locks: navigator.locks,
       createChannel: (name) => new BroadcastChannel(name),
+      // The calls that run on their own are what tell whether the server can be reached
+      onOutcome: ({ status }) => {
+        if (status === "ok" || status === "retry")
+          useUIStore.getState().setOffline(status === "retry");
+      },
     });
     current = runtime;
+    const unsubscribe = runtime.subscribe(() => changeListeners.forEach((l) => l()));
     runtime.start().catch(() => {});
 
     const wake = () => runtime.trigger();
@@ -42,6 +63,7 @@ export function useSync(userId: number) {
     return () => {
       window.removeEventListener("online", wake);
       document.removeEventListener("visibilitychange", resume);
+      unsubscribe();
       runtime.stop();
       if (current === runtime) current = null;
     };

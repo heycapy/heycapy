@@ -12,6 +12,14 @@ import {
 
 test.use({ storageState: authState("offline") });
 
+// Server actions and the sync calls are what reach the server: the page itself still loads
+const blockServer = (page: Page) =>
+  page.route("**/*", (route) => {
+    const request = route.request();
+    const isSync = new URL(request.url()).pathname.startsWith("/api/v1/sync/");
+    return request.headers()["next-action"] || isSync ? route.abort() : route.continue();
+  });
+
 const banner = (page: Page) => page.getByRole("status").filter({ hasText: "can't reach heycapy" });
 
 test("going offline shows the notice and coming back removes it", async ({ page, context }) => {
@@ -30,9 +38,7 @@ test("a list that can't load shows the notice, and a later load removes it", asy
   await page.goto("/");
   await createAndSelectBucket(page, uniqueName("offline"));
 
-  await page.route("**/*", (route) =>
-    route.request().headers()["next-action"] ? route.abort() : route.continue()
-  );
+  await blockServer(page);
   await page.reload();
   await expect(banner(page)).toBeVisible();
 
@@ -42,10 +48,8 @@ test("a list that can't load shows the notice, and a later load removes it", asy
   await expect(banner(page)).toHaveCount(0);
 });
 
-const snapshotExists = (page: Page) =>
-  page.evaluate(async () =>
-    (await indexedDB.databases()).some((db) => db.name === "heycapy-snapshot")
-  );
+const syncDatabaseExists = (page: Page) =>
+  page.evaluate(async () => (await indexedDB.databases()).some((db) => db.name === "heycapy-sync"));
 
 test("a bucket opens from the saved copy when its list can't be loaded", async ({ page }) => {
   await page.goto("/");
@@ -54,20 +58,18 @@ test("a bucket opens from the saved copy when its list can't be loaded", async (
   await addItem(page, title);
   await expect(itemRow(page, title)).toBeVisible();
 
-  await page.route("**/*", (route) =>
-    route.request().headers()["next-action"] ? route.abort() : route.continue()
-  );
+  await blockServer(page);
   await page.reload();
 
   await expect(itemRow(page, title)).toBeVisible();
   await expect(banner(page)).toBeVisible();
 });
 
-test("logging out deletes the saved copy", async ({ page }) => {
+test("logging out deletes the copy on the device", async ({ page }) => {
   await page.goto("/");
   await createAndSelectBucket(page, uniqueName("snapshot"));
   await addItem(page, uniqueName("saved item"));
-  await expect.poll(() => snapshotExists(page)).toBe(true);
+  await expect.poll(() => syncDatabaseExists(page)).toBe(true);
 
   await page.getByRole("button", { name: "your menu", exact: true }).click();
   await page.getByRole("button", { name: "logout", exact: true }).click();
@@ -77,7 +79,7 @@ test("logging out deletes the saved copy", async ({ page }) => {
     .click();
   await expect(page).toHaveURL(/\/login$/);
 
-  await expect.poll(() => snapshotExists(page)).toBe(false);
+  await expect.poll(() => syncDatabaseExists(page)).toBe(false);
 });
 
 test("offline the list can be read but not changed, and comes back when online", async ({
@@ -88,9 +90,7 @@ test("offline the list can be read but not changed, and comes back when online",
   const title = uniqueName("kept item");
   await addItem(page, title);
 
-  await page.route("**/*", (route) =>
-    route.request().headers()["next-action"] ? route.abort() : route.continue()
-  );
+  await blockServer(page);
   await page.reload();
   await expect(banner(page)).toBeVisible();
   await expect(itemRow(page, title)).toBeVisible();

@@ -4,6 +4,7 @@ const ASSET_CACHE = "heycapy-assets";
 const PAGE_CACHE = "heycapy-page";
 const PAGE_KEY = "/";
 const OFFLINE_PAGE = "/offline.html";
+// What builds before the sync engine kept the lists in, still on devices that used them
 const SNAPSHOT_DB = "heycapy-snapshot";
 const SYNC_DB = "heycapy-sync";
 const ASSET_MAX_ENTRIES = 300;

@@ -5,7 +5,7 @@ import { db } from "@/lib/db";
 import { bucketMembers, buckets } from "@/lib/db/schema";
 import { listLiveBuckets } from "@/lib/buckets/access";
 import { listToday, searchItems } from "@/lib/items/today";
-import { getItemsForBucketAction } from "@/app/(app)/item-actions";
+import { getReminderBadgesAction } from "@/app/(app)/item-actions";
 import { HOUR, seedBucket, seedItem, seedUser } from "./helpers";
 
 const session = vi.hoisted(() => ({ userId: 0, email: "" }));
@@ -72,10 +72,9 @@ describe("a member of a shared bucket", () => {
     });
   });
 
-  it("gets the items of the bucket from the items action", async () => {
+  it("gets the reminder badges of the bucket from the badges action", async () => {
     session.userId = friend;
-    const result = await getItemsForBucketAction(bucketId);
-    expect(result.ok && titles(result.items).sort()).toEqual(["pay rent", "rent receipt"]);
+    expect(await getReminderBadgesAction(bucketId)).toMatchObject({ ok: true });
   });
 });
 
@@ -85,7 +84,7 @@ describe("someone who is not a member", () => {
     expect((await searchItems(stranger, "rent")).items).toEqual([]);
     expect(await listLiveBuckets(stranger)).toEqual([]);
     session.userId = stranger;
-    expect(await getItemsForBucketAction(bucketId)).toMatchObject({ ok: false });
+    expect(await getReminderBadgesAction(bucketId)).toMatchObject({ ok: false });
   });
 
   it("is what a member becomes once removed", async () => {
@@ -96,6 +95,6 @@ describe("someone who is not a member", () => {
     expect((await listToday(friend, NOW)).items).toEqual([]);
     expect(await listLiveBuckets(friend)).toEqual([]);
     session.userId = friend;
-    expect(await getItemsForBucketAction(bucketId)).toMatchObject({ ok: false });
+    expect(await getReminderBadgesAction(bucketId)).toMatchObject({ ok: false });
   });
 });

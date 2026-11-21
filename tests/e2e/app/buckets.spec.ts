@@ -108,20 +108,21 @@ test.describe("items", () => {
     await expect(page.getByText(ITEM_GONE_ERROR)).toBeVisible();
   });
 
-  test("says so when an item is gone before it is deleted", async ({ page, context }) => {
+  test("says so when an item is gone before it is deleted", async ({ page, browser }) => {
     const bucket = uniqueName("Gone");
     const title = uniqueName("buy oat milk");
-    await page.route("**/api/events", (route) => route.abort());
-    await page.reload();
     await createAndSelectBucket(page, bucket);
     await addItem(page, title);
+    // This tab stops hearing from the server, so its list still shows the item
+    await page.route(/\/api\/(events|v1\/sync\/)/, (route) => route.abort());
 
-    const other = await context.newPage();
+    const elsewhere = await browser.newContext({ storageState: authState("buckets") });
+    const other = await elsewhere.newPage();
     await other.goto("/");
     await selectBucket(other, bucket);
     await deleteFromMenu(other, title);
     await expect(itemRow(other, title)).not.toBeVisible();
-    await other.close();
+    await elsewhere.close();
 
     await deleteFromMenu(page, title);
     await expect(page.getByText(ITEM_GONE_ERROR)).toBeVisible();

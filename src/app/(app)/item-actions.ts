@@ -2,9 +2,8 @@
 
 import type { ItemId } from "@/types/ids";
 import type { ActionResult } from "@/types/result";
-import { parseItemsRules } from "@/lib/rules";
 import { revalidatePath } from "next/cache";
-import { and, asc, eq, isNull, sql } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { requireSession } from "./action-helpers";
 import { db } from "@/lib/db";
 import { items } from "@/lib/db/schema";
@@ -27,52 +26,25 @@ import {
   getReminderBadges,
   withViewerReminders,
   type ItemReminderInfo,
-  type ListItem,
   type ReminderBadge,
 } from "@/lib/reminders/status";
 
-export async function getItemsForBucketAction(bucketId: number): Promise<
-  ActionResult<{
-    items: ListItem[];
-    reminderBadges: Record<ItemId, ReminderBadge>;
-  }>
-> {
+// Delivery failures and missing channels live on the server, so the list asks for them apart from
+// the items, which it reads from the device
+export async function getReminderBadgesAction(
+  bucketId: number
+): Promise<ActionResult<{ reminderBadges: Record<ItemId, ReminderBadge> }>> {
   const session = await requireSession();
 
   const bucket = findAccessibleBucket(db, session.userId, bucketId);
   if (!bucket) return { ok: false, error: "Bucket not found" };
 
-  const sortBy = parseItemsRules(bucket.itemsRules).sortBy ?? "manual";
-
-  const condition = and(eq(items.bucketId, bucketId), isNull(items.deletedAt));
-
-  const result =
-    sortBy === "deadline"
-      ? await db
-          .select()
-          .from(items)
-          .where(condition)
-          .orderBy(
-            sql`${items.deadline} IS NULL`,
-            asc(items.deadline),
-            asc(items.createdAt),
-            asc(items.id)
-          )
-      : sortBy === "created_at"
-        ? await db
-            .select()
-            .from(items)
-            .where(condition)
-            .orderBy(asc(items.createdAt), asc(items.id))
-        : await db
-            .select()
-            .from(items)
-            .where(condition)
-            .orderBy(asc(items.sortOrder), asc(items.createdAt), asc(items.id));
-
-  const viewed = await withViewerReminders(session.userId, result);
-  const reminderBadges = await getReminderBadges(session.userId, bucket.id, viewed);
-  return { ok: true, items: viewed, reminderBadges };
+  const rows = await db
+    .select()
+    .from(items)
+    .where(and(eq(items.bucketId, bucketId), isNull(items.deletedAt)));
+  const viewed = await withViewerReminders(session.userId, rows);
+  return { ok: true, reminderBadges: await getReminderBadges(session.userId, bucket.id, viewed) };
 }
 
 export async function getItemReminderInfoAction(itemId: ItemId): Promise<ItemReminderInfo | null> {
