@@ -50,7 +50,7 @@ export async function getItemsForBucketAction(bucketId: number): Promise<
 > {
   const session = await requireSession();
 
-  const bucket = await findAccessibleBucket(session.userId, bucketId);
+  const bucket = findAccessibleBucket(db, session.userId, bucketId);
   if (!bucket) return { ok: false, error: "Bucket not found" };
 
   const sortBy = parseItemsRules(bucket.itemsRules).sortBy ?? "manual";
@@ -137,9 +137,9 @@ export async function addItemAction(
     return { ok: false, error: INVALID_STATUS_ERROR };
   }
 
-  const bucket = await findAccessibleBucket(session.userId, bucketId);
+  const bucket = findAccessibleBucket(db, session.userId, bucketId);
   if (!bucket) return { ok: false, error: "Bucket not found" };
-  if (assigneeIds && !(await allAreMembers(bucketId, assigneeIds))) {
+  if (assigneeIds && !allAreMembers(db, bucketId, assigneeIds)) {
     return { ok: false, error: NOT_A_MEMBER_ERROR };
   }
 
@@ -148,7 +148,7 @@ export async function addItemAction(
     .from(items)
     .where(eq(items.bucketId, bucketId));
 
-  const due = resolveDeadline(deadline, clock ?? (await userTimezone(session.userId)));
+  const due = resolveDeadline(deadline, clock ?? userTimezone(db, session.userId));
   const parsedDeadline =
     due.deadline && due.deadlineTimezone
       ? onLastDayIfAnchored(due.deadline, recurring ?? null, due.deadlineTimezone)
@@ -174,9 +174,9 @@ export async function addItemAction(
       reminderOffsets: parsedReminders?.data ?? null,
     })
     .returning({ id: items.id });
-  if (assigneeIds) await setItemAssignees(created.id, assigneeIds);
-  else await assignEveryone(created.id, bucketId);
-  await refreshItemReminders([created.id]);
+  if (assigneeIds) setItemAssignees(db, created.id, assigneeIds);
+  else assignEveryone(db, created.id, bucketId);
+  refreshItemReminders(db, [created.id]);
 
   revalidatePath("/");
   return { ok: true, id: created.id };
@@ -222,13 +222,13 @@ async function updateItem(itemId: ItemId, patch: ItemPatch): Promise<ActionResul
   }
   if (clock && !isKnownTimezone(clock)) return { ok: false, error: UNKNOWN_CLOCK_ERROR };
 
-  const item = await findAccessibleItem(session.userId, itemId);
+  const item = findAccessibleItem(db, session.userId, itemId);
   if (!item) return { ok: false, error: ITEM_GONE_ERROR };
   // a missed item's editor sends "missed" back unchanged
   if (status !== undefined && status !== item.status && !SETTABLE_ITEM_STATUSES.includes(status)) {
     return { ok: false, error: INVALID_STATUS_ERROR };
   }
-  if (assigneeIds && !(await allAreMembers(item.bucketId, assigneeIds))) {
+  if (assigneeIds && !allAreMembers(db, item.bucketId, assigneeIds)) {
     return { ok: false, error: NOT_A_MEMBER_ERROR };
   }
 
@@ -241,8 +241,8 @@ async function updateItem(itemId: ItemId, patch: ItemPatch): Promise<ActionResul
 
   let deadlineChange = {};
   if (deadline !== undefined) {
-    const ctx = await reminderContext(item.bucketId);
-    const due = resolveDeadline(deadline, clock ?? (await userTimezone(session.userId)), item);
+    const ctx = reminderContext(db, item.bucketId);
+    const due = resolveDeadline(deadline, clock ?? userTimezone(db, session.userId), item);
     const parsedDeadline = due.deadline;
     const keepsMovedDate =
       !!item.scheduledAt &&
@@ -257,7 +257,7 @@ async function updateItem(itemId: ItemId, patch: ItemPatch): Promise<ActionResul
       deadlineTimezone: due.deadlineTimezone,
       ...(!keepsMovedDate && { scheduledAt: null }),
       ...reminderResetForDeadline(
-        { ...item, notifiedAt: await lastNotifiedAt(item.id) },
+        { ...item, notifiedAt: lastNotifiedAt(db, item.id) },
         newDeadline,
         ctx,
         new Date(),
@@ -291,9 +291,9 @@ async function updateItem(itemId: ItemId, patch: ItemPatch): Promise<ActionResul
       updatedAt: new Date(),
     })
     .where(eq(items.id, itemId));
-  if (assigneeIds) await setItemAssignees(itemId, assigneeIds);
-  await refreshItemReminders([itemId]);
-  if (nowCompleted) await createNextOccurrence(itemId);
+  if (assigneeIds) setItemAssignees(db, itemId, assigneeIds);
+  refreshItemReminders(db, [itemId]);
+  if (nowCompleted) createNextOccurrence(db, itemId);
 
   revalidatePath("/");
   return { ok: true };
@@ -328,7 +328,7 @@ export async function updateItemAction(
 
 export async function skipOccurrenceAction(itemId: ItemId): Promise<ActionResult> {
   const session = await requireSession();
-  const result = await skipOccurrence(session.userId, itemId);
+  const result = skipOccurrence(db, session.userId, itemId);
   if (result.ok) revalidatePath("/");
   return result;
 }
@@ -336,13 +336,14 @@ export async function skipOccurrenceAction(itemId: ItemId): Promise<ActionResult
 export async function moveItemAction(itemId: ItemId, deadline: string): Promise<ActionResult> {
   const session = await requireSession();
 
-  const item = await findAccessibleItem(session.userId, itemId);
+  const item = findAccessibleItem(db, session.userId, itemId);
   if (!item) return { ok: false, error: ITEM_GONE_ERROR };
 
-  const due = resolveDeadline(deadline, await userTimezone(session.userId), item);
+  const due = resolveDeadline(deadline, userTimezone(db, session.userId), item);
   if (!due.deadline || isNaN(due.deadline.getTime())) return { ok: false, error: "Invalid date" };
 
-  const result = await moveOccurrence(
+  const result = moveOccurrence(
+    db,
     session.userId,
     itemId,
     due.deadline,
@@ -360,15 +361,15 @@ export async function assignItemAction(
 ): Promise<ActionResult> {
   const session = await requireSession();
 
-  const item = await findAccessibleItem(session.userId, itemId);
+  const item = findAccessibleItem(db, session.userId, itemId);
   if (!item) return { ok: false, error: ITEM_GONE_ERROR };
-  if (!(await allAreMembers(item.bucketId, assigneeIds))) {
+  if (!allAreMembers(db, item.bucketId, assigneeIds)) {
     return { ok: false, error: NOT_A_MEMBER_ERROR };
   }
 
-  await setItemAssignees(itemId, assigneeIds);
+  setItemAssignees(db, itemId, assigneeIds);
   await db.update(items).set({ updatedAt: new Date() }).where(eq(items.id, itemId));
-  await refreshItemReminders([itemId]);
+  refreshItemReminders(db, [itemId]);
 
   revalidatePath("/");
   return { ok: true };
@@ -377,10 +378,10 @@ export async function assignItemAction(
 export async function completeItemAction(itemId: ItemId): Promise<ActionResult> {
   const session = await requireSession();
 
-  const item = await findAccessibleItem(session.userId, itemId);
+  const item = findAccessibleItem(db, session.userId, itemId);
   if (!item) return { ok: false, error: ITEM_GONE_ERROR };
 
-  await toggleItemCompleted(item, session.userId);
+  toggleItemCompleted(db, item, session.userId);
 
   revalidatePath("/");
   return { ok: true };
@@ -392,7 +393,7 @@ export async function reorderItemsAction(
 ): Promise<ActionResult> {
   const session = await requireSession();
 
-  const bucket = await findAccessibleBucket(session.userId, bucketId);
+  const bucket = findAccessibleBucket(db, session.userId, bucketId);
   if (!bucket) return { ok: false, error: "Bucket not found" };
 
   await Promise.all(
@@ -412,14 +413,14 @@ export async function reorderItemsAction(
 export async function deleteItemAction(itemId: ItemId): Promise<ActionResult> {
   const session = await requireSession();
 
-  const item = await findAccessibleItem(session.userId, itemId);
+  const item = findAccessibleItem(db, session.userId, itemId);
   if (!item) return { ok: false, error: ITEM_GONE_ERROR };
 
   await db
     .update(items)
     .set({ deletedAt: new Date(), deletedBy: session.userId })
     .where(eq(items.id, itemId));
-  await refreshItemReminders([itemId]);
+  refreshItemReminders(db, [itemId]);
 
   revalidatePath("/");
   return { ok: true };

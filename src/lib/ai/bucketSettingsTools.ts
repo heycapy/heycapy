@@ -228,8 +228,8 @@ function pick(args: Record<string, unknown>, key: string, current: unknown): unk
 }
 
 // members can open a shared bucket and read its rules, but only its owner may change them
-export async function bucketNotOwnedError(userId: number, bucketId: number): Promise<string> {
-  const joined = await findAccessibleBucket(userId, bucketId);
+export function bucketNotOwnedError(userId: number, bucketId: number): string {
+  const joined = findAccessibleBucket(db, userId, bucketId);
   return JSON.stringify({
     ok: false,
     error: joined
@@ -276,7 +276,7 @@ export async function executeBucketSettingsTool(
   if (name !== "get_bucket_settings" && name !== "update_bucket_settings") return null;
 
   const bucketId = Number(args.bucket_id);
-  const joined = await findAccessibleBucket(userId, bucketId);
+  const joined = findAccessibleBucket(db, userId, bucketId);
   if (!joined || joined.deletedAt) return JSON.stringify({ ok: false, error: "Bucket not found" });
 
   if (name === "get_bucket_settings") {

@@ -161,7 +161,7 @@ async function showTimes(ctx: Ctx, item: Item, date: string, messageId: number, 
 }
 
 async function finish(ctx: Ctx, item: Item, deadline: Date, messageId: number, now: Date) {
-  const moved = await moveOccurrence(ctx.userId, item.id, deadline, now, ctx.timezone);
+  const moved = moveOccurrence(db, ctx.userId, item.id, deadline, now, ctx.timezone);
   await setFlowState(ctx.userId, null);
   dataEvents.emit("refresh", ctx.userId);
   await editTelegramHtml(

@@ -438,7 +438,7 @@ export async function saveTimezoneIfDefaultAction(timezone: string): Promise<voi
     .set({ timezone })
     .where(and(eq(userSettings.userId, session.userId), eq(userSettings.timezone, "UTC")))
     .returning({ userId: userSettings.userId });
-  if (updated.length > 0) await refreshUserReminders(session.userId);
+  if (updated.length > 0) refreshUserReminders(db, session.userId);
 }
 
 export type TimezoneMove = { here: string; saved: string };
@@ -465,7 +465,7 @@ export async function switchTimezoneAction(timezone: string): Promise<ActionResu
     return { ok: false, error: `Unknown timezone "${timezone}" — use one like Europe/London` };
   }
   await db.update(userSettings).set({ timezone }).where(eq(userSettings.userId, session.userId));
-  await refreshUserReminders(session.userId);
+  refreshUserReminders(db, session.userId);
   revalidatePath("/");
   return { ok: true };
 }

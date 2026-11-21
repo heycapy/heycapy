@@ -115,9 +115,9 @@ export async function seedItem(
       reminderOffsets: fields.reminderOffsets ?? null,
     })
     .returning();
-  if (fields.assigneeIds) await setItemAssignees(item.id, fields.assigneeIds);
-  else await assignEveryone(item.id, bucketId);
-  await refreshItemReminders([item.id]);
+  if (fields.assigneeIds) setItemAssignees(db, item.id, fields.assigneeIds);
+  else assignEveryone(db, item.id, bucketId);
+  refreshItemReminders(db, [item.id]);
   return item.id;
 }
 

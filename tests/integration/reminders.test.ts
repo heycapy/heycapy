@@ -41,7 +41,7 @@ describe("rescheduling from telegram", () => {
     expect(await remindersQueued(itemId)).toBe(1);
 
     const newDeadline = new Date(T0.getTime() + 24 * HOUR);
-    await moveOccurrence(userId, itemId, newDeadline);
+    moveOccurrence(db, userId, itemId, newDeadline);
 
     await runSchedulerAt(new Date(T0.getTime() + 2 * HOUR));
     expect(await remindersQueued(itemId)).toBe(1);
@@ -57,7 +57,7 @@ describe("rescheduling from telegram", () => {
       .set({ overdueNotifiedAt: new Date(T0.getTime() + HOUR) })
       .where(eq(items.id, itemId));
 
-    await moveOccurrence(userId, itemId, new Date(T0.getTime() + 24 * HOUR));
+    moveOccurrence(db, userId, itemId, new Date(T0.getTime() + 24 * HOUR));
 
     const item = await db.query.items.findFirst({ where: eq(items.id, itemId) });
     expect(item?.overdueNotifiedAt).toBeNull();
@@ -68,7 +68,7 @@ describe("rescheduling from telegram", () => {
     await runSchedulerAt(new Date(T0.getTime() + 2 * HOUR));
     expect(await remindersQueued(itemId)).toBe(1);
 
-    await moveOccurrence(userId, itemId, new Date(T0.getTime() + HOUR));
+    moveOccurrence(db, userId, itemId, new Date(T0.getTime() + HOUR));
     await runSchedulerAt(new Date(T0.getTime() + 3 * HOUR));
     expect(await remindersQueued(itemId)).toBe(1);
   });

@@ -57,10 +57,11 @@ export async function assigneeLabels(
   rows: { id: ItemId; bucketId: number }[],
   viewerId: number
 ): Promise<Map<ItemId, string>> {
-  const [people, assigned] = await Promise.all([
-    bucketPeople([...new Set(rows.map((r) => r.bucketId))]),
-    assigneeIdsByItem(rows.map((r) => r.id)),
-  ]);
+  const people = await bucketPeople([...new Set(rows.map((r) => r.bucketId))]);
+  const assigned = assigneeIdsByItem(
+    db,
+    rows.map((r) => r.id)
+  );
   const labels = new Map<ItemId, string>();
   for (const row of rows) {
     const label = assigneeLabel(people.get(row.bucketId), assigned.get(row.id) ?? [], viewerId);
@@ -72,13 +73,13 @@ export async function assigneeLabels(
 type Ctx = { botToken: string; chatId: string; userId: number };
 
 export async function showAssignPicker(ctx: Ctx, itemId: ItemId, messageId: number): Promise<void> {
-  const item = await findAccessibleItem(ctx.userId, itemId);
+  const item = findAccessibleItem(db, ctx.userId, itemId);
   if (!item) {
     await editTelegramHtml(ctx.botToken, ctx.chatId, messageId, "this item no longer exists");
     return;
   }
   const members = (await bucketPeople([item.bucketId])).get(item.bucketId) ?? [];
-  const chosen = (await assigneeIdsByItem([itemId])).get(itemId) ?? [];
+  const chosen = assigneeIdsByItem(db, [itemId]).get(itemId) ?? [];
   const rows: InlineButton[][] = members.map((m) => [
     {
       text: `${chosen.includes(m.id) ? "✓ " : ""}${m.id === ctx.userId ? "you" : m.name}`,
@@ -107,7 +108,7 @@ export async function handleAssignCallback(
   const [, rawItem, choice] = callbackData.split(":");
   const itemId = parseItemId(rawItem);
   if (!ctx.messageId || !itemId) return;
-  const item = await findAccessibleItem(ctx.userId, itemId);
+  const item = findAccessibleItem(db, ctx.userId, itemId);
   if (!item) {
     await showAssignPicker(ctx, itemId, ctx.messageId);
     return;
@@ -129,7 +130,7 @@ export async function handleAssignCallback(
   }
 
   const members = (await bucketPeople([item.bucketId])).get(item.bucketId) ?? [];
-  const current = (await assigneeIdsByItem([itemId])).get(itemId) ?? [];
+  const current = assigneeIdsByItem(db, [itemId]).get(itemId) ?? [];
   let next: number[];
   if (choice === "all") next = members.map((m) => m.id);
   else if (choice === "none") next = [];
@@ -137,12 +138,12 @@ export async function handleAssignCallback(
     const person = Number(choice);
     next = current.includes(person) ? current.filter((id) => id !== person) : [...current, person];
   }
-  if (!(await allAreMembers(item.bucketId, next))) {
+  if (!allAreMembers(db, item.bucketId, next)) {
     await showAssignPicker(ctx, itemId, ctx.messageId);
     return;
   }
-  await setItemAssignees(itemId, next);
-  await refreshItemReminders([itemId]);
+  setItemAssignees(db, itemId, next);
+  refreshItemReminders(db, [itemId]);
   bucketsChanged([item.bucketId]);
   await showAssignPicker(ctx, itemId, ctx.messageId);
 }

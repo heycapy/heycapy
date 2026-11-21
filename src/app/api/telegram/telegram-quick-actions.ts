@@ -1,3 +1,4 @@
+import { db } from "@/lib/db";
 import { parseItemId } from "@/lib/items/item-id";
 import type { ItemId } from "@/types/ids";
 import { ITEM_STATUS } from "@/constants";
@@ -33,7 +34,7 @@ export async function handleReminderAction(
     return true;
   }
 
-  const item = await findAccessibleItem(ctx.userId, itemId);
+  const item = findAccessibleItem(db, ctx.userId, itemId);
   let html: string;
   if (!item) html = GONE;
   else if (item.status === ITEM_STATUS.completed) html = itemDoneHtml(item.title, true);

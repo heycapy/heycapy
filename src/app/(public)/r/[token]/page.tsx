@@ -1,3 +1,4 @@
+import { db } from "@/lib/db";
 import type { Metadata } from "next";
 import { findAccessibleItem } from "@/lib/buckets/access";
 import { reminderButtonLabel } from "@/lib/notifications/constants";
@@ -25,7 +26,7 @@ export default async function ReminderActionPage({
 }) {
   const { token } = await params;
   const claim = verifyReminderAction(token);
-  const item = claim ? await findAccessibleItem(claim.userId, claim.itemId) : undefined;
+  const item = claim ? findAccessibleItem(db, claim.userId, claim.itemId) : undefined;
 
   return (
     <main className="flex flex-1 flex-col items-center justify-center p-6">

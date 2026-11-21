@@ -148,8 +148,8 @@ describe("a member deleting their account", () => {
   it("leaves the others on what was assigned to them and others, still reminded", async () => {
     const { owner, member, bucketId } = await sharedBucket();
     const itemId = await seedItem(owner, bucketId, { deadline: new Date(T0.getTime() + DAY) });
-    await setItemAssignees(itemId, [owner, member]);
-    await refreshItemReminders([itemId]);
+    setItemAssignees(db, itemId, [owner, member]);
+    refreshItemReminders(db, [itemId]);
     await signInAs(member);
 
     await expect(deleteAccountAction(await deletionCode())).rejects.toThrow(/NEXT_REDIRECT/);

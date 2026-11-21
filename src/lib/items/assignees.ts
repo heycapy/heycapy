@@ -1,32 +1,33 @@
 import type { ItemId } from "@/types/ids";
 import { and, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
-import { db } from "@/lib/db";
+import type { DbHandle } from "@/lib/db/handle";
 import { bucketMembers, itemAssignees, items } from "@/lib/db/schema";
 
-export async function bucketMemberIds(bucketId: number): Promise<number[]> {
-  const rows = await db
+export function bucketMemberIds(h: DbHandle, bucketId: number): number[] {
+  const rows = h
     .select({ userId: bucketMembers.userId })
     .from(bucketMembers)
-    .where(eq(bucketMembers.bucketId, bucketId));
+    .where(eq(bucketMembers.bucketId, bucketId))
+    .all();
   return rows.map((r) => r.userId);
 }
 
 const AssigneeIds = z.array(z.number().int());
 
 // A client sends the list, so its shape is checked as well as who is in it
-export async function allAreMembers(bucketId: number, userIds: unknown): Promise<boolean> {
+export function allAreMembers(h: DbHandle, bucketId: number, userIds: unknown): boolean {
   const parsed = AssigneeIds.safeParse(userIds);
   if (!parsed.success) return false;
-  const members = new Set(await bucketMemberIds(bucketId));
+  const members = new Set(bucketMemberIds(h, bucketId));
   return parsed.data.every((id) => members.has(id));
 }
 
 // Only members still in the item's bucket count, the same rule that decides who is reminded
-export async function assigneeIdsByItem(itemIds: ItemId[]): Promise<Map<ItemId, number[]>> {
+export function assigneeIdsByItem(h: DbHandle, itemIds: ItemId[]): Map<ItemId, number[]> {
   const byItem = new Map<ItemId, number[]>();
   if (itemIds.length === 0) return byItem;
-  const rows = await db
+  const rows = h
     .select({ itemId: itemAssignees.itemId, userId: itemAssignees.userId })
     .from(itemAssignees)
     .innerJoin(items, eq(items.id, itemAssignees.itemId))
@@ -38,14 +39,15 @@ export async function assigneeIdsByItem(itemIds: ItemId[]): Promise<Map<ItemId, 
       )
     )
     .where(inArray(itemAssignees.itemId, itemIds))
-    .orderBy(itemAssignees.id);
+    .orderBy(itemAssignees.id)
+    .all();
   for (const row of rows) byItem.set(row.itemId, [...(byItem.get(row.itemId) ?? []), row.userId]);
   return byItem;
 }
 
-export async function setItemAssignees(itemId: ItemId, userIds: number[]): Promise<void> {
+export function setItemAssignees(h: DbHandle, itemId: ItemId, userIds: number[]): void {
   const wanted = [...new Set(userIds)];
-  db.transaction((tx) => {
+  h.transaction((tx) => {
     tx.delete(itemAssignees).where(eq(itemAssignees.itemId, itemId)).run();
     if (wanted.length > 0) {
       tx.insert(itemAssignees)
@@ -55,11 +57,11 @@ export async function setItemAssignees(itemId: ItemId, userIds: number[]): Promi
   });
 }
 
-export async function assignEveryone(itemId: ItemId, bucketId: number): Promise<void> {
-  await setItemAssignees(itemId, await bucketMemberIds(bucketId));
+export function assignEveryone(h: DbHandle, itemId: ItemId, bucketId: number): void {
+  setItemAssignees(h, itemId, bucketMemberIds(h, bucketId));
 }
 
-export async function copyAssignees(fromItemId: ItemId, toItemId: ItemId): Promise<void> {
-  const from = await assigneeIdsByItem([fromItemId]);
-  await setItemAssignees(toItemId, from.get(fromItemId) ?? []);
+export function copyAssignees(h: DbHandle, fromItemId: ItemId, toItemId: ItemId): void {
+  const from = assigneeIdsByItem(h, [fromItemId]);
+  setItemAssignees(h, toItemId, from.get(fromItemId) ?? []);
 }

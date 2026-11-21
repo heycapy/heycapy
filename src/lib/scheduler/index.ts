@@ -291,7 +291,7 @@ async function runNotifications(): Promise<void> {
   process.stderr.write(`[scheduler] run at ${now.toISOString()}\n`);
 
   try {
-    await moveOnMissedOccurrences(now);
+    moveOnMissedOccurrences(db, now);
     await drainDue("nextReminderAt", now, (row) => sendDeadlineReminder(row, now));
     await drainDue("nextOverdueAt", now, (row) => sendOverdueAlert(row, now));
   } catch (err) {
@@ -334,9 +334,11 @@ export function schedulerHealth(
 }
 
 async function reconcileReminders(): Promise<void> {
-  await reconcile().catch((err) => {
+  try {
+    reconcile(db);
+  } catch (err) {
     recordSystemError("scheduler", `reconcile failed: ${errorMessage(err)}`, { err });
-  });
+  }
   await pruneSystemErrors().catch(() => {});
 }
 
@@ -353,7 +355,7 @@ async function runTrashCleanup(): Promise<void> {
   });
 }
 
-async function runTombstonePrune(): Promise<void> {
+function runTombstonePrune(): void {
   try {
     pruneTombstones();
   } catch (err) {
@@ -399,7 +401,7 @@ export function startScheduler(): void {
     schedule("17 * * * *", () => void reconcileReminders(), { noOverlap: true });
     schedule("40 3 * * *", () => void runBackup(), { noOverlap: true });
     schedule("50 3 * * *", () => void runTrashCleanup(), { noOverlap: true });
-    schedule("55 3 * * *", () => void runTombstonePrune(), { noOverlap: true });
+    schedule("55 3 * * *", runTombstonePrune, { noOverlap: true });
     schedule("5 * * * *", () => void sendDigest(), { noOverlap: true });
   });
 }

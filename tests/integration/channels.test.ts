@@ -98,8 +98,8 @@ describe("a bucket with no channel list", () => {
       .insert(items)
       .values({ bucketId: bucket.id, userId, title: "x", deadline: new Date("2026-03-11") })
       .returning();
-    await assignEveryone(item.id, bucket.id);
-    await refreshItemReminders([item.id]);
+    assignEveryone(db, item.id, bucket.id);
+    refreshItemReminders(db, [item.id]);
 
     expect((await reminderOf(item.id)).nextReminderAt).toBeNull();
   });

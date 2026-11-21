@@ -150,7 +150,7 @@ export async function POST(
   }
 
   // Optional deadline — an ISO datetime, or YYYY-MM-DD for an all-day item
-  const ctx = await reminderContext(bucketId);
+  const ctx = reminderContext(db, bucketId);
   let deadline: Date | undefined;
   if (raw.deadline !== undefined) {
     if (typeof raw.deadline !== "string") {
@@ -178,8 +178,8 @@ export async function POST(
       }),
     })
     .returning();
-  await assignEveryone(item.id, bucketId);
-  await refreshItemReminders([item.id]);
+  assignEveryone(db, item.id, bucketId);
+  refreshItemReminders(db, [item.id]);
 
   const hasArrivalTrigger = parsedSchema?.success && parsedSchema.data.notifyOnArrival === true;
 

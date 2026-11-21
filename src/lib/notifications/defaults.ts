@@ -90,5 +90,5 @@ export async function applyNotificationDefaults(userId: number): Promise<void> {
         .run();
     }
   });
-  await refreshUserReminders(userId);
+  refreshUserReminders(db, userId);
 }

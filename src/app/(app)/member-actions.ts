@@ -1,5 +1,6 @@
 "use server";
 
+import { db } from "@/lib/db";
 import type { ActionResult } from "@/types/result";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
@@ -63,7 +64,7 @@ export async function joinBucketAction(
   const result = redeemInvite(session.userId, parsed.data, channels);
   if (!result.ok) return { ok: false, error: JOIN_ERRORS[result.reason] };
 
-  if (!result.alreadyMember) await refreshBucketReminders(result.bucketId);
+  if (!result.alreadyMember) refreshBucketReminders(db, result.bucketId);
   dataEvents.emit("refresh", session.userId);
   revalidatePath("/");
   return {
@@ -136,7 +137,7 @@ export async function removeMemberAction(
   const session = await requireSession();
   const result = memberChange(removeMember(session.userId, bucketId, memberId));
   if (result.ok) {
-    await refreshBucketReminders(bucketId);
+    refreshBucketReminders(db, bucketId);
     dataEvents.emit("refresh", memberId);
     revalidatePath("/");
   }
@@ -147,7 +148,7 @@ export async function leaveBucketAction(bucketId: number): Promise<ActionResult>
   const session = await requireSession();
   const result = memberChange(leaveBucket(session.userId, bucketId));
   if (result.ok) {
-    await refreshBucketReminders(bucketId);
+    refreshBucketReminders(db, bucketId);
     dataEvents.emit("refresh", session.userId);
     revalidatePath("/");
   }
@@ -161,7 +162,7 @@ export async function transferOwnershipAction(
   const session = await requireSession();
   const result = memberChange(transferOwnership(session.userId, bucketId, newOwnerId));
   if (result.ok) {
-    await refreshBucketReminders(bucketId);
+    refreshBucketReminders(db, bucketId);
     dataEvents.emit("refresh", newOwnerId);
     revalidatePath("/");
   }

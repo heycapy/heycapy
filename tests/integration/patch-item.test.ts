@@ -118,7 +118,7 @@ it("assignees alone change who the item is for and nothing else", async () => {
 
   expect(await patchItemAction(itemId, { assigneeIds: [other] })).toEqual({ ok: true });
 
-  expect((await assigneeIdsByItem([itemId])).get(itemId)).toEqual([other]);
+  expect(assigneeIdsByItem(db, [itemId]).get(itemId)).toEqual([other]);
   const after = await saved(itemId);
   expect(after.title).toBe("rent");
   expect(after.deadline).toEqual(DEADLINE);

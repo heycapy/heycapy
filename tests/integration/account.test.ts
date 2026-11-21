@@ -112,7 +112,7 @@ describe("data export", () => {
         .set({ webhookKey: "SECRET-WEBHOOK-KEY", telegramConfig: '{"chat":"SECRET-TELEGRAM"}' })
         .where(eq(buckets.id, bucketId));
       const ownerItem = await seedItem(owner, bucketId, { deadline: T0, title: "book flights" });
-      await setItemAssignees(ownerItem, [member]);
+      setItemAssignees(db, ownerItem, [member]);
       await seedItem(member, bucketId, { deadline: T0, title: "buy milk" });
       return { owner, member, bucketId };
     }

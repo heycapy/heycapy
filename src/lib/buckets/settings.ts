@@ -226,7 +226,7 @@ export async function saveBucketSettings(
       .run();
     if (myChannels) writeChannels(tx, userId, bucketId, myChannels, webhookIds);
   });
-  await refreshBucketReminders(bucketId);
+  refreshBucketReminders(db, bucketId);
 
   revalidatePath("/");
   return { ok: true };
@@ -245,7 +245,7 @@ export async function saveMemberChannels(
   const channels = await channelsToSave(userId, bucketId, parsed.data);
   const saved = db.transaction((tx) => writeChannels(tx, userId, bucketId, channels, webhookIds));
   if (!saved) return { ok: false, error: "Bucket not found" };
-  await refreshBucketReminders(bucketId);
+  refreshBucketReminders(db, bucketId);
 
   revalidatePath("/");
   return { ok: true };

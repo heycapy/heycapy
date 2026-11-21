@@ -171,7 +171,7 @@ describe("the writers in the app all stamp", () => {
     const id = await seedItem(userId, bucketId, { deadline: new Date(T0.getTime() + HOUR) });
     const seen = itemRow(id)?.rev ?? 0;
 
-    await setItemAssignees(id, []);
+    setItemAssignees(db, id, []);
 
     expect(itemRow(id)?.rev).toBeGreaterThan(seen);
   });

@@ -398,7 +398,7 @@ async function handleUpdate(botToken: string, body: TelegramUpdate): Promise<Res
 
     if (callbackData.startsWith("mi:")) {
       const tappedId = parseItemId(callbackData.slice(3));
-      const itemRow = tappedId ? await findAccessibleItem(userId, tappedId) : undefined;
+      const itemRow = tappedId ? findAccessibleItem(db, userId, tappedId) : undefined;
       if (!itemRow) {
         await setFlowState(userId, null);
         await sendTelegramWithQuickActions(botToken, chatIdStr, "Item not found.");

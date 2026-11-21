@@ -126,7 +126,10 @@ export async function withViewerReminders(userId: number, rows: Item[]): Promise
       )
     ).map((r) => [r.itemId, r])
   );
-  const assignees = await assigneeIdsByItem(rows.map((i) => i.id));
+  const assignees = assigneeIdsByItem(
+    db,
+    rows.map((i) => i.id)
+  );
   return rows.map((item) => ({
     ...asViewer(item, mine.get(item.id)),
     assigneeIds: assignees.get(item.id) ?? [],
@@ -286,7 +289,7 @@ export async function getItemReminderInfo(
 
   const recipients = isClosedStatus(item.status)
     ? []
-    : await selectReminderRows(eq(items.id, itemId));
+    : selectReminderRows(db, eq(items.id, itemId)).all();
   const people = await db
     .select({
       id: users.id,

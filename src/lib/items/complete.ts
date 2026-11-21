@@ -1,5 +1,5 @@
 import { eq } from "drizzle-orm";
-import { db } from "@/lib/db";
+import type { DbHandle } from "@/lib/db/handle";
 import { items } from "@/lib/db/schema";
 import { ITEM_STATUS } from "@/constants";
 import { refreshItemReminders } from "@/lib/reminders/refresh";
@@ -9,11 +9,12 @@ import { createNextOccurrence } from "./recurrence";
 type Item = typeof items.$inferSelect;
 
 // Reopening an item whose date has passed sends only the overdue alert, like adding one would
-export async function toggleItemCompleted(
+export function toggleItemCompleted(
+  h: DbHandle,
   item: Item,
   userId: number,
   now = new Date()
-): Promise<string> {
+): string {
   const reopening = item.status === ITEM_STATUS.completed;
   const reminders = reopening
     ? {
@@ -22,8 +23,7 @@ export async function toggleItemCompleted(
       }
     : {};
   const status = reopening ? ITEM_STATUS.active : ITEM_STATUS.completed;
-  await db
-    .update(items)
+  h.update(items)
     .set({
       status,
       completedAt: reopening ? null : now,
@@ -31,8 +31,9 @@ export async function toggleItemCompleted(
       ...reminders,
       updatedAt: now,
     })
-    .where(eq(items.id, item.id));
-  await refreshItemReminders([item.id]);
-  if (!reopening) await createNextOccurrence(item.id);
+    .where(eq(items.id, item.id))
+    .run();
+  refreshItemReminders(h, [item.id]);
+  if (!reopening) createNextOccurrence(h, item.id);
   return status;
 }

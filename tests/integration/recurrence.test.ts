@@ -65,8 +65,8 @@ async function seedRecurring(opts: {
       reminderOffsets: [60, 0],
     })
     .returning();
-  await assignEveryone(item.id, bucketId);
-  await refreshItemReminders([item.id]);
+  assignEveryone(db, item.id, bucketId);
+  refreshItemReminders(db, [item.id]);
   return { userId, bucketId, itemId: item.id };
 }
 

@@ -1,3 +1,4 @@
+import { db } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import { findAccessibleBucket } from "@/lib/buckets/access";
 import { checkFields, fieldKey, type FieldsCheck } from "@/lib/buckets/field-schema";
@@ -114,7 +115,7 @@ export async function executeBucketFieldTool(
 ): Promise<string | null> {
   if (name !== "update_bucket_fields") return null;
 
-  const bucket = await findAccessibleBucket(userId, Number(args.bucket_id));
+  const bucket = findAccessibleBucket(db, userId, Number(args.bucket_id));
   if (!bucket || bucket.deletedAt) return JSON.stringify({ ok: false, error: "Bucket not found" });
   if (bucket.userId !== userId) {
     return JSON.stringify({

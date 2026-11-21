@@ -42,13 +42,13 @@ export async function completeItem(
     .set({ status: ITEM_STATUS.completed, completedAt: now, completedBy: userId, updatedAt: now })
     .where(and(eq(items.id, itemId), inTheirBuckets(userId)));
   await record(userId, itemId, "done", source, now);
-  await refreshItemReminders([itemId]);
-  await createNextOccurrence(itemId);
+  refreshItemReminders(db, [itemId]);
+  createNextOccurrence(db, itemId);
 }
 
 // Their own schedule when they are reminded about the item, else someone's who is
 function actorRow(userId: number, itemId: ItemId) {
-  return selectReminderRows(and(eq(items.id, itemId), inTheirBuckets(userId)))
+  return selectReminderRows(db, and(eq(items.id, itemId), inTheirBuckets(userId)))
     .orderBy(desc(eq(itemReminders.userId, userId)))
     .limit(1);
 }
@@ -72,7 +72,7 @@ export async function remindItemAgain(
     .update(items)
     .set({ ...remindAgainAt(toReminderInputs(row), at, now), updatedAt: now })
     .where(eq(items.id, itemId));
-  await refreshItemReminders([itemId]);
+  refreshItemReminders(db, [itemId]);
 
   // Quiet hours or "remind at" can push the ping later than asked
   const refreshed = await db.query.itemReminders.findFirst({
@@ -107,7 +107,7 @@ export async function cancelRemindAgain(
     })
     .where(eq(items.id, itemId));
   await record(userId, itemId, "cancelRemindAgain", source, now);
-  await refreshItemReminders([itemId]);
+  refreshItemReminders(db, [itemId]);
   return true;
 }
 

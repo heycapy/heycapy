@@ -108,7 +108,7 @@ describe("a deadline that is already past sends only the overdue alert", () => {
     expect(await sentKinds(await latestItemId(bucketId))).toEqual(["overdue"]);
 
     const itemId = await seedItem(userId, bucketId, { deadline: FUTURE });
-    await moveOccurrence(userId, itemId, PAST);
+    moveOccurrence(db, userId, itemId, PAST);
     expect(await sentKinds(itemId)).toEqual(["overdue"]);
   });
 

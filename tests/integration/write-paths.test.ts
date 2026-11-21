@@ -124,10 +124,10 @@ describe("safety net", () => {
       .insert(items)
       .values({ bucketId, userId, title: "written directly", deadline: T0 })
       .returning();
-    await assignEveryone(raw.id, bucketId);
+    assignEveryone(db, raw.id, bucketId);
     await expect(reminderOf(raw.id)).rejects.toThrow("found 0");
 
-    await reconcile();
+    reconcile(db);
     await runSchedulerAt(new Date(T0.getTime() + MINUTE));
     expect(await remindersQueued(raw.id)).toBe(1);
   });

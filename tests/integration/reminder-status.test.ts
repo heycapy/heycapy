@@ -172,7 +172,7 @@ describe("history records each channel as it was at send time", () => {
       .update(items)
       .set({ deadline: TOMORROW, notifiedAt: null })
       .where(eq(items.id, itemId));
-    await refreshItemReminders([itemId]);
+    refreshItemReminders(db, [itemId]);
 
     const info = await getItemReminderInfo(userId, itemId);
     expect(info?.history).toHaveLength(1);

@@ -115,7 +115,7 @@ export async function listTrash(
 
 // A due date that passed while it was in the trash comes back overdue, without a late "due now"
 export async function restoreItem(userId: number, itemId: ItemId, now = new Date()) {
-  const item = await findTrashedItem(userId, itemId);
+  const item = findTrashedItem(db, userId, itemId);
   if (!item) return false;
   await db
     .update(items)
@@ -128,7 +128,7 @@ export async function restoreItem(userId: number, itemId: ItemId, now = new Date
       updatedAt: now,
     })
     .where(eq(items.id, itemId));
-  await refreshItemReminders([itemId]);
+  refreshItemReminders(db, [itemId]);
   return true;
 }
 
@@ -136,7 +136,7 @@ export async function deleteItemForever(
   userId: number,
   itemId: ItemId
 ): Promise<DeleteForeverResult> {
-  const item = await findTrashedItem(userId, itemId);
+  const item = findTrashedItem(db, userId, itemId);
   if (!item) return "not_found";
   const [removed] = await db
     .delete(items)

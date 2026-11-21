@@ -114,7 +114,7 @@ async function loadList(
   }
   const bucketId = Number(kind.slice(1));
   const rows = await select(eq(items.bucketId, bucketId), "manual");
-  const bucket = await findAccessibleBucket(ctx.userId, bucketId);
+  const bucket = findAccessibleBucket(db, ctx.userId, bucketId);
   const name = bucket?.name ?? "Bucket";
   return { heading: name, empty: `No open items in ${name}.`, rows, perBucket: true };
 }
