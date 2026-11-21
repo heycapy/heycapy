@@ -1,3 +1,4 @@
+import type { ItemId } from "@/types/ids";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type * as SessionModule from "@/lib/auth/session";
 import { and, eq } from "drizzle-orm";
@@ -47,7 +48,7 @@ async function sharedBucket() {
   return { owner, member, stranger, bucketId, itemId };
 }
 
-async function assigneesOf(itemId: number) {
+async function assigneesOf(itemId: ItemId) {
   const rows = await db
     .select({ userId: itemAssignees.userId })
     .from(itemAssignees)
@@ -56,7 +57,7 @@ async function assigneesOf(itemId: number) {
   return rows.map((r) => r.userId);
 }
 
-async function assign(itemId: number, ...userIds: number[]) {
+async function assign(itemId: ItemId, ...userIds: number[]) {
   await db.delete(itemAssignees).where(eq(itemAssignees.itemId, itemId));
   if (userIds.length > 0) {
     await db.insert(itemAssignees).values(userIds.map((userId) => ({ itemId, userId })));
@@ -68,7 +69,7 @@ async function idOf(bucketId: number, title: string) {
     .select({ id: items.id })
     .from(items)
     .where(and(eq(items.bucketId, bucketId), eq(items.title, title)));
-  return row?.id ?? 0;
+  return row?.id ?? "";
 }
 
 describe("assigning an item", () => {
@@ -163,7 +164,7 @@ describe("assigning an item", () => {
     const rows = await db.select().from(items).where(eq(items.bucketId, bucketId));
     const next = rows.find((r) => r.id !== itemId && r.status !== ITEM_STATUS.completed);
     expect(next?.title).toBe("take out the bins");
-    expect(await assigneesOf(next?.id ?? 0)).toEqual([owner, member]);
+    expect(await assigneesOf(next?.id ?? "")).toEqual([owner, member]);
   });
 });
 

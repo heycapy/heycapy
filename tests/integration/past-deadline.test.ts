@@ -1,3 +1,4 @@
+import type { ItemId } from "@/types/ids";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { and, desc, eq, ne } from "drizzle-orm";
 import { db } from "@/lib/db";
@@ -44,7 +45,7 @@ async function setup() {
   return { userId, bucketId };
 }
 
-async function latestItemId(bucketId: number): Promise<number> {
+async function latestItemId(bucketId: number): Promise<ItemId> {
   const [row] = await db
     .select({ id: items.id })
     .from(items)
@@ -54,7 +55,7 @@ async function latestItemId(bucketId: number): Promise<number> {
   return row.id;
 }
 
-async function sentKinds(itemId: number): Promise<string[]> {
+async function sentKinds(itemId: ItemId): Promise<string[]> {
   await runSchedulerAt(new Date(T0.getTime() + 60_000));
   const rows = await db
     .select({ kind: notificationQueue.kind })

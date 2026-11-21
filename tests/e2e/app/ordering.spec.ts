@@ -111,7 +111,7 @@ test("dragging reorders items and the order survives a reload", async ({ page })
     (r) =>
       r.request().method() === "POST" &&
       r.request().headers()["next-action"] !== undefined &&
-      /^\[\d+,\[[\d,]+\]\]$/.test(r.request().postData() ?? "")
+      /^\[\d+,\[("[0-9a-f-]{36}",?)+\]\]$/.test(r.request().postData() ?? "")
   );
   await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2);
   await page.mouse.down();

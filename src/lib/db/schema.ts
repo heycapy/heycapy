@@ -1,3 +1,4 @@
+import { newItemId } from "@/lib/items/item-id";
 import {
   CONTROL_SIZE,
   CONTROL_SIZES,
@@ -287,7 +288,7 @@ export const inviteAttempts = sqliteTable("invite_attempts", {
 // items
 
 export const items = sqliteTable("items", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+  id: text("id").primaryKey().$defaultFn(newItemId),
   bucketId: integer("bucket_id")
     .notNull()
     .references(() => buckets.id, { onDelete: "cascade" }),
@@ -335,7 +336,7 @@ export const itemAssignees = sqliteTable(
   "item_assignees",
   {
     id: integer("id").primaryKey({ autoIncrement: true }),
-    itemId: integer("item_id")
+    itemId: text("item_id")
       .notNull()
       .references(() => items.id, { onDelete: "cascade" }),
     userId: integer("user_id")
@@ -354,7 +355,7 @@ export const itemReminders = sqliteTable(
   "item_reminders",
   {
     id: integer("id").primaryKey({ autoIncrement: true }),
-    itemId: integer("item_id")
+    itemId: text("item_id")
       .notNull()
       .references(() => items.id, { onDelete: "cascade" }),
     userId: integer("user_id")
@@ -380,7 +381,7 @@ export const notificationQueue = sqliteTable("notification_queue", {
   userId: integer("user_id")
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
-  itemId: integer("item_id").references(() => items.id, { onDelete: "set null" }),
+  itemId: text("item_id").references(() => items.id, { onDelete: "set null" }),
   medium: text("medium", { enum: ["email", "ntfy", "telegram", "push", "webhook"] }).notNull(),
   webhookId: integer("webhook_id").references(() => outgoingWebhooks.id, { onDelete: "set null" }),
   title: text("title").notNull(),
@@ -408,7 +409,7 @@ export const notificationQueue = sqliteTable("notification_queue", {
 
 export const notificationLog = sqliteTable("notification_log", {
   id: integer("id").primaryKey({ autoIncrement: true }),
-  itemId: integer("item_id").references(() => items.id, { onDelete: "set null" }),
+  itemId: text("item_id").references(() => items.id, { onDelete: "set null" }),
   userId: integer("user_id")
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
@@ -554,7 +555,7 @@ export const itemActions = sqliteTable(
     userId: integer("user_id")
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
-    itemId: integer("item_id")
+    itemId: text("item_id")
       .notNull()
       .references(() => items.id, { onDelete: "cascade" }),
     action: text("action", { enum: ["done", "remindAgain", "cancelRemindAgain"] }).notNull(),

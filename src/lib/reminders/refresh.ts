@@ -299,7 +299,7 @@ export async function refreshUserReminders(userId: number): Promise<void> {
 
 // Safety net for write paths that skip a refresh
 export async function reconcile(where?: SQL): Promise<void> {
-  let lastId = 0;
+  let lastId = "";
   for (;;) {
     const list = await db
       .select(recipientFields)

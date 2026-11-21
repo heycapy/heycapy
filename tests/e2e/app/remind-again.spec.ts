@@ -1,3 +1,4 @@
+import type { ItemId } from "@/types/ids";
 import { test, expect, type Page } from "@playwright/test";
 import Database from "better-sqlite3";
 import { authState } from "../helpers/auth";
@@ -14,7 +15,7 @@ import { signReminderAction } from "@/lib/reminders/action-token";
 
 test.use({ storageState: authState("remind-again") });
 
-function emailLink(itemId: number): string {
+function emailLink(itemId: ItemId): string {
   const db = new Database(E2E_DATABASE_FILE, { readonly: true });
   const row = db.prepare("select user_id, deadline from items where id = ?").get(itemId) as {
     user_id: number;
@@ -32,12 +33,12 @@ function emailLink(itemId: number): string {
   return `/r/${token}`;
 }
 
-async function addDatedItem(page: Page, title: string): Promise<number> {
+async function addDatedItem(page: Page, title: string): Promise<ItemId> {
   const webhook = await enableWebhook(page);
   const res = await postItem(page.request, webhook, { title, deadline: daysFromNow(2) });
   expect(res.status()).toBe(201);
   await expect(itemRow(page, title)).toBeVisible();
-  return ((await res.json()) as { id: number }).id;
+  return ((await res.json()) as { id: ItemId }).id;
 }
 
 test("remind again from an email shows on the item and in its history, and can be cancelled", async ({

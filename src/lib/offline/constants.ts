@@ -2,6 +2,6 @@
 export const SNAPSHOT_DB = "heycapy-snapshot";
 
 // Bump when the saved shape changes, the upgrade drops what an older build saved
-export const SNAPSHOT_VERSION = 1;
+export const SNAPSHOT_VERSION = 2;
 
 export const SNAPSHOT_STORE = "lists";

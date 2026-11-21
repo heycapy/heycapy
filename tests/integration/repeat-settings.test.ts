@@ -1,3 +1,4 @@
+import type { ItemId } from "@/types/ids";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import type * as SessionModule from "@/lib/auth/session";
 import { eq } from "drizzle-orm";
@@ -44,11 +45,11 @@ async function monthlyItemOn15th() {
   return item.id;
 }
 
-async function save(itemId: number, recurring: RecurringConfig) {
+async function save(itemId: ItemId, recurring: RecurringConfig) {
   return updateItemAction(itemId, "rent", "2026-03-15T09:00:00.000Z", undefined, recurring);
 }
 
-async function savedRepeat(itemId: number) {
+async function savedRepeat(itemId: ItemId) {
   const item = await db.query.items.findFirst({ where: eq(items.id, itemId) });
   return JSON.parse(item?.recurring ?? "{}") as RecurringConfig;
 }

@@ -1,3 +1,4 @@
+import { v7 as uuidv7 } from "uuid";
 import { test, expect, type Locator, type Page } from "@playwright/test";
 import Database from "better-sqlite3";
 import { E2E_DATABASE_FILE } from "../helpers/env";
@@ -397,9 +398,9 @@ function addDueItem(bucketId: number, email: string, title: string, ...assigneeE
   const db = new Database(E2E_DATABASE_FILE);
   const { id } = db
     .prepare(
-      "insert into items (bucket_id, user_id, title, deadline) values (?, (select id from users where email = ?), ?, unixepoch()) returning id"
+      "insert into items (id, bucket_id, user_id, title, deadline) values (?, ?, (select id from users where email = ?), ?, unixepoch()) returning id"
     )
-    .get(bucketId, email, title) as { id: number };
+    .get(uuidv7(), bucketId, email, title) as { id: string };
   for (const assigneeEmail of assigneeEmails) {
     db.prepare(
       "insert into item_assignees (item_id, user_id) values (?, (select id from users where email = ?))"

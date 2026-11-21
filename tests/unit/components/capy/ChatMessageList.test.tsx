@@ -2,6 +2,8 @@ import { afterEach, beforeAll, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { ChatMessageList } from "@/components/capy/ChatMessageList";
 
+const ITEM = "0193f5a0-0000-7000-8000-000000000007";
+
 const APP_URL = "https://app.heycapy.test";
 
 vi.stubGlobal("matchMedia", (query: string) => ({
@@ -33,9 +35,9 @@ function reply(content: string) {
 }
 
 it("makes a link to an item clickable, on the address the app is open at", async () => {
-  reply(`here it is: [netflix](${APP_URL}/?bucket=3#item-7)`);
+  reply(`here it is: [netflix](${APP_URL}/?bucket=3#item-${ITEM})`);
   expect((await screen.findByRole("link", { name: "netflix" })).getAttribute("href")).toBe(
-    "/?bucket=3#item-7"
+    `/?bucket=3#item-${ITEM}`
   );
 });
 
@@ -47,14 +49,14 @@ it("shows a link to another site as text with its address, not clickable", async
 });
 
 it("opens an item it links to in place, without leaving the page", async () => {
-  reply(`here it is: [netflix](${APP_URL}/?bucket=3#item-7)`);
+  reply(`here it is: [netflix](${APP_URL}/?bucket=3#item-${ITEM})`);
   const opened = fireEvent.click(await screen.findByRole("link", { name: "netflix" }));
   expect(opened).toBe(false);
-  expect(onOpenItem).toHaveBeenCalledWith(3, 7);
+  expect(onOpenItem).toHaveBeenCalledWith(3, ITEM);
 });
 
 it("leaves a ctrl / cmd click to the browser, for a new tab", async () => {
-  reply(`here it is: [netflix](${APP_URL}/?bucket=3#item-7)`);
+  reply(`here it is: [netflix](${APP_URL}/?bucket=3#item-${ITEM})`);
   fireEvent.click(await screen.findByRole("link", { name: "netflix" }), { ctrlKey: true });
   expect(onOpenItem).not.toHaveBeenCalled();
 });

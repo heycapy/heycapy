@@ -1,3 +1,4 @@
+import type { ItemId } from "@/types/ids";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { and, eq } from "drizzle-orm";
 import { db } from "@/lib/db";
@@ -65,7 +66,7 @@ async function sharedBucket() {
   };
 }
 
-async function itemOf(itemId: number) {
+async function itemOf(itemId: ItemId) {
   const [row] = await db.select().from(items).where(eq(items.id, itemId));
   return row;
 }

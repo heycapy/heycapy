@@ -1,3 +1,4 @@
+import type { ItemId } from "@/types/ids";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type * as SessionModule from "@/lib/auth/session";
 import { asc, eq } from "drizzle-orm";
@@ -57,7 +58,7 @@ async function setup(
   return { userId, bucketId, itemId };
 }
 
-async function itemOf(itemId: number) {
+async function itemOf(itemId: ItemId) {
   const item = await db.query.items.findFirst({ where: eq(items.id, itemId) });
   if (!item) throw new Error(`item ${itemId} not found`);
   return item;

@@ -1,3 +1,4 @@
+import type { ItemId } from "@/types/ids";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { and, eq } from "drizzle-orm";
 import { db } from "@/lib/db";
@@ -43,12 +44,12 @@ function lastEdit(api: TelegramApi) {
 
 const labels = (keyboard: Button[][]) => keyboard.map((row) => row.map((b) => b.text));
 
-async function deadlineOf(itemId: number) {
+async function deadlineOf(itemId: ItemId) {
   return (await db.query.items.findFirst({ where: eq(items.id, itemId) }))?.deadline;
 }
 
 // Delivered, not just queued: a queued-then-cancelled alert must not count
-async function kindsSent(itemId: number) {
+async function kindsSent(itemId: ItemId) {
   const rows = await db
     .select({ kind: notificationQueue.kind })
     .from(notificationQueue)

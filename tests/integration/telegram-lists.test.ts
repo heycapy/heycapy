@@ -1,3 +1,4 @@
+import type { ItemId } from "@/types/ids";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
@@ -98,7 +99,7 @@ describe("item lists", () => {
 
   it("pages six at a time and keeps numbering across pages", async () => {
     const { api, userId, bucketId, chat } = await setup();
-    const ids: number[] = [];
+    const ids: ItemId[] = [];
     for (let i = 0; i < 8; i++) {
       ids.push(
         await seedItem(userId, bucketId, {

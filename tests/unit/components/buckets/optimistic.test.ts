@@ -3,7 +3,7 @@ import { withPatch } from "@/components/buckets/optimistic";
 import type { ListItem } from "@/lib/reminders/status";
 
 const item = {
-  id: 1,
+  id: "0193f5a0-0000-7000-8000-000000000001",
   title: "rent",
   deadline: new Date("2026-11-20T09:00:00Z"),
   deadlineTimezone: "Asia/Kolkata",

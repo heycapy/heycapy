@@ -130,9 +130,11 @@ describe("migrations", () => {
 
     migrate(db, { migrationsFolder: MIGRATIONS });
 
-    expect(sqlite.prepare("SELECT item_id, user_id FROM item_assignees").all()).toEqual([
-      { item_id: 1, user_id: 2 },
-    ]);
+    expect(
+      sqlite
+        .prepare("SELECT i.title, a.user_id FROM item_assignees a JOIN items i ON i.id = a.item_id")
+        .all()
+    ).toEqual([{ title: "bins", user_id: 2 }]);
     expect(sqlite.prepare("SELECT count(*) AS n FROM items").get()).toEqual({ n: 3 });
     expect(sqlite.prepare("SELECT count(*) AS n FROM item_reminders").get()).toEqual({ n: 3 });
     expect(
@@ -265,10 +267,12 @@ describe("migrations", () => {
 
     migrate(db, { migrationsFolder: MIGRATIONS });
 
-    expect(sqlite.prepare("SELECT id, deadline_timezone FROM items ORDER BY id").all()).toEqual([
-      { id: 1, deadline_timezone: "Asia/Kolkata" },
-      { id: 2, deadline_timezone: null },
-      { id: 3, deadline_timezone: "UTC" },
+    expect(
+      sqlite.prepare("SELECT title, deadline_timezone FROM items ORDER BY title").all()
+    ).toEqual([
+      { title: "pay rent", deadline_timezone: "Asia/Kolkata" },
+      { title: "run", deadline_timezone: "UTC" },
+      { title: "someday", deadline_timezone: null },
     ]);
     sqlite.close();
   });
@@ -299,70 +303,51 @@ describe("migrations", () => {
     const rows = () =>
       sqlite
         .prepare(
-          "SELECT item_id, user_id, notified_at, overdue_notified_at, next_reminder_at, next_overdue_at FROM item_reminders ORDER BY item_id, user_id"
+          "SELECT i.title, r.user_id, r.notified_at, r.overdue_notified_at, r.next_reminder_at, r.next_overdue_at FROM item_reminders r JOIN items i ON i.id = r.item_id ORDER BY i.title, r.user_id"
         )
         .all();
+    const none = {
+      notified_at: null,
+      overdue_notified_at: null,
+      next_reminder_at: null,
+      next_overdue_at: null,
+    };
     expect(rows()).toEqual([
+      { title: "buy milk", user_id: 1, ...none },
+      { title: "buy milk", user_id: 2, ...none, next_reminder_at: 500 },
+      { title: "call the plumber", user_id: 2, ...none },
       {
-        item_id: 1,
+        title: "pay rent",
         user_id: 1,
+        ...none,
         notified_at: 100,
-        overdue_notified_at: null,
         next_reminder_at: 200,
         next_overdue_at: 300,
       },
-      {
-        item_id: 1,
-        user_id: 2,
-        notified_at: 100,
-        overdue_notified_at: null,
-        next_reminder_at: null,
-        next_overdue_at: null,
-      },
-      {
-        item_id: 2,
-        user_id: 2,
-        notified_at: null,
-        overdue_notified_at: null,
-        next_reminder_at: null,
-        next_overdue_at: null,
-      },
-      {
-        item_id: 3,
-        user_id: 1,
-        notified_at: null,
-        overdue_notified_at: null,
-        next_reminder_at: null,
-        next_overdue_at: null,
-      },
-      {
-        item_id: 3,
-        user_id: 2,
-        notified_at: null,
-        overdue_notified_at: null,
-        next_reminder_at: 500,
-        next_overdue_at: null,
-      },
+      { title: "pay rent", user_id: 2, ...none, notified_at: 100 },
     ]);
 
+    const rent = "(SELECT id FROM items WHERE title = 'pay rent')";
     sqlite.exec(
-      "UPDATE item_reminders SET notified_at = 150, overdue_notified_at = 160 WHERE item_id = 1 AND user_id = 1"
+      `UPDATE item_reminders SET notified_at = 150, overdue_notified_at = 160 WHERE item_id = ${rent} AND user_id = 1`
     );
-    sqlite.exec("UPDATE items SET notified_at = NULL WHERE id = 1");
+    sqlite.exec("UPDATE items SET notified_at = NULL WHERE title = 'pay rent'");
     expect(
       sqlite
         .prepare(
-          "SELECT user_id, notified_at, overdue_notified_at FROM item_reminders WHERE item_id = 1 ORDER BY user_id"
+          `SELECT user_id, notified_at, overdue_notified_at FROM item_reminders WHERE item_id = ${rent} ORDER BY user_id`
         )
         .all()
     ).toEqual([
       { user_id: 1, notified_at: null, overdue_notified_at: 160 },
       { user_id: 2, notified_at: null, overdue_notified_at: null },
     ]);
-    sqlite.exec("UPDATE items SET overdue_notified_at = NULL WHERE id = 1");
+    sqlite.exec("UPDATE items SET overdue_notified_at = NULL WHERE title = 'pay rent'");
     expect(
       sqlite
-        .prepare("SELECT overdue_notified_at FROM item_reminders WHERE item_id = 1 AND user_id = 1")
+        .prepare(
+          `SELECT overdue_notified_at FROM item_reminders WHERE item_id = ${rent} AND user_id = 1`
+        )
         .get()
     ).toEqual({ overdue_notified_at: null });
     sqlite.close();

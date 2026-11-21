@@ -230,7 +230,7 @@ export const ITEM_AND_BUCKET_TOOLS: Tool[] = [
       type: "object",
       properties: {
         item_id: {
-          type: "number",
+          type: "string",
           description: "The ID of the item to update.",
         },
         title: {
@@ -295,7 +295,7 @@ export const ITEM_AND_BUCKET_TOOLS: Tool[] = [
       type: "object",
       properties: {
         item_id: {
-          type: "number",
+          type: "string",
           description: "The ID of the item to toggle.",
         },
       },
@@ -312,7 +312,7 @@ export const ITEM_AND_BUCKET_TOOLS: Tool[] = [
       type: "object",
       properties: {
         item_id: {
-          type: "number",
+          type: "string",
           description: "The ID of the item to delete.",
         },
       },
@@ -328,7 +328,7 @@ export const ITEM_AND_BUCKET_TOOLS: Tool[] = [
       type: "object",
       properties: {
         item_id: {
-          type: "number",
+          type: "string",
           description: "The ID of the item to move.",
         },
         bucket_id: {

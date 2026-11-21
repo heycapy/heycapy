@@ -1,3 +1,4 @@
+import type { ItemId } from "@/types/ids";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
@@ -27,7 +28,7 @@ const DAY = 24 * HOUR;
 beforeEach(() => useSchedulerEnvironment(T0));
 afterEach(() => resetSchedulerEnvironment());
 
-async function trashItem(itemId: number, at = T0) {
+async function trashItem(itemId: ItemId, at = T0) {
   await db.update(items).set({ deletedAt: at }).where(eq(items.id, itemId));
 }
 
@@ -35,7 +36,7 @@ async function trashBucket(bucketId: number, at = T0) {
   await db.update(buckets).set({ deletedAt: at }).where(eq(buckets.id, bucketId));
 }
 
-const exists = async (id: number) =>
+const exists = async (id: ItemId) =>
   (await db.select().from(items).where(eq(items.id, id))).length === 1;
 
 describe("restoring an item", () => {

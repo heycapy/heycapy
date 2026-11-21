@@ -1,3 +1,4 @@
+import type { ItemId } from "@/types/ids";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type * as SessionModule from "@/lib/auth/session";
 import { and, desc, eq } from "drizzle-orm";
@@ -80,7 +81,7 @@ async function sharedBucket(webhooks: number[] = []) {
   return { owner, member, bucketId };
 }
 
-async function add(bucketId: number, date: string, ...assigneeIds: number[]): Promise<number> {
+async function add(bucketId: number, date: string, ...assigneeIds: number[]): Promise<ItemId> {
   const result = await addItemAction(
     bucketId,
     "pay rent",
@@ -101,7 +102,7 @@ async function add(bucketId: number, date: string, ...assigneeIds: number[]): Pr
   return row.id;
 }
 
-async function sentTo(itemId: number) {
+async function sentTo(itemId: ItemId) {
   const jobs = await db
     .select({ userId: notificationQueue.userId, medium: notificationQueue.medium })
     .from(notificationQueue)
@@ -109,7 +110,7 @@ async function sentTo(itemId: number) {
   return jobs;
 }
 
-const recipients = async (itemId: number) =>
+const recipients = async (itemId: ItemId) =>
   (await db.select().from(itemReminders).where(eq(itemReminders.itemId, itemId)))
     .map((r) => r.userId)
     .sort((a, b) => a - b);
@@ -425,7 +426,7 @@ describe("the bucket's webhook", () => {
     return { owner, member, bucketId };
   }
 
-  const webhookJobs = async (itemId: number) =>
+  const webhookJobs = async (itemId: ItemId) =>
     (await sentTo(itemId)).filter((j) => j.medium === "webhook");
 
   it("goes out once, with the owner's reminder", async () => {
@@ -498,7 +499,7 @@ describe("the reminder icon", () => {
 });
 
 describe("a member pressing a reminder's button", () => {
-  async function press(userId: number, itemId: number, action: ReminderAction, now: Date) {
+  async function press(userId: number, itemId: ItemId, action: ReminderAction, now: Date) {
     const item = await db.query.items.findFirst({ where: eq(items.id, itemId) });
     const deadline = item?.deadline?.getTime() ?? null;
     return applyReminderAction({ userId, itemId, action, channel: "push", deadline }, now);

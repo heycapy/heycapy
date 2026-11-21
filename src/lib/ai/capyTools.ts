@@ -1,3 +1,4 @@
+import { parseItemId } from "@/lib/items/item-id";
 import type { ItemId } from "@/types/ids";
 import { recordSystemError } from "@/lib/system-errors";
 import { publicAppUrl } from "@/lib/app-url";
@@ -629,9 +630,9 @@ async function executeToolCallInner(
     }
 
     case "update_item": {
-      const itemId = Number(args.item_id);
-      const item = await findAccessibleItem(userId, itemId);
-      if (!item) return JSON.stringify({ ok: false, error: "Item not found" });
+      const itemId = parseItemId(args.item_id);
+      const item = itemId && (await findAccessibleItem(userId, itemId));
+      if (!itemId || !item) return JSON.stringify({ ok: false, error: "Item not found" });
       const bucket = await db.query.buckets.findFirst({
         where: (b, { eq: qeq }) => qeq(b.id, item.bucketId),
         columns: { id: true, name: true, fieldSchema: true },
@@ -787,9 +788,9 @@ async function executeToolCallInner(
     }
 
     case "complete_item": {
-      const itemId = Number(args.item_id);
-      const item = await findAccessibleItem(userId, itemId);
-      if (!item) return JSON.stringify({ ok: false, error: "Item not found" });
+      const itemId = parseItemId(args.item_id);
+      const item = itemId && (await findAccessibleItem(userId, itemId));
+      if (!itemId || !item) return JSON.stringify({ ok: false, error: "Item not found" });
 
       const newStatus = await toggleItemCompleted(item, userId);
 
@@ -798,9 +799,9 @@ async function executeToolCallInner(
     }
 
     case "delete_item": {
-      const itemId = Number(args.item_id);
-      const item = await findAccessibleItem(userId, itemId);
-      if (!item) return JSON.stringify({ ok: false, error: "Item not found" });
+      const itemId = parseItemId(args.item_id);
+      const item = itemId && (await findAccessibleItem(userId, itemId));
+      if (!itemId || !item) return JSON.stringify({ ok: false, error: "Item not found" });
 
       if (!confirmDelete(userId, `item:${itemId}`, turnId)) {
         return JSON.stringify({
@@ -821,14 +822,14 @@ async function executeToolCallInner(
     }
 
     case "move_item": {
-      const itemId = Number(args.item_id);
+      const itemId = parseItemId(args.item_id);
       const destBucketId = Number(args.bucket_id);
 
       const [item, destBucket] = await Promise.all([
-        findAccessibleItem(userId, itemId),
+        itemId ? findAccessibleItem(userId, itemId) : undefined,
         findAccessibleBucket(userId, destBucketId),
       ]);
-      if (!item) return JSON.stringify({ ok: false, error: "Item not found" });
+      if (!itemId || !item) return JSON.stringify({ ok: false, error: "Item not found" });
       if (!destBucket) return JSON.stringify({ ok: false, error: "Destination bucket not found" });
 
       const [maxRow] = await db

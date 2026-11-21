@@ -1,3 +1,4 @@
+import type { ItemId } from "@/types/ids";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { and, eq, ne } from "drizzle-orm";
 import { db } from "@/lib/db";
@@ -22,12 +23,12 @@ async function tool(userId: number, name: string, args: Record<string, unknown>,
   const call = { id: "call", name, arguments: args };
   return JSON.parse(await executeToolCall(call, userId, timezone)) as {
     ok: boolean;
-    itemId?: number;
+    itemId?: ItemId;
     error?: string;
   };
 }
 
-async function savedItem(itemId: number) {
+async function savedItem(itemId: ItemId) {
   const [row] = await db.select().from(items).where(eq(items.id, itemId));
   return row;
 }
@@ -38,6 +39,24 @@ const SUBSCRIPTION_SCHEMA = {
     { key: "plan", label: "plan", type: "select", options: ["basic", "premium"] },
   ],
 };
+
+describe("item ids from the model", () => {
+  it.each(["update_item", "complete_item", "delete_item", "move_item"])(
+    "%s refuses an id that isn't an item id, such as the number an old chat remembers",
+    async (name) => {
+      const userId = await seedUser();
+      const bucketId = await seedBucket(userId);
+      await seedItem(userId, bucketId, { deadline: new Date(T0.getTime() + HOUR) });
+
+      for (const item_id of [7, "7", "", null]) {
+        expect(await tool(userId, name, { item_id, bucket_id: bucketId })).toEqual({
+          ok: false,
+          error: "Item not found",
+        });
+      }
+    }
+  );
+});
 
 describe("update_item custom fields", () => {
   it("rejects values the bucket's fields don't allow", async () => {
@@ -67,7 +86,7 @@ describe("update_item custom fields", () => {
       await tool(userId, "update_item", { item_id: itemId, properties: { price: 18 } })
     ).toMatchObject({ ok: true });
 
-    expect(JSON.parse((await savedItem(itemId ?? -1)).properties ?? "null")).toEqual({
+    expect(JSON.parse((await savedItem(itemId ?? "")).properties ?? "null")).toEqual({
       price: 18,
       plan: "basic",
     });
@@ -301,7 +320,7 @@ describe("repeats", () => {
       timezone
     );
     expect(result).toMatchObject({ ok: true });
-    return savedItem(result.itemId ?? -1);
+    return savedItem(result.itemId ?? "");
   }
 
   it("month end moves the deadline to the last day and repeats on each month's last day", async () => {
@@ -671,7 +690,7 @@ describe("dates capy saves", () => {
     const added = await addWith(userId, { deadline: "2026-03-11T22:30:00" });
     expect(added.item?.deadline).toBe("Wed 2026-03-11 22:30");
 
-    const itemId = (added as { itemId?: number }).itemId;
+    const itemId = (added as { itemId?: ItemId }).itemId;
     const call = {
       id: "call",
       name: "update_item",
@@ -689,7 +708,7 @@ describe("dates capy saves", () => {
       id: "call",
       name: "update_item",
       arguments: {
-        item_id: (added as { itemId?: number }).itemId,
+        item_id: (added as { itemId?: ItemId }).itemId,
         deadline: "2025-05-19T22:30:00",
       },
     };

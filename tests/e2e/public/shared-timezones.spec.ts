@@ -1,3 +1,4 @@
+import { v7 as uuidv7 } from "uuid";
 import { test, expect, type Locator, type Page } from "@playwright/test";
 import Database from "better-sqlite3";
 import { E2E_DATABASE_FILE } from "../helpers/env";
@@ -63,10 +64,10 @@ function seedSharedBucket(ownerEmail: string, memberEmail: string, title?: strin
     const day = new Date(Date.now() + 3 * 86_400_000).toISOString().slice(0, 10);
     const { id: itemId } = db
       .prepare(
-        "insert into items (bucket_id, user_id, title, deadline, deadline_timezone) values (?, ?, ?, ?, 'Asia/Kolkata') returning id"
+        "insert into items (id, bucket_id, user_id, title, deadline, deadline_timezone) values (?, ?, ?, ?, ?, 'Asia/Kolkata') returning id"
       )
-      .get(bucketId, id(ownerEmail), title, Date.parse(`${day}T09:00:00Z`) / 1000) as {
-      id: number;
+      .get(uuidv7(), bucketId, id(ownerEmail), title, Date.parse(`${day}T09:00:00Z`) / 1000) as {
+      id: string;
     };
     db.prepare("insert into item_assignees (item_id, user_id) values (?, ?)").run(
       itemId,

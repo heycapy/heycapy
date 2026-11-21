@@ -1,3 +1,4 @@
+import type { ItemId } from "@/types/ids";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
@@ -17,7 +18,7 @@ const T0 = new Date("2026-03-10T12:00:00Z");
 beforeEach(() => useSchedulerEnvironment(T0));
 afterEach(() => resetSchedulerEnvironment());
 
-async function waitingFor(state: (ids: { bucketId: number; itemId: number }) => FlowState) {
+async function waitingFor(state: (ids: { bucketId: number; itemId: ItemId }) => FlowState) {
   const api = stubTelegram();
   const userId = await seedUser();
   const bucketId = await seedBucket(userId);
@@ -32,7 +33,7 @@ async function flowOf(userId: number) {
   return getFlowState(row?.telegramState ?? null);
 }
 
-const WAITING_FOR_TEXT: [string, (ids: { bucketId: number; itemId: number }) => FlowState][] = [
+const WAITING_FOR_TEXT: [string, (ids: { bucketId: number; itemId: ItemId }) => FlowState][] = [
   ["a new item's title", ({ bucketId }) => ({ s: "title", bucketId, bucketName: "Bills" })],
   [
     "a new title for an item",

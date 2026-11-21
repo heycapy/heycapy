@@ -1,3 +1,4 @@
+import { parseItemId } from "@/lib/items/item-id";
 import { completeItem } from "@/lib/reminders/quick-actions";
 import { findAccessibleItem, listLiveBuckets } from "@/lib/buckets/access";
 import { recordSystemError } from "@/lib/system-errors";
@@ -396,8 +397,8 @@ async function handleUpdate(botToken: string, body: TelegramUpdate): Promise<Res
     }
 
     if (callbackData.startsWith("mi:")) {
-      const itemId = parseInt(callbackData.slice(3), 10);
-      const itemRow = await findAccessibleItem(userId, itemId);
+      const tappedId = parseItemId(callbackData.slice(3));
+      const itemRow = tappedId ? await findAccessibleItem(userId, tappedId) : undefined;
       if (!itemRow) {
         await setFlowState(userId, null);
         await sendTelegramWithQuickActions(botToken, chatIdStr, "Item not found.");
@@ -414,7 +415,7 @@ async function handleUpdate(botToken: string, body: TelegramUpdate): Promise<Res
         botToken,
         chatIdStr,
         {
-          id: itemId,
+          id: itemRow.id,
           bucketId,
           title: itemRow.title,
           deadline: itemRow.deadline,
@@ -429,7 +430,7 @@ async function handleUpdate(botToken: string, body: TelegramUpdate): Promise<Res
         userId,
         {
           s: "mg_edit",
-          itemId,
+          itemId: itemRow.id,
           itemTitle: itemRow.title,
           bucketId,
           bucketName,

@@ -1,3 +1,4 @@
+import type { ItemId } from "@/types/ids";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type * as SessionModule from "@/lib/auth/session";
 import { asc, eq } from "drizzle-orm";
@@ -36,7 +37,7 @@ const WEEKLY = JSON.stringify({ enabled: true, frequency: "weekly", interval: 1,
 beforeEach(() => useSchedulerEnvironment(NOW));
 afterEach(() => resetSchedulerEnvironment());
 
-async function assigneesOf(itemId: number) {
+async function assigneesOf(itemId: ItemId) {
   const rows = await db
     .select({ userId: itemAssignees.userId })
     .from(itemAssignees)
@@ -58,7 +59,7 @@ async function sharedBucket() {
   return { owner, friend, stranger, bucketId, itemId };
 }
 
-async function itemOf(itemId: number) {
+async function itemOf(itemId: ItemId) {
   const [row] = await db.select().from(items).where(eq(items.id, itemId));
   return row;
 }
@@ -70,7 +71,7 @@ describe("a member adding items", () => {
 
     expect(await addItemAction(bucketId, "buy milk", null)).toEqual({
       ok: true,
-      id: expect.any(Number),
+      id: expect.any(String),
     });
 
     const added = await db.select().from(items).where(eq(items.title, "buy milk"));
@@ -94,7 +95,7 @@ describe("a member adding items", () => {
     session.userId = friend;
     expect(await addItemAction(bucketId, "first", null)).toEqual({
       ok: true,
-      id: expect.any(Number),
+      id: expect.any(String),
     });
 
     await db.delete(bucketMembers).where(eq(bucketMembers.userId, friend));

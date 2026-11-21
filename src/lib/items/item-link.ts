@@ -1,11 +1,12 @@
+import { parseItemId } from "@/lib/items/item-id";
 import type { ItemId } from "@/types/ids";
 export function itemLink(path: string): { bucketId: number | null; itemId: ItemId } | null {
   const url = new URL(path, "http://app");
-  const item = /^#item-(\d+)$/.exec(url.hash);
-  if (url.pathname !== "/" || !item) return null;
+  const itemId = parseItemId(/^#item-(.+)$/.exec(url.hash)?.[1]);
+  if (url.pathname !== "/" || !itemId) return null;
   const bucket = url.searchParams.get("bucket");
   return {
     bucketId: bucket && /^\d+$/.test(bucket) ? Number(bucket) : null,
-    itemId: Number(item[1]),
+    itemId,
   };
 }

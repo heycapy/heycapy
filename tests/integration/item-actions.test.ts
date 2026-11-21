@@ -1,3 +1,4 @@
+import type { ItemId } from "@/types/ids";
 import { afterAll, afterEach, beforeAll, beforeEach, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
@@ -42,7 +43,7 @@ async function remindedItem() {
 
 async function tap(
   userId: number,
-  itemId: number,
+  itemId: ItemId,
   action: "done" | "15",
   channel: "email" | "ntfy"
 ) {

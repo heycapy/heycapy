@@ -1,3 +1,4 @@
+import type { ItemId } from "@/types/ids";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
@@ -44,7 +45,7 @@ async function badgesFor(userId: number, bucketId: number) {
 
 async function addJob(
   userId: number,
-  itemId: number,
+  itemId: ItemId,
   fields: Partial<typeof notificationQueue.$inferInsert>
 ) {
   await db.insert(notificationQueue).values({

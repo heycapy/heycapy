@@ -1,3 +1,4 @@
+import { parseItemId } from "@/lib/items/item-id";
 import type { ItemId } from "@/types/ids";
 import { eq, inArray } from "drizzle-orm";
 import { db } from "@/lib/db";
@@ -104,8 +105,8 @@ export async function handleAssignCallback(
   ctx: Ctx & { messageId: number | undefined }
 ): Promise<void> {
   const [, rawItem, choice] = callbackData.split(":");
-  const itemId = Number(rawItem);
-  if (!ctx.messageId || !Number.isInteger(itemId)) return;
+  const itemId = parseItemId(rawItem);
+  if (!ctx.messageId || !itemId) return;
   const item = await findAccessibleItem(ctx.userId, itemId);
   if (!item) {
     await showAssignPicker(ctx, itemId, ctx.messageId);
