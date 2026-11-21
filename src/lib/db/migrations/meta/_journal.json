@@ -414,6 +414,13 @@
       "when": 1795247444655,
       "tag": "0058_sync_devices",
       "breakpoints": true
+    },
+    {
+      "idx": 59,
+      "version": "6",
+      "when": 1795247908747,
+      "tag": "0059_items_moved_tombstone",
+      "breakpoints": true
     }
   ]
 }
