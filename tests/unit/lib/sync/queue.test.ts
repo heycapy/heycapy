@@ -1,7 +1,13 @@
 import "fake-indexeddb/auto";
 import { IDBFactory } from "fake-indexeddb";
 import { beforeEach, describe, expect, it } from "vitest";
-import { enqueue, markSent, planEnqueue, readQueue } from "@/lib/sync/client/queue";
+import {
+  cancelUnsentDelete,
+  enqueue,
+  markSent,
+  planEnqueue,
+  readQueue,
+} from "@/lib/sync/client/queue";
 import type { NewMutation, QueueEntry } from "@/lib/sync/client/types";
 
 const A = "00000000-0000-7000-8000-00000000000a";
@@ -115,5 +121,29 @@ describe("queue", () => {
       [1, true],
       [2, false],
     ]);
+  });
+});
+
+describe("cancelUnsentDelete", () => {
+  beforeEach(() => {
+    globalThis.indexedDB = new IDBFactory();
+  });
+
+  it("takes back a delete that has not been sent", async () => {
+    await enqueue(del());
+    expect(await cancelUnsentDelete(A)).toBe(true);
+    expect(await readQueue()).toEqual([]);
+  });
+
+  it("leaves a delete that was already sent, and another item's", async () => {
+    await enqueue(del());
+    await enqueue(del(B));
+    await markSent([1]);
+    expect(await cancelUnsentDelete(A)).toBe(false);
+    expect((await readQueue()).map((e) => e.seq)).toEqual([1, 2]);
+  });
+
+  it("says no when there is nothing to take back", async () => {
+    expect(await cancelUnsentDelete(A)).toBe(false);
   });
 });

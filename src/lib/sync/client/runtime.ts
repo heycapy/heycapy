@@ -151,6 +151,13 @@ export function createSyncRuntime(options: SyncRuntimeOptions) {
         channel.postMessage({ type: "wake", request });
       });
     },
+    // The queue changed in this tab: every tab shows it, and the engine has something to send
+    queued() {
+      if (stopped) return;
+      notify();
+      channel.postMessage({ type: "changed" });
+      this.trigger();
+    },
     // Called with every change of the local database, from this tab or another
     subscribe(listener: () => void) {
       listeners.add(listener);

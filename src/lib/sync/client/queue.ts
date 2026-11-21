@@ -99,3 +99,23 @@ export function removeFromQueue(seqs: number[]): Promise<void> {
     return committed(transaction);
   });
 }
+
+// Taking back a delete that has not left the device: it is as if it never happened. One that was
+// already sent may have been applied, so that one is undone on the server instead
+export function cancelUnsentDelete(itemId: string): Promise<boolean> {
+  return withDatabase((db) => {
+    const transaction = db.transaction(QUEUE_STORE, "readwrite");
+    const queue = transaction.objectStore(QUEUE_STORE);
+    let cancelled = false;
+    queue.getAll().onsuccess = (event) => {
+      const entries = (event.target as IDBRequest<QueueEntry[]>).result;
+      const pending = entries.find(
+        (e) => !e.sent && e.mutation.type === "item.delete" && e.mutation.id === itemId
+      );
+      if (!pending) return;
+      queue.delete(pending.seq);
+      cancelled = true;
+    };
+    return committed(transaction).then(() => cancelled);
+  });
+}

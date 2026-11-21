@@ -347,3 +347,40 @@ describe("syncNow", () => {
     a.stop();
   });
 });
+
+describe("queued", () => {
+  it("shows the change in every tab and has the engine send it", async () => {
+    const { make, log } = setup();
+    const a = make("a");
+    const b = make("b");
+    const heardByA = vi.fn();
+    const heardByB = vi.fn();
+    a.subscribe(heardByA);
+    b.subscribe(heardByB);
+    void a.start();
+    void b.start();
+    await vi.advanceTimersByTimeAsync(0);
+    heardByA.mockClear();
+    heardByB.mockClear();
+
+    b.queued();
+    expect(heardByB).toHaveBeenCalledTimes(1);
+    expect(heardByA).toHaveBeenCalledTimes(1);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(log).toEqual(["a", "a"]);
+    a.stop();
+    b.stop();
+  });
+
+  it("does nothing once stopped", async () => {
+    const { make } = setup();
+    const a = make("a");
+    void a.start();
+    await vi.advanceTimersByTimeAsync(0);
+    const heard = vi.fn();
+    a.subscribe(heard);
+    a.stop();
+    a.queued();
+    expect(heard).not.toHaveBeenCalled();
+  });
+});
