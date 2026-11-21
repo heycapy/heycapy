@@ -1,5 +1,5 @@
 import { v7 } from "uuid";
-import { z } from "zod";
+import * as z from "zod/mini";
 import type { ItemId } from "@/types/ids";
 
 const ItemIdSchema = z.uuid();
