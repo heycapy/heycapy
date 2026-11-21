@@ -9,29 +9,15 @@ import { requireSession } from "./action-helpers";
 import { db } from "@/lib/db";
 import { items } from "@/lib/db/schema";
 import { findAccessibleBucket } from "@/lib/buckets/access";
-import {
-  ITEM_DESCRIPTION_MAX_LENGTH,
-  ITEM_GONE_ERROR,
-  INVALID_STATUS_ERROR,
-  NOT_A_MEMBER_ERROR,
-  UNKNOWN_CLOCK_ERROR,
-  ITEM_STATUS,
-  ITEM_TITLE_MAX_LENGTH,
-  SETTABLE_ITEM_STATUSES,
-} from "@/constants";
-import { RecurringConfig, ReminderOffsets } from "@/types/rules";
-import { initialReminderState } from "@/lib/items/reminders";
-import { refreshItemReminders, userTimezone } from "@/lib/reminders/refresh";
-import { resolveDeadline } from "@/lib/items/deadline";
+import { ITEM_GONE_ERROR } from "@/constants";
+import type { RecurringConfig } from "@/types/rules";
 import type { ItemPatch } from "@/lib/items/edit-draft";
-import { isKnownTimezone } from "@/lib/timezones/valid";
 import { skipOccurrence } from "@/lib/items/recurrence";
+import { addItem } from "@/lib/items/add";
 import { updateItem } from "@/lib/items/update";
 import { assignItem } from "@/lib/items/assign";
 import { moveItem } from "@/lib/items/move";
-import { onLastDayIfAnchored } from "@/lib/items/occurrence";
 import { cancelRemindAgain } from "@/lib/reminders/quick-actions";
-import { allAreMembers, assignEveryone, setItemAssignees } from "@/lib/items/assignees";
 import { toggleItemCompleted } from "@/lib/items/complete";
 import { deleteItem } from "@/lib/items/delete";
 import { bucketsChanged, dataEvents } from "@/lib/events";
@@ -117,67 +103,20 @@ export async function addItemAction(
 ): Promise<ActionResult<{ id: ItemId }>> {
   const session = await requireSession();
 
-  const trimmed = title.trim();
-  if (!trimmed) return { ok: false, error: "Title is required" };
-  if (trimmed.length > ITEM_TITLE_MAX_LENGTH) return { ok: false, error: "Title too long" };
-  if (description && description.length > ITEM_DESCRIPTION_MAX_LENGTH) {
-    return { ok: false, error: "Notes too long" };
-  }
-  if (recurring && !RecurringConfig.safeParse(recurring).success) {
-    return { ok: false, error: "Invalid repeat settings" };
-  }
-  const parsedReminders = reminders ? ReminderOffsets.safeParse(reminders) : null;
-  if (parsedReminders && !parsedReminders.success) {
-    return { ok: false, error: "Invalid reminders" };
-  }
-  if (clock && !isKnownTimezone(clock)) return { ok: false, error: UNKNOWN_CLOCK_ERROR };
-  if (status !== undefined && !SETTABLE_ITEM_STATUSES.includes(status)) {
-    return { ok: false, error: INVALID_STATUS_ERROR };
-  }
-
-  const bucket = findAccessibleBucket(db, session.userId, bucketId);
-  if (!bucket) return { ok: false, error: "Bucket not found" };
-  if (assigneeIds && !allAreMembers(db, bucketId, assigneeIds)) {
-    return { ok: false, error: NOT_A_MEMBER_ERROR };
-  }
-
-  const [maxRow] = await db
-    .select({ max: sql<number>`COALESCE(MAX(${items.sortOrder}), -1)` })
-    .from(items)
-    .where(eq(items.bucketId, bucketId));
-
-  const due = resolveDeadline(deadline, clock ?? userTimezone(db, session.userId));
-  const parsedDeadline =
-    due.deadline && due.deadlineTimezone
-      ? onLastDayIfAnchored(due.deadline, recurring ?? null, due.deadlineTimezone)
-      : null;
-  const [created] = await db
-    .insert(items)
-    .values({
-      bucketId,
-      userId: session.userId,
-      title: trimmed,
-      description: description?.trim() || null,
-      deadline: parsedDeadline,
-      deadlineTimezone: due.deadlineTimezone,
-      ...initialReminderState(parsedDeadline, due.deadlineTimezone ?? "UTC"),
-      status: status ?? ITEM_STATUS.active,
-      ...(status === ITEM_STATUS.completed && {
-        completedAt: new Date(),
-        completedBy: session.userId,
-      }),
-      sortOrder: maxRow.max + 1,
-      recurring: recurring?.enabled ? JSON.stringify(recurring) : null,
-      properties: properties ? JSON.stringify(properties) : null,
-      reminderOffsets: parsedReminders?.data ?? null,
-    })
-    .returning({ id: items.id });
-  if (assigneeIds) setItemAssignees(db, created.id, assigneeIds);
-  else assignEveryone(db, created.id, bucketId);
-  refreshItemReminders(db, [created.id]);
-
-  revalidatePath("/");
-  return { ok: true, id: created.id };
+  const result = addItem(db, session.userId, {
+    bucketId,
+    title,
+    deadline,
+    status,
+    recurring,
+    properties,
+    reminders,
+    assigneeIds,
+    clock,
+    description,
+  });
+  if (result.ok) revalidatePath("/");
+  return result;
 }
 
 async function updateItemFor(itemId: ItemId, patch: ItemPatch): Promise<ActionResult> {
