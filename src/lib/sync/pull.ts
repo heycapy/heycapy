@@ -132,7 +132,18 @@ export function pull(h: DbHandle, userId: number, cursor: number, limit: number)
     );
   }
 
+  records.push(...remindersOfSentItems(h, userId, records));
+
   return { reset: false, cursor: next, more, tombstones, records };
+}
+
+// A device keeps a reminder only along with its item, so an item that reaches it (a join, a move into
+// a bucket it is in) brings the person's own reminder even though that row itself is older
+function remindersOfSentItems(h: DbHandle, userId: number, records: PullRecord[]): PullRecord[] {
+  const sent = new Set(records.flatMap((r) => (r.entity === "item_reminder" ? [r.id] : [])));
+  const itemIds = records.flatMap((r) => (r.entity === "item" && !sent.has(r.id) ? [r.id] : []));
+  if (itemIds.length === 0) return [];
+  return reminderRows(h, userId, inArray(itemReminders.itemId, itemIds));
 }
 
 function isTombstone(change: PullRecord | PullTombstone): change is PullTombstone {
