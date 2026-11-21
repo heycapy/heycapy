@@ -162,7 +162,12 @@ export async function assignOnly(form: Locator, only: string | RegExp | null): P
 // What the server holds for an item, read the way a device downloads it: "active", "completed",
 // with ":trashed" once deleted, or null when it has never arrived. Offline writes reach the server
 // a moment after the click, so a test that depends on it polls this
-export function serverState(page: Page, title: string) {
+export async function serverState(page: Page, title: string) {
+  return (await serverStates(page, title))[0] ?? null;
+}
+
+// Every item with that title, a repeating item leaves a completed one and the next one
+export function serverStates(page: Page, title: string) {
   return page.evaluate(async (name) => {
     const response = await fetch("/api/v1/sync/pull?cursor=0&limit=1000", {
       headers: { "x-sync-protocol": "1" },
@@ -173,7 +178,26 @@ export function serverState(page: Page, title: string) {
         data: { title?: string; status?: string; deletedAt?: string | null };
       }[];
     };
-    const row = body.records.find((r) => r.entity === "item" && r.data.title === name);
-    return row ? `${row.data.status}${row.data.deletedAt ? ":trashed" : ""}` : null;
+    return body.records
+      .filter((r) => r.entity === "item" && r.data.title === name)
+      .map((r) => `${r.data.status}${r.data.deletedAt ? ":trashed" : ""}`)
+      .sort();
   }, title);
+}
+
+export async function addMonthlyItemDueToday(page: Page, title: string): Promise<void> {
+  await page.getByRole("button", { name: "add item", exact: true }).click();
+  const dialog = itemForm(page);
+  await dialog.locator("textarea").first().fill(title);
+  await openDetail(dialog, "date");
+  await page.getByRole("button", { name: String(new Date().getDate()), exact: true }).click();
+  await openDetail(dialog, "repeat");
+  await dialog.getByRole("button", { name: "on", exact: true }).click();
+  await expect(dialog.getByRole("button", { name: "on", exact: true })).toHaveAttribute(
+    "aria-pressed",
+    "true"
+  );
+  await dialog.getByRole("button", { name: "add", exact: true }).click();
+  await expect(dialog).not.toBeVisible();
+  await expect(itemRow(page, title)).toBeVisible();
 }
