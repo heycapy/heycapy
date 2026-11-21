@@ -1,8 +1,9 @@
 export const SYNC_DB = "heycapy-sync";
-export const SYNC_DB_VERSION = 1;
+export const SYNC_DB_VERSION = 2;
 
 export const RECORDS_STORE = "records";
 export const META_STORE = "meta";
+export const QUEUE_STORE = "queue";
 export const RECORDS_BY_BUCKET = "bucket";
 
 export const META_CURSOR = "cursor";

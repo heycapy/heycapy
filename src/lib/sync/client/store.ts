@@ -3,6 +3,7 @@ import {
   META_SCHEMA,
   META_STORE,
   META_USER_ID,
+  QUEUE_STORE,
   RECORDS_BY_BUCKET,
   RECORDS_STORE,
   SYNC_DB,
@@ -14,11 +15,16 @@ import type { PullPage, StoredRecord } from "./types";
 function openDatabase(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
     const request = indexedDB.open(SYNC_DB, SYNC_DB_VERSION);
-    request.onupgradeneeded = () => {
+    // Upgrades only ever add: the queue holds what the user typed and is never dropped
+    request.onupgradeneeded = (event) => {
       const db = request.result;
-      const records = db.createObjectStore(RECORDS_STORE, { keyPath: "key" });
-      records.createIndex(RECORDS_BY_BUCKET, "bucketId");
-      db.createObjectStore(META_STORE);
+      if (event.oldVersion < 1) {
+        const records = db.createObjectStore(RECORDS_STORE, { keyPath: "key" });
+        records.createIndex(RECORDS_BY_BUCKET, "bucketId");
+        db.createObjectStore(META_STORE);
+      }
+      if (event.oldVersion < 2)
+        db.createObjectStore(QUEUE_STORE, { keyPath: "seq", autoIncrement: true });
     };
     request.onsuccess = () => {
       const db = request.result;
@@ -31,14 +37,14 @@ function openDatabase(): Promise<IDBDatabase> {
   });
 }
 
-const requestResult = <T>(request: IDBRequest<T>) =>
+export const requestResult = <T>(request: IDBRequest<T>) =>
   new Promise<T>((resolve, reject) => {
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(request.error);
   });
 
 // A write counts once the transaction commits, not when its last request succeeds
-const committed = (transaction: IDBTransaction) =>
+export const committed = (transaction: IDBTransaction) =>
   new Promise<void>((resolve, reject) => {
     transaction.oncomplete = () => resolve();
     transaction.onabort = () => reject(transaction.error);
@@ -87,11 +93,13 @@ export function applyPullPage(page: PullPage, userId: number, schema: number): P
 }
 
 // A download from cursor 0: the cache goes, whatever the device has queued stays
-export function resetRecords(): Promise<void> {
+export function resetRecords(schema?: number): Promise<void> {
   return withDatabase((db) => {
     const transaction = db.transaction([RECORDS_STORE, META_STORE], "readwrite");
     transaction.objectStore(RECORDS_STORE).clear();
-    transaction.objectStore(META_STORE).put(0, META_CURSOR);
+    const meta = transaction.objectStore(META_STORE);
+    meta.put(0, META_CURSOR);
+    if (schema !== undefined) meta.put(schema, META_SCHEMA);
     return committed(transaction);
   });
 }
