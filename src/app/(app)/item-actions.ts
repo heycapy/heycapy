@@ -8,30 +8,28 @@ import { and, asc, eq, isNull, sql } from "drizzle-orm";
 import { requireSession } from "./action-helpers";
 import { db } from "@/lib/db";
 import { items } from "@/lib/db/schema";
-import { findAccessibleBucket, findAccessibleItem } from "@/lib/buckets/access";
+import { findAccessibleBucket } from "@/lib/buckets/access";
 import {
   ITEM_DESCRIPTION_MAX_LENGTH,
   ITEM_GONE_ERROR,
+  INVALID_STATUS_ERROR,
   NOT_A_MEMBER_ERROR,
+  UNKNOWN_CLOCK_ERROR,
   ITEM_STATUS,
   ITEM_TITLE_MAX_LENGTH,
   SETTABLE_ITEM_STATUSES,
 } from "@/constants";
 import { RecurringConfig, ReminderOffsets } from "@/types/rules";
-import { initialReminderState, reminderResetForDeadline } from "@/lib/items/reminders";
-import {
-  lastNotifiedAt,
-  refreshItemReminders,
-  reminderContext,
-  userTimezone,
-} from "@/lib/reminders/refresh";
+import { initialReminderState } from "@/lib/items/reminders";
+import { refreshItemReminders, userTimezone } from "@/lib/reminders/refresh";
 import { resolveDeadline } from "@/lib/items/deadline";
 import type { ItemPatch } from "@/lib/items/edit-draft";
 import { isKnownTimezone } from "@/lib/timezones/valid";
-import { createNextOccurrence, skipOccurrence } from "@/lib/items/recurrence";
+import { skipOccurrence } from "@/lib/items/recurrence";
+import { updateItem } from "@/lib/items/update";
 import { assignItem } from "@/lib/items/assign";
 import { moveItem } from "@/lib/items/move";
-import { onLastDayIfAnchored, parseRecurring } from "@/lib/items/occurrence";
+import { onLastDayIfAnchored } from "@/lib/items/occurrence";
 import { cancelRemindAgain } from "@/lib/reminders/quick-actions";
 import { allAreMembers, assignEveryone, setItemAssignees } from "@/lib/items/assignees";
 import { toggleItemCompleted } from "@/lib/items/complete";
@@ -104,9 +102,6 @@ export async function cancelRemindAgainAction(itemId: ItemId): Promise<ActionRes
   revalidatePath("/");
   return { ok: true };
 }
-
-const UNKNOWN_CLOCK_ERROR = "That timezone doesn't exist";
-const INVALID_STATUS_ERROR = "Invalid status";
 
 export async function addItemAction(
   bucketId: number,
@@ -185,125 +180,15 @@ export async function addItemAction(
   return { ok: true, id: created.id };
 }
 
-// The editor doesn't know the series anchor, keep it while the frequency stays the same
-function keepAnchor(config: RecurringConfig, saved: string | null): RecurringConfig {
-  if (config.anchorDay) return config;
-  const previous = parseRecurring(saved);
-  return previous?.frequency === config.frequency && previous.anchorDay
-    ? { ...config, anchorDay: previous.anchorDay }
-    : config;
-}
-
-async function updateItem(itemId: ItemId, patch: ItemPatch): Promise<ActionResult> {
+async function updateItemFor(itemId: ItemId, patch: ItemPatch): Promise<ActionResult> {
   const session = await requireSession();
-  const {
-    title,
-    description,
-    deadline,
-    status,
-    recurring,
-    properties,
-    reminders,
-    assigneeIds,
-    clock,
-  } = patch;
-
-  const trimmed = title?.trim();
-  if (trimmed !== undefined && !trimmed) return { ok: false, error: "Title is required" };
-  if (trimmed && trimmed.length > ITEM_TITLE_MAX_LENGTH) {
-    return { ok: false, error: "Title too long" };
-  }
-  if (description && description.length > ITEM_DESCRIPTION_MAX_LENGTH) {
-    return { ok: false, error: "Notes too long" };
-  }
-  if (recurring && !RecurringConfig.safeParse(recurring).success) {
-    return { ok: false, error: "Invalid repeat settings" };
-  }
-  const parsedReminders = reminders ? ReminderOffsets.safeParse(reminders) : null;
-  if (parsedReminders && !parsedReminders.success) {
-    return { ok: false, error: "Invalid reminders" };
-  }
-  if (clock && !isKnownTimezone(clock)) return { ok: false, error: UNKNOWN_CLOCK_ERROR };
-
-  const item = findAccessibleItem(db, session.userId, itemId);
-  if (!item) return { ok: false, error: ITEM_GONE_ERROR };
-  // a missed item's editor sends "missed" back unchanged
-  if (status !== undefined && status !== item.status && !SETTABLE_ITEM_STATUSES.includes(status)) {
-    return { ok: false, error: INVALID_STATUS_ERROR };
-  }
-  if (assigneeIds && !allAreMembers(db, item.bucketId, assigneeIds)) {
-    return { ok: false, error: NOT_A_MEMBER_ERROR };
-  }
-
-  const savedRecurring =
-    recurring === undefined
-      ? parseRecurring(item.recurring)
-      : recurring?.enabled
-        ? keepAnchor(recurring, item.recurring)
-        : null;
-
-  let deadlineChange = {};
-  if (deadline !== undefined) {
-    const ctx = reminderContext(db, item.bucketId);
-    const due = resolveDeadline(deadline, clock ?? userTimezone(db, session.userId), item);
-    const parsedDeadline = due.deadline;
-    const keepsMovedDate =
-      !!item.scheduledAt &&
-      !!savedRecurring &&
-      parsedDeadline?.getTime() === item.deadline?.getTime();
-    const newDeadline =
-      parsedDeadline && due.deadlineTimezone && !keepsMovedDate
-        ? onLastDayIfAnchored(parsedDeadline, savedRecurring, due.deadlineTimezone)
-        : parsedDeadline;
-    deadlineChange = {
-      deadline: newDeadline,
-      deadlineTimezone: due.deadlineTimezone,
-      ...(!keepsMovedDate && { scheduledAt: null }),
-      ...reminderResetForDeadline(
-        { ...item, notifiedAt: lastNotifiedAt(db, item.id) },
-        newDeadline,
-        ctx,
-        new Date(),
-        due.deadlineTimezone ?? undefined
-      ),
-    };
-  }
-  const statusChanged = status !== undefined && status !== item.status;
-
-  const nowCompleted =
-    statusChanged && status === ITEM_STATUS.completed && item.status !== ITEM_STATUS.completed;
-  const nowUncompleted =
-    statusChanged && status !== ITEM_STATUS.completed && item.status === ITEM_STATUS.completed;
-
-  await db
-    .update(items)
-    .set({
-      ...(trimmed !== undefined && { title: trimmed }),
-      ...(description !== undefined && { description: description?.trim() || null }),
-      ...deadlineChange,
-      ...(status !== undefined && { status }),
-      ...(nowCompleted && { completedAt: new Date(), completedBy: session.userId }),
-      ...(nowUncompleted && { completedAt: null, completedBy: null }),
-      ...(recurring !== undefined && {
-        recurring: savedRecurring ? JSON.stringify(savedRecurring) : null,
-      }),
-      ...(properties !== undefined && {
-        properties: properties ? JSON.stringify(properties) : null,
-      }),
-      ...(reminders !== undefined && { reminderOffsets: parsedReminders?.data ?? null }),
-      updatedAt: new Date(),
-    })
-    .where(eq(items.id, itemId));
-  if (assigneeIds) setItemAssignees(db, itemId, assigneeIds);
-  refreshItemReminders(db, [itemId]);
-  if (nowCompleted) createNextOccurrence(db, itemId);
-
-  revalidatePath("/");
-  return { ok: true };
+  const result = updateItem(db, session.userId, itemId, patch);
+  if (result.ok) revalidatePath("/");
+  return result;
 }
 
 export async function patchItemAction(itemId: ItemId, patch: ItemPatch): Promise<ActionResult> {
-  return updateItem(itemId, patch);
+  return updateItemFor(itemId, patch);
 }
 
 export async function updateItemAction(
@@ -317,7 +202,7 @@ export async function updateItemAction(
   assigneeIds?: number[],
   clock?: string | null
 ): Promise<ActionResult> {
-  return updateItem(itemId, {
+  return updateItemFor(itemId, {
     title,
     deadline,
     status,
