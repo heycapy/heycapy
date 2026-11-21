@@ -103,3 +103,10 @@ export function resetRecords(schema?: number): Promise<void> {
     return committed(transaction);
   });
 }
+
+export function clearSyncData(): Promise<void> {
+  return new Promise((resolve) => {
+    const request = indexedDB.deleteDatabase(SYNC_DB);
+    request.onsuccess = request.onerror = request.onblocked = () => resolve();
+  });
+}

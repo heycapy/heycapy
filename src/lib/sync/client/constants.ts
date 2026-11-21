@@ -1,3 +1,4 @@
+// public/sw.js deletes this database when the login page is visited, keep the name in step
 export const SYNC_DB = "heycapy-sync";
 export const SYNC_DB_VERSION = 2;
 
@@ -10,3 +11,9 @@ export const META_CURSOR = "cursor";
 export const META_DEVICE_ID = "deviceId";
 export const META_SCHEMA = "schema";
 export const META_USER_ID = "userId";
+
+export const SYNC_LOCK = "heycapy-sync";
+export const SYNC_CHANNEL = "heycapy-sync";
+
+export const RETRY_BASE_MS = 2_000;
+export const RETRY_MAX_MS = 5 * 60_000;

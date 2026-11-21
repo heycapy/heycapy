@@ -22,6 +22,7 @@ import { lookPickedAction, saveTimezoneIfDefaultAction } from "@/app/(app)/user-
 import { useServerEvents } from "@/hooks/useServerEvents";
 import { useConnectivity } from "@/hooks/connectivity";
 import { useServiceWorker } from "@/hooks/useServiceWorker";
+import { useSync } from "@/hooks/useSync";
 import { useKeybinds } from "@/hooks/useKeybinds";
 import { keybindActions } from "./keybind-actions";
 import { PrefixIndicator } from "./PrefixIndicator";
@@ -177,6 +178,7 @@ export function AppShell({
   const newVersion = useServerEvents();
   useConnectivity();
   useServiceWorker();
+  useSync(userId);
   const offline = useUIStore((s) => s.offline);
   const banners = (
     <div className="max-w-column mx-auto w-full">

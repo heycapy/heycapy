@@ -5,6 +5,7 @@ const PAGE_CACHE = "heycapy-page";
 const PAGE_KEY = "/";
 const OFFLINE_PAGE = "/offline.html";
 const SNAPSHOT_DB = "heycapy-snapshot";
+const SYNC_DB = "heycapy-sync";
 const ASSET_MAX_ENTRIES = 300;
 
 self.addEventListener("install", () => self.skipWaiting());
@@ -22,15 +23,15 @@ async function forgetPage() {
   await (await caches.open(PAGE_CACHE)).delete(PAGE_KEY);
 }
 
-function forgetSnapshot() {
+function forgetDatabase(name) {
   return new Promise((resolve) => {
-    const request = indexedDB.deleteDatabase(SNAPSHOT_DB);
+    const request = indexedDB.deleteDatabase(name);
     request.onsuccess = request.onerror = request.onblocked = () => resolve();
   });
 }
 
 function forgetLists() {
-  return Promise.all([forgetPage(), forgetSnapshot()]);
+  return Promise.all([forgetPage(), forgetDatabase(SNAPSHOT_DB), forgetDatabase(SYNC_DB)]);
 }
 
 async function savePage(response) {
