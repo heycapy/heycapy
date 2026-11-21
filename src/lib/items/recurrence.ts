@@ -160,40 +160,42 @@ export function skipOccurrence(
   itemId: ItemId,
   now = new Date()
 ): ActionResult {
-  const item = findAccessibleItem(h, userId, itemId);
-  if (!item) return { ok: false, error: "Item not found" };
-  const config = parseRecurring(item.recurring);
-  if (CLOSED_ITEM_STATUSES.includes(item.status) || !item.deadline || !config?.enabled) {
-    return { ok: false, error: "Only an open repeating item with a date can be skipped" };
-  }
+  return h.transaction((tx) => {
+    const item = findAccessibleItem(tx, userId, itemId);
+    if (!item) return { ok: false, error: "Item not found" };
+    const config = parseRecurring(item.recurring);
+    if (CLOSED_ITEM_STATUSES.includes(item.status) || !item.deadline || !config?.enabled) {
+      return { ok: false, error: "Only an open repeating item with a date can be skipped" };
+    }
 
-  const ctx = reminderContext(h, item.bucketId);
-  const timezone = seriesZone(item, ctx);
-  const occurrence = { deadline: item.deadline, scheduledAt: item.scheduledAt };
-  const deadline = nextInSeries(occurrence, config, timezone, now);
-  if (!deadline) {
-    return { ok: false, error: "This is the last occurrence — complete or delete it instead" };
-  }
+    const ctx = reminderContext(tx, item.bucketId);
+    const timezone = seriesZone(item, ctx);
+    const occurrence = { deadline: item.deadline, scheduledAt: item.scheduledAt };
+    const deadline = nextInSeries(occurrence, config, timezone, now);
+    if (!deadline) {
+      return { ok: false, error: "This is the last occurrence — complete or delete it instead" };
+    }
 
-  h.update(items)
-    .set({
-      deadline,
-      deadlineTimezone: timezone,
-      scheduledAt: null,
-      recurring: JSON.stringify(withAnchor(config, seriesDate(occurrence), timezone)),
-      ...reminderResetForDeadline(
-        { ...item, notifiedAt: lastNotifiedAt(h, item.id) },
+    tx.update(items)
+      .set({
         deadline,
-        ctx,
-        now,
-        timezone
-      ),
-      updatedAt: now,
-    })
-    .where(eq(items.id, itemId))
-    .run();
-  refreshItemReminders(h, [itemId]);
-  return { ok: true };
+        deadlineTimezone: timezone,
+        scheduledAt: null,
+        recurring: JSON.stringify(withAnchor(config, seriesDate(occurrence), timezone)),
+        ...reminderResetForDeadline(
+          { ...item, notifiedAt: lastNotifiedAt(tx, item.id) },
+          deadline,
+          ctx,
+          now,
+          timezone
+        ),
+        updatedAt: now,
+      })
+      .where(eq(items.id, itemId))
+      .run();
+    refreshItemReminders(tx, [itemId]);
+    return { ok: true };
+  });
 }
 
 export function moveOccurrence(
@@ -204,40 +206,42 @@ export function moveOccurrence(
   now = new Date(),
   askedTimezone?: string
 ): ActionResult<{ next: Date | null }> {
-  const item = findAccessibleItem(h, userId, itemId);
-  if (!item) return { ok: false, error: "Item not found" };
+  return h.transaction((tx) => {
+    const item = findAccessibleItem(tx, userId, itemId);
+    if (!item) return { ok: false, error: "Item not found" };
 
-  const config = parseRecurring(item.recurring);
-  const scheduled = config?.enabled && item.deadline ? (item.scheduledAt ?? item.deadline) : null;
-  const ctx = reminderContext(h, item.bucketId);
-  const timezone = seriesZone(item, ctx);
-  const asked = { deadline: askedDeadline, deadlineTimezone: askedTimezone ?? timezone };
-  // Moving one occurrence keeps the series on its own clock
-  const due = scheduled ? onClock(asked, timezone) : asked;
-  const { deadline } = due;
+    const config = parseRecurring(item.recurring);
+    const scheduled = config?.enabled && item.deadline ? (item.scheduledAt ?? item.deadline) : null;
+    const ctx = reminderContext(tx, item.bucketId);
+    const timezone = seriesZone(item, ctx);
+    const asked = { deadline: askedDeadline, deadlineTimezone: askedTimezone ?? timezone };
+    // Moving one occurrence keeps the series on its own clock
+    const due = scheduled ? onClock(asked, timezone) : asked;
+    const { deadline } = due;
 
-  h.update(items)
-    .set({
-      deadline,
-      deadlineTimezone: due.deadlineTimezone,
-      scheduledAt: scheduled && scheduled.getTime() !== deadline.getTime() ? scheduled : null,
-      ...reminderResetForDeadline(
-        { ...item, notifiedAt: lastNotifiedAt(h, item.id) },
+    tx.update(items)
+      .set({
         deadline,
-        ctx,
-        now,
-        due.deadlineTimezone
-      ),
-      updatedAt: now,
-    })
-    .where(eq(items.id, itemId))
-    .run();
-  refreshItemReminders(h, [itemId]);
+        deadlineTimezone: due.deadlineTimezone,
+        scheduledAt: scheduled && scheduled.getTime() !== deadline.getTime() ? scheduled : null,
+        ...reminderResetForDeadline(
+          { ...item, notifiedAt: lastNotifiedAt(tx, item.id) },
+          deadline,
+          ctx,
+          now,
+          due.deadlineTimezone
+        ),
+        updatedAt: now,
+      })
+      .where(eq(items.id, itemId))
+      .run();
+    refreshItemReminders(tx, [itemId]);
 
-  const mode = scheduled ? recurrenceModeOf(h, item.bucketId) : null;
-  const next =
-    config && scheduled && mode !== "afterCompletion"
-      ? nextInSeries({ deadline, scheduledAt: scheduled }, config, timezone, now)
-      : null;
-  return { ok: true, next };
+    const mode = scheduled ? recurrenceModeOf(tx, item.bucketId) : null;
+    const next =
+      config && scheduled && mode !== "afterCompletion"
+        ? nextInSeries({ deadline, scheduledAt: scheduled }, config, timezone, now)
+        : null;
+    return { ok: true, next };
+  });
 }

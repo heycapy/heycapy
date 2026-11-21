@@ -12,6 +12,7 @@ import { findAccessibleBucket, findAccessibleItem } from "@/lib/buckets/access";
 import {
   ITEM_DESCRIPTION_MAX_LENGTH,
   ITEM_GONE_ERROR,
+  NOT_A_MEMBER_ERROR,
   ITEM_STATUS,
   ITEM_TITLE_MAX_LENGTH,
   SETTABLE_ITEM_STATUSES,
@@ -27,7 +28,9 @@ import {
 import { resolveDeadline } from "@/lib/items/deadline";
 import type { ItemPatch } from "@/lib/items/edit-draft";
 import { isKnownTimezone } from "@/lib/timezones/valid";
-import { createNextOccurrence, moveOccurrence, skipOccurrence } from "@/lib/items/recurrence";
+import { createNextOccurrence, skipOccurrence } from "@/lib/items/recurrence";
+import { assignItem } from "@/lib/items/assign";
+import { moveItem } from "@/lib/items/move";
 import { onLastDayIfAnchored, parseRecurring } from "@/lib/items/occurrence";
 import { cancelRemindAgain } from "@/lib/reminders/quick-actions";
 import { allAreMembers, assignEveryone, setItemAssignees } from "@/lib/items/assignees";
@@ -102,7 +105,6 @@ export async function cancelRemindAgainAction(itemId: ItemId): Promise<ActionRes
   return { ok: true };
 }
 
-const NOT_A_MEMBER_ERROR = "That person isn't in this bucket";
 const UNKNOWN_CLOCK_ERROR = "That timezone doesn't exist";
 const INVALID_STATUS_ERROR = "Invalid status";
 
@@ -337,23 +339,9 @@ export async function skipOccurrenceAction(itemId: ItemId): Promise<ActionResult
 export async function moveItemAction(itemId: ItemId, deadline: string): Promise<ActionResult> {
   const session = await requireSession();
 
-  const item = findAccessibleItem(db, session.userId, itemId);
-  if (!item) return { ok: false, error: ITEM_GONE_ERROR };
-
-  const due = resolveDeadline(deadline, userTimezone(db, session.userId), item);
-  if (!due.deadline || isNaN(due.deadline.getTime())) return { ok: false, error: "Invalid date" };
-
-  const result = moveOccurrence(
-    db,
-    session.userId,
-    itemId,
-    due.deadline,
-    new Date(),
-    due.deadlineTimezone ?? undefined
-  );
-  if (!result.ok) return result;
-  revalidatePath("/");
-  return { ok: true };
+  const result = moveItem(db, session.userId, itemId, deadline);
+  if (result.ok) revalidatePath("/");
+  return result;
 }
 
 export async function assignItemAction(
@@ -362,18 +350,9 @@ export async function assignItemAction(
 ): Promise<ActionResult> {
   const session = await requireSession();
 
-  const item = findAccessibleItem(db, session.userId, itemId);
-  if (!item) return { ok: false, error: ITEM_GONE_ERROR };
-  if (!allAreMembers(db, item.bucketId, assigneeIds)) {
-    return { ok: false, error: NOT_A_MEMBER_ERROR };
-  }
-
-  setItemAssignees(db, itemId, assigneeIds);
-  await db.update(items).set({ updatedAt: new Date() }).where(eq(items.id, itemId));
-  refreshItemReminders(db, [itemId]);
-
-  revalidatePath("/");
-  return { ok: true };
+  const result = assignItem(db, session.userId, itemId, assigneeIds);
+  if (result.ok) revalidatePath("/");
+  return result;
 }
 
 export async function completeItemAction(itemId: ItemId): Promise<ActionResult> {

@@ -223,6 +223,7 @@ export const TELEGRAM_RESERVED_COMMANDS = [
 // Item / bucket field limits
 // Shown in the item dialog: someone else deleted the item, or the owner removed this person
 export const ITEM_GONE_ERROR = "this item was deleted, or you're no longer in its bucket";
+export const NOT_A_MEMBER_ERROR = "That person isn't in this bucket";
 export const ITEM_TITLE_MAX_LENGTH = 500;
 // Shown in the app as notes
 export const ITEM_DESCRIPTION_MAX_LENGTH = 2000;
