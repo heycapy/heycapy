@@ -23,20 +23,10 @@ import {
   userTimezone,
 } from "@/lib/reminders/refresh";
 import { allAreMembers, setItemAssignees } from "./assignees";
-import { resolveDeadline } from "./deadline";
 import type { ItemPatch } from "./edit-draft";
-import { onLastDayIfAnchored, parseRecurring } from "./occurrence";
+import { patchedDeadline, patchedRecurring } from "./patch-rules";
 import { createNextOccurrence } from "./recurrence";
 import { reminderResetForDeadline } from "./reminders";
-
-// The editor doesn't know the series anchor, keep it while the frequency stays the same
-function keepAnchor(config: RecurringConfig, saved: string | null): RecurringConfig {
-  if (config.anchorDay) return config;
-  const previous = parseRecurring(saved);
-  return previous?.frequency === config.frequency && previous.anchorDay
-    ? { ...config, anchorDay: previous.anchorDay }
-    : config;
-}
 
 export function updateItem(
   h: DbHandle,
@@ -89,36 +79,26 @@ export function updateItem(
       return { ok: false, error: NOT_A_MEMBER_ERROR };
     }
 
-    const savedRecurring =
-      recurring === undefined
-        ? parseRecurring(item.recurring)
-        : recurring?.enabled
-          ? keepAnchor(recurring, item.recurring)
-          : null;
+    const savedRecurring = patchedRecurring(recurring, item.recurring);
 
     let deadlineChange = {};
     if (deadline !== undefined) {
       const ctx = reminderContext(tx, item.bucketId);
-      const due = resolveDeadline(deadline, clock ?? userTimezone(tx, userId), item);
-      const parsedDeadline = due.deadline;
-      const keepsMovedDate =
-        !!item.scheduledAt &&
-        !!savedRecurring &&
-        parsedDeadline?.getTime() === item.deadline?.getTime();
-      const newDeadline =
-        parsedDeadline && due.deadlineTimezone && !keepsMovedDate
-          ? onLastDayIfAnchored(parsedDeadline, savedRecurring, due.deadlineTimezone)
-          : parsedDeadline;
+      const {
+        deadline: newDeadline,
+        deadlineTimezone,
+        keepsMovedDate,
+      } = patchedDeadline(item, deadline, clock ?? userTimezone(tx, userId), savedRecurring);
       deadlineChange = {
         deadline: newDeadline,
-        deadlineTimezone: due.deadlineTimezone,
+        deadlineTimezone,
         ...(!keepsMovedDate && { scheduledAt: null }),
         ...reminderResetForDeadline(
           { ...item, notifiedAt: lastNotifiedAt(tx, item.id) },
           newDeadline,
           ctx,
           now,
-          due.deadlineTimezone ?? undefined
+          deadlineTimezone ?? undefined
         ),
       };
     }
