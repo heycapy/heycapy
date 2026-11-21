@@ -30,6 +30,8 @@ export const LAST_DAY_OF_MONTH = 31;
 export const TRASH_RETENTION_DAYS = 30;
 // A device that was away longer than this downloads everything again, it can no longer be told what was deleted
 export const TOMBSTONE_RETENTION_DAYS = 90;
+export const PUSH_MAX_MUTATIONS = 100;
+export const PUSH_MAX_BYTES = 1_000_000;
 export const TODAY_FETCH_AHEAD_DAYS = 1;
 export const SEARCH_RESULTS_MAX = 50;
 

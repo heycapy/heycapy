@@ -420,6 +420,21 @@ export const syncTombstones = sqliteTable("sync_tombstones", {
     .default(sql`(unixepoch())`),
 });
 
+// sync_devices — the last change number applied from each device, so a push that is sent twice
+// changes nothing the second time. One row per device, written in the same transaction as the change
+export const syncDevices = sqliteTable(
+  "sync_devices",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    userId: integer("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    deviceId: text("device_id").notNull(),
+    lastSeq: integer("last_seq").notNull().default(0),
+  },
+  (t) => [uniqueIndex("idx_sync_devices_user_device").on(t.userId, t.deviceId)]
+);
+
 // notification_queue — reliable delivery with retries
 
 export const notificationQueue = sqliteTable("notification_queue", {

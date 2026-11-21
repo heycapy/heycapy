@@ -22,6 +22,7 @@ import { onLastDayIfAnchored } from "./occurrence";
 import { initialReminderState } from "./reminders";
 
 export type NewItem = {
+  id?: ItemId;
   bucketId: number;
   title: string;
   deadline: string | null;
@@ -84,6 +85,7 @@ export function addItem(
     const created = tx
       .insert(items)
       .values({
+        ...(input.id && { id: input.id }),
         bucketId,
         userId,
         title,

@@ -407,6 +407,13 @@
       "when": 1795242419261,
       "tag": "0057_sync_revisions",
       "breakpoints": true
+    },
+    {
+      "idx": 58,
+      "version": "6",
+      "when": 1795247444655,
+      "tag": "0058_sync_devices",
+      "breakpoints": true
     }
   ]
 }
