@@ -13,6 +13,7 @@ import {
   newItemForm,
   openNewBucketModal,
   selectBucket,
+  serverState,
   uniqueName,
 } from "../helpers/buckets";
 
@@ -113,7 +114,8 @@ test.describe("items", () => {
     const title = uniqueName("buy oat milk");
     await createAndSelectBucket(page, bucket);
     await addItem(page, title);
-    // This tab stops hearing from the server, so its list still shows the item
+    await expect.poll(() => serverState(page, title)).toBe("active");
+    // This tab stops hearing from the server, so it still shows the item and keeps the delete
     await page.route(/\/api\/(events|v1\/sync\/)/, (route) => route.abort());
 
     const elsewhere = await browser.newContext({ storageState: authState("buckets") });
@@ -122,11 +124,15 @@ test.describe("items", () => {
     await selectBucket(other, bucket);
     await deleteFromMenu(other, title);
     await expect(itemRow(other, title)).not.toBeVisible();
+    await expect.poll(() => serverState(other, title)).toBe("active:trashed");
     await elsewhere.close();
 
     await deleteFromMenu(page, title);
+    await expect(itemRow(page, title)).not.toBeVisible();
+
+    await page.unroute(/\/api\/(events|v1\/sync\/)/);
+    await page.evaluate(() => window.dispatchEvent(new Event("online")));
     await expect(page.getByText(ITEM_GONE_ERROR)).toBeVisible();
-    await expect(page.getByRole("button", { name: /undo/i })).not.toBeVisible();
   });
 
   test("item add form closes on cancel without adding", async ({ page }) => {

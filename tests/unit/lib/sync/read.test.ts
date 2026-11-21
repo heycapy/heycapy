@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { recordKey } from "@/lib/sync/client/apply";
 import {
   listBucketItems,
+  membersOf,
   localBadges,
   withServerBadges,
   type QueuedChanges,
@@ -321,5 +322,17 @@ describe("changes not sent yet", () => {
     const records = [item(1, { title: "kept" })];
     expect(list(records, queued(patch(1, { title: "refused" })))[0].title).toBe("refused");
     expect(list(records, queued())[0].title).toBe("kept");
+  });
+});
+
+describe("membersOf", () => {
+  it("lists a bucket's people with the owner first and marks the viewer", () => {
+    const owner = member(10, 5);
+    owner.data = { ...owner.data, role: "owner" } as typeof owner.data;
+    const people = membersOf([member(11, 2), owner, member(12, 7, 9), item(1)], 1, 2);
+    expect(people.map((m) => [m.userId, m.role, m.isYou])).toEqual([
+      [5, "owner", false],
+      [2, "member", true],
+    ]);
   });
 });

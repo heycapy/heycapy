@@ -2,7 +2,6 @@ import { test, expect, type Page } from "@playwright/test";
 import { authState } from "../helpers/auth";
 import {
   addItem,
-  addItemButton,
   createAndSelectBucket,
   itemRow,
   itemTick,
@@ -82,29 +81,56 @@ test("logging out deletes the copy on the device", async ({ page }) => {
   await expect.poll(() => syncDatabaseExists(page)).toBe(false);
 });
 
-test("offline the list can be read but not changed, and comes back when online", async ({
+// What the server holds for this person, read the way a device downloads it
+const serverTitles = (page: Page) =>
+  page.evaluate(async () => {
+    const response = await fetch("/api/v1/sync/pull?cursor=0&limit=1000", {
+      headers: { "x-sync-protocol": "1" },
+    });
+    const body = (await response.json()) as {
+      records: {
+        entity: string;
+        data: { title?: string; status?: string; deletedAt?: string | null };
+      }[];
+    };
+    return body.records
+      .filter((r) => r.entity === "item")
+      .map((r) => `${r.data.title}:${r.data.status}${r.data.deletedAt ? ":trashed" : ""}`);
+  });
+
+test("offline an item can be added, ticked and deleted, and the server gets them when online", async ({
   page,
 }) => {
   await page.goto("/");
-  await createAndSelectBucket(page, uniqueName("read only"));
-  const title = uniqueName("kept item");
-  await addItem(page, title);
+  await createAndSelectBucket(page, uniqueName("offline writes"));
+  const kept = uniqueName("kept item");
+  const doomed = uniqueName("doomed item");
+  await addItem(page, kept);
+  await addItem(page, doomed);
+  await expect.poll(() => serverTitles(page)).toContain(`${kept}:active`);
 
   await blockServer(page);
   await page.reload();
   await expect(banner(page)).toBeVisible();
-  await expect(itemRow(page, title)).toBeVisible();
+  await expect(itemRow(page, kept)).toBeVisible();
 
-  await expect(addItemButton(page)).toHaveCount(0);
-  await expect(itemTick(page, title)).toBeDisabled();
-  const menu = await openItemMenu(page, title);
-  await expect(menu.getByRole("button", { name: "delete" })).toHaveCount(0);
-  await expect(menu.getByRole("button", { name: "copy title" })).toBeVisible();
-  await page.keyboard.press("Escape");
+  const added = uniqueName("added offline");
+  await addItem(page, added);
+  await itemTick(page, kept).click();
+  await expect(itemTick(page, kept)).toBeChecked();
+  const menu = await openItemMenu(page, doomed);
+  await expect(menu.getByRole("button", { name: /^reminders/ })).toHaveCount(0);
+  await expect(menu.getByRole("button", { name: "tomorrow" })).toHaveCount(0);
+  await menu.getByRole("button", { name: "delete" }).click();
+  await expect(itemRow(page, doomed)).toHaveCount(0);
 
   await page.unroute("**/*");
   await page.reload();
   await expect(banner(page)).toHaveCount(0);
-  await expect(addItemButton(page)).toBeVisible();
-  await expect(itemTick(page, title)).toBeEnabled();
+  await expect(itemRow(page, added)).toBeVisible();
+  await expect
+    .poll(() => serverTitles(page))
+    .toEqual(
+      expect.arrayContaining([`${added}:active`, `${kept}:completed`, `${doomed}:active:trashed`])
+    );
 });

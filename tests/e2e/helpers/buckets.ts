@@ -158,3 +158,22 @@ export async function assignOnly(form: Locator, only: string | RegExp | null): P
     if (isOn !== shouldBeOn) await button.click();
   }
 }
+
+// What the server holds for an item, read the way a device downloads it: "active", "completed",
+// with ":trashed" once deleted, or null when it has never arrived. Offline writes reach the server
+// a moment after the click, so a test that depends on it polls this
+export function serverState(page: Page, title: string) {
+  return page.evaluate(async (name) => {
+    const response = await fetch("/api/v1/sync/pull?cursor=0&limit=1000", {
+      headers: { "x-sync-protocol": "1" },
+    });
+    const body = (await response.json()) as {
+      records: {
+        entity: string;
+        data: { title?: string; status?: string; deletedAt?: string | null };
+      }[];
+    };
+    const row = body.records.find((r) => r.entity === "item" && r.data.title === name);
+    return row ? `${row.data.status}${row.data.deletedAt ? ":trashed" : ""}` : null;
+  }, title);
+}

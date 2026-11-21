@@ -28,6 +28,7 @@ type ItemListProps = {
   orderedItemsRef: RefObject<Item[]>;
   draggable: boolean;
   readonly: boolean;
+  offline: boolean;
   statuses: StatusDef[];
   fields: FieldDef[];
   color: string;
@@ -51,6 +52,7 @@ export function ItemList({
   orderedItemsRef,
   draggable,
   readonly,
+  offline,
   statuses,
   fields,
   color,
@@ -144,6 +146,7 @@ export function ItemList({
       item={menu.item}
       at={menu.at}
       readonly={readonly}
+      offline={offline}
       reminderBadge={reminderBadges[menu.item.id]}
       nextReminderAt={menuItem?.nextReminderAt}
       assign={shared ? { members, onAssign: (userIds) => onAssign(menu.item, userIds) } : undefined}

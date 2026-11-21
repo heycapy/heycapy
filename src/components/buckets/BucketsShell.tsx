@@ -94,7 +94,6 @@ export function BucketsShell({
   useEffect(() => {
     if (addItemRequest === handledAddRequest.current) return;
     handledAddRequest.current = addItemRequest;
-    if (useUIStore.getState().offline) return;
     const { todayOpen: onToday, activeBucketId: current } = useUIStore.getState();
     const shown = buckets.find((b) => b.id === current) ?? buckets[0];
     const target = shown && writable(shown) ? shown : onToday ? buckets.find(writable) : undefined;
@@ -146,7 +145,8 @@ export function BucketsShell({
     writableBuckets.find((b) => b.id === todayAddId) ??
     (writable(activeBucket) ? activeBucket : writableBuckets[0]);
   const footerBucket = todayOpen ? (todayTarget ?? null) : activeBucket;
-  const canAddItem = !offline && footerBucket !== null && writable(footerBucket);
+  // Today lists from the server, so an item added there offline would not show until it syncs
+  const canAddItem = !(offline && todayOpen) && footerBucket !== null && writable(footerBucket);
 
   const view = todayOpen ? (
     <TodayView seed={seed} onSeedUsed={dropSeed} />

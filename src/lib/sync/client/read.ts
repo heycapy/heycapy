@@ -1,5 +1,7 @@
 import { isClosedStatus, ITEM_STATUS } from "@/constants";
 import { patchedDeadline, patchedRecurring } from "@/lib/items/patch-rules";
+import type { BucketMember } from "@/lib/buckets/members";
+import { UNSET_TIMEZONE } from "@/lib/timezones/constants";
 import type { ItemId } from "@/types/ids";
 import type { ItemsRules } from "@/types/rules";
 import type { ListItem, ReminderBadge } from "@/lib/reminders/status";
@@ -227,4 +229,27 @@ export function withServerBadges(
     }
   }
   return badges;
+}
+
+// Who is in a bucket as far as the device knows: names and avatars sync, a clock and whether
+// someone can be reminded do not, so they read as unknown until the server can be asked
+export function membersOf(records: StoredRecord[], bucketId: number, me: number): BucketMember[] {
+  const members: BucketMember[] = [];
+  for (const r of records) {
+    if (r.entity !== "bucket_member" || r.data.bucketId !== bucketId) continue;
+    members.push({
+      userId: r.data.userId,
+      username: r.data.username,
+      avatar: r.data.avatar,
+      role: r.data.role,
+      joinedAt: new Date(0),
+      isYou: r.data.userId === me,
+      timezone: UNSET_TIMEZONE,
+      place: null,
+      remindable: true,
+    });
+  }
+  return members.sort(
+    (a, b) => Number(b.role === "owner") - Number(a.role === "owner") || a.userId - b.userId
+  );
 }

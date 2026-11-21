@@ -1,7 +1,10 @@
 import { useEffect, useRef } from "react";
 import { useUIStore } from "@/store/ui";
 import { browserTransport } from "@/lib/sync/client/engine";
+import { notify } from "@/components/ui/notify";
+import { cancelUnsentDelete, enqueue } from "@/lib/sync/client/queue";
 import { createSyncRuntime } from "@/lib/sync/client/runtime";
+import type { NewMutation } from "@/lib/sync/client/types";
 
 type Runtime = ReturnType<typeof createSyncRuntime>;
 
@@ -15,6 +18,18 @@ export function subscribeToChanges(listener: () => void) {
   return () => {
     changeListeners.delete(listener);
   };
+}
+
+// A change the person made: kept on the device, shown at once, sent when the server can be reached
+export async function queueMutation(mutation: NewMutation) {
+  await enqueue(mutation);
+  current?.queued();
+}
+
+export async function undoQueuedDelete(itemId: string) {
+  const cancelled = await cancelUnsentDelete(itemId);
+  if (cancelled) current?.queued();
+  return cancelled;
 }
 
 // Ask for a round and wait until one that started after this call has finished
@@ -45,7 +60,11 @@ export function useSync(userId: number) {
       locks: navigator.locks,
       createChannel: (name) => new BroadcastChannel(name),
       // The calls that run on their own are what tell whether the server can be reached
-      onOutcome: ({ status }) => {
+      onOutcome: ({ status, rejected }) => {
+        for (const { mutation, reason } of rejected) {
+          const name = mutation.type === "item.create" ? ` "${mutation.title}"` : "";
+          notify.error(`couldn't save${name}: ${reason}`);
+        }
         if (status === "ok" || status === "retry")
           useUIStore.getState().setOffline(status === "retry");
       },

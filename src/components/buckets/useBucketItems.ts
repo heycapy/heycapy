@@ -2,25 +2,19 @@ import type { ItemId } from "@/types/ids";
 import { isClosedStatus } from "@/constants";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { notify } from "@/components/ui/notify";
-import {
-  deleteItemAction,
-  getReminderBadgesAction,
-  moveItemAction,
-  updateItemAction,
-} from "@/app/(app)/actions";
+import { getReminderBadgesAction, moveItemAction } from "@/app/(app)/actions";
 import type { ListItem, ReminderBadge } from "@/lib/reminders/status";
 import { useUIStore } from "@/store/ui";
 import { reach } from "@/hooks/connectivity";
-import { deadlineValue } from "@/lib/time";
+import { browserTimezone } from "@/lib/time";
 import { parseItemsRules } from "@/lib/rules";
-import { META_CURSOR } from "@/lib/sync/client/constants";
+import { META_CURSOR, META_USER_ID } from "@/lib/sync/client/constants";
+import { readQueue } from "@/lib/sync/client/queue";
 import { listBucketItems, localBadges, withServerBadges } from "@/lib/sync/client/read";
 import { readMeta, readRecords } from "@/lib/sync/client/store";
-import { subscribeToChanges, syncNow } from "@/hooks/useSync";
+import { queueMutation, subscribeToChanges, syncNow } from "@/hooks/useSync";
 import type { ItemPatch } from "@/lib/items/edit-draft";
 import { offerUndoDelete } from "./undoDelete";
-import { withPatch } from "./optimistic";
-import { saveItemPatch } from "./savePatch";
 import { isTick, offerUndoTick } from "./undoTick";
 
 type Item = ListItem;
@@ -50,9 +44,19 @@ export function useBucketItems(bucketId: number, itemsRules: string, showComplet
   // Null when nothing has been downloaded yet: the list is not empty, it is not here yet
   const read = useCallback(async (): Promise<Loaded | null> => {
     try {
-      const [records, cursor] = await Promise.all([readRecords(), readMeta<number>(META_CURSOR)]);
-      if (cursor === undefined) return null;
-      const list = listBucketItems(records, bucketId, sortBy);
+      const [records, cursor, queue, userId] = await Promise.all([
+        readRecords(),
+        readMeta<number>(META_CURSOR),
+        readQueue(),
+        readMeta<number>(META_USER_ID),
+      ]);
+      if (cursor === undefined || userId === undefined) return null;
+      const list = listBucketItems(records, bucketId, sortBy, {
+        queue,
+        userId,
+        zone: browserTimezone(),
+        now: new Date(),
+      });
       return {
         items: list,
         reminderBadges: withServerBadges(list, localBadges(list), serverBadges.current),
@@ -126,24 +130,17 @@ export function useBucketItems(bucketId: number, itemsRules: string, showComplet
     if (await fetchServerBadges()) show(await read());
   }
 
+  // The change is kept on the device and shown at once, the server hears of it when it can be reached
   async function changeStatus(item: Item, status: string) {
-    const result = await updateItemAction(
-      item.id,
-      item.title,
-      item.deadline ? deadlineValue(item.deadline, item.deadlineTimezone) : null,
-      status
-    );
-    if (!result.ok) notify.error(result.error);
-    await refetch();
-    if (result.ok && isTick(item, status)) {
+    await queueMutation({ type: "item.patch", id: item.id, patch: { status } });
+    if (isTick(item, status)) {
       offerUndoTick(item, () => changeStatus(item, item.status));
     }
-    return result.ok;
+    return true;
   }
 
   async function patchItem(item: Item, patch: ItemPatch) {
-    setFetchedItems((list) => list.map((i) => (i.id === item.id ? withPatch(i, patch) : i)));
-    await saveItemPatch(item, patch, refetch);
+    await queueMutation({ type: "item.patch", id: item.id, patch });
   }
 
   async function moveItem(item: Item, deadline: string) {
@@ -154,12 +151,7 @@ export function useBucketItems(bucketId: number, itemsRules: string, showComplet
 
   async function deleteItem(itemId: ItemId) {
     const title = fetchedItems.find((i) => i.id === itemId)?.title ?? "item";
-    const result = await deleteItemAction(itemId);
-    await refetch();
-    if (!result.ok) {
-      notify.error(result.error);
-      return;
-    }
+    await queueMutation({ type: "item.delete", id: itemId });
     offerUndoDelete(itemId, title, refetch);
   }
 

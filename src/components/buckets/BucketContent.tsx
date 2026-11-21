@@ -15,12 +15,11 @@ import { parseFields } from "./fields";
 import { useUIStore } from "@/store/ui";
 import { useLayoutStore } from "@/store/layout";
 import { placesOf } from "@/lib/timezones/gap";
-import { notify } from "@/components/ui/notify";
 import { OnceOpen } from "@/components/ui/OnceOpen";
 import { NewItemEditor } from "./NewItemEditor";
 import { useLookParts } from "@/components/looks/LookProvider";
 import { cn } from "@/lib/utils";
-import { assignItemAction } from "@/app/(app)/actions";
+import { queueMutation } from "@/hooks/useSync";
 import { memberName } from "@/lib/buckets/member-name";
 import { MembersBar, type MemberFilter } from "./MembersBar";
 
@@ -48,7 +47,7 @@ export function BucketContent({ bucket, accentColor, viewRef, onAddClosed }: Buc
   const defaultStatus =
     statuses.find((s) => s.isDefault)?.name ?? statuses[0]?.name ?? ITEM_STATUS.active;
   const offline = useUIStore((s) => s.offline);
-  const readonly = rules.readonly === true || offline;
+  const readonly = rules.readonly === true;
   const bucketReminders = parseNotificationRules(bucket.notificationsRules).defaultReminders;
   const bucketName = bucket.icon ? `${bucket.icon} ${bucket.name}` : bucket.name;
   const framed = useLookParts().listFrame === "framed";
@@ -163,12 +162,11 @@ export function BucketContent({ bucket, accentColor, viewRef, onAddClosed }: Buc
           draggable={dragOn}
           shared={shared}
           onAssign={async (item, assigneeIds) => {
-            const result = await assignItemAction(item.id, assigneeIds);
-            if (!result.ok) notify.error(result.error);
-            await list.refetch();
-            return result.ok;
+            await queueMutation({ type: "item.patch", id: item.id, patch: { assigneeIds } });
+            return true;
           }}
           readonly={readonly}
+          offline={offline}
           statuses={statuses}
           fields={fields}
           color={accentColor}
@@ -193,7 +191,6 @@ export function BucketContent({ bucket, accentColor, viewRef, onAddClosed }: Buc
             draggable={dragOn}
             defaultDeadline={defaultDeadline(rules.defaultDeadlineOffsetDays)}
             defaultStatus={defaultStatus}
-            onAdded={list.refetch}
             onExit={(focusBar) => {
               setAdding(false);
               if (focusBar) onAddClosed();
