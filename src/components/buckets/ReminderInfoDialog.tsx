@@ -1,8 +1,9 @@
+import type { ItemId } from "@/types/ids";
 import { Modal, ModalHeader } from "@/components/ui/Modal";
 import { ItemReminderInfo } from "./ItemReminderInfo";
 
 type ReminderInfoDialogProps = {
-  itemId: number;
+  itemId: ItemId;
   title: string;
   onClose: () => void;
 };

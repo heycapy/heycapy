@@ -1,3 +1,4 @@
+import type { ItemId } from "@/types/ids";
 import { isClosedStatus } from "@/constants";
 import { useEffect, useRef, useState } from "react";
 import { notify } from "@/components/ui/notify";
@@ -19,7 +20,7 @@ import { saveItemPatch } from "./savePatch";
 import { isTick, offerUndoTick } from "./undoTick";
 
 type Item = ListItem;
-type Loaded = { items: Item[]; reminderBadges: Record<number, ReminderBadge> };
+type Loaded = { items: Item[]; reminderBadges: Record<ItemId, ReminderBadge> };
 
 const lastLoaded = new Map<number, Loaded>();
 
@@ -36,7 +37,7 @@ export function useBucketItems(bucketId: number, itemsRules: string, showComplet
   const markItemsLoaded = useUIStore((s) => s.markItemsLoaded);
   const cached = lastLoaded.get(bucketId);
   const [fetchedItems, setFetchedItems] = useState<Item[]>(cached?.items ?? []);
-  const [reminderBadges, setReminderBadges] = useState<Record<number, ReminderBadge>>(
+  const [reminderBadges, setReminderBadges] = useState<Record<ItemId, ReminderBadge>>(
     cached?.reminderBadges ?? {}
   );
   const [loading, setLoading] = useState(!cached);
@@ -117,7 +118,7 @@ export function useBucketItems(bucketId: number, itemsRules: string, showComplet
     await refetch();
   }
 
-  async function deleteItem(itemId: number) {
+  async function deleteItem(itemId: ItemId) {
     const title = fetchedItems.find((i) => i.id === itemId)?.title ?? "item";
     const result = await deleteItemAction(itemId);
     await refetch();

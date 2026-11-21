@@ -1,3 +1,4 @@
+import type { ItemId } from "@/types/ids";
 import { useEffect, useState, useTransition, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { SidePanel } from "@/components/ui/SidePanel";
@@ -19,7 +20,7 @@ type TrashSheetProps = {
   onClose: () => void;
 };
 
-type ConfirmTarget = `bucket:${number}` | `item:${number}` | "all";
+type ConfirmTarget = `bucket:${number}` | `item:${ItemId}` | "all";
 
 const HINT = "text-muted-foreground font-ui text-xs";
 

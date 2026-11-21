@@ -1,9 +1,10 @@
+import type { ItemId } from "@/types/ids";
 import type { ListItem, ReminderBadge } from "@/lib/reminders/status";
 import { SNAPSHOT_DB, SNAPSHOT_STORE, SNAPSHOT_VERSION } from "./constants";
 
 export type BucketSnapshot = {
   items: ListItem[];
-  reminderBadges: Record<number, ReminderBadge>;
+  reminderBadges: Record<ItemId, ReminderBadge>;
 };
 
 const bucketKey = (bucketId: number) => `bucket:${bucketId}`;

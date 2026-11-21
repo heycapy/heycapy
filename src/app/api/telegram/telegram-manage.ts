@@ -1,3 +1,4 @@
+import type { ItemId } from "@/types/ids";
 import { formatDeadline } from "@/lib/format-date";
 import {
   editTelegramHtml,
@@ -33,7 +34,7 @@ export async function showListBucketPicker(
 }
 
 export type MenuItem = {
-  id: number;
+  id: ItemId;
   title: string;
   deadline: Date | null;
   deadlineTimezone: string | null;

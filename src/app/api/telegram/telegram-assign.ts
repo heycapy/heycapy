@@ -1,3 +1,4 @@
+import type { ItemId } from "@/types/ids";
 import { eq, inArray } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { bucketMembers, users } from "@/lib/db/schema";
@@ -52,14 +53,14 @@ export function assigneeLabel(
 }
 
 export async function assigneeLabels(
-  rows: { id: number; bucketId: number }[],
+  rows: { id: ItemId; bucketId: number }[],
   viewerId: number
-): Promise<Map<number, string>> {
+): Promise<Map<ItemId, string>> {
   const [people, assigned] = await Promise.all([
     bucketPeople([...new Set(rows.map((r) => r.bucketId))]),
     assigneeIdsByItem(rows.map((r) => r.id)),
   ]);
-  const labels = new Map<number, string>();
+  const labels = new Map<ItemId, string>();
   for (const row of rows) {
     const label = assigneeLabel(people.get(row.bucketId), assigned.get(row.id) ?? [], viewerId);
     if (label) labels.set(row.id, label);
@@ -69,7 +70,7 @@ export async function assigneeLabels(
 
 type Ctx = { botToken: string; chatId: string; userId: number };
 
-export async function showAssignPicker(ctx: Ctx, itemId: number, messageId: number): Promise<void> {
+export async function showAssignPicker(ctx: Ctx, itemId: ItemId, messageId: number): Promise<void> {
   const item = await findAccessibleItem(ctx.userId, itemId);
   if (!item) {
     await editTelegramHtml(ctx.botToken, ctx.chatId, messageId, "this item no longer exists");
@@ -150,7 +151,7 @@ export async function sendAdded(
   chatId: string,
   text: string,
   bucketId: number,
-  itemId: number
+  itemId: ItemId
 ): Promise<void> {
   const members = (await bucketPeople([bucketId])).get(bucketId) ?? [];
   if (members.length < 2) {

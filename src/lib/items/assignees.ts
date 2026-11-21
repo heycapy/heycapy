@@ -1,3 +1,4 @@
+import type { ItemId } from "@/types/ids";
 import { and, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/lib/db";
@@ -22,8 +23,8 @@ export async function allAreMembers(bucketId: number, userIds: unknown): Promise
 }
 
 // Only members still in the item's bucket count, the same rule that decides who is reminded
-export async function assigneeIdsByItem(itemIds: number[]): Promise<Map<number, number[]>> {
-  const byItem = new Map<number, number[]>();
+export async function assigneeIdsByItem(itemIds: ItemId[]): Promise<Map<ItemId, number[]>> {
+  const byItem = new Map<ItemId, number[]>();
   if (itemIds.length === 0) return byItem;
   const rows = await db
     .select({ itemId: itemAssignees.itemId, userId: itemAssignees.userId })
@@ -42,7 +43,7 @@ export async function assigneeIdsByItem(itemIds: number[]): Promise<Map<number, 
   return byItem;
 }
 
-export async function setItemAssignees(itemId: number, userIds: number[]): Promise<void> {
+export async function setItemAssignees(itemId: ItemId, userIds: number[]): Promise<void> {
   const wanted = [...new Set(userIds)];
   db.transaction((tx) => {
     tx.delete(itemAssignees).where(eq(itemAssignees.itemId, itemId)).run();
@@ -54,11 +55,11 @@ export async function setItemAssignees(itemId: number, userIds: number[]): Promi
   });
 }
 
-export async function assignEveryone(itemId: number, bucketId: number): Promise<void> {
+export async function assignEveryone(itemId: ItemId, bucketId: number): Promise<void> {
   await setItemAssignees(itemId, await bucketMemberIds(bucketId));
 }
 
-export async function copyAssignees(fromItemId: number, toItemId: number): Promise<void> {
+export async function copyAssignees(fromItemId: ItemId, toItemId: ItemId): Promise<void> {
   const from = await assigneeIdsByItem([fromItemId]);
   await setItemAssignees(toItemId, from.get(fromItemId) ?? []);
 }

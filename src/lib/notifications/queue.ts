@@ -1,3 +1,4 @@
+import type { ItemId } from "@/types/ids";
 import { isClosedStatus } from "@/constants";
 import { and, eq, inArray, isNull, lte, or } from "drizzle-orm";
 import { db } from "@/lib/db";
@@ -42,7 +43,7 @@ export type NotificationMedium = "email" | "ntfy" | "telegram" | "push" | "webho
 
 export type NotificationJob = {
   userId: number;
-  itemId?: number;
+  itemId?: ItemId;
   medium: NotificationMedium;
   title: string;
   message: string;
@@ -62,7 +63,7 @@ export async function enqueue(job: NotificationJob): Promise<void> {
 
 export async function enqueueNotification(notification: {
   userId: number;
-  itemId: number;
+  itemId: ItemId;
   kind: "reminder" | "overdue" | "arrival";
   title: string;
   message: string;

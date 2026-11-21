@@ -1,3 +1,4 @@
+import type { ItemId } from "@/types/ids";
 import { ITEM_STATUS } from "@/constants";
 import { and, desc, eq, inArray } from "drizzle-orm";
 import { db } from "@/lib/db";
@@ -19,7 +20,7 @@ const inTheirBuckets = (userId: number) => inArray(items.bucketId, memberBucketI
 
 function record(
   userId: number,
-  itemId: number,
+  itemId: ItemId,
   action: (typeof itemActions.$inferInsert)["action"],
   source: ActionSource,
   now: Date,
@@ -32,7 +33,7 @@ function record(
 
 export async function completeItem(
   userId: number,
-  itemId: number,
+  itemId: ItemId,
   source: ActionSource,
   now = new Date()
 ): Promise<void> {
@@ -46,7 +47,7 @@ export async function completeItem(
 }
 
 // Their own schedule when they are reminded about the item, else someone's who is
-function actorRow(userId: number, itemId: number) {
+function actorRow(userId: number, itemId: ItemId) {
   return selectReminderRows(and(eq(items.id, itemId), inTheirBuckets(userId)))
     .orderBy(desc(eq(itemReminders.userId, userId)))
     .limit(1);
@@ -55,7 +56,7 @@ function actorRow(userId: number, itemId: number) {
 // Returns when the next ping will actually go out, or null if the item is gone
 export async function remindItemAgain(
   userId: number,
-  itemId: number,
+  itemId: ItemId,
   choice: QuickRemindChoice,
   timezone: string,
   source: ActionSource,
@@ -87,7 +88,7 @@ export async function remindItemAgain(
 
 export async function cancelRemindAgain(
   userId: number,
-  itemId: number,
+  itemId: ItemId,
   source: ActionSource,
   now = new Date()
 ): Promise<boolean> {

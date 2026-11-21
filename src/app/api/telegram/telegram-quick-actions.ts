@@ -1,3 +1,4 @@
+import type { ItemId } from "@/types/ids";
 import { ITEM_STATUS } from "@/constants";
 import { findAccessibleItem } from "@/lib/buckets/access";
 import { dataEvents } from "@/lib/events";
@@ -51,7 +52,7 @@ export async function handleReminderAction(
 
 async function remindAgain(
   ctx: Ctx,
-  itemId: number,
+  itemId: ItemId,
   title: string,
   choice: QuickRemindChoice
 ): Promise<string> {

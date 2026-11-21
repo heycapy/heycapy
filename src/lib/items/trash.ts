@@ -1,3 +1,4 @@
+import type { ItemId } from "@/types/ids";
 import { and, count, desc, eq, inArray, isNotNull, isNull, lt, or, sql } from "drizzle-orm";
 import { TRASH_RETENTION_DAYS } from "@/constants";
 import { db } from "@/lib/db";
@@ -9,7 +10,7 @@ import { refreshItemReminders } from "@/lib/reminders/refresh";
 
 export type TrashedBucket = { id: number; name: string; deletedAt: Date; itemCount: number };
 export type TrashedItem = {
-  id: number;
+  id: ItemId;
   title: string;
   deletedAt: Date;
   bucketId: number;
@@ -113,7 +114,7 @@ export async function listTrash(
 }
 
 // A due date that passed while it was in the trash comes back overdue, without a late "due now"
-export async function restoreItem(userId: number, itemId: number, now = new Date()) {
+export async function restoreItem(userId: number, itemId: ItemId, now = new Date()) {
   const item = await findTrashedItem(userId, itemId);
   if (!item) return false;
   await db
@@ -133,7 +134,7 @@ export async function restoreItem(userId: number, itemId: number, now = new Date
 
 export async function deleteItemForever(
   userId: number,
-  itemId: number
+  itemId: ItemId
 ): Promise<DeleteForeverResult> {
   const item = await findTrashedItem(userId, itemId);
   if (!item) return "not_found";

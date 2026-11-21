@@ -1,3 +1,4 @@
+import type { ItemId } from "@/types/ids";
 import type { ActionResult } from "@/types/result";
 import type { RecurringConfig } from "@/types/rules";
 import { CLOSED_ITEM_STATUSES, ITEM_STATUS } from "@/constants";
@@ -67,7 +68,7 @@ async function insertOccurrence(
   await refreshItemReminders([next.id]);
 }
 
-export async function createNextOccurrence(itemId: number, now = new Date()): Promise<void> {
+export async function createNextOccurrence(itemId: ItemId, now = new Date()): Promise<void> {
   const completed = await db.query.items.findFirst({ where: eq(items.id, itemId) });
   if (completed?.status !== ITEM_STATUS.completed || !completed.recurring || !completed.deadline)
     return;
@@ -148,7 +149,7 @@ export async function moveOnMissedOccurrences(now = new Date()): Promise<void> {
 
 export async function skipOccurrence(
   userId: number,
-  itemId: number,
+  itemId: ItemId,
   now = new Date()
 ): Promise<ActionResult> {
   const item = await findAccessibleItem(userId, itemId);
@@ -189,7 +190,7 @@ export async function skipOccurrence(
 
 export async function moveOccurrence(
   userId: number,
-  itemId: number,
+  itemId: ItemId,
   askedDeadline: Date,
   now = new Date(),
   askedTimezone?: string

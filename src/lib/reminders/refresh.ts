@@ -1,3 +1,4 @@
+import type { ItemId } from "@/types/ids";
 import { recordSystemError } from "@/lib/system-errors";
 import { memberChannels, parseNotificationRules } from "@/lib/rules";
 import { and, asc, eq, gt, inArray, max, sql, type SQL } from "drizzle-orm";
@@ -280,7 +281,7 @@ async function refreshItems(list: RecipientItem[]): Promise<void> {
   );
 }
 
-export async function refreshItemReminders(itemIds: number[]): Promise<void> {
+export async function refreshItemReminders(itemIds: ItemId[]): Promise<void> {
   if (itemIds.length === 0) return;
   const list = await db.select(recipientFields).from(items).where(inArray(items.id, itemIds));
   await refreshItems(list);
@@ -313,7 +314,7 @@ export async function reconcile(where?: SQL): Promise<void> {
 }
 
 // When anyone was last reminded about the item
-export async function lastNotifiedAt(itemId: number): Promise<Date | null> {
+export async function lastNotifiedAt(itemId: ItemId): Promise<Date | null> {
   const [row] = await db
     .select({ at: max(itemReminders.notifiedAt) })
     .from(itemReminders)

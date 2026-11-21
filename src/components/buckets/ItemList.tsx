@@ -1,3 +1,4 @@
+import type { ItemId } from "@/types/ids";
 import { useState, type RefObject } from "react";
 import { Reorder } from "framer-motion";
 import { ItemRow, type ItemAssignee } from "./ItemRow";
@@ -32,7 +33,7 @@ type ItemListProps = {
   color: string;
   bucketId: number;
   bucketReminders: number[];
-  reminderBadges: Record<number, ReminderBadge>;
+  reminderBadges: Record<ItemId, ReminderBadge>;
   members: BucketMember[];
   shared: boolean;
   onAssign: (item: Item, assigneeIds: number[]) => Promise<boolean>;
@@ -40,7 +41,7 @@ type ItemListProps = {
   onPatch: (item: Item, patch: ItemPatch) => void;
   onStatusChange: (item: Item, status: string) => Promise<boolean>;
   onMove: (item: Item, deadline: string) => Promise<void>;
-  onDelete: (itemId: number) => void;
+  onDelete: (itemId: ItemId) => void;
 };
 
 export function ItemList({

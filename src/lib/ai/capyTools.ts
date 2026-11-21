@@ -1,3 +1,4 @@
+import type { ItemId } from "@/types/ids";
 import { recordSystemError } from "@/lib/system-errors";
 import { publicAppUrl } from "@/lib/app-url";
 import { errorMessage } from "@/lib/errors";
@@ -73,7 +74,7 @@ export const CAPY_TOOLS = [
 ];
 
 export type UpcomingItem = {
-  id: number;
+  id: ItemId;
   title: string;
   bucket: string;
   deadlineRelative: string;
@@ -258,10 +259,10 @@ const ITEM_DETAIL_COLUMNS = {
 
 type Assignee = { userId: number; username: string | null; timezone: string };
 
-async function assigneesByItem(itemIds: number[]): Promise<Map<number, Assignee[]>> {
+async function assigneesByItem(itemIds: ItemId[]): Promise<Map<ItemId, Assignee[]>> {
   const ids = await assigneeIdsByItem(itemIds);
   const userIds = [...new Set([...ids.values()].flat())];
-  const result = new Map<number, Assignee[]>();
+  const result = new Map<ItemId, Assignee[]>();
   if (userIds.length === 0) return result;
   const people = await db
     .select({ userId: users.id, username: users.username, timezone: userSettings.timezone })
@@ -281,7 +282,7 @@ async function assigneesByItem(itemIds: number[]): Promise<Map<number, Assignee[
 }
 
 type ItemDetailRow = {
-  id: number;
+  id: ItemId;
   title: string;
   description: string | null;
   status: string;
@@ -372,7 +373,7 @@ function selectItemDetails() {
   return db.select(ITEM_DETAIL_COLUMNS).from(items);
 }
 
-async function savedItem(itemId: number, userId: number, timezone: string) {
+async function savedItem(itemId: ItemId, userId: number, timezone: string) {
   const [row] = await selectItemDetails().where(eq(items.id, itemId));
   if (!row) return null;
   return itemDetails(row, (await assigneesByItem([row.id])).get(row.id) ?? [], userId, timezone);

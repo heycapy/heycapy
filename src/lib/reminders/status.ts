@@ -1,3 +1,4 @@
+import type { ItemId } from "@/types/ids";
 import { ITEM_STATUS, isClosedStatus } from "@/constants";
 import { and, desc, eq, inArray } from "drizzle-orm";
 import { db } from "@/lib/db";
@@ -99,7 +100,7 @@ export type ListItem = Item &
 
 const HISTORY_LIMIT = 10;
 
-function viewerRows(userId: number, itemIds: number[]): Promise<Reminder[]> {
+function viewerRows(userId: number, itemIds: ItemId[]): Promise<Reminder[]> {
   if (itemIds.length === 0) return Promise.resolve([]);
   return db
     .select()
@@ -197,7 +198,7 @@ export async function getReminderBadges(
   userId: number,
   bucketId: number,
   bucketItems: ListItem[]
-): Promise<Record<number, ReminderBadge>> {
+): Promise<Record<ItemId, ReminderBadge>> {
   const dated = bucketItems.filter((i) => i.deadline && !i.deletedAt);
   if (dated.length === 0) return {};
   const open = dated.filter((i) => !isClosedStatus(i.status));
@@ -220,7 +221,7 @@ export async function getReminderBadges(
           .orderBy(desc(notificationQueue.id));
 
   // Newest delivery per channel only, so a later success clears an old failure
-  const failed = new Set<number>();
+  const failed = new Set<ItemId>();
   const seen = new Set<string>();
   for (const job of jobs) {
     if (job.status === "skipped") continue;
@@ -231,7 +232,7 @@ export async function getReminderBadges(
   }
 
   const hasChannel = (await currentDecisions(userId, bucketId)).some((c) => c.state === "send");
-  const badges: Record<number, ReminderBadge> = {};
+  const badges: Record<ItemId, ReminderBadge> = {};
   for (const item of dated) {
     const isOpen = !isClosedStatus(item.status);
     if (isOpen && failed.has(item.id)) badges[item.id] = "failed";
@@ -244,7 +245,7 @@ export async function getReminderBadges(
 
 export async function getItemReminderInfo(
   userId: number,
-  itemId: number
+  itemId: ItemId
 ): Promise<ItemReminderInfo | null> {
   const [row] = await db
     .select({ item: items })

@@ -1,5 +1,6 @@
 "use server";
 
+import type { ItemId } from "@/types/ids";
 import type { ActionResult } from "@/types/result";
 import { parseItemsRules } from "@/lib/rules";
 import { revalidatePath } from "next/cache";
@@ -44,7 +45,7 @@ import {
 export async function getItemsForBucketAction(bucketId: number): Promise<
   ActionResult<{
     items: ListItem[];
-    reminderBadges: Record<number, ReminderBadge>;
+    reminderBadges: Record<ItemId, ReminderBadge>;
   }>
 > {
   const session = await requireSession();
@@ -85,12 +86,12 @@ export async function getItemsForBucketAction(bucketId: number): Promise<
   return { ok: true, items: viewed, reminderBadges };
 }
 
-export async function getItemReminderInfoAction(itemId: number): Promise<ItemReminderInfo | null> {
+export async function getItemReminderInfoAction(itemId: ItemId): Promise<ItemReminderInfo | null> {
   const session = await requireSession();
   return getItemReminderInfo(session.userId, itemId);
 }
 
-export async function cancelRemindAgainAction(itemId: number): Promise<ActionResult> {
+export async function cancelRemindAgainAction(itemId: ItemId): Promise<ActionResult> {
   const session = await requireSession();
   if (!(await cancelRemindAgain(session.userId, itemId, "app"))) {
     return { ok: false, error: "nothing to cancel — it may have already gone out" };
@@ -115,7 +116,7 @@ export async function addItemAction(
   assigneeIds?: number[],
   clock?: string | null,
   description?: string
-): Promise<ActionResult<{ id: number }>> {
+): Promise<ActionResult<{ id: ItemId }>> {
   const session = await requireSession();
 
   const trimmed = title.trim();
@@ -190,7 +191,7 @@ function keepAnchor(config: RecurringConfig, saved: string | null): RecurringCon
     : config;
 }
 
-async function updateItem(itemId: number, patch: ItemPatch): Promise<ActionResult> {
+async function updateItem(itemId: ItemId, patch: ItemPatch): Promise<ActionResult> {
   const session = await requireSession();
   const {
     title,
@@ -298,12 +299,12 @@ async function updateItem(itemId: number, patch: ItemPatch): Promise<ActionResul
   return { ok: true };
 }
 
-export async function patchItemAction(itemId: number, patch: ItemPatch): Promise<ActionResult> {
+export async function patchItemAction(itemId: ItemId, patch: ItemPatch): Promise<ActionResult> {
   return updateItem(itemId, patch);
 }
 
 export async function updateItemAction(
-  itemId: number,
+  itemId: ItemId,
   title: string,
   deadline: string | null,
   status?: string,
@@ -325,14 +326,14 @@ export async function updateItemAction(
   });
 }
 
-export async function skipOccurrenceAction(itemId: number): Promise<ActionResult> {
+export async function skipOccurrenceAction(itemId: ItemId): Promise<ActionResult> {
   const session = await requireSession();
   const result = await skipOccurrence(session.userId, itemId);
   if (result.ok) revalidatePath("/");
   return result;
 }
 
-export async function moveItemAction(itemId: number, deadline: string): Promise<ActionResult> {
+export async function moveItemAction(itemId: ItemId, deadline: string): Promise<ActionResult> {
   const session = await requireSession();
 
   const item = await findAccessibleItem(session.userId, itemId);
@@ -354,7 +355,7 @@ export async function moveItemAction(itemId: number, deadline: string): Promise<
 }
 
 export async function assignItemAction(
-  itemId: number,
+  itemId: ItemId,
   assigneeIds: number[]
 ): Promise<ActionResult> {
   const session = await requireSession();
@@ -373,7 +374,7 @@ export async function assignItemAction(
   return { ok: true };
 }
 
-export async function completeItemAction(itemId: number): Promise<ActionResult> {
+export async function completeItemAction(itemId: ItemId): Promise<ActionResult> {
   const session = await requireSession();
 
   const item = await findAccessibleItem(session.userId, itemId);
@@ -387,7 +388,7 @@ export async function completeItemAction(itemId: number): Promise<ActionResult> 
 
 export async function reorderItemsAction(
   bucketId: number,
-  orderedIds: number[]
+  orderedIds: ItemId[]
 ): Promise<ActionResult> {
   const session = await requireSession();
 
@@ -408,7 +409,7 @@ export async function reorderItemsAction(
   return { ok: true };
 }
 
-export async function deleteItemAction(itemId: number): Promise<ActionResult> {
+export async function deleteItemAction(itemId: ItemId): Promise<ActionResult> {
   const session = await requireSession();
 
   const item = await findAccessibleItem(session.userId, itemId);

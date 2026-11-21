@@ -1,3 +1,4 @@
+import type { ItemId } from "@/types/ids";
 import { formatDeadline } from "@/lib/format-date";
 import { CLOSED_ITEM_STATUSES } from "@/constants";
 import { and, asc, eq, gte, inArray, isNull, lt, lte, type SQL, notInArray } from "drizzle-orm";
@@ -22,7 +23,7 @@ type Ctx = { botToken: string; chatId: string; userId: number; timezone: string 
 export type ItemListKind = "up" | "td" | "od" | `b${number}`;
 
 type ListRow = {
-  id: number;
+  id: ItemId;
   title: string;
   deadline: Date | null;
   deadlineTimezone: string | null;

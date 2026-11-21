@@ -1,3 +1,4 @@
+import type { ItemId } from "@/types/ids";
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { QUICK_REMIND_VALUES, REMINDER_ACTION_TTL_MS } from "@/lib/notifications/constants";
 import type { QuickRemindChoice } from "@/lib/notifications/constants";
@@ -8,7 +9,7 @@ const CHANNELS: readonly ReminderChannel[] = ["email", "ntfy", "push"];
 
 export type ReminderActionClaim = {
   userId: number;
-  itemId: number;
+  itemId: ItemId;
   action: ReminderAction;
   channel: ReminderChannel;
   // The deadline the reminder was about, a later occurrence or a moved date makes the button outdated
@@ -17,7 +18,7 @@ export type ReminderActionClaim = {
 
 type Payload = {
   u: number;
-  i: number;
+  i: ItemId;
   a: ReminderAction;
   c: ReminderChannel;
   d: number | null;

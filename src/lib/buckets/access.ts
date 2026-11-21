@@ -1,3 +1,4 @@
+import type { ItemId } from "@/types/ids";
 import { and, asc, eq, inArray, isNotNull, isNull, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { bucketMembers, buckets, items } from "@/lib/db/schema";
@@ -43,7 +44,7 @@ export function findAccessibleBucket(
   });
 }
 
-export function findAccessibleItem(userId: number, itemId: number): Promise<Item | undefined> {
+export function findAccessibleItem(userId: number, itemId: ItemId): Promise<Item | undefined> {
   return db.query.items.findFirst({
     where: and(
       eq(items.id, itemId),
@@ -53,7 +54,7 @@ export function findAccessibleItem(userId: number, itemId: number): Promise<Item
   });
 }
 
-export function findTrashedItem(userId: number, itemId: number): Promise<Item | undefined> {
+export function findTrashedItem(userId: number, itemId: ItemId): Promise<Item | undefined> {
   return db.query.items.findFirst({
     where: and(
       eq(items.id, itemId),

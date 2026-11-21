@@ -1,3 +1,4 @@
+import type { ItemId } from "@/types/ids";
 import { ITEM_STATUS } from "@/constants";
 import { and, eq, inArray, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
@@ -30,7 +31,7 @@ export type TelegramUpdate = {
 
 export type RescheduleState = {
   s: "rs";
-  itemId: number;
+  itemId: ItemId;
   origin: "reminder" | "list";
   date?: string;
   month?: string;
@@ -62,9 +63,9 @@ export type FlowState =
       minute: number;
     }
   // list / item management flow
-  | { s: "mg_edit"; itemId: number; itemTitle: string; bucketId: number; bucketName: string }
-  | { s: "mg_confirm"; itemId: number; itemTitle: string; bucketId: number; bucketName: string }
-  | { s: "mg_edit_title"; itemId: number; itemTitle: string; bucketId: number; bucketName: string }
+  | { s: "mg_edit"; itemId: ItemId; itemTitle: string; bucketId: number; bucketName: string }
+  | { s: "mg_confirm"; itemId: ItemId; itemTitle: string; bucketId: number; bucketName: string }
+  | { s: "mg_edit_title"; itemId: ItemId; itemTitle: string; bucketId: number; bucketName: string }
   | RescheduleState
   | null;
 
@@ -239,7 +240,7 @@ export async function getUserBuckets(userId: number) {
 
 export async function updateItemTitle(
   userId: number,
-  itemId: number,
+  itemId: ItemId,
   title: string
 ): Promise<void> {
   const [renamed] = await db
@@ -251,7 +252,7 @@ export async function updateItemTitle(
   if (renamed) bucketsChanged([renamed.bucketId]);
 }
 
-export async function softDeleteItemById(userId: number, itemId: number): Promise<void> {
+export async function softDeleteItemById(userId: number, itemId: ItemId): Promise<void> {
   await db
     .update(items)
     .set({ deletedAt: new Date(), deletedBy: userId })
@@ -265,7 +266,7 @@ export async function createItem(
   title: string,
   deadline: Date | null,
   recurring: string | null = null
-): Promise<number | null> {
+): Promise<ItemId | null> {
   // The bucket was picked a few messages ago, the person may have left it since
   if (!(await getUserBuckets(userId)).some((b) => b.id === bucketId)) return null;
   const timezone = await userTimezone(userId);

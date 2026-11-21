@@ -1,3 +1,4 @@
+import type { ItemId } from "@/types/ids";
 import { pruneSystemErrors, recordSystemError } from "@/lib/system-errors";
 import { purgeOldTrash } from "@/lib/items/trash";
 import { moveOnMissedOccurrences } from "@/lib/items/recurrence";
@@ -202,7 +203,7 @@ const sends = (list: Delivery[]) => list.some((d) => d.channels.some((c) => c.st
 
 async function enqueueAll(
   list: Delivery[],
-  itemId: number,
+  itemId: ItemId,
   kind: "reminder" | "overdue",
   title: string,
   message: string

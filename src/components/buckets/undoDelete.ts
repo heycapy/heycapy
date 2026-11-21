@@ -1,8 +1,9 @@
+import type { ItemId } from "@/types/ids";
 import { notify } from "@/components/ui/notify";
 import { restoreItemAction } from "@/app/(app)/actions";
 import { UNDO_DELETE_MS } from "./constants";
 
-export function offerUndoDelete(itemId: number, title: string, onRestored: () => Promise<void>) {
+export function offerUndoDelete(itemId: ItemId, title: string, onRestored: () => Promise<void>) {
   notify.info(`deleted "${title}"`, {
     icon: "trash",
     countdown: true,

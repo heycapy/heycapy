@@ -1,3 +1,4 @@
+import type { ItemId } from "@/types/ids";
 import { TELEGRAM_API_BASE } from "@/constants";
 import { errorMessage } from "@/lib/errors";
 import { QUICK_REMIND_OPTIONS, TELEGRAM_KEYBOARD, type QuickRemindChoice } from "./constants";
@@ -66,7 +67,7 @@ export function sendTelegramItemNotification(
   botToken: string,
   chatId: string,
   html: string,
-  itemId: number,
+  itemId: ItemId,
   picks: QuickRemindChoice[]
 ): Promise<number> {
   return sendTelegramHtml(botToken, chatId, html, reminderButtons(itemId, picks));
@@ -125,7 +126,7 @@ export async function sendOrEditButtons(
   return sendTelegramButtons(botToken, chatId, text, rows);
 }
 
-export function reminderButtons(itemId: number, picks: QuickRemindChoice[]): InlineButton[][] {
+export function reminderButtons(itemId: ItemId, picks: QuickRemindChoice[]): InlineButton[][] {
   const remind = QUICK_REMIND_OPTIONS.filter((o) => picks.includes(o.value)).map((o) => ({
     text: o.label,
     callback_data: `rq:${itemId}:${o.value}`,

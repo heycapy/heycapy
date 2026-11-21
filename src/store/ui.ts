@@ -1,3 +1,4 @@
+import type { ItemId } from "@/types/ids";
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 
@@ -45,13 +46,13 @@ type UIStore = {
   requestBucketSettings: (id: number) => void;
   clearSettingsRequest: () => void;
 
-  lastAddedItemId: number | null;
-  markAdded: (id: number) => void;
-  clearAdded: (id: number) => void;
+  lastAddedItemId: ItemId | null;
+  markAdded: (id: ItemId) => void;
+  clearAdded: (id: ItemId) => void;
 
-  highlightedItemId: number | null;
-  openItem: (bucketId: number | null, itemId: number) => void;
-  clearHighlight: (itemId: number) => void;
+  highlightedItemId: ItemId | null;
+  openItem: (bucketId: number | null, itemId: ItemId) => void;
+  clearHighlight: (itemId: ItemId) => void;
 
   joinOpen: boolean;
   setJoinOpen: (open: boolean) => void;
