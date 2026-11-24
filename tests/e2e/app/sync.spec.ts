@@ -27,6 +27,7 @@ test("an edit made without a connection reaches the server when it is back", asy
   const title = uniqueName("call plumber");
   await addItem(page, title);
   await expect.poll(() => serverState(page, title)).toBe("active");
+  await expect(page.getByRole("button", { name: /^sync:/ })).toHaveCount(0);
 
   await page.route(UNREACHABLE, (route) => route.abort());
   const renamed = uniqueName("call the plumber");

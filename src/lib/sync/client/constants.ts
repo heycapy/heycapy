@@ -23,3 +23,5 @@ export const SYNC_NOW_TIMEOUT_MS = 20_000;
 // that syncs for this long takes the lock over
 export const SYNC_CALL_TIMEOUT_MS = 30_000;
 export const SYNC_STALL_MS = 60_000;
+// An unsent change is only worth telling the person about once it has been waiting this long
+export const SYNC_NOTICE_DELAY_MS = 8_000;

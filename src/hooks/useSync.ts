@@ -27,6 +27,10 @@ export async function queueMutation(mutation: NewMutation) {
   void keepStorage();
 }
 
+export function announceChange() {
+  current?.changed();
+}
+
 export async function undoQueuedDelete(itemId: string) {
   const cancelled = await cancelUnsentDelete(itemId);
   if (cancelled) current?.queued();

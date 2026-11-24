@@ -169,4 +169,12 @@ test("an error is announced at once and escape closes it", async ({ page, browse
   await error.getByRole("button", { name: "dismiss" }).focus();
   await page.keyboard.press("Escape");
   await expect(error).toHaveCount(0);
+
+  const chip = page.getByRole("button", { name: /^sync: 1 change was refused/ });
+  await expect(chip).toBeVisible();
+  await chip.click();
+  const list = page.getByRole("dialog", { name: "changes that weren't saved" });
+  await expect(list).toContainText("couldn't save");
+  await list.getByRole("button", { name: "dismiss all" }).click();
+  await expect(chip).toHaveCount(0);
 });

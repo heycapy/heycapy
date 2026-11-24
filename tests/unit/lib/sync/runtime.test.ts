@@ -1,22 +1,29 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { RETRY_BASE_MS, RETRY_MAX_MS, SYNC_NOW_TIMEOUT_MS } from "@/lib/sync/client/constants";
+import {
+  RETRY_BASE_MS,
+  RETRY_MAX_MS,
+  SYNC_NOW_TIMEOUT_MS,
+  SYNC_STALL_MS,
+} from "@/lib/sync/client/constants";
 import type { SyncOutcome } from "@/lib/sync/client/engine";
 import { createSyncRuntime, retryDelay } from "@/lib/sync/client/runtime";
 
 const ok: SyncOutcome = { status: "ok", rejected: [] };
 const retry: SyncOutcome = { status: "retry", rejected: [] };
 
-// An exclusive lock with a queue, released when the callback's promise settles, like the browser's
+// An exclusive lock with a queue, released when the callback's promise settles, like the browser's.
+// `steal` takes it at once and the old holder keeps running, which is what the browser does
 function fakeLocks() {
+  let holder = 0;
   let held = false;
   const waiting: (() => void)[] = [];
   return {
     request: async (
       _name: string,
-      options: { signal?: AbortSignal },
+      options: { signal?: AbortSignal; steal?: boolean },
       callback: () => Promise<void>
     ) => {
-      if (held) {
+      if (held && !options.steal) {
         await new Promise<void>((resolve, reject) => {
           waiting.push(resolve);
           options.signal?.addEventListener("abort", () => {
@@ -26,11 +33,14 @@ function fakeLocks() {
         });
       }
       held = true;
+      const mine = ++holder;
       try {
         await callback();
       } finally {
-        held = false;
-        waiting.shift()?.();
+        if (mine === holder) {
+          held = false;
+          waiting.shift()?.();
+        }
       }
     },
   } as unknown as Pick<LockManager, "request">;
@@ -382,5 +392,77 @@ describe("queued", () => {
     a.stop();
     a.queued();
     expect(heard).not.toHaveBeenCalled();
+  });
+
+  describe("a leader that stops answering", () => {
+    function hungLeader() {
+      const locks = fakeLocks();
+      const createChannel = fakeChannels();
+      const log: string[] = [];
+      let release: () => void = () => {};
+      const hung = new Promise<SyncOutcome>((resolve) => {
+        release = () => resolve(ok);
+      });
+      const base = { userId: 1, transport: vi.fn(), locks, createChannel };
+      const leader = createSyncRuntime({
+        ...base,
+        round: async () => {
+          log.push("leader");
+          return hung;
+        },
+      });
+      const waiter = createSyncRuntime({
+        ...base,
+        round: async () => {
+          log.push("waiter");
+          return ok;
+        },
+      });
+      return { leader, waiter, log, release };
+    }
+
+    it("another tab takes the lock over after the stall time and sends", async () => {
+      const { leader, waiter, log } = hungLeader();
+      void leader.start();
+      await vi.advanceTimersByTimeAsync(0);
+      void waiter.start();
+      waiter.trigger();
+      await vi.advanceTimersByTimeAsync(SYNC_STALL_MS - 1);
+      expect(log).toEqual(["leader"]);
+      await vi.advanceTimersByTimeAsync(1);
+      expect(log).toEqual(["leader", "waiter"]);
+      leader.stop();
+      waiter.stop();
+    });
+
+    it("the old leader stops syncing once it comes back, and the new one keeps the lock", async () => {
+      const { leader, waiter, log, release } = hungLeader();
+      void leader.start();
+      await vi.advanceTimersByTimeAsync(0);
+      void waiter.start();
+      waiter.trigger();
+      await vi.advanceTimersByTimeAsync(SYNC_STALL_MS);
+      release();
+      await vi.advanceTimersByTimeAsync(0);
+      leader.trigger();
+      await vi.advanceTimersByTimeAsync(0);
+      expect(log).toEqual(["leader", "waiter", "waiter"]);
+      leader.stop();
+      waiter.stop();
+    });
+
+    it("a leader that answers is left alone", async () => {
+      const { make, log } = setup();
+      const a = make("a");
+      const b = make("b");
+      void a.start();
+      void b.start();
+      await vi.advanceTimersByTimeAsync(0);
+      b.trigger();
+      await vi.advanceTimersByTimeAsync(SYNC_STALL_MS * 2);
+      expect(log).toEqual(["a", "a"]);
+      a.stop();
+      b.stop();
+    });
   });
 });

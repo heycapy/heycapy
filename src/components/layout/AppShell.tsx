@@ -15,15 +15,14 @@ import { useTimezoneStore } from "@/store/timezone";
 import { TimezoneMoveBanner } from "./TimezoneMoveBanner";
 import { BannersProvider } from "./Banners";
 import { NewVersionBanner } from "./NewVersionBanner";
-import { SyncBanner } from "./SyncBanner";
 import { markReleasesSeenAction } from "@/app/(app)/account-actions";
 import { markGuideSeenAction } from "@/app/(app)/guide-actions";
 import { lookPickedAction, saveTimezoneIfDefaultAction } from "@/app/(app)/user-settings-actions";
 import { useServerEvents } from "@/hooks/useServerEvents";
 import { useConnectivity } from "@/hooks/connectivity";
 import { useServiceWorker } from "@/hooks/useServiceWorker";
-import { usePendingChanges } from "@/hooks/usePendingChanges";
 import { useRejections } from "@/hooks/useRejections";
+import { useSyncNotice } from "@/hooks/useSyncNotice";
 import { useSync } from "@/hooks/useSync";
 import { useKeybinds } from "@/hooks/useKeybinds";
 import { keybindActions } from "./keybind-actions";
@@ -182,12 +181,10 @@ export function AppShell({
   useServiceWorker();
   useSync(userId);
   useRejections();
-  const pending = usePendingChanges();
-  const offline = useUIStore((s) => s.offline);
+  useSyncNotice();
   const syncOutdated = useUIStore((s) => s.syncOutdated);
   const banners = (
     <div className="max-w-column mx-auto w-full">
-      {(offline || pending > 0) && <SyncBanner offline={offline} pending={pending} />}
       {(newVersion || syncOutdated) && <NewVersionBanner />}
       {!hasWorkingChannel && <NoChannelBanner onSetUp={() => openSettings("notifications")} />}
       <DeliveryFailureBanner failures={failures} onFix={() => openSettings("notifications")} />

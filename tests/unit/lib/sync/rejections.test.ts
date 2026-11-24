@@ -4,7 +4,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { recordKey } from "@/lib/sync/client/apply";
 import { keepStorage } from "@/lib/sync/client/persist";
 import { readQueue, settle, enqueue } from "@/lib/sync/client/queue";
-import { rejectionMessage, rejectionTitle, takeRejections } from "@/lib/sync/client/rejections";
+import {
+  dismissRejections,
+  readRejections,
+  rejectionMessage,
+  rejectionTitle,
+  takeNewRejections,
+} from "@/lib/sync/client/rejections";
 import { readRecords } from "@/lib/sync/client/store";
 import type { NewMutation, StoredRecord } from "@/lib/sync/client/types";
 
@@ -63,19 +69,28 @@ describe("rejectionMessage", () => {
   });
 });
 
-describe("takeRejections", () => {
+describe("takeNewRejections", () => {
   it("hands each refusal over once, even to tabs asking at the same time", async () => {
     await settle([], [refusal, { ...refusal, reason: "second" }]);
-    const [first, second] = await Promise.all([takeRejections(), takeRejections()]);
+    const [first, second] = await Promise.all([takeNewRejections(), takeNewRejections()]);
     expect(first.length + second.length).toBe(2);
-    expect(await takeRejections()).toEqual([]);
+    expect(await takeNewRejections()).toEqual([]);
   });
 
-  it("keeps a refusal until it is taken, and settling also drops the queue entry", async () => {
+  it("keeps a refusal after it was handed over, until it is dismissed", async () => {
+    await settle([], [refusal, { ...refusal, reason: "second" }]);
+    await takeNewRejections();
+    const kept = await readRejections();
+    expect(kept.map((r) => r.reason)).toEqual(["r", "second"]);
+    await dismissRejections([kept[0].id]);
+    expect((await readRejections()).map((r) => r.reason)).toEqual(["second"]);
+  });
+
+  it("settling drops the queue entry and keeps the refusal in the same step", async () => {
     await enqueue({ type: "item.delete", id: A });
     await settle([1], [refusal]);
     expect(await readQueue()).toEqual([]);
-    expect((await takeRejections()).map((r) => r.reason)).toEqual(["r"]);
+    expect((await readRejections()).map((r) => r.reason)).toEqual(["r"]);
   });
 });
 
@@ -105,7 +120,7 @@ describe("a database made before refusals were kept", () => {
     expect((await readQueue()).map((e) => e.mutation.type)).toEqual(["item.delete"]);
     expect((await readRecords()).map((r) => r.key)).toEqual([`item:${A}`]);
     await settle([], [refusal]);
-    expect(await takeRejections()).toHaveLength(1);
+    expect(await readRejections()).toHaveLength(1);
   });
 });
 

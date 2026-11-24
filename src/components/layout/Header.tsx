@@ -7,9 +7,10 @@ import { KeyHint } from "@/components/ui/KeyHint";
 import { useLayoutStore } from "@/store/layout";
 import { logoutAction, logoutEverywhereAction } from "@/app/(app)/actions";
 import { clearSignedInState } from "@/store/signedOut";
-import { useUnsentCount } from "@/hooks/useUnsentCount";
+import { useUnsentChanges } from "@/hooks/useUnsentChanges";
 import { Modal, ModalTitle } from "@/components/ui/Modal";
 import { cn } from "@/lib/utils";
+import { SyncChip } from "./SyncChip";
 import { PersonAvatar } from "@/components/avatar/PersonAvatar";
 import { MenuItem, MenuSeparator } from "@/components/ui/MenuItem";
 import { MENU_SURFACE } from "@/components/ui/constants";
@@ -51,7 +52,7 @@ function LogoutConfirm({
   onCancel: () => void;
 }) {
   const copy = LOGOUT_COPY[scope];
-  const unsent = useUnsentCount(true);
+  const { count: unsent } = useUnsentChanges(true);
   return (
     <Modal
       open
@@ -299,6 +300,7 @@ export function Header({
           what&apos;s new
         </TextButton>
       )}
+      <SyncChip />
       <ChatButton />
       <GlobalMenu
         email={email}

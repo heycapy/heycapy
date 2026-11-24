@@ -4,6 +4,7 @@ import {
   addItem,
   createAndSelectBucket,
   itemRow,
+  itemRowContainer,
   itemTick,
   openItemMenu,
   uniqueName,
@@ -19,7 +20,7 @@ const blockServer = (page: Page) =>
     return request.headers()["next-action"] || isSync ? route.abort() : route.continue();
   });
 
-const banner = (page: Page) => page.getByRole("status").filter({ hasText: "can't reach heycapy" });
+const banner = (page: Page) => page.getByRole("button", { name: /^sync: can't reach heycapy/ });
 
 test("going offline shows the notice and coming back removes it", async ({ page, context }) => {
   await page.goto("/");
@@ -116,6 +117,12 @@ test("offline an item can be added, ticked and deleted, and the server gets them
 
   const added = uniqueName("added offline");
   await addItem(page, added);
+  await expect(
+    itemRowContainer(page, added).getByRole("img", { name: "not sent yet" })
+  ).toBeVisible();
+  await expect(itemRowContainer(page, kept).getByRole("img", { name: "not sent yet" })).toHaveCount(
+    0
+  );
   await itemTick(page, kept).click();
   await expect(itemTick(page, kept)).toBeChecked();
   const menu = await openItemMenu(page, doomed);

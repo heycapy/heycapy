@@ -202,6 +202,12 @@ export function createSyncRuntime(options: SyncRuntimeOptions) {
       channel.postMessage({ type: "changed" });
       this.trigger();
     },
+    // The local database changed without anything to send (a refusal was dismissed)
+    changed() {
+      if (stopped) return;
+      notify();
+      channel.postMessage({ type: "changed" });
+    },
     // Called with every change of the local database, from this tab or another
     subscribe(listener: () => void) {
       listeners.add(listener);
