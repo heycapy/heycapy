@@ -14,6 +14,7 @@ import {
   META_USER_ID,
   QUEUE_STORE,
   RECORDS_STORE,
+  SYNC_CALL_TIMEOUT_MS,
 } from "./constants";
 import { markSent, readQueue, settle } from "./queue";
 import { rejectionTitle } from "./rejections";
@@ -56,7 +57,10 @@ export const browserTransport: Transport = (path, init) =>
 async function call(transport: Transport, path: string, init?: RequestInit) {
   let response: Response;
   try {
-    response = await transport(path, init);
+    response = await transport(path, {
+      ...init,
+      signal: AbortSignal.timeout(SYNC_CALL_TIMEOUT_MS),
+    });
   } catch {
     throw new Stop("retry");
   }

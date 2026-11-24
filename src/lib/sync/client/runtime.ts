@@ -4,12 +4,15 @@ import {
   SYNC_CHANNEL,
   SYNC_LOCK,
   SYNC_NOW_TIMEOUT_MS,
+  SYNC_STALL_MS,
 } from "./constants";
 import { syncOnce, type SyncOutcome, type Transport } from "./engine";
 
 type Status = SyncOutcome["status"];
 type Message =
-  { type: "wake"; request?: string } | { type: "changed"; answered?: string[]; status?: Status };
+  | { type: "wake"; request?: string }
+  | { type: "changed"; answered?: string[]; status?: Status }
+  | { type: "yield" };
 
 export type SyncRuntimeOptions = {
   userId: number;
@@ -39,6 +42,9 @@ export function createSyncRuntime(options: SyncRuntimeOptions) {
   let stopped = false;
   let wakeRequested = false;
   let wakeUp: (() => void) | null = null;
+  // Another tab took the lock over: this one's loop ends and it queues for the lock again
+  let yielded = false;
+  let stallTimer: ReturnType<typeof setTimeout> | null = null;
   // Asked in this tab, answered by the next round that starts after the ask
   let waiters: ((status: Status) => void)[] = [];
   // Asked by other tabs (their request ids), answered the same way
@@ -50,11 +56,20 @@ export function createSyncRuntime(options: SyncRuntimeOptions) {
 
   channel.onmessage = (event) => {
     const message = event.data;
+    if (message.type === "yield") {
+      if (leading) {
+        yielded = true;
+        wake();
+      }
+      return;
+    }
     if (message.type === "wake") {
       if (message.request) remote.push(message.request);
       wake();
       return;
     }
+    // Whoever syncs is alive
+    clearStall();
     for (const id of message.answered ?? []) {
       pending.get(id)?.(message.status ?? "retry");
       pending.delete(id);
@@ -88,7 +103,7 @@ export function createSyncRuntime(options: SyncRuntimeOptions) {
     for (const resolve of pending.values()) waiters.push(resolve);
     pending.clear();
     try {
-      while (!stopped) {
+      while (!stopped && !yielded) {
         wakeRequested = false;
         const asked = { here: waiters, other: remote };
         waiters = [];
@@ -113,12 +128,37 @@ export function createSyncRuntime(options: SyncRuntimeOptions) {
     }
   }
 
-  async function start() {
+  async function acquire(steal: boolean) {
     try {
-      await locks.request(SYNC_LOCK, { signal: abort.signal }, lead);
+      await locks.request(SYNC_LOCK, steal ? { steal: true } : { signal: abort.signal }, lead);
     } catch (error) {
       if (!(error instanceof DOMException && error.name === "AbortError")) throw error;
     }
+    if (yielded && !stopped) {
+      yielded = false;
+      await acquire(false);
+    }
+  }
+
+  function clearStall() {
+    if (stallTimer) clearTimeout(stallTimer);
+    stallTimer = null;
+  }
+
+  // A tab holding the lock that never answers (frozen, or a call that hung) would stop every other
+  // tab from sending. Taking the lock is safe: the server skips what it already applied
+  function watchLeader() {
+    if (leading || stopped || stallTimer) return;
+    stallTimer = setTimeout(() => {
+      stallTimer = null;
+      if (leading || stopped) return;
+      channel.postMessage({ type: "yield" });
+      void acquire(true).catch(() => {});
+    }, SYNC_STALL_MS);
+  }
+
+  function start() {
+    return acquire(false);
   }
 
   return {
@@ -127,7 +167,10 @@ export function createSyncRuntime(options: SyncRuntimeOptions) {
     trigger() {
       if (stopped) return;
       if (leading) wake();
-      else channel.postMessage({ type: "wake" });
+      else {
+        channel.postMessage({ type: "wake" });
+        watchLeader();
+      }
     },
     // Ask for a round and wait for one that started after this call, so what was written to the
     // server just before is in the local data when it resolves
@@ -149,6 +192,7 @@ export function createSyncRuntime(options: SyncRuntimeOptions) {
           resolve(status);
         });
         channel.postMessage({ type: "wake", request });
+        watchLeader();
       });
     },
     // The queue changed in this tab: every tab shows it, and the engine has something to send
@@ -165,6 +209,7 @@ export function createSyncRuntime(options: SyncRuntimeOptions) {
     },
     stop() {
       stopped = true;
+      clearStall();
       waiters.forEach((resolve) => resolve("retry"));
       pending.forEach((resolve) => resolve("retry"));
       abort.abort();

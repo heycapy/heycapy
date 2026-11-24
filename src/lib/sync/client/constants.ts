@@ -19,3 +19,7 @@ export const SYNC_CHANNEL = "heycapy-sync";
 export const RETRY_BASE_MS = 2_000;
 export const RETRY_MAX_MS = 5 * 60_000;
 export const SYNC_NOW_TIMEOUT_MS = 20_000;
+// A call that never answers would hold the lock for ever; a tab that hears nothing from the one
+// that syncs for this long takes the lock over
+export const SYNC_CALL_TIMEOUT_MS = 30_000;
+export const SYNC_STALL_MS = 60_000;
