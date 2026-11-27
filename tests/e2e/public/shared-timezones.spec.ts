@@ -147,13 +147,22 @@ test("a timed item shows the time on the other clock that matters", async ({ pag
   await london.close();
 });
 
-// The deadline as it reads on a clock, from the database
-function savedDeadline(title: string): { zone: string; at: (zone: string) => string } {
-  const db = new Database(E2E_DATABASE_FILE);
-  const row = db
-    .prepare("select deadline, deadline_timezone from items where title = ?")
-    .get(title) as { deadline: number; deadline_timezone: string };
-  db.close();
+// The deadline as it reads on a clock, from the database. A new item shows on screen from the
+// device's queue first, so wait for the server to have it
+async function savedDeadline(
+  title: string
+): Promise<{ zone: string; at: (zone: string) => string }> {
+  const read = () => {
+    const db = new Database(E2E_DATABASE_FILE);
+    const row = db
+      .prepare("select deadline, deadline_timezone from items where title = ?")
+      .get(title) as { deadline: number; deadline_timezone: string } | undefined;
+    db.close();
+    return row;
+  };
+  await expect.poll(() => read() !== undefined).toBe(true);
+  const row = read();
+  if (!row) throw new Error(`no item titled ${title}`);
   return {
     zone: row.deadline_timezone,
     at: (zone) =>
@@ -197,7 +206,7 @@ test("a time for someone on another clock is set on theirs, unless picked by han
   await expect(dialog.getByRole("button", { name: "time: 9 am" })).toBeVisible();
   await dialog.getByRole("button", { name: "add", exact: true }).click();
   await expect(itemRow(page, forSam)).toBeVisible();
-  const sams = savedDeadline(forSam);
+  const sams = await savedDeadline(forSam);
   expect(sams.zone).toBe("Europe/London");
   expect(sams.at("Europe/London")).toBe("09:00");
 
@@ -220,7 +229,7 @@ test("a time for someone on another clock is set on theirs, unless picked by han
   await expect(dialog.getByRole("button", { name: "time: 9 am" })).toBeVisible();
   await dialog.getByRole("button", { name: "add", exact: true }).click();
   await expect(itemRow(page, onIndia)).toBeVisible();
-  const indias = savedDeadline(onIndia);
+  const indias = await savedDeadline(onIndia);
   expect(indias.zone).toBe("Asia/Kolkata");
   expect(indias.at("Asia/Kolkata")).toBe("09:00");
 });
