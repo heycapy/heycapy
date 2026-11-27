@@ -99,7 +99,9 @@ describe("toggleItemCompleted", () => {
       })
     ).toThrow("halfway");
 
-    expect({ items: itemsIn(bucketId), reminders: remindersOf(id), counter: counter() }).toEqual(before);
+    expect({ items: itemsIn(bucketId), reminders: remindersOf(id), counter: counter() }).toEqual(
+      before
+    );
   });
 
   it("undoes the tick when creating the next occurrence fails", async () => {
