@@ -1,3 +1,5 @@
+import { parseItemId } from "@/lib/items/item-id";
+import type { ItemId } from "@/types/ids";
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { QUICK_REMIND_VALUES, REMINDER_ACTION_TTL_MS } from "@/lib/notifications/constants";
 import type { QuickRemindChoice } from "@/lib/notifications/constants";
@@ -8,7 +10,7 @@ const CHANNELS: readonly ReminderChannel[] = ["email", "ntfy", "push"];
 
 export type ReminderActionClaim = {
   userId: number;
-  itemId: number;
+  itemId: ItemId;
   action: ReminderAction;
   channel: ReminderChannel;
   // The deadline the reminder was about, a later occurrence or a moved date makes the button outdated
@@ -17,7 +19,7 @@ export type ReminderActionClaim = {
 
 type Payload = {
   u: number;
-  i: number;
+  i: ItemId;
   a: ReminderAction;
   c: ReminderChannel;
   d: number | null;
@@ -55,7 +57,10 @@ export function verifyReminderAction(token: string, now = new Date()): ReminderA
     const knownAction = p.a === "done" || QUICK_REMIND_VALUES.includes(p.a);
     if (!knownAction || !CHANNELS.includes(p.c)) return null;
     if (typeof p.e !== "number" || p.e < now.getTime()) return null;
-    return { userId: p.u, itemId: p.i, action: p.a, channel: p.c, deadline: p.d };
+    // Tokens made before ids became UUIDs carry a number
+    const itemId = parseItemId(p.i);
+    if (!itemId) return null;
+    return { userId: p.u, itemId, action: p.a, channel: p.c, deadline: p.d };
   } catch {
     return null;
   }

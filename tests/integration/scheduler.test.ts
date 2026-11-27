@@ -31,7 +31,7 @@ async function seedStaleBacklog(userId: number, bucketId: number, count: number)
     }))
   );
   // As the startup reconcile would
-  await reconcile();
+  reconcile(db);
 }
 
 describe("large backlogs", () => {

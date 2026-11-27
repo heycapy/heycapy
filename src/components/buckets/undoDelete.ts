@@ -1,8 +1,10 @@
+import type { ItemId } from "@/types/ids";
 import { notify } from "@/components/ui/notify";
 import { restoreItemAction } from "@/app/(app)/actions";
+import { undoQueuedDelete } from "@/hooks/useSync";
 import { UNDO_DELETE_MS } from "./constants";
 
-export function offerUndoDelete(itemId: number, title: string, onRestored: () => Promise<void>) {
+export function offerUndoDelete(itemId: ItemId, title: string, onRestored: () => Promise<void>) {
   notify.info(`deleted "${title}"`, {
     icon: "trash",
     countdown: true,
@@ -10,10 +12,13 @@ export function offerUndoDelete(itemId: number, title: string, onRestored: () =>
     action: {
       label: "undo",
       onClick: () => {
-        void restoreItemAction(itemId).then(async (result) => {
+        void (async () => {
+          // Still on this device, so it never happened; otherwise the server has it in the trash
+          if (await undoQueuedDelete(itemId)) return;
+          const result = await restoreItemAction(itemId);
           if (result.ok) await onRestored();
           else notify.error(result.error);
-        });
+        })();
       },
     },
   });

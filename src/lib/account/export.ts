@@ -147,7 +147,10 @@ export async function buildAccountExport(userId: number, now = new Date()) {
     };
   };
 
-  const assignees = await assigneeIdsByItem(itemRows.map((i) => i.id));
+  const assignees = assigneeIdsByItem(
+    db,
+    itemRows.map((i) => i.id)
+  );
   const names = await namesOf(userId, [
     ...new Set([
       ...bucketRows.map((b) => b.userId),

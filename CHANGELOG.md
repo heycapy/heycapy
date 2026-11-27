@@ -2,6 +2,35 @@
 
 all notable changes to heycapy. versions follow [semver](https://semver.org): a patch version (0.3.1) only fixes things, a minor version (0.4.0) adds features. the database migrates itself on start and migrations only go forward, so back up before upgrading (see the README).
 
+## 0.15.0
+
+works offline, and tells you when something has not been sent.
+
+### new
+
+- the app opens with no connection and shows your buckets from the copy kept on this device. you can add, tick, edit and delete items offline; they are sent when you are back online, in the order you made them, and never twice
+- a small chip beside capy appears only when it matters: `offline` when there is no connection, `N unsent` when a change has waited more than a few seconds, `N not saved` when the server refused a change. tap it to sync now, or to see why a change was refused. it stays away while everything is saved
+- an item that has not left the device has a small amber dot
+- a refused change stays in a list until you dismiss it, with the reason, instead of a toast you can miss
+- logging out says how many changes have not reached the server and would be lost
+- the app asks the browser to keep its data on the device, so it is not cleared when space runs low
+- a stuck sync recovers by itself: a call that hangs ends after 30 seconds, and a tab that stopped syncing is taken over by another within about a minute
+- a sync api for apps: `/api/v1/sync/push` and `/api/v1/sync/pull`, versioned, so an old open page is asked to refresh instead of failing quietly
+
+### changes
+
+- opening a bucket is faster: fewer requests after the page loads, today's list arrives with the page, and the settings and chat code load when you first open them
+- every toast is one height, one line, as wide as its text up to a limit
+- the old offline banner is gone, the chip replaces it
+- today, search, restoring from the trash, bucket and account settings and the reminder times of a new item still need a connection
+
+### upgrading
+
+- **back up first** (see the readme). four migrations run on start, and one rebuilds the `items` table. it needs no action, but it cannot be undone
+- item ids are now strings, not numbers. webhook and api payloads carry `id` as a string
+- old reminder links, telegram buttons, saved capy chats and reminder tokens stop working, because they point at the old numeric ids. new ones work as before
+- `docker compose up -d --build`
+
 ## 0.14.0
 
 edit items in place, and a cleaner way to add them.

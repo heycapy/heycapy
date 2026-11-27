@@ -1,8 +1,9 @@
+import type { ItemId } from "@/types/ids";
 import { recordSystemError } from "@/lib/system-errors";
 import { memberChannels, parseNotificationRules } from "@/lib/rules";
 import { and, asc, eq, gt, inArray, max, sql, type SQL } from "drizzle-orm";
 import { alias } from "drizzle-orm/sqlite-core";
-import { db } from "@/lib/db";
+import type { DbHandle } from "@/lib/db/handle";
 import {
   bucketMembers,
   buckets,
@@ -64,8 +65,8 @@ export const bucketOwnerMember = and(
 );
 
 // One row per item and person reminded, with that person's clock, quiet hours and channels
-export function selectReminderRows(where: SQL | undefined) {
-  return db
+export function selectReminderRows(h: DbHandle, where: SQL | undefined) {
+  return h
     .select(reminderRowFields)
     .from(itemReminders)
     .innerJoin(items, eq(itemReminders.itemId, items.id))
@@ -99,13 +100,14 @@ function parseTriggers(raw: unknown): {
 export type ReminderContext = { defaultReminders: number[]; notifyAt: string; timezone: string };
 
 // What deadline rules need to know about an item's bucket and its owner
-export async function reminderContext(bucketId: number): Promise<ReminderContext> {
-  const [row] = await db
+export function reminderContext(h: DbHandle, bucketId: number): ReminderContext {
+  const [row] = h
     .select({ rules: buckets.notificationsRules, timezone: userSettings.timezone })
     .from(buckets)
     .leftJoin(userSettings, eq(userSettings.userId, buckets.userId))
     .where(eq(buckets.id, bucketId))
-    .limit(1);
+    .limit(1)
+    .all();
   const rules = parseNotificationRules(row?.rules);
   return {
     defaultReminders: rules.defaultReminders,
@@ -114,12 +116,13 @@ export async function reminderContext(bucketId: number): Promise<ReminderContext
   };
 }
 
-export async function userTimezone(userId: number): Promise<string> {
-  const [row] = await db
+export function userTimezone(h: DbHandle, userId: number): string {
+  const [row] = h
     .select({ timezone: userSettings.timezone })
     .from(userSettings)
     .where(eq(userSettings.userId, userId))
-    .limit(1);
+    .limit(1)
+    .all();
   return row?.timezone ?? "UTC";
 }
 
@@ -162,7 +165,7 @@ export function computeSchedule(inputs: ReminderInputs) {
 const sameTime = (a: Date | null, b: Date | null) =>
   Math.floor((a?.getTime() ?? -1) / 1000) === Math.floor((b?.getTime() ?? -1) / 1000);
 
-async function storeSchedules(rows: ReminderRow[]): Promise<void> {
+function storeSchedules(h: DbHandle, rows: ReminderRow[]): void {
   for (const row of rows) {
     let schedule: { nextReminderAt: Date | null; nextOverdueAt: Date | null };
     try {
@@ -189,7 +192,7 @@ async function storeSchedules(rows: ReminderRow[]): Promise<void> {
     ) {
       continue;
     }
-    await db.update(itemReminders).set(schedule).where(eq(itemReminders.id, row.reminder.id));
+    h.update(itemReminders).set(schedule).where(eq(itemReminders.id, row.reminder.id)).run();
   }
 }
 
@@ -208,10 +211,10 @@ const latest = (dates: (Date | null)[]): Date | null =>
 // The assignees still in the bucket, nobody when there are none. Someone added to an item others
 // already had skips reminders whose time has passed, so assigning them late doesn't send a burst of
 // late ones, and continues its overdue alerts where the others are.
-async function syncRecipients(list: RecipientItem[]): Promise<void> {
+function syncRecipients(h: DbHandle, list: RecipientItem[]): void {
   if (list.length === 0) return;
   const now = new Date();
-  const assigned = await db
+  const assigned = h
     .select({ itemId: itemAssignees.itemId, userId: itemAssignees.userId })
     .from(itemAssignees)
     .innerJoin(items, eq(items.id, itemAssignees.itemId))
@@ -227,8 +230,9 @@ async function syncRecipients(list: RecipientItem[]): Promise<void> {
         itemAssignees.itemId,
         list.map((i) => i.id)
       )
-    );
-  const existing = await db
+    )
+    .all();
+  const existing = h
     .select({
       id: itemReminders.id,
       itemId: itemReminders.itemId,
@@ -242,7 +246,8 @@ async function syncRecipients(list: RecipientItem[]): Promise<void> {
         itemReminders.itemId,
         list.map((i) => i.id)
       )
-    );
+    )
+    .all();
 
   const drop: number[] = [];
   const add: (typeof itemReminders.$inferInsert)[] = [];
@@ -263,60 +268,64 @@ async function syncRecipients(list: RecipientItem[]): Promise<void> {
       });
     }
   }
-  if (drop.length > 0) await db.delete(itemReminders).where(inArray(itemReminders.id, drop));
-  if (add.length > 0) await db.insert(itemReminders).values(add).onConflictDoNothing();
+  if (drop.length > 0) h.delete(itemReminders).where(inArray(itemReminders.id, drop)).run();
+  if (add.length > 0) h.insert(itemReminders).values(add).onConflictDoNothing().run();
 }
 
-async function refreshItems(list: RecipientItem[]): Promise<void> {
-  await syncRecipients(list);
+function refreshItems(h: DbHandle, list: RecipientItem[]): void {
+  syncRecipients(h, list);
   if (list.length === 0) return;
-  await storeSchedules(
-    await selectReminderRows(
+  storeSchedules(
+    h,
+    selectReminderRows(
+      h,
       inArray(
         itemReminders.itemId,
         list.map((i) => i.id)
       )
-    )
+    ).all()
   );
 }
 
-export async function refreshItemReminders(itemIds: number[]): Promise<void> {
+export function refreshItemReminders(h: DbHandle, itemIds: ItemId[]): void {
   if (itemIds.length === 0) return;
-  const list = await db.select(recipientFields).from(items).where(inArray(items.id, itemIds));
-  await refreshItems(list);
+  const list = h.select(recipientFields).from(items).where(inArray(items.id, itemIds)).all();
+  refreshItems(h, list);
   bucketsChanged(list.map((i) => i.bucketId));
 }
 
-export async function refreshBucketReminders(bucketId: number): Promise<void> {
-  await reconcile(eq(items.bucketId, bucketId));
+export function refreshBucketReminders(h: DbHandle, bucketId: number): void {
+  reconcile(h, eq(items.bucketId, bucketId));
   bucketsChanged([bucketId]);
 }
 
-export async function refreshUserReminders(userId: number): Promise<void> {
-  await reconcile(inArray(items.bucketId, memberBucketIds(userId)));
+export function refreshUserReminders(h: DbHandle, userId: number): void {
+  reconcile(h, inArray(items.bucketId, memberBucketIds(userId)));
 }
 
 // Safety net for write paths that skip a refresh
-export async function reconcile(where?: SQL): Promise<void> {
-  let lastId = 0;
+export function reconcile(h: DbHandle, where?: SQL): void {
+  let lastId = "";
   for (;;) {
-    const list = await db
+    const list = h
       .select(recipientFields)
       .from(items)
       .where(and(gt(items.id, lastId), where))
       .orderBy(asc(items.id))
-      .limit(RECONCILE_BATCH_SIZE);
+      .limit(RECONCILE_BATCH_SIZE)
+      .all();
     if (list.length === 0) return;
-    await refreshItems(list);
+    refreshItems(h, list);
     lastId = list[list.length - 1].id;
   }
 }
 
 // When anyone was last reminded about the item
-export async function lastNotifiedAt(itemId: number): Promise<Date | null> {
-  const [row] = await db
+export function lastNotifiedAt(h: DbHandle, itemId: ItemId): Date | null {
+  const [row] = h
     .select({ at: max(itemReminders.notifiedAt) })
     .from(itemReminders)
-    .where(eq(itemReminders.itemId, itemId));
+    .where(eq(itemReminders.itemId, itemId))
+    .all();
   return row?.at ?? null;
 }

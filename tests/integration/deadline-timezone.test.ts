@@ -101,7 +101,7 @@ describe("a date without a time in a bucket shared between India and London", ()
     await addItemAction(bucketId, "pay rent", "2026-10-12");
 
     await db.update(userSettings).set({ timezone: LONDON }).where(eq(userSettings.userId, owner));
-    await refreshUserReminders(owner);
+    refreshUserReminders(db, owner);
 
     // 09:00 on 12 Oct on the creator's new clock, not the stored midnight read as a time
     expect((await reminderOf((await latest(bucketId)).id, owner)).nextReminderAt).toEqual(

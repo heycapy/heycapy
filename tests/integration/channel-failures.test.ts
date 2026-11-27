@@ -1,3 +1,4 @@
+import type { ItemId } from "@/types/ids";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { db } from "@/lib/db";
 import { notificationQueue } from "@/lib/db/schema";
@@ -23,7 +24,7 @@ async function seedJob(
   userId: number,
   medium: NotificationMedium,
   status: "sent" | "dead",
-  opts: { itemId?: number; hoursAgo?: number; error?: string } = {}
+  opts: { itemId?: ItemId; hoursAgo?: number; error?: string } = {}
 ) {
   await db.insert(notificationQueue).values({
     userId,

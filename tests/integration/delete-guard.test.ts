@@ -1,3 +1,4 @@
+import type { ItemId } from "@/types/ids";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
@@ -73,7 +74,7 @@ describe("capy deleting a bucket", () => {
   });
 });
 
-async function deleteItem(userId: number, itemId: number, turnId: number) {
+async function deleteItem(userId: number, itemId: ItemId, turnId: number) {
   const call = { id: "call", name: "delete_item", arguments: { item_id: itemId } };
   return JSON.parse(await executeToolCall(call, userId, "UTC", turnId)) as {
     ok: boolean;
@@ -82,7 +83,7 @@ async function deleteItem(userId: number, itemId: number, turnId: number) {
   };
 }
 
-async function isItemDeleted(itemId: number) {
+async function isItemDeleted(itemId: ItemId) {
   const [row] = await db.select().from(items).where(eq(items.id, itemId));
   return row.deletedAt !== null;
 }

@@ -1,3 +1,4 @@
+import type { ItemId } from "@/types/ids";
 import { useCallback, useEffect, useState, useTransition } from "react";
 import { cn } from "@/lib/utils";
 import { TextButton } from "@/components/ui/TextButton";
@@ -88,7 +89,7 @@ function outcomeText(c: ChannelOutcome): string {
   return `${base}${retry}${c.error ? ` — ${c.error}` : ""}`;
 }
 
-export function ItemReminderInfo({ itemId }: { itemId: number }) {
+export function ItemReminderInfo({ itemId }: { itemId: ItemId }) {
   const [info, setInfo] = useState<Info | null>(null);
   const [cancelError, setCancelError] = useState("");
   const [cancelling, startCancel] = useTransition();

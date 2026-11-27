@@ -1,3 +1,4 @@
+import { v7 as uuidv7 } from "uuid";
 import { test, expect, type Page } from "@playwright/test";
 import Database from "better-sqlite3";
 import { E2E_DATABASE_FILE } from "../helpers/env";
@@ -104,9 +105,9 @@ test("a member's new username and avatar show up on the others' open screens", a
   db.prepare("update users set username = ? where email = ?").run(before, memberEmail);
   const { id: itemId } = db
     .prepare(
-      "insert into items (bucket_id, user_id, title) values (?, (select id from users where email = ?), ?) returning id"
+      "insert into items (id, bucket_id, user_id, title) values (?, ?, (select id from users where email = ?), ?) returning id"
     )
-    .get(bucketId, ownerEmail, title) as { id: number };
+    .get(uuidv7(), bucketId, ownerEmail, title) as { id: string };
   db.prepare(
     "insert into item_assignees (item_id, user_id) values (?, (select id from users where email = ?))"
   ).run(itemId, memberEmail);

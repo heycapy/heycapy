@@ -1,3 +1,4 @@
+import type { ItemId } from "@/types/ids";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import type * as SessionModule from "@/lib/auth/session";
 import { eq } from "drizzle-orm";
@@ -52,7 +53,7 @@ async function setUp() {
   return { bucketId, itemId };
 }
 
-async function saved(itemId: number) {
+async function saved(itemId: ItemId) {
   const item = await db.query.items.findFirst({ where: eq(items.id, itemId) });
   if (!item) throw new Error("item missing");
   return item;
@@ -117,7 +118,7 @@ it("assignees alone change who the item is for and nothing else", async () => {
 
   expect(await patchItemAction(itemId, { assigneeIds: [other] })).toEqual({ ok: true });
 
-  expect((await assigneeIdsByItem([itemId])).get(itemId)).toEqual([other]);
+  expect(assigneeIdsByItem(db, [itemId]).get(itemId)).toEqual([other]);
   const after = await saved(itemId);
   expect(after.title).toBe("rent");
   expect(after.deadline).toEqual(DEADLINE);

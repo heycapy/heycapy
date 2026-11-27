@@ -1,13 +1,14 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { addItemAction } from "@/app/(app)/actions";
 import { notify } from "@/components/ui/notify";
 import type { BucketMember } from "@/lib/buckets/members";
 import type { InlineDraft } from "@/lib/items/edit-draft";
 import type { FieldDef, StatusDef } from "@/types/rules";
 import { EMPTY_DRAFT, isEmptyDraft, useDraftStore, type ItemDraft } from "@/store/drafts";
 import { useUIStore } from "@/store/ui";
+import { queueMutation } from "@/hooks/useSync";
+import { newItemId } from "@/lib/items/item-id";
 import { resolveAssignees } from "./assignee";
 import { InlineEditorLayout } from "./InlineEditorLayout";
 import { TickBox } from "./TickBox";
@@ -25,7 +26,6 @@ type NewItemEditorProps = {
   draggable: boolean;
   defaultDeadline: string;
   defaultStatus: string;
-  onAdded: () => void;
   onExit: (focusRow: boolean) => void;
 };
 
@@ -43,7 +43,6 @@ export function NewItemEditor({
   draggable,
   defaultDeadline,
   defaultStatus,
-  onAdded,
   onExit,
 }: NewItemEditorProps) {
   const rootRef = useRef<HTMLDivElement>(null);
@@ -89,27 +88,29 @@ export function NewItemEditor({
     const sent = draftRef.current;
     const restore = { ...EMPTY_DRAFT, ...toStored(sent, true) };
     clearDraft(bucketId);
+    const id = newItemId();
     void (async () => {
-      const result = await addItemAction(
-        bucketId,
-        titleToAdd(sent.title).trim(),
-        sent.deadline || null,
-        stored.status ?? defaultStatus,
-        sent.recurring,
-        Object.keys(sent.properties).length > 0 ? sent.properties : null,
-        sent.reminders,
-        restore.assigneeIds ?? undefined,
-        clock.clock,
-        sent.description.trim() || undefined
-      );
-      if (result.ok) {
-        markAdded(result.id);
-        onAdded();
-        return;
+      try {
+        await queueMutation({
+          type: "item.create",
+          id,
+          bucketId,
+          title: titleToAdd(sent.title).trim(),
+          deadline: sent.deadline || null,
+          status: stored.status ?? defaultStatus,
+          recurring: sent.recurring,
+          properties: Object.keys(sent.properties).length > 0 ? sent.properties : null,
+          reminders: sent.reminders,
+          assigneeIds: restore.assigneeIds ?? undefined,
+          clock: clock.clock,
+          description: sent.description.trim() || undefined,
+        });
+        markAdded(id);
+      } catch {
+        notify.error("couldn't keep the item on this device");
+        const current = useDraftStore.getState().drafts[bucketId];
+        if (!current || isEmptyDraft(current)) updateDraft(bucketId, restore);
       }
-      notify.error(result.error);
-      const current = useDraftStore.getState().drafts[bucketId];
-      if (!current || isEmptyDraft(current)) updateDraft(bucketId, restore);
     })();
   }
 

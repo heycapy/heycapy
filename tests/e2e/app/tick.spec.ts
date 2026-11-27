@@ -1,6 +1,13 @@
 import { test, expect } from "@playwright/test";
 import { authState } from "../helpers/auth";
-import { addItem, createAndSelectBucket, itemRow, itemTick, uniqueName } from "../helpers/buckets";
+import {
+  addItem,
+  createAndSelectBucket,
+  itemRow,
+  itemTick,
+  serverState,
+  uniqueName,
+} from "../helpers/buckets";
 import { field, openSettings, option, saveSettings, expectSelected } from "../helpers/settings";
 import { enableWebhook, postItem } from "../helpers/webhook";
 import { touchSwipe } from "../helpers/touch";
@@ -59,19 +66,27 @@ test("the tick box answers before the save comes back, and a done title isn't cr
   await expect(itemRow(page, title).getByText(title)).toHaveCSS("text-decoration-line", "none");
 });
 
-test("a tick that doesn't save goes back and says so", async ({ page }) => {
+test("a tick made without a connection stays, and is sent when it is back", async ({ page }) => {
   await page.goto("/");
-  await createAndSelectBucket(page, uniqueName("Failed tick"));
+  await createAndSelectBucket(page, uniqueName("Offline tick"));
   const title = uniqueName("call bank");
   await addItem(page, title);
 
+  const unreachable = /\/api\/v1\/sync\//;
   await page.route("**/*", (route) =>
-    route.request().headers()["next-action"] ? route.abort() : route.fallback()
+    route.request().headers()["next-action"] || unreachable.test(route.request().url())
+      ? route.abort()
+      : route.fallback()
   );
   const tick = itemTick(page, title);
   await tick.click();
-  await expect(page.getByText("couldn't save that, try again")).toBeVisible();
-  await expect(tick).not.toBeChecked();
+  await expect(tick).toBeChecked();
+  await expect(page.getByText("couldn't save")).toHaveCount(0);
+
+  await page.unrouteAll({ behavior: "ignoreErrors" });
+  await page.reload();
+  await expect(itemTick(page, title)).toBeChecked();
+  await expect.poll(() => serverState(page, title)).toBe("completed");
 });
 
 test('ticking plays the picked sound, unticking and "off" stay quiet', async ({ page }) => {

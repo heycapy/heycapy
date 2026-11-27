@@ -17,6 +17,8 @@ export type ItemMenuProps = {
   item: Item;
   at: MenuAt;
   readonly: boolean;
+  // Moving a date and the reminder history ask the server, so they wait for a connection
+  offline?: boolean;
   completeLabel: string;
   reminderBadge?: ReminderBadge;
   nextReminderAt?: Date | null;

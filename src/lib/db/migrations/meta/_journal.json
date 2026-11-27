@@ -393,6 +393,34 @@
       "when": 1794484426485,
       "tag": "0055_item_assignees",
       "breakpoints": true
+    },
+    {
+      "idx": 56,
+      "version": "6",
+      "when": 1795238336584,
+      "tag": "0056_item_uuid_ids",
+      "breakpoints": true
+    },
+    {
+      "idx": 57,
+      "version": "6",
+      "when": 1795242419261,
+      "tag": "0057_sync_revisions",
+      "breakpoints": true
+    },
+    {
+      "idx": 58,
+      "version": "6",
+      "when": 1795247444655,
+      "tag": "0058_sync_devices",
+      "breakpoints": true
+    },
+    {
+      "idx": 59,
+      "version": "6",
+      "when": 1795247908747,
+      "tag": "0059_items_moved_tombstone",
+      "breakpoints": true
     }
   ]
 }

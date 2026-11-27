@@ -1,3 +1,4 @@
+import { v7 as uuidv7 } from "uuid";
 import { test, expect, type Locator, type Page } from "@playwright/test";
 import Database from "better-sqlite3";
 import { E2E_DATABASE_FILE } from "../helpers/env";
@@ -63,10 +64,10 @@ function seedSharedBucket(ownerEmail: string, memberEmail: string, title?: strin
     const day = new Date(Date.now() + 3 * 86_400_000).toISOString().slice(0, 10);
     const { id: itemId } = db
       .prepare(
-        "insert into items (bucket_id, user_id, title, deadline, deadline_timezone) values (?, ?, ?, ?, 'Asia/Kolkata') returning id"
+        "insert into items (id, bucket_id, user_id, title, deadline, deadline_timezone) values (?, ?, ?, ?, ?, 'Asia/Kolkata') returning id"
       )
-      .get(bucketId, id(ownerEmail), title, Date.parse(`${day}T09:00:00Z`) / 1000) as {
-      id: number;
+      .get(uuidv7(), bucketId, id(ownerEmail), title, Date.parse(`${day}T09:00:00Z`) / 1000) as {
+      id: string;
     };
     db.prepare("insert into item_assignees (item_id, user_id) values (?, ?)").run(
       itemId,
@@ -146,13 +147,22 @@ test("a timed item shows the time on the other clock that matters", async ({ pag
   await london.close();
 });
 
-// The deadline as it reads on a clock, from the database
-function savedDeadline(title: string): { zone: string; at: (zone: string) => string } {
-  const db = new Database(E2E_DATABASE_FILE);
-  const row = db
-    .prepare("select deadline, deadline_timezone from items where title = ?")
-    .get(title) as { deadline: number; deadline_timezone: string };
-  db.close();
+// The deadline as it reads on a clock, from the database. A new item shows on screen from the
+// device's queue first, so wait for the server to have it
+async function savedDeadline(
+  title: string
+): Promise<{ zone: string; at: (zone: string) => string }> {
+  const read = () => {
+    const db = new Database(E2E_DATABASE_FILE);
+    const row = db
+      .prepare("select deadline, deadline_timezone from items where title = ?")
+      .get(title) as { deadline: number; deadline_timezone: string } | undefined;
+    db.close();
+    return row;
+  };
+  await expect.poll(() => read() !== undefined).toBe(true);
+  const row = read();
+  if (!row) throw new Error(`no item titled ${title}`);
   return {
     zone: row.deadline_timezone,
     at: (zone) =>
@@ -196,7 +206,7 @@ test("a time for someone on another clock is set on theirs, unless picked by han
   await expect(dialog.getByRole("button", { name: "time: 9 am" })).toBeVisible();
   await dialog.getByRole("button", { name: "add", exact: true }).click();
   await expect(itemRow(page, forSam)).toBeVisible();
-  const sams = savedDeadline(forSam);
+  const sams = await savedDeadline(forSam);
   expect(sams.zone).toBe("Europe/London");
   expect(sams.at("Europe/London")).toBe("09:00");
 
@@ -219,7 +229,7 @@ test("a time for someone on another clock is set on theirs, unless picked by han
   await expect(dialog.getByRole("button", { name: "time: 9 am" })).toBeVisible();
   await dialog.getByRole("button", { name: "add", exact: true }).click();
   await expect(itemRow(page, onIndia)).toBeVisible();
-  const indias = savedDeadline(onIndia);
+  const indias = await savedDeadline(onIndia);
   expect(indias.zone).toBe("Asia/Kolkata");
   expect(indias.at("Asia/Kolkata")).toBe("09:00");
 });

@@ -4,6 +4,7 @@ import { getSession } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { buckets, items } from "@/lib/db/schema";
 import { listLiveBuckets, memberBucketIds } from "@/lib/buckets/access";
+import { listToday } from "@/lib/items/today";
 import { BucketsEmptyState } from "@/components/buckets/BucketsEmptyState";
 import { BucketsShell } from "@/components/buckets/BucketsShell";
 
@@ -15,7 +16,10 @@ export default async function Home({
   const session = await getSession();
   if (!session) redirect("/login");
 
-  const userBuckets = await listLiveBuckets(session.userId);
+  const [userBuckets, todaySeed] = await Promise.all([
+    listLiveBuckets(session.userId),
+    listToday(session.userId),
+  ]);
 
   if (userBuckets.length === 0) {
     const [archived, deletedBucket, deletedItem] = await Promise.all([
@@ -53,5 +57,5 @@ export default async function Home({
 
   const { bucket } = await searchParams;
   const focusBucketId = typeof bucket === "string" ? Number(bucket) : null;
-  return <BucketsShell buckets={userBuckets} focusBucketId={focusBucketId} />;
+  return <BucketsShell buckets={userBuckets} todaySeed={todaySeed} focusBucketId={focusBucketId} />;
 }

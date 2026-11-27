@@ -1,5 +1,6 @@
 "use server";
 
+import type { ItemId } from "@/types/ids";
 import type { ActionResult } from "@/types/result";
 import { revalidatePath } from "next/cache";
 import { requireSession } from "./action-helpers";
@@ -19,7 +20,7 @@ export async function getTrashAction(): Promise<
   return { ok: true, ...(await listTrash(session.userId)) };
 }
 
-export async function restoreItemAction(itemId: number): Promise<ActionResult> {
+export async function restoreItemAction(itemId: ItemId): Promise<ActionResult> {
   const session = await requireSession();
   if (!(await restoreItem(session.userId, itemId))) {
     return { ok: false, error: "Item not found in trash" };
@@ -28,7 +29,7 @@ export async function restoreItemAction(itemId: number): Promise<ActionResult> {
   return { ok: true };
 }
 
-export async function deleteItemForeverAction(itemId: number): Promise<ActionResult> {
+export async function deleteItemForeverAction(itemId: ItemId): Promise<ActionResult> {
   const session = await requireSession();
   const result = await deleteItemForever(session.userId, itemId);
   if (result === "not_found") return { ok: false, error: "Item not found in trash" };

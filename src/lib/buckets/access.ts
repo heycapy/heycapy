@@ -1,5 +1,7 @@
+import type { ItemId } from "@/types/ids";
 import { and, asc, eq, inArray, isNotNull, isNull, sql } from "drizzle-orm";
 import { db } from "@/lib/db";
+import type { DbHandle } from "@/lib/db/handle";
 import { bucketMembers, buckets, items } from "@/lib/db/schema";
 import { inLiveBucket } from "@/lib/buckets/live";
 
@@ -21,11 +23,13 @@ export function memberBucketIds(userId: number) {
     .where(eq(bucketMembers.userId, userId));
 }
 
-export async function isBucketMember(userId: number, bucketId: number): Promise<boolean> {
-  const row = await db.query.bucketMembers.findFirst({
-    columns: { id: true },
-    where: and(eq(bucketMembers.bucketId, bucketId), eq(bucketMembers.userId, userId)),
-  });
+export function isBucketMember(h: DbHandle, userId: number, bucketId: number): boolean {
+  const row = h.query.bucketMembers
+    .findFirst({
+      columns: { id: true },
+      where: and(eq(bucketMembers.bucketId, bucketId), eq(bucketMembers.userId, userId)),
+    })
+    .sync();
   return row !== undefined;
 }
 
@@ -35,32 +39,39 @@ export function ownedBucketIds(userId: number) {
 
 // The rows still hold what only the owner may see, so they stay on the server
 export function findAccessibleBucket(
+  h: DbHandle,
   userId: number,
   bucketId: number
-): Promise<Bucket | undefined> {
-  return db.query.buckets.findFirst({
-    where: and(eq(buckets.id, bucketId), inArray(buckets.id, memberBucketIds(userId))),
-  });
+): Bucket | undefined {
+  return h.query.buckets
+    .findFirst({
+      where: and(eq(buckets.id, bucketId), inArray(buckets.id, memberBucketIds(userId))),
+    })
+    .sync();
 }
 
-export function findAccessibleItem(userId: number, itemId: number): Promise<Item | undefined> {
-  return db.query.items.findFirst({
-    where: and(
-      eq(items.id, itemId),
-      inArray(items.bucketId, memberBucketIds(userId)),
-      isNull(items.deletedAt)
-    ),
-  });
+export function findAccessibleItem(h: DbHandle, userId: number, itemId: ItemId): Item | undefined {
+  return h.query.items
+    .findFirst({
+      where: and(
+        eq(items.id, itemId),
+        inArray(items.bucketId, memberBucketIds(userId)),
+        isNull(items.deletedAt)
+      ),
+    })
+    .sync();
 }
 
-export function findTrashedItem(userId: number, itemId: number): Promise<Item | undefined> {
-  return db.query.items.findFirst({
-    where: and(
-      eq(items.id, itemId),
-      inArray(items.bucketId, memberBucketIds(userId)),
-      isNotNull(items.deletedAt)
-    ),
-  });
+export function findTrashedItem(h: DbHandle, userId: number, itemId: ItemId): Item | undefined {
+  return h.query.items
+    .findFirst({
+      where: and(
+        eq(items.id, itemId),
+        inArray(items.bucketId, memberBucketIds(userId)),
+        isNotNull(items.deletedAt)
+      ),
+    })
+    .sync();
 }
 
 // Rows go to the browser as they are, so what only the owner may see is blanked for members

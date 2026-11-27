@@ -1,3 +1,4 @@
+import { v7 as uuidv7 } from "uuid";
 import { test, expect } from "@playwright/test";
 import Database from "better-sqlite3";
 import { E2E_DATABASE_FILE } from "../helpers/env";
@@ -32,9 +33,9 @@ function seedAssignedItem(ownerEmail: string, memberEmail: string, title: string
   const deadline = Math.floor(Date.now() / 1000) + 3 * DAY_S;
   const { id: itemId } = db
     .prepare(
-      "insert into items (bucket_id, user_id, title, deadline, deadline_timezone) values (?, ?, ?, ?, 'UTC') returning id"
+      "insert into items (id, bucket_id, user_id, title, deadline, deadline_timezone) values (?, ?, ?, ?, ?, 'UTC') returning id"
     )
-    .get(bucketId, owner, title, deadline) as { id: number };
+    .get(uuidv7(), bucketId, owner, title, deadline) as { id: string };
   db.prepare("insert into item_assignees (item_id, user_id) values (?, ?)").run(itemId, member);
   db.prepare(
     "insert into item_reminders (item_id, user_id, next_reminder_at) values (?, ?, ?)"

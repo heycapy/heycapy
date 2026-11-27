@@ -117,6 +117,7 @@
   --toast-radius: 0px;
   --toast-shadow: var(--raised-shadow-sm);
   --toast-h: 2rem;
+  --toast-w: min(24rem, calc(100vw - 2rem));
   --toast-error-bg: var(--card);
   --toast-error-fg: var(--foreground);
   --toast-error-border: var(--destructive);
@@ -185,6 +186,7 @@
   --toast-radius: var(--panel-radius);
   --toast-shadow: var(--raised-shadow-md);
   --toast-h: 2.25rem;
+  --toast-w: min(24rem, calc(100vw - 2rem));
   --toast-error-bg: var(--background);
   --toast-error-fg: var(--foreground);
   --toast-error-border: var(--destructive);

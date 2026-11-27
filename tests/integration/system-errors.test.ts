@@ -61,7 +61,7 @@ it("a reminder that fails during a run shows up in the log with its user", async
 
   const [row] = await db.select().from(systemErrors).where(eq(systemErrors.source, "scheduler"));
   expect(row).toMatchObject({ userId });
-  expect(row.message).toMatch(/^item \d+ failed: /);
+  expect(row.message).toMatch(/^item [0-9a-f-]{36} failed: /);
 });
 
 it("only admins can see the system status", async () => {

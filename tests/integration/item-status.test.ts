@@ -1,3 +1,4 @@
+import type { ItemId } from "@/types/ids";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
@@ -28,7 +29,7 @@ async function setup() {
   return { bucketId, itemId };
 }
 
-async function statusOf(itemId: number) {
+async function statusOf(itemId: ItemId) {
   const [row] = await db.select({ status: items.status }).from(items).where(eq(items.id, itemId));
   return row.status;
 }

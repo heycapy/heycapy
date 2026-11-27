@@ -1,9 +1,10 @@
+import type { ItemId } from "@/types/ids";
 import ReactMarkdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { appHref } from "./chatLinks";
 import { itemLink } from "@/lib/items/item-link";
 
-export type OpenItem = (bucketId: number | null, itemId: number) => void;
+export type OpenItem = (bucketId: number | null, itemId: ItemId) => void;
 
 type Props = {
   content: string;

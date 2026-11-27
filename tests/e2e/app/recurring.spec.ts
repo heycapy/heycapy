@@ -9,6 +9,7 @@ import {
   openDetail,
   detailChip,
   saveEdit,
+  addMonthlyItemDueToday,
 } from "../helpers/buckets";
 
 test.use({ storageState: authState("recurring") });
@@ -16,23 +17,6 @@ test.describe.configure({ mode: "default" });
 
 function itemDialog(page: Page) {
   return itemForm(page);
-}
-
-async function addMonthlyItemDueToday(page: Page, title: string): Promise<void> {
-  await page.getByRole("button", { name: "add item", exact: true }).click();
-  const dialog = itemDialog(page);
-  await dialog.locator("textarea").first().fill(title);
-  await openDetail(dialog, "date");
-  await page.getByRole("button", { name: String(new Date().getDate()), exact: true }).click();
-  await openDetail(dialog, "repeat");
-  await dialog.getByRole("button", { name: "on", exact: true }).click();
-  await expect(dialog.getByRole("button", { name: "on", exact: true })).toHaveAttribute(
-    "aria-pressed",
-    "true"
-  );
-  await dialog.getByRole("button", { name: "add", exact: true }).click();
-  await expect(dialog).not.toBeVisible();
-  await expect(itemRow(page, title)).toBeVisible();
 }
 
 test.beforeEach(async ({ page }) => {

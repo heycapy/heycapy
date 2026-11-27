@@ -43,6 +43,7 @@ function reminderState(badge: ReminderBadge | undefined, next: Date | null | und
 export function MenuBody({
   item,
   readonly,
+  offline,
   completeLabel,
   reminderBadge,
   nextReminderAt,
@@ -156,7 +157,7 @@ export function MenuBody({
             </MenuSection>
           )}
 
-          {!readonly && (
+          {!readonly && !offline && (
             <MenuSection>
               {quickDates(current).map((option) => {
                 const day = formatWeekdayDate(option.at);
@@ -193,7 +194,7 @@ export function MenuBody({
             </MenuSection>
           )}
 
-          {!readonly && (
+          {!readonly && !offline && (
             <MenuSection>
               <MenuButton onClick={() => setView("reminders")}>
                 <span className="text-foreground flex-1">reminders</span>

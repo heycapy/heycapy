@@ -1,3 +1,4 @@
+import type { ItemId } from "@/types/ids";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { and, eq, ne } from "drizzle-orm";
 import { db } from "@/lib/db";
@@ -27,7 +28,7 @@ afterEach(() => resetSchedulerEnvironment());
 async function tool(userId: number, name: string, args: Record<string, unknown>) {
   const result = JSON.parse(await executeToolCall({ id: "call", name, arguments: args }, userId));
   expect(result).toMatchObject({ ok: true });
-  return result as { ok: true; itemId?: number };
+  return result as { ok: true; itemId?: ItemId };
 }
 
 async function itemsInBucket(bucketId: number) {
@@ -46,7 +47,7 @@ describe("items created outside the web UI get reminders", () => {
     });
 
     await runSchedulerAt(new Date(deadline.getTime() + MINUTE));
-    expect(await remindersQueued(itemId ?? -1)).toBe(1);
+    expect(await remindersQueued(itemId ?? "")).toBe(1);
   });
 
   it("telegram: createItem", async () => {
@@ -123,10 +124,10 @@ describe("safety net", () => {
       .insert(items)
       .values({ bucketId, userId, title: "written directly", deadline: T0 })
       .returning();
-    await assignEveryone(raw.id, bucketId);
+    assignEveryone(db, raw.id, bucketId);
     await expect(reminderOf(raw.id)).rejects.toThrow("found 0");
 
-    await reconcile();
+    reconcile(db);
     await runSchedulerAt(new Date(T0.getTime() + MINUTE));
     expect(await remindersQueued(raw.id)).toBe(1);
   });

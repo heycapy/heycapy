@@ -1,3 +1,5 @@
+import { v7 as uuidv7 } from "uuid";
+import type { ItemId } from "@/types/ids";
 import { test, expect, type Page } from "@playwright/test";
 import Database from "better-sqlite3";
 import { E2E_DATABASE_FILE } from "../helpers/env";
@@ -25,14 +27,14 @@ function seedSharedItem(ownerEmail: string, memberEmail: string, title: string, 
   const midnightInIndia = Date.parse(`${day}T00:00:00+05:30`) / 1000;
   const { id: itemId } = db
     .prepare(
-      "insert into items (bucket_id, user_id, title, deadline, deadline_timezone) values (?, ?, ?, ?, 'Asia/Kolkata') returning id"
+      "insert into items (id, bucket_id, user_id, title, deadline, deadline_timezone) values (?, ?, ?, ?, ?, 'Asia/Kolkata') returning id"
     )
-    .get(bucketId, owner, title, midnightInIndia) as { id: number };
+    .get(uuidv7(), bucketId, owner, title, midnightInIndia) as { id: string };
   db.close();
   return { bucketId, itemId, midnightInIndia };
 }
 
-function savedDeadline(itemId: number) {
+function savedDeadline(itemId: ItemId) {
   const db = new Database(E2E_DATABASE_FILE);
   const row = db
     .prepare("select deadline, deadline_timezone as zone from items where id = ?")

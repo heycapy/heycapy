@@ -1,20 +1,28 @@
-import { z } from "zod";
+import * as z from "zod/mini";
+import { en } from "zod/locales";
 import { DEFAULT_REMINDER_BUTTONS, QUICK_REMIND_VALUES } from "@/lib/notifications/constants";
 import { MAX_REMINDER_OFFSET_MINS, MAX_REMINDERS_PER_ITEM } from "@/lib/reminders/constants";
 
+// zod/mini ships without error messages, and webhook callers and capy read them
+z.config(en());
+
 // Minutes before the deadline, stored largest first without repeats
-export const ReminderOffsets = z
-  .array(z.number().int().min(0).max(MAX_REMINDER_OFFSET_MINS))
-  .max(MAX_REMINDERS_PER_ITEM)
-  .transform((offsets) => [...new Set(offsets)].sort((a, b) => b - a));
+export const ReminderOffsets = z.pipe(
+  z
+    .array(z.int().check(z.minimum(0), z.maximum(MAX_REMINDER_OFFSET_MINS)))
+    .check(z.maxLength(MAX_REMINDERS_PER_ITEM)),
+  z.transform((offsets) => [...new Set(offsets)].sort((a, b) => b - a))
+);
+
+const CHANNEL_MEDIA = z.array(z.enum(["ntfy", "email", "telegram", "push"]));
 
 // One person's channels for one bucket, kept on their bucket_members row
 export const MemberChannels = z.object({
-  medium: z.array(z.enum(["ntfy", "email", "telegram", "push"])).default([]),
+  medium: z._default(CHANNEL_MEDIA, []),
   // ids of the person's own outgoing webhooks, set up once in tweaks
-  webhooks: z.array(z.number().int().positive()).default([]),
+  webhooks: z._default(z.array(z.int().check(z.positive())), []),
   // Saving tweaks copies the person's default channels into the rows that follow them
-  followsTweaks: z.boolean().optional(),
+  followsTweaks: z.optional(z.boolean()),
 });
 
 export type MemberChannels = z.infer<typeof MemberChannels>;
@@ -24,65 +32,67 @@ export const FOLLOWABLE_SETTINGS = ["defaultReminders", "notifyAt", "repeat", "o
 export type FollowableSetting = (typeof FOLLOWABLE_SETTINGS)[number];
 
 export const NotificationRules = z.object({
-  notifyAt: z.string().default(""),
-  quietHours: z.object({ from: z.string(), to: z.string() }).nullable().default(null),
+  notifyAt: z._default(z.string(), ""),
+  quietHours: z._default(z.nullable(z.object({ from: z.string(), to: z.string() })), null),
   // For items that haven't picked their own
-  defaultReminders: ReminderOffsets.default([0]),
-  repeat: z.enum(["once", "daily"]).default("once"),
+  defaultReminders: z._default(ReminderOffsets, [0]),
+  repeat: z._default(z.enum(["once", "daily"]), "once"),
   // "Remind again" buttons shown next to Done on every channel, as much as each has room for
-  reminderButtons: z.array(z.enum(QUICK_REMIND_VALUES)).default(DEFAULT_REMINDER_BUTTONS),
+  reminderButtons: z._default(z.array(z.enum(QUICK_REMIND_VALUES)), DEFAULT_REMINDER_BUTTONS),
   // Saving tweaks copies the owner's defaults into these, buckets from before defaults have none
-  followsTweaks: z.array(z.enum(FOLLOWABLE_SETTINGS)).default([]),
+  followsTweaks: z._default(z.array(z.enum(FOLLOWABLE_SETTINGS)), []),
 });
 
 // The defaults in tweaks → notifications. The starting values are what buckets had built in
 export const NotificationDefaults = z.object({
-  defaultReminders: ReminderOffsets.default([0]),
-  notifyAt: z.string().default(""),
-  repeat: z.enum(["once", "daily"]).default("once"),
-  notifyWhenOverdue: z.boolean().default(false),
-  overdueFirstAlertMins: z.number().int().positive().optional(),
-  overdueRepeatHours: z.number().positive().optional(),
+  defaultReminders: z._default(ReminderOffsets, [0]),
+  notifyAt: z._default(z.string(), ""),
+  repeat: z._default(z.enum(["once", "daily"]), "once"),
+  notifyWhenOverdue: z._default(z.boolean(), false),
+  overdueFirstAlertMins: z.optional(z.int().check(z.positive())),
+  overdueRepeatHours: z.optional(z.number().check(z.positive())),
   // null until picked in tweaks: every channel set up at the time, as before defaults existed
-  medium: MemberChannels.shape.medium.unwrap().nullable().default(null),
+  medium: z._default(z.nullable(CHANNEL_MEDIA), null),
 });
 
 export type NotificationDefaults = z.infer<typeof NotificationDefaults>;
 
 export const ItemsRules = z.object({
-  sortBy: z.enum(["deadline", "created_at", "manual"]).default("deadline"),
-  drag: z.boolean().default(false),
-  readonly: z.boolean().default(false),
-  showCompleted: z.boolean().default(true),
-  defaultDeadlineOffsetDays: z.number().int().nonnegative().nullable().default(null),
+  sortBy: z._default(z.enum(["deadline", "created_at", "manual"]), "deadline"),
+  drag: z._default(z.boolean(), false),
+  readonly: z._default(z.boolean(), false),
+  showCompleted: z._default(z.boolean(), true),
+  defaultDeadlineOffsetDays: z._default(z.nullable(z.int().check(z.nonnegative())), null),
   // How a repeating item's next occurrence comes about
-  recurrenceMode: z.enum(["wait", "moveOn", "afterCompletion"]).default("wait"),
+  recurrenceMode: z._default(z.enum(["wait", "moveOn", "afterCompletion"]), "wait"),
 });
 
 export const McpRules = z.object({
-  refreshMode: z.enum(["manual", "interval"]).default("manual"),
-  refreshIntervalMins: z.number().int().positive().nullable().default(null),
-  allowCreate: z.boolean().default(false),
-  allowEdit: z.boolean().default(false),
-  filters: z.record(z.string(), z.unknown()).default({}),
+  refreshMode: z._default(z.enum(["manual", "interval"]), "manual"),
+  refreshIntervalMins: z._default(z.nullable(z.int().check(z.positive())), null),
+  allowCreate: z._default(z.boolean(), false),
+  allowEdit: z._default(z.boolean(), false),
+  filters: z._default(z.record(z.string(), z.unknown()), {}),
 });
 
 export const PersonalityRules = z.object({
-  toneOverride: z
-    .enum(["chill", "professional", "motivational", "rude_funny", "custom"])
-    .nullable()
-    .default(null),
+  toneOverride: z._default(
+    z.nullable(z.enum(["chill", "professional", "motivational", "rude_funny", "custom"])),
+    null
+  ),
 });
 
 export const RecurringConfig = z.object({
-  enabled: z.boolean().default(false),
+  enabled: z._default(z.boolean(), false),
   frequency: z.enum(["daily", "weekly", "monthly", "yearly"]),
-  interval: z.number().int().positive().default(1),
-  endDate: z.iso.date().nullable().default(null),
+  interval: z._default(z.int().check(z.positive()), 1),
+  endDate: z._default(z.nullable(z.iso.date()), null),
   // Day of month a monthly/yearly series was set on, so short months don't shift it
-  anchorDay: z.number().int().min(1).max(31).optional(),
+  anchorDay: z.optional(z.int().check(z.minimum(1), z.maximum(31))),
   // Weekly on these days (0 = Sunday), without it, the deadline's own weekday
-  weekdays: z.array(z.number().int().min(0).max(6)).min(1).max(7).optional(),
+  weekdays: z.optional(
+    z.array(z.int().check(z.minimum(0), z.maximum(6))).check(z.minLength(1), z.maxLength(7))
+  ),
 });
 
 export type NotificationRules = z.infer<typeof NotificationRules>;
@@ -110,23 +120,23 @@ export const FIELD_TYPES = [
 export type FieldType = (typeof FIELD_TYPES)[number];
 
 export const FieldValidation = z.object({
-  required: z.boolean().optional(),
-  min: z.number().optional(),
-  max: z.number().optional(),
-  minLength: z.number().int().nonnegative().optional(),
-  maxLength: z.number().int().nonnegative().optional(),
-  pattern: z.string().optional(),
+  required: z.optional(z.boolean()),
+  min: z.optional(z.number()),
+  max: z.optional(z.number()),
+  minLength: z.optional(z.int().check(z.nonnegative())),
+  maxLength: z.optional(z.int().check(z.nonnegative())),
+  pattern: z.optional(z.string()),
 });
 
 export const FieldDef = z.object({
-  key: z.string().min(1).max(100),
-  label: z.string().min(1).max(100),
+  key: z.string().check(z.minLength(1), z.maxLength(100)),
+  label: z.string().check(z.minLength(1), z.maxLength(100)),
   type: z.enum(FIELD_TYPES),
-  options: z.array(z.string()).optional(),
-  currency: z.string().optional(),
-  showInRow: z.boolean().optional(),
-  icon: z.string().optional(),
-  validation: FieldValidation.optional(),
+  options: z.optional(z.array(z.string())),
+  currency: z.optional(z.string()),
+  showInRow: z.optional(z.boolean()),
+  icon: z.optional(z.string()),
+  validation: z.optional(FieldValidation),
 });
 
 export type StatusDef = {
@@ -136,11 +146,11 @@ export type StatusDef = {
 };
 
 export const BucketSchema = z.object({
-  fields: z.array(FieldDef).default([]),
-  notifyOnArrival: z.boolean().optional(),
-  notifyWhenOverdue: z.boolean().optional(),
-  overdueRepeatHours: z.number().positive().optional(),
-  overdueFirstAlertMins: z.number().int().positive().optional(),
+  fields: z._default(z.array(FieldDef), []),
+  notifyOnArrival: z.optional(z.boolean()),
+  notifyWhenOverdue: z.optional(z.boolean()),
+  overdueRepeatHours: z.optional(z.number().check(z.positive())),
+  overdueFirstAlertMins: z.optional(z.int().check(z.positive())),
 });
 
 export type FieldValidation = z.infer<typeof FieldValidation>;
@@ -151,38 +161,35 @@ export type BucketSchema = z.infer<typeof BucketSchema>;
  * Generates a Zod validator for item properties based on a bucket's fieldSchema.
  * Used by the webhook endpoint and item creation to validate dynamic field values.
  */
-export function buildPropertyValidator(fields: FieldDef[]): z.ZodObject<Record<string, z.ZodType>> {
-  const shape: Record<string, z.ZodType> = {};
+export function buildPropertyValidator(
+  fields: FieldDef[]
+): z.ZodMiniObject<Record<string, z.ZodMiniType>> {
+  const shape: Record<string, z.ZodMiniType> = {};
 
   for (const field of fields) {
-    let base: z.ZodType;
+    const validation = field.validation;
+    let base: z.ZodMiniType;
 
     switch (field.type) {
       case "text":
       case "textarea": {
-        let v = z.string();
-        if (field.validation?.minLength !== undefined) v = v.min(field.validation.minLength);
-        if (field.validation?.maxLength !== undefined) v = v.max(field.validation.maxLength);
-        if (field.validation?.pattern !== undefined)
-          v = v.regex(new RegExp(field.validation.pattern));
-        base = v;
+        const checks: z.core.$ZodCheck<string>[] = [];
+        if (validation?.minLength !== undefined) checks.push(z.minLength(validation.minLength));
+        if (validation?.maxLength !== undefined) checks.push(z.maxLength(validation.maxLength));
+        if (validation?.pattern !== undefined) checks.push(z.regex(new RegExp(validation.pattern)));
+        base = z.string().check(...checks);
         break;
       }
       case "url":
         base = z.url();
         break;
-      case "number": {
-        let v = z.number();
-        if (field.validation?.min !== undefined) v = v.min(field.validation.min);
-        if (field.validation?.max !== undefined) v = v.max(field.validation.max);
-        base = v;
-        break;
-      }
+      case "number":
       case "currency": {
-        let v = z.number().nonnegative();
-        if (field.validation?.min !== undefined) v = v.min(field.validation.min);
-        if (field.validation?.max !== undefined) v = v.max(field.validation.max);
-        base = v;
+        const checks: z.core.$ZodCheck<number>[] =
+          field.type === "currency" ? [z.nonnegative()] : [];
+        if (validation?.min !== undefined) checks.push(z.minimum(validation.min));
+        if (validation?.max !== undefined) checks.push(z.maximum(validation.max));
+        base = z.number().check(...checks);
         break;
       }
       case "boolean":
@@ -209,7 +216,7 @@ export function buildPropertyValidator(fields: FieldDef[]): z.ZodObject<Record<s
         base = z.unknown();
     }
 
-    shape[field.key] = field.validation?.required ? base : base.optional().nullable();
+    shape[field.key] = validation?.required ? base : z.nullable(z.optional(base));
   }
 
   return z.object(shape);

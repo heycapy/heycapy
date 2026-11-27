@@ -9,6 +9,8 @@ import {
   openBucketOnPhone,
   itemTick,
   openItemMenu,
+  selectBucket,
+  serverState,
   uniqueName,
 } from "../helpers/buckets";
 
@@ -140,22 +142,39 @@ test("no more than three toasts at once, the oldest goes first", async ({ page }
   await expect(page.locator("[data-sonner-toast]", { hasText: titles[0] })).toHaveCount(0);
 });
 
-test("an error is announced at once, can be retried, and escape closes it", async ({ page }) => {
+test("an error is announced at once and escape closes it", async ({ page, browser }) => {
   await page.goto("/");
-  await createAndSelectBucket(page, uniqueName("Toast error"));
+  const bucket = uniqueName("Toast error");
+  await createAndSelectBucket(page, bucket);
   const title = uniqueName("call bank");
   await addItem(page, title);
+  await expect.poll(() => serverState(page, title)).toBe("active");
 
-  await page.route("**/*", (route) =>
-    route.request().headers()["next-action"] ? route.abort() : route.fallback()
-  );
+  const unreachable = /\/api\/(events|v1\/sync\/)/;
+  await page.route(unreachable, (route) => route.abort());
+  const elsewhere = await browser.newContext({ storageState: authState("toasts") });
+  const other = await elsewhere.newPage();
+  await other.goto("/");
+  await selectBucket(other, bucket);
+  await deleteFromMenu(other, title, false);
+  await expect.poll(() => serverState(other, title)).toBe("active:trashed");
+  await elsewhere.close();
+
   await itemTick(page, title).click();
-  const error = page.getByRole("alert").filter({ hasText: "couldn't save that" });
+  await page.unroute(unreachable);
+  await page.evaluate(() => window.dispatchEvent(new Event("online")));
+  const error = page.getByRole("alert").filter({ hasText: "couldn't save" });
   await expect(error).toBeVisible();
-  await expect(error.getByRole("button", { name: "retry" })).toBeVisible();
 
   await error.getByRole("button", { name: "dismiss" }).focus();
   await page.keyboard.press("Escape");
   await expect(error).toHaveCount(0);
-  await page.unrouteAll({ behavior: "ignoreErrors" });
+
+  const chip = page.getByRole("button", { name: /^sync: 1 change was refused/ });
+  await expect(chip).toBeVisible();
+  await chip.click();
+  const list = page.getByRole("dialog", { name: "changes that weren't saved" });
+  await expect(list).toContainText("couldn't save");
+  await list.getByRole("button", { name: "dismiss all" }).click();
+  await expect(chip).toHaveCount(0);
 });

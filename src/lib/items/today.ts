@@ -1,3 +1,4 @@
+import type { ItemId } from "@/types/ids";
 import { and, asc, eq, inArray, isNotNull, isNull, like, lt, notInArray, sql } from "drizzle-orm";
 import { CLOSED_ITEM_STATUSES, SEARCH_RESULTS_MAX, TODAY_FETCH_AHEAD_DAYS } from "@/constants";
 import { db } from "@/lib/db";
@@ -34,22 +35,22 @@ export type ItemPerson = {
 export type CrossBucketItems = {
   items: ListItem[];
   buckets: ItemBucket[];
-  reminderBadges: Record<number, ReminderBadge>;
-  assignees: Record<number, ItemPerson[]>;
+  reminderBadges: Record<ItemId, ReminderBadge>;
+  assignees: Record<ItemId, ItemPerson[]>;
 };
 
 // Keyed by item id, in the order they were assigned
 async function assigneesOf(
   viewerId: number,
   found: ListItem[]
-): Promise<Record<number, ItemPerson[]>> {
+): Promise<Record<ItemId, ItemPerson[]>> {
   const ids = [...new Set(found.flatMap((i) => i.assigneeIds))];
   if (ids.length === 0) return {};
   const people = await db
     .select({ userId: users.id, username: users.username, avatar: users.avatar })
     .from(users)
     .where(inArray(users.id, ids));
-  const result: Record<number, ItemPerson[]> = {};
+  const result: Record<ItemId, ItemPerson[]> = {};
   for (const item of found) {
     const list = item.assigneeIds.flatMap((id) => {
       const person = people.find((p) => p.userId === id);
@@ -68,7 +69,7 @@ async function withBuckets(userId: number, found: Item[]): Promise<CrossBucketIt
     .where(and(inArray(buckets.id, memberBucketIds(userId)), inLiveBucket))
     .orderBy(asc(buckets.sortOrder), asc(buckets.createdAt), asc(buckets.id));
   const used = new Set(rows.map((i) => i.bucketId));
-  const badges: Record<number, ReminderBadge> = {};
+  const badges: Record<ItemId, ReminderBadge> = {};
   for (const bucket of all.filter((b) => used.has(b.id))) {
     Object.assign(
       badges,

@@ -1,3 +1,4 @@
+import type { ItemId } from "@/types/ids";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type * as SessionModule from "@/lib/auth/session";
 import { asc, eq } from "drizzle-orm";
@@ -57,7 +58,7 @@ async function setup(
   return { userId, bucketId, itemId };
 }
 
-async function itemOf(itemId: number) {
+async function itemOf(itemId: ItemId) {
   const item = await db.query.items.findFirst({ where: eq(items.id, itemId) });
   if (!item) throw new Error(`item ${itemId} not found`);
   return item;
@@ -75,7 +76,7 @@ describe("moving one occurrence of a repeating item", () => {
   it("keeps the next one on its usual day", async () => {
     const { userId, bucketId, itemId } = await setup();
 
-    const moved = await moveOccurrence(userId, itemId, WED_MAR_11);
+    const moved = moveOccurrence(db, userId, itemId, WED_MAR_11);
     expect(moved).toEqual({ ok: true, next: MON_MAR_16 });
     expect(await itemOf(itemId)).toMatchObject({ deadline: WED_MAR_11, scheduledAt: MON_MAR_9 });
 
@@ -89,7 +90,7 @@ describe("moving one occurrence of a repeating item", () => {
   it("moved past the next one, the series carries on after the moved date", async () => {
     const { userId, bucketId, itemId } = await setup();
 
-    const moved = await moveOccurrence(userId, itemId, WED_MAR_18);
+    const moved = moveOccurrence(db, userId, itemId, WED_MAR_18);
     expect(moved).toEqual({ ok: true, next: MON_MAR_23 });
 
     await completeItem(userId, itemId, "app");
@@ -99,18 +100,18 @@ describe("moving one occurrence of a repeating item", () => {
   it("remembers the first scheduled date across several moves, and forgets it when moved back", async () => {
     const { userId, itemId } = await setup();
 
-    await moveOccurrence(userId, itemId, WED_MAR_11);
-    await moveOccurrence(userId, itemId, new Date("2026-03-12T09:00:00Z"));
+    moveOccurrence(db, userId, itemId, WED_MAR_11);
+    moveOccurrence(db, userId, itemId, new Date("2026-03-12T09:00:00Z"));
     expect(await itemOf(itemId)).toMatchObject({ scheduledAt: MON_MAR_9 });
 
-    await moveOccurrence(userId, itemId, MON_MAR_9);
+    moveOccurrence(db, userId, itemId, MON_MAR_9);
     expect(await itemOf(itemId)).toMatchObject({ deadline: MON_MAR_9, scheduledAt: null });
   });
 
   it("a one-off item just moves", async () => {
     const { userId, itemId } = await setup({ recurring: null });
 
-    expect(await moveOccurrence(userId, itemId, WED_MAR_11)).toEqual({ ok: true, next: null });
+    expect(moveOccurrence(db, userId, itemId, WED_MAR_11)).toEqual({ ok: true, next: null });
     expect(await itemOf(itemId)).toMatchObject({ deadline: WED_MAR_11, scheduledAt: null });
   });
 
@@ -118,22 +119,22 @@ describe("moving one occurrence of a repeating item", () => {
     const { userId, itemId } = await setup();
     const stranger = await seedUser();
 
-    expect(await moveOccurrence(stranger, itemId, WED_MAR_11)).toMatchObject({ ok: false });
+    expect(moveOccurrence(db, stranger, itemId, WED_MAR_11)).toMatchObject({ ok: false });
     await db.update(items).set({ deletedAt: NOW }).where(eq(items.id, itemId));
-    expect(await moveOccurrence(userId, itemId, WED_MAR_11)).toMatchObject({ ok: false });
+    expect(moveOccurrence(db, userId, itemId, WED_MAR_11)).toMatchObject({ ok: false });
     expect(await itemOf(itemId)).toMatchObject({ deadline: MON_MAR_9 });
   });
 
   it("after completion mode: the next date isn't known ahead", async () => {
     const { userId, itemId } = await setup({ mode: "afterCompletion" });
-    expect(await moveOccurrence(userId, itemId, WED_MAR_11)).toEqual({ ok: true, next: null });
+    expect(moveOccurrence(db, userId, itemId, WED_MAR_11)).toEqual({ ok: true, next: null });
   });
 
   it("skipping a moved occurrence goes to the next one on the schedule", async () => {
     const { userId, itemId } = await setup();
-    await moveOccurrence(userId, itemId, WED_MAR_11);
+    moveOccurrence(db, userId, itemId, WED_MAR_11);
 
-    expect(await skipOccurrence(userId, itemId)).toEqual({ ok: true });
+    expect(skipOccurrence(db, userId, itemId)).toEqual({ ok: true });
     expect(await itemOf(itemId)).toMatchObject({ deadline: MON_MAR_16, scheduledAt: null });
   });
 });
@@ -141,7 +142,7 @@ describe("moving one occurrence of a repeating item", () => {
 describe("move on if missed", () => {
   it("a moved occurrence is missed only once the next one after its new date arrives", async () => {
     const { userId, bucketId, itemId } = await setup({ mode: "moveOn" });
-    await moveOccurrence(userId, itemId, WED_MAR_18);
+    moveOccurrence(db, userId, itemId, WED_MAR_18);
 
     await runSchedulerAt(new Date("2026-03-18T10:00:00Z"));
     expect(await series(bucketId)).toHaveLength(1);
@@ -158,7 +159,7 @@ describe("move on if missed", () => {
       mode: "moveOn",
       deadline: MON_MAR_16,
     });
-    await moveOccurrence(userId, itemId, new Date("2026-03-15T09:00:00Z"));
+    moveOccurrence(db, userId, itemId, new Date("2026-03-15T09:00:00Z"));
 
     await runSchedulerAt(new Date("2026-03-16T08:59:00Z"));
     expect(await series(bucketId)).toHaveLength(1);
@@ -171,7 +172,7 @@ describe("move on if missed", () => {
 describe("the edit form moves the whole schedule", () => {
   it("saving other changes keeps the moved date and the series", async () => {
     const { userId, bucketId, itemId } = await setup();
-    await moveOccurrence(userId, itemId, WED_MAR_11);
+    moveOccurrence(db, userId, itemId, WED_MAR_11);
 
     const result = await updateItemAction(itemId, "leg day", WED_MAR_11.toISOString());
     expect(result).toEqual({ ok: true });
@@ -187,7 +188,7 @@ describe("the edit form moves the whole schedule", () => {
 
   it("a new date there becomes the new schedule", async () => {
     const { userId, bucketId, itemId } = await setup();
-    await moveOccurrence(userId, itemId, WED_MAR_11);
+    moveOccurrence(db, userId, itemId, WED_MAR_11);
 
     const thursday = new Date("2026-03-12T09:00:00Z");
     await updateItemAction(itemId, "gym", thursday.toISOString());
@@ -201,7 +202,7 @@ describe("the edit form moves the whole schedule", () => {
 
   it("turning the repeat off forgets the scheduled date", async () => {
     const { userId, itemId } = await setup();
-    await moveOccurrence(userId, itemId, WED_MAR_11);
+    moveOccurrence(db, userId, itemId, WED_MAR_11);
 
     await updateItemAction(itemId, "gym", WED_MAR_11.toISOString(), undefined, null);
     expect(await itemOf(itemId)).toMatchObject({ recurring: null, scheduledAt: null });
@@ -218,7 +219,7 @@ describe("the edit form moves the whole schedule", () => {
     const mar31 = new Date("2026-03-31T09:00:00Z");
     const apr2 = new Date("2026-04-02T09:00:00Z");
     const { userId, bucketId, itemId } = await setup({ recurring: lastDay, deadline: mar31 });
-    await moveOccurrence(userId, itemId, apr2);
+    moveOccurrence(db, userId, itemId, apr2);
 
     await updateItemAction(itemId, "rent", apr2.toISOString());
     expect(await itemOf(itemId)).toMatchObject({ deadline: apr2, scheduledAt: mar31 });
@@ -231,7 +232,7 @@ describe("the edit form moves the whole schedule", () => {
 
   it("the assistant changing the date moves the schedule too", async () => {
     const { userId, itemId } = await setup();
-    await moveOccurrence(userId, itemId, WED_MAR_11);
+    moveOccurrence(db, userId, itemId, WED_MAR_11);
 
     await executeToolCall(
       {
@@ -246,7 +247,7 @@ describe("the edit form moves the whole schedule", () => {
 
   it("the assistant renaming it keeps the moved date", async () => {
     const { userId, itemId } = await setup();
-    await moveOccurrence(userId, itemId, WED_MAR_11);
+    moveOccurrence(db, userId, itemId, WED_MAR_11);
 
     await executeToolCall(
       { id: "c", name: "update_item", arguments: { item_id: itemId, title: "leg day" } },

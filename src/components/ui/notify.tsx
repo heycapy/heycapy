@@ -43,7 +43,7 @@ function Toast({ id, tone, message, description, icon, action, countdown, durati
         if (e.key === "Escape") dismiss();
       }}
       className={cn(
-        "font-ui relative flex min-h-(--toast-h) w-max max-w-[min(26rem,calc(100vw-2rem))] items-center gap-2 overflow-hidden py-1 pl-3 text-xs",
+        "font-ui relative flex h-(--toast-h) w-max max-w-(--toast-w) items-center gap-2 overflow-hidden py-1 pl-3 text-xs",
         "rounded-(--toast-radius) border-(length:--toast-border) shadow-(--toast-shadow)",
         error
           ? "border-(--toast-error-border) bg-(--toast-error-bg) text-(--toast-error-fg)"
@@ -56,7 +56,7 @@ function Toast({ id, tone, message, description, icon, action, countdown, durati
       >
         {isValidElement(icon) ? icon : <Icon name={icon ?? (error ? "warning" : "check")} />}
       </span>
-      <span className="line-clamp-2 min-w-0 leading-snug">
+      <span className="min-w-0 truncate">
         {message}
         {description && <span className="opacity-75"> · {description}</span>}
       </span>

@@ -1,5 +1,7 @@
+import type { ItemId } from "@/types/ids";
 import { pruneSystemErrors, recordSystemError } from "@/lib/system-errors";
 import { purgeOldTrash } from "@/lib/items/trash";
+import { pruneTombstones } from "@/lib/sync/tombstones";
 import { moveOnMissedOccurrences } from "@/lib/items/recurrence";
 import { deadlineOnBothClocks } from "@/lib/timezones/deadline-text";
 import { schedule } from "node-cron";
@@ -202,7 +204,7 @@ const sends = (list: Delivery[]) => list.some((d) => d.channels.some((c) => c.st
 
 async function enqueueAll(
   list: Delivery[],
-  itemId: number,
+  itemId: ItemId,
   kind: "reminder" | "overdue",
   title: string,
   message: string
@@ -289,7 +291,7 @@ async function runNotifications(): Promise<void> {
   process.stderr.write(`[scheduler] run at ${now.toISOString()}\n`);
 
   try {
-    await moveOnMissedOccurrences(now);
+    moveOnMissedOccurrences(db, now);
     await drainDue("nextReminderAt", now, (row) => sendDeadlineReminder(row, now));
     await drainDue("nextOverdueAt", now, (row) => sendOverdueAlert(row, now));
   } catch (err) {
@@ -332,9 +334,11 @@ export function schedulerHealth(
 }
 
 async function reconcileReminders(): Promise<void> {
-  await reconcile().catch((err) => {
+  try {
+    reconcile(db);
+  } catch (err) {
     recordSystemError("scheduler", `reconcile failed: ${errorMessage(err)}`, { err });
-  });
+  }
   await pruneSystemErrors().catch(() => {});
 }
 
@@ -349,6 +353,14 @@ async function runTrashCleanup(): Promise<void> {
   await purgeOldTrash().catch((err) => {
     recordSystemError("trash", `cleanup failed: ${errorMessage(err)}`, { err });
   });
+}
+
+function runTombstonePrune(): void {
+  try {
+    pruneTombstones();
+  } catch (err) {
+    recordSystemError("sync", `pruning tombstones failed: ${errorMessage(err)}`, { err });
+  }
 }
 
 async function runBackup(): Promise<void> {
@@ -389,6 +401,7 @@ export function startScheduler(): void {
     schedule("17 * * * *", () => void reconcileReminders(), { noOverlap: true });
     schedule("40 3 * * *", () => void runBackup(), { noOverlap: true });
     schedule("50 3 * * *", () => void runTrashCleanup(), { noOverlap: true });
+    schedule("55 3 * * *", runTombstonePrune, { noOverlap: true });
     schedule("5 * * * *", () => void sendDigest(), { noOverlap: true });
   });
 }

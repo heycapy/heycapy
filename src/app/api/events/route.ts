@@ -1,3 +1,4 @@
+import { db } from "@/lib/db";
 import { requireApiSession } from "@/lib/auth/session";
 import { dataEvents } from "@/lib/events";
 import { isBucketMember } from "@/lib/buckets/access";
@@ -29,13 +30,11 @@ export async function GET() {
         if (eventUserId === userId) send();
       };
       const onBucket = (bucketId: number) => {
-        isBucketMember(userId, bucketId)
-          .then((member) => {
-            if (member) send();
-          })
-          .catch((err: unknown) => {
-            recordSystemError("events", `bucket ${bucketId} refresh failed`, { userId, err });
-          });
+        try {
+          if (isBucketMember(db, userId, bucketId)) send();
+        } catch (err) {
+          recordSystemError("events", `bucket ${bucketId} refresh failed`, { userId, err });
+        }
       };
 
       dataEvents.on("refresh", onRefresh);

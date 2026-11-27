@@ -1,3 +1,4 @@
+import type { ItemId } from "@/types/ids";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
@@ -45,7 +46,7 @@ async function tool(userId: number, name: string, args: Record<string, unknown>,
   } & Record<string, unknown>;
 }
 
-async function itemOf(itemId: number) {
+async function itemOf(itemId: ItemId) {
   const [row] = await db.select().from(items).where(eq(items.id, itemId));
   return row;
 }
@@ -121,7 +122,7 @@ describe("capy in a shared bucket", () => {
 
     const added = await tool(member, "add_item", { bucket_id: bucketId, title: "buy milk" });
     expect(added.ok).toBe(true);
-    expect(await itemOf(Number(added.itemId))).toMatchObject({ bucketId, userId: member });
+    expect(await itemOf(String(added.itemId))).toMatchObject({ bucketId, userId: member });
 
     expect((await tool(member, "update_item", { item_id: itemId, title: "book trains" })).ok).toBe(
       true
@@ -136,7 +137,7 @@ describe("capy in a shared bucket", () => {
     expect((await tool(member, "move_item", { item_id: itemId, bucket_id: own })).ok).toBe(true);
     expect((await itemOf(itemId))?.bucketId).toBe(own);
 
-    const milk = Number(added.itemId);
+    const milk = String(added.itemId);
     expect(await tool(member, "delete_item", { item_id: milk })).toMatchObject({
       needsConfirmation: true,
     });
@@ -245,13 +246,13 @@ async function acrossClocks() {
   return { owner, sam, bucketId, ownerUsername, samUsername };
 }
 
-type SavedItem = { item: Record<string, unknown>; itemId: number } & Record<string, unknown>;
+type SavedItem = { item: Record<string, unknown>; itemId: ItemId } & Record<string, unknown>;
 
 async function addAs(userId: number, args: Record<string, unknown>) {
   return (await tool(userId, "add_item", { title: "call mum", ...args }, INDIA)) as SavedItem;
 }
 
-async function assigneesOf(itemId: number) {
+async function assigneesOf(itemId: ItemId) {
   const rows = await db
     .select({ userId: itemAssignees.userId })
     .from(itemAssignees)

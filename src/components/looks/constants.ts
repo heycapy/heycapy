@@ -25,7 +25,7 @@ export const LOOK_PARTS: Record<Look, LookParts> = {
     tickBox: "pixel",
     textButton: "bracketed",
     panelHeader: "inverted",
-    listFrame: "framed",
+    listFrame: "bare",
     optionButton: "raised",
     toggle: "buttons",
     bucketTab: "underline",

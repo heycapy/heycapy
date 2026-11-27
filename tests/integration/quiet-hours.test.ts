@@ -142,9 +142,12 @@ describe("new item alerts", () => {
     const job = await arrive(await quietUser(null, null));
     expect(job?.nextRetryAt).toBeNull();
     await runSchedulerAt(T0);
-    const sent = await db.query.notificationQueue.findFirst({
-      where: eq(notificationQueue.id, job?.id ?? 0),
+    // The webhook starts the send itself and it is still in flight here, so wait for it to settle
+    await vi.waitFor(async () => {
+      const sent = await db.query.notificationQueue.findFirst({
+        where: eq(notificationQueue.id, job?.id ?? 0),
+      });
+      expect(sent?.status).toBe("sent");
     });
-    expect(sent?.status).toBe("sent");
   });
 });

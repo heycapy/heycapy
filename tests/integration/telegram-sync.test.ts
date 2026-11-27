@@ -1,3 +1,4 @@
+import type { ItemId } from "@/types/ids";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
@@ -42,7 +43,7 @@ async function remindedOnTelegram() {
   return { api, userId, itemId, chat };
 }
 
-async function tapFromEmail(userId: number, itemId: number, action: "done" | "15") {
+async function tapFromEmail(userId: number, itemId: ItemId, action: "done" | "15") {
   const claim = verifyReminderAction(
     signReminderAction({ userId, itemId, action, channel: "email", deadline: T0.getTime() })
   );

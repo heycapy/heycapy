@@ -13,6 +13,7 @@ import {
   newItemForm,
   openNewBucketModal,
   selectBucket,
+  serverState,
   uniqueName,
 } from "../helpers/buckets";
 
@@ -108,24 +109,30 @@ test.describe("items", () => {
     await expect(page.getByText(ITEM_GONE_ERROR)).toBeVisible();
   });
 
-  test("says so when an item is gone before it is deleted", async ({ page, context }) => {
+  test("says so when an item is gone before it is deleted", async ({ page, browser }) => {
     const bucket = uniqueName("Gone");
     const title = uniqueName("buy oat milk");
-    await page.route("**/api/events", (route) => route.abort());
-    await page.reload();
     await createAndSelectBucket(page, bucket);
     await addItem(page, title);
+    await expect.poll(() => serverState(page, title)).toBe("active");
+    // This tab stops hearing from the server, so it still shows the item and keeps the delete
+    await page.route(/\/api\/(events|v1\/sync\/)/, (route) => route.abort());
 
-    const other = await context.newPage();
+    const elsewhere = await browser.newContext({ storageState: authState("buckets") });
+    const other = await elsewhere.newPage();
     await other.goto("/");
     await selectBucket(other, bucket);
     await deleteFromMenu(other, title);
     await expect(itemRow(other, title)).not.toBeVisible();
-    await other.close();
+    await expect.poll(() => serverState(other, title)).toBe("active:trashed");
+    await elsewhere.close();
 
     await deleteFromMenu(page, title);
+    await expect(itemRow(page, title)).not.toBeVisible();
+
+    await page.unroute(/\/api\/(events|v1\/sync\/)/);
+    await page.evaluate(() => window.dispatchEvent(new Event("online")));
     await expect(page.getByText(ITEM_GONE_ERROR)).toBeVisible();
-    await expect(page.getByRole("button", { name: /undo/i })).not.toBeVisible();
   });
 
   test("item add form closes on cancel without adding", async ({ page }) => {

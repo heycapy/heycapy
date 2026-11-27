@@ -7,8 +7,10 @@ import { KeyHint } from "@/components/ui/KeyHint";
 import { useLayoutStore } from "@/store/layout";
 import { logoutAction, logoutEverywhereAction } from "@/app/(app)/actions";
 import { clearSignedInState } from "@/store/signedOut";
+import { useUnsentChanges } from "@/hooks/useUnsentChanges";
 import { Modal, ModalTitle } from "@/components/ui/Modal";
 import { cn } from "@/lib/utils";
+import { SyncChip } from "./SyncChip";
 import { PersonAvatar } from "@/components/avatar/PersonAvatar";
 import { MenuItem, MenuSeparator } from "@/components/ui/MenuItem";
 import { MENU_SURFACE } from "@/components/ui/constants";
@@ -50,6 +52,7 @@ function LogoutConfirm({
   onCancel: () => void;
 }) {
   const copy = LOGOUT_COPY[scope];
+  const { count: unsent } = useUnsentChanges(true);
   return (
     <Modal
       open
@@ -59,6 +62,13 @@ function LogoutConfirm({
       <div className="bg-background border-border rounded-panel border-frame p-5">
         <ModalTitle className="mb-1 text-sm">{copy.title}</ModalTitle>
         <p className="text-muted-foreground font-ui mb-4 text-xs">{copy.body}</p>
+        {unsent > 0 && (
+          <p role="alert" className="text-destructive font-ui mb-4 text-xs">
+            {unsent === 1
+              ? "1 change hasn't reached the server and will be lost."
+              : `${unsent} changes haven't reached the server and will be lost.`}
+          </p>
+        )}
         <div className="flex gap-2">
           <TextButton onClick={onConfirm} variant="destructive" className="px-2 py-1">
             {copy.action}
@@ -290,6 +300,7 @@ export function Header({
           what&apos;s new
         </TextButton>
       )}
+      <SyncChip />
       <ChatButton />
       <GlobalMenu
         email={email}

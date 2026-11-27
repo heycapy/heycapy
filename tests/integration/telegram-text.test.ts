@@ -1,3 +1,4 @@
+import type { ItemId } from "@/types/ids";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
@@ -109,7 +110,7 @@ it("a new overdue alert replaces the previous one for the same item", async () =
 });
 
 describe("tapping Done on a reminder", () => {
-  const tapDone = (itemId: number, chat: number) => tap(`qc:${itemId}`, chat);
+  const tapDone = (itemId: ItemId, chat: number) => tap(`qc:${itemId}`, chat);
 
   it("completes the item and updates the reminder in place", async () => {
     const api = stubTelegram();

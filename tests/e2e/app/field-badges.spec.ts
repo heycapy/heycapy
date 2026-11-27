@@ -1,3 +1,4 @@
+import { v7 as uuidv7 } from "uuid";
 import { test, expect, type Page } from "@playwright/test";
 import Database from "better-sqlite3";
 import { authState, specUserEmail } from "../helpers/auth";
@@ -58,12 +59,9 @@ test("a field's text sits in the middle of its badge", async ({ page }) => {
       .prepare("insert into buckets (user_id, name, field_schema) values (?, ?, ?)")
       .run(userId, name, JSON.stringify({ fields })).lastInsertRowid
   );
-  db.prepare("insert into items (bucket_id, user_id, title, properties) values (?, ?, ?, ?)").run(
-    bucketId,
-    userId,
-    "the meeting",
-    JSON.stringify({ room: "B12" })
-  );
+  db.prepare(
+    "insert into items (id, bucket_id, user_id, title, properties) values (?, ?, ?, ?, ?)"
+  ).run(uuidv7(), bucketId, userId, "the meeting", JSON.stringify({ room: "B12" }));
   db.close();
 
   await page.goto("/");

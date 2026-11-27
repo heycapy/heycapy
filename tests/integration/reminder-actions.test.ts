@@ -1,3 +1,4 @@
+import type { ItemId } from "@/types/ids";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type * as SessionModule from "@/lib/auth/session";
 import type * as WebPushModule from "web-push";
@@ -65,7 +66,7 @@ function tap(token: string) {
   );
 }
 
-async function itemById(id: number) {
+async function itemById(id: ItemId) {
   const [row] = await db.select().from(items).where(eq(items.id, id));
   return row;
 }
@@ -73,7 +74,7 @@ async function itemById(id: number) {
 describe("signed action links", () => {
   const claim = {
     userId: 1,
-    itemId: 2,
+    itemId: "0193f5a0-0000-7000-8000-000000000002",
     action: "done" as const,
     channel: "push" as const,
     deadline: DEADLINE.getTime(),
@@ -81,6 +82,12 @@ describe("signed action links", () => {
 
   it("carry exactly what they were made for", () => {
     expect(verifyReminderAction(signReminderAction(claim))).toEqual(claim);
+  });
+
+  it("made before ids were UUIDs are refused, they name an item that no longer has that id", () => {
+    const old = signReminderAction({ ...claim, itemId: 7 as unknown as typeof claim.itemId });
+
+    expect(verifyReminderAction(old)).toBeNull();
   });
 
   it("stop working when edited or expired", () => {
@@ -200,7 +207,7 @@ describe("bucket setting", () => {
 });
 
 describe("push notifications", () => {
-  async function sentPayload(userId: number, itemId: number, kind: "reminder" | "arrival") {
+  async function sentPayload(userId: number, itemId: ItemId, kind: "reminder" | "arrival") {
     await db.insert(pushSubscriptions).values({
       userId,
       endpoint: `https://push.example.com/${userId}`,

@@ -1,3 +1,6 @@
+import { db } from "@/lib/db";
+import { parseItemId } from "@/lib/items/item-id";
+import type { ItemId } from "@/types/ids";
 import { ITEM_STATUS } from "@/constants";
 import { findAccessibleItem } from "@/lib/buckets/access";
 import { dataEvents } from "@/lib/events";
@@ -20,10 +23,10 @@ export async function handleReminderAction(
   ctx: Ctx & { alertMessageId: number | undefined }
 ): Promise<boolean> {
   const [prefix, rawId, choice] = callbackData.split(":");
-  const itemId = Number(rawId);
+  const itemId = parseItemId(rawId);
   const messageId = ctx.alertMessageId;
   if (!["qc", "rq", "rs", "qu", "pp"].includes(prefix ?? "")) return false;
-  if (!messageId || !Number.isInteger(itemId)) return true;
+  if (!messageId || !itemId) return true;
 
   // qu: and pp: are older reminder buttons still sitting in chats
   if (prefix === "rs" || prefix === "qu" || prefix === "pp") {
@@ -31,7 +34,7 @@ export async function handleReminderAction(
     return true;
   }
 
-  const item = await findAccessibleItem(ctx.userId, itemId);
+  const item = findAccessibleItem(db, ctx.userId, itemId);
   let html: string;
   if (!item) html = GONE;
   else if (item.status === ITEM_STATUS.completed) html = itemDoneHtml(item.title, true);
@@ -51,7 +54,7 @@ export async function handleReminderAction(
 
 async function remindAgain(
   ctx: Ctx,
-  itemId: number,
+  itemId: ItemId,
   title: string,
   choice: QuickRemindChoice
 ): Promise<string> {

@@ -1,4 +1,4 @@
-import { z } from "zod";
+import * as z from "zod/mini";
 import { KEYBIND_ACTIONS } from "./constants";
 import { mergeBindings } from "./match";
 
@@ -6,24 +6,26 @@ const rebindableIds = KEYBIND_ACTIONS.filter((a) => a.rebindable).map((a) => a.i
 
 const prefixSchema = z
   .object({
-    key: z.string().length(1),
+    key: z.string().check(z.length(1)),
     ctrl: z.boolean(),
     meta: z.boolean(),
     alt: z.boolean(),
     shift: z.boolean(),
   })
-  .refine((p) => p.ctrl || p.meta || p.alt, "The prefix needs Ctrl, Cmd or Alt");
+  .check(z.refine((p) => p.ctrl || p.meta || p.alt, "The prefix needs Ctrl, Cmd or Alt"));
 
 export const storedKeybindsSchema = z
   .object({
-    prefix: prefixSchema.nullable().optional(),
-    bindings: z.partialRecord(z.enum(rebindableIds), z.string().length(1)).optional(),
-    hints: z.boolean().optional(),
+    prefix: z.optional(z.nullable(prefixSchema)),
+    bindings: z.optional(z.partialRecord(z.enum(rebindableIds), z.string().check(z.length(1)))),
+    hints: z.optional(z.boolean()),
   })
-  .refine((stored) => {
-    const keys = Object.values(mergeBindings(stored.bindings ?? {}));
-    return new Set(keys).size === keys.length;
-  }, "Two actions share a key");
+  .check(
+    z.refine((stored) => {
+      const keys = Object.values(mergeBindings(stored.bindings ?? {}));
+      return new Set(keys).size === keys.length;
+    }, "Two actions share a key")
+  );
 
 export type StoredKeybinds = z.infer<typeof storedKeybindsSchema>;
 

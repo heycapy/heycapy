@@ -4,6 +4,19 @@ export type Release = { version: string; notes: ReleaseNote[] };
 
 export const RELEASES: [Release, ...Release[]] = [
   {
+    version: "0.15.0",
+    notes: [
+      {
+        title: "works offline",
+        text: "open the app with no connection and add, tick, edit or delete items. they are sent when you are back online.",
+      },
+      {
+        title: "a sync chip, only when it matters",
+        text: "a small chip beside capy shows when you are offline, when a change has not been sent yet, or when the server refused one. tap it to sync now.",
+      },
+    ],
+  },
+  {
     version: "0.14.0",
     notes: [
       {

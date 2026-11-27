@@ -1,3 +1,4 @@
+import type { ItemId } from "@/types/ids";
 import { vi } from "vitest";
 import { and, eq, ne } from "drizzle-orm";
 import { db } from "@/lib/db";
@@ -101,7 +102,7 @@ export async function seedItem(
     reminderOffsets?: number[];
     assigneeIds?: number[];
   }
-): Promise<number> {
+): Promise<ItemId> {
   const [item] = await db
     .insert(items)
     .values({
@@ -114,9 +115,9 @@ export async function seedItem(
       reminderOffsets: fields.reminderOffsets ?? null,
     })
     .returning();
-  if (fields.assigneeIds) await setItemAssignees(item.id, fields.assigneeIds);
-  else await assignEveryone(item.id, bucketId);
-  await refreshItemReminders([item.id]);
+  if (fields.assigneeIds) setItemAssignees(db, item.id, fields.assigneeIds);
+  else assignEveryone(db, item.id, bucketId);
+  refreshItemReminders(db, [item.id]);
   return item.id;
 }
 
@@ -132,7 +133,7 @@ export async function seedReminder(opts: {
 }
 
 // One person's reminder schedule for the item, without a person, the only one there is
-export async function reminderOf(itemId: number, userId?: number) {
+export async function reminderOf(itemId: ItemId, userId?: number) {
   const rows = await db
     .select()
     .from(itemReminders)
@@ -148,7 +149,7 @@ export async function reminderOf(itemId: number, userId?: number) {
   return rows[0];
 }
 
-export async function remindersQueued(itemId: number): Promise<number> {
+export async function remindersQueued(itemId: ItemId): Promise<number> {
   const rows = await db
     .select()
     .from(notificationQueue)

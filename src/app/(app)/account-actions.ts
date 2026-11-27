@@ -104,7 +104,7 @@ export async function deleteAccountAction(code: string): Promise<ActionResult> {
   const stillShared = deleteAccount(session.userId, session.email);
   if (stillShared.length > 0) return { ok: false, error: sharedBucketsError(stillShared) };
 
-  for (const { id } of joined) await refreshBucketReminders(id);
+  for (const { id } of joined) refreshBucketReminders(db, id);
   await deleteSession();
   redirect("/login");
 }

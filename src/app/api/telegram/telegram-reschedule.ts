@@ -1,3 +1,4 @@
+import type { ItemId } from "@/types/ids";
 import { bucketReminderButtons } from "@/lib/rules";
 import { formatSlot, formatWhen } from "@/lib/format-date";
 import { isClosedStatus } from "@/constants";
@@ -36,7 +37,7 @@ import { moveOccurrence } from "@/lib/items/recurrence";
 type Ctx = { botToken: string; chatId: string; userId: number; timezone: string };
 
 type Item = {
-  id: number;
+  id: ItemId;
   title: string;
   deadline: Date | null;
   deadlineTimezone: string | null;
@@ -48,7 +49,7 @@ type Item = {
 const CANCEL: InlineButton = { text: "✖ Cancel", callback_data: "rx" };
 const BACK: InlineButton = { text: "◀ Back", callback_data: "rb" };
 
-async function loadItem(ctx: Ctx, itemId: number): Promise<Item | null> {
+async function loadItem(ctx: Ctx, itemId: ItemId): Promise<Item | null> {
   const [row] = await db
     .select({
       id: items.id,
@@ -160,7 +161,7 @@ async function showTimes(ctx: Ctx, item: Item, date: string, messageId: number, 
 }
 
 async function finish(ctx: Ctx, item: Item, deadline: Date, messageId: number, now: Date) {
-  const moved = await moveOccurrence(ctx.userId, item.id, deadline, now, ctx.timezone);
+  const moved = moveOccurrence(db, ctx.userId, item.id, deadline, now, ctx.timezone);
   await setFlowState(ctx.userId, null);
   dataEvents.emit("refresh", ctx.userId);
   await editTelegramHtml(
@@ -227,7 +228,7 @@ export async function abandonReschedule(
 
 export async function startReschedule(
   ctx: Ctx,
-  itemId: number,
+  itemId: ItemId,
   origin: RescheduleState["origin"],
   messageId: number
 ): Promise<void> {

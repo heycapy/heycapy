@@ -30,6 +30,16 @@ export const DUE_WEEKDAY_DAYS = 6;
 export const WORK_WEEK = [1, 2, 3, 4, 5];
 export const LAST_DAY_OF_MONTH = 31;
 export const TRASH_RETENTION_DAYS = 30;
+// A device that was away longer than this downloads everything again, it can no longer be told what was deleted
+export const TOMBSTONE_RETENTION_DAYS = 90;
+export const PUSH_MAX_MUTATIONS = 100;
+export const PUSH_MAX_BYTES = 1_000_000;
+export const PULL_DEFAULT_LIMIT = 500;
+export const PULL_MAX_LIMIT = 1000;
+export const SYNC_PROTOCOL_VERSION = 1;
+export const SYNC_MIN_PROTOCOL_VERSION = 1;
+export const SYNC_SCHEMA_VERSION = 1;
+export const SYNC_PROTOCOL_HEADER = "x-sync-protocol";
 export const TODAY_FETCH_AHEAD_DAYS = 1;
 export const SEARCH_RESULTS_MAX = 50;
 
@@ -223,6 +233,9 @@ export const TELEGRAM_RESERVED_COMMANDS = [
 // Item / bucket field limits
 // Shown in the item dialog: someone else deleted the item, or the owner removed this person
 export const ITEM_GONE_ERROR = "this item was deleted, or you're no longer in its bucket";
+export const NOT_A_MEMBER_ERROR = "That person isn't in this bucket";
+export const UNKNOWN_CLOCK_ERROR = "That timezone doesn't exist";
+export const INVALID_STATUS_ERROR = "Invalid status";
 export const ITEM_TITLE_MAX_LENGTH = 500;
 // Shown in the app as notes
 export const ITEM_DESCRIPTION_MAX_LENGTH = 2000;

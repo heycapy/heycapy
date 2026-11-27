@@ -1,3 +1,4 @@
+import type { ItemId } from "@/types/ids";
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 
@@ -12,6 +13,12 @@ type UIStore = {
   // bumped whenever a list of items loads, so the tabs' late marks follow edits made here too
   itemsLoaded: number;
   markItemsLoaded: () => void;
+
+  offline: boolean;
+  setOffline: (offline: boolean) => void;
+  // The server no longer speaks the version of sync this page was built with
+  syncOutdated: boolean;
+  setSyncOutdated: (outdated: boolean) => void;
 
   activeBucketId: number | null;
   setActiveBucketId: (id: number) => void;
@@ -42,13 +49,13 @@ type UIStore = {
   requestBucketSettings: (id: number) => void;
   clearSettingsRequest: () => void;
 
-  lastAddedItemId: number | null;
-  markAdded: (id: number) => void;
-  clearAdded: (id: number) => void;
+  lastAddedItemId: ItemId | null;
+  markAdded: (id: ItemId) => void;
+  clearAdded: (id: ItemId) => void;
 
-  highlightedItemId: number | null;
-  openItem: (bucketId: number | null, itemId: number) => void;
-  clearHighlight: (itemId: number) => void;
+  highlightedItemId: ItemId | null;
+  openItem: (bucketId: number | null, itemId: ItemId) => void;
+  clearHighlight: (itemId: ItemId) => void;
 
   joinOpen: boolean;
   setJoinOpen: (open: boolean) => void;
@@ -80,6 +87,11 @@ export const useUIStore = create<UIStore>()(
 
       itemsLoaded: 0,
       markItemsLoaded: () => set((s) => ({ itemsLoaded: s.itemsLoaded + 1 })),
+
+      offline: false,
+      setOffline: (offline) => set({ offline }),
+      syncOutdated: false,
+      setSyncOutdated: (syncOutdated) => set({ syncOutdated }),
 
       activeBucketId: null,
       setActiveBucketId: (id) => set({ activeBucketId: id, todayOpen: false }),

@@ -1,3 +1,5 @@
+import { v7 as uuidv7 } from "uuid";
+import type { ItemId } from "@/types/ids";
 import { test, expect } from "@playwright/test";
 import Database from "better-sqlite3";
 import { E2E_DATABASE_FILE, E2E_JWT_SECRET } from "../helpers/env";
@@ -43,14 +45,14 @@ function seedSharedItem(title: string) {
   const deadline = Math.floor(Date.now() / 1000) + 86_400;
   const { id: itemId } = db
     .prepare(
-      "insert into items (bucket_id, user_id, title, deadline, deadline_timezone) values (?, ?, ?, ?, 'UTC') returning id"
+      "insert into items (id, bucket_id, user_id, title, deadline, deadline_timezone) values (?, ?, ?, ?, ?, 'UTC') returning id"
     )
-    .get(bucketId, owner, title, deadline) as { id: number };
+    .get(uuidv7(), bucketId, owner, title, deadline) as { id: string };
   db.close();
   return { member, stranger, itemId, deadline };
 }
 
-function doneLink(userId: number, itemId: number, deadline: number): string {
+function doneLink(userId: number, itemId: ItemId, deadline: number): string {
   process.env.JWT_SECRET = E2E_JWT_SECRET;
   const token = signReminderAction({
     userId,
@@ -62,7 +64,7 @@ function doneLink(userId: number, itemId: number, deadline: number): string {
   return `/r/${token}`;
 }
 
-function statusOf(itemId: number): string {
+function statusOf(itemId: ItemId): string {
   const db = new Database(E2E_DATABASE_FILE, { readonly: true });
   const row = db.prepare("select status from items where id = ?").get(itemId) as {
     status: string;

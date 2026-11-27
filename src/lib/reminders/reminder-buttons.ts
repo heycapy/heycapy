@@ -1,3 +1,4 @@
+import type { ItemId } from "@/types/ids";
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { buckets, items } from "@/lib/db/schema";
@@ -14,7 +15,7 @@ export type ReminderLinks = {
 
 export async function reminderLinks(
   userId: number,
-  itemId: number,
+  itemId: ItemId,
   remindSlots: number,
   channel: ReminderChannel,
   now = new Date()

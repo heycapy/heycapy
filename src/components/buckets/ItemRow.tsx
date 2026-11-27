@@ -1,3 +1,4 @@
+import { UnsentDot } from "./UnsentDot";
 import { Icon } from "@/components/ui/Icon";
 import { Tooltip } from "@/components/ui/Tooltip";
 import { formatShortTime } from "@/lib/format-date";
@@ -279,6 +280,8 @@ export function ItemRow({
           )}
         </span>
       </button>
+
+      <UnsentDot itemId={item.id} />
 
       {/* Only a failed send shows in the row; everything else about reminders is in the menu */}
       {reminderBadge === "failed" && (

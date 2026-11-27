@@ -1,3 +1,5 @@
+import { parseItemId } from "@/lib/items/item-id";
+import type { ItemId } from "@/types/ids";
 import { eq, inArray } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { bucketMembers, users } from "@/lib/db/schema";
@@ -52,14 +54,15 @@ export function assigneeLabel(
 }
 
 export async function assigneeLabels(
-  rows: { id: number; bucketId: number }[],
+  rows: { id: ItemId; bucketId: number }[],
   viewerId: number
-): Promise<Map<number, string>> {
-  const [people, assigned] = await Promise.all([
-    bucketPeople([...new Set(rows.map((r) => r.bucketId))]),
-    assigneeIdsByItem(rows.map((r) => r.id)),
-  ]);
-  const labels = new Map<number, string>();
+): Promise<Map<ItemId, string>> {
+  const people = await bucketPeople([...new Set(rows.map((r) => r.bucketId))]);
+  const assigned = assigneeIdsByItem(
+    db,
+    rows.map((r) => r.id)
+  );
+  const labels = new Map<ItemId, string>();
   for (const row of rows) {
     const label = assigneeLabel(people.get(row.bucketId), assigned.get(row.id) ?? [], viewerId);
     if (label) labels.set(row.id, label);
@@ -69,14 +72,14 @@ export async function assigneeLabels(
 
 type Ctx = { botToken: string; chatId: string; userId: number };
 
-export async function showAssignPicker(ctx: Ctx, itemId: number, messageId: number): Promise<void> {
-  const item = await findAccessibleItem(ctx.userId, itemId);
+export async function showAssignPicker(ctx: Ctx, itemId: ItemId, messageId: number): Promise<void> {
+  const item = findAccessibleItem(db, ctx.userId, itemId);
   if (!item) {
     await editTelegramHtml(ctx.botToken, ctx.chatId, messageId, "this item no longer exists");
     return;
   }
   const members = (await bucketPeople([item.bucketId])).get(item.bucketId) ?? [];
-  const chosen = (await assigneeIdsByItem([itemId])).get(itemId) ?? [];
+  const chosen = assigneeIdsByItem(db, [itemId]).get(itemId) ?? [];
   const rows: InlineButton[][] = members.map((m) => [
     {
       text: `${chosen.includes(m.id) ? "✓ " : ""}${m.id === ctx.userId ? "you" : m.name}`,
@@ -103,9 +106,9 @@ export async function handleAssignCallback(
   ctx: Ctx & { messageId: number | undefined }
 ): Promise<void> {
   const [, rawItem, choice] = callbackData.split(":");
-  const itemId = Number(rawItem);
-  if (!ctx.messageId || !Number.isInteger(itemId)) return;
-  const item = await findAccessibleItem(ctx.userId, itemId);
+  const itemId = parseItemId(rawItem);
+  if (!ctx.messageId || !itemId) return;
+  const item = findAccessibleItem(db, ctx.userId, itemId);
   if (!item) {
     await showAssignPicker(ctx, itemId, ctx.messageId);
     return;
@@ -127,7 +130,7 @@ export async function handleAssignCallback(
   }
 
   const members = (await bucketPeople([item.bucketId])).get(item.bucketId) ?? [];
-  const current = (await assigneeIdsByItem([itemId])).get(itemId) ?? [];
+  const current = assigneeIdsByItem(db, [itemId]).get(itemId) ?? [];
   let next: number[];
   if (choice === "all") next = members.map((m) => m.id);
   else if (choice === "none") next = [];
@@ -135,12 +138,12 @@ export async function handleAssignCallback(
     const person = Number(choice);
     next = current.includes(person) ? current.filter((id) => id !== person) : [...current, person];
   }
-  if (!(await allAreMembers(item.bucketId, next))) {
+  if (!allAreMembers(db, item.bucketId, next)) {
     await showAssignPicker(ctx, itemId, ctx.messageId);
     return;
   }
-  await setItemAssignees(itemId, next);
-  await refreshItemReminders([itemId]);
+  setItemAssignees(db, itemId, next);
+  refreshItemReminders(db, [itemId]);
   bucketsChanged([item.bucketId]);
   await showAssignPicker(ctx, itemId, ctx.messageId);
 }
@@ -150,7 +153,7 @@ export async function sendAdded(
   chatId: string,
   text: string,
   bucketId: number,
-  itemId: number
+  itemId: ItemId
 ): Promise<void> {
   const members = (await bucketPeople([bucketId])).get(bucketId) ?? [];
   if (members.length < 2) {

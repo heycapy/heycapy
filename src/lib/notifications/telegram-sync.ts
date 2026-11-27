@@ -1,3 +1,4 @@
+import type { ItemId } from "@/types/ids";
 import { and, desc, eq, isNotNull } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { notificationQueue, userSettings } from "@/lib/db/schema";
@@ -11,7 +12,7 @@ export type ActedFrom = { title: string; channel: string; now: Date; timezone: s
 
 export async function syncTelegramReminder(
   userId: number,
-  itemId: number,
+  itemId: ItemId,
   acted: ActedFrom
 ): Promise<void> {
   const botToken = process.env.TELEGRAM_BOT_TOKEN;

@@ -1,3 +1,4 @@
+import type { ItemId } from "@/types/ids";
 import { formatDeadline } from "@/lib/format-date";
 import { CLOSED_ITEM_STATUSES } from "@/constants";
 import { and, asc, eq, gte, inArray, isNull, lt, lte, type SQL, notInArray } from "drizzle-orm";
@@ -22,7 +23,7 @@ type Ctx = { botToken: string; chatId: string; userId: number; timezone: string 
 export type ItemListKind = "up" | "td" | "od" | `b${number}`;
 
 type ListRow = {
-  id: number;
+  id: ItemId;
   title: string;
   deadline: Date | null;
   deadlineTimezone: string | null;
@@ -113,7 +114,7 @@ async function loadList(
   }
   const bucketId = Number(kind.slice(1));
   const rows = await select(eq(items.bucketId, bucketId), "manual");
-  const bucket = await findAccessibleBucket(ctx.userId, bucketId);
+  const bucket = findAccessibleBucket(db, ctx.userId, bucketId);
   const name = bucket?.name ?? "Bucket";
   return { heading: name, empty: `No open items in ${name}.`, rows, perBucket: true };
 }

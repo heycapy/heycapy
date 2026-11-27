@@ -1,3 +1,5 @@
+import { parseItemId } from "@/lib/items/item-id";
+import type { ItemId } from "@/types/ids";
 import { recordSystemError } from "@/lib/system-errors";
 import { publicAppUrl } from "@/lib/app-url";
 import { errorMessage } from "@/lib/errors";
@@ -73,7 +75,7 @@ export const CAPY_TOOLS = [
 ];
 
 export type UpcomingItem = {
-  id: number;
+  id: ItemId;
   title: string;
   bucket: string;
   deadlineRelative: string;
@@ -258,10 +260,10 @@ const ITEM_DETAIL_COLUMNS = {
 
 type Assignee = { userId: number; username: string | null; timezone: string };
 
-async function assigneesByItem(itemIds: number[]): Promise<Map<number, Assignee[]>> {
-  const ids = await assigneeIdsByItem(itemIds);
+async function assigneesByItem(itemIds: ItemId[]): Promise<Map<ItemId, Assignee[]>> {
+  const ids = assigneeIdsByItem(db, itemIds);
   const userIds = [...new Set([...ids.values()].flat())];
-  const result = new Map<number, Assignee[]>();
+  const result = new Map<ItemId, Assignee[]>();
   if (userIds.length === 0) return result;
   const people = await db
     .select({ userId: users.id, username: users.username, timezone: userSettings.timezone })
@@ -281,7 +283,7 @@ async function assigneesByItem(itemIds: number[]): Promise<Map<number, Assignee[
 }
 
 type ItemDetailRow = {
-  id: number;
+  id: ItemId;
   title: string;
   description: string | null;
   status: string;
@@ -372,7 +374,7 @@ function selectItemDetails() {
   return db.select(ITEM_DETAIL_COLUMNS).from(items);
 }
 
-async function savedItem(itemId: number, userId: number, timezone: string) {
+async function savedItem(itemId: ItemId, userId: number, timezone: string) {
   const [row] = await selectItemDetails().where(eq(items.id, itemId));
   if (!row) return null;
   return itemDetails(row, (await assigneesByItem([row.id])).get(row.id) ?? [], userId, timezone);
@@ -526,7 +528,7 @@ async function executeToolCallInner(
         .update(buckets)
         .set({ deletedAt: new Date() })
         .where(and(eq(buckets.id, bucketId), eq(buckets.userId, userId)));
-      await refreshBucketReminders(bucketId);
+      refreshBucketReminders(db, bucketId);
 
       revalidatePath("/");
       return JSON.stringify({ ok: true });
@@ -541,7 +543,7 @@ async function executeToolCallInner(
         return JSON.stringify({ ok: false, error: "Notes too long" });
       }
 
-      const bucket = await findAccessibleBucket(userId, bucketId);
+      const bucket = findAccessibleBucket(db, userId, bucketId);
       if (!bucket) return JSON.stringify({ ok: false, error: "Bucket not found" });
 
       const assigned = await assigneeFromArgs(args, userId, timezone, bucket, []);
@@ -612,11 +614,11 @@ async function executeToolCallInner(
         .returning({ id: items.id });
       if (inserted) {
         if (assigned.change.kind === "set") {
-          await setItemAssignees(inserted.id, assigned.change.assigneeIds);
+          setItemAssignees(db, inserted.id, assigned.change.assigneeIds);
         } else {
-          await assignEveryone(inserted.id, bucketId);
+          assignEveryone(db, inserted.id, bucketId);
         }
-        await refreshItemReminders([inserted.id]);
+        refreshItemReminders(db, [inserted.id]);
       }
 
       revalidatePath("/");
@@ -628,9 +630,9 @@ async function executeToolCallInner(
     }
 
     case "update_item": {
-      const itemId = Number(args.item_id);
-      const item = await findAccessibleItem(userId, itemId);
-      if (!item) return JSON.stringify({ ok: false, error: "Item not found" });
+      const itemId = parseItemId(args.item_id);
+      const item = itemId && findAccessibleItem(db, userId, itemId);
+      if (!itemId || !item) return JSON.stringify({ ok: false, error: "Item not found" });
       const bucket = await db.query.buckets.findFirst({
         where: (b, { eq: qeq }) => qeq(b.id, item.bucketId),
         columns: { id: true, name: true, fieldSchema: true },
@@ -642,7 +644,7 @@ async function executeToolCallInner(
         userId,
         timezone,
         bucket,
-        (await assigneeIdsByItem([itemId])).get(itemId) ?? []
+        assigneeIdsByItem(db, [itemId]).get(itemId) ?? []
       );
       if (assigned.change.kind === "error") {
         return JSON.stringify({ ok: false, error: assigned.change.error });
@@ -715,9 +717,9 @@ async function executeToolCallInner(
         Object.assign(
           updates,
           reminderResetForDeadline(
-            { ...item, notifiedAt: await lastNotifiedAt(item.id) },
+            { ...item, notifiedAt: lastNotifiedAt(db, item.id) },
             newDeadline,
-            await reminderContext(item.bucketId),
+            reminderContext(db, item.bucketId),
             new Date(),
             askedTimezone
           )
@@ -776,30 +778,28 @@ async function executeToolCallInner(
 
       await db.update(items).set(updates).where(eq(items.id, itemId));
       if (assigned.change.kind === "set") {
-        await setItemAssignees(itemId, assigned.change.assigneeIds);
+        setItemAssignees(db, itemId, assigned.change.assigneeIds);
       }
-      await refreshItemReminders([itemId]);
-      if (updates.status === ITEM_STATUS.completed) await createNextOccurrence(itemId);
+      refreshItemReminders(db, [itemId]);
+      if (updates.status === ITEM_STATUS.completed) createNextOccurrence(db, itemId);
 
       revalidatePath("/");
       return JSON.stringify({ ok: true, item: await savedItem(itemId, userId, timezone) });
     }
 
     case "complete_item": {
-      const itemId = Number(args.item_id);
-      const item = await findAccessibleItem(userId, itemId);
-      if (!item) return JSON.stringify({ ok: false, error: "Item not found" });
-
-      const newStatus = await toggleItemCompleted(item, userId);
+      const itemId = parseItemId(args.item_id);
+      const newStatus = itemId && toggleItemCompleted(db, userId, itemId);
+      if (!newStatus) return JSON.stringify({ ok: false, error: "Item not found" });
 
       revalidatePath("/");
       return JSON.stringify({ ok: true, newStatus });
     }
 
     case "delete_item": {
-      const itemId = Number(args.item_id);
-      const item = await findAccessibleItem(userId, itemId);
-      if (!item) return JSON.stringify({ ok: false, error: "Item not found" });
+      const itemId = parseItemId(args.item_id);
+      const item = itemId && findAccessibleItem(db, userId, itemId);
+      if (!itemId || !item) return JSON.stringify({ ok: false, error: "Item not found" });
 
       if (!confirmDelete(userId, `item:${itemId}`, turnId)) {
         return JSON.stringify({
@@ -813,21 +813,19 @@ async function executeToolCallInner(
         .update(items)
         .set({ deletedAt: new Date(), deletedBy: userId })
         .where(eq(items.id, itemId));
-      await refreshItemReminders([itemId]);
+      refreshItemReminders(db, [itemId]);
 
       revalidatePath("/");
       return JSON.stringify({ ok: true });
     }
 
     case "move_item": {
-      const itemId = Number(args.item_id);
+      const itemId = parseItemId(args.item_id);
       const destBucketId = Number(args.bucket_id);
 
-      const [item, destBucket] = await Promise.all([
-        findAccessibleItem(userId, itemId),
-        findAccessibleBucket(userId, destBucketId),
-      ]);
-      if (!item) return JSON.stringify({ ok: false, error: "Item not found" });
+      const item = itemId ? findAccessibleItem(db, userId, itemId) : undefined;
+      const destBucket = findAccessibleBucket(db, userId, destBucketId);
+      if (!itemId || !item) return JSON.stringify({ ok: false, error: "Item not found" });
       if (!destBucket) return JSON.stringify({ ok: false, error: "Destination bucket not found" });
 
       const [maxRow] = await db
@@ -843,8 +841,8 @@ async function executeToolCallInner(
           updatedAt: new Date(),
         })
         .where(eq(items.id, itemId));
-      await assignEveryone(itemId, destBucketId);
-      await refreshItemReminders([itemId]);
+      assignEveryone(db, itemId, destBucketId);
+      refreshItemReminders(db, [itemId]);
 
       revalidatePath("/");
       return JSON.stringify({ ok: true });

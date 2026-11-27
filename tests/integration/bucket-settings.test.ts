@@ -1,3 +1,4 @@
+import type { ItemId } from "@/types/ids";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
@@ -133,7 +134,7 @@ describe("default reminders", () => {
     );
   }
 
-  async function nextReminder(itemId: number) {
+  async function nextReminder(itemId: ItemId) {
     return (await reminderOf(itemId)).nextReminderAt;
   }
 

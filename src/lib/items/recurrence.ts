@@ -1,8 +1,9 @@
+import type { ItemId } from "@/types/ids";
 import type { ActionResult } from "@/types/result";
 import type { RecurringConfig } from "@/types/rules";
 import { CLOSED_ITEM_STATUSES, ITEM_STATUS } from "@/constants";
 import { and, eq, isNotNull, isNull, lt, notInArray } from "drizzle-orm";
-import { db } from "@/lib/db";
+import type { DbHandle } from "@/lib/db/handle";
 import { buckets, items } from "@/lib/db/schema";
 import { findAccessibleItem } from "@/lib/buckets/access";
 import { dataEvents } from "@/lib/events";
@@ -33,21 +34,24 @@ function seriesZone(item: Item, ctx: ReminderContext): string {
   return item.deadlineTimezone ?? ctx.timezone;
 }
 
-async function recurrenceModeOf(bucketId: number) {
-  const bucket = await db.query.buckets.findFirst({
-    where: eq(buckets.id, bucketId),
-    columns: { itemsRules: true },
-  });
+function recurrenceModeOf(h: DbHandle, bucketId: number) {
+  const bucket = h.query.buckets
+    .findFirst({
+      where: eq(buckets.id, bucketId),
+      columns: { itemsRules: true },
+    })
+    .sync();
   return parseItemsRules(bucket?.itemsRules).recurrenceMode ?? "wait";
 }
 
-async function insertOccurrence(
+function insertOccurrence(
+  h: DbHandle,
   from: Item & { deadline: Date },
   deadline: Date,
   config: RecurringConfig,
   ctx: ReminderContext
-): Promise<void> {
-  const [next] = await db
+): void {
+  const [next] = h
     .insert(items)
     .values({
       bucketId: from.bucketId,
@@ -61,21 +65,22 @@ async function insertOccurrence(
       recurring: JSON.stringify(withAnchor(config, seriesDate(from), seriesZone(from, ctx))),
       source: from.source,
     })
-    .returning({ id: items.id });
+    .returning({ id: items.id })
+    .all();
   if (!next) return;
-  await copyAssignees(from.id, next.id);
-  await refreshItemReminders([next.id]);
+  copyAssignees(h, from.id, next.id);
+  refreshItemReminders(h, [next.id]);
 }
 
-export async function createNextOccurrence(itemId: number, now = new Date()): Promise<void> {
-  const completed = await db.query.items.findFirst({ where: eq(items.id, itemId) });
+export function createNextOccurrence(h: DbHandle, itemId: ItemId, now = new Date()): void {
+  const completed = h.query.items.findFirst({ where: eq(items.id, itemId) }).sync();
   if (completed?.status !== ITEM_STATUS.completed || !completed.recurring || !completed.deadline)
     return;
 
   const config = parseRecurring(completed.recurring);
-  const ctx = await reminderContext(completed.bucketId);
+  const ctx = reminderContext(h, completed.bucketId);
   const timezone = seriesZone(completed, ctx);
-  const mode = await recurrenceModeOf(completed.bucketId);
+  const mode = recurrenceModeOf(h, completed.bucketId);
   const occurrence = { deadline: completed.deadline, scheduledAt: completed.scheduledAt };
   const deadline =
     config &&
@@ -85,19 +90,20 @@ export async function createNextOccurrence(itemId: number, now = new Date()): Pr
   if (!config || !deadline) return;
 
   // Atomic: only the first completion creates the next occurrence
-  const [claimed] = await db
+  const [claimed] = h
     .update(items)
     .set({ recurring: null })
     .where(and(eq(items.id, itemId), eq(items.recurring, completed.recurring)))
-    .returning({ id: items.id });
+    .returning({ id: items.id })
+    .all();
   if (!claimed) return;
 
-  await insertOccurrence({ ...completed, deadline: completed.deadline }, deadline, config, ctx);
+  insertOccurrence(h, { ...completed, deadline: completed.deadline }, deadline, config, ctx);
 }
 
 // "Move on if missed": once the next date arrives, an unfinished occurrence is closed as missed
-export async function moveOnMissedOccurrences(now = new Date()): Promise<void> {
-  const candidates = await db
+export function moveOnMissedOccurrences(h: DbHandle, now = new Date()): void {
+  const candidates = h
     .select({ item: items, itemsRules: buckets.itemsRules })
     .from(items)
     .innerJoin(buckets, eq(buckets.id, items.bucketId))
@@ -108,13 +114,14 @@ export async function moveOnMissedOccurrences(now = new Date()): Promise<void> {
         notInArray(items.status, CLOSED_ITEM_STATUSES as string[]),
         lt(items.deadline, now)
       )
-    );
+    )
+    .all();
 
   for (const { item, itemsRules } of candidates) {
     if (parseItemsRules(itemsRules).recurrenceMode !== "moveOn") continue;
     const config = parseRecurring(item.recurring);
     if (!config || !item.deadline) continue;
-    const ctx = await reminderContext(item.bucketId);
+    const ctx = reminderContext(h, item.bucketId);
     const timezone = seriesZone(item, ctx);
 
     // The latest occurrence that has already arrived becomes the current one
@@ -127,7 +134,7 @@ export async function moveOnMissedOccurrences(now = new Date()): Promise<void> {
       current = after;
     }
 
-    const [claimed] = await db
+    const [claimed] = h
       .update(items)
       .set({ status: ITEM_STATUS.missed, recurring: null, updatedAt: now })
       .where(
@@ -137,97 +144,104 @@ export async function moveOnMissedOccurrences(now = new Date()): Promise<void> {
           notInArray(items.status, CLOSED_ITEM_STATUSES as string[])
         )
       )
-      .returning({ id: items.id });
+      .returning({ id: items.id })
+      .all();
     if (!claimed) continue;
 
-    await refreshItemReminders([item.id]);
-    await insertOccurrence({ ...item, deadline: item.deadline }, current, config, ctx);
+    refreshItemReminders(h, [item.id]);
+    insertOccurrence(h, { ...item, deadline: item.deadline }, current, config, ctx);
     dataEvents.emit("refresh", item.userId);
   }
 }
 
-export async function skipOccurrence(
+export function skipOccurrence(
+  h: DbHandle,
   userId: number,
-  itemId: number,
+  itemId: ItemId,
   now = new Date()
-): Promise<ActionResult> {
-  const item = await findAccessibleItem(userId, itemId);
-  if (!item) return { ok: false, error: "Item not found" };
-  const config = parseRecurring(item.recurring);
-  if (CLOSED_ITEM_STATUSES.includes(item.status) || !item.deadline || !config?.enabled) {
-    return { ok: false, error: "Only an open repeating item with a date can be skipped" };
-  }
+): ActionResult {
+  return h.transaction((tx) => {
+    const item = findAccessibleItem(tx, userId, itemId);
+    if (!item) return { ok: false, error: "Item not found" };
+    const config = parseRecurring(item.recurring);
+    if (CLOSED_ITEM_STATUSES.includes(item.status) || !item.deadline || !config?.enabled) {
+      return { ok: false, error: "Only an open repeating item with a date can be skipped" };
+    }
 
-  const ctx = await reminderContext(item.bucketId);
-  const timezone = seriesZone(item, ctx);
-  const occurrence = { deadline: item.deadline, scheduledAt: item.scheduledAt };
-  const deadline = nextInSeries(occurrence, config, timezone, now);
-  if (!deadline) {
-    return { ok: false, error: "This is the last occurrence — complete or delete it instead" };
-  }
+    const ctx = reminderContext(tx, item.bucketId);
+    const timezone = seriesZone(item, ctx);
+    const occurrence = { deadline: item.deadline, scheduledAt: item.scheduledAt };
+    const deadline = nextInSeries(occurrence, config, timezone, now);
+    if (!deadline) {
+      return { ok: false, error: "This is the last occurrence — complete or delete it instead" };
+    }
 
-  await db
-    .update(items)
-    .set({
-      deadline,
-      deadlineTimezone: timezone,
-      scheduledAt: null,
-      recurring: JSON.stringify(withAnchor(config, seriesDate(occurrence), timezone)),
-      ...reminderResetForDeadline(
-        { ...item, notifiedAt: await lastNotifiedAt(item.id) },
+    tx.update(items)
+      .set({
         deadline,
-        ctx,
-        now,
-        timezone
-      ),
-      updatedAt: now,
-    })
-    .where(eq(items.id, itemId));
-  await refreshItemReminders([itemId]);
-  return { ok: true };
+        deadlineTimezone: timezone,
+        scheduledAt: null,
+        recurring: JSON.stringify(withAnchor(config, seriesDate(occurrence), timezone)),
+        ...reminderResetForDeadline(
+          { ...item, notifiedAt: lastNotifiedAt(tx, item.id) },
+          deadline,
+          ctx,
+          now,
+          timezone
+        ),
+        updatedAt: now,
+      })
+      .where(eq(items.id, itemId))
+      .run();
+    refreshItemReminders(tx, [itemId]);
+    return { ok: true };
+  });
 }
 
-export async function moveOccurrence(
+export function moveOccurrence(
+  h: DbHandle,
   userId: number,
-  itemId: number,
+  itemId: ItemId,
   askedDeadline: Date,
   now = new Date(),
   askedTimezone?: string
-): Promise<ActionResult<{ next: Date | null }>> {
-  const item = await findAccessibleItem(userId, itemId);
-  if (!item) return { ok: false, error: "Item not found" };
+): ActionResult<{ next: Date | null }> {
+  return h.transaction((tx) => {
+    const item = findAccessibleItem(tx, userId, itemId);
+    if (!item) return { ok: false, error: "Item not found" };
 
-  const config = parseRecurring(item.recurring);
-  const scheduled = config?.enabled && item.deadline ? (item.scheduledAt ?? item.deadline) : null;
-  const ctx = await reminderContext(item.bucketId);
-  const timezone = seriesZone(item, ctx);
-  const asked = { deadline: askedDeadline, deadlineTimezone: askedTimezone ?? timezone };
-  // Moving one occurrence keeps the series on its own clock
-  const due = scheduled ? onClock(asked, timezone) : asked;
-  const { deadline } = due;
+    const config = parseRecurring(item.recurring);
+    const scheduled = config?.enabled && item.deadline ? (item.scheduledAt ?? item.deadline) : null;
+    const ctx = reminderContext(tx, item.bucketId);
+    const timezone = seriesZone(item, ctx);
+    const asked = { deadline: askedDeadline, deadlineTimezone: askedTimezone ?? timezone };
+    // Moving one occurrence keeps the series on its own clock
+    const due = scheduled ? onClock(asked, timezone) : asked;
+    const { deadline } = due;
 
-  await db
-    .update(items)
-    .set({
-      deadline,
-      deadlineTimezone: due.deadlineTimezone,
-      scheduledAt: scheduled && scheduled.getTime() !== deadline.getTime() ? scheduled : null,
-      ...reminderResetForDeadline(
-        { ...item, notifiedAt: await lastNotifiedAt(item.id) },
+    tx.update(items)
+      .set({
         deadline,
-        ctx,
-        now,
-        due.deadlineTimezone
-      ),
-      updatedAt: now,
-    })
-    .where(eq(items.id, itemId));
-  await refreshItemReminders([itemId]);
+        deadlineTimezone: due.deadlineTimezone,
+        scheduledAt: scheduled && scheduled.getTime() !== deadline.getTime() ? scheduled : null,
+        ...reminderResetForDeadline(
+          { ...item, notifiedAt: lastNotifiedAt(tx, item.id) },
+          deadline,
+          ctx,
+          now,
+          due.deadlineTimezone
+        ),
+        updatedAt: now,
+      })
+      .where(eq(items.id, itemId))
+      .run();
+    refreshItemReminders(tx, [itemId]);
 
-  const mode = scheduled ? await recurrenceModeOf(item.bucketId) : null;
-  const next =
-    config && scheduled && mode !== "afterCompletion"
-      ? nextInSeries({ deadline, scheduledAt: scheduled }, config, timezone, now)
-      : null;
-  return { ok: true, next };
+    const mode = scheduled ? recurrenceModeOf(tx, item.bucketId) : null;
+    const next =
+      config && scheduled && mode !== "afterCompletion"
+        ? nextInSeries({ deadline, scheduledAt: scheduled }, config, timezone, now)
+        : null;
+    return { ok: true, next };
+  });
 }

@@ -15,9 +15,14 @@ type BucketsEmptyStateProps = {
 
 export function BucketsEmptyState({ hasArchived, hasTrash }: BucketsEmptyStateProps) {
   const { openCreateBucket, addItemRequest, membersRequested, clearMembersRequest } = useUIStore();
+  const markItemsLoaded = useUIStore((s) => s.markItemsLoaded);
   const handledAddRequest = useRef(addItemRequest);
   const [archivedOpen, setArchivedOpen] = useState(false);
   const [trashOpen, setTrashOpen] = useState(false);
+
+  useEffect(() => {
+    markItemsLoaded();
+  }, [markItemsLoaded]);
 
   // with no bucket yet there's nowhere to add to or share, so make one first
   useEffect(() => {
